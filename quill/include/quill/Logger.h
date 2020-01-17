@@ -9,8 +9,6 @@
 #include "quill/detail/MessageHelpers.h"
 #include "quill/detail/ThreadContextCollection.h"
 
-#include <x86intrin.h>
-
 #include <iostream> // todo:: remove me
 namespace quill
 {
@@ -99,16 +97,15 @@ public:
     }
 
     // Resolve the type of the message first
-    using message_t =
-      quill::detail::Message<typename quill::detail::resolve_tuple<FmtArgs...>::type, void, FmtArgs...>;
+    using MessageT = quill::detail::Message<FmtArgs...>;
 
     // emplace to the spsc queue owned by the ctx
     bool retry;
     do
     {
       // unlikely case if the queue gets full we will wait until we can log
-      retry = _thread_context_collection.get_local_thread_context()->spsc_queue().try_emplace<message_t>(
-        __rdtsc(), log_line_info, std::forward<FmtArgs>(fmt_args)...);
+      retry = _thread_context_collection.get_local_thread_context()->spsc_queue().try_emplace<MessageT>(
+        log_line_info, std::forward<FmtArgs>(fmt_args)...);
     } while (QUILL_UNLIKELY(!retry));
   }
 

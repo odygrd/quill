@@ -8,6 +8,8 @@ TEST(Log, basic_log)
 {
   quill::detail::LogManager lm;
 
+  lm.start_logging_worker();
+
   auto logger = lm.get_logger();
   logger->set_log_level(quill::LogLevel::TraceL3);
 
@@ -19,4 +21,6 @@ TEST(Log, basic_log)
   LOG_WARNING(logger, "test");
   LOG_ERROR(logger, "test");
   LOG_CRITICAL(logger, "test");
+
+  // std::this_thread::sleep_for(std::chrono::nanoseconds{20000});
 }

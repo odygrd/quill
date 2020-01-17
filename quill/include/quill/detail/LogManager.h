@@ -1,6 +1,7 @@
 #pragma once
 
 #include "quill/detail/LoggerCollection.h"
+#include "quill/detail/LoggingWorker.h"
 #include "quill/detail/ThreadContextCollection.h"
 
 namespace quill::detail
@@ -28,8 +29,19 @@ public:
    */
   [[nodiscard]] Logger* get_logger(std::string const& logger_name = std::string{}) const;
 
+  /**
+   * Starts the logging worker thread
+   */
+  void start_logging_worker();
+
+  /**
+   * Stops the logging worker thread
+   */
+  void stop_logging_worker();
+
 private:
   ThreadContextCollection _thread_context_collection;
   LoggerCollection _logger_collection{_thread_context_collection};
+  LoggingWorker _logging_worker{_thread_context_collection};
 };
 } // namespace quill::detail

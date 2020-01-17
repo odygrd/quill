@@ -20,10 +20,9 @@ namespace quill::detail
  */
 class ThreadContext
 {
-private:
+public:
   using SPSCQueueT = BoundedSPSCQueue<MessageBase, 33554432>;
 
-public:
   /**
    * Constructor
    */

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <string>
 #include <tuple>
 #include <type_traits>
 
@@ -12,7 +14,7 @@ namespace quill::detail
  * @tparam T
  */
 template <typename T>
-struct promoted
+struct Promoted
 {
   using type = T;
 };
@@ -22,7 +24,7 @@ struct promoted
  * @see promoted
  */
 template <>
-struct promoted<char const*>
+struct Promoted<char const*>
 {
   using type = std::string;
 };
@@ -32,7 +34,7 @@ struct promoted<char const*>
  * @see promoted
  */
 template <>
-struct promoted<char*>
+struct Promoted<char*>
 {
   using type = std::string;
 };
@@ -42,13 +44,13 @@ struct promoted<char*>
  * @tparam T
  */
 template <class T>
-struct unwrap_refwrapper
+struct UnwrapRefWrapper
 {
   using type = T;
 };
 
 template <class T>
-struct unwrap_refwrapper<std::reference_wrapper<T>>
+struct UnwrapRefWrapper<std::reference_wrapper<T>>
 {
   using type = T&;
 };
@@ -57,25 +59,6 @@ struct unwrap_refwrapper<std::reference_wrapper<T>>
  * @see promoted
  */
 template <typename T>
-using promoted_t = typename unwrap_refwrapper<typename promoted<std::decay_t<T>>::type>::type;
+using PromotedTypeT = typename UnwrapRefWrapper<typename Promoted<std::decay_t<T>>::type>::type;
 
-/**
- * Make tuple version to perfect forward to std::make_tuple promoting all char const* and char* to std::string
- */
-template <typename... ArgsT>
-[[using gnu: hot, always_inline]] inline auto make_tuple(ArgsT&&... args)
-{
-  return std::make_tuple<promoted_t<ArgsT>...>(std::forward<ArgsT>(args)...);
-}
-
-/**
- * This struct is used to give the the type of the tuple we would get from make_tuple
- * Resolve the type of the tuple we will get from make_tuple
- * @tparam ArgsT
- */
-template <typename... ArgsT>
-struct resolve_tuple
-{
-  using type = std::tuple<promoted_t<ArgsT>...>;
-};
 } // namespace quill::detail

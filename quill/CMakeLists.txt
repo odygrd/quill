@@ -5,6 +5,7 @@ set(TARGET_NAME quill)
 set(HEADER_FILES
         include/quill/detail/BoundedSPSCQueue.h
         include/quill/detail/LoggerCollection.h
+        include/quill/detail/LoggingWorker.h
         include/quill/detail/LogLineInfo.h
         include/quill/detail/LogManager.h
         include/quill/detail/Macros.h
@@ -21,6 +22,7 @@ set(HEADER_FILES
 # source files
 set(SOURCE_FILES
         src/detail/LoggerCollection.cpp
+        src/detail/LoggingWorker.cpp
         src/detail/LogManager.cpp
         src/detail/ThreadContextCollection.cpp
         src/detail/Utilities.cpp
