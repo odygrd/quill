@@ -84,8 +84,8 @@ private:
 
 private:
   static constexpr std::array<char const*, 9> log_levels_strings = {
-    {"LOG_TRACE_L3", "LOG_TRACE_L2", "LOG_TRACE_L1", "LOG_DEBUG", "LOG_INFO", "LOG_WARNING",
-     "LOG_ERROR", "LOG_CRITICAL", "LOG_NONE"}};
+    {"LOG_TRACE_L3", "LOG_TRACE_L2", "LOG_TRACE_L1", "LOG_DEBUG   ", "LOG_INFO    ", "LOG_WARNING ",
+     "LOG_ERROR   ", "LOG_CRITICAL", "LOG_NONE"}};
 
   char const* _function;
   char const* _file_name;

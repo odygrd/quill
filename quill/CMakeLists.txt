@@ -1,19 +1,26 @@
+add_subdirectory(bundled)
+
 # library name
 set(TARGET_NAME quill)
 
 # header files
 set(HEADER_FILES
+        include/quill/detail/message/CommandMessage.h
+        include/quill/detail/message/LogMessage.h
+        include/quill/detail/message/LogMessageHelpers.h
+        include/quill/detail/message/MessageBase.h
         include/quill/detail/BoundedSPSCQueue.h
         include/quill/detail/LoggerCollection.h
+        include/quill/detail/LoggerDetails.h
         include/quill/detail/LoggingWorker.h
         include/quill/detail/LogLineInfo.h
         include/quill/detail/LogManager.h
         include/quill/detail/Macros.h
-        include/quill/detail/Message.h
-        include/quill/detail/MessageHelpers.h
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
         include/quill/detail/Utilities.h
+        include/quill/sinks/SinkBase.h
+        include/quill/sinks/StdoutSink.h
         include/quill/Logger.h
         include/quill/LogLevel.h
         include/quill/LogMacros.h
@@ -26,6 +33,7 @@ set(SOURCE_FILES
         src/detail/LogManager.cpp
         src/detail/ThreadContextCollection.cpp
         src/detail/Utilities.cpp
+        src/sinks/StdoutSink.cpp
         src/LogLevel.cpp
         )
 
@@ -47,7 +55,7 @@ target_include_directories(${TARGET_NAME}
 target_compile_options(${TARGET_NAME} PRIVATE ${DEFAULT_COPTS})
 
 # Link dependencies
-# target_link_libraries(${TARGET_NAME} PUBLIC fmt)
+target_link_libraries(${TARGET_NAME} PUBLIC fmt)
 
 # Do not decay cxx standard if not specified
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)

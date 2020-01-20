@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #include "quill/detail/BoundedSPSCQueue.h"
-#include "quill/detail/Message.h"
+#include "quill/detail/message/MessageBase.h"
 
 namespace quill::detail
 {
@@ -21,7 +21,7 @@ namespace quill::detail
 class ThreadContext
 {
 public:
-  using SPSCQueueT = BoundedSPSCQueue<MessageBase, 33554432>;
+  using SPSCQueueT = BoundedSPSCQueue<MessageBase, 33554432>; // todo: move size to config
 
   /**
    * Constructor

@@ -90,15 +90,16 @@ public:
 
   /**
    * Remove a thread context from our thread context collection
-   * Called by the logging thread
+   * Only to be called by the logging thread when a context is invalidated.
    * @param thread_context
    */
-  void remove_thread_context(ThreadContext* thread_context);
+  void backend_remove_thread_context(ThreadContext* thread_context);
 
   /**
+   * Only to be called by the logging thread
    * @return All current owned thread contexts
    */
-  std::vector<ThreadContext*> const& get_cached_thread_contexts();
+  std::vector<ThreadContext*> const& backend_thread_contexts_cache();
 
 private:
   /**

@@ -5,11 +5,11 @@
 
 #include "quill/LogLevel.h"
 #include "quill/detail/LogLineInfo.h"
-#include "quill/detail/Message.h"
-#include "quill/detail/MessageHelpers.h"
+#include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/message/LogMessage.h"
+#include "quill/sinks/SinkBase.h"
 
-#include <iostream> // todo:: remove me
 namespace quill
 {
 
@@ -30,11 +30,6 @@ public:
    */
   Logger(Logger const&) = delete;
   Logger& operator=(Logger const&) = delete;
-
-  /**
-   * @return The name of the logger
-   */
-  [[nodiscard]] uint16_t id() const noexcept { return _id; }
 
   /**
    * @return The log level of the logger
@@ -97,15 +92,15 @@ public:
     }
 
     // Resolve the type of the message first
-    using MessageT = quill::detail::Message<FmtArgs...>;
+    using LogMessageT = quill::detail::LogMessage<FmtArgs...>;
 
     // emplace to the spsc queue owned by the ctx
     bool retry;
     do
     {
       // unlikely case if the queue gets full we will wait until we can log
-      retry = _thread_context_collection.get_local_thread_context()->spsc_queue().try_emplace<MessageT>(
-        log_line_info, std::forward<FmtArgs>(fmt_args)...);
+      retry = _thread_context_collection.get_local_thread_context()->spsc_queue().try_emplace<LogMessageT>(
+        log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
     } while (QUILL_UNLIKELY(!retry));
   }
 
@@ -119,14 +114,14 @@ private:
    * @param logger_id A unique id per logger
    * @param log_level The log level of the logger
    */
-  Logger(detail::ThreadContextCollection& thread_context_collection, uint16_t logger_id)
-    : _thread_context_collection(thread_context_collection), _id{logger_id}
+  Logger(std::string name, std::unique_ptr<detail::SinkBase> sink, detail::ThreadContextCollection& thread_context_collection)
+    : _logger_details(std::move(name), std::move(sink)), _thread_context_collection(thread_context_collection)
   {
   }
 
 private:
+  detail::LoggerDetails _logger_details;
   detail::ThreadContextCollection& _thread_context_collection;
   std::atomic<LogLevel> _log_level{LogLevel::Info};
-  uint16_t _id;
 };
 } // namespace quill

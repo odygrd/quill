@@ -14,13 +14,13 @@ TEST(Log, basic_log)
   logger->set_log_level(quill::LogLevel::TraceL3);
 
   LOG_TRACE_L3(logger, "test");
-  LOG_TRACE_L2(logger, "test", 1);
-  LOG_TRACE_L1(logger, "test", 1, 2);
-  LOG_DEBUG(logger, "test 123", 1, 2, 3);
-  LOG_INFO(logger, "test", 1, 2, 3, 4);
-  LOG_WARNING(logger, "test");
-  LOG_ERROR(logger, "test");
+  LOG_TRACE_L2(logger, "test {}", 1);
+  LOG_TRACE_L1(logger, "test {} {}", 1, 2);
+  LOG_DEBUG(logger, "test a {} b {}  c {}", 1, 2, 3);
+  LOG_INFO(logger, "test a {} b {} c {} d {}", 1, 2, 3, 4);
+  LOG_WARNING(logger, "test {}", "lol");
+  LOG_ERROR(logger, "test {}", 122.3);
   LOG_CRITICAL(logger, "test");
 
-  // std::this_thread::sleep_for(std::chrono::nanoseconds{20000});
+  std::this_thread::sleep_for(std::chrono::seconds{2});
 }

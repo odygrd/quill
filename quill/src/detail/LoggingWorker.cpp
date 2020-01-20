@@ -2,14 +2,13 @@
 
 #include <vector>
 
-#include "quill/detail/Message.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/message/MessageBase.h"
 
 #include <iostream> // todo:: remove me
 namespace quill::detail
 {
-
 /***/
 LoggingWorker::LoggingWorker(ThreadContextCollection& thread_context_collection)
   : _thread_context_collection(thread_context_collection)
@@ -59,7 +58,7 @@ void LoggingWorker::_main_loop()
 {
   // load all contexts locally in case any new ThreadContext (new thread) was added
   std::vector<ThreadContext*> const& cached_thead_contexts =
-    _thread_context_collection.get_cached_thread_contexts();
+    _thread_context_collection.backend_thread_contexts_cache();
 
   _check_for_messages(cached_thead_contexts);
 }
@@ -115,7 +114,7 @@ void LoggingWorker::_check_for_messages(std::vector<ThreadContext*> const& threa
   }
 
   // TODO:: add sink collection class and pass it to process
-  min_rdtsc_message_handle.data()->process(min_rdtsc_thread_id);
+  min_rdtsc_message_handle.data()->backend_process(min_rdtsc_thread_id);
 }
 
 } // namespace quill::detail

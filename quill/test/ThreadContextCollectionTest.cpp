@@ -22,7 +22,7 @@ TEST(ThreadContextCollection, add_remove_thread_context)
 
     // Get all thread contexts from the thread context collection
     std::vector<ThreadContext*> const& cached_thread_contexts =
-      thread_context_collection.get_cached_thread_contexts();
+      thread_context_collection.backend_thread_contexts_cache();
 
     EXPECT_EQ(cached_thread_contexts.size(), 1);
   }
@@ -33,11 +33,11 @@ TEST(ThreadContextCollection, add_remove_thread_context)
   EXPECT_EQ(thread_context->is_valid(), false);
 
   // remove it
-  thread_context_collection.remove_thread_context(thread_context);
+  thread_context_collection.backend_remove_thread_context(thread_context);
 
   // Get all thread contexts from the thread context collection
   std::vector<ThreadContext*> const& cached_thread_contexts =
-    thread_context_collection.get_cached_thread_contexts();
+    thread_context_collection.backend_thread_contexts_cache();
 
   EXPECT_TRUE(cached_thread_contexts.empty());
 }
@@ -75,14 +75,15 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded)
     while (threads_started.load() < num_threads)
     {
       // loop until all threads start but all call get cached contexts many times
-      [[maybe_unused]] auto& cached_thread_contexts = thread_context_collection.get_cached_thread_contexts();
+      [[maybe_unused]] auto& cached_thread_contexts =
+        thread_context_collection.backend_thread_contexts_cache();
     }
 
     // Check we have exactly as many thread contexts as the amount of threads
-    EXPECT_EQ(thread_context_collection.get_cached_thread_contexts().size(), num_threads);
+    EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
 
     // Check all thread contexts
-    for (auto& thread_context : thread_context_collection.get_cached_thread_contexts())
+    for (auto& thread_context : thread_context_collection.backend_thread_contexts_cache())
     {
       EXPECT_TRUE(thread_context->is_valid());
       EXPECT_TRUE(thread_context->spsc_queue().empty());
@@ -96,15 +97,15 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded)
     }
 
     // Now check all thread contexts still exist but they are invalided and then remove them
-    for (auto* thread_context : thread_context_collection.get_cached_thread_contexts())
+    for (auto* thread_context : thread_context_collection.backend_thread_contexts_cache())
     {
       EXPECT_FALSE(thread_context->is_valid());
       EXPECT_TRUE(thread_context->spsc_queue().empty());
 
-      thread_context_collection.remove_thread_context(thread_context);
+      thread_context_collection.backend_remove_thread_context(thread_context);
     }
 
     // Check there is no thread context left
-    EXPECT_EQ(thread_context_collection.get_cached_thread_contexts().size(), 0);
+    EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
   }
 }

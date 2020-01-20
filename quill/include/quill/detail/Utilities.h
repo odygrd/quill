@@ -1,10 +1,11 @@
 #pragma once
 
+#include <cerrno>
 #include <cstdint>
+#include <cstdio>
 
 namespace quill::detail
 {
-
 static constexpr uint32_t CACHELINE_SIZE{64};
 
 /**
@@ -23,5 +24,14 @@ static constexpr uint32_t CACHELINE_SIZE{64};
  * @return
  */
 [[nodiscard]] uint32_t get_thread_id() noexcept;
+
+/**
+ * Simple wrapper around fwrite, throws on error
+ * @param ptr
+ * @param size
+ * @param count
+ * @param stream
+ */
+void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream);
 
 } // namespace quill::detail
