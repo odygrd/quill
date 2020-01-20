@@ -16,7 +16,7 @@ TEST(Log, basic_log)
   LOG_TRACE_L3(logger, "test");
   LOG_TRACE_L2(logger, "test {}", 1);
   LOG_TRACE_L1(logger, "test {} {}", 1, 2);
-  LOG_DEBUG(logger, "test a {} b {}  c {}", 1, 2, 3);
+  LOG_DEBUG(logger, "test a {2} b {1}  c {0}", 1, 2, 3);
   LOG_INFO(logger, "test a {} b {} c {} d {}", 1, 2, 3, 4);
   LOG_WARNING(logger, "test {}", "lol");
   LOG_ERROR(logger, "test {}", 122.3);

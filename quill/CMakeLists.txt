@@ -10,6 +10,7 @@ set(HEADER_FILES
         include/quill/detail/message/LogMessageHelpers.h
         include/quill/detail/message/MessageBase.h
         include/quill/detail/BoundedSPSCQueue.h
+        include/quill/detail/Formatter.h
         include/quill/detail/LoggerCollection.h
         include/quill/detail/LoggerDetails.h
         include/quill/detail/LoggingWorker.h

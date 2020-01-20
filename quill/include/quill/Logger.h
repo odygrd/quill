@@ -98,9 +98,9 @@ public:
     bool retry;
     do
     {
-      // unlikely case if the queue gets full we will wait until we can log
       retry = _thread_context_collection.get_local_thread_context()->spsc_queue().try_emplace<LogMessageT>(
         log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
+      // unlikely case if the queue gets full we will wait until we can log
     } while (QUILL_UNLIKELY(!retry));
   }
 

@@ -36,16 +36,21 @@ public:
                             LogLineInfo const& logline_info,
                             Args const&... args) const
   {
+    fmt::memory_buffer formatted_buffer;
+
     // TODO: default logger format - make this configurable
-    std::string const default_format_str = "{} [{}] {}:{} {} {} - ";
+    static constexpr char const* logger_format = "{} [{}] {}:{} {} {} - ";
+    // Format all logger information first
+    fmt::format_to(formatted_buffer, logger_format, timestamp, thread_id, logline_info.file_name(),
+                   logline_info.line(), logline_info.log_level_str(), logger_name);
 
-    std::string const fmt = default_format_str + std::string{logline_info.format()} + "\n";
+    // Format the user requested string
+    fmt::format_to(formatted_buffer, logline_info.format(), args...);
 
-    fmt::memory_buffer mem_buffer;
-    fmt::format_to(mem_buffer, fmt.data(), timestamp, thread_id, logline_info.file_name(),
-                   logline_info.line(), logline_info.log_level_str(), logger_name, args...);
+    // Append a new line
+    formatted_buffer.push_back('\n');
 
-    return mem_buffer;
+    return formatted_buffer;
   }
 };
 } // namespace quill::detail
