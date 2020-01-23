@@ -8,6 +8,7 @@ set(SOURCE_FILES
         #        LogLineInfoTest.cpp
         LogTest.cpp
         #        MessageTest.cpp
+        #PatternFormatterTest.cpp
         #        TestMain.cpp
         #        ThreadContextCollectionTest.cpp
         )

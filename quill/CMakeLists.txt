@@ -10,7 +10,8 @@ set(HEADER_FILES
         include/quill/detail/message/LogMessageHelpers.h
         include/quill/detail/message/MessageBase.h
         include/quill/detail/BoundedSPSCQueue.h
-        include/quill/detail/Formatter.h
+        include/quill/detail/PatternFormatter.h
+        include/quill/detail/PatternFormatterHelper.h
         include/quill/detail/LoggerCollection.h
         include/quill/detail/LoggerDetails.h
         include/quill/detail/LoggingWorker.h
@@ -32,6 +33,7 @@ set(SOURCE_FILES
         src/detail/LoggerCollection.cpp
         src/detail/LoggingWorker.cpp
         src/detail/LogManager.cpp
+        src/detail/PatternFormatter.cpp
         src/detail/ThreadContextCollection.cpp
         src/detail/Utilities.cpp
         src/sinks/StdoutSink.cpp
