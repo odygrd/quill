@@ -1,8 +1,8 @@
 #pragma once
 
 #include "fmt/format.h"
-#include "quill/detail/Formatter.h"
 #include "quill/detail/LogLineInfo.h"
+#include "quill/detail/PatternFormatter.h"
 #include "quill/detail/message/MessageBase.h"
 
 namespace quill::detail
@@ -16,8 +16,18 @@ class SinkBase
 public:
   /**
    * Constructor
+   * Uses the default pattern formatter
    */
   SinkBase() = default;
+
+  /**
+   * Constructor
+   * Uses a custom formatter
+   * @tparam TConstantString
+   * @param format_pattern
+   */
+  template <typename TConstantString>
+  explicit SinkBase(TConstantString format_pattern) : _formatter(format_pattern){};
 
   /**
    * Deleted
@@ -32,17 +42,19 @@ public:
 
   /**
    * Returns the owned formatter by the sink
+   * @note: Accessor for backend processing
    * @return
    */
-  detail::Formatter const& formatter() { return _formatter; }
+  detail::PatternFormatter& formatter() { return _formatter; }
 
   /**
    * Logs the formatted message to the sink
+   * @note: Accessor for backend processing
    * @param formatted_line
    */
   virtual void log(fmt::memory_buffer const& formatted_line) = 0;
 
 private:
-  detail::Formatter _formatter; /**< Owned formatter of for this sink */
+  detail::PatternFormatter _formatter; /**< Owned formatter for this sink */
 };
 } // namespace quill::detail

@@ -62,4 +62,28 @@ private:
   mutable std::recursive_mutex _mutex; /**< Thread safe access to logger map */
   mutable std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
 };
+
+/** Inline Implementation **/
+
+/***/
+template <typename TSink, typename... TSinkArgs>
+Logger* LoggerCollection::create_logger(std::string const& logger_name, TSinkArgs&&... sink_args)
+{
+  assert(!logger_name.empty() && "Trying to add a logger with an empty name is not possible");
+
+  std::unique_ptr<SinkBase> sink = std::make_unique<TSink>(std::forward<TSinkArgs>(sink_args)...);
+
+  // We can't use make_unique since the constructor is private
+  std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(sink), _thread_context_collection)};
+
+  std::scoped_lock lock{_mutex};
+
+  auto [elem_it, inserted] = _logger_name_map.try_emplace(logger_name, std::move(logger));
+
+  assert(inserted && "inserted can not be false");
+
+  // Return the inserted logger
+  return elem_it->second.get();
+}
+
 } // namespace quill::detail

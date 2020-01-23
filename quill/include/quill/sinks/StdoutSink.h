@@ -9,9 +9,9 @@ class StdoutSink : public SinkBase
 {
 public:
   /**
-   * Constructor
+   * Using SinkBase constructors
    */
-  StdoutSink() = default;
+  using SinkBase::SinkBase;
 
   /**
    * Destructor

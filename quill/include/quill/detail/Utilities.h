@@ -20,6 +20,13 @@ static constexpr uint32_t CACHELINE_SIZE{64};
 }
 
 /**
+ * Constexpr string length
+ * @param str
+ * @return
+ */
+[[nodiscard]] constexpr size_t strlen(char const* str) { return *str ? 1 + strlen(str + 1) : 0; }
+
+/**
  * Returns the os assigned id of the thread
  * @return
  */

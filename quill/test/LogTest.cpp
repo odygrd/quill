@@ -1,5 +1,6 @@
 #include "quill/LogMacros.h"
 #include "quill/detail/LogManager.h"
+#include "quill/sinks/StdoutSink.h"
 
 #include <gtest/gtest.h>
 
@@ -10,7 +11,10 @@ TEST(Log, basic_log)
 
   lm.start_logging_worker();
 
-  auto logger = lm.get_logger();
+  auto logger = lm.create_logger<quill::detail::StdoutSink>(
+    "my_logger", QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message) [%(function_name)]"));
+
+  //  auto logger = lm.get_logger();
   logger->set_log_level(quill::LogLevel::TraceL3);
 
   LOG_TRACE_L3(logger, "test");
