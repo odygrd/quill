@@ -2,6 +2,43 @@
 
 namespace quill::detail
 {
+
+/***/
+PatternFormatter::PatternFormatter(PatternFormatter const& other)
+  : _pattern_formatter_helper_part_1(other._pattern_formatter_helper_part_1->clone()),
+    _pattern_formatter_helper_part_3(other._pattern_formatter_helper_part_3->clone())
+{
+}
+
+/***/
+PatternFormatter::PatternFormatter(PatternFormatter&& other) noexcept
+  : _pattern_formatter_helper_part_1(std::move(other._pattern_formatter_helper_part_1)),
+    _pattern_formatter_helper_part_3(std::move(other._pattern_formatter_helper_part_3))
+{
+}
+
+/***/
+PatternFormatter& PatternFormatter::operator=(PatternFormatter const& other)
+{
+  if (this != &other)
+  {
+    _pattern_formatter_helper_part_1.reset(other._pattern_formatter_helper_part_1->clone());
+    _pattern_formatter_helper_part_3.reset(other._pattern_formatter_helper_part_3->clone());
+  }
+  return *this;
+}
+
+/***/
+PatternFormatter& PatternFormatter::operator=(PatternFormatter&& other) noexcept
+{
+  if (this != &other)
+  {
+    _pattern_formatter_helper_part_1 = std::move(other._pattern_formatter_helper_part_1);
+    _pattern_formatter_helper_part_3 = std::move(other._pattern_formatter_helper_part_3);
+  }
+  return *this;
+}
+
 /***/
 std::vector<PatternFormatter::argument_callback_t> PatternFormatter::_generate_vector_of_callbacks(std::string const& pattern)
 {

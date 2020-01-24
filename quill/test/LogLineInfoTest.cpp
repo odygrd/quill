@@ -23,6 +23,6 @@ TEST(LogLineInfo, construct)
     EXPECT_EQ(log_line_info.log_level(), quill::LogLevel::Info);
     EXPECT_EQ(log_line_info.line(), 19u);
     EXPECT_STREQ(log_line_info.file_name(), "LogLineInfoTest.cpp");
-    EXPECT_STREQ(log_line_info.log_level_str(), "LOG_INFO");
+    EXPECT_STREQ(log_line_info.log_level_str(), "LOG_INFO    ");
   }
 }

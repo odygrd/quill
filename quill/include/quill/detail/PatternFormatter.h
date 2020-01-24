@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -61,6 +62,8 @@ private:
     FormatterHelperBase() = default;
     virtual ~FormatterHelperBase() = default;
 
+    [[nodiscard]] virtual FormatterHelperBase* clone() const = 0;
+
     /**
      * Appends information to memory_buffer based on the preconfigured pattern
      * @param[out] memory_buffer the memory buffer to write
@@ -88,6 +91,8 @@ private:
       : _tuple_of_callbacks(tuple_of_callbacks), _fmt_pattern(std::move(fmt_pattern)){};
 
     ~FormatterHelper() override = default;
+
+    [[nodiscard]] FormatterHelper* clone() const override { return new FormatterHelper{*this}; }
 
     /**
      * @see FormatterHelper::format
@@ -141,10 +146,30 @@ public:
   }
 
   /**
-   * Deleted
+   * Copy Constructor
+   * @param other
    */
-  PatternFormatter(PatternFormatter const&) = delete;
-  PatternFormatter& operator=(PatternFormatter const&) = delete;
+  PatternFormatter(PatternFormatter const& other);
+
+  /**
+   * Move assignment operator
+   * @param other
+   */
+  PatternFormatter(PatternFormatter&& other) noexcept;
+
+  /**
+   * Copy assignment operator
+   * @param other
+   * @return
+   */
+  PatternFormatter& operator=(PatternFormatter const& other);
+
+  /**
+   * Move assignment operator
+   * @param other
+   * @return
+   */
+  PatternFormatter& operator=(PatternFormatter&& other) noexcept;
 
   /**
    * Destructor

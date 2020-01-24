@@ -45,7 +45,7 @@ public:
    * @note: Accessor for backend processing
    * @return
    */
-  detail::PatternFormatter& formatter() { return _formatter; }
+  detail::PatternFormatter const& formatter() { return _formatter; }
 
   /**
    * Logs the formatted message to the sink

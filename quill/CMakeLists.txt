@@ -11,7 +11,6 @@ set(HEADER_FILES
         include/quill/detail/message/MessageBase.h
         include/quill/detail/BoundedSPSCQueue.h
         include/quill/detail/PatternFormatter.h
-        include/quill/detail/PatternFormatterHelper.h
         include/quill/detail/LoggerCollection.h
         include/quill/detail/LoggerDetails.h
         include/quill/detail/LoggingWorker.h
