@@ -25,6 +25,7 @@ set(HEADER_FILES
         include/quill/Logger.h
         include/quill/LogLevel.h
         include/quill/LogMacros.h
+        include/quill/LogUtilities.h
         )
 
 # source files
@@ -37,6 +38,7 @@ set(SOURCE_FILES
         src/detail/Utilities.cpp
         src/sinks/StdoutSink.cpp
         src/LogLevel.cpp
+        src/LogUtilities.cpp
         )
 
 # Add this as a library

@@ -5,8 +5,10 @@ namespace quill::detail
 
 /***/
 PatternFormatter::PatternFormatter(PatternFormatter const& other)
-  : _pattern_formatter_helper_part_1(other._pattern_formatter_helper_part_1->clone()),
-    _pattern_formatter_helper_part_3(other._pattern_formatter_helper_part_3->clone())
+  : _pattern_formatter_helper_part_1(
+      other._pattern_formatter_helper_part_1 ? other._pattern_formatter_helper_part_1->clone() : nullptr),
+    _pattern_formatter_helper_part_3(
+      other._pattern_formatter_helper_part_3 ? other._pattern_formatter_helper_part_3->clone() : nullptr)
 {
 }
 
@@ -22,8 +24,10 @@ PatternFormatter& PatternFormatter::operator=(PatternFormatter const& other)
 {
   if (this != &other)
   {
-    _pattern_formatter_helper_part_1.reset(other._pattern_formatter_helper_part_1->clone());
-    _pattern_formatter_helper_part_3.reset(other._pattern_formatter_helper_part_3->clone());
+    _pattern_formatter_helper_part_1.reset(
+      other._pattern_formatter_helper_part_1 ? other._pattern_formatter_helper_part_1->clone() : nullptr);
+    _pattern_formatter_helper_part_3.reset(
+      other._pattern_formatter_helper_part_3 ? other._pattern_formatter_helper_part_3->clone() : nullptr);
   }
   return *this;
 }

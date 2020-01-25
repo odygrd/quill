@@ -13,7 +13,8 @@ TEST(LoggerCollection, same_logger)
   ThreadContextCollection tc;
   LoggerCollection logger_collection{tc};
 
-  Logger* logger_1 = logger_collection.create_logger<StdoutSink>("logger_1");
+  std::unique_ptr<SinkBase> sink = std::make_unique<StdoutSink>();
+  Logger* logger_1 = logger_collection.create_logger("logger_1", std::move(sink));
   EXPECT_EQ(logger_1->log_level(), LogLevel::Info);
 
   // change existing log level
@@ -30,14 +31,15 @@ TEST(LoggerCollection, different_loggers)
   ThreadContextCollection tc;
   LoggerCollection logger_collection{tc};
 
-  Logger* logger_1 = logger_collection.create_logger<StdoutSink>("logger_1");
+  Logger* logger_1 = logger_collection.create_logger("logger_1", std::make_unique<StdoutSink>());
   EXPECT_EQ(logger_1->log_level(), LogLevel::Info);
 
   // change existing log level
   logger_1->set_log_level(LogLevel::TraceL2);
 
   // try to get a new logger with a default log level
-  [[maybe_unused]] Logger* logger_2 = logger_collection.create_logger<StdoutSink>("logger_2");
+  [[maybe_unused]] Logger* logger_2 =
+    logger_collection.create_logger("logger_2", std::make_unique<StdoutSink>());
   Logger* logger_3 = logger_collection.get_logger("logger_2");
   EXPECT_EQ(logger_3->log_level(), LogLevel::Info);
 }
@@ -71,4 +73,14 @@ TEST(LoggerCollection, default_logger)
   // Get the default logger by name
   Logger* default_logger_3 = logger_collection.get_logger("root");
   EXPECT_EQ(default_logger_3->log_level(), LogLevel::TraceL2);
+}
+
+/***/
+TEST(LoggerCollection, create_logger_from_default_logger)
+{
+  ThreadContextCollection tc;
+  LoggerCollection logger_collection{tc};
+
+  Logger* default_logger = logger_collection.create_logger("logger_test");
+  EXPECT_EQ(default_logger->log_level(), LogLevel::Info);
 }

@@ -11,7 +11,8 @@ TEST(Logger, logger_can_log)
 {
   ThreadContextCollection tc;
   LoggerCollection logger_collection{tc};
-  [[maybe_unused]] Logger* logger_1 = logger_collection.create_logger<StdoutSink>("logger_1");
+  [[maybe_unused]] Logger* logger_1 =
+    logger_collection.create_logger("logger_1", std::make_unique<StdoutSink>());
 
   {
     LogLevel log_statement_level{LogLevel::Debug};

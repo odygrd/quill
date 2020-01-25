@@ -21,6 +21,12 @@ public:
   SinkBase() = default;
 
   /**
+   * Clone
+   * @return
+   */
+  [[nodiscard]] virtual SinkBase* clone() const = 0;
+
+  /**
    * Constructor
    * Uses a custom formatter
    * @tparam TConstantString
@@ -30,10 +36,40 @@ public:
   explicit SinkBase(TConstantString format_pattern) : _formatter(format_pattern){};
 
   /**
-   * Deleted
+   * Copy Constructor
    */
-  SinkBase(SinkBase const&) = delete;
-  SinkBase& operator=(SinkBase const&) = delete;
+  SinkBase(SinkBase const& other) : _formatter(other._formatter){};
+
+  /**
+   * Move Constructor
+   */
+  SinkBase(SinkBase&& other) noexcept : _formatter(std::move(other._formatter)){};
+
+  /**
+   * Copy Assignment
+   * @return
+   */
+  SinkBase& operator=(SinkBase const& other)
+  {
+    if (this != &other)
+    {
+      _formatter = other._formatter;
+    }
+    return *this;
+  }
+
+  /**
+   * Move Assignment
+   * @return
+   */
+  SinkBase& operator=(SinkBase&& other) noexcept
+  {
+    if (this != &other)
+    {
+      _formatter = std::move(other._formatter);
+    }
+    return *this;
+  }
 
   /**
    * Destructor

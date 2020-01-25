@@ -20,7 +20,8 @@ LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_colle
   _logger_name_map.reserve(4);
 
   // Add the default logger to Stdout sink
-  _default_logger = create_logger<StdoutSink>(_default_logger_name);
+  std::unique_ptr<SinkBase> stdout_sink = std::make_unique<StdoutSink>();
+  _default_logger = create_logger(_default_logger_name, std::move(stdout_sink));
 }
 
 /***/
@@ -44,6 +45,43 @@ Logger* LoggerCollection::get_logger(std::string const& logger_name /* = std::st
   {
     return _default_logger;
   }
+}
+
+/***/
+Logger* LoggerCollection::create_logger(std::string const& logger_name)
+{
+  // default logger is always using only one sink
+  std::unique_ptr<SinkBase> sink{_default_logger->_logger_details.sinks()[0]->clone()};
+
+  // We can't use make_unique since the constructor is private
+  std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(sink), _thread_context_collection)};
+
+  std::scoped_lock lock{_mutex};
+
+  auto [elem_it, inserted] = _logger_name_map.try_emplace(logger_name, std::move(logger));
+
+  assert(inserted && "inserted can not be false");
+
+  // Return the inserted logger
+  return elem_it->second.get();
+}
+
+/***/
+Logger* LoggerCollection::create_logger(std::string const& logger_name, std::unique_ptr<detail::SinkBase> sink)
+{
+  assert(!logger_name.empty() && "Trying to add a logger with an empty name is not possible");
+
+  // We can't use make_unique since the constructor is private
+  std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(sink), _thread_context_collection)};
+
+  std::scoped_lock lock{_mutex};
+
+  auto [elem_it, inserted] = _logger_name_map.try_emplace(logger_name, std::move(logger));
+
+  assert(inserted && "inserted can not be false");
+
+  // Return the inserted logger
+  return elem_it->second.get();
 }
 
 } // namespace quill::detail

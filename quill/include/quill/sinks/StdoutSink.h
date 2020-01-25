@@ -13,6 +13,8 @@ public:
    */
   using SinkBase::SinkBase;
 
+  [[nodiscard]] StdoutSink* clone() const override;
+
   /**
    * Destructor
    * @param formatted_line

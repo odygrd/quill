@@ -4,6 +4,10 @@
 
 namespace quill::detail
 {
+
+/***/
+StdoutSink* StdoutSink::clone() const { return new StdoutSink{*this}; }
+
 /***/
 void StdoutSink::log(fmt::memory_buffer const& formatted_line)
 {

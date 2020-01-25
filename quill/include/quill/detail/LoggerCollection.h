@@ -41,6 +41,13 @@ public:
   [[nodiscard]] Logger* get_logger(std::string const& logger_name = std::string{}) const;
 
   /**
+   * Create a new logger using the same sink and formatter as the default logger
+   * @param logger_name
+   * @return
+   */
+  [[nodiscard]] Logger* create_logger(std::string const& logger_name);
+
+  /**
    * Creates a new logger
    * @tparam TSink The type of the sink of this ogger
    * @tparam TSinkArgs
@@ -48,8 +55,7 @@ public:
    * @param sink_args Sink constructor arguments
    * @return
    */
-  template <typename TSink, typename... TSinkArgs>
-  [[nodiscard]] Logger* create_logger(std::string const& logger_name, TSinkArgs&&... sink_args);
+  [[nodiscard]] Logger* create_logger(std::string const& logger_name, std::unique_ptr<detail::SinkBase> sink);
 
 private:
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */
@@ -62,28 +68,5 @@ private:
   mutable std::recursive_mutex _mutex; /**< Thread safe access to logger map */
   mutable std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
 };
-
-/** Inline Implementation **/
-
-/***/
-template <typename TSink, typename... TSinkArgs>
-Logger* LoggerCollection::create_logger(std::string const& logger_name, TSinkArgs&&... sink_args)
-{
-  assert(!logger_name.empty() && "Trying to add a logger with an empty name is not possible");
-
-  std::unique_ptr<SinkBase> sink = std::make_unique<TSink>(std::forward<TSinkArgs>(sink_args)...);
-
-  // We can't use make_unique since the constructor is private
-  std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(sink), _thread_context_collection)};
-
-  std::scoped_lock lock{_mutex};
-
-  auto [elem_it, inserted] = _logger_name_map.try_emplace(logger_name, std::move(logger));
-
-  assert(inserted && "inserted can not be false");
-
-  // Return the inserted logger
-  return elem_it->second.get();
-}
 
 } // namespace quill::detail
