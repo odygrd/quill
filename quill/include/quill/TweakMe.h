@@ -4,7 +4,7 @@
  * Edit this file to squeeze more performance, or to customise supported
  * features that are enabled/disabled in compile time
  *
- * All the values below can either be passed as compiler flags or uncommented here
+ * All the values below can either be passed as compiler flags or get uncommented here
  *
  * HINT:
  * It is better passing those flags using CMake or during compilation instead of uncommenting them
@@ -38,8 +38,10 @@
 
 /**
  * Completely compiles out log level with zero cost.
+ *
  * Macros like LOG_TRACE_L3(..), LOG_TRACE_L2(..) will expand to empty statements
- * This helps reducing the number of branches in your compiled code
+ * This helps reducing the number of branches in your compiled code and the number of
+ * StaticLogRecordInfo constexpr instances created in compile time
  *
  * The default value is QUILL_LOG_LEVEL_TRACE_L3
  *
