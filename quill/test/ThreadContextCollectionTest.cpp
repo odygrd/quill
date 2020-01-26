@@ -6,52 +6,21 @@
 using namespace quill::detail;
 
 /***/
-TEST(ThreadContextCollection, add_remove_thread_context)
+TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_threads_to_join)
 {
+  // 1) Test that every time a new thread context is added to the thread context shared collection
+  // and to the thread context cache when a new thread spawns and we load the cache
+  // 2) Test that the thread context is invalidated when the thread that created it completes
+  // 3) Test that the thread context cache is updated correctly and the contexts are removed from
+  // the cache when the threads complete
+
+  // run the test multiple times to create many thread contexts for the same thread context collection
   ThreadContextCollection thread_context_collection;
 
-  // Try to get the context of the same thread many times and check nothing has changed
-  constexpr uint32_t tries = 3;
-  for (int i = 0; i < tries; ++i)
-  {
-    // Get this thread context
-    auto* thread_context = thread_context_collection.get_local_thread_context();
-
-    EXPECT_EQ(thread_context->is_valid(), true);
-    EXPECT_EQ(thread_context->spsc_queue().empty(), true);
-
-    // Get all thread contexts from the thread context collection
-    std::vector<ThreadContext*> const& cached_thread_contexts =
-      thread_context_collection.backend_thread_contexts_cache();
-
-    EXPECT_EQ(cached_thread_contexts.size(), 1);
-  }
-
-  // invalidate the context
-  auto* thread_context = thread_context_collection.get_local_thread_context();
-  thread_context->invalidate();
-  EXPECT_EQ(thread_context->is_valid(), false);
-
-  // remove it
-  thread_context_collection.backend_remove_thread_context(thread_context);
-
-  // Get all thread contexts from the thread context collection
-  std::vector<ThreadContext*> const& cached_thread_contexts =
-    thread_context_collection.backend_thread_contexts_cache();
-
-  EXPECT_TRUE(cached_thread_contexts.empty());
-}
-
-/***/
-TEST(ThreadContextCollection, add_remove_thread_context_multithreaded)
-{
-  // run the test multiple times to create many thread contexts
-  ThreadContextCollection thread_context_collection;
-
-  constexpr uint32_t tries = 3;
+  constexpr uint32_t tries = 4;
   for (int k = 0; k < tries; ++k)
   {
-    constexpr size_t num_threads{20};
+    constexpr size_t num_threads{25};
     std::array<std::thread, num_threads> threads;
     std::array<std::atomic<bool>, num_threads> terminate_flag{false};
     std::atomic<uint32_t> threads_started{0};
@@ -62,11 +31,12 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded)
       auto& thread_terminate_flag = terminate_flag[i];
       threads[i] = std::thread([&thread_terminate_flag, &threads_started, &thread_context_collection]() {
         // create a context for that thread
-        [[maybe_unused]] auto tc = thread_context_collection.get_local_thread_context();
+        [[maybe_unused]] auto tc = thread_context_collection.local_thread_context();
         threads_started.fetch_add(1);
         while (!thread_terminate_flag.load())
         {
           // loop waiting for main to signal
+          std::this_thread::sleep_for(std::chrono::nanoseconds{10});
         }
       });
     }
@@ -74,22 +44,25 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded)
     // main wait for all of them to start
     while (threads_started.load() < num_threads)
     {
-      // loop until all threads start but all call get cached contexts many times
+      // loop until all threads start
+      // Instead of just waitng we will just call get cached contexts many times for additional testing
       [[maybe_unused]] auto& cached_thread_contexts =
         thread_context_collection.backend_thread_contexts_cache();
     }
 
-    // Check we have exactly as many thread contexts as the amount of threads
+    // Check we have exactly as many thread contexts as the amount of threads in our backend cache
     EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
 
-    // Check all thread contexts
-    for (auto& thread_context : thread_context_collection.backend_thread_contexts_cache())
+    // Check all thread contexts in the backend thread contexts cache
+    auto const backend_thread_contexts_cache_local =
+      thread_context_collection.backend_thread_contexts_cache();
+    for (auto& thread_context : backend_thread_contexts_cache_local)
     {
       EXPECT_TRUE(thread_context->is_valid());
       EXPECT_TRUE(thread_context->spsc_queue().empty());
     }
 
-    // terminate all threds
+    // terminate all threads - This will invalidate all the contracts
     for (size_t j = 0; j < threads.size(); ++j)
     {
       terminate_flag[j].store(true);
@@ -97,15 +70,99 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded)
     }
 
     // Now check all thread contexts still exist but they are invalided and then remove them
-    for (auto* thread_context : thread_context_collection.backend_thread_contexts_cache())
+    // For this we use the old cache avoiding to update it - This never happens in the real logger
+    for (auto* thread_context : backend_thread_contexts_cache_local)
     {
       EXPECT_FALSE(thread_context->is_valid());
       EXPECT_TRUE(thread_context->spsc_queue().empty());
-
-      thread_context_collection.backend_remove_thread_context(thread_context);
     }
 
-    // Check there is no thread context left
+    // Check there is no thread context left by getting the updated cache via the call
+    // to backend_thread_contexts_cache()
     EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
+  }
+}
+
+/***/
+TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join)
+{
+  // 1) Test that every time a new thread context is added to the thread context shared collection
+  // and to the thread context cache when a new thread spawns and we load the cache
+  // 2) Test that the thread context is invalidated when the thread that created it completes
+  // 3) Test that the thread context cache is updated correctly and the contexts are removed from
+  // the cache when the threads complete
+
+  // run the test multiple times to create many thread contexts for the same thread context collection
+  ThreadContextCollection thread_context_collection;
+
+  constexpr uint32_t tries = 4;
+  for (int k = 0; k < tries; ++k)
+  {
+    constexpr size_t num_threads{25};
+    std::array<std::thread, num_threads> threads;
+    std::array<std::atomic<bool>, num_threads> terminate_flag{false};
+    std::atomic<uint32_t> threads_started{0};
+
+    // spawn x number of threads
+    for (size_t i = 0; i < threads.size(); ++i)
+    {
+      auto& thread_terminate_flag = terminate_flag[i];
+      threads[i] = std::thread([&thread_terminate_flag, &threads_started, &thread_context_collection]() {
+        // create a context for that thread
+        [[maybe_unused]] auto tc = thread_context_collection.local_thread_context();
+        threads_started.fetch_add(1);
+        while (!thread_terminate_flag.load())
+        {
+          // loop waiting for main to signal
+          std::this_thread::sleep_for(std::chrono::nanoseconds{10});
+        }
+      });
+    }
+
+    // main wait for all of them to start
+    while (threads_started.load() < num_threads)
+    {
+      // loop until all threads start
+      // Instead of just waitng we will just call get cached contexts many times for additional testing
+      [[maybe_unused]] auto& cached_thread_contexts =
+        thread_context_collection.backend_thread_contexts_cache();
+    }
+
+    // Check we have exactly as many thread contexts as the amount of threads in our backend cache
+    EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
+
+    // Check all thread contexts in the backend thread contexts cache
+    for (auto& thread_context : thread_context_collection.backend_thread_contexts_cache())
+    {
+      EXPECT_TRUE(thread_context->is_valid());
+      EXPECT_TRUE(thread_context->spsc_queue().empty());
+    }
+
+    // terminate all threads - This will invalidate all the contracts
+    for (size_t j = 0; j < threads.size(); ++j)
+    {
+      terminate_flag[j].store(true);
+      threads[j].join();
+    }
+
+    // keep loading the cache until it is empty - it will be empty when all threads have joined
+    while (!thread_context_collection.backend_thread_contexts_cache().empty())
+    {
+      // The cache is not empty yet it means that we still have joinable threads so wait for them to finish
+      auto found_joinable = std::any_of(threads.begin(), threads.end(),
+                                        [](std::thread const& th) { return th.joinable(); });
+
+      EXPECT_TRUE(found_joinable);
+    }
+
+    // Check there is no thread context left by getting the updated cache via the call
+    // to backend_thread_contexts_cache()
+    EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
+
+    // Finally call join on everything
+    for (size_t j = 0; j < threads.size(); ++j)
+    {
+      terminate_flag[j].store(true);
+    }
   }
 }

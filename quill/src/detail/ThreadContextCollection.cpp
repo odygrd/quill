@@ -2,7 +2,6 @@
 
 namespace quill::detail
 {
-
 /***/
 ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection const& thread_context_collection)
   : _thread_context(std::make_shared<ThreadContext>())
@@ -31,7 +30,52 @@ void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadCont
 }
 
 /***/
-void ThreadContextCollection::backend_remove_thread_context(ThreadContext* thread_context)
+std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_contexts_cache()
+{
+  // Remove any invalidated contexts
+  _find_and_remove_invalidated_thread_contexts();
+
+  // Check if _thread_contexts has changed. This can happen only when a new thread context is added by any Logger
+  if (_has_changed())
+  {
+    // if the thread _thread_contexts was changed we lock and remake our reference cache
+    std::scoped_lock<std::mutex> guard(_mutex);
+    _thread_context_cache.clear();
+
+    // Remake thread context ref
+    for (auto& elem : _thread_contexts)
+    {
+      _thread_context_cache.push_back(elem.get());
+    }
+  }
+
+  return _thread_context_cache;
+}
+
+/***/
+bool ThreadContextCollection::_has_changed() const noexcept
+{
+  // Again relaxed memory model as in case it is false we will acquire the mutex
+  if (_changed.load(std::memory_order_relaxed))
+  {
+    // if the variable was updated to true, set it to false,
+    // There should not be any race condition here as this is the only place _changed is set to false
+    _changed.store(false, std::memory_order_relaxed);
+    return true;
+  }
+  return false;
+}
+
+/***/
+void ThreadContextCollection::_set_changed() const noexcept
+{
+  // Set changed is used with the _mutex lock, we can have relaxed memory order here as the mutex
+  // is acq/rel anyway
+  return _changed.store(true, std::memory_order_relaxed);
+}
+
+/***/
+void ThreadContextCollection::_remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
 {
   std::scoped_lock<std::mutex> guard(_mutex);
 
@@ -49,36 +93,39 @@ void ThreadContextCollection::backend_remove_thread_context(ThreadContext* threa
          "Attempting to remove a thread context with a non empty queue");
 
   _thread_contexts.erase(thread_context_it);
-  _set_changed();
+
+  // we don't set changed here as this is called only by the backend thread and it updates
+  // the thread_contexts_cache itself after this function
 }
 
 /***/
-std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_contexts_cache()
+void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
 {
-  if (_has_changed())
+  // First we iterate our existing cache and we look for any invalidated contexts
+  auto found_invalid_and_empty_thread_context = std::find_if(
+    _thread_context_cache.cbegin(), _thread_context_cache.cend(), [](ThreadContext const* thread_context) {
+      // If the thread context is invalid it means the thread that created it has now died.
+      // We also want to empty the queue from all LogRecords before removing the thread context
+      return !thread_context->is_valid() && thread_context->spsc_queue().empty();
+    });
+
+  while (QUILL_UNLIKELY(found_invalid_and_empty_thread_context != _thread_context_cache.cend()))
   {
-    std::scoped_lock<std::mutex> guard(_mutex);
-    _thread_context_cache.clear();
+    // if we found anything then remove it - Here if we have more than one to remove we will try to
+    // acquire the mutex multiple times but it should be fine as it is unlikely to have that many
+    // to remove
+    _remove_shared_invalidated_thread_context(*found_invalid_and_empty_thread_context);
 
-    // Remake thread context ref
-    for (auto& elem : _thread_contexts)
-    {
-      _thread_context_cache.push_back(elem.get());
-    }
+    // We also need to remove this from our local _thread_context_cache
+    _thread_context_cache.erase(found_invalid_and_empty_thread_context);
+
+    // And then look again
+    found_invalid_and_empty_thread_context = std::find_if(
+      _thread_context_cache.cbegin(), _thread_context_cache.cend(), [](ThreadContext const* thread_context) {
+        // If the thread context is invalid it means the thread that created it has now died.
+        // We also want to empty the queue from all LogRecords before removing the thread context
+        return !thread_context->is_valid() && thread_context->spsc_queue().empty();
+      });
   }
-
-  return _thread_context_cache;
-}
-
-/***/
-bool ThreadContextCollection::_has_changed() const noexcept
-{
-  return _changed.exchange(false, std::memory_order_acq_rel);
-}
-
-/***/
-void ThreadContextCollection::_set_changed() const noexcept
-{
-  return _changed.store(true, std::memory_order_release);
 }
 } // namespace quill::detail

@@ -40,6 +40,11 @@ public:
   [[nodiscard]] inline SPSCQueueT& spsc_queue() noexcept { return _spsc_queue; }
 
   /**
+   * @return A reference to the single-producer-single-consumer queue const overload
+   */
+  [[nodiscard]] inline SPSCQueueT const& spsc_queue() const noexcept { return _spsc_queue; }
+
+  /**
    * @return The cached thread id value
    */
   [[nodiscard]] uint64_t thread_id() const noexcept { return _thread_id; }
