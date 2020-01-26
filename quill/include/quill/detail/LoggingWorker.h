@@ -19,7 +19,7 @@ public:
   /**
    * Constructor
    */
-  LoggingWorker(ThreadContextCollection& thread_context_collection);
+  explicit LoggingWorker(ThreadContextCollection& thread_context_collection);
 
   /**
    * Destructor

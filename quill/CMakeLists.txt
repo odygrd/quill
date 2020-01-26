@@ -23,6 +23,7 @@ set(HEADER_FILES
         include/quill/detail/Utilities.h
         include/quill/sinks/SinkBase.h
         include/quill/sinks/StdoutSink.h
+        include/quill/Config.h
         include/quill/Logger.h
         include/quill/LogLevel.h
         include/quill/LogMacros.h
