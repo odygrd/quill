@@ -1,8 +1,9 @@
 #pragma once
 
-#include "quill/Logger.h"
 #include "quill/TweakMe.h"
-#include "quill/detail/Macros.h"
+
+#include "quill/Logger.h"
+#include "quill/detail/CommonMacros.h"
 
 // Config Options
 #define QUILL_LOG_LEVEL_TRACE_L3 0
@@ -33,8 +34,8 @@
 // Main Log Macros
 // clang-format off
 #define QUILL_LOGGER_CALL(logger, log_statement_level, fmt, ...) do {                                                               \
-    static constexpr quill::detail::LogLineInfo log_line_info{__LINE__, __FILE__, __FUNCTION__, fmt, log_statement_level};  \
-    logger->log<log_statement_level>(&log_line_info, ##__VA_ARGS__);                                                        \
+    static constexpr quill::detail::StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __FUNCTION__, fmt, log_statement_level};  \
+    logger->log<log_statement_level>(&log_line_info, ##__VA_ARGS__);                                                                \
   } while (0)
 // clang-format on
 

@@ -32,4 +32,5 @@ public:
    */
   void flush() override;
 };
+
 } // namespace quill

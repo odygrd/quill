@@ -8,8 +8,8 @@
 #include <vector>
 
 #include "fmt/format.h"
-#include "quill/detail/LogLineInfo.h"
-#include "quill/detail/Utilities.h"
+#include "quill/detail/CommonUtilities.h"
+#include "quill/detail/record/StaticLogRecordInfo.h"
 
 /**
  * A macro to pass a string as a constexpr argument
@@ -75,7 +75,7 @@ private:
                         uint64_t timestamp,
                         uint32_t thread_id,
                         char const* logger_name,
-                        LogLineInfo const& logline_info) const = 0;
+                        StaticLogRecordInfo const& logline_info) const = 0;
   };
 
   /**
@@ -105,7 +105,7 @@ private:
                 uint64_t timestamp,
                 uint32_t thread_id,
                 char const* logger_name,
-                LogLineInfo const& logline_info) const override
+                StaticLogRecordInfo const& logline_info) const override
     {
       // lambda expand the stored tuple arguments
       auto format_buffer = [this, &memory_buffer, timestamp, thread_id, logger_name,
@@ -189,7 +189,7 @@ public:
   fmt::memory_buffer format(uint64_t timestamp,
                             uint32_t thread_id,
                             std::string const& logger_name,
-                            LogLineInfo const& logline_info,
+                            StaticLogRecordInfo const& logline_info,
                             Args const&... args) const;
 
 private:
@@ -197,7 +197,7 @@ private:
    * The stored callback type that will return the appropriate value based on the format pattern specifiers
    */
   using argument_callback_t =
-    std::function<std::string(uint64_t, uint32_t, char const*, LogLineInfo const&)>;
+    std::function<std::string(uint64_t, uint32_t, char const*, StaticLogRecordInfo const&)>;
 
   /**
    * Generate a tuple of callbacks [](size i) { };
@@ -241,6 +241,7 @@ private:
    *
    * %(ascii_time)    - Human-readable time when the LogRecord was created
    * %(filename)      - Source file where the logging call was issued
+   * %(pathname)      - Full source file where the logging call was issued
    * %(function_name) - Name of function containing the logging call
    * %(level_name)    - Text logging level for the messageText logging level for the message
    * %(lineno)        - Source line number where the logging call was issued
@@ -306,7 +307,7 @@ template <typename... Args>
 fmt::memory_buffer PatternFormatter::format(uint64_t timestamp,
                                             uint32_t thread_id,
                                             std::string const& logger_name,
-                                            LogLineInfo const& logline_info,
+                                            StaticLogRecordInfo const& logline_info,
                                             Args const&... args) const
 {
   fmt::memory_buffer formatted_buffer;
@@ -319,7 +320,7 @@ fmt::memory_buffer PatternFormatter::format(uint64_t timestamp,
   }
 
   // Format the user requested string
-  fmt::format_to(formatted_buffer, logline_info.format(), args...);
+  fmt::format_to(formatted_buffer, logline_info.message_format(), args...);
 
   // Format part 3 of the pattern
   if (_pattern_formatter_helper_part_3)
@@ -429,4 +430,5 @@ std::unique_ptr<PatternFormatter::FormatterHelperBase> PatternFormatter::_make_f
   }
   return nullptr;
 }
+
 } // namespace quill::detail

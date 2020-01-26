@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "quill/detail/Macros.h"
+#include "quill/detail/CommonMacros.h"
 
 namespace quill
 {

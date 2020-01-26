@@ -8,13 +8,19 @@
 namespace quill::detail
 {
 
+/**
+ * Provides access to common collection class that are used by both the frontend and the backend
+ * components of the logging system
+ * There should only be only active active instance of this class which is achieved by the
+ * LogManagerSingleton
+ */
 class LogManager
 {
 public:
   /**
    * Constructor
    */
-  LogManager(Config const& config);
+  explicit LogManager(Config const& config);
 
   /**
    * Deleted
@@ -71,4 +77,5 @@ private:
   LoggerCollection _logger_collection{_thread_context_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection};
 };
+
 } // namespace quill::detail

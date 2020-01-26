@@ -126,4 +126,5 @@ private:
   /**< Indicator that a new context was added or removed, set by caller or backend thread, used by the backend thread only */
   mutable std::atomic<bool> _changed{false};
 };
+
 } // namespace quill::detail

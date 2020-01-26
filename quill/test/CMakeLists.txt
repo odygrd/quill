@@ -1,16 +1,16 @@
 set(TEST_NAME "TEST_quill")
 
 set(SOURCE_FILES
-                 BoundedSPSCQueueTest.cpp
-                 LoggerCollectionTest.cpp
-                 LoggerTest.cpp
-                 LogLevelTest.cpp
-                 LogLineInfoTest.cpp
-                 LogUtilities.cpp
-                 PatternFormatterTest.cpp
+        BoundedSPSCQueueTest.cpp
+        LoggerCollectionTest.cpp
+        LoggerTest.cpp
+        LogLevelTest.cpp
+        PatternFormatterTest.cpp
         RecordTest.cpp
+        StaticLogRecordInfoTest.cpp
         TestMain.cpp
-                 ThreadContextCollectionTest.cpp
+        ThreadContextCollectionTest.cpp
+        UtilityTest.cpp
         )
 
 # Create a test executable

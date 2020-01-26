@@ -29,4 +29,5 @@ private:
   std::function<void()> _callback;
   mutable bool _processed{false};
 };
+
 } // namespace quill::detail

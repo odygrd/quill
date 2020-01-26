@@ -1,10 +1,10 @@
-#include "quill/detail/Utilities.h"
+#include "quill/detail/CommonUtilities.h"
 
 #include <sys/syscall.h>
 #include <system_error>
 #include <unistd.h>
 
-#include "quill/detail/Macros.h"
+#include "quill/detail/CommonMacros.h"
 
 namespace quill::detail
 {

@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-#include "quill/detail/Utilities.h"
+#include "quill/detail/CommonUtilities.h"
 
 namespace quill
 {
@@ -19,4 +19,4 @@ void StdoutSink::log(fmt::memory_buffer const& formatted_line)
 /***/
 void StdoutSink::flush() { fflush(stdout); }
 
-} // namespace quill::detail
+} // namespace quill

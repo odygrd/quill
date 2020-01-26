@@ -70,4 +70,5 @@ private:
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
 };
+
 } // namespace quill::detail

@@ -41,4 +41,5 @@ private:
   detail::Config _config;
   detail::LogManager _log_manager{_config};
 };
+
 } // namespace quill::detail

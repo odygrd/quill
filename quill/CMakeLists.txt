@@ -7,31 +7,31 @@ set(TARGET_NAME quill)
 set(HEADER_FILES
         include/quill/detail/record/CommandRecord.h
         include/quill/detail/record/LogRecord.h
-        include/quill/detail/record/LogRecordHelpers.h
+        include/quill/detail/record/LogRecordUtilities.h
         include/quill/detail/record/RecordBase.h
+        include/quill/detail/record/StaticLogRecordInfo.h
         include/quill/detail/BackendWorker.h
         include/quill/detail/BoundedSPSCQueue.h
+        include/quill/detail/CommonMacros.h
+        include/quill/detail/CommonUtilities.h
         include/quill/detail/Config.h
         include/quill/detail/LoggerCollection.h
         include/quill/detail/LoggerDetails.h
-        include/quill/detail/LogLineInfo.h
         include/quill/detail/LogManager.h
         include/quill/detail/LogManagerSingleton.h
-        include/quill/detail/Macros.h
         include/quill/detail/PatternFormatter.h
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
-        include/quill/detail/Utilities.h
 
         include/quill/sinks/SinkBase.h
         include/quill/sinks/StdoutSink.h
 
         include/quill/Logger.h
         include/quill/LogLevel.h
-        include/quill/LogMacros.h
-        include/quill/LogUtilities.h
+        include/quill/Macros.h
         include/quill/Quill.h
         include/quill/TweakMe.h
+        include/quill/Utility.h
         )
 
 # source files
@@ -43,13 +43,13 @@ set(SOURCE_FILES
         src/detail/LogManagerSingleton.cpp
         src/detail/PatternFormatter.cpp
         src/detail/ThreadContextCollection.cpp
-        src/detail/Utilities.cpp
+        src/detail/CommonUtilities.cpp
 
         src/sinks/StdoutSink.cpp
 
         src/LogLevel.cpp
-        src/LogUtilities.cpp
         src/Quill.cpp
+        src/Utility.cpp
         )
 
 # Add this as a library

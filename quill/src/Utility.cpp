@@ -1,5 +1,6 @@
-#include "quill/LogUtilities.h"
+#include "quill/Utility.h"
 
+// unnamed namespace
 namespace
 {
 template <typename T>
@@ -32,7 +33,7 @@ static std::string _to_hex(T* buffer, size_t size) noexcept
 }
 } // namespace
 
-namespace quill
+namespace quill::utility
 {
 /***/
 std::string to_hex(unsigned char* buffer, size_t size) noexcept { return _to_hex(buffer, size); }
@@ -40,4 +41,4 @@ std::string to_hex(unsigned char* buffer, size_t size) noexcept { return _to_hex
 /***/
 std::string to_hex(char* buffer, size_t size) noexcept { return _to_hex(buffer, size); }
 
-} // namespace quill
+} // namespace quill::utility

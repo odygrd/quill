@@ -4,9 +4,9 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "quill/detail/Macros.h"
+#include "quill/detail/CommonMacros.h"
+#include "quill/detail/CommonUtilities.h"
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/Utilities.h"
 #include "quill/sinks//StdoutSink.h"
 
 namespace quill::detail
@@ -83,5 +83,4 @@ Logger* LoggerCollection::create_logger(std::string logger_name, std::unique_ptr
   // Return the inserted logger
   return elem_it->second.get();
 }
-
 } // namespace quill::detail

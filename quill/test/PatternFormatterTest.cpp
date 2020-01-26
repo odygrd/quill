@@ -12,7 +12,7 @@ TEST(PatternFormatter, default_pattern_formatter)
   uint64_t const ts = 1579815761000023000;
   uint32_t const thread_id = 31341;
   std::string const logger_name = "test_logger";
-  LogLineInfo log_line_info{__LINE__, __FILE__, __func__, "This the {} formatter {}", LogLevel::Info};
+  StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {} formatter {}", LogLevel::Info};
 
   // Format to a buffer
   fmt::memory_buffer formatted_buffer =
@@ -40,7 +40,7 @@ TEST(PatternFormatter, custom_pattern)
     uint64_t const ts = 1579815761000023000;
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
-    LogLineInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
+    StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
 
     // Format to a buffer
     fmt::memory_buffer formatted_buffer =
@@ -64,7 +64,7 @@ TEST(PatternFormatter, custom_pattern)
     uint64_t const ts = 1579815761000023000;
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
-    LogLineInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
+    StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
 
     // Format to a buffer
     fmt::memory_buffer formatted_buffer =
@@ -100,7 +100,7 @@ TEST(PatternFormatter, copy_constructor)
     uint64_t const ts = 1579815761000023000;
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
-    LogLineInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
+    StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
 
     // Format to a buffer
     fmt::memory_buffer formatted_buffer =
@@ -138,7 +138,7 @@ TEST(PatternFormatter, move_constructor)
     uint64_t const ts = 1579815761000023000;
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
-    LogLineInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
+    StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
 
     // Format to a buffer
     fmt::memory_buffer formatted_buffer =
@@ -170,7 +170,7 @@ TEST(PatternFormatter, copy_assignment_operator)
     uint64_t const ts = 1579815761000023000;
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
-    LogLineInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
+    StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
 
     // Format to a buffer
     fmt::memory_buffer formatted_buffer =
@@ -210,7 +210,7 @@ TEST(PatternFormatter, move_assignment_operator)
     uint64_t const ts = 1579815761000023000;
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
-    LogLineInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
+    StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
 
     // Format to a buffer
     fmt::memory_buffer formatted_buffer =

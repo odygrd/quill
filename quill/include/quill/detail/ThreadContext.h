@@ -60,4 +60,5 @@ private:
   uint32_t _thread_id{get_thread_id()}; /**< cache this thread pid */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 };
+
 } // namespace quill::detail

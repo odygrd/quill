@@ -4,7 +4,7 @@
 
 #include "quill/detail/record/CommandRecord.h"
 #include "quill/detail/record/LogRecord.h"
-#include "quill/detail/record/LogRecordHelpers.h"
+#include "quill/detail/record/LogRecordUtilities.h"
 #include "quill/sinks/StdoutSink.h"
 
 using namespace quill::detail;
@@ -12,7 +12,8 @@ using namespace quill;
 
 TEST(Record, construct)
 {
-  constexpr LogLineInfo log_line_info{__LINE__, __FILE__, __FUNCTION__, "Test fmt {}", quill::LogLevel::Debug};
+  constexpr StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __FUNCTION__, "Test fmt {}",
+                                              quill::LogLevel::Debug};
   LoggerDetails logger_details{"default", std::make_unique<StdoutSink>()};
   {
     // test with char const

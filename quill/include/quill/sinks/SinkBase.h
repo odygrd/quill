@@ -1,9 +1,9 @@
 #pragma once
 
 #include "fmt/format.h"
-#include "quill/detail/LogLineInfo.h"
 #include "quill/detail/PatternFormatter.h"
 #include "quill/detail/record/RecordBase.h"
+#include "quill/detail/record/StaticLogRecordInfo.h"
 
 namespace quill
 {
@@ -98,4 +98,5 @@ public:
 private:
   detail::PatternFormatter _formatter; /**< Owned formatter for this sink */
 };
+
 } // namespace quill

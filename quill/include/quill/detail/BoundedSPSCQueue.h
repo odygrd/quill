@@ -12,8 +12,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include "quill/detail/Macros.h"
-#include "quill/detail/Utilities.h"
+#include "quill/detail/CommonMacros.h"
+#include "quill/detail/CommonUtilities.h"
 
 namespace quill::detail
 {
@@ -424,4 +424,5 @@ uint32_t BoundedSPSCQueue<TBaseObject, Capacity>::_get_page_size() noexcept
 #endif
   return page_size;
 }
+
 } // namespace quill::detail

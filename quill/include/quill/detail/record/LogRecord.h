@@ -3,10 +3,10 @@
 #include <tuple>
 
 #include "fmt/format.h"
-#include "quill/detail/LogLineInfo.h"
 #include "quill/detail/LoggerDetails.h"
-#include "quill/detail/record/LogRecordHelpers.h"
+#include "quill/detail/record/LogRecordUtilities.h"
 #include "quill/detail/record/RecordBase.h"
+#include "quill/detail/record/StaticLogRecordInfo.h"
 
 namespace quill::detail
 {
@@ -34,7 +34,7 @@ public:
    * @param logger_details
    * @param fmt_args
    */
-  explicit LogRecord(LogLineInfo const* log_line_info, LoggerDetails const* logger_details, FmtArgs&&... fmt_args)
+  explicit LogRecord(StaticLogRecordInfo const* log_line_info, LoggerDetails const* logger_details, FmtArgs&&... fmt_args)
     : _log_line_info(log_line_info),
       _logger_details(logger_details),
       _fmt_args(std::make_tuple(std::forward<FmtArgs>(fmt_args)...))
@@ -65,11 +65,11 @@ public:
                                         *_log_line_info, tuple_args...);
       };
 
-      // formatted line by the formatter
-      fmt::memory_buffer const formatted_line = std::apply(forward_tuple_args_to_formatter, this->_fmt_args);
+      // formatted record by the formatter
+      fmt::memory_buffer const formatted_record = std::apply(forward_tuple_args_to_formatter, this->_fmt_args);
 
       // log to the sink
-      sink->log(formatted_line);
+      sink->log(formatted_record);
 
       // TODO:: provide easy access to flush to the LoggingWorker, don't flush on each record
       // sink->flush();
@@ -77,8 +77,9 @@ public:
   }
 
 private:
-  LogLineInfo const* _log_line_info;
+  StaticLogRecordInfo const* _log_line_info;
   LoggerDetails const* _logger_details;
   PromotedTupleT _fmt_args;
 };
+
 } // namespace quill::detail

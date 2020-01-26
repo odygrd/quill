@@ -85,44 +85,51 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
 {
   if (pattern_attr == "ascii_time")
   {
-    return [](uint64_t timestamp, uint32_t, char const*, LogLineInfo const&) {
+    return [](uint64_t timestamp, uint32_t, char const*, StaticLogRecordInfo const&) {
       // TODO : formatting to string ts
       return std::to_string(timestamp);
     };
   }
   else if (pattern_attr == "thread")
   {
-    return [](uint64_t, uint32_t thread_id, char const*, LogLineInfo const&) {
+    return [](uint64_t, uint32_t thread_id, char const*, StaticLogRecordInfo const&) {
       return std::to_string(thread_id);
+    };
+  }
+  else if (pattern_attr == "pathname")
+  {
+    return [](uint64_t, uint32_t, char const*, StaticLogRecordInfo const& logline_info) {
+      return logline_info.pathname();
     };
   }
   else if (pattern_attr == "filename")
   {
-    return [](uint64_t, uint32_t, char const*, LogLineInfo const& logline_info) {
-      return logline_info.file_name();
+    return [](uint64_t, uint32_t, char const*, StaticLogRecordInfo const& logline_info) {
+      return logline_info.filename();
     };
   }
   else if (pattern_attr == "lineno")
   {
-    return [](uint64_t, uint32_t, char const*, LogLineInfo const& logline_info) {
-      return std::to_string(logline_info.line());
+    return [](uint64_t, uint32_t, char const*, StaticLogRecordInfo const& logline_info) {
+      return std::to_string(logline_info.lineno());
     };
   }
   else if (pattern_attr == "level_name")
   {
-    return [](uint64_t, uint32_t, char const*, LogLineInfo const& logline_info) {
-      return logline_info.log_level_str();
+    return [](uint64_t, uint32_t, char const*, StaticLogRecordInfo const& logline_info) {
+      return logline_info.level_as_str();
     };
   }
   else if (pattern_attr == "logger_name")
   {
-    return
-      [](uint64_t, uint32_t, char const* logger_name, LogLineInfo const&) { return logger_name; };
+    return [](uint64_t, uint32_t, char const* logger_name, StaticLogRecordInfo const&) {
+      return logger_name;
+    };
   }
   else if (pattern_attr == "function_name")
   {
-    return [](uint64_t, uint32_t, char const*, LogLineInfo const& logline_info) {
-      return logline_info.function_name();
+    return [](uint64_t, uint32_t, char const*, StaticLogRecordInfo const& logline_info) {
+      return logline_info.func();
     };
   }
   else

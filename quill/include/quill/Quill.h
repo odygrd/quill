@@ -1,13 +1,12 @@
 #pragma once
 
-#include "quill/LogMacros.h"
+#include "quill/Macros.h"
 
-#include "quill/LogUtilities.h"
+#include "quill/Utility.h"
 #include "quill/detail/LogManagerSingleton.h"
 
 namespace quill
 {
-
 /**
  * Starts the backend thread to write the logs to the sinks
  */

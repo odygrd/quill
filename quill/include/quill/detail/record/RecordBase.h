@@ -45,4 +45,5 @@ public:
 private:
   uint64_t _rdtsc{__rdtsc()};
 };
+
 } // namespace quill::detail

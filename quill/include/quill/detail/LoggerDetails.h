@@ -10,7 +10,10 @@ namespace quill::detail
 {
 /**
  * The logger object is broken down to LoggerDetails and Logger as we end up in circular include
- * references if we include both in LogMessage
+ * references if we include both in LogRecord
+ *
+ * Logger includes LogRecord as it needs it to create it, and LogRecord needs to read the
+ * LoggerDetails later during the backend thread processing, but we don't want to include Logger
  */
 class LoggerDetails
 {
@@ -52,4 +55,5 @@ private:
   std::string _name;
   std::vector<std::unique_ptr<SinkBase>> _sinks;
 };
+
 } // namespace quill::detail

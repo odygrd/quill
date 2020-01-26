@@ -4,10 +4,10 @@
 #include <cstdint>
 
 #include "quill/LogLevel.h"
-#include "quill/detail/LogLineInfo.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/record/LogRecord.h"
+#include "quill/detail/record/StaticLogRecordInfo.h"
 #include "quill/sinks/SinkBase.h"
 
 namespace quill
@@ -75,7 +75,7 @@ public:
    * @note This function is thread-safe.
    */
   template <LogLevel log_statement_level, typename... FmtArgs>
-  inline void log(detail::LogLineInfo const* log_line_info, FmtArgs&&... fmt_args)
+  inline void log(detail::StaticLogRecordInfo const* log_line_info, FmtArgs&&... fmt_args)
   {
     // optimised branches for anything above info
     if constexpr (log_statement_level == LogLevel::TraceL3 || log_statement_level == LogLevel::TraceL2 ||
@@ -124,4 +124,5 @@ private:
   detail::ThreadContextCollection& _thread_context_collection;
   std::atomic<LogLevel> _log_level{LogLevel::Info};
 };
+
 } // namespace quill

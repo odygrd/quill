@@ -22,6 +22,5 @@ public:
 private:
   std::chrono::nanoseconds _backend_thread_sleep_duration{500};
 };
-} // namespace quill::detail
 
-// #define QUILL_BACKEND_THREAD_SLEEP_DURATION_NS 500u
+} // namespace quill::detail
