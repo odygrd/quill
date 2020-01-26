@@ -7,7 +7,7 @@
 #include "quill/detail/LogLineInfo.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/message/LogMessage.h"
+#include "quill/detail/record/LogRecord.h"
 #include "quill/sinks/SinkBase.h"
 
 namespace quill
@@ -70,7 +70,7 @@ public:
   }
 
   /**
-   * Push a log message to the spsc queue to be logged by the logging thread.
+   * Push a log record to the spsc queue to be logged by the backend thread.
    * One queue per caller thread.
    * @note This function is thread-safe.
    */
@@ -91,14 +91,14 @@ public:
         return;
     }
 
-    // Resolve the type of the message first
-    using LogMessageT = quill::detail::LogMessage<FmtArgs...>;
+    // Resolve the type of the record first
+    using log_record_t = quill::detail::LogRecord<FmtArgs...>;
 
     // emplace to the spsc queue owned by the ctx
     bool retry;
     do
     {
-      retry = _thread_context_collection.get_local_thread_context()->spsc_queue().try_emplace<LogMessageT>(
+      retry = _thread_context_collection.get_local_thread_context()->spsc_queue().try_emplace<log_record_t>(
         log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
       // unlikely case if the queue gets full we will wait until we can log
     } while (QUILL_UNLIKELY(!retry));

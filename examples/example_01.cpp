@@ -4,8 +4,8 @@ using namespace quill;
 
 int main()
 {
-  // Start the logging backend
-  quill::start_logging_worker();
+  // Start the logging backend thread
+  quill::start();
 
   // a) We can use the default logger like this
   {

@@ -2,24 +2,21 @@
 
 #include <tuple>
 
-#include "quill/detail/message/MessageBase.h"
-
+#include "fmt/format.h"
 #include "quill/detail/LogLineInfo.h"
 #include "quill/detail/LoggerDetails.h"
-#include "quill/detail/message/LogMessageHelpers.h"
-
-#include "fmt/format.h"
+#include "quill/detail/record/LogRecordHelpers.h"
+#include "quill/detail/record/RecordBase.h"
 
 namespace quill::detail
 {
 /**
- * For each log statement a message is produced and pushed to the thread local spsc queue.
- * The logging thread will retrieve the messages from the queue using the base class pointer.
- * @tparam TPromotedTuple
- * @tparam U This is unused for this message. We need it for the custom command message
+ * For each log statement a LogRecord is produced and pushed to the thread local spsc queue.
+ * The backend thread will retrieve the LogRecords from the queue using the RecordBase class pointer.
+ * @tparam FmtArgs
  */
 template <typename... FmtArgs>
-class LogMessage final : public MessageBase
+class LogRecord final : public RecordBase
 {
 public:
   using PromotedTupleT = std::tuple<PromotedTypeT<FmtArgs>...>;
@@ -27,16 +24,17 @@ public:
   /**
    * Deleted
    */
-  LogMessage(LogMessage const&) = delete;
-  LogMessage& operator=(LogMessage const&) = delete;
+  LogRecord(LogRecord const&) = delete;
+  LogRecord& operator=(LogRecord const&) = delete;
 
   /**
-   * Make a new message. Created by the caller
+   * Make a new LogRecord.
+   * This is created by the caller every time we want to log a new message
    * @param log_line_info
    * @param logger_details
    * @param fmt_args
    */
-  explicit LogMessage(LogLineInfo const* log_line_info, LoggerDetails const* logger_details, FmtArgs&&... fmt_args)
+  explicit LogRecord(LogLineInfo const* log_line_info, LoggerDetails const* logger_details, FmtArgs&&... fmt_args)
     : _log_line_info(log_line_info),
       _logger_details(logger_details),
       _fmt_args(std::make_tuple(std::forward<FmtArgs>(fmt_args)...))
@@ -46,7 +44,7 @@ public:
   /**
    * Destructor
    */
-  ~LogMessage() override = default;
+  ~LogRecord() override = default;
 
   /**
    * @return the size of the object
@@ -54,11 +52,11 @@ public:
   [[nodiscard]] size_t size() const noexcept override { return sizeof(*this); }
 
   /**
-   * Process a message
+   * Process a LogRecord
    */
   void backend_process(uint32_t thread_id) const noexcept override
   {
-    // Forward the message to all of the logger sinks
+    // Forward the record to all of the logger sinks
     for (auto& sink : _logger_details->sinks())
     {
       // lambda to unpack the tuple args
@@ -73,7 +71,7 @@ public:
       // log to the sink
       sink->log(formatted_line);
 
-      // TODO:: provide easy access to flush to the LoggingWorker, don't flush on each message
+      // TODO:: provide easy access to flush to the LoggingWorker, don't flush on each record
       // sink->flush();
     }
   }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "quill/Config.h"
 #include "quill/Logger.h"
+#include "quill/TweakMe.h"
 #include "quill/detail/Macros.h"
 
 // Config Options

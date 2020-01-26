@@ -2,6 +2,10 @@
 
 namespace quill::detail
 {
+
+/***/
+LogManager::LogManager(Config const& config) : _config(config){};
+
 /***/
 Logger* LogManager::get_logger(std::string const& logger_name /* = std::string{} */) const
 {
@@ -9,9 +13,9 @@ Logger* LogManager::get_logger(std::string const& logger_name /* = std::string{}
 }
 
 /***/
-void LogManager::start_logging_worker() { _logging_worker.run(); }
+void LogManager::start_backend_worker() { _backend_worker.run(); }
 
 /***/
-void LogManager::stop_logging_worker() { _logging_worker.stop(); }
+void LogManager::stop_backend_worker() { _backend_worker.stop(); }
 
 } // namespace quill::detail

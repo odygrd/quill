@@ -40,7 +40,7 @@ namespace quill::detail
  * b) we will generate a fmt_string "{} [{}]] {}:{} {} {} - "
  * Those two are stored in a pre-generated tuple which is captured and accessed via the FormaterHelperBase
  *
- * To format a log message the process is to concatinate :
+ * To format a log message the process is to  :
  *
  * fmt.format(part_1)
  * fmt.format(log_record)

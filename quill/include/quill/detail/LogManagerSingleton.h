@@ -1,5 +1,6 @@
 #pragma once
 
+#include "quill/detail/Config.h"
 #include "quill/detail/LogManager.h"
 
 namespace quill::detail
@@ -26,11 +27,18 @@ public:
    */
   detail::LogManager& log_manager() noexcept;
 
+  /**
+   * Access to config
+   * @return
+   */
+  detail::Config& config() noexcept;
+
 private:
   LogManagerSingleton() = default;
   ~LogManagerSingleton();
 
 private:
-  detail::LogManager _log_manager;
+  detail::Config _config;
+  detail::LogManager _log_manager{_config};
 };
 } // namespace quill::detail

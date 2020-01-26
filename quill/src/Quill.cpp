@@ -6,10 +6,7 @@ namespace quill
 {
 
 /***/
-void start_logging_worker()
-{
-  detail::LogManagerSingleton::instance().log_manager().start_logging_worker();
-}
+void start() { detail::LogManagerSingleton::instance().log_manager().start_backend_worker(); }
 
 /***/
 Logger* get_logger(std::string const& logger_name /* = std::string{} */)
@@ -29,4 +26,17 @@ Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink)
   return detail::LogManagerSingleton::instance().log_manager().create_logger(std::move(logger_name),
                                                                              std::move(sink));
 }
+
+// ** Config ** //
+namespace config
+{
+
+/***/
+void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept
+{
+  detail::LogManagerSingleton::instance().config().set_backend_thread_sleep_duration(sleep_duration);
+}
+
+} // namespace config
+
 } // namespace quill

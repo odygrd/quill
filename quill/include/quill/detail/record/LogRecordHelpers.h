@@ -8,9 +8,8 @@
 namespace quill::detail
 {
 /**
- * We use promoted to convert all char const* to a std::string when we are creating a message from the
- * caller thread to the logger thread.
- * We want copies of strings rather than const char* pointers, since the object can go out of scope on the caller thread.
+ * We use promoted to convert all char const* to a std::string when the Logger is creating a LogRecord as the record
+ * wll be later be processed by the backend thread and the char const* could be easily out of scope
  * @tparam T
  */
 template <typename T>

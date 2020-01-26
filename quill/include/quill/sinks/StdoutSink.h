@@ -22,10 +22,10 @@ public:
   ~StdoutSink() override = default;
 
   /**
-   * Log message to the sink
-   * @param formatted_line
+   * Log a formatted log record to the sink
+   * @param formatted_log_record
    */
-  void log(fmt::memory_buffer const& formatted_line) override;
+  void log(fmt::memory_buffer const& formatted_log_record) override;
 
   /**
    * Flushes to stdout

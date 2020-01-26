@@ -15,7 +15,7 @@ ThreadContextCollection::ThreadContextWrapper::~ThreadContextWrapper() noexcept
 {
   // This destructor will get called when the thread that created this wrapper stops
   // we will only invalidate the thread context
-  // The logging thread will empty an invalidated ThreadContext and then remove it from
+  // The backend thread will empty an invalidated ThreadContext and then remove it from
   // the ThreadContextCollection
   // There is only exception for the thread who owns the ThreadContextCollection the
   // main thread. The thread context of the main thread can get deleted before getting invalidated

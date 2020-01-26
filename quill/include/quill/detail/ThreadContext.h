@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #include "quill/detail/BoundedSPSCQueue.h"
-#include "quill/detail/message/MessageBase.h"
+#include "quill/detail/record/RecordBase.h"
 
 namespace quill::detail
 {
@@ -12,16 +12,16 @@ namespace quill::detail
 /**
  * Each thread has it's own instance of a ThreadContext class
  *
- * The ThreadContext class stores important information local to each thread and also mainly used
- * to push log messages to the SPSC queue.
+ * The ThreadContext class stores important information local to each thread and also mainly used by
+ * the Logger to push LogRecords to the SPSC queue.
  *
- * The logging thread will read all existing ThreadContext classes pop the messages from each queue
- * and flush to all the appropriate sinks
+ * The backend thread will read all existing ThreadContext class instances and pop the LogRecords
+ * from each queue and flush to all the appropriate sinks
  */
 class ThreadContext
 {
 public:
-  using SPSCQueueT = BoundedSPSCQueue<MessageBase, 33554432>; // todo: move size to config
+  using SPSCQueueT = BoundedSPSCQueue<RecordBase, 33554432>; // todo: move size to config
 
   /**
    * Constructor
@@ -58,6 +58,6 @@ public:
 private:
   SPSCQueueT _spsc_queue;               /** queue for this thread */
   uint32_t _thread_id{get_thread_id()}; /**< cache this thread pid */
-  std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the logging thread */
+  std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 };
 } // namespace quill::detail

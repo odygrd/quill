@@ -18,7 +18,7 @@ private:
    * Class used to wrap a ThreadContext. Used as a thread local object.
    * The constructor always registers a new context to the context collection and
    * the destructor always invalidates it.
-   * The logging thread will later clean invalidated contexts when the logger thread is done flushing.
+   * The backend thread will later clean invalidated contexts when the logger thread is done flushing.
    */
   class ThreadContextWrapper
   {
@@ -90,13 +90,13 @@ public:
 
   /**
    * Remove a thread context from our thread context collection
-   * Only to be called by the logging thread when a context is invalidated.
+   * Only to be called by the backend thread when a context is invalidated.
    * @param thread_context
    */
   void backend_remove_thread_context(ThreadContext* thread_context);
 
   /**
-   * Only to be called by the logging thread
+   * Only to be called by the backend thread
    * @return All current owned thread contexts
    */
   std::vector<ThreadContext*> const& backend_thread_contexts_cache();
@@ -118,12 +118,12 @@ private:
   mutable std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 
   /**< A reference to the owned thread contexts that we update when there is any change. We do
-   * this so the logging thread does not hold the mutex all the time while it is trying to log.
-   * Accessed only by the logging thread
+   * this so the backend thread does not hold the mutex lock all the time while it is trying to log.
+   * Accessed only by the backend thread
    * */
   std::vector<ThreadContext*> _thread_context_cache;
 
-  /**< Indicator that a new context was added or removed, set by caller or logging thread, used by logging thread only */
+  /**< Indicator that a new context was added or removed, set by caller or backend thread, used by the backend thread only */
   mutable std::atomic<bool> _changed{false};
 };
 } // namespace quill::detail

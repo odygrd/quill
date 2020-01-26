@@ -6,11 +6,10 @@ set(SOURCE_FILES
                  LoggerTest.cpp
                  LogLevelTest.cpp
                  LogLineInfoTest.cpp
-        #LogTest.cpp
                  LogUtilities.cpp
-        MessageTest.cpp
                  PatternFormatterTest.cpp
-                 TestMain.cpp
+        RecordTest.cpp
+        TestMain.cpp
                  ThreadContextCollectionTest.cpp
         )
 

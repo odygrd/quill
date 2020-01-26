@@ -3,13 +3,13 @@
 #include "fmt/format.h"
 #include "quill/detail/LogLineInfo.h"
 #include "quill/detail/PatternFormatter.h"
-#include "quill/detail/message/MessageBase.h"
+#include "quill/detail/record/RecordBase.h"
 
 namespace quill
 {
 
 /**
- * Base class for logging sinks
+ * Base class for sinks
  */
 class SinkBase
 {
@@ -84,11 +84,11 @@ public:
   detail::PatternFormatter const& formatter() { return _formatter; }
 
   /**
-   * Logs the formatted message to the sink
+   * Logs a formatted log record to the sink
    * @note: Accessor for backend processing
-   * @param formatted_line
+   * @param formatted_log_record
    */
-  virtual void log(fmt::memory_buffer const& formatted_line) = 0;
+  virtual void log(fmt::memory_buffer const& formatted_log_record) = 0;
 
   /**
    * Flush the sink synchronising the associated sink with its controlled output sequence.

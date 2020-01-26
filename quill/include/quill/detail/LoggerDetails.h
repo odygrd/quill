@@ -41,7 +41,7 @@ public:
   [[nodiscard]] std::string const& name() const noexcept { return _name; }
 
   /**
-   * @return a vector of all sinks of this logger, called by the logging thread
+   * @return a vector of all sinks of this logger, called by the backend worker thread
    */
   [[nodiscard]] std::vector<std::unique_ptr<SinkBase>> const& sinks() const noexcept
   {

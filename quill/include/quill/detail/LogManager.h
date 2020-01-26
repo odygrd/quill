@@ -1,7 +1,8 @@
 #pragma once
 
+#include "quill/detail/BackendWorker.h"
+#include "quill/detail/Config.h"
 #include "quill/detail/LoggerCollection.h"
-#include "quill/detail/LoggingWorker.h"
 #include "quill/detail/ThreadContextCollection.h"
 
 namespace quill::detail
@@ -11,9 +12,9 @@ class LogManager
 {
 public:
   /**
-   * Ctor
+   * Constructor
    */
-  LogManager() = default;
+  LogManager(Config const& config);
 
   /**
    * Deleted
@@ -55,18 +56,19 @@ public:
   // TODO:: how to change the format of the default logger?
 
   /**
-   * Starts the logging worker thread
+   * Starts the backend worker thread
    */
-  void start_logging_worker();
+  void start_backend_worker();
 
   /**
-   * Stops the logging worker thread
+   * Stops the backend worker thread
    */
-  void stop_logging_worker();
+  void stop_backend_worker();
 
 private:
+  Config const& _config;
   ThreadContextCollection _thread_context_collection;
   LoggerCollection _logger_collection{_thread_context_collection};
-  LoggingWorker _logging_worker{_thread_context_collection};
+  BackendWorker _backend_worker{_config, _thread_context_collection};
 };
 } // namespace quill::detail
