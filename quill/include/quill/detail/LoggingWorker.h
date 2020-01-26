@@ -49,9 +49,15 @@ private:
   void _main_loop();
 
   /**
-   * Checks for messages to process
+   * Logging thread exist function that flushes everything after stop() is called
    */
-  void _check_for_messages(std::vector<ThreadContext*> const& thread_contexts);
+  void _exit();
+
+  /**
+   * Checks for messages to process
+   * @return true if at least one message was found
+   */
+  [[nodiscard]] bool _check_for_messages(std::vector<ThreadContext*> const& thread_contexts);
 
 private:
   ThreadContextCollection& _thread_context_collection;

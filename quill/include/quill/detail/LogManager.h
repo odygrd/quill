@@ -29,14 +29,14 @@ public:
   [[nodiscard]] Logger* get_logger(std::string const& logger_name = std::string{}) const;
 
   /**
-   * Creates aa new level using the sink and the formatter as set for the default logger
+   * Creates a new level using the sink and the formatter as they were set for the default logger
    * @param logger_name
    * @param sink
    * @return
    */
-  [[nodiscard]] Logger* create_logger(std::string const& logger_name)
+  [[nodiscard]] Logger* create_logger(std::string logger_name)
   {
-    return _logger_collection.create_logger(logger_name);
+    return _logger_collection.create_logger(std::move(logger_name));
   }
 
   /**
@@ -47,9 +47,9 @@ public:
    * @param sink_args
    * @return a pointer to the created logger
    */
-  [[nodiscard]] Logger* create_logger(std::string const& logger_name, std::unique_ptr<SinkBase> sink)
+  [[nodiscard]] Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink)
   {
-    return _logger_collection.create_logger(logger_name, std::move(sink));
+    return _logger_collection.create_logger(std::move(logger_name), std::move(sink));
   }
 
   // TODO:: how to change the format of the default logger?

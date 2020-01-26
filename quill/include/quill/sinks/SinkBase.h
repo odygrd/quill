@@ -5,7 +5,7 @@
 #include "quill/detail/PatternFormatter.h"
 #include "quill/detail/message/MessageBase.h"
 
-namespace quill::detail
+namespace quill
 {
 
 /**
@@ -90,7 +90,12 @@ public:
    */
   virtual void log(fmt::memory_buffer const& formatted_line) = 0;
 
+  /**
+   * Flush the sink synchronising the associated sink with its controlled output sequence.
+   */
+  virtual void flush() = 0;
+
 private:
   detail::PatternFormatter _formatter; /**< Owned formatter for this sink */
 };
-} // namespace quill::detail
+} // namespace quill

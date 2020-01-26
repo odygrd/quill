@@ -16,6 +16,7 @@ set(HEADER_FILES
         include/quill/detail/LoggingWorker.h
         include/quill/detail/LogLineInfo.h
         include/quill/detail/LogManager.h
+        include/quill/detail/LogManagerSingleton.h
         include/quill/detail/Macros.h
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
@@ -26,6 +27,7 @@ set(HEADER_FILES
         include/quill/LogLevel.h
         include/quill/LogMacros.h
         include/quill/LogUtilities.h
+        include/quill/Quill.h
         )
 
 # source files
@@ -33,12 +35,14 @@ set(SOURCE_FILES
         src/detail/LoggerCollection.cpp
         src/detail/LoggingWorker.cpp
         src/detail/LogManager.cpp
+        src/detail/LogManagerSingleton.cpp
         src/detail/PatternFormatter.cpp
         src/detail/ThreadContextCollection.cpp
         src/detail/Utilities.cpp
         src/sinks/StdoutSink.cpp
         src/LogLevel.cpp
         src/LogUtilities.cpp
+        src/Quill.cpp
         )
 
 # Add this as a library

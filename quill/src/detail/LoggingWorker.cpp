@@ -6,7 +6,6 @@
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/message/MessageBase.h"
 
-#include <iostream> // todo:: remove me
 namespace quill::detail
 {
 /***/
@@ -18,10 +17,8 @@ LoggingWorker::LoggingWorker(ThreadContextCollection& thread_context_collection)
 /***/
 LoggingWorker::~LoggingWorker()
 {
+  // This destructor will run during static destruction as the thread is part of the singleton
   stop();
-
-  assert(_logging_thread.joinable() && "logging thread needs to be joinable");
-  _logging_thread.join();
 }
 
 /***/
@@ -43,6 +40,9 @@ void LoggingWorker::run()
       {
         _main_loop();
       }
+
+      // on exit
+      _exit();
     });
 
     // Move the worker ownership to our class
@@ -51,7 +51,18 @@ void LoggingWorker::run()
 }
 
 /***/
-void LoggingWorker::stop() noexcept { _is_running.store(false, std::memory_order_relaxed); }
+void LoggingWorker::stop() noexcept
+{
+  // Stop the logging worker
+  _is_running.store(false, std::memory_order_relaxed);
+
+  // Wait the logging worker it to join
+  if (_logging_thread.joinable())
+  {
+    // if logging worker thread was never started it won't be joinable
+    _logging_thread.join();
+  }
+}
 
 /***/
 void LoggingWorker::_main_loop()
@@ -60,11 +71,29 @@ void LoggingWorker::_main_loop()
   std::vector<ThreadContext*> const& cached_thead_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
-  _check_for_messages(cached_thead_contexts);
+  bool const had_log_record = _check_for_messages(cached_thead_contexts);
+
+  if (!had_log_record)
+  {
+    // TODO: Sleep
+  }
 }
 
 /***/
-void LoggingWorker::_check_for_messages(std::vector<ThreadContext*> const& thread_contexts)
+void LoggingWorker::_exit()
+{
+  // load all contexts locally
+  std::vector<ThreadContext*> const& cached_thead_contexts =
+    _thread_context_collection.backend_thread_contexts_cache();
+
+  while (_check_for_messages(cached_thead_contexts))
+  {
+    // loop until there are no log records left
+  }
+}
+
+/***/
+bool LoggingWorker::_check_for_messages(std::vector<ThreadContext*> const& thread_contexts)
 {
   // We will log timestamps in order
   // Iterate through all messages in all thread contexts queues and find the one with the lowest rdtsc to process
@@ -84,13 +113,10 @@ void LoggingWorker::_check_for_messages(std::vector<ThreadContext*> const& threa
         // we found a new min rdtsc
         min_rdtsc = message_handle.data()->rdtsc();
 
-        if (min_rdtsc_message_handle.is_valid())
-        {
-          // if we were holding a valid message handle we need to release it, otherwise it will
-          // get destructed and we will lose the message
-          // we release to only observe and not remove the Message from the queue
-          min_rdtsc_message_handle.release();
-        }
+        // if we were holding previously aa message handle we need to release it, otherwise it will
+        // get destructed and we will lose the message
+        // we release to only observe and not remove the Message from the queue
+        min_rdtsc_message_handle.release();
 
         // Move the current message handle to maintain it's lifetime
         min_rdtsc_message_handle = std::move(message_handle);
@@ -110,11 +136,13 @@ void LoggingWorker::_check_for_messages(std::vector<ThreadContext*> const& threa
   if (!min_rdtsc_message_handle.is_valid())
   {
     // there are no messages to log
-    return;
+    return false;
   }
 
   // TODO:: add sink collection class and pass it to process
   min_rdtsc_message_handle.data()->backend_process(min_rdtsc_thread_id);
+
+  return true;
 }
 
 } // namespace quill::detail

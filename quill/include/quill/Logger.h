@@ -114,7 +114,7 @@ private:
    * @param logger_id A unique id per logger
    * @param log_level The log level of the logger
    */
-  Logger(std::string name, std::unique_ptr<detail::SinkBase> sink, detail::ThreadContextCollection& thread_context_collection)
+  Logger(std::string name, std::unique_ptr<SinkBase> sink, detail::ThreadContextCollection& thread_context_collection)
     : _logger_details(std::move(name), std::move(sink)), _thread_context_collection(thread_context_collection)
   {
   }

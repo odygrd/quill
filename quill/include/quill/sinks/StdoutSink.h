@@ -1,6 +1,6 @@
 #include "quill/sinks/SinkBase.h"
 
-namespace quill::detail
+namespace quill
 {
 /**
  * Simple stdout sink
@@ -26,5 +26,10 @@ public:
    * @param formatted_line
    */
   void log(fmt::memory_buffer const& formatted_line) override;
+
+  /**
+   * Flushes to stdout
+   */
+  void flush() override;
 };
-} // namespace quill::detail
+} // namespace quill

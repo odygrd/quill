@@ -62,7 +62,7 @@ public:
   /**
    * Destructor
    */
-  ~ThreadContextCollection();
+  ~ThreadContextCollection() = default;
 
   /**
    * Deleted

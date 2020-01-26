@@ -26,6 +26,11 @@ public:
   explicit LoggerCollection(ThreadContextCollection& thread_context_collection);
 
   /**
+   * Destructor
+   */
+  virtual ~LoggerCollection() = default;
+
+  /**
    * Deleted
    */
   LoggerCollection(LoggerCollection const&) = delete;
@@ -45,7 +50,7 @@ public:
    * @param logger_name
    * @return
    */
-  [[nodiscard]] Logger* create_logger(std::string const& logger_name);
+  [[nodiscard]] Logger* create_logger(std::string logger_name);
 
   /**
    * Creates a new logger
@@ -55,7 +60,7 @@ public:
    * @param sink_args Sink constructor arguments
    * @return
    */
-  [[nodiscard]] Logger* create_logger(std::string const& logger_name, std::unique_ptr<detail::SinkBase> sink);
+  [[nodiscard]] Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink);
 
 private:
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */

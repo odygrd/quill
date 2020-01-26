@@ -23,18 +23,6 @@ ThreadContextCollection::ThreadContextWrapper::~ThreadContextWrapper() noexcept
 }
 
 /***/
-ThreadContextCollection::~ThreadContextCollection()
-{
-  // if there are any contexts left, ensure there are invalided and empty
-  for (auto* thread_context : backend_thread_contexts_cache())
-  {
-    // This will never happen and is just an extra check
-    assert(thread_context->is_valid() && thread_context->spsc_queue().empty() &&
-           "Destructing ThreadContextCollection that still has valid thread contexts");
-  }
-}
-
-/***/
 void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadContext> const& thread_context) const
 {
   std::scoped_lock<std::mutex> guard(_mutex);

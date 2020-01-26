@@ -72,6 +72,9 @@ public:
 
       // log to the sink
       sink->log(formatted_line);
+
+      // TODO:: provide easy access to flush to the LoggingWorker, don't flush on each message
+      // sink->flush();
     }
   }
 

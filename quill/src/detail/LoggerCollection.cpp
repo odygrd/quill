@@ -48,7 +48,7 @@ Logger* LoggerCollection::get_logger(std::string const& logger_name /* = std::st
 }
 
 /***/
-Logger* LoggerCollection::create_logger(std::string const& logger_name)
+Logger* LoggerCollection::create_logger(std::string logger_name)
 {
   // default logger is always using only one sink
   std::unique_ptr<SinkBase> sink{_default_logger->_logger_details.sinks()[0]->clone()};
@@ -58,7 +58,7 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name)
 
   std::scoped_lock lock{_mutex};
 
-  auto [elem_it, inserted] = _logger_name_map.try_emplace(logger_name, std::move(logger));
+  auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
 
   assert(inserted && "inserted can not be false");
 
@@ -67,7 +67,7 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name)
 }
 
 /***/
-Logger* LoggerCollection::create_logger(std::string const& logger_name, std::unique_ptr<detail::SinkBase> sink)
+Logger* LoggerCollection::create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink)
 {
   assert(!logger_name.empty() && "Trying to add a logger with an empty name is not possible");
 
@@ -76,7 +76,7 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name, std::uni
 
   std::scoped_lock lock{_mutex};
 
-  auto [elem_it, inserted] = _logger_name_map.try_emplace(logger_name, std::move(logger));
+  auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
 
   assert(inserted && "inserted can not be false");
 
