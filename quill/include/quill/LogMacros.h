@@ -1,8 +1,10 @@
 #pragma once
 
+#include "quill/Config.h"
 #include "quill/Logger.h"
 #include "quill/detail/Macros.h"
 
+// Config Options
 #define QUILL_LOG_LEVEL_TRACE_L3 0
 #define QUILL_LOG_LEVEL_TRACE_L2 1
 #define QUILL_LOG_LEVEL_TRACE_L1 2
@@ -18,7 +20,17 @@
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 #endif
 
-// Main Log Macro
+// Define default backend sleep duration
+#if !defined(QUILL_BACKEND_THREAD_SLEEP_DURATION_NS)
+#define QUILL_BACKEND_THREAD_SLEEP_DURATION_NS 500u
+#endif
+
+// Define default clock for timestamps
+#if !defined(QUILL_CHRONO_SYSTEM_CLOCK)
+#define QUILL_CHRONO_SYSTEM_CLOCK QUILL_TSC_CLOCK
+#endif
+
+// Main Log Macros
 // clang-format off
 #define QUILL_LOGGER_CALL(logger, log_statement_level, fmt, ...) do {                                                               \
     static constexpr quill::detail::LogLineInfo log_line_info{__LINE__, __FILE__, __FUNCTION__, fmt, log_statement_level};  \

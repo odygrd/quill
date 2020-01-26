@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "quill/LogMacros.h" // for config definitions
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/message/MessageBase.h"
@@ -75,7 +76,10 @@ void LoggingWorker::_main_loop()
 
   if (!had_log_record)
   {
-    // TODO: Sleep
+    // Sleep for the specified duration as we found no messages
+#if QUILL_BACKEND_THREAD_SLEEP_DURATION_NS > 0
+    std::this_thread::sleep_for(std::chrono::nanoseconds{QUILL_BACKEND_THREAD_SLEEP_DURATION_NS});
+#endif
   }
 }
 
