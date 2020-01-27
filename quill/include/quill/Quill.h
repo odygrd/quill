@@ -70,6 +70,8 @@ namespace config
  *
  * Each time the backend thread sees that there are no remaining records left to process in the queues it will sleep.
  *
+ * @param sleep_duration The sleep duration
+ *
  * @note: It is recommended to pin the backend thread to a shared or a junk cpu core and use the
  * default sleep duration of 500ns.
  * If you really care about the backend thread speed you might want to pin that thread to an exclusive core
@@ -96,6 +98,18 @@ void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) 
  * @see set_backend_thread_sleep_duration
  */
 void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
+
+/**
+ * Names the backend thread
+ *
+ * By default the backend thread is named "Quill_Backend"
+ *
+ * @warning: The backend thread will read this value when quill::start() is called.
+ * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
+ *
+ * @param name The desired name
+ */
+void set_backend_thread_name(std::string const& name) noexcept;
 } // namespace config
 
 } // namespace quill

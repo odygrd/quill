@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdint>
 #include <limits>
+#include <string>
 
 namespace quill::detail
 {
@@ -31,7 +32,19 @@ public:
    */
   [[nodiscard]] uint16_t backend_thread_cpu_affinity() const noexcept;
 
+  /**
+   * Names the backend thread
+   * @param name the desired name
+   */
+  void set_backend_thread_name(std::string const& name) noexcept;
+
+  /**
+   * @return The backend thread name
+   */
+  [[nodiscard]] std::string backend_thread_name() const noexcept;
+
 private:
+  std::string _backend_thread_name{"Quill_Backend"}; /** Custom name for the backend thread */
   std::chrono::nanoseconds _backend_thread_sleep_duration{500};
   uint16_t _backend_thread_cpu_affinity{
     std::numeric_limits<uint16_t>::max()}; /** max() as undefined value, cpu affinity will not be set */

@@ -42,6 +42,12 @@ void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
 {
   detail::LogManagerSingleton::instance().config().set_backend_thread_cpu_affinity(cpu);
 }
+
+/***/
+void set_backend_thread_name(std::string const& name) noexcept
+{
+  detail::LogManagerSingleton::instance().config().set_backend_thread_name(name);
+}
 } // namespace config
 
 } // namespace quill
