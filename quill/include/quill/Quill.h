@@ -9,6 +9,7 @@ namespace quill
 {
 /**
  * Starts the backend thread to write the logs to the sinks
+ * @throws When the backend thread fails to start
  */
 void start();
 
@@ -71,13 +72,30 @@ namespace config
  *
  * @note: It is recommended to pin the backend thread to a shared or a junk cpu core and use the
  * default sleep duration of 500ns.
- * However, if you really care about the backend thread speed you might want to pin that thread to an exclusive core
+ * If you really care about the backend thread speed you might want to pin that thread to an exclusive core
  * and change the sleep duration value to 0 so that the thread never sleeps
+ *
+ * @see set_backend_thread_cpu_affinity
  *
  * @warning: The backend thread will read this value when quill::start() is called.
  * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
  */
 void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept;
+
+/**
+ * Pins the backend thread to the given CPU
+ *
+ * By default Quill does not pin the backend thread to any CPU, unless a value is specified by
+ * this function
+ *
+ * @param cpu The cpu affinity of the backend thread
+ *
+ * @warning: The backend thread will read this value when quill::start() is called.
+ * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
+ *
+ * @see set_backend_thread_sleep_duration
+ */
+void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
 } // namespace config
 
 } // namespace quill

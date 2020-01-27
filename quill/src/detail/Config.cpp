@@ -13,6 +13,17 @@ std::chrono::nanoseconds Config::backend_thread_sleep_duration() const noexcept
 {
   return _backend_thread_sleep_duration;
 }
-} // namespace quill::detail
 
-// #define QUILL_BACKEND_THREAD_SLEEP_DURATION_NS 500u
+/***/
+void Config::set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
+{
+  _backend_thread_cpu_affinity = cpu;
+}
+
+/***/
+uint16_t Config::backend_thread_cpu_affinity() const noexcept
+{
+  return _backend_thread_cpu_affinity;
+}
+
+} // namespace quill::detail

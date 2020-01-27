@@ -2,6 +2,11 @@
 
 #include <vector>
 
+#if defined(_WIN32)
+#else
+#include <sched.h>
+#endif
+
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/record/RecordBase.h"
@@ -39,14 +44,23 @@ void BackendWorker::run()
     // and we don't want it to change after we have started - This is just for safety and to
     // enforce the user to configure a variable before the thread has started
     _backend_thread_sleep_duration = _config.backend_thread_sleep_duration();
+    _backend_thread_cpu_affinity = _config.backend_thread_cpu_affinity();
 
     std::thread worker([this]() {
+      // On Start
+      if (_backend_thread_cpu_affinity != std::numeric_limits<uint16_t>::max())
+      {
+        // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
+        _set_cpu_affinity();
+      }
+
+      // Running
       while (is_running())
       {
         _main_loop();
       }
 
-      // on exit
+      // On exit
       _exit();
     });
 
@@ -66,6 +80,26 @@ void BackendWorker::stop() noexcept
   {
     _backend_worker_thread.join();
   }
+}
+
+/***/
+void BackendWorker::_set_cpu_affinity() const
+{
+#if defined(_WIN32)
+  // TODO:: Cpu affinity for windows
+#else
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(_backend_thread_cpu_affinity, &cpuset);
+
+  // Set the affinity of this
+  auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
+
+  if (QUILL_UNLIKELY(err == -1))
+  {
+    throw std::system_error((errno), std::generic_category());
+  }
+#endif
 }
 
 /***/
