@@ -21,11 +21,6 @@
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 #endif
 
-// Define default backend sleep duration
-#if !defined(QUILL_BACKEND_THREAD_SLEEP_DURATION_NS)
-#define QUILL_BACKEND_THREAD_SLEEP_DURATION_NS 500u
-#endif
-
 // Define default clock for timestamps
 #if !defined(QUILL_CHRONO_SYSTEM_CLOCK)
 #define QUILL_CHRONO_SYSTEM_CLOCK QUILL_TSC_CLOCK

@@ -43,8 +43,10 @@ std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_conte
     _thread_context_cache.clear();
 
     // Remake thread context ref
-    for (auto& elem : _thread_contexts)
+    for (auto const& elem : _thread_contexts)
     {
+      // We do skip invalidated && empty queue thread contexts as this is very rare, so instead
+      // we just add them and expect them to be cleaned in the next iteration
       _thread_context_cache.push_back(elem.get());
     }
   }

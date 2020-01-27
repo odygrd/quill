@@ -147,8 +147,6 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
   // TODO:: add sink collection class and pass it to process
   desired_record_handle.data()->backend_process(desired_thread_id);
 
-  // TODO:: Check context is invalid and remove it from collection
-
   // TODO:: When to flush on the sinks ? Maybe only if user requested
   return true;
 }
