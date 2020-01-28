@@ -19,12 +19,21 @@ class LoggerDetails
 {
 public:
   /**
-   * Constructor
+   * Constructor for a single sink
    * @param name
    */
   LoggerDetails(std::string name, std::unique_ptr<SinkBase> sink) : _name(std::move(name))
   {
     _sinks.push_back(std::move(sink));
+  }
+
+  /**
+   * Constructor for multiple sinks
+   * @param name
+   */
+  LoggerDetails(std::string name, std::vector<std::unique_ptr<SinkBase>> sinks_collection)
+    : _name(std::move(name)), _sinks(std::move(sinks_collection))
+  {
   }
 
   /**

@@ -38,38 +38,24 @@ public:
   /**
    * Copy Constructor
    */
-  SinkBase(SinkBase const& other) : _formatter(other._formatter){};
+  SinkBase(SinkBase const& other) = default;
 
   /**
    * Move Constructor
    */
-  SinkBase(SinkBase&& other) noexcept : _formatter(std::move(other._formatter)){};
+  SinkBase(SinkBase&& other) noexcept = default;
 
   /**
    * Copy Assignment
    * @return
    */
-  SinkBase& operator=(SinkBase const& other)
-  {
-    if (this != &other)
-    {
-      _formatter = other._formatter;
-    }
-    return *this;
-  }
+  SinkBase& operator=(SinkBase const& other) = default;
 
   /**
    * Move Assignment
    * @return
    */
-  SinkBase& operator=(SinkBase&& other) noexcept
-  {
-    if (this != &other)
-    {
-      _formatter = std::move(other._formatter);
-    }
-    return *this;
-  }
+  SinkBase& operator=(SinkBase&& other) noexcept = default;
 
   /**
    * Destructor

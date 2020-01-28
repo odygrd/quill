@@ -56,6 +56,58 @@ void start();
  */
 [[nodiscard]] Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink);
 
+/***
+ * Creates a new Logger using the custom given sink.
+ *
+ * A custom formatter pattern the pattern can be specified during the sink construction for each
+ * sink before the sinks are passed to this function
+ *
+ * @tparam TSinks
+ * @param logger_name
+ * @param sink
+ * @param sinks
+ * @return
+ */
+template <typename... TSinks>
+[[nodiscard]] Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink, TSinks&&... sinks)
+{
+  return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
+    std::move(logger_name), sink, std::forward<TSinks>(sinks)...);
+}
+
+/**
+ * Resets the default logger and re-creates the logger with the given sink
+ *
+ * Any loggers that are created after this point by using create_logger(std::string logger_name)
+ * use the same sink by default
+ *
+ * This function can also be used to change the format pattern of the logger
+ *
+ * @warning Must be called before calling start()
+ *
+ * @param sink
+ */
+void set_custom_default_logger(std::unique_ptr<SinkBase> sink);
+
+/**
+ * Resets the default logger and re-creates the logger with the given m
+ *
+ * Any loggers that are created after this point by using create_logger(std::string logger_name)
+ * use the same multiple sinks by default
+ *
+ * @warning Must be called before calling start()
+ *
+ * @tparam TSinks
+ * @param sink
+ * @param sinks
+ */
+template <typename... TSinks>
+void set_custom_default_logger(std::unique_ptr<SinkBase> sink, TSinks&&... sinks)
+{
+  detail::LogManagerSingleton::instance().log_manager().logger_collection().set_custom_default_logger(
+    std::move(sink), std::forward<TSinks>(sinks)...);
+}
+
 /** Runtime logger configuration options **/
 namespace config
 {

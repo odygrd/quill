@@ -19,7 +19,7 @@ LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_colle
 {
   _logger_name_map.reserve(4);
 
-  // Add the default logger to Stdout sink
+  // Add the default StdoutSink to the default logger
   std::unique_ptr<SinkBase> stdout_sink = std::make_unique<StdoutSink>();
   _default_logger = create_logger(_default_logger_name, std::move(stdout_sink));
 }
@@ -73,6 +73,48 @@ Logger* LoggerCollection::create_logger(std::string logger_name, std::unique_ptr
 
   // We can't use make_unique since the constructor is private
   std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(sink), _thread_context_collection)};
+
+  std::scoped_lock lock{_mutex};
+
+  auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
+
+  assert(inserted && "inserted can not be false");
+
+  // Return the inserted logger
+  return elem_it->second.get();
+}
+
+/***/
+void LoggerCollection::set_custom_default_logger(std::unique_ptr<SinkBase> sink)
+{
+  std::scoped_lock lock{_mutex};
+
+  // Remove the old default logger
+  _logger_name_map.erase(_default_logger_name);
+
+  // Remake the default logger
+  _default_logger = create_logger(_default_logger_name, std::move(sink));
+}
+
+/***/
+void LoggerCollection::_set_custom_default_logger(std::vector<std::unique_ptr<SinkBase>> sink_collection)
+{
+  std::scoped_lock lock{_mutex};
+
+  // Remove the old default logger
+  _logger_name_map.erase(_default_logger_name);
+
+  // Remake the default logger
+  _default_logger = _create_logger(_default_logger_name, std::move(sink_collection));
+}
+
+/***/
+Logger* LoggerCollection::_create_logger(std::string logger_name, std::vector<std::unique_ptr<SinkBase>> sinks_collection)
+{
+  assert(!logger_name.empty() && "Trying to add a logger with an empty name is not possible");
+
+  // We can't use make_unique since the constructor is private
+  std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(sinks_collection), _thread_context_collection)};
 
   std::scoped_lock lock{_mutex};
 

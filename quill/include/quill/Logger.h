@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <vector>
 
 #include "quill/LogLevel.h"
 #include "quill/detail/LoggerDetails.h"
@@ -109,13 +110,25 @@ private:
 
   /**
    * Constructs new logger object
-   * For efficiency we store an id instead of a string to the logger. This is because we want
-   * to avoid copying a string to the spsc queue for every log statement
    * @param logger_id A unique id per logger
    * @param log_level The log level of the logger
    */
   Logger(std::string name, std::unique_ptr<SinkBase> sink, detail::ThreadContextCollection& thread_context_collection)
     : _logger_details(std::move(name), std::move(sink)), _thread_context_collection(thread_context_collection)
+  {
+  }
+
+  /**
+   * Constructs a new logger object with multiple sinks
+   * @param name
+   * @param sink
+   * @param thread_context_collection
+   */
+  Logger(std::string name,
+         std::vector<std::unique_ptr<SinkBase>> sink_collection,
+         detail::ThreadContextCollection& thread_context_collection)
+    : _logger_details(std::move(name), std::move(sink_collection)),
+      _thread_context_collection(thread_context_collection)
   {
   }
 

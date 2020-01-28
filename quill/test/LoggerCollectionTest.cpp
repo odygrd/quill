@@ -8,8 +8,9 @@ using namespace quill;
 using namespace quill::detail;
 
 /***/
-TEST(LoggerCollection, same_logger)
+TEST(LoggerCollection, create_get_same_logger)
 {
+  // Create and then get the same logger and check that the values we set are cached
   ThreadContextCollection tc;
   LoggerCollection logger_collection{tc};
 
@@ -26,8 +27,9 @@ TEST(LoggerCollection, same_logger)
 }
 
 /***/
-TEST(LoggerCollection, different_loggers)
+TEST(LoggerCollection, create_get_different_loggers)
 {
+  // Create and then get the same logger and check that the values we set are different
   ThreadContextCollection tc;
   LoggerCollection logger_collection{tc};
 
@@ -45,8 +47,9 @@ TEST(LoggerCollection, different_loggers)
 }
 
 /***/
-TEST(LoggerCollection, logger_not_found)
+TEST(LoggerCollection, get_non_existing_logger)
 {
+  // Check that we throw if we try to get a logger that was never created before
   ThreadContextCollection tc;
   LoggerCollection logger_collection{tc};
 
@@ -57,6 +60,8 @@ TEST(LoggerCollection, logger_not_found)
 /***/
 TEST(LoggerCollection, default_logger)
 {
+  // Get the default logger and change the log level, then get the default logger again ans check
+  // the values we set are cached
   ThreadContextCollection tc;
   LoggerCollection logger_collection{tc};
 
@@ -78,9 +83,53 @@ TEST(LoggerCollection, default_logger)
 /***/
 TEST(LoggerCollection, create_logger_from_default_logger)
 {
+  // Create a new logger and check that the properties are the same as the default logger
   ThreadContextCollection tc;
   LoggerCollection logger_collection{tc};
 
   Logger* default_logger = logger_collection.create_logger("logger_test");
   EXPECT_EQ(default_logger->log_level(), LogLevel::Info);
+}
+
+/***/
+TEST(LoggerCollection, set_default_logger_sink)
+{
+  // Set a sink to the default logger
+  ThreadContextCollection tc;
+  LoggerCollection logger_collection{tc};
+
+  logger_collection.set_custom_default_logger(std::make_unique<StdoutSink>());
+}
+
+/***/
+TEST(LoggerCollection, set_default_logger_pattern)
+{
+  // Set a sink to the default logger with a default pattern
+  ThreadContextCollection tc;
+  LoggerCollection logger_collection{tc};
+
+  logger_collection.set_custom_default_logger(
+    std::make_unique<StdoutSink>(QUILL_STRING("%(message)")));
+}
+
+/***/
+TEST(LoggerCollection, set_default_logger_multiple_sinks)
+{
+  // Set a sink to the default logger with a default pattern
+  ThreadContextCollection tc;
+  LoggerCollection logger_collection{tc};
+
+  logger_collection.set_custom_default_logger(std::make_unique<StdoutSink>(), std::make_unique<StdoutSink>());
+}
+
+/***/
+TEST(LoggerCollection, set_default_logger_pattern_multiple_sinks)
+{
+  // Set a sink to the default logger with a default pattern
+  ThreadContextCollection tc;
+  LoggerCollection logger_collection{tc};
+
+  logger_collection.set_custom_default_logger(
+    std::make_unique<StdoutSink>(QUILL_STRING("%(message)")),
+    std::make_unique<StdoutSink>(QUILL_STRING("%(message)")));
 }

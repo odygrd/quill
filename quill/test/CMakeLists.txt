@@ -5,6 +5,7 @@ set(SOURCE_FILES
         LoggerCollectionTest.cpp
         LoggerTest.cpp
         LogLevelTest.cpp
+        LogTest.cpp
         PatternFormatterTest.cpp
         RecordTest.cpp
         StaticLogRecordInfoTest.cpp

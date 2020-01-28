@@ -25,6 +25,7 @@ set(HEADER_FILES
 
         include/quill/sinks/SinkBase.h
         include/quill/sinks/StdoutSink.h
+        include/quill/sinks/BasicFileSink.h
 
         include/quill/Logger.h
         include/quill/LogLevel.h
@@ -45,6 +46,7 @@ set(SOURCE_FILES
         src/detail/ThreadContextCollection.cpp
         src/detail/CommonUtilities.cpp
 
+        src/sinks/BasicFileSink.cpp
         src/sinks/StdoutSink.cpp
 
         src/LogLevel.cpp

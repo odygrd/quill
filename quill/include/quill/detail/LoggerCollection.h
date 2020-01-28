@@ -38,7 +38,7 @@ public:
 
   /**
    * Creates a new logger with default log level info or returns an existing logger with it's
-   * cached log level if the logger already exists
+   * cached log levels and sinks if the logger already exists
    * @param logger_name The name of the logger or empty for the default logger
    * @note this function is slow, consider calling it only once and store the pointer to the logger
    * @return a Logger object or the default logger is logger_name is empty
@@ -61,6 +61,87 @@ public:
    * @return
    */
   [[nodiscard]] Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink);
+
+  /**
+   * Create a new logger with multiple sinks
+   * @tparam TSinks
+   * @param logger_name
+   * @param sink
+   * @param sinks
+   * @return
+   */
+  template <typename... TSinks>
+  [[nodiscard]] Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink, TSinks&&... sinks)
+  {
+    // Create a vector of unique pointers to sinks
+    std::vector<std::unique_ptr<SinkBase>> sinks_collection;
+    _make_sinks_collection(sinks_collection, std::move(sink), std::forward<TSinks>(sinks)...);
+    return _create_logger(std::move(logger_name), std::move(sinks_collection));
+  }
+
+  /**
+   * Set a custom default logger with a single sink
+   * @param sink
+   */
+  void set_custom_default_logger(std::unique_ptr<SinkBase> sink);
+
+  /**
+   * Set a custom default logger with multple sinks
+   * @tparam TSinks
+   * @param sink
+   * @param sinks
+   */
+  template <typename... TSinks>
+  void set_custom_default_logger(std::unique_ptr<SinkBase> sink, TSinks&&... sinks)
+  {
+    // Create a vector of unique pointers to sinks
+    std::vector<std::unique_ptr<SinkBase>> sinks_collection;
+    _make_sinks_collection(sinks_collection, std::move(sink), std::forward<TSinks>(sinks)...);
+    _set_custom_default_logger(std::move(sinks_collection));
+  }
+
+private:
+  /**
+   * End of recursion
+   * @param sinks_collection
+   * @param sink
+   */
+  static void _make_sinks_collection(std::vector<std::unique_ptr<SinkBase>>& sinks_collection,
+                                     std::unique_ptr<SinkBase> sink)
+  {
+    sinks_collection.push_back(std::move(sink));
+  }
+
+  /**
+   * Recursively create a vector of sinks to pass it to a new logger constructor
+   * @tparam TSinks
+   * @param sinks_collection
+   * @param sink
+   * @param sinks
+   */
+  template <typename... TSinks>
+  static void _make_sinks_collection(std::vector<std::unique_ptr<SinkBase>>& sinks_collection,
+                                     std::unique_ptr<SinkBase> sink,
+                                     TSinks&&... sinks)
+  {
+    sinks_collection.push_back(std::move(sink));
+    _make_sinks_collection(sinks_collection, std::forward<TSinks>(sinks)...);
+  }
+
+  /**
+   * Sets a custom logger with multiple sinks
+   * @param sink
+   */
+  void _set_custom_default_logger(std::vector<std::unique_ptr<SinkBase>> sink_collection);
+
+  /**
+   * Create a logger with multiple sinks
+   * @param logger_name
+   * @param sink
+   * @return
+   */
+  [[nodiscard]] Logger* _create_logger(std::string logger_name,
+                                       std::vector<std::unique_ptr<SinkBase>> sinks_collection);
 
 private:
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */
