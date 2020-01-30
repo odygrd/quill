@@ -1,6 +1,7 @@
 #include "quill/detail/LoggerCollection.h"
+#include "quill/detail/HandlerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/sinks/StdoutSink.h"
+#include "quill/handlers/StreamHandler.h"
 
 #include <gtest/gtest.h>
 
@@ -11,11 +12,12 @@ using namespace quill::detail;
 TEST(LoggerCollection, create_get_same_logger)
 {
   // Create and then get the same logger and check that the values we set are cached
+  HandlerCollection hc;
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
+  LoggerCollection logger_collection{tc, hc};
 
-  std::unique_ptr<SinkBase> sink = std::make_unique<StdoutSink>();
-  Logger* logger_1 = logger_collection.create_logger("logger_1", std::move(sink));
+  Handler* stream_handler = hc.stdout_streamhandler();
+  Logger* logger_1 = logger_collection.create_logger("logger_1", stream_handler);
   EXPECT_EQ(logger_1->log_level(), LogLevel::Info);
 
   // change existing log level
@@ -30,18 +32,20 @@ TEST(LoggerCollection, create_get_same_logger)
 TEST(LoggerCollection, create_get_different_loggers)
 {
   // Create and then get the same logger and check that the values we set are different
+  HandlerCollection hc;
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
+  LoggerCollection logger_collection{tc, hc};
 
-  Logger* logger_1 = logger_collection.create_logger("logger_1", std::make_unique<StdoutSink>());
+  Handler* stream_handler = hc.stdout_streamhandler();
+  Logger* logger_1 = logger_collection.create_logger("logger_1", stream_handler);
   EXPECT_EQ(logger_1->log_level(), LogLevel::Info);
 
   // change existing log level
   logger_1->set_log_level(LogLevel::TraceL2);
 
   // try to get a new logger with a default log level
-  [[maybe_unused]] Logger* logger_2 =
-    logger_collection.create_logger("logger_2", std::make_unique<StdoutSink>());
+  Handler* stream_handler_2 = hc.stdout_streamhandler();
+  [[maybe_unused]] Logger* logger_2 = logger_collection.create_logger("logger_2", stream_handler_2);
   Logger* logger_3 = logger_collection.get_logger("logger_2");
   EXPECT_EQ(logger_3->log_level(), LogLevel::Info);
 }
@@ -50,8 +54,9 @@ TEST(LoggerCollection, create_get_different_loggers)
 TEST(LoggerCollection, get_non_existing_logger)
 {
   // Check that we throw if we try to get a logger that was never created before
+  HandlerCollection hc;
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
+  LoggerCollection logger_collection{tc, hc};
 
   // try to get a new logger with a default log level
   EXPECT_THROW([[maybe_unused]] auto logger = logger_collection.get_logger("logger_2"), std::runtime_error);
@@ -62,8 +67,9 @@ TEST(LoggerCollection, default_logger)
 {
   // Get the default logger and change the log level, then get the default logger again ans check
   // the values we set are cached
+  HandlerCollection hc;
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
+  LoggerCollection logger_collection{tc, hc};
 
   Logger* default_logger = logger_collection.get_logger();
   EXPECT_EQ(default_logger->log_level(), LogLevel::Info);
@@ -84,52 +90,48 @@ TEST(LoggerCollection, default_logger)
 TEST(LoggerCollection, create_logger_from_default_logger)
 {
   // Create a new logger and check that the properties are the same as the default logger
+  HandlerCollection hc;
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
+  LoggerCollection logger_collection{tc, hc};
 
   Logger* default_logger = logger_collection.create_logger("logger_test");
   EXPECT_EQ(default_logger->log_level(), LogLevel::Info);
 }
 
 /***/
-TEST(LoggerCollection, set_default_logger_sink)
+TEST(LoggerCollection, set_default_logger_handler)
 {
-  // Set a sink to the default logger
+  // Set a handler to the default logger
+  HandlerCollection hc;
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
+  LoggerCollection logger_collection{tc, hc};
 
-  logger_collection.set_custom_default_logger(std::make_unique<StdoutSink>());
+  Handler* stream_handler = hc.stdout_streamhandler();
+  logger_collection.set_default_logger_handler(stream_handler);
 }
 
 /***/
 TEST(LoggerCollection, set_default_logger_pattern)
 {
-  // Set a sink to the default logger with a default pattern
+  // Set a handler to the default logger with a default pattern
+  HandlerCollection hc;
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
+  LoggerCollection logger_collection{tc, hc};
 
-  logger_collection.set_custom_default_logger(
-    std::make_unique<StdoutSink>(QUILL_STRING("%(message)")));
+  Handler* stream_handler = hc.stdout_streamhandler();
+  PatternFormatter formatter{QUILL_STRING("%(message)")};
+  stream_handler->set_formatter(formatter);
+
+  logger_collection.set_default_logger_handler(stream_handler);
 }
 
 /***/
-TEST(LoggerCollection, set_default_logger_multiple_sinks)
+TEST(LoggerCollection, set_default_logger_multiple_handlers)
 {
-  // Set a sink to the default logger with a default pattern
+  // Set a handler to the default logger with a default pattern
+  HandlerCollection hc;
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
+  LoggerCollection logger_collection{tc, hc};
 
-  logger_collection.set_custom_default_logger(std::make_unique<StdoutSink>(), std::make_unique<StdoutSink>());
-}
-
-/***/
-TEST(LoggerCollection, set_default_logger_pattern_multiple_sinks)
-{
-  // Set a sink to the default logger with a default pattern
-  ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
-
-  logger_collection.set_custom_default_logger(
-    std::make_unique<StdoutSink>(QUILL_STRING("%(message)")),
-    std::make_unique<StdoutSink>(QUILL_STRING("%(message)")));
+  logger_collection.set_default_logger_handler({hc.stdout_streamhandler(), hc.stderr_streamhandler()});
 }

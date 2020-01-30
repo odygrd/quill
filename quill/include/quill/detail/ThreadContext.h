@@ -23,7 +23,7 @@ namespace quill::detail
  * the Logger to push LogRecords to the SPSC queue.
  *
  * The backend thread will read all existing ThreadContext class instances and pop the LogRecords
- * from each queue and flush to all the appropriate sinks
+ * from each queue and flush to all the appropriate handlers
  */
 class ThreadContext
 {

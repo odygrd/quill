@@ -8,6 +8,8 @@
 #include <sys/prctl.h>
 #endif
 
+#include "quill/detail/HandlerCollection.h"
+#include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/record/RecordBase.h"
@@ -15,8 +17,14 @@
 namespace quill::detail
 {
 /***/
-BackendWorker::BackendWorker(Config const& config, ThreadContextCollection& thread_context_collection)
-  : _config(config), _thread_context_collection(thread_context_collection)
+BackendWorker::BackendWorker(Config const& config,
+                             ThreadContextCollection& thread_context_collection,
+                             LoggerCollection const& logger_collection,
+                             HandlerCollection const& handler_collection)
+  : _config(config),
+    _thread_context_collection(thread_context_collection),
+    _logger_collection(logger_collection),
+    _handler_collection(handler_collection)
 {
 }
 
@@ -196,10 +204,13 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
     return false;
   }
 
-  // TODO:: add sink collection class and pass it to process
-  desired_record_handle.data()->backend_process(desired_thread_id);
+  // A lambda to obtain the logger details and pass t to RecordBase, this lambda is called only in
+  // case we flush
+  auto obtain_active_handlers = [this]() { return _handler_collection.active_handlers(); };
 
-  // TODO:: When to flush on the sinks ? Maybe only if user requested
+  desired_record_handle.data()->backend_process(desired_thread_id, obtain_active_handlers);
+
+  // TODO:: When to flush on the handler ? Maybe only if user requested
   return true;
 }
 

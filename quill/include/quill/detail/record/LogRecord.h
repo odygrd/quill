@@ -3,7 +3,6 @@
 #include <tuple>
 
 #include "fmt/format.h"
-#include "quill/detail/LoggerDetails.h"
 #include "quill/detail/record/LogRecordUtilities.h"
 #include "quill/detail/record/RecordBase.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
@@ -54,25 +53,22 @@ public:
   /**
    * Process a LogRecord
    */
-  void backend_process(uint32_t thread_id) const noexcept override
+  void backend_process(uint32_t thread_id, std::function<std::vector<Handler*>()> const&) const noexcept override
   {
-    // Forward the record to all of the logger sinks
-    for (auto& sink : _logger_details->sinks())
+    // Forward the record to all of the logger handlers
+    for (auto& handler : _logger_details->handlers())
     {
       // lambda to unpack the tuple args
-      auto forward_tuple_args_to_formatter = [this, timestamp = rdtsc(), thread_id, &sink](auto... tuple_args) {
-        return sink->formatter().format(timestamp, thread_id, _logger_details->name(),
-                                        *_log_line_info, tuple_args...);
+      auto forward_tuple_args_to_formatter = [this, timestamp = rdtsc(), thread_id, &handler](auto... tuple_args) {
+        return handler->formatter().format(timestamp, thread_id, _logger_details->name(),
+                                           *_log_line_info, tuple_args...);
       };
 
       // formatted record by the formatter
       fmt::memory_buffer const formatted_record = std::apply(forward_tuple_args_to_formatter, this->_fmt_args);
 
-      // log to the sink
-      sink->log(formatted_record);
-
-      // TODO:: provide easy access to flush to the LoggingWorker, don't flush on each record
-      // sink->flush();
+      // log to the handler
+      handler->emit(formatted_record);
     }
   }
 

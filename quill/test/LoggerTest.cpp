@@ -1,7 +1,7 @@
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
 
-#include "quill/sinks/StdoutSink.h"
+#include "quill/handlers/Handler.h"
 #include <gtest/gtest.h>
 
 using namespace quill;
@@ -10,9 +10,11 @@ using namespace quill::detail;
 TEST(Logger, logger_can_log)
 {
   ThreadContextCollection tc;
-  LoggerCollection logger_collection{tc};
-  [[maybe_unused]] Logger* logger_1 =
-    logger_collection.create_logger("logger_1", std::make_unique<StdoutSink>());
+  HandlerCollection hc;
+
+  LoggerCollection logger_collection{tc, hc};
+
+  [[maybe_unused]] Logger* logger_1 = logger_collection.create_logger("logger_1");
 
   {
     LogLevel log_statement_level{LogLevel::Debug};

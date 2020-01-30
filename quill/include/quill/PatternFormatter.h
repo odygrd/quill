@@ -23,7 +23,7 @@
     return R{};                                                                                    \
   }()
 
-namespace quill::detail
+namespace quill
 {
 /**
  * Formats a log record based on a pattern provided by the user to an fmt::memory_buffer
@@ -75,7 +75,7 @@ private:
                         uint64_t timestamp,
                         uint32_t thread_id,
                         char const* logger_name,
-                        StaticLogRecordInfo const& logline_info) const = 0;
+                        detail::StaticLogRecordInfo const& logline_info) const = 0;
   };
 
   /**
@@ -105,7 +105,7 @@ private:
                 uint64_t timestamp,
                 uint32_t thread_id,
                 char const* logger_name,
-                StaticLogRecordInfo const& logline_info) const override
+                detail::StaticLogRecordInfo const& logline_info) const override
     {
       // lambda expand the stored tuple arguments
       auto format_buffer = [this, &memory_buffer, timestamp, thread_id, logger_name,
@@ -189,7 +189,7 @@ public:
   fmt::memory_buffer format(uint64_t timestamp,
                             uint32_t thread_id,
                             std::string const& logger_name,
-                            StaticLogRecordInfo const& logline_info,
+                            detail::StaticLogRecordInfo const& logline_info,
                             Args const&... args) const;
 
 private:
@@ -197,7 +197,7 @@ private:
    * The stored callback type that will return the appropriate value based on the format pattern specifiers
    */
   using argument_callback_t =
-    std::function<std::string(uint64_t, uint32_t, char const*, StaticLogRecordInfo const&)>;
+    std::function<std::string(uint64_t, uint32_t, char const*, detail::StaticLogRecordInfo const&)>;
 
   /**
    * Generate a tuple of callbacks [](size i) { };
@@ -307,7 +307,7 @@ template <typename... Args>
 fmt::memory_buffer PatternFormatter::format(uint64_t timestamp,
                                             uint32_t thread_id,
                                             std::string const& logger_name,
-                                            StaticLogRecordInfo const& logline_info,
+                                            detail::StaticLogRecordInfo const& logline_info,
                                             Args const&... args) const
 {
   fmt::memory_buffer formatted_buffer;
@@ -431,4 +431,4 @@ std::unique_ptr<PatternFormatter::FormatterHelperBase> PatternFormatter::_make_f
   return nullptr;
 }
 
-} // namespace quill::detail
+} // namespace quill

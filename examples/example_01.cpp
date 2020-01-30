@@ -10,7 +10,7 @@ int main()
   // a) We can use the default logger like this
   {
     // Using the default logger.
-    // Default sink : stdout
+    // Default handler : stdout
     // Default LogLevel : Info
     // Default pattern : "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"
     Logger* logger = quill::get_logger();

@@ -2,19 +2,20 @@
 
 #include <string>
 
+#include "quill/detail/HandlerCollection.h"
 #include "quill/detail/record/CommandRecord.h"
 #include "quill/detail/record/LogRecord.h"
 #include "quill/detail/record/LogRecordUtilities.h"
-#include "quill/sinks/StdoutSink.h"
 
 using namespace quill::detail;
 using namespace quill;
 
 TEST(Record, construct)
 {
+  HandlerCollection hc;
   constexpr StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __FUNCTION__, "Test fmt {}",
                                               quill::LogLevel::Debug};
-  LoggerDetails logger_details{"default", std::make_unique<StdoutSink>()};
+  LoggerDetails logger_details{"default", hc.stdout_streamhandler()};
   {
     // test with char const
     using record_t = LogRecord<int, double, char const*>;
@@ -37,5 +38,6 @@ TEST(Record, construct)
 
 TEST(CommandRecord, construct)
 {
+  // TODO:: test
   CommandRecord msg{[]() {}};
 }

@@ -14,6 +14,8 @@ namespace quill::detail
 class ThreadContextCollection;
 class ThreadContext;
 class RecordBase;
+class LoggerCollection;
+class HandlerCollection;
 
 class BackendWorker
 {
@@ -21,7 +23,10 @@ public:
   /**
    * Constructor
    */
-  explicit BackendWorker(Config const& config, ThreadContextCollection& thread_context_collection);
+  BackendWorker(Config const& config,
+                ThreadContextCollection& thread_context_collection,
+                LoggerCollection const& logger_collection,
+                HandlerCollection const& handler_collection);
 
   /**
    * Destructor
@@ -77,11 +82,13 @@ private:
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
+  LoggerCollection const& _logger_collection;
+  HandlerCollection const& _handler_collection;
 
-  std::thread _backend_worker_thread; /** the backend thread that is writing the log to the sinks */
+  std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
-  std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
+  std::atomic<bool> _is_running{false};                    /** The spawned backend thread status */
 };
 
 } // namespace quill::detail

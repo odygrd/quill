@@ -10,26 +10,27 @@ set(HEADER_FILES
         include/quill/detail/record/LogRecordUtilities.h
         include/quill/detail/record/RecordBase.h
         include/quill/detail/record/StaticLogRecordInfo.h
+        include/quill/detail/utiliity/Spinlock.h
+        include/quill/detail/utiliity/RecursiveSpinlock.h
         include/quill/detail/BackendWorker.h
         include/quill/detail/BoundedSPSCQueue.h
         include/quill/detail/CommonMacros.h
         include/quill/detail/CommonUtilities.h
         include/quill/detail/Config.h
+        include/quill/detail/HandlerCollection.h
         include/quill/detail/LoggerCollection.h
         include/quill/detail/LoggerDetails.h
         include/quill/detail/LogManager.h
         include/quill/detail/LogManagerSingleton.h
-        include/quill/detail/PatternFormatter.h
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
-
-        include/quill/sinks/SinkBase.h
-        include/quill/sinks/StdoutSink.h
-        include/quill/sinks/BasicFileSink.h
-
+        include/quill/handlers/FileHandler.h
+        include/quill/handlers/Handler.h
+        include/quill/handlers/StreamHandler.h
         include/quill/Logger.h
         include/quill/LogLevel.h
         include/quill/Macros.h
+        include/quill/PatternFormatter.h
         include/quill/Quill.h
         include/quill/TweakMe.h
         include/quill/Utility.h
@@ -39,17 +40,18 @@ set(HEADER_FILES
 set(SOURCE_FILES
         src/detail/BackendWorker.cpp
         src/detail/Config.cpp
+        src/detail/HandlerCollection.cpp
         src/detail/LoggerCollection.cpp
         src/detail/LogManager.cpp
         src/detail/LogManagerSingleton.cpp
-        src/detail/PatternFormatter.cpp
         src/detail/ThreadContextCollection.cpp
         src/detail/CommonUtilities.cpp
-
-        src/sinks/BasicFileSink.cpp
-        src/sinks/StdoutSink.cpp
-
+        src/handlers/FileHandler.cpp
+        src/handlers/StreamHandler.cpp
+        src/utillity/Spinlock.cpp
+        src/utillity/RecursiveSpinlock.cpp
         src/LogLevel.cpp
+        src/PatternFormatter.cpp
         src/Quill.cpp
         src/Utility.cpp
         )

@@ -2,16 +2,38 @@
 
 #include "quill/Macros.h"
 
+#include <initializer_list>
+
 #include "quill/Utility.h"
 #include "quill/detail/LogManagerSingleton.h"
 
 namespace quill
 {
 /**
- * Starts the backend thread to write the logs to the sinks
+ * Starts the backend thread to write the logs to the handlers
  * @throws When the backend thread fails to start
  */
 void start();
+
+/**
+ * @return a handler to the standard output stream
+ */
+Handler* stdout_streamhandler();
+
+/**
+ * @return a handler to the standard error stream
+ */
+Handler* stderr_streamhandler();
+
+/**
+ * Creates or returns an existing handler to a file.
+ * If the file is already opened the existing handler for this file is returned instead
+ * @param filename the name of the file
+ * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
+ * If no value is specified during the file creation "a" is used as default.
+ * @return A handler to a file
+ */
+Handler* filehandler(std::string const& filename, std::string const& mode = std::string{});
 
 /**
  * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed
@@ -33,7 +55,7 @@ void start();
 [[nodiscard]] Logger* get_logger(std::string const& logger_name = std::string{});
 
 /**
- * Creates a new Logger using the existing default logger's sink and formatter pattern
+ * Creates a new Logger using the existing default logger's handler and formatter pattern
  *
  * @note: If the user does not want to store the logger pointer, the same logger can be obtained later by calling get_logger(logger_name);
  *
@@ -43,70 +65,65 @@ void start();
 [[nodiscard]] Logger* create_logger(std::string logger_name);
 
 /**
- * Creates a new Logger using the custom given sink.
+ * Creates a new Logger using the custom given handler.
  *
- * A custom formatter pattern the pattern can be specified during the sink construction before
- * the sink is passed to this function
+ * A custom formatter pattern the pattern can be specified during the handler creation
  *
  * @note: If the user does not want to store the logger pointer, the same logger can be obtained later by calling get_logger(logger_name);
  *
  * @param logger_name
- * @param sink
+ * @param handler
  * @return A pointer to a thread-safe Logger object
  */
-[[nodiscard]] Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink);
+[[nodiscard]] Logger* create_logger(std::string logger_name, Handler* handler);
 
 /***
- * Creates a new Logger using the custom given sink.
+ * Creates a new Logger using the custom given handler.
  *
- * A custom formatter pattern the pattern can be specified during the sink construction for each
- * sink before the sinks are passed to this function
+ * A custom formatter pattern the pattern can be specified during the handler creation for each
+ * handler
  *
- * @tparam TSinks
  * @param logger_name
- * @param sink
- * @param sinks
+ * @param handlers
  * @return
  */
-template <typename... TSinks>
-[[nodiscard]] Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink, TSinks&&... sinks)
-{
-  return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
-    std::move(logger_name), sink, std::forward<TSinks>(sinks)...);
-}
+[[nodiscard]] Logger* create_logger(std::string logger_name, std::initializer_list<Handler*> handlers);
 
 /**
- * Resets the default logger and re-creates the logger with the given sink
+ * Resets the default logger and re-creates the logger with the given handler
  *
  * Any loggers that are created after this point by using create_logger(std::string logger_name)
- * use the same sink by default
+ * use the same handler by default
  *
  * This function can also be used to change the format pattern of the logger
  *
  * @warning Must be called before calling start()
  *
- * @param sink
+ * @param handler
  */
-void set_custom_default_logger(std::unique_ptr<SinkBase> sink);
+void set_default_logger_handler(Handler* handler);
 
 /**
- * Resets the default logger and re-creates the logger with the given m
+ * Resets the default logger and re-creates the logger with the given multiple handlers
  *
  * Any loggers that are created after this point by using create_logger(std::string logger_name)
- * use the same multiple sinks by default
+ * use the same multiple handlers by default
  *
  * @warning Must be called before calling start()
  *
- * @tparam TSinks
- * @param sink
- * @param sinks
+ * @param handlers
  */
-template <typename... TSinks>
-void set_custom_default_logger(std::unique_ptr<SinkBase> sink, TSinks&&... sinks)
-{
-  detail::LogManagerSingleton::instance().log_manager().logger_collection().set_custom_default_logger(
-    std::move(sink), std::forward<TSinks>(sinks)...);
-}
+void set_default_logger_handler(std::initializer_list<Handler*> handlers);
+
+/**
+ * Blocks the caller thread until all log messages until the current timestamp are flushed
+ *
+ * The backend thread will emit all loggers and all handlers up to the point (timestamp) that
+ * this function was called.
+ *
+ * @note This function will not do anything if called while the backend worker is not running
+ */
+void flush();
 
 /** Runtime logger configuration options **/
 namespace config

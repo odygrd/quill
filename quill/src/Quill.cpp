@@ -9,6 +9,24 @@ namespace quill
 void start() { detail::LogManagerSingleton::instance().log_manager().start_backend_worker(); }
 
 /***/
+Handler* stdout_streamhandler()
+{
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stdout_streamhandler();
+}
+
+/***/
+Handler* stderr_streamhandler()
+{
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stderr_streamhandler();
+}
+
+/***/
+Handler* filehandler(std::string const& filename, std::string const& mode /* = std::string{} */)
+{
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().filehandler(filename, mode);
+}
+
+/***/
 Logger* get_logger(std::string const& logger_name /* = std::string{} */)
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().get_logger(logger_name);
@@ -22,11 +40,33 @@ Logger* create_logger(std::string logger_name)
 }
 
 /***/
-Logger* create_logger(std::string logger_name, std::unique_ptr<SinkBase> sink)
+Logger* create_logger(std::string logger_name, Handler* handler)
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
-    std::move(logger_name), std::move(sink));
+    std::move(logger_name), handler);
 }
+
+/***/
+Logger* create_logger(std::string logger_name, std::initializer_list<Handler*> handlers)
+{
+  return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
+    std::move(logger_name), handlers);
+}
+
+/***/
+void set_default_logger_handler(Handler* handler)
+{
+  detail::LogManagerSingleton::instance().log_manager().logger_collection().set_default_logger_handler(handler);
+}
+
+/***/
+void set_default_logger_handler(std::initializer_list<Handler*> handlers)
+{
+  detail::LogManagerSingleton::instance().log_manager().logger_collection().set_default_logger_handler(handlers);
+}
+
+/***/
+void flush() { detail::LogManagerSingleton::instance().log_manager().flush(); }
 
 // ** Config ** //
 namespace config

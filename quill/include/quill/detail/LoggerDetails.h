@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "quill/sinks/SinkBase.h"
+#include "quill/handlers/Handler.h"
 
 namespace quill::detail
 {
@@ -19,20 +19,20 @@ class LoggerDetails
 {
 public:
   /**
-   * Constructor for a single sink
+   * Constructor for a single handle
    * @param name
    */
-  LoggerDetails(std::string name, std::unique_ptr<SinkBase> sink) : _name(std::move(name))
+  LoggerDetails(std::string name, Handler* handler) : _name(std::move(name))
   {
-    _sinks.push_back(std::move(sink));
+    _handlers.push_back(handler);
   }
 
   /**
-   * Constructor for multiple sinks
+   * Constructor for multiple handlers
    * @param name
    */
-  LoggerDetails(std::string name, std::vector<std::unique_ptr<SinkBase>> sinks_collection)
-    : _name(std::move(name)), _sinks(std::move(sinks_collection))
+  LoggerDetails(std::string name, std::vector<Handler*> handlers)
+    : _name(std::move(name)), _handlers(std::move(handlers))
   {
   }
 
@@ -53,16 +53,13 @@ public:
   [[nodiscard]] std::string const& name() const noexcept { return _name; }
 
   /**
-   * @return a vector of all sinks of this logger, called by the backend worker thread
+   * @return a vector of all handlers of this logger, called by the backend worker thread
    */
-  [[nodiscard]] std::vector<std::unique_ptr<SinkBase>> const& sinks() const noexcept
-  {
-    return _sinks;
-  }
+  [[nodiscard]] std::vector<Handler*> const& handlers() const noexcept { return _handlers; }
 
 private:
   std::string _name;
-  std::vector<std::unique_ptr<SinkBase>> _sinks;
+  std::vector<Handler*> _handlers;
 };
 
 } // namespace quill::detail

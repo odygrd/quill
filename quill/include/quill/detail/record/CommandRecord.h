@@ -9,16 +9,36 @@ namespace quill::detail
 /**
  * Special type of command record.
  * Used to execute a function inside the backend thread rather than printing a LogRecord.
- * We use that to make the caller wait until the logger thread has flushed all LogRecords to all sinks
+ * We use that to make the caller wait until the logger thread has flushed all LogRecords to all handlers
  */
 class CommandRecord final : public RecordBase
 {
 public:
-  explicit CommandRecord(std::function<void()>&& callback) : _callback(std::move(callback)) {}
+  explicit CommandRecord(std::function<void()>&& frontend_callback)
+    : _frontend_callback(std::move(frontend_callback))
+  {
+  }
 
   [[nodiscard]] size_t size() const noexcept override { return sizeof(*this); }
 
-  void backend_process(uint32_t) const noexcept override {}
+  /**
+   * When we encounter this message we are going to call flush for all loggers on all handlers.
+   * @param obtain_active_handlers
+   */
+  void backend_process(uint32_t, std::function<std::vector<Handler*>()> const& obtain_active_handlers) const
+    noexcept override
+  {
+    std::vector<Handler*> const active_handlers = obtain_active_handlers();
+
+    // Flush all handlers in all active handlers
+    for (auto const handler : active_handlers)
+    {
+      handler->flush();
+    }
+
+    // Call the frontend callback this will wake up the thread that requested to flush
+    _frontend_callback();
+  }
 
   /**
    * Destructor
@@ -26,8 +46,7 @@ public:
   ~CommandRecord() override = default;
 
 private:
-  std::function<void()> _callback;
-  mutable bool _processed{false};
+  std::function<void()> _frontend_callback;
 };
 
 } // namespace quill::detail

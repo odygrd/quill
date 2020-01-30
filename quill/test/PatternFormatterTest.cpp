@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "quill/detail/PatternFormatter.h"
+#include "quill/PatternFormatter.h"
 #include <chrono>
+
 using namespace quill::detail;
 using namespace quill;
 
@@ -22,7 +23,7 @@ TEST(PatternFormatter, default_pattern_formatter)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "1579815761000023000 [31341] PatternFormatterTest.cpp:15 LOG_INFO     test_logger - This the "
+    "1579815761000023000 [31341] PatternFormatterTest.cpp:16 LOG_INFO     test_logger - This the "
     "pattern formatter 1234\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
@@ -50,7 +51,7 @@ TEST(PatternFormatter, custom_pattern)
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "1579815761000023000 [31341] PatternFormatterTest.cpp:43 LOG_DEBUG    test_logger - This the "
+      "1579815761000023000 [31341] PatternFormatterTest.cpp:44 LOG_DEBUG    test_logger - This the "
       "1234 formatter pattern [TestBody]\n";
 
     EXPECT_EQ(formatted_buffer.size(), expected_string.length());
@@ -110,7 +111,7 @@ TEST(PatternFormatter, copy_constructor)
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "1579815761000023000 [31341] PatternFormatterTest.cpp:103 LOG_DEBUG    test_logger - This "
+      "1579815761000023000 [31341] PatternFormatterTest.cpp:104 LOG_DEBUG    test_logger - This "
       "the "
       "1234 formatter pattern [TestBody]\n";
 
@@ -148,7 +149,7 @@ TEST(PatternFormatter, move_constructor)
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "1579815761000023000 [31341] PatternFormatterTest.cpp:141 LOG_DEBUG    test_logger - This "
+      "1579815761000023000 [31341] PatternFormatterTest.cpp:142 LOG_DEBUG    test_logger - This "
       "the "
       "1234 formatter pattern [TestBody]\n";
 
@@ -180,7 +181,7 @@ TEST(PatternFormatter, copy_assignment_operator)
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "1579815761000023000 [31341] PatternFormatterTest.cpp:173 LOG_DEBUG    test_logger - This "
+      "1579815761000023000 [31341] PatternFormatterTest.cpp:174 LOG_DEBUG    test_logger - This "
       "the "
       "1234 formatter pattern [TestBody]\n";
 
@@ -220,7 +221,7 @@ TEST(PatternFormatter, move_assignment_operator)
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "1579815761000023000 [31341] PatternFormatterTest.cpp:213 LOG_DEBUG    test_logger - This "
+      "1579815761000023000 [31341] PatternFormatterTest.cpp:214 LOG_DEBUG    test_logger - This "
       "the 1234 formatter pattern [TestBody]\n";
 
     EXPECT_EQ(formatted_buffer.size(), expected_string.length());

@@ -8,8 +8,6 @@
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/record/LogRecord.h"
-#include "quill/detail/record/StaticLogRecordInfo.h"
-#include "quill/sinks/SinkBase.h"
 
 namespace quill
 {
@@ -113,21 +111,19 @@ private:
    * @param logger_id A unique id per logger
    * @param log_level The log level of the logger
    */
-  Logger(std::string name, std::unique_ptr<SinkBase> sink, detail::ThreadContextCollection& thread_context_collection)
-    : _logger_details(std::move(name), std::move(sink)), _thread_context_collection(thread_context_collection)
+  Logger(std::string name, Handler* handler, detail::ThreadContextCollection& thread_context_collection)
+    : _logger_details(std::move(name), handler), _thread_context_collection(thread_context_collection)
   {
   }
 
   /**
-   * Constructs a new logger object with multiple sinks
+   * Constructs a new logger object with multiple handlers
    * @param name
-   * @param sink
+   * @param handlers
    * @param thread_context_collection
    */
-  Logger(std::string name,
-         std::vector<std::unique_ptr<SinkBase>> sink_collection,
-         detail::ThreadContextCollection& thread_context_collection)
-    : _logger_details(std::move(name), std::move(sink_collection)),
+  Logger(std::string name, std::vector<Handler*> handlers, detail::ThreadContextCollection& thread_context_collection)
+    : _logger_details(std::move(name), std::move(handlers)),
       _thread_context_collection(thread_context_collection)
   {
   }

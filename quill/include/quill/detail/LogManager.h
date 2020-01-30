@@ -2,6 +2,7 @@
 
 #include "quill/detail/BackendWorker.h"
 #include "quill/detail/Config.h"
+#include "quill/detail/HandlerCollection.h"
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
 
@@ -34,6 +35,19 @@ public:
   [[nodiscard]] LoggerCollection& logger_collection() noexcept { return _logger_collection; }
 
   /**
+   * @return A reference to the handler collection
+   */
+  [[nodiscard]] HandlerCollection& handler_collection() noexcept { return _handler_collection; }
+
+  /**
+   * Blocks the caller thread until all log messages until the current timestamp are flushed
+   *
+   * The backend thread will flush all loggers and all handlers up to the point (timestamp) that
+   * this function was called.
+   */
+  void flush();
+
+  /**
    * Starts the backend worker thread
    */
   void start_backend_worker();
@@ -45,9 +59,10 @@ public:
 
 private:
   Config const& _config;
+  HandlerCollection _handler_collection;
   ThreadContextCollection _thread_context_collection;
-  LoggerCollection _logger_collection{_thread_context_collection};
-  BackendWorker _backend_worker{_config, _thread_context_collection};
+  LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
+  BackendWorker _backend_worker{_config, _thread_context_collection, _logger_collection, _handler_collection};
 };
 
 } // namespace quill::detail
