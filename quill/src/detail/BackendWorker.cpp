@@ -208,7 +208,7 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
   // case we flush
   auto obtain_active_handlers = [this]() { return _handler_collection.active_handlers(); };
 
-  desired_record_handle.data()->backend_process(desired_thread_id, obtain_active_handlers);
+  desired_record_handle.data()->backend_process(desired_thread_id, _rdtsc_clock, obtain_active_handlers);
 
   // TODO:: When to flush on the handler ? Maybe only if user requested
   return true;

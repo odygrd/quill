@@ -1,6 +1,6 @@
 #include "quill/detail/LogManager.h"
 
-#include "quill/detail/utiliity/Spinlock.h"
+#include "quill/detail/utility/Spinlock.h"
 #include <condition_variable>
 
 #include "quill/detail/record/CommandRecord.h"
@@ -20,20 +20,20 @@ void LogManager::flush()
     return;
   }
 
-  std::mutex mtx;
-  std::condition_variable cond;
+  Spinlock spinlock;
+  std::condition_variable_any cond;
   bool done = false;
 
   // notify will be invoked by the backend thread when this message is processed
-  auto notify_callback = [&mtx, &cond, &done]() {
+  auto notify_callback = [&spinlock, &cond, &done]() {
     {
-      std::lock_guard<std::mutex> const lock{mtx};
+      std::lock_guard<Spinlock> const lock{spinlock};
       done = true;
     }
     cond.notify_one();
   };
 
-  std::unique_lock<std::mutex> lock(mtx);
+  std::unique_lock<Spinlock> lock(spinlock);
 
   using log_record_t = detail::CommandRecord;
   bool pushed;

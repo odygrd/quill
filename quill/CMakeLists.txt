@@ -10,8 +10,9 @@ set(HEADER_FILES
         include/quill/detail/record/LogRecordUtilities.h
         include/quill/detail/record/RecordBase.h
         include/quill/detail/record/StaticLogRecordInfo.h
-        include/quill/detail/utiliity/Spinlock.h
-        include/quill/detail/utiliity/RecursiveSpinlock.h
+        include/quill/detail/utility/RdtscClock.h
+        include/quill/detail/utility/RecursiveSpinlock.h
+        include/quill/detail/utility/Spinlock.h
         include/quill/detail/BackendWorker.h
         include/quill/detail/BoundedSPSCQueue.h
         include/quill/detail/CommonMacros.h
@@ -48,8 +49,9 @@ set(SOURCE_FILES
         src/detail/CommonUtilities.cpp
         src/handlers/FileHandler.cpp
         src/handlers/StreamHandler.cpp
-        src/utillity/Spinlock.cpp
-        src/utillity/RecursiveSpinlock.cpp
+        src/utility/RdtscClock.cpp
+        src/utility/RecursiveSpinlock.cpp
+        src/utility/Spinlock.cpp
         src/LogLevel.cpp
         src/PatternFormatter.cpp
         src/Quill.cpp

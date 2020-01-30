@@ -10,7 +10,8 @@ TEST(PatternFormatter, default_pattern_formatter)
 {
   PatternFormatter default_pattern_formatter;
 
-  uint64_t const ts = 1579815761000023000;
+  std::chrono::system_clock::duration ds = std::chrono::nanoseconds {1579815761000023000};
+  std::chrono::time_point<std::chrono::system_clock> ts { ds };
   uint32_t const thread_id = 31341;
   std::string const logger_name = "test_logger";
   StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {} formatter {}", LogLevel::Info};
@@ -38,7 +39,8 @@ TEST(PatternFormatter, custom_pattern)
       QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
                    "%(message) [%(function_name)]")};
 
-    uint64_t const ts = 1579815761000023000;
+    std::chrono::system_clock::duration ds = std::chrono::nanoseconds {1579815761000023000};
+    std::chrono::time_point<std::chrono::system_clock> ts { ds };
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
     StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
@@ -62,7 +64,8 @@ TEST(PatternFormatter, custom_pattern)
   {
     PatternFormatter custom_pattern_formatter{QUILL_STRING("%(message)")};
 
-    uint64_t const ts = 1579815761000023000;
+    std::chrono::system_clock::duration ds = std::chrono::nanoseconds {1579815761000023000};
+    std::chrono::time_point<std::chrono::system_clock> ts { ds };
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
     StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
@@ -98,7 +101,8 @@ TEST(PatternFormatter, copy_constructor)
   {
     PatternFormatter custom_pattern_formatter_copy{custom_pattern_formatter};
 
-    uint64_t const ts = 1579815761000023000;
+    std::chrono::system_clock::duration ds = std::chrono::nanoseconds {1579815761000023000};
+    std::chrono::time_point<std::chrono::system_clock> ts { ds };
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
     StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
@@ -136,7 +140,8 @@ TEST(PatternFormatter, move_constructor)
   {
     PatternFormatter custom_pattern_formatter_copy{std::move(custom_pattern_formatter)};
 
-    uint64_t const ts = 1579815761000023000;
+    std::chrono::system_clock::duration ds = std::chrono::nanoseconds {1579815761000023000};
+    std::chrono::time_point<std::chrono::system_clock> ts { ds };
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
     StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
@@ -168,7 +173,8 @@ TEST(PatternFormatter, copy_assignment_operator)
     PatternFormatter custom_pattern_formatter_copy;
     custom_pattern_formatter_copy = custom_pattern_formatter;
 
-    uint64_t const ts = 1579815761000023000;
+    std::chrono::system_clock::duration ds = std::chrono::nanoseconds {1579815761000023000};
+    std::chrono::time_point<std::chrono::system_clock> ts { ds };
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
     StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};
@@ -208,7 +214,8 @@ TEST(PatternFormatter, move_assignment_operator)
     PatternFormatter custom_pattern_formatter_copy;
     custom_pattern_formatter_copy = std::move(custom_pattern_formatter);
 
-    uint64_t const ts = 1579815761000023000;
+    std::chrono::system_clock::duration ds = std::chrono::nanoseconds {1579815761000023000};
+    std::chrono::time_point<std::chrono::system_clock> ts { ds };
     uint32_t const thread_id = 31341;
     std::string const logger_name = "test_logger";
     StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug};

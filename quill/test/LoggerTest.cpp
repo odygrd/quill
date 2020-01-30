@@ -7,7 +7,7 @@
 using namespace quill;
 using namespace quill::detail;
 
-TEST(Logger, logger_can_log)
+TEST(Logger, logger_should_log)
 {
   ThreadContextCollection tc;
   HandlerCollection hc;
@@ -18,17 +18,17 @@ TEST(Logger, logger_can_log)
 
   {
     LogLevel log_statement_level{LogLevel::Debug};
-    EXPECT_FALSE(logger_collection.get_logger("logger_1")->can_log(log_statement_level));
+    EXPECT_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {
     LogLevel log_statement_level{LogLevel::Info};
-    EXPECT_TRUE(logger_collection.get_logger("logger_1")->can_log(log_statement_level));
+    EXPECT_TRUE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {
     LogLevel log_statement_level{LogLevel::Error};
-    EXPECT_TRUE(logger_collection.get_logger("logger_1")->can_log(log_statement_level));
+    EXPECT_TRUE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   // change log level
@@ -36,12 +36,12 @@ TEST(Logger, logger_can_log)
 
   {
     LogLevel log_statement_level{LogLevel::TraceL3};
-    EXPECT_TRUE(logger_collection.get_logger("logger_1")->can_log(log_statement_level));
+    EXPECT_TRUE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {
     LogLevel log_statement_level{LogLevel::Critical};
-    EXPECT_TRUE(logger_collection.get_logger("logger_1")->can_log(log_statement_level));
+    EXPECT_TRUE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   // change log level
@@ -49,11 +49,11 @@ TEST(Logger, logger_can_log)
 
   {
     LogLevel log_statement_level{LogLevel::TraceL3};
-    EXPECT_FALSE(logger_collection.get_logger("logger_1")->can_log(log_statement_level));
+    EXPECT_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {
     LogLevel log_statement_level{LogLevel::Critical};
-    EXPECT_FALSE(logger_collection.get_logger("logger_1")->can_log(log_statement_level));
+    EXPECT_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 }

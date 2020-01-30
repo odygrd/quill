@@ -52,7 +52,7 @@ public:
    * @param log_statement_level The log level of the log statement to be logged
    * @return
    */
-  [[nodiscard]] bool can_log(LogLevel log_statement_level) const noexcept
+  [[nodiscard]] bool should_log(LogLevel log_statement_level) const noexcept
   {
     return log_statement_level >= log_level();
   }
@@ -63,7 +63,7 @@ public:
    * @return
    */
   template <LogLevel log_statement_level>
-  [[nodiscard]] bool can_log() const noexcept
+  [[nodiscard]] bool should_log() const noexcept
   {
     return log_statement_level >= log_level();
   }
@@ -81,12 +81,12 @@ public:
                   log_statement_level == LogLevel::TraceL1 || log_statement_level == LogLevel::Debug)
     {
       // it is usually unlikely we log those levels
-      if (QUILL_LIKELY(!can_log<log_statement_level>()))
+      if (QUILL_LIKELY(!should_log<log_statement_level>()))
         return;
     }
     else
     {
-      if (QUILL_UNLIKELY(!can_log<log_statement_level>()))
+      if (QUILL_UNLIKELY(!should_log<log_statement_level>()))
         return;
     }
 

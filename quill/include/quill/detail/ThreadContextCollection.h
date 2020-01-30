@@ -1,7 +1,7 @@
 #pragma once
 
 #include "quill/detail/ThreadContext.h"
-#include "quill/detail/utiliity/Spinlock.h"
+#include "quill/detail/utility/Spinlock.h"
 
 #include <atomic>
 #include <cassert>

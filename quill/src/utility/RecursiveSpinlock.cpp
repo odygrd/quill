@@ -1,4 +1,6 @@
-#include "quill/detail/utiliity/RecursiveSpinlock.h"
+#include "quill/detail/utility/RecursiveSpinlock.h"
+
+#include <cstdint>
 
 namespace quill::detail
 {

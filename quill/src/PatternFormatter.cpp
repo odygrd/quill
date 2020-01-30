@@ -85,50 +85,51 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
 {
   if (pattern_attr == "ascii_time")
   {
-    return [](uint64_t timestamp, uint32_t, char const*, detail::StaticLogRecordInfo const&) {
-      // TODO : formatting to string ts
-      return std::to_string(timestamp);
+    return [this](std::chrono::time_point<std::chrono::system_clock> timestamp, uint32_t, char const*, detail::StaticLogRecordInfo const&) {
+
+      // TODO pass the date format string
+      return _convert_epoch_to_local_date(timestamp);
     };
   }
   else if (pattern_attr == "thread")
   {
-    return [](uint64_t, uint32_t thread_id, char const*, detail::StaticLogRecordInfo const&) {
+    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t thread_id, char const*, detail::StaticLogRecordInfo const&) {
       return std::to_string(thread_id);
     };
   }
   else if (pattern_attr == "pathname")
   {
-    return [](uint64_t, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
+    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
       return logline_info.pathname();
     };
   }
   else if (pattern_attr == "filename")
   {
-    return [](uint64_t, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
+    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
       return logline_info.filename();
     };
   }
   else if (pattern_attr == "lineno")
   {
-    return [](uint64_t, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
+    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
       return std::to_string(logline_info.lineno());
     };
   }
   else if (pattern_attr == "level_name")
   {
-    return [](uint64_t, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
+    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
       return logline_info.level_as_str();
     };
   }
   else if (pattern_attr == "logger_name")
   {
-    return [](uint64_t, uint32_t, char const* logger_name, detail::StaticLogRecordInfo const&) {
+    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const* logger_name, detail::StaticLogRecordInfo const&) {
       return logger_name;
     };
   }
   else if (pattern_attr == "function_name")
   {
-    return [](uint64_t, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
+    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*, detail::StaticLogRecordInfo const& logline_info) {
       return logline_info.func();
     };
   }

@@ -8,7 +8,7 @@
 
 #include "quill/Logger.h"
 #include "quill/detail/HandlerCollection.h"
-#include "quill/detail/utiliity/RecursiveSpinlock.h"
+#include "quill/detail/utility/RecursiveSpinlock.h"
 
 namespace quill::detail
 {

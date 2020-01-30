@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quill/detail/utiliity/Spinlock.h"
+#include "quill/detail/utility/Spinlock.h"
 #include "quill/handlers/StreamHandler.h"
 
 #include <memory>

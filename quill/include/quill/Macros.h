@@ -21,11 +21,6 @@
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 #endif
 
-// Define default clock for timestamps
-#if !defined(QUILL_CHRONO_SYSTEM_CLOCK)
-#define QUILL_CHRONO_SYSTEM_CLOCK QUILL_TSC_CLOCK
-#endif
-
 // Main Log Macros
 // clang-format off
 #define QUILL_LOGGER_CALL(logger, log_statement_level, fmt, ...) do {                                                               \

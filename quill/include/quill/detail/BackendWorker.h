@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "quill/detail/Config.h"
+#include "quill/detail/utility/RdtscClock.h"
 
 namespace quill::detail
 {
@@ -84,6 +85,7 @@ private:
   ThreadContextCollection& _thread_context_collection;
   LoggerCollection const& _logger_collection;
   HandlerCollection const& _handler_collection;
+  RdtscClock _rdtsc_clock;
 
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
