@@ -1,5 +1,8 @@
 #pragma once
 
+#include "quill/TweakMe.h"
+
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <vector>
@@ -32,7 +35,7 @@ public:
    * Get the stored rdtsc timestamp
    * @note Called on the logger thread
    */
-  [[nodiscard]] uint64_t rdtsc() const noexcept { return _rdtsc; }
+  [[nodiscard]] uint64_t timestamp() const noexcept { return _timestamp; }
 
   /**
    * Required by the queue to get the real record size of the derived class
@@ -48,12 +51,15 @@ public:
    * @param obtain_active_handlers This is a callback to obtain all loggers for use in CommandRecord only
    */
   virtual void backend_process(uint32_t thread_id,
-                               RdtscClock const& rdtsc_clock,
-                               std::function<std::vector<Handler*>()> const& obtain_active_handlers) const
-    noexcept = 0;
+                               std::function<std::vector<Handler*>()> const& obtain_active_handlers,
+                               RdtscClock const* rdtsc_clock) const noexcept = 0;
 
 private:
-  uint64_t _rdtsc{__rdtsc()};
+#if defined(QUILL_RDTSC_CLOCK)
+  uint64_t _timestamp{__rdtsc()};
+#else
+  uint64_t _timestamp{static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())};
+#endif
 };
 
 } // namespace quill::detail

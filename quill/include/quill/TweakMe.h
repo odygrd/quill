@@ -14,27 +14,30 @@
  * a) When invoking cmake : cmake . -DCMAKE_CXX_FLAGS="-DQUILL_ACTIVE_LOG_LEVEL=QUILL_LOG_LEVEL_INFO"
  */
 
-// TODO: Add support for chrono::system_clock
 /**
- * By default Quill will use the Time Stamp Counter (TSC) of the cpu to store the timestamps.
+ * If this QUILL_RDTSC_CLOCK is not defined Quill will use chrono system_clock for timestamps
+ *
+ * QUILL_TSC_CLOCK mode :
+ *
+ * TSC clock gives better performance on the caller thread. However, the initialisation time of the application is higher as
+ * we have to take multiple samples in the beginning to convert TSC to nanoseconds
+ *
+ * Consider reading https://stackoverflow.com/questions/42189976/calculate-system-time-using-rdtsc
  *
  * The backend thread is constantly keeping track of the difference between TSC and the system wall clock resulting
  * in accurate timestamps.
  *
- * TSC clock gives better latency on the caller thread. However, the initialisation time of the application is higher as
- * we have to take multiple samples in the beginning to convert TSC to nanoseconds
- *
- * If you care about initialisation time, or your cpu does not support invariant TSC set this option to fallback to
- * using std::chrono::system_clock.
- *
- * @warning: Using std::chrono::system_clock will increase caller thread latency
- *
- * Options:
- *
- * QUILL_CHRONO_SYSTEM_CLOCK
- * QUILL_TSC_CLOCK
+ * When using the TSC counter the backend thread will also periodically call chrono::system_clock:now() and will
+ * resync the TSC based on the system clock.
  */
-// #define QUILL_CHRONO_SYSTEM_CLOCK QUILL_TSC_CLOCK
+#define QUILL_RDTSC_CLOCK
+
+/**
+ * This option is only applicable if the RDTSC clock is enabled
+ *
+ * Quill by default will re-calculate and sync TSC based on the system wall clock
+ */
+#define QUIL_RDTSC_RESYNC_INTERVAL 10
 
 /**
  * Completely compiles out log level with zero cost.
@@ -56,7 +59,7 @@
  * QUILL_LOG_LEVEL_ERROR
  * QUILL_LOG_LEVEL_CRITICAL
  */
-// #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
+#define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
 /**
  * Quill uses a bounded SPSC queue per spawned thread to forward the LogRecords to the backend
@@ -73,4 +76,4 @@
  * of the page size.
  * Look for an online Mebibyte to Byte converted to easily find a correct value
  */
-// #define QUILL_BOUNDED_SPSC_QUEUE_SIZE 16777216u
+#define QUILL_BOUNDED_SPSC_QUEUE_SIZE 16777216u

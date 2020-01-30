@@ -16,11 +16,6 @@
 #define QUILL_LOG_LEVEL_CRITICAL 7
 #define QUILL_LOG_LEVEL_NONE 8
 
-// Define a default compile time log level
-#if !defined(QUILL_ACTIVE_LOG_LEVEL)
-#define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
-#endif
-
 // Main Log Macros
 // clang-format off
 #define QUILL_LOGGER_CALL(logger, log_statement_level, fmt, ...) do {                                                               \

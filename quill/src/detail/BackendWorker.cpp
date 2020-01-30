@@ -44,6 +44,11 @@ bool BackendWorker::is_running() const noexcept
 /***/
 void BackendWorker::run()
 {
+#if defined(QUILL_RDTSC_CLOCK)
+  // Enable rdtsc clock based on config
+  _rdtsc_clock = std::make_unique<RdtscClock>();
+#endif
+
   // protect init to be called only once
   std::call_once(_start_init_once_flag, [this]() {
     // Set the backend worker thread status
@@ -173,10 +178,10 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
 
     if (observed_record_handle.is_valid())
     {
-      if (observed_record_handle.data()->rdtsc() < min_rdtsc)
+      if (observed_record_handle.data()->timestamp() < min_rdtsc)
       {
         // we found a new min rdtsc
-        min_rdtsc = observed_record_handle.data()->rdtsc();
+        min_rdtsc = observed_record_handle.data()->timestamp();
 
         // if we were holding previously a RecordBase handle we need to release it, otherwise it will
         // get destructed and we will remove the record from the queue that we don't want
@@ -208,7 +213,8 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
   // case we flush
   auto obtain_active_handlers = [this]() { return _handler_collection.active_handlers(); };
 
-  desired_record_handle.data()->backend_process(desired_thread_id, _rdtsc_clock, obtain_active_handlers);
+  desired_record_handle.data()->backend_process(desired_thread_id, obtain_active_handlers,
+                                                _rdtsc_clock.get());
 
   // TODO:: When to flush on the handler ? Maybe only if user requested
   return true;

@@ -8,11 +8,6 @@
 #include "quill/detail/BoundedSPSCQueue.h"
 #include "quill/detail/record/RecordBase.h"
 
-// Define default BoundedSPSCQueue size if not defined by the user
-#if !defined(QUILL_BOUNDED_SPSC_QUEUE_SIZE)
-#define QUILL_BOUNDED_SPSC_QUEUE_SIZE 16777216u
-#endif
-
 namespace quill::detail
 {
 
