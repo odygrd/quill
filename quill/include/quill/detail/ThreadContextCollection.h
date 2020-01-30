@@ -1,12 +1,12 @@
 #pragma once
 
 #include "quill/detail/ThreadContext.h"
+#include "quill/detail/utiliity/Spinlock.h"
 
 #include <atomic>
 #include <cassert>
 #include <cstdint>
 #include <memory>
-#include <mutex>
 #include <vector>
 
 namespace quill::detail
@@ -140,7 +140,7 @@ private:
   void _find_and_remove_invalidated_thread_contexts();
 
 private:
-  mutable std::mutex _mutex; /**< Protect access when register contexts or removing contexts */
+  mutable Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
   mutable std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 
   /**<

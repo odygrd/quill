@@ -2,13 +2,13 @@
 
 #include <initializer_list>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "quill/Logger.h"
 #include "quill/detail/HandlerCollection.h"
+#include "quill/detail/utiliity/RecursiveSpinlock.h"
 
 namespace quill::detail
 {
@@ -91,7 +91,7 @@ private:
    * In order to allow const functions having access to get_logger to get a logger everything
    * is mutable
    */
-  mutable std::recursive_mutex _mutex; /**< Thread safe access to logger map */
+  mutable RecursiveSpinlock _spinlock; /**< Thread safe access to logger map */
   mutable std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
 
   /**

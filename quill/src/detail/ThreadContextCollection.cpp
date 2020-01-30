@@ -24,7 +24,7 @@ ThreadContextCollection::ThreadContextWrapper::~ThreadContextWrapper() noexcept
 /***/
 void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadContext> const& thread_context) const
 {
-  std::scoped_lock<std::mutex> guard(_mutex);
+  std::lock_guard<Spinlock> const lock(_spinlock);
   _thread_contexts.push_back(thread_context);
   _set_changed();
 }
@@ -39,7 +39,7 @@ std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_conte
   if (_has_changed())
   {
     // if the thread _thread_contexts was changed we lock and remake our reference cache
-    std::scoped_lock<std::mutex> guard(_mutex);
+    std::lock_guard<Spinlock> const lock(_spinlock);
     _thread_context_cache.clear();
 
     // Remake thread context ref
@@ -57,7 +57,7 @@ std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_conte
 /***/
 bool ThreadContextCollection::_has_changed() const noexcept
 {
-  // Again relaxed memory model as in case it is false we will acquire the mutex
+  // Again relaxed memory model as in case it is false we will acquire the lock
   if (_changed.load(std::memory_order_relaxed))
   {
     // if the variable was updated to true, set it to false,
@@ -71,7 +71,7 @@ bool ThreadContextCollection::_has_changed() const noexcept
 /***/
 void ThreadContextCollection::_set_changed() const noexcept
 {
-  // Set changed is used with the _mutex lock, we can have relaxed memory order here as the mutex
+  // Set changed is used with the lock, we can have relaxed memory order here as the lock
   // is acq/rel anyway
   return _changed.store(true, std::memory_order_relaxed);
 }
@@ -79,7 +79,7 @@ void ThreadContextCollection::_set_changed() const noexcept
 /***/
 void ThreadContextCollection::_remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
 {
-  std::scoped_lock<std::mutex> guard(_mutex);
+  std::lock_guard<Spinlock> const lock(_spinlock);
 
   auto thread_context_it = std::find_if(_thread_contexts.begin(), _thread_contexts.end(),
                                         [thread_context](std::shared_ptr<ThreadContext> const& elem) {
@@ -114,7 +114,7 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
   while (QUILL_UNLIKELY(found_invalid_and_empty_thread_context != _thread_context_cache.cend()))
   {
     // if we found anything then remove it - Here if we have more than one to remove we will try to
-    // acquire the mutex multiple times but it should be fine as it is unlikely to have that many
+    // acquire the lock multiple times but it should be fine as it is unlikely to have that many
     // to remove
     _remove_shared_invalidated_thread_context(*found_invalid_and_empty_thread_context);
 

@@ -32,7 +32,7 @@ Logger* LoggerCollection::get_logger(std::string const& logger_name /* = std::st
 {
   if (!logger_name.empty())
   {
-    std::scoped_lock lock{_mutex};
+    std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
     // Search for the logger
     auto const search = _logger_name_map.find(logger_name);
@@ -66,7 +66,7 @@ Logger* LoggerCollection::create_logger(std::string logger_name)
   // We can't use make_unique since the constructor is private
   std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(handlers), _thread_context_collection)};
 
-  std::scoped_lock lock{_mutex};
+  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Place the logger in our map
   auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
@@ -86,7 +86,7 @@ Logger* LoggerCollection::create_logger(std::string logger_name, Handler* handle
   // We can't use make_unique since the constructor is private
   std::unique_ptr<Logger> logger{new Logger(logger_name, handler, _thread_context_collection)};
 
-  std::scoped_lock lock{_mutex};
+  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
 
@@ -111,7 +111,7 @@ Logger* LoggerCollection::create_logger(std::string logger_name, std::initialize
   // We can't use make_unique since the constructor is private
   std::unique_ptr<Logger> logger{new Logger(logger_name, handlers, _thread_context_collection)};
 
-  std::scoped_lock lock{_mutex};
+  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
 
@@ -124,7 +124,7 @@ Logger* LoggerCollection::create_logger(std::string logger_name, std::initialize
 /***/
 void LoggerCollection::set_default_logger_handler(Handler* handler)
 {
-  std::scoped_lock lock{_mutex};
+  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Remove the old default logger
   _logger_name_map.erase(_default_logger_name);
@@ -136,7 +136,7 @@ void LoggerCollection::set_default_logger_handler(Handler* handler)
 /***/
 void LoggerCollection::set_default_logger_handler(std::initializer_list<Handler*> handlers)
 {
-  std::scoped_lock lock{_mutex};
+  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Remove the old default logger
   _logger_name_map.erase(_default_logger_name);
