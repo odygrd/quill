@@ -130,10 +130,13 @@ public:
    */
   PatternFormatter()
   {
-    _formatted_date.reserve(24);
     // Set the default pattern
     _set_pattern(QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"));
+
+    // Pre-allocate some reasonable space
+    _formatted_date.reserve(24);
+    _formatted_log_record.reserve(512);
   }
 
   /**
@@ -144,8 +147,11 @@ public:
   template <typename TConstantString>
   explicit PatternFormatter(TConstantString format_pattern)
   {
-    _formatted_date.reserve(24);
     _set_pattern(format_pattern);
+
+    // Pre-allocate some reasonable space
+    _formatted_date.reserve(24);
+    _formatted_log_record.reserve(512);
   }
 
   /**
@@ -190,12 +196,13 @@ public:
    * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
-  fmt::memory_buffer format(std::chrono::time_point<std::chrono::system_clock> timestamp,
-                            uint32_t thread_id,
-                            std::string const& logger_name,
-                            detail::StaticLogRecordInfo const& logline_info,
-                            Args const&... args) const;
+  void format(std::chrono::time_point<std::chrono::system_clock> timestamp,
+                                   uint32_t thread_id,
+                                   std::string const& logger_name,
+                                   detail::StaticLogRecordInfo const& logline_info,
+                                   Args const&... args) const;
 
+  fmt::memory_buffer const& formatted_log_record() const noexcept { return _formatted_log_record; }
 private:
   /**
    * The stored callback type that will return the appropriate value based on the format pattern specifiers
@@ -308,46 +315,52 @@ private:
   void _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
                                                          char const* date_format = "%H:%M:%S");
 private:
-  std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_1;
-  std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_3;
+  /** Formatters for any user's custom pattern **/
+  std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_1; /**< Formatter before %(message) **/
+  std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_3; /**< Formatter after %(message) **/
+
+  /** Strings as class members to avoid re-allocating **/
   std::vector<char> _formatted_date = {'\0'};
   std::string _thread_id;
   std::string _lineno;
+
+  /** The buffer where we store each formatted string, also stored as class member to avoid re-allocations **/
+  mutable fmt::memory_buffer _formatted_log_record;
 };
 
 /** Inline Implementation **/
 
 /***/
 template <typename... Args>
-fmt::memory_buffer PatternFormatter::format(std::chrono::time_point<std::chrono::system_clock> timestamp,
+void PatternFormatter::format(std::chrono::time_point<std::chrono::system_clock> timestamp,
                                             uint32_t thread_id,
                                             std::string const& logger_name,
                                             detail::StaticLogRecordInfo const& logline_info,
                                             Args const&... args) const
 {
-  fmt::memory_buffer formatted_buffer;
+  // clear out existing buffer
+  _formatted_log_record.clear();
 
   // Format part 1 of the pattern first
   if (_pattern_formatter_helper_part_1)
   {
-    _pattern_formatter_helper_part_1->format(formatted_buffer, timestamp, thread_id,
+    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id,
                                              logger_name.data(), logline_info);
   }
 
   // Format the user requested string
-  fmt::format_to(formatted_buffer, logline_info.message_format(), args...);
+  fmt::format_to(_formatted_log_record, logline_info.message_format(), args...);
 
   // Format part 3 of the pattern
   if (_pattern_formatter_helper_part_3)
   {
-    _pattern_formatter_helper_part_3->format(formatted_buffer, timestamp, thread_id,
+    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id,
                                              logger_name.data(), logline_info);
   }
 
+  // TODO: This could be customised in config
   // Append a new line
-  formatted_buffer.push_back('\n');
-
-  return formatted_buffer;
+  _formatted_log_record.push_back('\n');
 }
 
 /***/

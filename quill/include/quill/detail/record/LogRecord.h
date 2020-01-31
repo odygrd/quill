@@ -73,15 +73,18 @@ public:
 
       // lambda to unpack the tuple args
       auto forward_tuple_args_to_formatter = [this, timestamp, thread_id, handler](auto... tuple_args) {
-        return handler->formatter().format(timestamp, thread_id, _logger_details->name(),
+        handler->formatter().format(timestamp, thread_id, _logger_details->name(),
                                            *_log_line_info, tuple_args...);
       };
 
       // formatted record by the formatter
-      fmt::memory_buffer const formatted_record = std::apply(forward_tuple_args_to_formatter, this->_fmt_args);
+      std::apply(forward_tuple_args_to_formatter, this->_fmt_args);
+
+      // After calling format on the formatter we have to request the formatter record
+      fmt::memory_buffer const& formatted_log_record = handler->formatter().formatted_log_record();
 
       // log to the handler
-      handler->emit(formatted_record);
+      handler->emit(formatted_log_record);
     }
   }
 
