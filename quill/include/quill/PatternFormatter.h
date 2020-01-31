@@ -130,6 +130,7 @@ public:
    */
   PatternFormatter()
   {
+    _formatted_date.reserve(24);
     // Set the default pattern
     _set_pattern(QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"));
@@ -143,6 +144,7 @@ public:
   template <typename TConstantString>
   explicit PatternFormatter(TConstantString format_pattern)
   {
+    _formatted_date.reserve(24);
     _set_pattern(format_pattern);
   }
 
@@ -199,7 +201,7 @@ private:
    * The stored callback type that will return the appropriate value based on the format pattern specifiers
    */
   using argument_callback_t =
-    std::function<std::string(std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*, detail::StaticLogRecordInfo const&)>;
+    std::function<char const* (std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*, detail::StaticLogRecordInfo const&)>;
 
   /**
    * Generate a tuple of callbacks [](size i) { };
@@ -303,11 +305,14 @@ private:
    * @param epoch timestamp in nanoseconds from epoch. This timestamp must be in nanoseconds
    * @return formated date as a string
    */
-  [[nodiscard]] std::string _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
+  void _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
                                                          char const* date_format = "%H:%M:%S");
 private:
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_1;
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_3;
+  std::vector<char> _formatted_date = {'\0'};
+  std::string _thread_id;
+  std::string _lineno;
 };
 
 /** Inline Implementation **/

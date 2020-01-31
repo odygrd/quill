@@ -88,13 +88,14 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
     return [this](std::chrono::time_point<std::chrono::system_clock> timestamp, uint32_t,
                   char const*, detail::StaticLogRecordInfo const&) {
       // TODO pass the date format string
-      return _convert_epoch_to_local_date(timestamp);
+      _convert_epoch_to_local_date(timestamp);
+      return _formatted_date.data();
     };
   }
   else if (pattern_attr == "thread")
   {
-    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t thread_id, char const*,
-              detail::StaticLogRecordInfo const&) { return std::to_string(thread_id); };
+    return [this](std::chrono::time_point<std::chrono::system_clock>, uint32_t thread_id, char const*,
+              detail::StaticLogRecordInfo const&) { _thread_id = fmt::to_string(thread_id); return _thread_id.data(); };
   }
   else if (pattern_attr == "pathname")
   {
@@ -108,9 +109,9 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   }
   else if (pattern_attr == "lineno")
   {
-    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*,
+    return [this](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*,
               detail::StaticLogRecordInfo const& logline_info) {
-      return std::to_string(logline_info.lineno());
+      _lineno = fmt::to_string(logline_info.lineno()); return _lineno.data();
     };
   }
   else if (pattern_attr == "level_name")
@@ -171,7 +172,7 @@ std::string PatternFormatter::_generate_fmt_format_string(std::string pattern)
   return pattern;
 }
 
-  [[nodiscard]] std::string PatternFormatter::_convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
+  void PatternFormatter::_convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
                                                          char const* date_format /* = "%H:%M:%S" */)
   {
     int64_t const epoch = epoch_time.time_since_epoch().count();
@@ -185,29 +186,23 @@ std::string PatternFormatter::_generate_fmt_format_string(std::string pattern)
     // extract the nanoseconds
     std::uint32_t const usec = epoch - (rawtime_seconds * 1'000'000'000);
 
-    // TODO:: Fix memory allcoations
-    std::vector<char> timestamp = {'\0'};
-    timestamp.reserve(24);
-
     // add time
-    auto res = strftime(&timestamp[0], timestamp.capacity(), date_format, std::addressof(timeinfo));
+    auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), date_format, std::addressof(timeinfo));
 
     while (QUILL_UNLIKELY(res == 0))
     {
-      timestamp.reserve(timestamp.size() * 2);
-      res = strftime(&timestamp[0], timestamp.capacity(), date_format, std::addressof(timeinfo));
+      _formatted_date.reserve(_formatted_date.size() * 2);
+      res = strftime(&_formatted_date[0], _formatted_date.capacity(), date_format, std::addressof(timeinfo));
     }
 
-    if (QUILL_UNLIKELY((timestamp.size() + 10) > timestamp.capacity()))
+    if (QUILL_UNLIKELY((_formatted_date.size() + 10) > _formatted_date.capacity()))
     {
-      timestamp.reserve(timestamp.size() + 10);
+      _formatted_date.reserve(_formatted_date.size() + 10);
     }
 
     // add the nanoseconds
-    constexpr char timestamp_format[] = ".%09d";
-    sprintf(&timestamp[res], timestamp_format, usec);
-    timestamp[res + 10] = '\0';
-
-    return std::string{timestamp.data()};
+    constexpr char timestamp_format[] = ".%09ud";
+    sprintf(&_formatted_date[res], timestamp_format, usec);
+    _formatted_date[res + 10] = '\0';
   }
 } // namespace quill
