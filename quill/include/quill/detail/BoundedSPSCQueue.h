@@ -333,6 +333,7 @@ BoundedSPSCQueue<TBaseObject, Capacity>::~BoundedSPSCQueue()
   assert(ok);
 #else
   int err = munmap(_producer.buffer, 2 * capacity());
+  (void)err;
   assert(!err);
 #endif
 }

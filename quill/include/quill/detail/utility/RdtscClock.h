@@ -40,7 +40,7 @@ public:
    * Constructor
    * @param resync_interval the interval to resync the tsc clock with the real system wall clock
    */
-  explicit RdtscClock(std::chrono::nanoseconds resync_interval = std::chrono::seconds{QUIL_RDTSC_RESYNC_INTERVAL});
+  explicit RdtscClock(std::chrono::nanoseconds resync_interval = std::chrono::seconds{QUILL_RDTSC_RESYNC_INTERVAL});
 
   /**
    * Convert tsc cycles to nanoseconds

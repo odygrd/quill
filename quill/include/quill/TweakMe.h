@@ -15,7 +15,7 @@
  */
 
 /**
- * If this QUILL_RDTSC_CLOCK is not defined Quill will use chrono system_clock for timestamps
+ * If QUILL_RDTSC_CLOCK is not defined Quill will use chrono system_clock for timestamps
  *
  * QUILL_TSC_CLOCK mode :
  *
@@ -33,11 +33,12 @@
 #define QUILL_RDTSC_CLOCK
 
 /**
- * This option is only applicable if the RDTSC clock is enabled
+ * This option is only applicable if the RDTSC clock is enabled. When QUILL_RDTSC_CLOCK is not
+ * defined this option can be ignored, but it shouldn't be commented out.
  *
  * Quill by default will re-calculate and sync TSC based on the system wall clock
  */
-#define QUIL_RDTSC_RESYNC_INTERVAL 10
+#define QUILL_RDTSC_RESYNC_INTERVAL 10
 
 /**
  * Completely compiles out log level with zero cost.
