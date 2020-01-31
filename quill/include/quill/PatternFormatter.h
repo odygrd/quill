@@ -304,36 +304,7 @@ private:
    * @return formated date as a string
    */
   [[nodiscard]] std::string _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
-                                                         char const* date_format = "%H:%M:%S")
-  {
-    int64_t const epoch = epoch_time.time_since_epoch().count();
-
-    // convert timestamp to date
-    int64_t const rawtime_seconds = epoch / 1'000'000'000;
-
-    tm timeinfo;
-    localtime_r(&rawtime_seconds, std::addressof(timeinfo));
-
-    // extract the nanoseconds
-    std::uint32_t const usec = epoch - (rawtime_seconds * 1'000'000'000);
-
-    std::array<char, 128> timestamp = {'\0'};
-
-    // add time
-    auto res = strftime(&timestamp[0], timestamp.size(), date_format, std::addressof(timeinfo));
-
-    if (QUILL_UNLIKELY(res == 0))
-    {
-      throw std::runtime_error("Failed to format timestamp using strftime");
-    }
-
-    // add the nanoseconds
-    constexpr char timestamp_format[] = ".%09d";
-    sprintf(&timestamp[strlen(timestamp.data())], timestamp_format, usec);
-
-    return std::string{timestamp.data()};
-  }
-
+                                                         char const* date_format = "%H:%M:%S");
 private:
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_1;
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_3;

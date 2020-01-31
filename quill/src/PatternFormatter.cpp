@@ -170,4 +170,44 @@ std::string PatternFormatter::_generate_fmt_format_string(std::string pattern)
   }
   return pattern;
 }
+
+  [[nodiscard]] std::string PatternFormatter::_convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
+                                                         char const* date_format /* = "%H:%M:%S" */)
+  {
+    int64_t const epoch = epoch_time.time_since_epoch().count();
+
+    // convert timestamp to date
+    int64_t const rawtime_seconds = epoch / 1'000'000'000;
+
+    tm timeinfo;
+    localtime_r(&rawtime_seconds, std::addressof(timeinfo));
+
+    // extract the nanoseconds
+    std::uint32_t const usec = epoch - (rawtime_seconds * 1'000'000'000);
+
+    // TODO:: Fix memory allcoations
+    std::vector<char> timestamp = {'\0'};
+    timestamp.reserve(24);
+
+    // add time
+    auto res = strftime(&timestamp[0], timestamp.capacity(), date_format, std::addressof(timeinfo));
+
+    while (QUILL_UNLIKELY(res == 0))
+    {
+      timestamp.reserve(timestamp.size() * 2);
+      res = strftime(&timestamp[0], timestamp.capacity(), date_format, std::addressof(timeinfo));
+    }
+
+    if (QUILL_UNLIKELY((timestamp.size() + 10) > timestamp.capacity()))
+    {
+      timestamp.reserve(timestamp.size() + 10);
+    }
+
+    // add the nanoseconds
+    constexpr char timestamp_format[] = ".%09d";
+    sprintf(&timestamp[res], timestamp_format, usec);
+    timestamp[res + 10] = '\0';
+
+    return std::string{timestamp.data()};
+  }
 } // namespace quill

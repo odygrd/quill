@@ -28,31 +28,12 @@ public:
   explicit Handler(TConstantString format_pattern) : _formatter(format_pattern){};
 
   /**
-   * Copy Constructor
-   */
-  Handler(Handler const& other) = default;
-
-  /**
-   * Move Constructor
-   */
-  Handler(Handler&& other) noexcept = default;
-
-  /**
-   * Copy Assignment
-   * @return
-   */
-  Handler& operator=(Handler const& other) = default;
-
-  /**
-   * Move Assignment
-   * @return
-   */
-  Handler& operator=(Handler&& other) noexcept = default;
-
-  /**
    * Destructor
    */
   virtual ~Handler() = default;
+
+  Handler(Handler const&) = delete;
+  Handler& operator=(Handler const&) = delete;
 
   /**
    * Set a custom formatter for this handler

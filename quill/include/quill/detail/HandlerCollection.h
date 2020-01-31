@@ -16,6 +16,12 @@ public:
   HandlerCollection() = default;
   ~HandlerCollection() = default;
 
+  /**
+ * Deleted
+ */
+  HandlerCollection(HandlerCollection const&) = delete;
+  HandlerCollection& operator=(HandlerCollection const&) = delete;
+
   StreamHandler* stdout_streamhandler();
 
   StreamHandler* stderr_streamhandler();
