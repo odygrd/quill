@@ -83,6 +83,8 @@ std::vector<PatternFormatter::argument_callback_t> PatternFormatter::_generate_v
 /***/
 PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callback(std::string const& pattern_attr)
 {
+  // We do not care about all those if/else's as they are used only during init to store the correct
+  // callback to our tuple
   if (pattern_attr == "ascii_time")
   {
     return [this](std::chrono::time_point<std::chrono::system_clock> timestamp, uint32_t,
@@ -109,10 +111,8 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   }
   else if (pattern_attr == "lineno")
   {
-    return [this](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*,
-              detail::StaticLogRecordInfo const& logline_info) {
-      _lineno = fmt::to_string(logline_info.lineno()); return _lineno.data();
-    };
+    return [](std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*,
+              detail::StaticLogRecordInfo const& logline_info) { return logline_info.lineno(); };
   }
   else if (pattern_attr == "level_name")
   {
@@ -186,23 +186,26 @@ std::string PatternFormatter::_generate_fmt_format_string(std::string pattern)
     // extract the nanoseconds
     std::uint32_t const usec = epoch - (rawtime_seconds * 1'000'000'000);
 
+    _formatted_date.clear();
+
     // add time
     auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), date_format, std::addressof(timeinfo));
 
     while (QUILL_UNLIKELY(res == 0))
     {
-      _formatted_date.reserve(_formatted_date.size() * 2);
+      _formatted_date.resize(_formatted_date.capacity() * 2);
       res = strftime(&_formatted_date[0], _formatted_date.capacity(), date_format, std::addressof(timeinfo));
     }
 
-    if (QUILL_UNLIKELY((_formatted_date.size() + 10) > _formatted_date.capacity()))
+    if (QUILL_UNLIKELY(res + 12 > _formatted_date.capacity()))
     {
-      _formatted_date.reserve(_formatted_date.size() + 10);
+      _formatted_date.resize(res + 12);
     }
 
-    // add the nanoseconds
-    constexpr char timestamp_format[] = ".%09ud";
-    sprintf(&_formatted_date[res], timestamp_format, usec);
-    _formatted_date[res + 10] = '\0';
+    // TODO: Fix/check the format string the user can pass for date and provide option for us ?
+    // add the nanoseconds using the fast integer formatter from fmt
+    _formatted_date[res] = ('.');
+    fmt::format_int i(usec);
+    memcpy(&_formatted_date[res + 1], i.data(), i.size());
   }
-} // namespace quill
+  } // namespace quill

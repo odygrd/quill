@@ -22,3 +22,9 @@
 #else
 #define QUILL_ALWAYS_INLINE inline
 #endif
+
+/**
+ * Convert number to string
+ */
+#define QUILL_AS_STR(x) #x
+#define QUILL_STRINGIFY(x) QUILL_AS_STR(x)

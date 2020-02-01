@@ -14,8 +14,13 @@ namespace quill::detail
 class StaticLogRecordInfo
 {
 public:
-  constexpr StaticLogRecordInfo(uint32_t lineno, char const* pathname, char const* func, char const* message_format, LogLevel level)
-    : _func(func), _pathname(pathname), _message_format(message_format), _lineno(lineno), _level(level)
+  constexpr StaticLogRecordInfo(const char* lineno, char const* pathname, char const* func, char const* message_format, LogLevel level)
+    : _func(func),
+      _pathname(pathname),
+      _filename(_extract_source_file_name(_pathname)),
+      _message_format(message_format),
+      _lineno(lineno),
+      _level(level)
   {
   }
 
@@ -32,10 +37,7 @@ public:
   /**
    * @return Short portion of the path name
    */
-  [[nodiscard]] constexpr char const* filename() const noexcept
-  {
-    return _extract_source_file_name(_pathname);
-  }
+  [[nodiscard]] constexpr char const* filename() const noexcept { return _filename; }
 
   /**
    * @return The user provided format
@@ -45,7 +47,7 @@ public:
   /**
    * @return The line number
    */
-  [[nodiscard]] constexpr uint32_t lineno() const noexcept { return _lineno; }
+  [[nodiscard]] constexpr char const* lineno() const noexcept { return _lineno; }
 
   /**
    * @return The log level of this logging event as an enum
@@ -94,8 +96,9 @@ private:
 
   char const* _func;
   char const* _pathname;
+  char const* _filename;
   char const* _message_format;
-  uint32_t _lineno;
+  char const* _lineno;
   LogLevel _level;
 };
 

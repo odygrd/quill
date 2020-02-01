@@ -5,10 +5,10 @@
 #include "quill/Logger.h"
 #include "quill/detail/CommonMacros.h"
 
-#include "fmt/format.h"
-#include "fmt/ranges.h"
 #include "fmt/chrono.h"
+#include "fmt/format.h"
 #include "fmt/ostream.h"
+#include "fmt/ranges.h"
 
 // Config Options
 #define QUILL_LOG_LEVEL_TRACE_L3 0
@@ -25,7 +25,7 @@
 // clang-format off
 #define QUILL_LOGGER_CALL(logger, log_statement_level, fmt, ...) do {                                                               \
     FMT_STRING(fmt);                                                                                                                \
-    static constexpr quill::detail::StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __FUNCTION__, fmt, log_statement_level};  \
+    static constexpr quill::detail::StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, fmt, log_statement_level};  \
     logger->log<log_statement_level>(&log_line_info, ##__VA_ARGS__);                                                                \
   } while (0)
 // clang-format on

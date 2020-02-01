@@ -135,7 +135,7 @@ public:
       "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"));
 
     // Pre-allocate some reasonable space
-    _formatted_date.reserve(24);
+    _formatted_date.resize(24);
     _formatted_log_record.reserve(512);
   }
 
@@ -150,7 +150,7 @@ public:
     _set_pattern(format_pattern);
 
     // Pre-allocate some reasonable space
-    _formatted_date.reserve(24);
+    _formatted_date.resize(24);
     _formatted_log_record.reserve(512);
   }
 
@@ -320,9 +320,8 @@ private:
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_3; /**< Formatter after %(message) **/
 
   /** Strings as class members to avoid re-allocating **/
-  std::vector<char> _formatted_date = {'\0'};
+  fmt::memory_buffer _formatted_date;
   std::string _thread_id;
-  std::string _lineno;
 
   /** The buffer where we store each formatted string, also stored as class member to avoid re-allocations **/
   mutable fmt::memory_buffer _formatted_log_record;
