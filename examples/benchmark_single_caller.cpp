@@ -303,7 +303,7 @@ int main()
   quill::start();
 
   // let the logger start
-  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(3));
 
   std::vector<std::pair<std::string, std::vector<double>>> results;
 

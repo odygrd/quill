@@ -50,7 +50,7 @@ public:
    * @param thread_id the thread_id of the caller thread
    * @param obtain_active_handlers This is a callback to obtain all loggers for use in CommandRecord only
    */
-  virtual void backend_process(uint32_t thread_id,
+  virtual void backend_process(char const* thread_id,
                                std::function<std::vector<Handler*>()> const& obtain_active_handlers,
                                RdtscClock const* rdtsc_clock) const noexcept = 0;
 

@@ -49,7 +49,7 @@ public:
   /**
    * @return The cached thread id value
    */
-  [[nodiscard]] uint64_t thread_id() const noexcept { return _thread_id; }
+  [[nodiscard]] const char* thread_id() const noexcept { return _thread_id.data(); }
 
   /**
    * Invalidate the context.
@@ -63,8 +63,8 @@ public:
   [[nodiscard]] bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
 
 private:
-  SPSCQueueT _spsc_queue;               /** queue for this thread */
-  uint32_t _thread_id{get_thread_id()}; /**< cache this thread pid */
+  SPSCQueueT _spsc_queue;                                         /** queue for this thread */
+  std::string _thread_id{fmt::format_int(get_thread_id()).str()}; /**< cache this thread pid */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 };
 

@@ -75,7 +75,7 @@ private:
      */
     virtual void format(fmt::memory_buffer& memory_buffer,
                         std::chrono::time_point<std::chrono::system_clock> timestamp,
-                        uint32_t thread_id,
+                        char const* thread_id,
                         char const* logger_name,
                         detail::StaticLogRecordInfo const& logline_info) const = 0;
   };
@@ -105,7 +105,7 @@ private:
      */
     void format(fmt::memory_buffer& memory_buffer,
                 std::chrono::time_point<std::chrono::system_clock> timestamp,
-                uint32_t thread_id,
+                char const* thread_id,
                 char const* logger_name,
                 detail::StaticLogRecordInfo const& logline_info) const override
     {
@@ -197,18 +197,19 @@ public:
    */
   template <typename... Args>
   void format(std::chrono::time_point<std::chrono::system_clock> timestamp,
-                                   uint32_t thread_id,
-                                   std::string const& logger_name,
-                                   detail::StaticLogRecordInfo const& logline_info,
-                                   Args const&... args) const;
+              char const* thread_id,
+              std::string const& logger_name,
+              detail::StaticLogRecordInfo const& logline_info,
+              Args const&... args) const;
 
   fmt::memory_buffer const& formatted_log_record() const noexcept { return _formatted_log_record; }
+
 private:
   /**
    * The stored callback type that will return the appropriate value based on the format pattern specifiers
    */
   using argument_callback_t =
-    std::function<char const* (std::chrono::time_point<std::chrono::system_clock>, uint32_t, char const*, detail::StaticLogRecordInfo const&)>;
+    std::function<char const*(std::chrono::time_point<std::chrono::system_clock>, char const*, char const*, detail::StaticLogRecordInfo const&)>;
 
   /**
    * Generate a tuple of callbacks [](size i) { };
@@ -313,7 +314,8 @@ private:
    * @return formated date as a string
    */
   void _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
-                                                         char const* date_format = "%H:%M:%S");
+                                    char const* date_format = "%H:%M:%S");
+
 private:
   /** Formatters for any user's custom pattern **/
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_1; /**< Formatter before %(message) **/
@@ -321,7 +323,6 @@ private:
 
   /** Strings as class members to avoid re-allocating **/
   fmt::memory_buffer _formatted_date;
-  std::string _thread_id;
 
   /** The buffer where we store each formatted string, also stored as class member to avoid re-allocations **/
   mutable fmt::memory_buffer _formatted_log_record;
@@ -332,10 +333,10 @@ private:
 /***/
 template <typename... Args>
 void PatternFormatter::format(std::chrono::time_point<std::chrono::system_clock> timestamp,
-                                            uint32_t thread_id,
-                                            std::string const& logger_name,
-                                            detail::StaticLogRecordInfo const& logline_info,
-                                            Args const&... args) const
+                              const char* thread_id,
+                              std::string const& logger_name,
+                              detail::StaticLogRecordInfo const& logline_info,
+                              Args const&... args) const
 {
   // clear out existing buffer
   _formatted_log_record.clear();

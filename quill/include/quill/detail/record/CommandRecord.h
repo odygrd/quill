@@ -25,7 +25,7 @@ public:
    * When we encounter this message we are going to call flush for all loggers on all handlers.
    * @param obtain_active_handlers
    */
-  void backend_process(uint32_t,
+  void backend_process(char const*,
                        std::function<std::vector<Handler*>()> const& obtain_active_handlers,
                        RdtscClock const*) const noexcept override
   {

@@ -44,11 +44,6 @@ bool BackendWorker::is_running() const noexcept
 /***/
 void BackendWorker::run()
 {
-#if defined(QUILL_RDTSC_CLOCK)
-  // Enable rdtsc clock based on config
-  _rdtsc_clock = std::make_unique<RdtscClock>();
-#endif
-
   // protect init to be called only once
   std::call_once(_start_init_once_flag, [this]() {
     // Set the backend worker thread status
@@ -69,6 +64,12 @@ void BackendWorker::run()
 
       // Set the thread name to the desired name
       _set_thread_name();
+
+      // Enable rdtsc clock based on config. The clock requires a few seconds to init as it is
+      // taking samples first
+#if defined(QUILL_RDTSC_CLOCK)
+      _rdtsc_clock = std::make_unique<RdtscClock>();
+#endif
 
       // Running
       while (is_running())
@@ -169,7 +170,7 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
   // rdtsc to process We will log the timestamps in order
   uint64_t min_rdtsc = std::numeric_limits<uint64_t>::max();
   ThreadContext::SPSCQueueT::Handle desired_record_handle;
-  uint32_t desired_thread_id = 0;
+  char const* desired_thread_id{nullptr};
 
   for (auto& elem : thread_contexts)
   {

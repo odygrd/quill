@@ -54,7 +54,7 @@ public:
   /**
    * Process a LogRecord
    */
-  void backend_process(uint32_t thread_id,
+  void backend_process(char const* thread_id,
                        std::function<std::vector<Handler*>()> const&,
                        RdtscClock const* rdtsc_clock) const noexcept override
   {
@@ -71,10 +71,10 @@ public:
       std::chrono::time_point<std::chrono::system_clock> const timestamp{timestamp_duration};
 #endif
 
-      // lambda to unpack the tuple args
+      // lambda to unpack the tuple args stored in the LogRecord (the arguments that were passed by
+      // the user) We also capture all additional information we need to create the log message
       auto forward_tuple_args_to_formatter = [this, timestamp, thread_id, handler](auto... tuple_args) {
-        handler->formatter().format(timestamp, thread_id, _logger_details->name(),
-                                           *_log_line_info, tuple_args...);
+        handler->formatter().format(timestamp, thread_id, _logger_details->name(), *_log_line_info, tuple_args...);
       };
 
       // formatted record by the formatter
