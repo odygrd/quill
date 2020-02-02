@@ -57,7 +57,7 @@ TEST(PatternFormatter, custom_pattern)
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "21:42:41.000023000 [31341] PatternFormatterTest.cpp:47 LOG_DEBUG    test_logger - This the "
+      "21:42:41.000023000 [31341] PatternFormatterTest.cpp:48 LOG_DEBUG    test_logger - This the "
       "1234 formatter pattern [TestBody]\n";
 
     EXPECT_EQ(formatted_buffer.size(), expected_string.length());
