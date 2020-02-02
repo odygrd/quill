@@ -2,47 +2,6 @@
 
 namespace quill
 {
-
-/***/
-PatternFormatter::PatternFormatter(PatternFormatter const& other)
-  : _pattern_formatter_helper_part_1(
-      other._pattern_formatter_helper_part_1 ? other._pattern_formatter_helper_part_1->clone() : nullptr),
-    _pattern_formatter_helper_part_3(
-      other._pattern_formatter_helper_part_3 ? other._pattern_formatter_helper_part_3->clone() : nullptr)
-{
-}
-
-/***/
-PatternFormatter::PatternFormatter(PatternFormatter&& other) noexcept
-  : _pattern_formatter_helper_part_1(std::move(other._pattern_formatter_helper_part_1)),
-    _pattern_formatter_helper_part_3(std::move(other._pattern_formatter_helper_part_3))
-{
-}
-
-/***/
-PatternFormatter& PatternFormatter::operator=(PatternFormatter const& other)
-{
-  if (this != &other)
-  {
-    _pattern_formatter_helper_part_1.reset(
-      other._pattern_formatter_helper_part_1 ? other._pattern_formatter_helper_part_1->clone() : nullptr);
-    _pattern_formatter_helper_part_3.reset(
-      other._pattern_formatter_helper_part_3 ? other._pattern_formatter_helper_part_3->clone() : nullptr);
-  }
-  return *this;
-}
-
-/***/
-PatternFormatter& PatternFormatter::operator=(PatternFormatter&& other) noexcept
-{
-  if (this != &other)
-  {
-    _pattern_formatter_helper_part_1 = std::move(other._pattern_formatter_helper_part_1);
-    _pattern_formatter_helper_part_3 = std::move(other._pattern_formatter_helper_part_3);
-  }
-  return *this;
-}
-
 /***/
 std::vector<PatternFormatter::argument_callback_t> PatternFormatter::_generate_vector_of_callbacks(std::string const& pattern)
 {
@@ -180,8 +139,9 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::system_clock::t
   // convert timestamp to date
   int64_t const rawtime_seconds = epoch / 1'000'000'000;
 
+  // TODO: gmt time or local time ?
   tm timeinfo;
-  localtime_r(&rawtime_seconds, std::addressof(timeinfo));
+  gmtime_r(&rawtime_seconds, std::addressof(timeinfo));
 
   // extract the nanoseconds
   std::uint32_t const usec = epoch - (rawtime_seconds * 1'000'000'000);
@@ -205,7 +165,15 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::system_clock::t
   // TODO: Fix/check the format string the user can pass for date and provide option for us ?
   // add the nanoseconds using the fast integer formatter from fmt
   _formatted_date[res] = ('.');
+  size_t usec_begin = res + 1;
+  size_t const usec_end = usec_begin + 9;
+
+  // Fill with zeros the nanosecond precision
+  memset(&_formatted_date[usec_begin], '0', 9);
   fmt::format_int i(usec);
-  memcpy(&_formatted_date[res + 1], i.data(), i.size());
+
+  usec_begin = usec_end - i.size();
+  memcpy(&_formatted_date[usec_begin], i.data(), i.size());
+  _formatted_date[usec_end] = '\0';
 }
 } // namespace quill

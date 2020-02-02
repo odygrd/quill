@@ -118,7 +118,7 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
     // to remove
     _remove_shared_invalidated_thread_context(*found_invalid_and_empty_thread_context);
 
-    // We also need to remove this from our local _thread_context_cache
+    // We also need to remove this from _thread_context_cache, that is used only by the backend
     _thread_context_cache.erase(found_invalid_and_empty_thread_context);
 
     // And then look again

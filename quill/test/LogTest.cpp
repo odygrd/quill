@@ -71,7 +71,7 @@ TEST(Log, custom_pattern_default_logger)
 
   // Set a file handler as the custom logger handler and a custom formatter pattern
   Handler* file_handler = lm.handler_collection().filehandler(filename, "w");
-  file_handler->set_formatter(PatternFormatter{QUILL_STRING("%(message) [%(function_name)]")});
+  file_handler->set_pattern(QUILL_STRING("%(message) [%(function_name)]"));
 
   lm.logger_collection().set_default_logger_handler(file_handler);
 
@@ -118,8 +118,8 @@ TEST(Log, custom_pattern_logger_and_default_logger_same_file)
 
   // Add a second logger with a different pattern
   Handler* file_handler_2 = lm.handler_collection().filehandler(filename);
-  file_handler_2->set_formatter(
-    PatternFormatter{QUILL_STRING("%(ascii_time) %(message) [%(function_name)]")});
+  file_handler_2->set_pattern(QUILL_STRING("%(ascii_time) %(message) [%(function_name)]"));
+
   [[maybe_unused]] Logger* logger_2 = lm.logger_collection().create_logger("custom_logger", file_handler_2);
 
   // Thread for default pattern

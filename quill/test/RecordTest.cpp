@@ -13,8 +13,8 @@ using namespace quill;
 TEST(Record, construct)
 {
   HandlerCollection hc;
-  constexpr StaticLogRecordInfo log_line_info{__LINE__, __FILE__, __FUNCTION__, "Test fmt {}",
-                                              quill::LogLevel::Debug};
+  constexpr StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__,
+                                              "Test fmt {}", quill::LogLevel::Debug};
   LoggerDetails logger_details{"default", hc.stdout_streamhandler()};
   {
     // test with char const

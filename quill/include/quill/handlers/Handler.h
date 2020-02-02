@@ -19,15 +19,6 @@ public:
   Handler() = default;
 
   /**
-   * Constructor
-   * Uses a custom formatter
-   * @tparam TConstantString
-   * @param format_pattern
-   */
-  template <typename TConstantString>
-  explicit Handler(TConstantString format_pattern) : _formatter(format_pattern){};
-
-  /**
    * Destructor
    */
   virtual ~Handler() = default;
@@ -39,14 +30,18 @@ public:
    * Set a custom formatter for this handler
    * @param formatter
    */
-  void set_formatter(PatternFormatter formatter) { _formatter = std::move(formatter); }
+  template <typename TConstantString>
+  void set_pattern(TConstantString format_pattern)
+  {
+    _formatter = std::make_unique<PatternFormatter>(format_pattern);
+  }
 
   /**
    * Returns the owned formatter by the handler
    * @note: Accessor for backend processing
    * @return
    */
-  PatternFormatter const& formatter() { return _formatter; }
+  PatternFormatter const& formatter() { return *(_formatter.get()); }
 
   /**
    * Logs a formatted log record to the handler
@@ -61,7 +56,9 @@ public:
   virtual void flush() = 0;
 
 private:
-  PatternFormatter _formatter; /**< Owned formatter for this handler */
+  /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter
+   * must not be moved or copied. We create the default pattern formatter always on init */
+  std::unique_ptr<PatternFormatter> _formatter{std::make_unique<PatternFormatter>()};
 };
 
 } // namespace quill

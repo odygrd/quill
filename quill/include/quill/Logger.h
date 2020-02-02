@@ -80,7 +80,7 @@ public:
     if constexpr (log_statement_level == LogLevel::TraceL3 || log_statement_level == LogLevel::TraceL2 ||
                   log_statement_level == LogLevel::TraceL1 || log_statement_level == LogLevel::Debug)
     {
-      // it is usually unlikely we log those levels
+      // it is usually likely we will not log those levels
       if (QUILL_LIKELY(!should_log<log_statement_level>()))
         return;
     }

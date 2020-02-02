@@ -63,8 +63,6 @@ private:
     FormatterHelperBase() = default;
     virtual ~FormatterHelperBase() = default;
 
-    [[nodiscard]] virtual FormatterHelperBase* clone() const = 0;
-
     /**
      * Appends information to memory_buffer based on the preconfigured pattern
      * @param[out] memory_buffer the memory buffer to write
@@ -92,8 +90,6 @@ private:
       : _tuple_of_callbacks(tuple_of_callbacks), _fmt_pattern(std::move(fmt_pattern)){};
 
     ~FormatterHelper() override = default;
-
-    [[nodiscard]] FormatterHelper* clone() const override { return new FormatterHelper{*this}; }
 
     /**
      * @see FormatterHelper::format
@@ -155,30 +151,16 @@ public:
   }
 
   /**
-   * Copy Constructor
+   * Deleted because during construction the PatternFormatter will create some lambdas that store a
+   * reference to "this" as "this" being the PatternFormatter instance itself. After the object is
+   * created we can not move it or copy it to a new instance all the lambdas have to be re-created.
+   * To re-create the lambdas we need the compile time string
    * @param other
    */
-  PatternFormatter(PatternFormatter const& other);
-
-  /**
-   * Move assignment operator
-   * @param other
-   */
-  PatternFormatter(PatternFormatter&& other) noexcept;
-
-  /**
-   * Copy assignment operator
-   * @param other
-   * @return
-   */
-  PatternFormatter& operator=(PatternFormatter const& other);
-
-  /**
-   * Move assignment operator
-   * @param other
-   * @return
-   */
-  PatternFormatter& operator=(PatternFormatter&& other) noexcept;
+  PatternFormatter(PatternFormatter const& other) = delete;
+  PatternFormatter(PatternFormatter&& other) noexcept = delete;
+  PatternFormatter& operator=(PatternFormatter const& other) = delete;
+  PatternFormatter& operator=(PatternFormatter&& other) noexcept = delete;
 
   /**
    * Destructor
@@ -202,6 +184,10 @@ public:
               detail::StaticLogRecordInfo const& logline_info,
               Args const&... args) const;
 
+  /**
+   * Returned the stored formatted record, to be called after format
+   * @return
+   */
   fmt::memory_buffer const& formatted_log_record() const noexcept { return _formatted_log_record; }
 
 private:
