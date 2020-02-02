@@ -25,6 +25,7 @@ static Config default_cfg;
 // Real logger is using a singleton so that is not an issue
 // For the tests we will use threads so that the thread local is also destructed with the LogManager
 
+/***/
 TEST(Log, default_logger_with_filehandler)
 {
   LogManager lm{default_cfg};
@@ -134,8 +135,10 @@ void custom_default_logger_same_handler(int test_case = 0)
   EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
 }
 
+/***/
 TEST(Log, custom_default_logger_same_file) { custom_default_logger_same_handler(0); }
 
+/***/
 TEST(Log, custom_default_logger_same_file_from_default_logger)
 {
   custom_default_logger_same_handler(1);
@@ -251,16 +254,19 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
   }
 }
 
+/***/
 TEST(Log, custom_default_logger_multiple_handlers)
 {
   test_custom_default_logger_multiple_handlers(0);
 }
 
+/***/
 TEST(Log, custom_default_logger_multiple_handlers_from_default_logger)
 {
   test_custom_default_logger_multiple_handlers(1);
 }
 
+/***/
 TEST(Log, many_loggers_multiple_threads)
 {
   LogManager lm{default_cfg};

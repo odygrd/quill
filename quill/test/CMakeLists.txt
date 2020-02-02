@@ -8,6 +8,7 @@ set(HEADER_FILES
 
 set(SOURCE_FILES
         BoundedSPSCQueueTest.cpp
+        HandlerCollectionTest.cpp
         LoggerCollectionTest.cpp
         LoggerTest.cpp
         LogLevelTest.cpp

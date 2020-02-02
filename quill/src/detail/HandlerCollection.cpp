@@ -54,7 +54,8 @@ std::vector<Handler*> HandlerCollection::active_handlers() const
 {
   std::vector<Handler*> subscribed_handlers_collection;
 
-  // Protect shared access
+  // Protect shared access, we just use a lock here since this function is not used when logging
+  // messages but only in special cases e.g. flushing
   std::lock_guard<Spinlock> const lock{_spinlock};
   subscribed_handlers_collection = _active_handlers_collection;
 

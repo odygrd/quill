@@ -7,6 +7,7 @@
 using namespace quill;
 using namespace quill::detail;
 
+/***/
 TEST(Logger, logger_should_log)
 {
   ThreadContextCollection tc;
