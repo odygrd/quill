@@ -1,5 +1,11 @@
 set(TEST_NAME "TEST_quill")
 
+set(HEADER_FILES
+        misc/TestMain.cpp
+        misc/TestUtilities.cpp
+        misc/TestUtilities.h
+        )
+
 set(SOURCE_FILES
         BoundedSPSCQueueTest.cpp
         LoggerCollectionTest.cpp
@@ -9,7 +15,6 @@ set(SOURCE_FILES
         PatternFormatterTest.cpp
         RecordTest.cpp
         StaticLogRecordInfoTest.cpp
-        TestMain.cpp
         ThreadContextCollectionTest.cpp
         UtilityTest.cpp
         )
@@ -18,10 +23,18 @@ set(SOURCE_FILES
 add_executable(${TEST_NAME} "")
 
 # Add sources
-target_sources(${TEST_NAME} PRIVATE ${SOURCE_FILES})
+target_sources(${TEST_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
 # Add compiler options for this library
 target_compile_options(${TEST_NAME} PRIVATE ${TEST_COPTS} ${EXCEPTIONS_FLAG})
+
+# include dirs
+target_include_directories(${TARGET_NAME}
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/misc>
+        $<INSTALL_INTERFACE:include>
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link dependencies
 target_link_libraries(${TEST_NAME} ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} quill)
