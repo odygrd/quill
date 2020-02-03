@@ -35,9 +35,3 @@ TEST(Record, construct)
     record_t msg{&log_line_info, &logger_details, 1337, 13.5, test_char};
   }
 }
-
-TEST(CommandRecord, construct)
-{
-  // TODO:: test
-  CommandRecord msg{[]() {}};
-}

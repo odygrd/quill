@@ -120,6 +120,29 @@ private:
     std::string _fmt_pattern;
   };
 
+  /** Public classes **/
+public:
+  /**
+   * Stores the timezone that is used for the timestamp
+   */
+  enum class Timezone : uint8_t
+  {
+    LocalTime,
+    GmtTime
+  };
+
+  /**
+   * Stores the precission of the timestamp
+   */
+  enum class TimestampPrecision : uint8_t
+  {
+    None,
+    MilliSeconds,
+    MicroSeconds,
+    NanoSeconds
+  };
+
+  /** Main PatternFormatter class **/
 public:
   /**
    * Constructor
@@ -141,9 +164,12 @@ public:
    * @param format_pattern format_pattern a format string. Must be passed using the macro QUIL_STRING("format string");
    */
   template <typename TConstantString>
-  explicit PatternFormatter(TConstantString format_pattern)
+  PatternFormatter(TConstantString format_pattern, std::string date_format, TimestampPrecision timestamp_precision)
   {
     _set_pattern(format_pattern);
+
+    _date_format = std::move(date_format);
+    _timestamp_precision = timestamp_precision;
 
     // Pre-allocate some reasonable space
     _formatted_date.resize(24);
@@ -299,8 +325,7 @@ private:
    * @param epoch timestamp in nanoseconds from epoch. This timestamp must be in nanoseconds
    * @return formated date as a string
    */
-  void _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time,
-                                    char const* date_format = "%H:%M:%S");
+  void _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time);
 
 private:
   /** Formatters for any user's custom pattern **/
@@ -312,6 +337,11 @@ private:
 
   /** The buffer where we store each formatted string, also stored as class member to avoid re-allocations **/
   mutable fmt::memory_buffer _formatted_log_record;
+
+  std::string _date_format{"%H:%M:%S"}; /** Timestamp format **/
+
+  Timezone _timezone_type{Timezone::GmtTime}; /** Timezone, GMT time by default **/
+  TimestampPrecision _timestamp_precision{TimestampPrecision::NanoSeconds}; /** timestamp precision */
 };
 
 /** Inline Implementation **/

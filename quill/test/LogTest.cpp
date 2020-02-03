@@ -160,7 +160,8 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
 
   // Second handler with different pattern
   Handler* file_handler_2 = lm.handler_collection().filehandler(filename_2, "w");
-  file_handler_2->set_pattern(QUILL_STRING("%(ascii_time) %(logger_name) - %(message)"));
+  file_handler_2->set_pattern(QUILL_STRING("%(ascii_time) %(logger_name) - %(message)"),
+                              "%D %H:%M:%S", PatternFormatter::TimestampPrecision::MilliSeconds);
 
   lm.logger_collection().set_default_logger_handler({file_handler_1, file_handler_2});
 

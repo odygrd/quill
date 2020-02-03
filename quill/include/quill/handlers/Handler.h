@@ -31,9 +31,11 @@ public:
    * @param formatter
    */
   template <typename TConstantString>
-  void set_pattern(TConstantString format_pattern)
+  void set_pattern(TConstantString format_pattern,
+                   std::string date_format = std::string{"%H:%M:%S"},
+                   PatternFormatter::TimestampPrecision timestamp_precision = PatternFormatter::TimestampPrecision::NanoSeconds)
   {
-    _formatter = std::make_unique<PatternFormatter>(format_pattern);
+    _formatter = std::make_unique<PatternFormatter>(format_pattern, date_format, timestamp_precision);
   }
 
   /**

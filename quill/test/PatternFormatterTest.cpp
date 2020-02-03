@@ -39,7 +39,8 @@ TEST(PatternFormatter, custom_pattern)
   {
     PatternFormatter custom_pattern_formatter{
       QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
-                   "%(message) [%(function_name)]")};
+                   "%(message) [%(function_name)]"),
+      "%H:%M:%S", PatternFormatter::TimestampPrecision::NanoSeconds};
 
     std::chrono::system_clock::duration ds = std::chrono::nanoseconds{1579815761000023000};
     std::chrono::time_point<std::chrono::system_clock> ts{ds};
@@ -66,7 +67,8 @@ TEST(PatternFormatter, custom_pattern)
 
   // Message only
   {
-    PatternFormatter custom_pattern_formatter{QUILL_STRING("%(message)")};
+    PatternFormatter custom_pattern_formatter{QUILL_STRING("%(message)"), "%H:%M:%S",
+                                              PatternFormatter::TimestampPrecision::NanoSeconds};
 
     std::chrono::system_clock::duration ds = std::chrono::nanoseconds{1579815761000023000};
     std::chrono::time_point<std::chrono::system_clock> ts{ds};
@@ -92,8 +94,10 @@ TEST(PatternFormatter, custom_pattern)
 
 TEST(PatternFormatter, invalid_pattern)
 {
-  EXPECT_THROW(PatternFormatter{QUILL_STRING(
-                 "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
-                 "[%(function_name)]")},
-               std::runtime_error);
+  EXPECT_THROW(
+    PatternFormatter(
+      QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
+                   "[%(function_name)]"),
+      "%H:%M:%S", PatternFormatter::TimestampPrecision::NanoSeconds),
+    std::runtime_error);
 }
