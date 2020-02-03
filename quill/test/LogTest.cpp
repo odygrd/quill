@@ -7,6 +7,7 @@
 #include "quill/detail/LogManager.h"
 #include "quill/handlers/Handler.h"
 #include <thread>
+#include <cstdio>
 
 /**
  * Contains tests that include frontend and backend thread testing
@@ -60,6 +61,7 @@ TEST(Log, default_logger_with_filehandler)
     file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
+  std::remove(filename.data());
 }
 
 void custom_default_logger_same_handler(int test_case = 0)
@@ -135,6 +137,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
 
   lm.stop_backend_worker();
+  std::remove(filename.data());
 }
 
 /***/
@@ -257,6 +260,8 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
   }
 
   lm.stop_backend_worker();
+  std::remove(filename_1.data());
+  std::remove(filename_2.data());
 }
 
 /***/
@@ -330,4 +335,6 @@ TEST(Log, many_loggers_multiple_threads)
   }
 
   lm.stop_backend_worker();
+
+  std::remove(filename.data());
 }

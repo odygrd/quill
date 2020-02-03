@@ -1,4 +1,5 @@
 #include "quill/detail/HandlerCollection.h"
+#include <cstdio>
 #include <gtest/gtest.h>
 
 using namespace quill;
@@ -17,6 +18,7 @@ TEST(HandlerCollection, create_get)
 
   // Compare the pointers
   EXPECT_EQ(filehandler, filehandler_2);
+  std::remove("create_get_file_handler");
 }
 
 /***/
@@ -51,6 +53,7 @@ TEST(HandlerCollection, subscribe_get_active_same_handler)
   hc.subscribe_handler(filehandler);
   active_handlers = hc.active_handlers();
   EXPECT_EQ(active_handlers.size(), 1);
+  std::remove("create_get_file_handler");
 }
 
 /***/
@@ -85,4 +88,7 @@ TEST(HandlerCollection, subscribe_get_active_different_handlers)
   hc.subscribe_handler(filehandler);
   active_handlers = hc.active_handlers();
   EXPECT_EQ(active_handlers.size(), 2);
+
+  std::remove("create_get_file_handler_1");
+  std::remove("create_get_file_handler_2");
 }
