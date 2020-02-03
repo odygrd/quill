@@ -6,13 +6,6 @@
 
 #pragma once
 
-#define QUILL_CPP17_OR_GREATER (__cplusplus >= 201703L)
-
-//#if QUILL_CPP17_OR_GREATER
-//#include <functional>
-//
-//#else
-
 #include <functional>
 #include <tuple>
 #include <type_traits>
