@@ -335,7 +335,8 @@ private:
   /** Strings as class members to avoid re-allocating **/
   fmt::memory_buffer _formatted_date;
 
-  /** The buffer where we store each formatted string, also stored as class member to avoid re-allocations **/
+  /** The buffer where we store each formatted string, also stored as class member to avoid re-allocations.
+   * This is mutable so we can have a format() const function **/
   mutable fmt::memory_buffer _formatted_log_record;
 
   std::string _date_format{"%H:%M:%S"}; /** Timestamp format **/

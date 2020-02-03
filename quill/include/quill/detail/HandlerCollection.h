@@ -52,6 +52,7 @@ private:
   StreamHandler* _create_streamhandler(std::string const& stream);
 
 private:
+  /** mutable to have an active_handlers() const function */
   mutable Spinlock _spinlock;
 
   /**

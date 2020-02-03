@@ -10,57 +10,8 @@
 // this is never an issue in real logger as everything goes through the singleton, but we are not using the
 // singleton all the time during testing
 
-/***/
-TEST(Quill, log_from_one_thread)
+void test_quil_log(char const* test_id, char const* filename, uint16_t number_of_threads, uint32_t number_of_messages)
 {
-  static constexpr char const* filename = "log_from_one_thread.log";
-  static constexpr size_t number_of_messages = 10000u;
-
-  // Start the logging backend thread
-  quill::start();
-
-  // Spawn the logging thread
-  std::thread thread_1([]()
-    {
-      // Set writing logging to a file
-      quill::Handler* log_from_one_thread_file = quill::filehandler(filename, "w");
-      quill::Logger* logger = quill::create_logger("logger_1", log_from_one_thread_file);
-
-      // Change the LogLevel to print everything
-      logger->set_log_level(quill::LogLevel::TraceL3);
-
-      for (int i = 0; i < number_of_messages; ++i)
-      {
-        LOG_INFO(logger, "Simple log message with one parameter [{}]", i);
-      }
-
-      // Wait until everything is written to the file
-      quill::flush();
-    });
-
-  // Wait for thread to finish
-  thread_1.join();
-
-  // Read file and check
-  auto const file_contents = quill::testing::file_contents(filename);
-  EXPECT_EQ(file_contents.size(), number_of_messages);
-
-  for (int i = 0; i < number_of_messages; ++i)
-  {
-    quill::testing::file_contains(file_contents, "Simple log message with one parameter [" + std::to_string(i) + "]");
-  }
-
-  std::remove(filename); // delete file
-}
-
-/***/
-TEST(Quill, log_from_multiple_threads)
-{
-  static constexpr char const* filename = "log_from_multiple_threads.log";
-  static constexpr size_t number_of_messages = 2000u;
-  static constexpr size_t number_of_threads = 10;
-  static constexpr char const* test_id = "multi";
-
   // Start the logging backend thread
   quill::start();
 
@@ -68,7 +19,7 @@ TEST(Quill, log_from_multiple_threads)
 
   for (int i = 0; i < number_of_threads; ++i)
   {
-    threads.emplace_back([i]() {
+    threads.emplace_back([filename, number_of_messages, test_id, i]() {
       // Set writing logging to a file
       quill::Handler* log_from_one_thread_file = quill::filehandler(filename, "w");
 
@@ -113,4 +64,80 @@ TEST(Quill, log_from_multiple_threads)
   }
 
   std::remove(filename); // delete file
+}
+
+/***/
+TEST(Quill, log_from_one_thread)
+{
+  static constexpr char const* filename = "log_from_one_thread.log";
+  static constexpr size_t number_of_messages = 10000u;
+  static constexpr size_t number_of_threads = 1;
+  static constexpr char const* test_id = "single";
+
+  test_quil_log(test_id, filename, number_of_threads, number_of_messages);
+}
+
+/***/
+TEST(Quill, log_from_multiple_threads)
+{
+  static constexpr char const* filename = "log_from_multiple_threads.log";
+  static constexpr size_t number_of_messages = 2000u;
+  static constexpr size_t number_of_threads = 10;
+  static constexpr char const* test_id = "multi";
+
+  test_quil_log(test_id, filename, number_of_threads, number_of_messages);
+}
+
+/**
+ * A test class example that is using the logger
+ */
+class log_test_class
+{
+public:
+  log_test_class(char const* filename)
+  {
+    // create a new logger in the ctor
+    quill::Handler* filehandler = quill::filehandler(filename, "w");
+    _logger = quill::create_logger("test_class", filehandler);
+  }
+
+  /**
+   * Use logger in const function
+   */
+  void use_logger_const() const noexcept
+  {
+    LOG_INFO(_logger, "Test message for test class const");
+  }
+
+  /**
+   * Use logger in normal function
+   */
+  void use_logger()
+  {
+    LOG_INFO(_logger, "Test message for test class non const");
+  }
+private:
+  quill::Logger* _logger{ nullptr};
+};
+
+/***/
+TEST(Quill, log_from_const_function)
+{
+  static constexpr char const* filename = "log_test_class.log";
+  // log for class a
+  log_test_class log_test_class_a {filename};
+  log_test_class_a.use_logger_const();
+  log_test_class_a.use_logger();
+
+  // log again for class b
+  log_test_class const log_test_class_b {filename};
+  log_test_class_b.use_logger_const();
+
+  quill::flush();
+
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+  EXPECT_EQ(file_contents.size(), 3);
+
+  std::remove(filename);
 }

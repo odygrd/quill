@@ -87,19 +87,16 @@ private:
   HandlerCollection& _handler_collection;              /** Collection of al handlers **/
   Logger* _default_logger{nullptr}; /**< A pointer to the default logger to avoid lookup */
 
-  /**<
-   * In order to allow const functions having access to get_logger to get a logger everything
-   * is mutable
-   */
+  /** Mutable to have a const get_logger() function */
   mutable RecursiveSpinlock _spinlock; /**< Thread safe access to logger map */
-  mutable std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
+  std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
 
   /**
    * A cache to the loggers in _logger_name_map.
    *
    * @note Accessed strictly only by the backend thread
    */
-  mutable std::vector<LoggerDetails const*> _logger_cache;
+  std::vector<LoggerDetails const*> _logger_cache;
 };
 
 } // namespace quill::detail

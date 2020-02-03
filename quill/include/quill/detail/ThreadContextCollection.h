@@ -36,7 +36,7 @@ private:
      * Creates a new context and then registers it to the context collection sharing ownership
      * of the ThreadContext
      */
-    explicit ThreadContextWrapper(ThreadContextCollection const& thread_context_collection);
+    explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection);
 
     /**
      * Destructor
@@ -59,7 +59,7 @@ private:
      * This could be unique_ptr but the thread context of main thread that owns
      * ThreadContextCollection can be destructed last even after the logger singleton destruction
      * so we use shared_ptr */
-    mutable std::shared_ptr<ThreadContext> _thread_context;
+    std::shared_ptr<ThreadContext> _thread_context;
   };
 
 public:
@@ -84,7 +84,7 @@ public:
    * Called by caller threads
    * @return A reference to the specific for this thread thread context
    */
-  inline ThreadContext* local_thread_context() const noexcept
+  inline ThreadContext* local_thread_context() noexcept
   {
     static thread_local ThreadContextWrapper thread_context_wrapper{*this};
     return thread_context_wrapper.thread_context();
@@ -95,7 +95,7 @@ public:
    * Called by caller threads
    * @param thread_context
    */
-  void register_thread_context(std::shared_ptr<ThreadContext> const& thread_context) const;
+  void register_thread_context(std::shared_ptr<ThreadContext> const& thread_context);
 
   /**
    * Reloads the thread contexts in our local cache.
@@ -112,13 +112,13 @@ private:
    * @note Only accessed by the backend thread
    * @return true if the shared data structure was changed by any calls to Logger
    */
-  [[nodiscard]] bool _has_changed() const noexcept;
+  [[nodiscard]] bool _has_changed() noexcept;
 
   /**
    * Indicate that the context has changed. A new thread context has been added or removed
    * @note Only called by the caller threads
    */
-  void _set_changed() const noexcept;
+  void _set_changed() noexcept;
 
   /**
    * Remove a thread context from our main thread context collection
@@ -140,8 +140,8 @@ private:
   void _find_and_remove_invalidated_thread_contexts();
 
 private:
-  mutable Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
-  mutable std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
+  Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+  std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 
   /**<
    * A reference to the owned thread contexts that we update when there is any change. We do
@@ -153,7 +153,7 @@ private:
   std::vector<ThreadContext*> _thread_context_cache;
 
   /**< Indicator that a new context was added or removed, set by caller thread to true, read by the backend thread only */
-  mutable std::atomic<bool> _changed{false};
+  std::atomic<bool> _changed{false};
 };
 
 } // namespace quill::detail

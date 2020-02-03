@@ -3,7 +3,7 @@
 namespace quill::detail
 {
 /***/
-ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection const& thread_context_collection)
+ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection)
   : _thread_context(std::make_shared<ThreadContext>())
 {
   thread_context_collection.register_thread_context(_thread_context);
@@ -22,7 +22,7 @@ ThreadContextCollection::ThreadContextWrapper::~ThreadContextWrapper() noexcept
 }
 
 /***/
-void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadContext> const& thread_context) const
+void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadContext> const& thread_context)
 {
   std::lock_guard<Spinlock> const lock(_spinlock);
   _thread_contexts.push_back(thread_context);
@@ -55,7 +55,7 @@ std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_conte
 }
 
 /***/
-bool ThreadContextCollection::_has_changed() const noexcept
+bool ThreadContextCollection::_has_changed() noexcept
 {
   // Again relaxed memory model as in case it is false we will acquire the lock
   if (_changed.load(std::memory_order_relaxed))
@@ -69,7 +69,7 @@ bool ThreadContextCollection::_has_changed() const noexcept
 }
 
 /***/
-void ThreadContextCollection::_set_changed() const noexcept
+void ThreadContextCollection::_set_changed() noexcept
 {
   // Set changed is used with the lock, we can have relaxed memory order here as the lock
   // is acq/rel anyway

@@ -71,7 +71,7 @@ Logger* LoggerCollection::create_logger(std::string logger_name)
   // Place the logger in our map
   auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
 
-  // Return the inserted logger
+  // Return the inserted logger or the existing logger
   return elem_it->second.get();
 }
 
@@ -90,9 +90,7 @@ Logger* LoggerCollection::create_logger(std::string logger_name, Handler* handle
 
   auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
 
-  assert(inserted && "inserted can not be false");
-
-  // Return the inserted logger
+  // Return the inserted logger or the existing logger
   return elem_it->second.get();
 }
 
@@ -115,9 +113,7 @@ Logger* LoggerCollection::create_logger(std::string logger_name, std::initialize
 
   auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
 
-  assert(inserted && "inserted can not be false");
-
-  // Return the inserted logger
+  // Return the inserted logger or the existing logger
   return elem_it->second.get();
 }
 
