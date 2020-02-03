@@ -92,10 +92,7 @@ public:
     {
       if (is_valid())
       {
-        if constexpr (!std::is_trivially_destructible_v<value_type>)
-        {
-          _data->~value_type();
-        }
+        _destroy();
         _indicator->store(_indicator_value, std::memory_order_release);
       }
     }
@@ -134,6 +131,30 @@ public:
     Handle(value_type* data, std::atomic<uint64_t>& indicator, uint64_t indicator_value) noexcept
       : _data(data), _indicator(&indicator), _indicator_value(indicator_value)
     {
+    }
+
+    /**
+     * Do not run a destructor for a trivially destructible object
+     * @tparam U
+     * @return
+     */
+    template<typename UBaseObject = TBaseObject>
+    typename std::enable_if< std::is_trivially_destructible<UBaseObject>::value >::type
+    _destroy()
+    {
+
+    }
+
+    /**
+     * Run a destructor for a trivially destructible object
+     * @tparam U
+     * @return
+     */
+    template<typename UBaseObject = TBaseObject>
+    typename std::enable_if< !std::is_trivially_destructible<UBaseObject>::value >::type
+    _destroy()
+    {
+      _data->~value_type();
     }
 
   private:
@@ -198,7 +219,7 @@ private:
    */
   struct local_state
   {
-    std::byte* buffer{nullptr}; /**< The whole buffer */
+    unsigned char* buffer{nullptr}; /**< The whole buffer */
     uint64_t cached_atomic{0}; /**< producer cache to tail address or consumer cache to head address */
   };
 
@@ -266,7 +287,7 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
   }
 
   // ask mmap for a good address where we can put both virtual copies of the buffer
-  auto address = static_cast<std::byte*>(
+  auto address = static_cast<unsigned char*>(
     mmap(nullptr, 2 * capacity(), PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE, -1, 0));
 
   if (address == MAP_FAILED)
@@ -278,7 +299,7 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
   }
 
   // map first region
-  auto other_address = static_cast<std::byte*>(
+  auto other_address = static_cast<unsigned char*>(
     mmap(address, capacity(), PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE, fd, 0));
   if (other_address != address)
   {
@@ -290,7 +311,7 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
   }
 
   // map second region
-  other_address = static_cast<std::byte*>(
+  other_address = static_cast<unsigned char*>(
     mmap(address + capacity(), capacity(), PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE, fd, 0));
   if (other_address != address + capacity())
   {
