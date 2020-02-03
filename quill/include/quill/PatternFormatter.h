@@ -3,6 +3,7 @@
 #include "fmt/format.h"
 #include "quill/detail/CommonMacros.h"
 #include "quill/detail/CommonUtilities.h"
+#include "quill/detail/Invoke.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
 #include <chrono>
 #include <cstdint>
@@ -112,7 +113,7 @@ private:
                        tuple_args(timestamp, thread_id, logger_name, logline_info)...);
       };
 
-      std::apply(format_buffer, _tuple_of_callbacks);
+      quill::detail::apply(format_buffer, _tuple_of_callbacks);
     }
 
   private:
@@ -335,8 +336,8 @@ private:
   /** Strings as class members to avoid re-allocating **/
   fmt::memory_buffer _formatted_date;
 
-  /** The buffer where we store each formatted string, also stored as class member to avoid re-allocations.
-   * This is mutable so we can have a format() const function **/
+  /** The buffer where we store each formatted string, also stored as class member to avoid
+   * re-allocations. This is mutable so we can have a format() const function **/
   mutable fmt::memory_buffer _formatted_log_record;
 
   std::string _date_format{"%H:%M:%S"}; /** Timestamp format **/
@@ -417,7 +418,7 @@ constexpr std::array<std::size_t, 2> PatternFormatter::_parse_format_pattern(TCo
 
   size_t pos{0};
   bool part_2_found = false;
-  std::array<std::size_t, 2> arr{};
+
   size_t part_1_style_counter{0};
   size_t part_3_style_counter{0};
 
@@ -448,9 +449,7 @@ constexpr std::array<std::size_t, 2> PatternFormatter::_parse_format_pattern(TCo
     pos += 1;
   }
 
-  arr[0] = part_1_style_counter;
-  arr[1] = part_3_style_counter;
-  return arr;
+  return {part_1_style_counter, part_3_style_counter};
 }
 
 /***/

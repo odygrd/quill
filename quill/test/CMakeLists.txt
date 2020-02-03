@@ -1,5 +1,7 @@
 set(TEST_NAME "TEST_quill")
 
+set(CMAKE_CXX_STANDARD 14)
+
 set(HEADER_FILES
         misc/TestMain.cpp
         misc/TestUtilities.cpp
@@ -14,6 +16,7 @@ set(SOURCE_FILES
         LogLevelTest.cpp
         LogTest.cpp
         PatternFormatterTest.cpp
+        QuillLogTest.cpp
         RecordTest.cpp
         StaticLogRecordInfoTest.cpp
         ThreadContextCollectionTest.cpp

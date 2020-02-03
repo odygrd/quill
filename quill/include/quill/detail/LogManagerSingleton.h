@@ -3,9 +3,10 @@
 #include "quill/detail/Config.h"
 #include "quill/detail/LogManager.h"
 
-namespace quill::detail
+namespace quill
 {
-
+namespace detail
+{
 /**
  * A wrapper class around LogManager to make LogManager act as a singleton.
  * In fact LogManager is always a singleton as every access is provided via this class but this
@@ -41,5 +42,5 @@ private:
   detail::Config _config;
   detail::LogManager _log_manager{_config};
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

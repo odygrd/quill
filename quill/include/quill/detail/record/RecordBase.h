@@ -11,7 +11,9 @@
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/utility/RdtscClock.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * Record instances are created automatically by the Logger every time something is logged.
@@ -61,5 +63,5 @@ private:
   uint64_t _timestamp{static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())};
 #endif
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

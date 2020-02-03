@@ -9,9 +9,10 @@
 #include "quill/detail/Config.h"
 #include "quill/detail/utility/RdtscClock.h"
 
-namespace quill::detail
+namespace quill
 {
-
+namespace detail
+{
 /** forward declaration **/
 class ThreadContextCollection;
 class ThreadContext;
@@ -93,5 +94,5 @@ private:
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   std::atomic<bool> _is_running{false};                    /** The spawned backend thread status */
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

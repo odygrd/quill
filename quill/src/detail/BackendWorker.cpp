@@ -14,7 +14,9 @@
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/record/RecordBase.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /***/
 BackendWorker::BackendWorker(Config const& config,
@@ -221,4 +223,5 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
   return true;
 }
 
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

@@ -6,7 +6,9 @@
 
 #include "quill/detail/CommonMacros.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /***/
 uint32_t get_thread_id() noexcept { return static_cast<uint32_t>(::syscall(SYS_gettid)); }
@@ -21,4 +23,5 @@ void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream)
     throw std::system_error((errno), std::generic_category());
   }
 }
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

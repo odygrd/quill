@@ -10,9 +10,10 @@
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/utility/RecursiveSpinlock.h"
 
-namespace quill::detail
+namespace quill
 {
-
+namespace detail
+{
 /** forward declarations **/
 class ThreadContextCollection;
 
@@ -98,5 +99,5 @@ private:
    */
   std::vector<LoggerDetails const*> _logger_cache;
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

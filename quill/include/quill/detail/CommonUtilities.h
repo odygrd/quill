@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <cstdio>
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 static constexpr uint32_t CACHELINE_SIZE{64};
 
@@ -40,5 +42,5 @@ static constexpr uint32_t CACHELINE_SIZE{64};
  * @param stream
  */
 void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream);
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

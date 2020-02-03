@@ -1,7 +1,9 @@
 #include "quill/detail/HandlerCollection.h"
 #include "quill/handlers/FileHandler.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /***/
 StreamHandler* HandlerCollection::stdout_streamhandler() { return _create_streamhandler("stdout"); }
@@ -82,4 +84,5 @@ StreamHandler* HandlerCollection::_create_streamhandler(std::string const& strea
 
   return emplace_result.first->second.get();
 }
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

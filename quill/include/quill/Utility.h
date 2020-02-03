@@ -6,7 +6,9 @@
 /**
  * Contains useful utilities to assist with logging
  */
-namespace quill::utility
+namespace quill
+{
+namespace utility
 {
 /**
  * Formats the given buffer to hex
@@ -15,6 +17,7 @@ namespace quill::utility
  * @return A string containing the hexadecimal representation of the givven buffer
  */
 [[nodiscard]] std::string to_hex(unsigned char* buffer, size_t size) noexcept;
+[[nodiscard]] std::string to_hex(unsigned char const* buffer, size_t size) noexcept;
 
 /**
  * Formats the given buffer to hex
@@ -23,5 +26,7 @@ namespace quill::utility
  * @return A string containing the hexadecimal representation of the givven buffer
  */
 [[nodiscard]] std::string to_hex(char* buffer, size_t size) noexcept;
+[[nodiscard]] std::string to_hex(char const* buffer, size_t size) noexcept;
 
-} // namespace quill::utility
+} // namespace utility
+} // namespace quill

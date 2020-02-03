@@ -4,7 +4,9 @@
 
 #include <chrono>
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * Converts tsc ticks to nanoseconds since epoch
@@ -61,5 +63,6 @@ private:
   mutable uint64_t resync_interval_ticks_{0};
   uint64_t resync_interval_orginal_{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
   double ticks_per_nanosecond_{0};
-};
-} // namespace quill::detail
+}; // namespace detailclassRdtscClock
+} // namespace detail
+} // namespace quill

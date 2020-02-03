@@ -5,7 +5,9 @@
 
 #include "quill/detail/record/CommandRecord.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 
 /***/
@@ -53,4 +55,5 @@ void LogManager::start_backend_worker() { _backend_worker.run(); }
 /***/
 void LogManager::stop_backend_worker() { _backend_worker.stop(); }
 
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

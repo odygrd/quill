@@ -1,8 +1,9 @@
 #include "TestUtilities.h"
 
-namespace quill::testing
+namespace quill
 {
-
+namespace testing
+{
 // Convert the given file to a vector
 std::vector<std::string> file_contents(std::string const& filename)
 {
@@ -28,4 +29,5 @@ bool file_contains(std::vector<std::string> const& file_vector, std::string sear
 
   return search != file_vector.cend();
 }
-} // namespace quill::testing
+} // namespace testing
+} // namespace quill

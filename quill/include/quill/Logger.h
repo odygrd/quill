@@ -11,7 +11,6 @@
 
 namespace quill
 {
-
 namespace detail
 {
 class LoggerCollection;
@@ -71,23 +70,50 @@ public:
   /**
    * Push a log record to the spsc queue to be logged by the backend thread.
    * One queue per caller thread.
+   * We have this enable_if to use unlikely since no if constexpr in C++14
    * @note This function is thread-safe.
    */
   template <LogLevel log_statement_level, typename... FmtArgs>
-  inline void log(detail::StaticLogRecordInfo const* log_line_info, FmtArgs&&... fmt_args)
+  inline
+    typename std::enable_if_t<(log_statement_level == LogLevel::TraceL3 || log_statement_level == LogLevel::TraceL2 ||
+                               log_statement_level == LogLevel::TraceL1 || log_statement_level == LogLevel::Debug),
+                              void>
+    log(detail::StaticLogRecordInfo const* log_line_info, FmtArgs&&... fmt_args)
   {
-    // optimised branches for anything above info
-    if constexpr (log_statement_level == LogLevel::TraceL3 || log_statement_level == LogLevel::TraceL2 ||
-                  log_statement_level == LogLevel::TraceL1 || log_statement_level == LogLevel::Debug)
+    // it is usually likely we will not log those levels
+    if (QUILL_LIKELY(!should_log<log_statement_level>()))
     {
-      // it is usually likely we will not log those levels
-      if (QUILL_LIKELY(!should_log<log_statement_level>()))
-        return;
+      return;
     }
-    else
+
+    // Resolve the type of the record first
+    using log_record_t = quill::detail::LogRecord<FmtArgs...>;
+
+    // emplace to the spsc queue owned by the ctx
+    bool retry;
+    do
     {
-      if (QUILL_UNLIKELY(!should_log<log_statement_level>()))
-        return;
+      retry = _thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(
+        log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
+      // unlikely case if the queue gets full we will wait until we can log
+    } while (QUILL_UNLIKELY(!retry));
+  }
+
+  /**
+   * Push a log record to the spsc queue to be logged by the backend thread.
+   * One queue per caller thread.
+   * We have this enable_if to use unlikely since no if constexpr in C++14
+   * @note This function is thread-safe.
+   */
+  template <LogLevel log_statement_level, typename... FmtArgs>
+  inline typename std::enable_if_t<(log_statement_level == LogLevel::Info || log_statement_level == LogLevel::Warning || log_statement_level == LogLevel::Error || log_statement_level == LogLevel::Critical), void> log(
+    detail::StaticLogRecordInfo const* log_line_info,
+    FmtArgs&&... fmt_args)
+  {
+    // it is usually unlikely we will not log those levels
+    if (QUILL_UNLIKELY(!should_log<log_statement_level>()))
+    {
+      return;
     }
 
     // Resolve the type of the record first

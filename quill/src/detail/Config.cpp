@@ -1,6 +1,8 @@
 #include "quill/detail//Config.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /***/
 void Config::set_backend_thread_sleep_duration(std::chrono::nanoseconds duration) noexcept
@@ -35,4 +37,5 @@ void Config::set_backend_thread_name(std::string const& name) noexcept
 /***/
 std::string Config::backend_thread_name() const noexcept { return _backend_thread_name; }
 
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

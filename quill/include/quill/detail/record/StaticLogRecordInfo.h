@@ -4,7 +4,9 @@
 
 #include "quill/LogLevel.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 
 /**
@@ -85,15 +87,15 @@ private:
 
   [[nodiscard]] static constexpr char const* _log_level_to_string(LogLevel log_level)
   {
+    constexpr std::array<char const*, 9> log_levels_strings = {
+      {"LOG_TRACE_L3", "LOG_TRACE_L2", "LOG_TRACE_L1", "LOG_DEBUG   ", "LOG_INFO    ",
+       "LOG_WARNING ", "LOG_ERROR   ", "LOG_CRITICAL", "LOG_NONE"}};
+
     using log_lvl_t = std::underlying_type<LogLevel>::type;
     return log_levels_strings[static_cast<log_lvl_t>(log_level)];
   }
 
 private:
-  static constexpr std::array<char const*, 9> log_levels_strings = {
-    {"LOG_TRACE_L3", "LOG_TRACE_L2", "LOG_TRACE_L1", "LOG_DEBUG   ", "LOG_INFO    ", "LOG_WARNING ",
-     "LOG_ERROR   ", "LOG_CRITICAL", "LOG_NONE"}};
-
   char const* _func;
   char const* _pathname;
   char const* _filename;
@@ -102,4 +104,5 @@ private:
   LogLevel _level;
 };
 
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

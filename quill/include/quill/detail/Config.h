@@ -5,7 +5,9 @@
 #include <limits>
 #include <string>
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 class Config
 {
@@ -49,5 +51,5 @@ private:
   uint16_t _backend_thread_cpu_affinity{
     std::numeric_limits<uint16_t>::max()}; /** max() as undefined value, cpu affinity will not be set */
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

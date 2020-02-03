@@ -4,8 +4,11 @@
 #include "quill/handlers/StreamHandler.h"
 
 #include <memory>
+#include <unordered_map>
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * Creates and manages active handlers
@@ -17,8 +20,8 @@ public:
   ~HandlerCollection() = default;
 
   /**
- * Deleted
- */
+   * Deleted
+   */
   HandlerCollection(HandlerCollection const&) = delete;
   HandlerCollection& operator=(HandlerCollection const&) = delete;
 
@@ -67,4 +70,5 @@ private:
    */
   std::vector<Handler*> _active_handlers_collection;
 };
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

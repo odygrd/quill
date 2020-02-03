@@ -6,7 +6,9 @@
 
 #include "quill/handlers/Handler.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * The logger object is broken down to LoggerDetails and Logger as we end up in circular include
@@ -61,5 +63,5 @@ private:
   std::string _name;
   std::vector<Handler*> _handlers;
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

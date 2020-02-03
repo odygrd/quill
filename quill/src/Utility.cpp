@@ -33,12 +33,25 @@ static std::string _to_hex(T* buffer, size_t size) noexcept
 }
 } // namespace
 
-namespace quill::utility
+namespace quill
 {
+namespace utility
+{
+
 /***/
 std::string to_hex(unsigned char* buffer, size_t size) noexcept { return _to_hex(buffer, size); }
 
 /***/
+std::string to_hex(unsigned char const* buffer, size_t size) noexcept
+{
+  return _to_hex(buffer, size);
+}
+
+/***/
 std::string to_hex(char* buffer, size_t size) noexcept { return _to_hex(buffer, size); }
 
-} // namespace quill::utility
+/***/
+std::string to_hex(char const* buffer, size_t size) noexcept { return _to_hex(buffer, size); }
+
+} // namespace utility
+} // namespace quill

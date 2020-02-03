@@ -5,10 +5,13 @@
 #include <tuple>
 
 #include "fmt/format.h"
+#include "quill/detail/Invoke.h"
 #include "quill/detail/record/LogRecordUtilities.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * For each log statement a LogRecord is produced and pushed to the thread local spsc queue.
@@ -78,7 +81,7 @@ public:
       };
 
       // formatted record by the formatter
-      std::apply(forward_tuple_args_to_formatter, this->_fmt_args);
+      quill::detail::apply(forward_tuple_args_to_formatter, this->_fmt_args);
 
       // After calling format on the formatter we have to request the formatter record
       fmt::memory_buffer const& formatted_log_record = handler->formatter().formatted_log_record();
@@ -93,5 +96,5 @@ private:
   LoggerDetails const* _logger_details;
   PromotedTupleT _fmt_args;
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

@@ -7,7 +7,9 @@
 
 #include "quill/detail/CommonMacros.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /***/
 RdtscClock::RdtscTicks::RdtscTicks()
@@ -111,4 +113,5 @@ void RdtscClock::resync() const noexcept
   // to time_since_epoch() so we do non accurate resync we will increace the resynce duration to resync later
   resync_interval_ticks_ = resync_interval_ticks_ * 2;
 }
-}; // namespace quill::detail
+} // namespace detail
+} // namespace quill

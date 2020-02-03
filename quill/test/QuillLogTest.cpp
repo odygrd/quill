@@ -81,7 +81,7 @@ TEST(Quill, log_from_one_thread)
 TEST(Quill, log_from_multiple_threads)
 {
   static constexpr char const* filename = "log_from_multiple_threads.log";
-  static constexpr size_t number_of_messages = 2000u;
+  static constexpr size_t number_of_messages = 500u;
   static constexpr size_t number_of_threads = 10;
   static constexpr char const* test_id = "multi";
 

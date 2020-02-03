@@ -2,7 +2,9 @@
 
 #include <cstdint>
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 
 thread_local uint16_t RecursiveSpinlock::_counter = 0;
@@ -25,4 +27,5 @@ void RecursiveSpinlock::unlock() noexcept
     _spinlock.unlock();
   }
 }
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

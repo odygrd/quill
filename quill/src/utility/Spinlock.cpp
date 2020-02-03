@@ -1,6 +1,8 @@
 #include "quill/detail/utility/Spinlock.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /***/
 void Spinlock::lock() noexcept
@@ -19,4 +21,5 @@ bool Spinlock::try_lock() noexcept
 
 /***/
 void Spinlock::unlock() noexcept { _Spinlock_flag.clear(std::memory_order_release); }
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

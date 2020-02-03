@@ -6,9 +6,10 @@
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
 
-namespace quill::detail
+namespace quill
 {
-
+namespace detail
+{
 /**
  * Provides access to common collection class that are used by both the frontend and the backend
  * components of the logging system
@@ -64,5 +65,5 @@ private:
   LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection, _logger_collection, _handler_collection};
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

@@ -15,7 +15,9 @@
 #include "quill/detail/CommonMacros.h"
 #include "quill/detail/CommonUtilities.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * A bounded queue that can store objects of different types.
@@ -138,11 +140,9 @@ public:
      * @tparam U
      * @return
      */
-    template<typename UBaseObject = TBaseObject>
-    typename std::enable_if< std::is_trivially_destructible<UBaseObject>::value >::type
-    _destroy()
+    template <typename UBaseObject = TBaseObject>
+    typename std::enable_if<std::is_trivially_destructible<UBaseObject>::value>::type _destroy()
     {
-
     }
 
     /**
@@ -150,9 +150,8 @@ public:
      * @tparam U
      * @return
      */
-    template<typename UBaseObject = TBaseObject>
-    typename std::enable_if< !std::is_trivially_destructible<UBaseObject>::value >::type
-    _destroy()
+    template <typename UBaseObject = TBaseObject>
+    typename std::enable_if<!std::is_trivially_destructible<UBaseObject>::value>::type _destroy()
     {
       _data->~value_type();
     }
@@ -446,5 +445,5 @@ uint32_t BoundedSPSCQueue<TBaseObject, Capacity>::_get_page_size() noexcept
 #endif
   return page_size;
 }
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

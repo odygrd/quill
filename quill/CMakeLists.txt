@@ -1,5 +1,7 @@
 add_subdirectory(bundled)
 
+set(CMAKE_CXX_STANDARD 14)
+
 # library name
 set(TARGET_NAME quill)
 
@@ -25,7 +27,7 @@ set(HEADER_FILES
         include/quill/detail/LogManagerSingleton.h
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
-        include/quill/detail/TupleApply.h
+        include/quill/detail/Invoke.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
         include/quill/handlers/StreamHandler.h

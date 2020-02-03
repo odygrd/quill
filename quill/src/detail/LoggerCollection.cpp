@@ -9,7 +9,9 @@
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/handlers/StreamHandler.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 static constexpr char const* _default_logger_name{"root"};
 
@@ -69,10 +71,10 @@ Logger* LoggerCollection::create_logger(std::string logger_name)
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Place the logger in our map
-  auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
+  auto const insert_result = _logger_name_map.emplace(std::move(logger_name), std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return elem_it->second.get();
+  return insert_result.first->second.get();
 }
 
 /***/
@@ -88,10 +90,10 @@ Logger* LoggerCollection::create_logger(std::string logger_name, Handler* handle
 
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
-  auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
+  auto const insert_result = _logger_name_map.emplace(std::move(logger_name), std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return elem_it->second.get();
+  return insert_result.first->second.get();
 }
 
 /***/
@@ -111,10 +113,10 @@ Logger* LoggerCollection::create_logger(std::string logger_name, std::initialize
 
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
-  auto [elem_it, inserted] = _logger_name_map.try_emplace(std::move(logger_name), std::move(logger));
+  auto const insert_result = _logger_name_map.emplace(std::move(logger_name), std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return elem_it->second.get();
+  return insert_result.first->second.get();
 }
 
 /***/
@@ -141,4 +143,5 @@ void LoggerCollection::set_default_logger_handler(std::initializer_list<Handler*
   _default_logger = create_logger(_default_logger_name, std::move(handlers));
 }
 
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

@@ -4,7 +4,9 @@
 
 #include "quill/detail/record/RecordBase.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * Special type of command record.
@@ -50,4 +52,5 @@ private:
   std::function<void()> _frontend_callback;
 };
 
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

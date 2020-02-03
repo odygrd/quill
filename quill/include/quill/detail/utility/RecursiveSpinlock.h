@@ -2,7 +2,9 @@
 
 #include "quill/detail/utility/Spinlock.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * A recursive spinlock class
@@ -32,4 +34,5 @@ private:
   Spinlock _spinlock;
   static thread_local uint16_t _counter;
 };
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

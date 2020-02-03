@@ -9,7 +9,9 @@
 #include <memory>
 #include <vector>
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * ThreadContextCollection class
@@ -155,5 +157,5 @@ private:
   /**< Indicator that a new context was added or removed, set by caller thread to true, read by the backend thread only */
   std::atomic<bool> _changed{false};
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

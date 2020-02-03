@@ -8,9 +8,10 @@
 #include "quill/detail/BoundedSPSCQueue.h"
 #include "quill/detail/record/RecordBase.h"
 
-namespace quill::detail
+namespace quill
 {
-
+namespace detail
+{
 /**
  * Each thread has it's own instance of a ThreadContext class
  *
@@ -67,5 +68,5 @@ private:
   std::string _thread_id{fmt::format_int(get_thread_id()).str()}; /**< cache this thread pid */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 };
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

@@ -19,7 +19,7 @@ TEST(Record, construct)
   {
     // test with char const
     using record_t = LogRecord<int, double, char const*>;
-    static_assert(std::is_same_v<record_t::PromotedTupleT, std::tuple<int, double, std::string>>,
+    static_assert(std::is_same<record_t::PromotedTupleT, std::tuple<int, double, std::string>>::value,
                   "tuple is not promoted");
 
     record_t msg{&log_line_info, &logger_details, 1337, 13.5, "test"};
@@ -29,7 +29,7 @@ TEST(Record, construct)
     // test with char*
     char test_char[] = "test";
     using record_t = LogRecord<int, double, char*>;
-    static_assert(std::is_same_v<record_t::PromotedTupleT, std::tuple<int, double, std::string>>,
+    static_assert(std::is_same<record_t::PromotedTupleT, std::tuple<int, double, std::string>>::value,
                   "tuple is not promoted");
 
     record_t msg{&log_line_info, &logger_details, 1337, 13.5, test_char};

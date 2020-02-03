@@ -3,7 +3,9 @@
 #include <atomic>
 #include <mutex> // for std::lock_guard
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * A Spinlock class
@@ -38,4 +40,5 @@ public:
 private:
   std::atomic_flag _Spinlock_flag = ATOMIC_FLAG_INIT;
 };
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

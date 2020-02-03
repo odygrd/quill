@@ -1,6 +1,8 @@
 #include "quill/detail/LogManagerSingleton.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 
 /***/
@@ -23,4 +25,5 @@ detail::LogManager& LogManagerSingleton::log_manager() noexcept { return _log_ma
 /***/
 detail::Config& LogManagerSingleton::config() noexcept { return _config; }
 
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

@@ -5,7 +5,9 @@
 #include <tuple>
 #include <type_traits>
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * We use promoted to convert all char const* to a std::string when the Logger is creating a LogRecord as the record
@@ -59,5 +61,5 @@ struct UnwrapRefWrapper<std::reference_wrapper<T>>
  */
 template <typename T>
 using PromotedTypeT = typename UnwrapRefWrapper<typename Promoted<std::decay_t<T>>::type>::type;
-
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

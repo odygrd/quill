@@ -1,6 +1,8 @@
 #include "quill/detail/ThreadContextCollection.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /***/
 ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection)
@@ -130,4 +132,5 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
       });
   }
 }
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill
