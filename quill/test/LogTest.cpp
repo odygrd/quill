@@ -133,6 +133,8 @@ void custom_default_logger_same_handler(int test_case = 0)
   EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_default));
   EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_custom));
   EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
+
+  lm.stop_backend_worker();
 }
 
 /***/
@@ -253,6 +255,8 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
     EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_custom));
     EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
   }
+
+  lm.stop_backend_worker();
 }
 
 /***/
@@ -296,6 +300,9 @@ TEST(Log, many_loggers_multiple_threads)
       {
         LOG_INFO(logger, "Hello from thread {} this is message {}", i, j);
       }
+
+      // Let all log get flushed to the file
+      lm.flush();
     });
   }
 
@@ -303,9 +310,6 @@ TEST(Log, many_loggers_multiple_threads)
   {
     elem.join();
   }
-
-  // Let all log get flushed to the file
-  lm.flush();
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 

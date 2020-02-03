@@ -138,10 +138,10 @@ void BackendWorker::_set_thread_name() const
 void BackendWorker::_main_loop()
 {
   // load all contexts locally in case any new ThreadContext (new thread) was added
-  std::vector<ThreadContext*> const& cached_thead_contexts =
+  std::vector<ThreadContext*> const& cached_thread_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
-  bool const processed_record = _process_record(cached_thead_contexts);
+  bool const processed_record = _process_record(cached_thread_contexts);
 
   if (QUILL_UNLIKELY(!processed_record))
   {
@@ -154,10 +154,10 @@ void BackendWorker::_main_loop()
 void BackendWorker::_exit()
 {
   // load all contexts locally
-  std::vector<ThreadContext*> const& cached_thead_contexts =
+  std::vector<ThreadContext*> const& cached_thread_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
-  while (_process_record(cached_thead_contexts))
+  while (_process_record(cached_thread_contexts))
   {
     // loop until there are no log records left
   }
