@@ -4,6 +4,7 @@
 #include <string>
 #include <system_error>
 #include <vector>
+#include <algorithm>
 
 namespace quill::testing
 {
