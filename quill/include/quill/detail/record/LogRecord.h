@@ -84,10 +84,10 @@ public:
       invoke_hpp::apply(forward_tuple_args_to_formatter, this->_fmt_args);
 
       // After calling format on the formatter we have to request the formatter record
-      fmt::memory_buffer const& formatted_log_record = handler->formatter().formatted_log_record();
+      auto const& formatted_log_record_buffer = handler->formatter().formatted_log_record();
 
       // log to the handler
-      handler->emit(formatted_log_record);
+      handler->emit(formatted_log_record_buffer);
     }
   }
 

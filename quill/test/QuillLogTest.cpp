@@ -24,7 +24,7 @@ void test_quil_log(char const* test_id, char const* filename, uint16_t number_of
       quill::Handler* log_from_one_thread_file = quill::filehandler(filename, "w");
 
       std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
-      quill::Logger* logger = quill::create_logger(logger_name, log_from_one_thread_file);
+      quill::Logger* logger = quill::create_logger(logger_name.data(), log_from_one_thread_file);
 
       // Change the LogLevel to print everything
       logger->set_log_level(quill::LogLevel::TraceL3);

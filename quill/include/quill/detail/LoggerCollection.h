@@ -31,7 +31,7 @@ public:
   /**
    * Destructor
    */
-  virtual ~LoggerCollection() = default;
+  ~LoggerCollection() = default;
 
   /**
    * Deleted
@@ -46,14 +46,14 @@ public:
    * @note this function is slow, consider calling it only once and store the pointer to the logger
    * @return a Logger object or the default logger is logger_name is empty
    */
-  [[nodiscard]] Logger* get_logger(std::string const& logger_name = std::string{}) const;
+  [[nodiscard]] Logger* get_logger(char const* logger_name = nullptr) const;
 
   /**
    * Create a new logger using the same handlers and formatter as the default logger
    * @param logger_name
    * @return
    */
-  [[nodiscard]] Logger* create_logger(std::string logger_name);
+  [[nodiscard]] Logger* create_logger(char const* logger_name);
 
   /**
    * Creates a new logger
@@ -61,7 +61,7 @@ public:
    * @param handler The handler of the loggfer
    * @return
    */
-  [[nodiscard]] Logger* create_logger(std::string logger_name, Handler* handler);
+  [[nodiscard]] Logger* create_logger(char const* logger_name, Handler* handler);
 
   /**
    * Create a new logger with multiple handler
@@ -69,7 +69,7 @@ public:
    * @param handlers
    * @return
    */
-  [[nodiscard]] Logger* create_logger(std::string logger_name, std::initializer_list<Handler*> handlers);
+  [[nodiscard]] Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
 
   /**
    * Set a custom default logger with a single handler
@@ -88,16 +88,10 @@ private:
   HandlerCollection& _handler_collection;              /** Collection of al handlers **/
   Logger* _default_logger{nullptr}; /**< A pointer to the default logger to avoid lookup */
 
-  /** Mutable to have a const get_logger() function */
-  mutable RecursiveSpinlock _spinlock; /**< Thread safe access to logger map */
-  std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
-
-  /**
-   * A cache to the loggers in _logger_name_map.
-   *
-   * @note Accessed strictly only by the backend thread
-   */
-  std::vector<LoggerDetails const*> _logger_cache;
+  /** We can not avoid having less than 2 cachelines here, so we will just align the lock and the logger map on the same cache line as they are used together anyway */
+  alignas(CACHELINE_SIZE) std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
+  mutable RecursiveSpinlock _spinlock; /**< Thread safe access to logger map, Mutable to have a const get_logger() function  */
 };
+
 } // namespace detail
 } // namespace quill

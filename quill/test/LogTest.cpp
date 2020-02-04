@@ -299,7 +299,7 @@ TEST(Log, many_loggers_multiple_threads)
     threads.emplace_back([&lm, i]() {
       // Create a logger in this thread
       std::string logger_name = "logger_" + std::to_string(i);
-      Logger* logger = lm.logger_collection().create_logger(logger_name);
+      Logger* logger = lm.logger_collection().create_logger(logger_name.data());
 
       for (int j = 0; j < message_count; ++j)
       {

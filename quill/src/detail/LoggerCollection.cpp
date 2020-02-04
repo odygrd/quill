@@ -22,7 +22,6 @@ LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_colle
 {
   // Pre-allocate early to a reasonable size
   _logger_name_map.reserve(16);
-  _logger_cache.reserve(16);
 
   // Add the default std streamhandler to the default logger
   Handler* stdout_stream_handler = _handler_collection.stdout_streamhandler();
@@ -30,9 +29,9 @@ LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_colle
 }
 
 /***/
-Logger* LoggerCollection::get_logger(std::string const& logger_name /* = std::string{} */) const
+Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) const
 {
-  if (!logger_name.empty())
+  if (logger_name)
   {
     std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
@@ -41,7 +40,7 @@ Logger* LoggerCollection::get_logger(std::string const& logger_name /* = std::st
     if (QUILL_UNLIKELY(search == _logger_name_map.cend()))
     {
       // logger does not exist
-      throw std::runtime_error("logger with name " + logger_name + " does not exist.");
+      throw std::runtime_error("logger with name " + std::string (logger_name) + " does not exist.");
     }
 
     return search->second.get();
@@ -53,7 +52,7 @@ Logger* LoggerCollection::get_logger(std::string const& logger_name /* = std::st
 }
 
 /***/
-Logger* LoggerCollection::create_logger(std::string logger_name)
+Logger* LoggerCollection::create_logger(char const* logger_name)
 {
   // Get a copy of the default logger handlers
   std::vector<Handler*> handlers = _default_logger->_logger_details.handlers();
@@ -71,17 +70,15 @@ Logger* LoggerCollection::create_logger(std::string logger_name)
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Place the logger in our map
-  auto const insert_result = _logger_name_map.emplace(std::move(logger_name), std::move(logger));
+  auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
   return insert_result.first->second.get();
 }
 
 /***/
-Logger* LoggerCollection::create_logger(std::string logger_name, Handler* handler)
+Logger* LoggerCollection::create_logger(char const* logger_name, Handler* handler)
 {
-  assert(!logger_name.empty() && "Trying to add a logger with an empty name is not possible");
-
   // Register the handler, even if it already exist
   _handler_collection.subscribe_handler(handler);
 
@@ -90,17 +87,15 @@ Logger* LoggerCollection::create_logger(std::string logger_name, Handler* handle
 
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
-  auto const insert_result = _logger_name_map.emplace(std::move(logger_name), std::move(logger));
+  auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
   return insert_result.first->second.get();
 }
 
 /***/
-Logger* LoggerCollection::create_logger(std::string logger_name, std::initializer_list<Handler*> handlers)
+Logger* LoggerCollection::create_logger(char const* logger_name, std::initializer_list<Handler*> handlers)
 {
-  assert(!logger_name.empty() && "Trying to add a logger with an empty name is not possible");
-
   // Register the handlers, even if they already exist
   for (auto& handler : handlers)
   {
@@ -113,7 +108,7 @@ Logger* LoggerCollection::create_logger(std::string logger_name, std::initialize
 
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
-  auto const insert_result = _logger_name_map.emplace(std::move(logger_name), std::move(logger));
+  auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
   return insert_result.first->second.get();

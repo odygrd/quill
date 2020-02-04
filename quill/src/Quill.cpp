@@ -27,30 +27,30 @@ Handler* filehandler(std::string const& filename, std::string const& mode /* = s
 }
 
 /***/
-Logger* get_logger(std::string const& logger_name /* = std::string{} */)
+Logger* get_logger(char const* logger_name /* = nullptr */)
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().get_logger(logger_name);
 }
 
 /***/
-Logger* create_logger(std::string logger_name)
+Logger* create_logger(char const* logger_name)
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
-    std::move(logger_name));
+   logger_name);
 }
 
 /***/
-Logger* create_logger(std::string logger_name, Handler* handler)
+Logger* create_logger(char const* logger_name, Handler* handler)
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
-    std::move(logger_name), handler);
+    logger_name, handler);
 }
 
 /***/
-Logger* create_logger(std::string logger_name, std::initializer_list<Handler*> handlers)
+Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers)
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
-    std::move(logger_name), handlers);
+    logger_name, handlers);
 }
 
 /***/

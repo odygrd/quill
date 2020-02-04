@@ -53,6 +53,12 @@ namespace quill
  */
 class PatternFormatter
 {
+public:
+  /**
+* We use two custom buffers from fmt, they will resize automatically
+*/
+  using log_record_memory_buffer = fmt::basic_memory_buffer<char,544>;
+
 private:
   /**
    * A helper class to store the type of the generated tuple of callbacks for part_1 and part_3 of
@@ -72,7 +78,7 @@ private:
      * @param logger_name
      * @param logline_info
      */
-    virtual void format(fmt::memory_buffer& memory_buffer,
+    virtual void format(PatternFormatter::log_record_memory_buffer& memory_buffer,
                         std::chrono::time_point<std::chrono::system_clock> timestamp,
                         char const* thread_id,
                         char const* logger_name,
@@ -100,7 +106,7 @@ private:
      * @param logger_name
      * @param logline_info
      */
-    void format(fmt::memory_buffer& memory_buffer,
+    void format(PatternFormatter::log_record_memory_buffer& memory_buffer,
                 std::chrono::time_point<std::chrono::system_clock> timestamp,
                 char const* thread_id,
                 char const* logger_name,
@@ -153,10 +159,6 @@ public:
     // Set the default pattern
     _set_pattern(QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"));
-
-    // Pre-allocate some reasonable space
-    _formatted_date.resize(24);
-    _formatted_log_record.reserve(512);
   }
 
   /**
@@ -171,10 +173,6 @@ public:
 
     _date_format = std::move(date_format);
     _timestamp_precision = timestamp_precision;
-
-    // Pre-allocate some reasonable space
-    _formatted_date.resize(24);
-    _formatted_log_record.reserve(512);
   }
 
   /**
@@ -215,7 +213,7 @@ public:
    * Returned the stored formatted record, to be called after format
    * @return
    */
-  fmt::memory_buffer const& formatted_log_record() const noexcept { return _formatted_log_record; }
+  log_record_memory_buffer const& formatted_log_record() const noexcept { return _formatted_log_record; }
 
 private:
   /**
@@ -329,19 +327,19 @@ private:
   void _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time);
 
 private:
-  /** Formatters for any user's custom pattern **/
+  /** Formatters for any user's custom pattern - Important they have to be destructed last so they are defined first **/
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_1; /**< Formatter before %(message) **/
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_3; /**< Formatter after %(message) **/
 
   /** Strings as class members to avoid re-allocating **/
-  fmt::memory_buffer _formatted_date;
+  using date_memory_buffer =  fmt::basic_memory_buffer<char,32>;
+  date_memory_buffer _formatted_date;
 
   /** The buffer where we store each formatted string, also stored as class member to avoid
    * re-allocations. This is mutable so we can have a format() const function **/
-  mutable fmt::memory_buffer _formatted_log_record;
+  mutable log_record_memory_buffer _formatted_log_record;
 
   std::string _date_format{"%H:%M:%S"}; /** Timestamp format **/
-
   Timezone _timezone_type{Timezone::GmtTime}; /** Timezone, GMT time by default **/
   TimestampPrecision _timestamp_precision{TimestampPrecision::NanoSeconds}; /** timestamp precision */
 };

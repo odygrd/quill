@@ -59,11 +59,11 @@ public:
   void stop_backend_worker();
 
 private:
-  Config const& _config;
-  HandlerCollection _handler_collection;
-  ThreadContextCollection _thread_context_collection;
-  LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
-  BackendWorker _backend_worker{_config, _thread_context_collection, _logger_collection, _handler_collection};
+  Config const& _config; // TODO: Move ownership here
+  HandlerCollection _handler_collection; /** 2 Cache lines **/
+  ThreadContextCollection _thread_context_collection; /** 1 Cache line **/
+  LoggerCollection _logger_collection{_thread_context_collection, _handler_collection}; /** 2 Cache lines **/
+  BackendWorker _backend_worker{_config, _thread_context_collection, _logger_collection, _handler_collection}; /** 1 Cache line **/
 };
 } // namespace detail
 } // namespace quill

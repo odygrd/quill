@@ -57,6 +57,7 @@ private:
     }
 
   private:
+    ThreadContextCollection& _thread_context_collection;
     /**<
      * This could be unique_ptr but the thread context of main thread that owns
      * ThreadContextCollection can be destructed last even after the logger singleton destruction
@@ -114,13 +115,29 @@ private:
    * @note Only accessed by the backend thread
    * @return true if the shared data structure was changed by any calls to Logger
    */
-  [[nodiscard]] bool _has_changed() noexcept;
+  [[nodiscard]] bool _has_new_thread_context() noexcept;
 
   /**
    * Indicate that the context has changed. A new thread context has been added or removed
    * @note Only called by the caller threads
    */
-  void _set_changed() noexcept;
+  void _set_new_thread_context() noexcept;
+
+  /**
+   * Increment the counter for a removed thread context. This notifies the backend thread to look for an invalidated context
+   */
+  void _add_invalid_thread_context() noexcept;
+
+  /**
+   * Reduce the value of thread context removed counter. This is decreased by the backend thread when we found and
+   * removed the invalided context
+   */
+  void _sub_invalid_thread_context() noexcept;
+
+  /**
+   * @return True if there is an invalid thread context
+   */
+  bool _has_invalid_thread_context() const noexcept;
 
   /**
    * Remove a thread context from our main thread context collection
@@ -142,7 +159,7 @@ private:
   void _find_and_remove_invalidated_thread_contexts();
 
 private:
-  Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+  /** This class all fits in 1 cache line **/
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 
   /**<
@@ -154,8 +171,19 @@ private:
    * */
   std::vector<ThreadContext*> _thread_context_cache;
 
-  /**< Indicator that a new context was added or removed, set by caller thread to true, read by the backend thread only */
-  std::atomic<bool> _changed{false};
+  Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+
+  /**< Indicator that a new context was added, set by caller thread to true, read by the backend thread only, updated by any thread */
+  std::atomic<bool> _new_thread_context{false};
+
+  /**<
+   * Indicator of how many thread contexts are removed, if this number is not zero we will search for invalidated and empty
+   * queue context until we find it to remove it.
+   * Incremented by any thread on thread local destruction, decremented by the backend thread
+   */
+  std::atomic<uint8_t> _invalid_thread_context{0};
+
 };
+
 } // namespace detail
 } // namespace quill

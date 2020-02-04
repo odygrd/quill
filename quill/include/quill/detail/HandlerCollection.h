@@ -55,20 +55,20 @@ private:
   StreamHandler* _create_streamhandler(std::string const& stream);
 
 private:
-  /** mutable to have an active_handlers() const function */
-  mutable Spinlock _spinlock;
-
-  /**
-   * All related to files Streamhandlers, stored per unique filename so that we don't open the same file twice
-   */
-  std::unordered_map<std::string, std::unique_ptr<StreamHandler>> _file_handler_collection;
-
   /**
    * All handlers that are currently owned by all Logger instances are registered here
    * Since the Logger instances share the same handlers, this collection contains unique handlers
    * @note Accessed by the frontend and the backend
    */
   std::vector<Handler*> _active_handlers_collection;
+
+  /**
+   * All related to files Streamhandlers, stored per unique filename so that we don't open the same file twice
+   */
+  std::unordered_map<std::string, std::unique_ptr<StreamHandler>> _file_handler_collection;
+
+  /** Use to lock both _active_handlers_collection and _file_handler_collection, mutable to have an active_handlers() const function */
+  mutable Spinlock _spinlock;
 };
 } // namespace detail
 } // namespace quill

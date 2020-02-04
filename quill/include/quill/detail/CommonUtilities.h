@@ -3,6 +3,9 @@
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
+#include <cassert>
+#include <array>
+#include <cstring>
 
 namespace quill
 {
@@ -42,5 +45,23 @@ static constexpr uint32_t CACHELINE_SIZE{64};
  * @param stream
  */
 void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream);
+
+  /**
+   * Same as strncpy.
+   * Compared to normal strncpy :
+   * a) It copies only the required bytes and b) always null terminates.
+   * @tparam N
+   * @param destination
+   * @param source
+   */
+  template <size_t N>
+  void safe_strncpy(std::array<char, N>& destination, char const* source) noexcept
+  {
+    assert(source && "source pointer can not be nullptr");
+    size_t const len = std::min(std::strlen(source), N - 1);
+    std::memcpy(destination.data(), source, len);
+    destination[len] = '\0';
+  }
+
 } // namespace detail
 } // namespace quill

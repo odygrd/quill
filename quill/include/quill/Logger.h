@@ -8,6 +8,7 @@
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/record/LogRecord.h"
+#include "quill/detail/CommonUtilities.h"
 
 namespace quill
 {
@@ -137,8 +138,8 @@ private:
    * @param logger_id A unique id per logger
    * @param log_level The log level of the logger
    */
-  Logger(std::string name, Handler* handler, detail::ThreadContextCollection& thread_context_collection)
-    : _logger_details(std::move(name), handler), _thread_context_collection(thread_context_collection)
+  Logger(char const* name, Handler* handler, detail::ThreadContextCollection& thread_context_collection)
+    : _logger_details(name, handler), _thread_context_collection(thread_context_collection)
   {
   }
 
@@ -148,8 +149,8 @@ private:
    * @param handlers
    * @param thread_context_collection
    */
-  Logger(std::string name, std::vector<Handler*> handlers, detail::ThreadContextCollection& thread_context_collection)
-    : _logger_details(std::move(name), std::move(handlers)),
+  Logger(char const* name, std::vector<Handler*> handlers, detail::ThreadContextCollection& thread_context_collection)
+    : _logger_details(name, std::move(handlers)),
       _thread_context_collection(thread_context_collection)
   {
   }
@@ -159,5 +160,7 @@ private:
   detail::ThreadContextCollection& _thread_context_collection;
   std::atomic<LogLevel> _log_level{LogLevel::Info};
 };
+
+static_assert(sizeof(Logger) <= detail::CACHELINE_SIZE, "Logger needs to fit in 1 cache line");
 
 } // namespace quill

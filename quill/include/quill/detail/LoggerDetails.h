@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "quill/handlers/Handler.h"
+#include "quill/detail/CommonUtilities.h"
 
 namespace quill
 {
@@ -24,8 +25,9 @@ public:
    * Constructor for a single handle
    * @param name
    */
-  LoggerDetails(std::string name, Handler* handler) : _name(std::move(name))
+  LoggerDetails(char const* name, Handler* handler)
   {
+    safe_strncpy(_name, name);
     _handlers.push_back(handler);
   }
 
@@ -33,9 +35,10 @@ public:
    * Constructor for multiple handlers
    * @param name
    */
-  LoggerDetails(std::string name, std::vector<Handler*> handlers)
-    : _name(std::move(name)), _handlers(std::move(handlers))
+  LoggerDetails(char const* name, std::vector<Handler*> handlers)
   {
+    safe_strncpy(_name, name);
+    _handlers = std::move(handlers);
   }
 
   /**
@@ -52,7 +55,7 @@ public:
   /**
    * @return The name of the logger
    */
-  [[nodiscard]] std::string const& name() const noexcept { return _name; }
+  [[nodiscard]] char const* name() const noexcept { return _name.data(); }
 
   /**
    * @return a vector of all handlers of this logger, called by the backend worker thread
@@ -60,7 +63,7 @@ public:
   [[nodiscard]] std::vector<Handler*> const& handlers() const noexcept { return _handlers; }
 
 private:
-  std::string _name;
+  std::array<char, 24> _name; /** Because size of string in gcc is 32 we use an array here as we need the Logger object to fit all in a single cache line */
   std::vector<Handler*> _handlers;
 };
 } // namespace detail

@@ -6,9 +6,9 @@ namespace detail
 {
 /***/
 ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection)
-  : _thread_context(std::make_shared<ThreadContext>())
+  : _thread_context_collection(thread_context_collection), _thread_context(std::make_shared<ThreadContext>())
 {
-  thread_context_collection.register_thread_context(_thread_context);
+  _thread_context_collection.register_thread_context(_thread_context);
 }
 
 /***/
@@ -21,6 +21,9 @@ ThreadContextCollection::ThreadContextWrapper::~ThreadContextWrapper() noexcept
   // There is only exception for the thread who owns the ThreadContextCollection the
   // main thread. The thread context of the main thread can get deleted before getting invalidated
   _thread_context->invalidate();
+
+  // Notify the backend thread that one context has been removed
+  _thread_context_collection._add_invalid_thread_context();
 }
 
 /***/
@@ -28,17 +31,20 @@ void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadCont
 {
   std::lock_guard<Spinlock> const lock(_spinlock);
   _thread_contexts.push_back(thread_context);
-  _set_changed();
+  _set_new_thread_context();
 }
 
 /***/
 std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_contexts_cache()
 {
-  // Remove any invalidated contexts
-  _find_and_remove_invalidated_thread_contexts();
+  if (_has_invalid_thread_context())
+  {
+    // Remove any invalidated contexts, this can happen only when a thread is terminating
+    _find_and_remove_invalidated_thread_contexts();
+  }
 
   // Check if _thread_contexts has changed. This can happen only when a new thread context is added by any Logger
-  if (_has_changed())
+  if (_has_new_thread_context())
   {
     // if the thread _thread_contexts was changed we lock and remake our reference cache
     std::lock_guard<Spinlock> const lock(_spinlock);
@@ -57,26 +63,50 @@ std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_conte
 }
 
 /***/
-bool ThreadContextCollection::_has_changed() noexcept
+bool ThreadContextCollection::_has_new_thread_context() noexcept
 {
   // Again relaxed memory model as in case it is false we will acquire the lock
-  if (_changed.load(std::memory_order_relaxed))
+  if (_new_thread_context.load(std::memory_order_relaxed))
   {
     // if the variable was updated to true, set it to false,
-    // There should not be any race condition here as this is the only place _changed is set to false
-    _changed.store(false, std::memory_order_relaxed);
+    // There should not be any race condition here as this is the only place _changed is set to false and we will return
+    // true anyway
+    _new_thread_context.store(false, std::memory_order_relaxed);
     return true;
   }
   return false;
 }
 
 /***/
-void ThreadContextCollection::_set_changed() noexcept
+void ThreadContextCollection::_set_new_thread_context() noexcept
 {
   // Set changed is used with the lock, we can have relaxed memory order here as the lock
   // is acq/rel anyway
-  return _changed.store(true, std::memory_order_relaxed);
+  return _new_thread_context.store(true, std::memory_order_relaxed);
 }
+
+/***/
+void ThreadContextCollection::_add_invalid_thread_context() noexcept
+  {
+    // relaxed is fine, see _has_invalid_thread_context explanation
+    _invalid_thread_context.fetch_add(1, std::memory_order_relaxed);
+  }
+
+/***/
+void ThreadContextCollection::_sub_invalid_thread_context() noexcept
+  {
+  // relaxed is fine, see _has_invalid_thread_context explanation
+    _invalid_thread_context.fetch_sub(1, std::memory_order_relaxed);
+  }
+
+/***/
+bool ThreadContextCollection::_has_invalid_thread_context() const noexcept
+  {
+    // Here we do relaxed because if the value is not zero we will look inside ThreadContext invalid flag that is also
+    // a relaxed atomic and then we will look into the SPSC queue size that is also atomic
+    // Even if we don't read everything in order we will check again in the next circle
+    return _invalid_thread_context.load(std::memory_order_relaxed) != 0;
+  }
 
 /***/
 void ThreadContextCollection::_remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
@@ -115,6 +145,9 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
 
   while (QUILL_UNLIKELY(found_invalid_and_empty_thread_context != _thread_context_cache.cend()))
   {
+    // Decrement the counter since we found something to remove
+    _sub_invalid_thread_context();
+
     // if we found anything then remove it - Here if we have more than one to remove we will try to
     // acquire the lock multiple times but it should be fine as it is unlikely to have that many
     // to remove
