@@ -3,8 +3,8 @@
 #include "fmt/format.h"
 #include "quill/detail/CommonMacros.h"
 #include "quill/detail/CommonUtilities.h"
-#include "quill/detail/Invoke.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
+#include "invoke/invoke.h"
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -113,7 +113,7 @@ private:
                        tuple_args(timestamp, thread_id, logger_name, logline_info)...);
       };
 
-      quill::detail::apply(format_buffer, _tuple_of_callbacks);
+      invoke_hpp::apply(format_buffer, _tuple_of_callbacks);
     }
 
   private:

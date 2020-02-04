@@ -5,7 +5,7 @@
 #include <tuple>
 
 #include "fmt/format.h"
-#include "quill/detail/Invoke.h"
+#include "invoke/invoke.h"
 #include "quill/detail/record/LogRecordUtilities.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
 
@@ -81,7 +81,7 @@ public:
       };
 
       // formatted record by the formatter
-      quill::detail::apply(forward_tuple_args_to_formatter, this->_fmt_args);
+      invoke_hpp::apply(forward_tuple_args_to_formatter, this->_fmt_args);
 
       // After calling format on the formatter we have to request the formatter record
       fmt::memory_buffer const& formatted_log_record = handler->formatter().formatted_log_record();

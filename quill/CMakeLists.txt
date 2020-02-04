@@ -27,7 +27,6 @@ set(HEADER_FILES
         include/quill/detail/LogManagerSingleton.h
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
-        include/quill/detail/Invoke.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
         include/quill/handlers/StreamHandler.h
@@ -79,7 +78,7 @@ target_include_directories(${TARGET_NAME}
 target_compile_options(${TARGET_NAME} PRIVATE ${DEFAULT_COPTS})
 
 # Link dependencies
-target_link_libraries(${TARGET_NAME} PUBLIC fmt)
+target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke)
 
 # Do not decay cxx standard if not specified
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
