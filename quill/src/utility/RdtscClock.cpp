@@ -66,23 +66,21 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
  * @param tsc
  * @return
  */
-std::chrono::system_clock::time_point RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
+std::chrono::nanoseconds RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
   // get rtsc current value and compare the diff then add it to base wall time
   int64_t const diff = rdtsc_value - base_tsc_;
 
-  auto const epoch =
+  auto const duration_since_epoch =
     std::chrono::nanoseconds{base_time_ + static_cast<int64_t>(diff / ticks_per_nanosecond_)};
-  std::chrono::system_clock::duration const duration_from_epoch = epoch;
 
-  // we resync every aprox 30 seconds
-  // we need to sync after we calculated otherwise base_tsc value will be ahead of pased tsc value
+  // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value
   if (diff > resync_interval_ticks_)
   {
     resync();
   }
 
-  return std::chrono::system_clock::time_point{duration_from_epoch};
+  return duration_since_epoch;
 }
 
 /**
@@ -97,7 +95,8 @@ void RdtscClock::resync() const noexcept
   for (uint8_t attempt = 0; attempt < max_attempts; ++attempt)
   {
     uint64_t const beg = __rdtsc();
-    uint64_t const wall_time = std::chrono::system_clock::now().time_since_epoch().count();
+    // we force convert to nanoseconds because the precision of system_clock::time-point is not portable across platforms.
+    uint64_t const wall_time = std::chrono::nanoseconds{std::chrono::system_clock::now().time_since_epoch()}.count();
     uint64_t const end = __rdtsc();
 
     if (QUILL_LIKELY(end - beg <= 2000))

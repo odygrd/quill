@@ -96,6 +96,5 @@ private:
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   std::atomic<bool> _is_running{false};                    /** The spawned backend thread status */
 };
-  static_assert(sizeof(BackendWorker) == CACHELINE_SIZE, "BackendWorker needs to be 1 cache line");
 } // namespace detail
 } // namespace quill

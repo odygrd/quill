@@ -1,4 +1,5 @@
 #include "quill/PatternFormatter.h"
+#include <ctime>
 
 namespace quill
 {
@@ -46,7 +47,7 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   // callback to our tuple
   if (pattern_attr == "ascii_time")
   {
-    return [this](std::chrono::time_point<std::chrono::system_clock> timestamp, char const*,
+    return [this](std::chrono::nanoseconds timestamp, char const*,
                   char const*, detail::StaticLogRecordInfo const&) {
       // TODO pass the date format string
       _convert_epoch_to_local_date(timestamp);
@@ -55,38 +56,38 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   }
   else if (pattern_attr == "thread")
   {
-    return [](std::chrono::time_point<std::chrono::system_clock>, char const* thread_id,
+    return [](std::chrono::nanoseconds, char const* thread_id,
               char const*, detail::StaticLogRecordInfo const&) { return thread_id; };
   }
   else if (pattern_attr == "pathname")
   {
-    return [](std::chrono::time_point<std::chrono::system_clock>, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*,
               detail::StaticLogRecordInfo const& logline_info) { return logline_info.pathname(); };
   }
   else if (pattern_attr == "filename")
   {
-    return [](std::chrono::time_point<std::chrono::system_clock>, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*,
               detail::StaticLogRecordInfo const& logline_info) { return logline_info.filename(); };
   }
   else if (pattern_attr == "lineno")
   {
-    return [](std::chrono::time_point<std::chrono::system_clock>, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*,
               detail::StaticLogRecordInfo const& logline_info) { return logline_info.lineno(); };
   }
   else if (pattern_attr == "level_name")
   {
     return
-      [](std::chrono::time_point<std::chrono::system_clock>, char const*, char const*,
+      [](std::chrono::nanoseconds, char const*, char const*,
          detail::StaticLogRecordInfo const& logline_info) { return logline_info.level_as_str(); };
   }
   else if (pattern_attr == "logger_name")
   {
-    return [](std::chrono::time_point<std::chrono::system_clock>, char const*,
+    return [](std::chrono::nanoseconds, char const*,
               char const* logger_name, detail::StaticLogRecordInfo const&) { return logger_name; };
   }
   else if (pattern_attr == "function_name")
   {
-    return [](std::chrono::time_point<std::chrono::system_clock>, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*,
               detail::StaticLogRecordInfo const& logline_info) { return logline_info.func(); };
   }
   else
@@ -131,9 +132,9 @@ std::string PatternFormatter::_generate_fmt_format_string(std::string pattern)
   return pattern;
 }
 
-void PatternFormatter::_convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time)
+void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epoch_time)
 {
-  int64_t const epoch = epoch_time.time_since_epoch().count();
+  int64_t const epoch = epoch_time.count();
 
   // convert timestamp to date
   int64_t const rawtime_seconds = epoch / 1'000'000'000;
@@ -144,11 +145,11 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::system_clock::t
   // Convert timestamp to date based on the option
   if (_timezone_type == Timezone::GmtTime)
   {
-    gmtime_r(&rawtime_seconds, std::addressof(timeinfo));
+    gmtime_r(reinterpret_cast<const time_t *>(&rawtime_seconds), std::addressof(timeinfo));
   }
   else if (_timezone_type == Timezone::LocalTime)
   {
-    localtime_r(&rawtime_seconds, std::addressof(timeinfo));
+    localtime_r(reinterpret_cast<const time_t *>(&rawtime_seconds), std::addressof(timeinfo));
   }
 
   // extract the nanoseconds

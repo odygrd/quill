@@ -79,7 +79,7 @@ private:
      * @param logline_info
      */
     virtual void format(PatternFormatter::log_record_memory_buffer& memory_buffer,
-                        std::chrono::time_point<std::chrono::system_clock> timestamp,
+                        std::chrono::nanoseconds timestamp,
                         char const* thread_id,
                         char const* logger_name,
                         detail::StaticLogRecordInfo const& logline_info) const = 0;
@@ -107,7 +107,7 @@ private:
      * @param logline_info
      */
     void format(PatternFormatter::log_record_memory_buffer& memory_buffer,
-                std::chrono::time_point<std::chrono::system_clock> timestamp,
+                std::chrono::nanoseconds timestamp,
                 char const* thread_id,
                 char const* logger_name,
                 detail::StaticLogRecordInfo const& logline_info) const override
@@ -203,7 +203,7 @@ public:
    * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
-  void format(std::chrono::time_point<std::chrono::system_clock> timestamp,
+  void format(std::chrono::nanoseconds timestamp,
               char const* thread_id,
               std::string const& logger_name,
               detail::StaticLogRecordInfo const& logline_info,
@@ -220,7 +220,7 @@ private:
    * The stored callback type that will return the appropriate value based on the format pattern specifiers
    */
   using argument_callback_t =
-    std::function<char const*(std::chrono::time_point<std::chrono::system_clock>, char const*, char const*, detail::StaticLogRecordInfo const&)>;
+    std::function<char const*(std::chrono::nanoseconds, char const*, char const*, detail::StaticLogRecordInfo const&)>;
 
   /**
    * Generate a tuple of callbacks [](size i) { };
@@ -289,7 +289,7 @@ private:
    * @note: we always expect to find %(message)
    * */
   template <typename TConstantString>
-  [[nodiscard]] static constexpr std::array<std::size_t, 2> _parse_format_pattern(TConstantString format_pattern);
+  [[nodiscard]] static constexpr std::array<std::size_t, 2> _parse_format_pattern();
 
   /**
    * Process part of the pattern and create a helper formatter class
@@ -324,7 +324,7 @@ private:
    * @param epoch timestamp in nanoseconds from epoch. This timestamp must be in nanoseconds
    * @return formated date as a string
    */
-  void _convert_epoch_to_local_date(std::chrono::system_clock::time_point epoch_time);
+  void _convert_epoch_to_local_date(std::chrono::nanoseconds epoch_time);
 
 private:
   /** Formatters for any user's custom pattern - Important they have to be destructed last so they are defined first **/
@@ -348,7 +348,7 @@ private:
 
 /***/
 template <typename... Args>
-void PatternFormatter::format(std::chrono::time_point<std::chrono::system_clock> timestamp,
+void PatternFormatter::format(std::chrono::nanoseconds timestamp,
                               const char* thread_id,
                               std::string const& logger_name,
                               detail::StaticLogRecordInfo const& logline_info,
@@ -398,7 +398,7 @@ void PatternFormatter::_set_pattern(TConstantString format_pattern)
 
   // calculate the size of the format specifiers '%'
   // pos 0 = number of part_1 args, pos 1 = number of part_3 args
-  constexpr std::array<std::size_t, 2> arr = _parse_format_pattern(format_pattern);
+  constexpr std::array<std::size_t, 2> arr = _parse_format_pattern<TConstantString>();
   constexpr size_t part_1_args_count = arr[0];
   constexpr size_t part_3_args_count = arr[1];
 
@@ -409,7 +409,7 @@ void PatternFormatter::_set_pattern(TConstantString format_pattern)
 
 /***/
 template <typename TConstantString>
-constexpr std::array<std::size_t, 2> PatternFormatter::_parse_format_pattern(TConstantString)
+constexpr std::array<std::size_t, 2> PatternFormatter::_parse_format_pattern()
 {
   constexpr char const* pattern = TConstantString::value();
   constexpr size_t len = quill::detail::strlen(pattern);

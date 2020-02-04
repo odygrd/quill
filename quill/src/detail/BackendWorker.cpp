@@ -3,6 +3,7 @@
 #include <vector>
 
 #if defined(_WIN32)
+#elif defined(__APPLE__)
 #else
 #include <sched.h>
 #include <sys/prctl.h>
@@ -106,6 +107,8 @@ void BackendWorker::_set_cpu_affinity() const
 {
 #if defined(_WIN32)
   // TODO:: Cpu affinity for windows
+#elif defined(__APPLE__)
+ // TODO:: Cpu affinity for macos
 #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
@@ -125,6 +128,8 @@ void BackendWorker::_set_thread_name() const
 {
 #if defined(_WIN32)
   // TODO:: Thread name for windows
+#elif defined(__APPLE__)
+  // TODO:: Thread name for macos
 #else
   auto const err =
     prctl(PR_SET_NAME, reinterpret_cast<unsigned long>(_config.backend_thread_name().data()), 0, 0, 0);

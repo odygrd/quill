@@ -49,7 +49,7 @@ public:
    * @param tsc
    * @return
    */
-  std::chrono::system_clock::time_point time_since_epoch(uint64_t rdtsc_value) const noexcept;
+  std::chrono::nanoseconds time_since_epoch(uint64_t rdtsc_value) const noexcept;
 
   /**
    * Sync base wall time and base tsc.

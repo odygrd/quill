@@ -66,12 +66,12 @@ public:
     {
 #if defined(QUILL_RDTSC_CLOCK)
       // pass to our clock the stored rdtsc from the caller
-      std::chrono::time_point<std::chrono::system_clock> const timestamp =
-        rdtsc_clock->time_since_epoch(this->timestamp());
+      std::chrono::nanoseconds const timestamp = rdtsc_clock->time_since_epoch(this->timestamp());
 #else
       // Then the timestamp() will be already in epoch no need to convert it like above
-      std::chrono::system_clock::duration timestamp_duration = std::chrono::nanoseconds{this->timestamp()};
-      std::chrono::time_point<std::chrono::system_clock> const timestamp{timestamp_duration};
+      // The precision of system_clock::time-point is not portable across platforms.
+      std::chrono::system_clock::duration const timestamp_duration {this->timestamp()};
+      std::chrono::nanoseconds const timestamp = std::chrono::nanoseconds {timestamp_duration};
 #endif
 
       // lambda to unpack the tuple args stored in the LogRecord (the arguments that were passed by

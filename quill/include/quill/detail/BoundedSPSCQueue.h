@@ -15,6 +15,22 @@
 #include "quill/detail/CommonMacros.h"
 #include "quill/detail/CommonUtilities.h"
 
+/**
+ * Detect if _MAP_POPULATE is available for mmap
+ */
+#if defined(__linux__)
+#include <linux/version.h>
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,22)
+#define _MAP_POPULATE_AVAILABLE
+#endif
+#endif
+
+#ifdef _MAP_POPULATE_AVAILABLE
+#define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE)
+#else
+#define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS)
+#endif
+
 namespace quill
 {
 namespace detail
@@ -287,7 +303,7 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
 
   // ask mmap for a good address where we can put both virtual copies of the buffer
   auto address = static_cast<unsigned char*>(
-    mmap(nullptr, 2 * capacity(), PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE, -1, 0));
+    mmap(nullptr, 2 * capacity(), PROT_NONE, MMAP_FLAGS, -1, 0));
 
   if (address == MAP_FAILED)
   {
