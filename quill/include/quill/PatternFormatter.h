@@ -276,7 +276,7 @@ private:
    * @param format_pattern a format string. Must be passed using the macro QUIL_STRING("format string");
    */
   template <typename TConstantString>
-  void _set_pattern(TConstantString format_pattern);
+  void _set_pattern(TConstantString);
 
   /** Count the number of '%' occurrences
    * The pattern is broken down in 3 parts
@@ -381,7 +381,7 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp,
 
 /***/
 template <typename TConstantString>
-void PatternFormatter::_set_pattern(TConstantString format_pattern)
+void PatternFormatter::_set_pattern(TConstantString)
 {
   std::string const pattern = TConstantString::value();
 

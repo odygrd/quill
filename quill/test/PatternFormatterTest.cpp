@@ -11,7 +11,7 @@ TEST(PatternFormatter, default_pattern_formatter)
   PatternFormatter default_pattern_formatter;
 
   std::chrono::system_clock::duration ds = std::chrono::nanoseconds{1579815761000023021};
-  std::chrono::time_point<std::chrono::system_clock> ts{ds};
+  std::chrono::nanoseconds ts{ds};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
@@ -40,7 +40,7 @@ TEST(PatternFormatter, custom_pattern_message_only)
                                             PatternFormatter::TimestampPrecision::NanoSeconds};
 
   std::chrono::system_clock::duration ds = std::chrono::nanoseconds{1579815761000023000};
-  std::chrono::time_point<std::chrono::system_clock> ts{ds};
+  std::chrono::nanoseconds ts{ds};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
@@ -69,7 +69,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
       "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::NanoSeconds};
 
     std::chrono::system_clock::duration ds = std::chrono::nanoseconds{1579815761000023000};
-    std::chrono::time_point<std::chrono::system_clock> ts{ds};
+    std::chrono::nanoseconds ts{ds};
     char const* thread_id = "31341";
     std::string const logger_name = "test_logger";
     StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
@@ -99,7 +99,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
       "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::MicroSeconds};
 
     std::chrono::system_clock::duration ds = std::chrono::nanoseconds{1579815761020123000};
-    std::chrono::time_point<std::chrono::system_clock> ts{ds};
+    std::chrono::nanoseconds ts{ds};
     char const* thread_id = "31341";
     std::string const logger_name = "test_logger";
     StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
@@ -129,7 +129,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
     "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::MilliSeconds};
 
   std::chrono::system_clock::duration ds = std::chrono::nanoseconds{1579815761099000000};
-  std::chrono::time_point<std::chrono::system_clock> ts{ds};
+  std::chrono::nanoseconds ts{ds};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
@@ -159,7 +159,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
     "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::None};
 
   std::chrono::system_clock::duration ds = std::chrono::nanoseconds{1579815761099220000};
-  std::chrono::time_point<std::chrono::system_clock> ts{ds};
+  std::chrono::nanoseconds ts{ds};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
