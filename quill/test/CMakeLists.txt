@@ -29,9 +29,6 @@ add_executable(${TEST_NAME} "")
 # Add sources
 target_sources(${TEST_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
-# Add compiler options for this library
-target_compile_options(${TEST_NAME} PRIVATE ${TEST_COPTS} ${EXCEPTIONS_FLAG})
-
 # include dirs
 target_include_directories(${TARGET_NAME}
         PUBLIC
@@ -41,7 +38,7 @@ target_include_directories(${TARGET_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link dependencies
-target_link_libraries(${TEST_NAME} ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} quill)
+target_link_libraries(${TEST_NAME} quill ${GTEST_BOTH_LIBRARIES})
 
 # Do not decay cxx standard if not specified
 set_property(TARGET ${TEST_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)

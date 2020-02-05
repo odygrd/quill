@@ -22,7 +22,9 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
   {
     constexpr size_t num_threads{25};
     std::array<std::thread, num_threads> threads;
-    std::array<std::atomic<bool>, num_threads> terminate_flag{false};
+    std::array<std::atomic<bool>, num_threads> terminate_flag;
+    std::fill(terminate_flag.begin(), terminate_flag.end(), false);
+
     std::atomic<uint32_t> threads_started{0};
 
     // spawn x number of threads
@@ -100,7 +102,8 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
   {
     constexpr size_t num_threads{25};
     std::array<std::thread, num_threads> threads;
-    std::array<std::atomic<bool>, num_threads> terminate_flag{false};
+    std::array<std::atomic<bool>, num_threads> terminate_flag;
+    std::fill(terminate_flag.begin(), terminate_flag.end(), false);
     std::atomic<uint32_t> threads_started{0};
 
     // spawn x number of threads

@@ -74,9 +74,6 @@ target_include_directories(${TARGET_NAME}
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Add compiler options for this library
-target_compile_options(${TARGET_NAME} PRIVATE ${DEFAULT_COPTS})
-
 # Link dependencies
 target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke)
 

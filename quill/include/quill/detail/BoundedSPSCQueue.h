@@ -451,7 +451,8 @@ bool BoundedSPSCQueue<TBaseObject, Capacity>::empty() const noexcept
 template <typename TBaseObject, std::size_t Capacity>
 uint32_t BoundedSPSCQueue<TBaseObject, Capacity>::_get_page_size() noexcept
 {
-  static uint32_t page_size{0};
+  // thread local to avoid race condition when more than one threads are creating the queue at the same time
+  static thread_local uint32_t page_size{0};
 #if defined(_WIN32)
   SYSTEM_INFO system_info;
   GetSystemInfo(&system_info);
