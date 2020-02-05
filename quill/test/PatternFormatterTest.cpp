@@ -18,7 +18,7 @@ TEST(PatternFormatter, default_pattern_formatter)
                                     "This the {} formatter {}", LogLevel::Info};
 
   // Format to a buffer
-  default_pattern_formatter.format(ts, thread_id, logger_name, log_line_info, "pattern", 1234);
+  default_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
 
   auto const& formatted_buffer = default_pattern_formatter.formatted_log_record();
 
@@ -47,7 +47,7 @@ TEST(PatternFormatter, custom_pattern_message_only)
                                     "This the {1} formatter {0}", LogLevel::Debug};
 
   // Format to a buffer
-  custom_pattern_formatter.format(ts, thread_id, logger_name, log_line_info, "pattern", 12.34);
+  custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 12.34);
 
   auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
 
@@ -76,7 +76,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
                                       "This the {1} formatter {0}", LogLevel::Debug};
 
     // Format to a buffer
-    custom_pattern_formatter.format(ts, thread_id, logger_name, log_line_info, "pattern", 1234);
+    custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
 
     auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
 
@@ -106,7 +106,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
                                       "This the {1} formatter {0}", LogLevel::Debug};
 
     // Format to a buffer
-    custom_pattern_formatter.format(ts, thread_id, logger_name, log_line_info, "pattern", 1234);
+    custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
 
     auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
 
@@ -136,7 +136,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
                                     "This the {1} formatter {0}", LogLevel::Debug};
 
   // Format to a buffer
-  custom_pattern_formatter.format(ts, thread_id, logger_name, log_line_info, "pattern", 1234);
+  custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
 
   auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
 
@@ -166,7 +166,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
                                     "This the {1} formatter {0}", LogLevel::Debug};
 
   // Format to a buffer
-  custom_pattern_formatter.format(ts, thread_id, logger_name, log_line_info, "pattern", 1234);
+  custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
 
   auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
 
