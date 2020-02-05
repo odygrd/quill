@@ -205,7 +205,7 @@ public:
   template <typename... Args>
   void format(std::chrono::nanoseconds timestamp,
               char const* thread_id,
-              std::string const& logger_name,
+              char const* logger_name,
               detail::StaticLogRecordInfo const& logline_info,
               Args const&... args) const;
 
@@ -350,7 +350,7 @@ private:
 template <typename... Args>
 void PatternFormatter::format(std::chrono::nanoseconds timestamp,
                               const char* thread_id,
-                              std::string const& logger_name,
+                              char const* logger_name,
                               detail::StaticLogRecordInfo const& logline_info,
                               Args const&... args) const
 {
@@ -361,7 +361,7 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp,
   if (_pattern_formatter_helper_part_1)
   {
     _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id,
-                                             logger_name.data(), logline_info);
+                                             logger_name, logline_info);
   }
 
   // Format the user requested string
@@ -371,7 +371,7 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp,
   if (_pattern_formatter_helper_part_3)
   {
     _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id,
-                                             logger_name.data(), logline_info);
+                                             logger_name, logline_info);
   }
 
   // TODO: This could be customised in config

@@ -1,6 +1,5 @@
 #include "quill/detail/LoggerCollection.h"
 
-#include <cassert>
 #include <sstream>
 #include <stdexcept>
 
@@ -33,17 +32,18 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
 {
   if (logger_name)
   {
+    std::string logger_name_str { logger_name };
     std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
     // Search for the logger
-    auto const search = _logger_name_map.find(logger_name);
+    auto const search = _logger_name_map.find(logger_name_str);
     if (QUILL_UNLIKELY(search == _logger_name_map.cend()))
     {
       // logger does not exist
-      throw std::runtime_error("logger with name " + std::string (logger_name) + " does not exist.");
+      throw std::runtime_error("logger with name " + logger_name_str + " does not exist.");
     }
 
-    return search->second.get();
+    return (*search).second.get();
   }
   else
   {
@@ -73,7 +73,7 @@ Logger* LoggerCollection::create_logger(char const* logger_name)
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return insert_result.first->second.get();
+  return (*insert_result.first).second.get();
 }
 
 /***/
@@ -90,7 +90,7 @@ Logger* LoggerCollection::create_logger(char const* logger_name, Handler* handle
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return insert_result.first->second.get();
+  return (*insert_result.first).second.get();
 }
 
 /***/
@@ -111,7 +111,7 @@ Logger* LoggerCollection::create_logger(char const* logger_name, std::initialize
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return insert_result.first->second.get();
+  return (*insert_result.first).second.get();
 }
 
 /***/
@@ -120,7 +120,7 @@ void LoggerCollection::set_default_logger_handler(Handler* handler)
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Remove the old default logger
-  _logger_name_map.erase(_default_logger_name);
+  _logger_name_map.erase(std::string {_default_logger_name} );
 
   // Remake the default logger
   _default_logger = create_logger(_default_logger_name, handler);
@@ -132,7 +132,7 @@ void LoggerCollection::set_default_logger_handler(std::initializer_list<Handler*
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Remove the old default logger
-  _logger_name_map.erase(_default_logger_name);
+  _logger_name_map.erase(std::string { _default_logger_name });
 
   // Remake the default logger
   _default_logger = create_logger(_default_logger_name, std::move(handlers));

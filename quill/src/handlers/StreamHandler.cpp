@@ -22,7 +22,7 @@ StreamHandler::StreamHandler(std::string stream) : _filename(std::move(stream))
 
 /***/
 StreamHandler::StreamHandler(FILE* file_pointer, char const* filename)
-  : _filename(filename), _file(file_pointer)
+  : _filename(std::string { filename }), _file(file_pointer)
 {
 }
 

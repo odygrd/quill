@@ -13,7 +13,6 @@
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/record/RecordBase.h"
 
 namespace quill
 {

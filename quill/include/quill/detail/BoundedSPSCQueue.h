@@ -293,7 +293,7 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
     throw std::runtime_error(error_message.str());
   }
 
-  if (ftruncate(fd, capacity()) == -1)
+  if (ftruncate(fd, static_cast<off_t>(capacity())) == -1)
   {
     close(fd);
     std::ostringstream error_message;

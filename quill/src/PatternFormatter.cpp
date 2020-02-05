@@ -153,7 +153,7 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   }
 
   // extract the nanoseconds
-  std::uint32_t const usec = epoch - (rawtime_seconds * 1'000'000'000);
+  std::uint64_t const usec = static_cast<uint64_t>(epoch - (rawtime_seconds * 1'000'000'000));
 
   _formatted_date.clear();
 

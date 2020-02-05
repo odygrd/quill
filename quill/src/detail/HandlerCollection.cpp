@@ -6,10 +6,10 @@ namespace quill
 namespace detail
 {
 /***/
-StreamHandler* HandlerCollection::stdout_streamhandler() { return _create_streamhandler("stdout"); }
+StreamHandler* HandlerCollection::stdout_streamhandler() { return _create_streamhandler(std::string { "stdout" }); }
 
 /***/
-StreamHandler* HandlerCollection::stderr_streamhandler() { return _create_streamhandler("stderr"); }
+StreamHandler* HandlerCollection::stderr_streamhandler() { return _create_streamhandler(std::string { "stderr" }); }
 
 /***/
 StreamHandler* HandlerCollection::filehandler(std::string const& filename, std::string const& mode /* = std::string{"a"} */)
@@ -23,14 +23,14 @@ StreamHandler* HandlerCollection::filehandler(std::string const& filename, std::
   // First search if we have it and don't call make_unique yet as this will call fopen
   if (search != _file_handler_collection.cend())
   {
-    return search->second.get();
+    return (*search).second.get();
   }
 
   // if first time add it
   auto emplace_result = _file_handler_collection.emplace(
     filename, std::make_unique<FileHandler>(filename.data(), mode.data()));
 
-  return emplace_result.first->second.get();
+  return (*emplace_result.first).second.get();
 }
 
 /***/
@@ -76,13 +76,13 @@ StreamHandler* HandlerCollection::_create_streamhandler(std::string const& strea
   // First search if we have it and don't call make_unique yet as this will call fopen
   if (search != _file_handler_collection.cend())
   {
-    return search->second.get();
+    return (*search).second.get();
   }
 
   // if first time add it
   auto emplace_result = _file_handler_collection.emplace(stream, std::make_unique<StreamHandler>(stream));
 
-  return emplace_result.first->second.get();
+  return (*emplace_result.first).second.get();
 }
 } // namespace detail
 } // namespace quill

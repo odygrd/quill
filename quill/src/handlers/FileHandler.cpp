@@ -4,7 +4,7 @@ namespace quill
 {
 /***/
 FileHandler::FileHandler(char const* filename, char const* mode /*= "a" */)
-  : StreamHandler(_fopen(filename, mode), filename){};
+  : StreamHandler(_fopen(filename, mode), filename){}
 
 /***/
 FileHandler::~FileHandler() { fclose(_file); }
