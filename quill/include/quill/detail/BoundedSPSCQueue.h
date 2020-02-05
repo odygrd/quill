@@ -20,7 +20,7 @@
  */
 #if defined(__linux__)
 #include <linux/version.h>
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,22)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 22)
 #define _MAP_POPULATE_AVAILABLE
 #endif
 #endif
@@ -302,8 +302,7 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
   }
 
   // ask mmap for a good address where we can put both virtual copies of the buffer
-  auto address = static_cast<unsigned char*>(
-    mmap(nullptr, 2 * capacity(), PROT_NONE, MMAP_FLAGS, -1, 0));
+  auto address = static_cast<unsigned char*>(mmap(nullptr, 2 * capacity(), PROT_NONE, MMAP_FLAGS, -1, 0));
 
   if (address == MAP_FAILED)
   {

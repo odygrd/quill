@@ -11,7 +11,7 @@ namespace detail
 {
 
 /***/
-LogManager::LogManager(Config const& config) : _config(config){}
+LogManager::LogManager(Config const& config) : _config(config) {}
 
 /***/
 void LogManager::flush()

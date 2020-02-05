@@ -6,10 +6,16 @@ namespace quill
 namespace detail
 {
 /***/
-StreamHandler* HandlerCollection::stdout_streamhandler() { return _create_streamhandler(std::string { "stdout" }); }
+StreamHandler* HandlerCollection::stdout_streamhandler()
+{
+  return _create_streamhandler(std::string{"stdout"});
+}
 
 /***/
-StreamHandler* HandlerCollection::stderr_streamhandler() { return _create_streamhandler(std::string { "stderr" }); }
+StreamHandler* HandlerCollection::stderr_streamhandler()
+{
+  return _create_streamhandler(std::string{"stderr"});
+}
 
 /***/
 StreamHandler* HandlerCollection::filehandler(std::string const& filename, std::string const& mode /* = std::string{"a"} */)

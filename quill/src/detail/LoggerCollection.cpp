@@ -32,7 +32,7 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
 {
   if (logger_name)
   {
-    std::string logger_name_str { logger_name };
+    std::string logger_name_str{logger_name};
     std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
     // Search for the logger
@@ -120,7 +120,7 @@ void LoggerCollection::set_default_logger_handler(Handler* handler)
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Remove the old default logger
-  _logger_name_map.erase(std::string {_default_logger_name} );
+  _logger_name_map.erase(std::string{_default_logger_name});
 
   // Remake the default logger
   _default_logger = create_logger(_default_logger_name, handler);
@@ -132,7 +132,7 @@ void LoggerCollection::set_default_logger_handler(std::initializer_list<Handler*
   std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
 
   // Remove the old default logger
-  _logger_name_map.erase(std::string { _default_logger_name });
+  _logger_name_map.erase(std::string{_default_logger_name});
 
   // Remake the default logger
   _default_logger = create_logger(_default_logger_name, std::move(handlers));

@@ -47,8 +47,8 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   // callback to our tuple
   if (pattern_attr == "ascii_time")
   {
-    return [this](std::chrono::nanoseconds timestamp, char const*,
-                  char const*, detail::StaticLogRecordInfo const&) {
+    return [this](std::chrono::nanoseconds timestamp, char const*, char const*,
+                  detail::StaticLogRecordInfo const&) {
       // TODO pass the date format string
       _convert_epoch_to_local_date(timestamp);
       return _formatted_date.data();
@@ -56,8 +56,8 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   }
   else if (pattern_attr == "thread")
   {
-    return [](std::chrono::nanoseconds, char const* thread_id,
-              char const*, detail::StaticLogRecordInfo const&) { return thread_id; };
+    return [](std::chrono::nanoseconds, char const* thread_id, char const*,
+              detail::StaticLogRecordInfo const&) { return thread_id; };
   }
   else if (pattern_attr == "pathname")
   {
@@ -82,8 +82,8 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   }
   else if (pattern_attr == "logger_name")
   {
-    return [](std::chrono::nanoseconds, char const*,
-              char const* logger_name, detail::StaticLogRecordInfo const&) { return logger_name; };
+    return [](std::chrono::nanoseconds, char const*, char const* logger_name,
+              detail::StaticLogRecordInfo const&) { return logger_name; };
   }
   else if (pattern_attr == "function_name")
   {
@@ -145,11 +145,11 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   // Convert timestamp to date based on the option
   if (_timezone_type == Timezone::GmtTime)
   {
-    gmtime_r(reinterpret_cast<const time_t *>(&rawtime_seconds), std::addressof(timeinfo));
+    gmtime_r(reinterpret_cast<const time_t*>(&rawtime_seconds), std::addressof(timeinfo));
   }
   else if (_timezone_type == Timezone::LocalTime)
   {
-    localtime_r(reinterpret_cast<const time_t *>(&rawtime_seconds), std::addressof(timeinfo));
+    localtime_r(reinterpret_cast<const time_t*>(&rawtime_seconds), std::addressof(timeinfo));
   }
 
   // extract the nanoseconds

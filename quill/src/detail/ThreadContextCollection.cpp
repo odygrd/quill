@@ -6,7 +6,8 @@ namespace detail
 {
 /***/
 ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection)
-  : _thread_context_collection(thread_context_collection), _thread_context(std::make_shared<ThreadContext>())
+  : _thread_context_collection(thread_context_collection),
+    _thread_context(std::make_shared<ThreadContext>())
 {
   _thread_context_collection.register_thread_context(_thread_context);
 }
@@ -69,8 +70,8 @@ bool ThreadContextCollection::_has_new_thread_context() noexcept
   if (_new_thread_context.load(std::memory_order_relaxed))
   {
     // if the variable was updated to true, set it to false,
-    // There should not be any race condition here as this is the only place _changed is set to false and we will return
-    // true anyway
+    // There should not be any race condition here as this is the only place _changed is set to
+    // false and we will return true anyway
     _new_thread_context.store(false, std::memory_order_relaxed);
     return true;
   }
@@ -87,26 +88,26 @@ void ThreadContextCollection::_set_new_thread_context() noexcept
 
 /***/
 void ThreadContextCollection::_add_invalid_thread_context() noexcept
-  {
-    // relaxed is fine, see _has_invalid_thread_context explanation
-    _invalid_thread_context.fetch_add(1, std::memory_order_relaxed);
-  }
+{
+  // relaxed is fine, see _has_invalid_thread_context explanation
+  _invalid_thread_context.fetch_add(1, std::memory_order_relaxed);
+}
 
 /***/
 void ThreadContextCollection::_sub_invalid_thread_context() noexcept
-  {
+{
   // relaxed is fine, see _has_invalid_thread_context explanation
-    _invalid_thread_context.fetch_sub(1, std::memory_order_relaxed);
-  }
+  _invalid_thread_context.fetch_sub(1, std::memory_order_relaxed);
+}
 
 /***/
 bool ThreadContextCollection::_has_invalid_thread_context() const noexcept
-  {
-    // Here we do relaxed because if the value is not zero we will look inside ThreadContext invalid flag that is also
-    // a relaxed atomic and then we will look into the SPSC queue size that is also atomic
-    // Even if we don't read everything in order we will check again in the next circle
-    return _invalid_thread_context.load(std::memory_order_relaxed) != 0;
-  }
+{
+  // Here we do relaxed because if the value is not zero we will look inside ThreadContext invalid
+  // flag that is also a relaxed atomic and then we will look into the SPSC queue size that is also
+  // atomic Even if we don't read everything in order we will check again in the next circle
+  return _invalid_thread_context.load(std::memory_order_relaxed) != 0;
+}
 
 /***/
 void ThreadContextCollection::_remove_shared_invalidated_thread_context(ThreadContext const* thread_context)

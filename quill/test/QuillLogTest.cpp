@@ -2,8 +2,8 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Quill.h"
-#include <string>
 #include <cstdio>
+#include <string>
 
 // Note: This thread is flushing using the main thread. This means that no-other test should have used flush()
 // on the main thread as the main thread's thread context is not re-added
@@ -57,7 +57,7 @@ void test_quil_log(char const* test_id, char const* filename, uint16_t number_of
     for (int j = 0; j < number_of_messages; ++j)
     {
       std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
-                                    std::to_string(i) + " this is message " + std::to_string(j);
+        std::to_string(i) + " this is message " + std::to_string(j);
 
       EXPECT_TRUE(quill::testing::file_contains(file_contents, expected_string));
     }
@@ -104,20 +104,15 @@ public:
   /**
    * Use logger in const function
    */
-  void use_logger_const() const noexcept
-  {
-    LOG_INFO(_logger, "Test message for test class const");
-  }
+  void use_logger_const() const noexcept { LOG_INFO(_logger, "Test message for test class const"); }
 
   /**
    * Use logger in normal function
    */
-  void use_logger()
-  {
-    LOG_INFO(_logger, "Test message for test class non const");
-  }
+  void use_logger() { LOG_INFO(_logger, "Test message for test class non const"); }
+
 private:
-  quill::Logger* _logger{ nullptr};
+  quill::Logger* _logger{nullptr};
 };
 
 /***/
@@ -125,12 +120,12 @@ TEST(Quill, log_from_const_function)
 {
   static constexpr char const* filename = "log_test_class.log";
   // log for class a
-  log_test_class log_test_class_a {filename};
+  log_test_class log_test_class_a{filename};
   log_test_class_a.use_logger_const();
   log_test_class_a.use_logger();
 
   // log again for class b
-  log_test_class const log_test_class_b {filename};
+  log_test_class const log_test_class_b{filename};
   log_test_class_b.use_logger_const();
 
   quill::flush();

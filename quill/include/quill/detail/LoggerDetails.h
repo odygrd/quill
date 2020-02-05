@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "quill/handlers/Handler.h"
 #include "quill/detail/CommonUtilities.h"
+#include "quill/handlers/Handler.h"
 
 namespace quill
 {

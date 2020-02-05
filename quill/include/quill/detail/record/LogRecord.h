@@ -70,8 +70,8 @@ public:
 #else
       // Then the timestamp() will be already in epoch no need to convert it like above
       // The precision of system_clock::time-point is not portable across platforms.
-      std::chrono::system_clock::duration const timestamp_duration {this->timestamp()};
-      std::chrono::nanoseconds const timestamp = std::chrono::nanoseconds {timestamp_duration};
+      std::chrono::system_clock::duration const timestamp_duration{this->timestamp()};
+      std::chrono::nanoseconds const timestamp = std::chrono::nanoseconds{timestamp_duration};
 #endif
 
       // lambda to unpack the tuple args stored in the LogRecord (the arguments that were passed by

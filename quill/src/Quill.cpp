@@ -35,8 +35,7 @@ Logger* get_logger(char const* logger_name /* = nullptr */)
 /***/
 Logger* create_logger(char const* logger_name)
 {
-  return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
-   logger_name);
+  return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(logger_name);
 }
 
 /***/

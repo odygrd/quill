@@ -5,10 +5,10 @@
 #include <vector>
 
 #include "quill/LogLevel.h"
+#include "quill/detail/CommonUtilities.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/record/LogRecord.h"
-#include "quill/detail/CommonUtilities.h"
 
 namespace quill
 {
@@ -150,8 +150,7 @@ private:
    * @param thread_context_collection
    */
   Logger(char const* name, std::vector<Handler*> handlers, detail::ThreadContextCollection& thread_context_collection)
-    : _logger_details(name, std::move(handlers)),
-      _thread_context_collection(thread_context_collection)
+    : _logger_details(name, std::move(handlers)), _thread_context_collection(thread_context_collection)
   {
   }
 

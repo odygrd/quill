@@ -96,8 +96,8 @@ void RdtscClock::resync() const noexcept
   {
     uint64_t const beg = __rdtsc();
     // we force convert to nanoseconds because the precision of system_clock::time-point is not portable across platforms.
-    uint64_t const wall_time = static_cast<uint64_t>(std::chrono::nanoseconds{
-            std::chrono::system_clock::now().time_since_epoch()}.count());
+    uint64_t const wall_time = static_cast<uint64_t>(
+      std::chrono::nanoseconds{std::chrono::system_clock::now().time_since_epoch()}.count());
     uint64_t const end = __rdtsc();
 
     if (QUILL_LIKELY(end - beg <= 2000))

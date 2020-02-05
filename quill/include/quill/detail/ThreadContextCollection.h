@@ -129,8 +129,8 @@ private:
   void _add_invalid_thread_context() noexcept;
 
   /**
-   * Reduce the value of thread context removed counter. This is decreased by the backend thread when we found and
-   * removed the invalided context
+   * Reduce the value of thread context removed counter. This is decreased by the backend thread
+   * when we found and removed the invalided context
    */
   void _sub_invalid_thread_context() noexcept;
 
@@ -182,7 +182,6 @@ private:
    * Incremented by any thread on thread local destruction, decremented by the backend thread
    */
   std::atomic<uint8_t> _invalid_thread_context{0};
-
 };
 
 } // namespace detail

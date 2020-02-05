@@ -107,7 +107,7 @@ void BackendWorker::_set_cpu_affinity() const
 #if defined(_WIN32)
   // TODO:: Cpu affinity for windows
 #elif defined(__APPLE__)
- // TODO:: Cpu affinity for macos
+  // TODO:: Cpu affinity for macos
 #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);

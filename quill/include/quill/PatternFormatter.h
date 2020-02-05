@@ -1,10 +1,10 @@
 #pragma once
 
 #include "fmt/format.h"
+#include "invoke/invoke.h"
 #include "quill/detail/CommonMacros.h"
 #include "quill/detail/CommonUtilities.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
-#include "invoke/invoke.h"
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -55,9 +55,9 @@ class PatternFormatter
 {
 public:
   /**
-* We use two custom buffers from fmt, they will resize automatically
-*/
-  using log_record_memory_buffer = fmt::basic_memory_buffer<char,544>;
+   * We use two custom buffers from fmt, they will resize automatically
+   */
+  using log_record_memory_buffer = fmt::basic_memory_buffer<char, 544>;
 
 private:
   /**
@@ -213,7 +213,10 @@ public:
    * Returned the stored formatted record, to be called after format
    * @return
    */
-  log_record_memory_buffer const& formatted_log_record() const noexcept { return _formatted_log_record; }
+  log_record_memory_buffer const& formatted_log_record() const noexcept
+  {
+    return _formatted_log_record;
+  }
 
 private:
   /**
@@ -332,14 +335,14 @@ private:
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_3; /**< Formatter after %(message) **/
 
   /** Strings as class members to avoid re-allocating **/
-  using date_memory_buffer =  fmt::basic_memory_buffer<char,32>;
+  using date_memory_buffer = fmt::basic_memory_buffer<char, 32>;
   date_memory_buffer _formatted_date;
 
   /** The buffer where we store each formatted string, also stored as class member to avoid
    * re-allocations. This is mutable so we can have a format() const function **/
   mutable log_record_memory_buffer _formatted_log_record;
 
-  std::string _date_format{"%H:%M:%S"}; /** Timestamp format **/
+  std::string _date_format{"%H:%M:%S"};       /** Timestamp format **/
   Timezone _timezone_type{Timezone::GmtTime}; /** Timezone, GMT time by default **/
   TimestampPrecision _timestamp_precision{TimestampPrecision::NanoSeconds}; /** timestamp precision */
 };
@@ -360,8 +363,7 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp,
   // Format part 1 of the pattern first
   if (_pattern_formatter_helper_part_1)
   {
-    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id,
-                                             logger_name, logline_info);
+    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
   }
 
   // Format the user requested string
@@ -370,8 +372,7 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp,
   // Format part 3 of the pattern
   if (_pattern_formatter_helper_part_3)
   {
-    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id,
-                                             logger_name, logline_info);
+    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
   }
 
   // TODO: This could be customised in config

@@ -6,8 +6,8 @@
 #include "quill/Macros.h"
 #include "quill/detail/LogManager.h"
 #include "quill/handlers/Handler.h"
-#include <thread>
 #include <cstdio>
+#include <thread>
 
 /**
  * Contains tests that include frontend and backend thread testing

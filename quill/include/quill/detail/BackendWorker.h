@@ -6,8 +6,8 @@
 #include <thread>
 #include <vector>
 
-#include "quill/detail/Config.h"
 #include "quill/detail/CommonUtilities.h"
+#include "quill/detail/Config.h"
 #include "quill/detail/utility/RdtscClock.h"
 
 namespace quill
@@ -94,7 +94,7 @@ private:
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
-  std::atomic<bool> _is_running{false};                    /** The spawned backend thread status */
+  std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
 };
 } // namespace detail
 } // namespace quill
