@@ -1,7 +1,5 @@
 add_subdirectory(bundled)
 
-set(CMAKE_CXX_STANDARD 14)
-
 # library name
 set(TARGET_NAME quill)
 
@@ -75,17 +73,17 @@ target_include_directories(${TARGET_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link dependencies
-target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke)
+target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
 
 # Do not decay cxx standard if not specified
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 
 # ---- Tests ---- #
-if (ENABLE_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
+if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
     add_subdirectory(test)
 endif ()
 
 # ---- Benchmarks ---- #
-if (ENABLE_BENCHMARKS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/benchmark)
+if (QUILL_BUILD_BENCHMARKS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/benchmark)
     add_subdirectory(benchmark)
 endif ()
