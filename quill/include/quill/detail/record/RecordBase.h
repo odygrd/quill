@@ -37,13 +37,13 @@ public:
    * Get the stored rdtsc timestamp
    * @note Called on the logger thread
    */
-  [[nodiscard]] uint64_t timestamp() const noexcept { return _timestamp; }
+  QUILL_NODISCARD uint64_t timestamp() const noexcept { return _timestamp; }
 
   /**
    * Required by the queue to get the real record size of the derived class
    * @return The size of the derived class record
    */
-  [[nodiscard]] virtual size_t size() const noexcept = 0;
+  QUILL_NODISCARD virtual size_t size() const noexcept = 0;
 
   /**
    * Process a record. Called on the backend worker thread

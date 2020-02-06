@@ -31,57 +31,57 @@
 // clang-format on
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L3
-#define LOG_TRACE_L3(logger, fmt, ...)                                                             \
-  QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L3(logger, fmt, ...)                                                           \
+    QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 #else
-#define LOG_TRACE_L3(logger, fmt, ...) (void)0
+  #define LOG_TRACE_L3(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L2
-#define LOG_TRACE_L2(logger, fmt, ...)                                                             \
-  QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2(logger, fmt, ...)                                                           \
+    QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 #else
-#define LOG_TRACE_L2(logger, fmt, ...) (void)0
+  #define LOG_TRACE_L2(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L1
-#define LOG_TRACE_L1(logger, fmt, ...)                                                             \
-  QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1(logger, fmt, ...)                                                           \
+    QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 #else
-#define LOG_TRACE_L1(logger, fmt, ...) (void)0
+  #define LOG_TRACE_L1(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_DEBUG
-#define LOG_DEBUG(logger, fmt, ...)                                                                \
-  QUILL_LOGGER_CALL(logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG(logger, fmt, ...)                                                              \
+    QUILL_LOGGER_CALL(logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
 #else
-#define LOG_DEBUG(logger, fmt, ...) (void)0
+  #define LOG_DEBUG(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_INFO
-#define LOG_INFO(logger, fmt, ...)                                                                 \
-  QUILL_LOGGER_CALL(logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
+  #define LOG_INFO(logger, fmt, ...)                                                               \
+    QUILL_LOGGER_CALL(logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
 #else
-#define LOG_INFO(logger, fmt, ...) (void)0
+  #define LOG_INFO(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_WARNING
-#define LOG_WARNING(logger, fmt, ...)                                                              \
-  QUILL_LOGGER_CALL(logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
+  #define LOG_WARNING(logger, fmt, ...)                                                            \
+    QUILL_LOGGER_CALL(logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
 #else
-#define LOG_WARNING(logger, fmt, ...) (void)0
+  #define LOG_WARNING(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_ERROR
-#define LOG_ERROR(logger, fmt, ...)                                                                \
-  QUILL_LOGGER_CALL(logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
+  #define LOG_ERROR(logger, fmt, ...)                                                              \
+    QUILL_LOGGER_CALL(logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
 #else
-#define LOG_ERROR(logger, fmt, ...) (void)0
+  #define LOG_ERROR(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_CRITICAL
-#define LOG_CRITICAL(logger, fmt, ...)                                                             \
-  QUILL_LOGGER_CALL(logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL(logger, fmt, ...)                                                           \
+    QUILL_LOGGER_CALL(logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
 #else
-#define LOG_CRITICAL(logger, fmt, ...) (void)0
+  #define LOG_CRITICAL(logger, fmt, ...) (void)0
 #endif

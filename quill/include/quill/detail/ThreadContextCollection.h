@@ -115,7 +115,7 @@ private:
    * @note Only accessed by the backend thread
    * @return true if the shared data structure was changed by any calls to Logger
    */
-  [[nodiscard]] bool _has_new_thread_context() noexcept;
+  QUILL_NODISCARD bool _has_new_thread_context() noexcept;
 
   /**
    * Indicate that the context has changed. A new thread context has been added or removed

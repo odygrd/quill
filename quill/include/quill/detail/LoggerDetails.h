@@ -55,12 +55,12 @@ public:
   /**
    * @return The name of the logger
    */
-  [[nodiscard]] char const* name() const noexcept { return _name.data(); }
+  QUILL_NODISCARD char const* name() const noexcept { return _name.data(); }
 
   /**
    * @return a vector of all handlers of this logger, called by the backend worker thread
    */
-  [[nodiscard]] std::vector<Handler*> const& handlers() const noexcept { return _handlers; }
+  QUILL_NODISCARD std::vector<Handler*> const& handlers() const noexcept { return _handlers; }
 
 private:
   std::array<char, 24> _name; /** Because size of string in gcc is 32 we use an array here as we need the Logger object to fit all in a single cache line */

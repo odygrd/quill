@@ -52,7 +52,7 @@ Handler* filehandler(std::string const& filename, std::string const& mode = std:
  * @param logger_name
  * @return A pointer to a thread-safe Logger object
  */
-[[nodiscard]] Logger* get_logger(char const* logger_name = nullptr);
+QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr);
 
 /**
  * Creates a new Logger using the existing default logger's handler and formatter pattern
@@ -62,7 +62,7 @@ Handler* filehandler(std::string const& filename, std::string const& mode = std:
  * @param logger_name
  * @return A pointer to a thread-safe Logger object
  */
-[[nodiscard]] Logger* create_logger(char const* logger_name);
+QUILL_NODISCARD Logger* create_logger(char const* logger_name);
 
 /**
  * Creates a new Logger using the custom given handler.
@@ -75,7 +75,7 @@ Handler* filehandler(std::string const& filename, std::string const& mode = std:
  * @param handler
  * @return A pointer to a thread-safe Logger object
  */
-[[nodiscard]] Logger* create_logger(char const* logger_name, Handler* handler);
+QUILL_NODISCARD Logger* create_logger(char const* logger_name, Handler* handler);
 
 /***
  * Creates a new Logger using the custom given handler.
@@ -87,7 +87,7 @@ Handler* filehandler(std::string const& filename, std::string const& mode = std:
  * @param handlers
  * @return
  */
-[[nodiscard]] Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
+QUILL_NODISCARD Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
 
 /**
  * Resets the default logger and re-creates the logger with the given handler

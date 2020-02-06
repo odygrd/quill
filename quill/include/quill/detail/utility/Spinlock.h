@@ -3,6 +3,8 @@
 #include <atomic>
 #include <mutex> // for std::lock_guard
 
+#include "quill/detail/CommonMacros.h"
+
 namespace quill
 {
 namespace detail
@@ -27,7 +29,7 @@ public:
    * Tries to acquire the lock, spinning until successful.
    * @return true if lock was acquired, false otherwise
    */
-  [[nodiscard]] bool try_lock() noexcept;
+  QUILL_NODISCARD bool try_lock() noexcept;
 
   /**
    * Releases the lock.

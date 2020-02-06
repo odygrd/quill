@@ -58,8 +58,14 @@ set(SOURCE_FILES
         src/Utility.cpp
         )
 
-# Add this as a library
-add_library(${TARGET_NAME} STATIC "")
+# Add as a library
+if (QUILL_BUILD_SHARED)
+    add_library(${TARGET_NAME} SHARED "")
+else ()
+    add_library(${TARGET_NAME} STATIC "")
+endif ()
+
+add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
 
 # Add target sources
 target_sources(${TARGET_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
@@ -75,8 +81,18 @@ target_include_directories(${TARGET_NAME}
 # Link dependencies
 target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
 
-# Do not decay cxx standard if not specified
-set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+# Compiler options
+target_compile_options(${TARGET_NAME} PRIVATE
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors>
+        $<$<CXX_COMPILER_ID:MSVC>:/W4>)
+
+if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015
+    target_compile_options(${TARGET_NAME} PRIVATE /WX)
+endif ()
+
+# Properties
+set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSION ${QUILL_VERSION})
 
 # ---- Tests ---- #
 if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)

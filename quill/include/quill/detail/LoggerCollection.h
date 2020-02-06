@@ -46,14 +46,14 @@ public:
    * @note this function is slow, consider calling it only once and store the pointer to the logger
    * @return a Logger object or the default logger is logger_name is empty
    */
-  [[nodiscard]] Logger* get_logger(char const* logger_name = nullptr) const;
+  QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr) const;
 
   /**
    * Create a new logger using the same handlers and formatter as the default logger
    * @param logger_name
    * @return
    */
-  [[nodiscard]] Logger* create_logger(char const* logger_name);
+  QUILL_NODISCARD Logger* create_logger(char const* logger_name);
 
   /**
    * Creates a new logger
@@ -61,7 +61,7 @@ public:
    * @param handler The handler of the loggfer
    * @return
    */
-  [[nodiscard]] Logger* create_logger(char const* logger_name, Handler* handler);
+  QUILL_NODISCARD Logger* create_logger(char const* logger_name, Handler* handler);
 
   /**
    * Create a new logger with multiple handler
@@ -69,7 +69,7 @@ public:
    * @param handlers
    * @return
    */
-  [[nodiscard]] Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
+  QUILL_NODISCARD Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
 
   /**
    * Set a custom default logger with a single handler

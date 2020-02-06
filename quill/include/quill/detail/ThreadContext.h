@@ -40,17 +40,17 @@ public:
   /**
    * @return A reference to the single-producer-single-consumer queue
    */
-  [[nodiscard]] inline SPSCQueueT& spsc_queue() noexcept { return _spsc_queue; }
+  QUILL_NODISCARD inline SPSCQueueT& spsc_queue() noexcept { return _spsc_queue; }
 
   /**
    * @return A reference to the single-producer-single-consumer queue const overload
    */
-  [[nodiscard]] inline SPSCQueueT const& spsc_queue() const noexcept { return _spsc_queue; }
+  QUILL_NODISCARD inline SPSCQueueT const& spsc_queue() const noexcept { return _spsc_queue; }
 
   /**
    * @return The cached thread id value
    */
-  [[nodiscard]] const char* thread_id() const noexcept { return _thread_id.data(); }
+  QUILL_NODISCARD const char* thread_id() const noexcept { return _thread_id.data(); }
 
   /**
    * Invalidate the context.
@@ -61,7 +61,7 @@ public:
    * Check is the context was invalidated
    * @return true when the context is valid, false otherwise
    */
-  [[nodiscard]] bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
+  QUILL_NODISCARD bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
 
 private:
   SPSCQueueT _spsc_queue;                                         /** queue for this thread */

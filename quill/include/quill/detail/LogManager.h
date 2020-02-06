@@ -33,12 +33,12 @@ public:
   /**
    * @return A reference to the logger collection
    */
-  [[nodiscard]] LoggerCollection& logger_collection() noexcept { return _logger_collection; }
+  QUILL_NODISCARD LoggerCollection& logger_collection() noexcept { return _logger_collection; }
 
   /**
    * @return A reference to the handler collection
    */
-  [[nodiscard]] HandlerCollection& handler_collection() noexcept { return _handler_collection; }
+  QUILL_NODISCARD HandlerCollection& handler_collection() noexcept { return _handler_collection; }
 
   /**
    * Blocks the caller thread until all log messages until the current timestamp are flushed
@@ -60,11 +60,10 @@ public:
 
 private:
   Config const& _config;                              // TODO: Move ownership here
-  HandlerCollection _handler_collection;              /** 2 Cache lines **/
-  ThreadContextCollection _thread_context_collection; /** 1 Cache line **/
-  LoggerCollection _logger_collection{_thread_context_collection, _handler_collection}; /** 2 Cache lines **/
-  BackendWorker _backend_worker{_config, _thread_context_collection, _logger_collection,
-                                _handler_collection}; /** 1 Cache line **/
+  HandlerCollection _handler_collection;
+  ThreadContextCollection _thread_context_collection;
+  LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
+  BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
 };
 } // namespace detail
 } // namespace quill

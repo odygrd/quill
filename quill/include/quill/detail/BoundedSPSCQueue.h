@@ -19,16 +19,16 @@
  * Detect if _MAP_POPULATE is available for mmap
  */
 #if defined(__linux__)
-#include <linux/version.h>
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 22)
-#define _MAP_POPULATE_AVAILABLE
-#endif
+  #include <linux/version.h>
+  #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 22)
+    #define _MAP_POPULATE_AVAILABLE
+  #endif
 #endif
 
 #ifdef _MAP_POPULATE_AVAILABLE
-#define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE)
+  #define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE)
 #else
-#define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS)
+  #define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS)
 #endif
 
 namespace quill
@@ -124,13 +124,13 @@ public:
     /**
      * Get the object memory.
      */
-    [[nodiscard]] value_type* data() const noexcept { return _data; }
+    QUILL_NODISCARD value_type* data() const noexcept { return _data; }
 
     /**
      * Checks the validity of this handle.
      * @return True if valid, otherwise false.
      */
-    [[nodiscard]] bool is_valid() const noexcept { return static_cast<bool>(_indicator); }
+    QUILL_NODISCARD bool is_valid() const noexcept { return static_cast<bool>(_indicator); }
 
     /**
      * Release will release the handle without incrementing the tail.
@@ -203,24 +203,24 @@ public:
    * @return
    */
   template <typename TInsertedObject, typename... Args>
-  [[nodiscard]] inline bool try_emplace(Args&&... args) noexcept;
+  QUILL_NODISCARD inline bool try_emplace(Args&&... args) noexcept;
 
   /**
    * Return a handle containing the consumed data of the requested size
    * @param size the size we requested to consume
    * @return
    */
-  [[nodiscard]] inline Handle try_pop() noexcept;
+  QUILL_NODISCARD inline Handle try_pop() noexcept;
 
   /**
    * @return total capacity of the queue in bytes
    */
-  [[nodiscard]] inline std::size_t capacity() const noexcept { return Capacity; }
+  QUILL_NODISCARD inline std::size_t capacity() const noexcept { return Capacity; }
 
   /**
    * @return True when the queue is empty, false if there is still data to read
    */
-  [[nodiscard]] inline bool empty() const noexcept;
+  QUILL_NODISCARD inline bool empty() const noexcept;
 
 private:
   static uint32_t _get_page_size() noexcept;

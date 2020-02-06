@@ -7,6 +7,7 @@
 #include <limits>
 #include <random>
 #include <thread>
+#include <algorithm>
 
 template <typename T>
 std::pair<std::string, std::vector<double>> log_numeric_performance(int amount, std::string name);
@@ -352,8 +353,11 @@ int main()
   std::cout << "***--- Results --- ***" << std::endl;
   std::cout << "Total Duration: " << total_duration << std::endl;
 
-  for (auto [test_name, vec_results] : results)
+  for (auto const& result : results)
   {
+    auto vec_results = result.second;
+    auto test_name = result.first;
+
     std::sort(vec_results.begin(), vec_results.end(), std::less<>());
 
     //

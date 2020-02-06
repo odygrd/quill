@@ -5,8 +5,8 @@
 #if defined(_WIN32)
 #elif defined(__APPLE__)
 #else
-#include <sched.h>
-#include <sys/prctl.h>
+  #include <sched.h>
+  #include <sys/prctl.h>
 #endif
 
 #include "quill/detail/HandlerCollection.h"
@@ -21,12 +21,8 @@ namespace detail
 /***/
 BackendWorker::BackendWorker(Config const& config,
                              ThreadContextCollection& thread_context_collection,
-                             LoggerCollection const& logger_collection,
                              HandlerCollection const& handler_collection)
-  : _config(config),
-    _thread_context_collection(thread_context_collection),
-    _logger_collection(logger_collection),
-    _handler_collection(handler_collection)
+  : _config(config), _thread_context_collection(thread_context_collection), _handler_collection(handler_collection)
 {
 }
 

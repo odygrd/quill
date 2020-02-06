@@ -21,7 +21,7 @@ public:
   {
   }
 
-  [[nodiscard]] size_t size() const noexcept override { return sizeof(*this); }
+  QUILL_NODISCARD size_t size() const noexcept override { return sizeof(*this); }
 
   /**
    * When we encounter this message we are going to call flush for all loggers on all handlers.

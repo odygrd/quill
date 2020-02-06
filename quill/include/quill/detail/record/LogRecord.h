@@ -52,7 +52,7 @@ public:
   /**
    * @return the size of the object
    */
-  [[nodiscard]] size_t size() const noexcept override { return sizeof(*this); }
+  QUILL_NODISCARD size_t size() const noexcept override { return sizeof(*this); }
 
   /**
    * Process a LogRecord

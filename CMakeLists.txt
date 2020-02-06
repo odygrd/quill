@@ -33,9 +33,9 @@ project(quill VERSION ${QUILL_VERSION} LANGUAGES CXX)
 #-------------------------------------------------------------------------------------------------------
 # Set default build to release
 #-------------------------------------------------------------------------------------------------------
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build" FORCE)
-endif()
+endif ()
 
 #---------------------------------------------------------------------------------------
 # Compiler config
@@ -43,7 +43,7 @@ endif()
 if (NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 14)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
-endif()
+endif ()
 
 #-------------------------------------------------------------------------------------------------------
 # Options

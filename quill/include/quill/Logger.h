@@ -33,7 +33,7 @@ public:
   /**
    * @return The log level of the logger
    */
-  [[nodiscard]] LogLevel log_level() const noexcept
+  QUILL_NODISCARD LogLevel log_level() const noexcept
   {
     return _log_level.load(std::memory_order_relaxed);
   }
@@ -52,7 +52,7 @@ public:
    * @param log_statement_level The log level of the log statement to be logged
    * @return
    */
-  [[nodiscard]] bool should_log(LogLevel log_statement_level) const noexcept
+  QUILL_NODISCARD bool should_log(LogLevel log_statement_level) const noexcept
   {
     return log_statement_level >= log_level();
   }
@@ -63,7 +63,7 @@ public:
    * @return
    */
   template <LogLevel log_statement_level>
-  [[nodiscard]] bool should_log() const noexcept
+  QUILL_NODISCARD bool should_log() const noexcept
   {
     return log_statement_level >= log_level();
   }

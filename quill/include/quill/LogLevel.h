@@ -5,6 +5,8 @@
 #include <string>
 #include <type_traits>
 
+#include "quill/detail/CommonMacros.h"
+
 namespace quill
 {
 /**
@@ -28,13 +30,13 @@ enum class LogLevel : uint32_t
  * @param log_level LogLevel
  * @return the corresponding string value
  */
-[[nodiscard]] char const* to_string(LogLevel log_level);
+QUILL_NODISCARD char const* to_string(LogLevel log_level);
 
 /**
  * Converts a string to a LogLevel enum value
  * @param log_level the log level string to convert
  * @return the corresponding LogLevel enum value
  */
-[[nodiscard]] LogLevel from_string(std::string log_level);
+QUILL_NODISCARD LogLevel from_string(std::string log_level);
 
 } // namespace quill

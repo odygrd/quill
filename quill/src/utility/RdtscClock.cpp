@@ -23,7 +23,7 @@ RdtscClock::RdtscTicks::RdtscTicks()
   constexpr int trials = 13;
   std::array<double, trials> rates = {0};
 
-  for (int i = 0; i < trials; ++i)
+  for (size_t i = 0; i < trials; ++i)
   {
     std::chrono::nanoseconds beg_ts, end_ts;
     uint64_t beg_tsc, end_tsc;
@@ -48,12 +48,10 @@ RdtscClock::RdtscTicks::RdtscTicks()
   ticks_per_ns_ = rates[trials / 2];
 }
 
-double ticks_per_ns_{0};
-
 /***/
 RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono::seconds{100} */)
   : resync_interval_ticks_(
-      static_cast<std::uint64_t>(resync_interval.count() * RdtscTicks::instance().ticks_per_ns())),
+      static_cast<std::int64_t>(resync_interval.count() * RdtscTicks::instance().ticks_per_ns())),
     resync_interval_orginal_(resync_interval_ticks_),
     ticks_per_nanosecond_(RdtscTicks::instance().ticks_per_ns())
 
@@ -69,7 +67,7 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
 std::chrono::nanoseconds RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
   // get rtsc current value and compare the diff then add it to base wall time
-  int64_t const diff = rdtsc_value - base_tsc_;
+  auto const diff = static_cast<const int64_t>(rdtsc_value - base_tsc_);
 
   auto const duration_since_epoch =
     std::chrono::nanoseconds{base_time_ + static_cast<int64_t>(diff / ticks_per_nanosecond_)};
@@ -96,8 +94,8 @@ void RdtscClock::resync() const noexcept
   {
     uint64_t const beg = __rdtsc();
     // we force convert to nanoseconds because the precision of system_clock::time-point is not portable across platforms.
-    uint64_t const wall_time = static_cast<uint64_t>(
-      std::chrono::nanoseconds{std::chrono::system_clock::now().time_since_epoch()}.count());
+    int64_t const wall_time =
+      std::chrono::nanoseconds{std::chrono::system_clock::now().time_since_epoch()}.count();
     uint64_t const end = __rdtsc();
 
     if (QUILL_LIKELY(end - beg <= 2000))

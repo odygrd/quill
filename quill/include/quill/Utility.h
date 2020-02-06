@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <string>
 
+#include "quill/detail/CommonMacros.h"
+
 /**
  * Contains useful utilities to assist with logging
  */
@@ -16,8 +18,8 @@ namespace utility
  * @param size
  * @return A string containing the hexadecimal representation of the givven buffer
  */
-[[nodiscard]] std::string to_hex(unsigned char* buffer, size_t size) noexcept;
-[[nodiscard]] std::string to_hex(unsigned char const* buffer, size_t size) noexcept;
+QUILL_NODISCARD std::string to_hex(unsigned char* buffer, size_t size) noexcept;
+QUILL_NODISCARD std::string to_hex(unsigned char const* buffer, size_t size) noexcept;
 
 /**
  * Formats the given buffer to hex
@@ -25,8 +27,8 @@ namespace utility
  * @param size
  * @return A string containing the hexadecimal representation of the givven buffer
  */
-[[nodiscard]] std::string to_hex(char* buffer, size_t size) noexcept;
-[[nodiscard]] std::string to_hex(char const* buffer, size_t size) noexcept;
+QUILL_NODISCARD std::string to_hex(char* buffer, size_t size) noexcept;
+QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
 
 } // namespace utility
 } // namespace quill

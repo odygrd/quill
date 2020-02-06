@@ -4,9 +4,9 @@
 #include <unistd.h>
 
 #if defined(__linux__)
-#include <sys/syscall.h>
+  #include <sys/syscall.h>
 #elif defined(__APPLE__)
-#include <pthread.h>
+  #include <pthread.h>
 #endif
 
 #include "quill/detail/CommonMacros.h"

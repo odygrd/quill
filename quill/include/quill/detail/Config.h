@@ -5,6 +5,8 @@
 #include <limits>
 #include <string>
 
+#include "quill/detail/CommonMacros.h"
+
 namespace quill
 {
 namespace detail
@@ -21,7 +23,7 @@ public:
   /**
    * @return The backend thread sleep duration when idle
    */
-  [[nodiscard]] std::chrono::nanoseconds backend_thread_sleep_duration() const noexcept;
+  QUILL_NODISCARD std::chrono::nanoseconds backend_thread_sleep_duration() const noexcept;
 
   /**
    * Pins the backend thread to the given cpu
@@ -32,7 +34,7 @@ public:
   /**
    * @return The backend thread cpu affinity
    */
-  [[nodiscard]] uint16_t backend_thread_cpu_affinity() const noexcept;
+  QUILL_NODISCARD uint16_t backend_thread_cpu_affinity() const noexcept;
 
   /**
    * Names the backend thread
@@ -43,7 +45,7 @@ public:
   /**
    * @return The backend thread name
    */
-  [[nodiscard]] std::string backend_thread_name() const noexcept;
+  QUILL_NODISCARD std::string backend_thread_name() const noexcept;
 
 private:
   std::string _backend_thread_name{"Quill_Backend"}; /** Custom name for the backend thread */

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "quill/TweakMe.h"
-
 #include <chrono>
+
+#include "quill/TweakMe.h"
+#include "quill/detail/CommonMacros.h"
 
 namespace quill
 {
@@ -19,7 +20,7 @@ class RdtscClock
   class RdtscTicks
   {
   public:
-    [[nodiscard]] static RdtscTicks& instance()
+    QUILL_NODISCARD static RdtscTicks& instance()
     {
       static RdtscTicks inst;
       return inst;
@@ -58,10 +59,10 @@ public:
   void resync() const noexcept;
 
 private:
-  mutable uint64_t base_time_{0}; /**< Get the initial base time in nanoseconds from epopch */
-  mutable uint64_t base_tsc_{0};  /**< Get the initial base tsc time */
-  mutable uint64_t resync_interval_ticks_{0};
-  uint64_t resync_interval_orginal_{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
+  mutable int64_t base_time_{0}; /**< Get the initial base time in nanoseconds from epoch */
+  mutable uint64_t base_tsc_{0}; /**< Get the initial base tsc time */
+  mutable int64_t resync_interval_ticks_{0};
+  int64_t resync_interval_orginal_{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
   double ticks_per_nanosecond_{0};
 }; // namespace detailclassRdtscClock
 } // namespace detail

@@ -29,7 +29,6 @@ public:
    */
   BackendWorker(Config const& config,
                 ThreadContextCollection& thread_context_collection,
-                LoggerCollection const& logger_collection,
                 HandlerCollection const& handler_collection);
 
   /**
@@ -41,7 +40,7 @@ public:
    * Returns the status of the backend worker thread
    * @return true when the worker is running, false otherwise
    */
-  [[nodiscard]] bool is_running() const noexcept;
+  QUILL_NODISCARD bool is_running() const noexcept;
 
   /**
    * Starts the backend worker thread
@@ -81,13 +80,12 @@ private:
    * Checks for records in all queues and processes the one with the minimum timestamp
    * @return true if one record was found and processed
    */
-  [[nodiscard]] bool _process_record(std::vector<ThreadContext*> const& thread_contexts);
+  QUILL_NODISCARD bool _process_record(std::vector<ThreadContext*> const& thread_contexts);
 
 private:
   /** This is exactly 1 cache line **/
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
-  LoggerCollection const& _logger_collection;
   HandlerCollection const& _handler_collection;
   std::unique_ptr<RdtscClock> _rdtsc_clock; /** rdtsc clock if enabled **/
 

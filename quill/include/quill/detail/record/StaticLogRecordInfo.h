@@ -29,63 +29,63 @@ public:
   /**
    * @return The function name
    */
-  [[nodiscard]] constexpr char const* func() const noexcept { return _func; }
+  QUILL_NODISCARD constexpr char const* func() const noexcept { return _func; }
 
   /**
    * @return The full pathname of the source file where the logging call was made.
    */
-  [[nodiscard]] constexpr char const* pathname() const noexcept { return _pathname; }
+  QUILL_NODISCARD constexpr char const* pathname() const noexcept { return _pathname; }
 
   /**
    * @return Short portion of the path name
    */
-  [[nodiscard]] constexpr char const* filename() const noexcept { return _filename; }
+  QUILL_NODISCARD constexpr char const* filename() const noexcept { return _filename; }
 
   /**
    * @return The user provided format
    */
-  [[nodiscard]] constexpr char const* message_format() const noexcept { return _message_format; }
+  QUILL_NODISCARD constexpr char const* message_format() const noexcept { return _message_format; }
 
   /**
    * @return The line number
    */
-  [[nodiscard]] constexpr char const* lineno() const noexcept { return _lineno; }
+  QUILL_NODISCARD constexpr char const* lineno() const noexcept { return _lineno; }
 
   /**
    * @return The log level of this logging event as an enum
    */
-  [[nodiscard]] constexpr LogLevel level() const noexcept { return _level; }
+  QUILL_NODISCARD constexpr LogLevel level() const noexcept { return _level; }
 
   /**
    * @return  The log level of this logging event as a string
    */
-  [[nodiscard]] constexpr char const* level_as_str() const noexcept
+  QUILL_NODISCARD constexpr char const* level_as_str() const noexcept
   {
     return _log_level_to_string(_level);
   }
 
 private:
-  [[nodiscard]] static constexpr char const* _str_end(char const* str) noexcept
+  QUILL_NODISCARD static constexpr char const* _str_end(char const* str) noexcept
   {
     return *str ? _str_end(str + 1) : str;
   }
 
-  [[nodiscard]] static constexpr bool _str_slant(char const* str) noexcept
+  QUILL_NODISCARD static constexpr bool _str_slant(char const* str) noexcept
   {
     return *str == '/' ? true : (*str ? _str_slant(str + 1) : false);
   }
 
-  [[nodiscard]] static constexpr char const* _r_slant(char const* str) noexcept
+  QUILL_NODISCARD static constexpr char const* _r_slant(char const* str) noexcept
   {
     return *str == '/' ? (str + 1) : _r_slant(str - 1);
   }
 
-  [[nodiscard]] static constexpr char const* _extract_source_file_name(char const* str) noexcept
+  QUILL_NODISCARD static constexpr char const* _extract_source_file_name(char const* str) noexcept
   {
     return _str_slant(str) ? _r_slant(_str_end(str)) : str;
   }
 
-  [[nodiscard]] static constexpr char const* _log_level_to_string(LogLevel log_level)
+  QUILL_NODISCARD static constexpr char const* _log_level_to_string(LogLevel log_level)
   {
     constexpr std::array<char const*, 9> log_levels_strings = {
       {"LOG_TRACE_L3", "LOG_TRACE_L2", "LOG_TRACE_L1", "LOG_DEBUG   ", "LOG_INFO    ",

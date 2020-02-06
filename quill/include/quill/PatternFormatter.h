@@ -233,7 +233,7 @@ private:
    * @return
    */
   template <typename TCallback, size_t... Is>
-  [[nodiscard]] static auto _generate_tuple_impl(TCallback callback, std::index_sequence<Is...>)
+  QUILL_NODISCARD static auto _generate_tuple_impl(TCallback callback, std::index_sequence<Is...>)
   {
     return std::make_tuple(callback(Is)...);
   }
@@ -246,7 +246,7 @@ private:
    * @return
    */
   template <size_t N, typename TCallback>
-  [[nodiscard]] static auto _generate_tuple(TCallback callback)
+  QUILL_NODISCARD static auto _generate_tuple(TCallback callback)
   {
     return _generate_tuple_impl(callback, std::make_index_sequence<N>{});
   }
@@ -292,7 +292,7 @@ private:
    * @note: we always expect to find %(message)
    * */
   template <typename TConstantString>
-  [[nodiscard]] static constexpr std::array<std::size_t, 2> _parse_format_pattern();
+  QUILL_NODISCARD static constexpr std::array<std::size_t, 2> _parse_format_pattern();
 
   /**
    * Process part of the pattern and create a helper formatter class
@@ -301,25 +301,25 @@ private:
    * @return
    */
   template <size_t N>
-  [[nodiscard]] std::unique_ptr<FormatterHelperBase> _make_formatter_helper(std::string const& format_pattern_part);
+  QUILL_NODISCARD std::unique_ptr<FormatterHelperBase> _make_formatter_helper(std::string const& format_pattern_part);
 
   /**
    * Given a message part generate a vector of callbacks in the excact same order as the format
    * specifiers in the pattern format string
    */
-  [[nodiscard]] std::vector<argument_callback_t> _generate_vector_of_callbacks(std::string const& pattern);
+  QUILL_NODISCARD std::vector<argument_callback_t> _generate_vector_of_callbacks(std::string const& pattern);
 
   /**
    * Create the callback we need to use based on the format specifier
    * @param pattern_attr
    * @return
    */
-  [[nodiscard]] argument_callback_t _select_argument_callback(std::string const& pattern_attr);
+  QUILL_NODISCARD argument_callback_t _select_argument_callback(std::string const& pattern_attr);
 
   /**
    * Given a part of the pattern modify it to match the expected lib fmt format
    */
-  [[nodiscard]] std::string _generate_fmt_format_string(std::string pattern);
+  QUILL_NODISCARD std::string _generate_fmt_format_string(std::string pattern);
 
   /**
    * Formats an epoch timestamp from nanos to a local date.
