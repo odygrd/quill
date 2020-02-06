@@ -22,7 +22,7 @@ uint32_t get_thread_id() noexcept
   return static_cast<uint32_t>(::syscall(SYS_gettid));
 #elif defined(__APPLE__)
   uint64_t tid64;
-  pthread_threadid_np(NULL, &tid64);
+  pthread_threadid_np(nullptr, &tid64);
   return static_cast<uint32_t>(tid64);
 #endif
 }
