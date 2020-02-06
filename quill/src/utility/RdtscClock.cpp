@@ -40,7 +40,7 @@ RdtscClock::RdtscTicks::RdtscTicks()
       elapsed_ns = end_ts - beg_ts;       // calculates ns between two timespecs
     } while (elapsed_ns < spin_duration); // busy spin for 10ms
 
-    rates[i] = static_cast<double>(end_tsc - beg_tsc) / elapsed_ns.count();
+    rates[i] = static_cast<double>(end_tsc - beg_tsc) / static_cast<double>(elapsed_ns.count());
   }
 
   std::nth_element(rates.begin(), rates.begin() + trials / 2, rates.end());
@@ -50,8 +50,8 @@ RdtscClock::RdtscTicks::RdtscTicks()
 
 /***/
 RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono::seconds{100} */)
-  : resync_interval_ticks_(
-      static_cast<std::int64_t>(resync_interval.count() * RdtscTicks::instance().ticks_per_ns())),
+  : resync_interval_ticks_(static_cast<std::int64_t>(static_cast<double>(resync_interval.count()) *
+                                                     RdtscTicks::instance().ticks_per_ns())),
     resync_interval_orginal_(resync_interval_ticks_),
     ticks_per_nanosecond_(RdtscTicks::instance().ticks_per_ns())
 
@@ -67,10 +67,10 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
 std::chrono::nanoseconds RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
   // get rtsc current value and compare the diff then add it to base wall time
-  auto const diff = static_cast<const int64_t>(rdtsc_value - base_tsc_);
+  auto const diff = static_cast<int64_t>(rdtsc_value - base_tsc_);
 
-  auto const duration_since_epoch =
-    std::chrono::nanoseconds{base_time_ + static_cast<int64_t>(diff / ticks_per_nanosecond_)};
+  auto const duration_since_epoch = std::chrono::nanoseconds{
+    base_time_ + static_cast<int64_t>(static_cast<double>(diff) / ticks_per_nanosecond_)};
 
   // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value
   if (diff > resync_interval_ticks_)
