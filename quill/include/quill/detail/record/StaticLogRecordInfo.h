@@ -72,12 +72,12 @@ private:
 
   QUILL_NODISCARD static constexpr bool _str_slant(char const* str) noexcept
   {
-    return *str == '/' ? true : (*str ? _str_slant(str + 1) : false);
+    return *str == path_delimiter ? true : (*str ? _str_slant(str + 1) : false);
   }
 
   QUILL_NODISCARD static constexpr char const* _r_slant(char const* str) noexcept
   {
-    return *str == '/' ? (str + 1) : _r_slant(str - 1);
+    return *str == path_delimiter ? (str + 1) : _r_slant(str - 1);
   }
 
   QUILL_NODISCARD static constexpr char const* _extract_source_file_name(char const* str) noexcept
@@ -96,6 +96,12 @@ private:
   }
 
 private:
+#if defined(_WIN32)
+  static constexpr char path_delimiter = '\\';
+#else
+  static constexpr char path_delimiter = '/';
+#endif
+
   char const* _func;
   char const* _pathname;
   char const* _filename;

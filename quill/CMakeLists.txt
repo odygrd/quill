@@ -15,6 +15,7 @@ set(HEADER_FILES
         include/quill/detail/utility/Spinlock.h
         include/quill/detail/BackendWorker.h
         include/quill/detail/BoundedSPSCQueue.h
+        include/quill/detail/BoundedSPSCQueueUtility.h
         include/quill/detail/CommonMacros.h
         include/quill/detail/CommonUtilities.h
         include/quill/detail/Config.h
@@ -40,6 +41,7 @@ set(HEADER_FILES
 # source files
 set(SOURCE_FILES
         src/detail/BackendWorker.cpp
+        src/detail/BoundedSPSCQueueUtility.cpp
         src/detail/Config.cpp
         src/detail/HandlerCollection.cpp
         src/detail/LoggerCollection.cpp

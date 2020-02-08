@@ -73,7 +73,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   // Set a file handler the custom logger handler and log to it
   Handler* file_handler = lm.handler_collection().filehandler(filename, "w");
   file_handler->set_pattern(
-    QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(function_name)]"));
+    QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(logger_name)]"));
   lm.logger_collection().set_default_logger_handler(file_handler);
 
   // Start logging
@@ -124,12 +124,12 @@ void custom_default_logger_same_handler(int test_case = 0)
   std::string const second_log_line_default =
     "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus "
     "ante";
-
+ 
   std::string const first_log_line_custom =
-    "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit [operator()]";
+    "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit [custom_logger]";
   std::string const second_log_line_custom =
     "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
-    "[operator()]";
+    "[custom_logger]";
 
   EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_default));
   EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_default));
@@ -161,7 +161,7 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
   // First handler
   Handler* file_handler_1 = lm.handler_collection().filehandler(filename_1, "w");
   file_handler_1->set_pattern(
-    QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(function_name)]"));
+    QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(logger_name)]"));
 
   // Second handler with different pattern
   Handler* file_handler_2 = lm.handler_collection().filehandler(filename_2, "w");
@@ -219,16 +219,16 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
     EXPECT_EQ(file_contents.size(), 4);
 
     std::string const first_log_line_default =
-      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit [operator()]";
+      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit [root]";
     std::string const second_log_line_default =
       "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
-      "[operator()]";
+      "[root]";
 
     std::string const first_log_line_custom =
-      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit [operator()]";
+      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit [custom_logger]";
     std::string const second_log_line_custom =
       "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
-      "ante [operator()]";
+      "ante [custom_logger]";
 
     EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_default));
     EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_default));

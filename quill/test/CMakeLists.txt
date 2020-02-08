@@ -1,4 +1,4 @@
-set(TEST_NAME "TEST_quill")
+set(TEST_NAME "TEST_quill3")
 
 set(HEADER_FILES
         misc/TestMain.cpp

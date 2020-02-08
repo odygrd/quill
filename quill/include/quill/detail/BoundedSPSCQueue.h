@@ -9,12 +9,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-#if defined(_WIN32)
-#else
-  #include <sys/mman.h>
-  #include <unistd.h>
-#endif
-
+#include "quill/detail/BoundedSPSCQueueUtility.h"
 #include "quill/detail/CommonMacros.h"
 #include "quill/detail/CommonUtilities.h"
 
@@ -62,7 +57,7 @@ namespace detail
  * @tparam T A base class type
  * @tparam capacity The total buffer's capacity in bytes
  */
-template <typename TBaseObject, std::size_t Capacity>
+template <typename TBaseObject, size_t Capacity>
 class BoundedSPSCQueue
 {
 public:
@@ -226,9 +221,6 @@ public:
   QUILL_NODISCARD inline bool empty() const noexcept;
 
 private:
-  static uint32_t _get_page_size() noexcept;
-
-private:
   /** Mask to shift around power of two capacity */
   static constexpr std::size_t MASK{Capacity - 1};
 
@@ -252,142 +244,46 @@ private:
   char _pad3[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
   alignas(detail::CACHELINE_SIZE) std::atomic<uint64_t> _tail{0}; /**< The index of the tail */
   char _pad4[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+
+#if defined(_WIN32)
+  void* _mapped_file_handler{nullptr};
+#endif
 };
 
-static_assert(sizeof(BoundedSPSCQueue<void,1>) == 4 * detail::CACHELINE_SIZE,
-              "Size of BoundedSPSCQueue should be 4 cache lines");
-
-  /***/
-template <typename TBaseObject, std::size_t Capacity>
+/***/
+template <typename TBaseObject, size_t Capacity>
 BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
 {
   if (!is_pow_of_two(capacity()))
   {
     throw std::runtime_error("capacity needs to be power of two");
   }
-  else if (capacity() % _get_page_size() != 0)
+  
+  if (capacity() % page_size() != 0)
   {
     throw std::runtime_error("capacity needs to be multiple of page size");
   }
 
+  std::pair<unsigned char*, void*> res = create_memory_mapped_files(capacity());
+
+  // Save the returned address
+  _producer.buffer = res.first;
+  _consumer.buffer = res.first;
+
 #if defined(_WIN32)
-    // TODO:: Fix me on windows
-#else
-  char shm_path[] = "/dev/shm/quill-XXXXXX";
-  char tmp_path[] = "/tmp/quill-XXXXXX";
-  char const* chosen_path{nullptr};
-
-  // Try to open an fd by creating a unique file in one of the above locations
-  int fd = mkstemp(shm_path);
-
-  if (fd < 0)
-  {
-    // if we failed try the tmp path
-    fd = mkstemp(tmp_path);
-    if (fd < 0)
-    {
-      std::ostringstream error_message;
-      error_message << "Could not open file in any location. Error : " << std::strerror(errno);
-      throw std::runtime_error(error_message.str());
-    }
-    chosen_path = tmp_path;
-  }
-  else
-  {
-    chosen_path = shm_path;
-  }
-
-  // Delete the file as we only want the fd
-  if (unlink(chosen_path) == -1)
-  {
-    close(fd);
-    std::ostringstream error_message;
-    error_message << "Could not unlink file. Error : " << std::strerror(errno);
-    throw std::runtime_error(error_message.str());
-  }
-
-  if (ftruncate(fd, static_cast<off_t>(capacity())) == -1)
-  {
-    close(fd);
-    std::ostringstream error_message;
-    error_message << "Could not truncate file. Error : " << std::strerror(errno);
-    throw std::runtime_error(error_message.str());
-  }
-
-  // ask mmap for a good address where we can put both virtual copies of the buffer
-  auto address = static_cast<unsigned char*>(mmap(nullptr, 2 * capacity(), PROT_NONE, MMAP_FLAGS, -1, 0));
-
-  if (address == MAP_FAILED)
-  {
-    close(fd);
-    std::ostringstream error_message;
-    error_message << "Failed to mmap. Error : " << std::strerror(errno);
-    throw std::runtime_error(error_message.str());
-  }
-
-  // map first region
-  auto other_address = static_cast<unsigned char*>(
-    mmap(address, capacity(), PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE, fd, 0));
-  if (other_address != address)
-  {
-    munmap(address, 2 * capacity());
-    close(fd);
-    std::ostringstream error_message;
-    error_message << "Failed to mmap. Error : " << std::strerror(errno);
-    throw std::runtime_error(error_message.str());
-  }
-
-  // map second region
-  other_address = static_cast<unsigned char*>(
-    mmap(address + capacity(), capacity(), PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE, fd, 0));
-  if (other_address != address + capacity())
-  {
-    munmap(address, 2 * capacity());
-    close(fd);
-    std::ostringstream error_message;
-    error_message << "Failed to mmap. Error : " << std::strerror(errno);
-    throw std::runtime_error(error_message.str());
-  }
-
-  // we don't need the fd any longer
-  if (close(fd) == -1)
-  {
-    munmap(address, 2 * capacity());
-    std::ostringstream error_message;
-    error_message << "Failed to close the fd. Error : " << std::strerror(errno);
-    throw std::runtime_error(error_message.str());
-  }
-
-  _producer.buffer = address;
-  _consumer.buffer = address;
-
- #endif
+  // On windows we have to store the extra pointer, elsewhere it is just nullptr
+  _mapped_file_handler = res.second;
+#endif
 }
 
 /***/
 template <typename TBaseObject, std::size_t Capacity>
 BoundedSPSCQueue<TBaseObject, Capacity>::~BoundedSPSCQueue()
 {
-  if (!_producer.buffer || !_consumer.buffer)
-  {
-    return;
-  }
-
 #if defined(_WIN32)
-  // TODO:: Fix me on windows
-  /**
-  BOOL ok;
-  ok = UnmapViewOfFile(_producer.buffer);
-  assert(ok);
-  ok = UnmapViewOfFile(_producer.buffer + capacity());
-  assert(ok);
-  ok = CloseHandle((HANDLE)mem->priv);
-  assert(ok);
-  */
+  destroy_memory_mapped_files(std::pair<unsigned char*, void*>{_producer.buffer, _mapped_file_handler}, capacity());
 #else
-  int err = munmap(_producer.buffer, 2 * capacity());
-  (void)err;
-  assert(!err);
+  destroy_memory_mapped_files(std::pair<unsigned char*, void*>{_producer.buffer, nullptr}, capacity());
 #endif
 }
 
@@ -462,23 +358,6 @@ template <typename TBaseObject, std::size_t Capacity>
 bool BoundedSPSCQueue<TBaseObject, Capacity>::empty() const noexcept
 {
   return _head.load(std::memory_order_relaxed) == _tail.load(std::memory_order_relaxed);
-}
-
-/***/
-template <typename TBaseObject, std::size_t Capacity>
-uint32_t BoundedSPSCQueue<TBaseObject, Capacity>::_get_page_size() noexcept
-{
-  // thread local to avoid race condition when more than one threads are creating the queue at the same time
-  static thread_local uint32_t page_size{0};
-#if defined(_WIN32)
-  // TODO:: Fix me on windows
-  // SYSTEM_INFO system_info;
-  // GetSystemInfo(&system_info);
-  // page_size = std::max(system_info.dwPageSize, system_info.dwAllocationGranularity);
-#else
-  page_size = static_cast<uint32_t>(sysconf(_SC_PAGESIZE));
-#endif
-  return page_size;
 }
 } // namespace detail
 } // namespace quill
