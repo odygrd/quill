@@ -1,16 +1,10 @@
 #include "quill/detail/utility/RdtscClock.h"
 
+#include "quill/detail/utility/Macros.h"
+#include "quill/detail/utility/Os.h"
 #include <algorithm>
 #include <array>
 #include <chrono>
-
-#if defined(_WIN32)
-  #include <intrin.h>
-#else
-  #include <x86intrin.h>
-#endif
-
-#include "quill/detail/utility/Os.h"
 
 namespace quill
 {

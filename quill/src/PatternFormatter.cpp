@@ -1,4 +1,5 @@
 #include "quill/PatternFormatter.h"
+#include "quill/detail/utility/Macros.h"
 #include "quill/detail/utility/Os.h"
 
 namespace quill

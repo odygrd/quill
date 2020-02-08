@@ -1,14 +1,13 @@
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-#include <cstdlib>
-
 #include "quill/TweakMe.h"
 
 #include "quill/detail/BoundedSPSCQueue.h"
 #include "quill/detail/record/RecordBase.h"
 #include "quill/detail/utility/Os.h"
+#include <atomic>
+#include <cstdint>
+#include <cstdlib>
 
 namespace quill
 {

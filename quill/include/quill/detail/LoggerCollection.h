@@ -1,14 +1,13 @@
 #pragma once
 
+#include "quill/Logger.h"
+#include "quill/detail/HandlerCollection.h"
+#include "quill/detail/utility/RecursiveSpinlock.h"
 #include <initializer_list>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "quill/Logger.h"
-#include "quill/detail/HandlerCollection.h"
-#include "quill/detail/utility/RecursiveSpinlock.h"
 
 namespace quill
 {

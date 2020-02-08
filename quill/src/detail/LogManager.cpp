@@ -1,9 +1,8 @@
 #include "quill/detail/LogManager.h"
 
+#include "quill/detail/record/CommandRecord.h"
 #include "quill/detail/utility/Spinlock.h"
 #include <condition_variable>
-
-#include "quill/detail/record/CommandRecord.h"
 
 namespace quill
 {

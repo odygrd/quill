@@ -1,10 +1,9 @@
 #pragma once
 
+#include "quill/detail/utility/Attributes.h"
 #include <cstdint>
 #include <ctime>
 #include <utility>
-
-#include "quill/detail/CommonMacros.h"
 
 #if defined(_WIN32)
   #include <intrin.h>

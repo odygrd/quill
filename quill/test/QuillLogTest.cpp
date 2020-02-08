@@ -1,8 +1,7 @@
-#include <gtest/gtest.h>
-
 #include "misc/TestUtilities.h"
 #include "quill/Quill.h"
 #include <cstdio>
+#include <gtest/gtest.h>
 #include <string>
 
 // Note: This thread is flushing using the main thread. This means that no-other test should have used flush()

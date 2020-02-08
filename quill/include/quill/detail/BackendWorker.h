@@ -1,13 +1,12 @@
 #pragma once
 
+#include "quill/detail/Config.h"
+#include "quill/detail/utility/RdtscClock.h"
 #include <atomic>
 #include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
-
-#include "quill/detail/Config.h"
-#include "quill/detail/utility/RdtscClock.h"
 
 namespace quill
 {

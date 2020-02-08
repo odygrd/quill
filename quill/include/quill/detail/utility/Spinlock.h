@@ -1,9 +1,8 @@
 #pragma once
 
+#include "quill/detail/utility/Attributes.h"
 #include <atomic>
 #include <mutex> // for std::lock_guard
-
-#include "quill/detail/CommonMacros.h"
 
 namespace quill
 {

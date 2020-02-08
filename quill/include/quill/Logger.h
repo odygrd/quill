@@ -1,14 +1,14 @@
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-#include <vector>
-
 #include "quill/LogLevel.h"
-#include "quill/detail/CommonUtilities.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/record/LogRecord.h"
+#include "quill/detail/utility/Macros.h"
+#include "quill/detail/utility/Misc.h"
+#include <atomic>
+#include <cstdint>
+#include <vector>
 
 namespace quill
 {

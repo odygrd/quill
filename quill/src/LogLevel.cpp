@@ -1,13 +1,12 @@
 #include "quill/LogLevel.h"
 
+#include "quill/detail/utility/Macros.h"
 #include <algorithm>
 #include <array>
 #include <sstream>
 #include <stdexcept>
 #include <type_traits>
 #include <unordered_map>
-
-#include "quill/detail/CommonMacros.h"
 
 namespace quill
 {

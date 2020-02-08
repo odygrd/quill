@@ -1,9 +1,8 @@
 #pragma once
 
+#include "quill/detail/utility/Attributes.h"
 #include <cstddef>
 #include <string>
-
-#include "quill/detail/CommonMacros.h"
 
 /**
  * Contains useful utilities to assist with logging

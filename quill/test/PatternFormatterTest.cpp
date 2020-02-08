@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
-
 #include "quill/PatternFormatter.h"
+#include "quill/detail/utility/Macros.h"
 #include <chrono>
+#include <gtest/gtest.h>
 
 using namespace quill::detail;
 using namespace quill;

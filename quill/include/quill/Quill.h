@@ -1,11 +1,9 @@
 #pragma once
 
-#include "quill/Macros.h"
-
-#include <initializer_list>
-
 #include "quill/Utility.h"
+#include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManagerSingleton.h"
+#include <initializer_list>
 
 namespace quill
 {

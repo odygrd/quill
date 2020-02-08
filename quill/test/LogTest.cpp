@@ -3,7 +3,7 @@
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
 #include "misc/TestUtilities.h"
-#include "quill/Macros.h"
+#include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManager.h"
 #include "quill/handlers/Handler.h"
 #include <cstdio>

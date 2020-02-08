@@ -1,4 +1,5 @@
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/utility/Macros.h"
 
 namespace quill
 {

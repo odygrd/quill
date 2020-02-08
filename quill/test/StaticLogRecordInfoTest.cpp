@@ -1,5 +1,5 @@
 #include "quill/detail/record/StaticLogRecordInfo.h"
-#include "quill/detail/CommonMacros.h"
+#include "quill/detail/utility/Macros.h"
 #include <gtest/gtest.h>
 
 using namespace quill::detail;

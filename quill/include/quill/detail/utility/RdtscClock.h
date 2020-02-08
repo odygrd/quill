@@ -1,9 +1,9 @@
 #pragma once
 
-#include <chrono>
-
 #include "quill/TweakMe.h"
-#include "quill/detail/CommonMacros.h"
+
+#include "quill/detail/utility/Attributes.h"
+#include <chrono>
 
 namespace quill
 {

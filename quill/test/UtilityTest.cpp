@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
-
 #include "quill/Utility.h"
+#include <gtest/gtest.h>
 
 /***/
 TEST(Utility, ascii_string_to_hex_1)

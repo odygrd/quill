@@ -1,11 +1,10 @@
 #pragma once
 
+#include "quill/detail/utility/Attributes.h"
 #include <chrono>
 #include <cstdint>
 #include <limits>
 #include <string>
-
-#include "quill/detail/CommonMacros.h"
 
 namespace quill
 {

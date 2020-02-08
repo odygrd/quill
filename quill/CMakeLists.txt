@@ -10,18 +10,20 @@ set(HEADER_FILES
         include/quill/detail/record/LogRecordUtilities.h
         include/quill/detail/record/RecordBase.h
         include/quill/detail/record/StaticLogRecordInfo.h
+        include/quill/detail/utility/Attributes.h
+        include/quill/detail/utility/Macros.h
+        include/quill/detail/utility/Misc.h
         include/quill/detail/utility/Os.h
         include/quill/detail/utility/RdtscClock.h
         include/quill/detail/utility/RecursiveSpinlock.h
         include/quill/detail/utility/Spinlock.h
         include/quill/detail/BackendWorker.h
         include/quill/detail/BoundedSPSCQueue.h
-        include/quill/detail/CommonMacros.h
-        include/quill/detail/CommonUtilities.h
         include/quill/detail/Config.h
         include/quill/detail/HandlerCollection.h
         include/quill/detail/LoggerCollection.h
         include/quill/detail/LoggerDetails.h
+        include/quill/detail/LogMacros.h
         include/quill/detail/LogManager.h
         include/quill/detail/LogManagerSingleton.h
         include/quill/detail/ThreadContext.h
@@ -31,11 +33,11 @@ set(HEADER_FILES
         include/quill/handlers/StreamHandler.h
         include/quill/Logger.h
         include/quill/LogLevel.h
-        include/quill/Macros.h
         include/quill/PatternFormatter.h
         include/quill/Quill.h
         include/quill/TweakMe.h
         include/quill/Utility.h
+        include/quill/Version.h
         )
 
 # source files
@@ -47,9 +49,9 @@ set(SOURCE_FILES
         src/detail/LogManager.cpp
         src/detail/LogManagerSingleton.cpp
         src/detail/ThreadContextCollection.cpp
-        src/detail/CommonUtilities.cpp
         src/handlers/FileHandler.cpp
         src/handlers/StreamHandler.cpp
+        src/utility/Misc.cpp
         src/utility/Os.cpp
         src/utility/RdtscClock.cpp
         src/utility/RecursiveSpinlock.cpp
@@ -84,10 +86,10 @@ target_include_directories(${TARGET_NAME}
 target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
 
 # Compiler options
-target_compile_options(${TARGET_NAME} PRIVATE		
-         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:		
-         -Wall -Wextra -Wconversion -pedantic -Wfatal-errors>		
-         $<$<CXX_COMPILER_ID:MSVC>:/W4>)
+target_compile_options(${TARGET_NAME} PRIVATE
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field>
+        $<$<CXX_COMPILER_ID:MSVC>:/W4>)
 
 if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015		
      target_compile_options(${TARGET_NAME} PRIVATE /WX)		

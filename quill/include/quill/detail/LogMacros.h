@@ -2,13 +2,12 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/Logger.h"
-#include "quill/detail/CommonMacros.h"
-
 #include "fmt/chrono.h"
 #include "fmt/format.h"
 #include "fmt/ostream.h"
 #include "fmt/ranges.h"
+#include "quill/Logger.h"
+#include "quill/detail/utility/Macros.h"
 
 // Config Options
 #define QUILL_LOG_LEVEL_TRACE_L3 0

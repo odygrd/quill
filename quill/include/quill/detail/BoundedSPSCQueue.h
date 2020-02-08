@@ -1,12 +1,12 @@
 #pragma once
 
+#include "quill/detail/utility/Attributes.h"
+#include "quill/detail/utility/Macros.h"
+#include "quill/detail/utility/Misc.h"
+#include "quill/detail/utility/Os.h"
 #include <atomic>
 #include <cstdint>
 #include <type_traits>
-
-#include "quill/detail/CommonMacros.h"
-#include "quill/detail/CommonUtilities.h"
-#include "quill/detail/utility/Os.h"
 
 namespace quill
 {

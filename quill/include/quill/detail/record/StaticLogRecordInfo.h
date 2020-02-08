@@ -1,8 +1,7 @@
 #pragma once
 
-#include <cstdint>
-
 #include "quill/LogLevel.h"
+#include <cstdint>
 
 namespace quill
 {

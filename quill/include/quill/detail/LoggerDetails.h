@@ -1,11 +1,10 @@
 #pragma once
 
+#include "quill/detail/utility/Misc.h"
+#include "quill/handlers/Handler.h"
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "quill/detail/CommonUtilities.h"
-#include "quill/handlers/Handler.h"
 
 namespace quill
 {

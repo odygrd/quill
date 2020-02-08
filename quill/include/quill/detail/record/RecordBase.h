@@ -2,14 +2,13 @@
 
 #include "quill/TweakMe.h"
 
+#include "quill/detail/LoggerDetails.h"
+#include "quill/detail/utility/Os.h"
+#include "quill/detail/utility/RdtscClock.h"
 #include <chrono>
 #include <cstdint>
 #include <functional>
 #include <vector>
-
-#include "quill/detail/LoggerDetails.h"
-#include "quill/detail/utility/Os.h"
-#include "quill/detail/utility/RdtscClock.h"
 
 namespace quill
 {

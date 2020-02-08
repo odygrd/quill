@@ -11,34 +11,6 @@
 #endif
 
 /**
- * Convert number to string
- */
-#define QUILL_AS_STR(x) #x
-#define QUILL_STRINGIFY(x) QUILL_AS_STR(x)
-
-/**
- * Likely
- */
-#if defined(__GNUC__)
-  #define QUILL_LIKELY(x) (__builtin_expect((x), 1))
-  #define QUILL_UNLIKELY(x) (__builtin_expect((x), 0))
-#else
-  #define QUILL_LIKELY(x) (x)
-  #define QUILL_UNLIKELY(x) (x)
-#endif
-
-/**
- * Always Inline
- */
-#if defined(__GNUC__)
-  #define QUILL_ALWAYS_INLINE inline __attribute__((__always_inline__))
-#elif defined(_WIN32)
-  #define QUILL_ALWAYS_INLINE __forceinline
-#else
-  #define QUILL_ALWAYS_INLINE inline
-#endif
-
-/**
  * __has_attribute
  */
 #ifdef __has_attribute
@@ -57,6 +29,17 @@
 #endif
 
 /**
+ * Always Inline
+ */
+#if defined(__GNUC__)
+  #define QUILL_ALWAYS_INLINE inline __attribute__((__always_inline__))
+#elif defined(_WIN32)
+  #define QUILL_ALWAYS_INLINE __forceinline
+#else
+  #define QUILL_ALWAYS_INLINE inline
+#endif
+
+/**
  * Portable no discard warnings
  */
 #if QUILL_HAS_CPP_ATTRIBUTE(nodiscard)
@@ -72,7 +55,7 @@
 #endif
 
 /**
- * Portable maybe_unsed
+ * Portable maybe_unused
  */
 #if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused) && (defined(_HAS_CXX17) && _HAS_CXX17 == 1)
   #define QUILL_MAYBE_UNUSED [[maybe_unused]]

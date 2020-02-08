@@ -1,8 +1,7 @@
 #pragma once
 
-#include <functional>
-
 #include "quill/detail/record/RecordBase.h"
+#include <functional>
 
 namespace quill
 {

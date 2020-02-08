@@ -3,9 +3,9 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "quill/detail/CommonMacros.h"
-#include "quill/detail/CommonUtilities.h"
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/utility/Macros.h"
+#include "quill/detail/utility/Misc.h"
 #include "quill/handlers/StreamHandler.h"
 
 namespace quill

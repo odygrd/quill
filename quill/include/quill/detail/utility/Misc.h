@@ -1,13 +1,12 @@
 #pragma once
 
+#include "quill/detail/utility/Attributes.h"
 #include <array>
 #include <cassert>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-
-#include "quill/detail/CommonMacros.h"
 
 namespace quill
 {

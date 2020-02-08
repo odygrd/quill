@@ -2,7 +2,6 @@
 
 #include "quill/detail/utility/Spinlock.h"
 #include "quill/handlers/StreamHandler.h"
-
 #include <memory>
 #include <unordered_map>
 

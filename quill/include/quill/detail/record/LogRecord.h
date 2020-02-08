@@ -1,13 +1,11 @@
 #pragma once
 
-#include "quill/detail/record/RecordBase.h"
-
-#include <tuple>
-
 #include "fmt/format.h"
 #include "invoke/invoke.h"
 #include "quill/detail/record/LogRecordUtilities.h"
+#include "quill/detail/record/RecordBase.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
+#include <tuple>
 
 namespace quill
 {

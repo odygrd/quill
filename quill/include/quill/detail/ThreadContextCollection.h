@@ -2,7 +2,6 @@
 
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/utility/Spinlock.h"
-
 #include <atomic>
 #include <cassert>
 #include <cstdint>

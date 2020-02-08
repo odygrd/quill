@@ -1,6 +1,5 @@
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
-
 #include "quill/handlers/Handler.h"
 #include <gtest/gtest.h>
 

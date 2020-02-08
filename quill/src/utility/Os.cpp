@@ -1,11 +1,11 @@
 #include "quill/detail/utility/Os.h"
 
+#include "quill/detail/utility/Macros.h"
+#include "quill/detail/utility/Misc.h"
 #include <cstdint>
 #include <cstdlib>
 #include <stdexcept>
 #include <system_error>
-
-#include "quill/detail/CommonUtilities.h"
 
 #if defined(_WIN32)
   #define WIN32_LEAN_AND_MEAN
@@ -26,23 +26,25 @@
   #include <sys/prctl.h>
   #include <sys/syscall.h>
   #include <unistd.h>
-#endif
 
-/**
- * Detect if _MAP_POPULATE is available for mmap
- */
-#if defined(__linux__)
+  /**
+   * Detect if _MAP_POPULATE is available for mmap
+   */
   #include <linux/version.h>
   #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 22)
     #define _MAP_POPULATE_AVAILABLE
   #endif
 #endif
 
+/**
+ * MMAP Flags for linux/Macos only
+ */
 #ifdef _MAP_POPULATE_AVAILABLE
   #define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE)
 #else
   #define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS)
 #endif
+
 namespace quill
 {
 namespace detail
@@ -72,7 +74,7 @@ tm* localtime_rs(time_t const* timer, tm* buf) noexcept
 void set_cpu_affinity(uint16_t cpu_id)
 {
 #if defined(_WIN32)
-  // TODO:: Cpu affinity for windows
+// TODO:: Cpu affinity for windows
 #elif defined(__APPLE__)
   // I don't think that's possible to link a thread with a specific core with Mac OS X
   // This may be used to express affinity relationships  between threads in the task.
@@ -101,7 +103,7 @@ void set_cpu_affinity(uint16_t cpu_id)
 void set_thread_name(char const* name)
 {
 #if defined(_WIN32)
-  // TODO:: Thread name for windows
+// TODO:: Thread name for windows
 #elif defined(__APPLE__)
   auto const res = pthread_setname_np(name);
   if (res != 0)
