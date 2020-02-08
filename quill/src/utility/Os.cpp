@@ -86,7 +86,7 @@ void set_cpu_affinity(uint16_t cpu_id)
 #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
-  CPU_SET(_config.backend_thread_cpu_affinity(), &cpuset);
+  CPU_SET(cpu_id, &cpuset);
 
   auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
 
@@ -109,8 +109,7 @@ void set_thread_name(char const* name)
     throw std::runtime_error("Failed to set thread name. error: " + std::to_string(res));
   }
 #else
-  auto const err =
-    prctl(PR_SET_NAME, reinterpret_cast<unsigned long>(_config.backend_thread_name().data()), 0, 0, 0);
+  auto const err = prctl(PR_SET_NAME, reinterpret_cast<unsigned long>(name), 0, 0, 0);
 
   if (QUILL_UNLIKELY(err == -1))
   {
@@ -150,13 +149,19 @@ size_t get_page_size() noexcept
 }
 
 /***/
-void* aligned_alloc(size_t alignment, size_t size) noexcept
+void* aligned_alloc(size_t alignment, size_t size)
 {
 #if defined(_WIN32)
   return _aligned_malloc(size, alignment);
 #else
   void* ret = nullptr;
-  (void)posix_memalign(&ret, alignment, size);
+
+  auto res = posix_memalign(&ret, alignment, size);
+  if (QUILL_UNLIKELY(res == EINVAL || res == ENOMEM))
+  {
+    throw std::system_error(res, std::system_category());
+  }
+
   return ret;
 #endif
 }

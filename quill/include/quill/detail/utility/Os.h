@@ -69,7 +69,7 @@ QUILL_NODISCARD size_t get_page_size() noexcept;
  * @param size
  * @return
  */
-QUILL_NODISCARD void* aligned_alloc(size_t alignment, size_t size) noexcept;
+QUILL_NODISCARD void* aligned_alloc(size_t alignment, size_t size);
 
 /**
  * Aligned free

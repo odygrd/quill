@@ -90,7 +90,7 @@ private:
 
   // TODO::: Check the sizes here
   /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
-  QUILL_MAYBE_UNUSED char _pad1[detail::CACHELINE_SIZE - 24];
+  char _pad1[detail::CACHELINE_SIZE - 24];
 
   /** We can not avoid having less than 2 cachelines here, so we will just align the lock and the logger map on the same cache line as they are used together anyway */
   alignas(detail::CACHELINE_SIZE) std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */

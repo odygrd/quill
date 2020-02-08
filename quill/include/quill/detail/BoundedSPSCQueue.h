@@ -214,15 +214,15 @@ private:
 
   /** Local State - Read and Write only by either the producer or consumer **/
   alignas(detail::CACHELINE_SIZE) local_state _producer;
-  QUILL_MAYBE_UNUSED char _pad1[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  char _pad1[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
   alignas(detail::CACHELINE_SIZE) local_state _consumer;
-  QUILL_MAYBE_UNUSED char _pad2[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  char _pad2[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
 
   /** Shared State - Both consumer and producer can read and write on each variable **/
   alignas(detail::CACHELINE_SIZE) std::atomic<uint64_t> _head{0}; /**< The index of the head */
-  QUILL_MAYBE_UNUSED char _pad3[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  char _pad3[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
   alignas(detail::CACHELINE_SIZE) std::atomic<uint64_t> _tail{0}; /**< The index of the tail */
-  QUILL_MAYBE_UNUSED char _pad4[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  char _pad4[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
 
 #if defined(_WIN32)
   /**
