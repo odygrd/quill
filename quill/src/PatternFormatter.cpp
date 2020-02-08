@@ -140,16 +140,16 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   int64_t const rawtime_seconds = epoch / 1'000'000'000;
 
   // TODO: gmt time or local time ?
-  tm timeinfo;
+  tm* timeinfo;
 
   // Convert timestamp to date based on the option
   if (_timezone_type == Timezone::GmtTime)
   {
-    gmtime_r(reinterpret_cast<const time_t*>(&rawtime_seconds), std::addressof(timeinfo));
+    timeinfo = gmtime(reinterpret_cast<const time_t*>(&rawtime_seconds));
   }
   else if (_timezone_type == Timezone::LocalTime)
   {
-    localtime_r(reinterpret_cast<const time_t*>(&rawtime_seconds), std::addressof(timeinfo));
+    timeinfo = localtime(reinterpret_cast<const time_t*>(&rawtime_seconds));
   }
 
   // extract the nanoseconds
@@ -158,14 +158,12 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   _formatted_date.clear();
 
   // add time
-  auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(),
-                      std::addressof(timeinfo));
+  auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(), timeinfo);
 
   while (QUILL_UNLIKELY(res == 0))
   {
     _formatted_date.resize(_formatted_date.capacity() * 2);
-    res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(),
-                   std::addressof(timeinfo));
+    res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(), timeinfo);
   }
 
   // Add precision

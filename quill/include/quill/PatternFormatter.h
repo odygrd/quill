@@ -20,7 +20,7 @@
  */
 #define QUILL_STRING(str)                                                                          \
   [] {                                                                                             \
-    using R = union {                                                                              \
+    using R = union X {                                                                            \
       static constexpr auto value() { return str; }                                                \
     };                                                                                             \
     return R{};                                                                                    \

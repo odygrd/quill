@@ -1,11 +1,13 @@
 #include "quill/detail/CommonUtilities.h"
 
 #include <system_error>
-#include <unistd.h>
 
-#if defined(__linux__)
+#if defined(_WIN32)
+#elif defined(__linux__)
+  #include <unistd.h>
   #include <sys/syscall.h>
 #elif defined(__APPLE__)
+  #include <unistd.h>
   #include <pthread.h>
 #endif
 
@@ -18,7 +20,10 @@ namespace detail
 /***/
 uint32_t get_thread_id() noexcept
 {
-#if defined(__linux__)
+#if defined(_WIN32)
+    // TODO:: Frix thread id on windows
+  return 0;
+#elif defined(__linux__)
   return static_cast<uint32_t>(::syscall(SYS_gettid));
 #elif defined(__APPLE__)
   uint64_t tid64;

@@ -9,8 +9,11 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include <sys/mman.h>
-#include <unistd.h>
+#if defined(_WIN32)
+#else
+  #include <sys/mman.h>
+  #include <unistd.h>
+#endif
 
 #include "quill/detail/CommonMacros.h"
 #include "quill/detail/CommonUtilities.h"
@@ -260,6 +263,9 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
     throw std::runtime_error("capacity needs to be multiple of page size");
   }
 
+#if defined(_WIN32)
+    // TODO:: Fix me on windows
+#else
   char shm_path[] = "/dev/shm/quill-XXXXXX";
   char tmp_path[] = "/tmp/quill-XXXXXX";
   char const* chosen_path{nullptr};
@@ -347,6 +353,8 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
 
   _producer.buffer = address;
   _consumer.buffer = address;
+
+ #endif
 }
 
 /***/
@@ -359,6 +367,8 @@ BoundedSPSCQueue<TBaseObject, Capacity>::~BoundedSPSCQueue()
   }
 
 #if defined(_WIN32)
+  // TODO:: Fix me on windows
+  /**
   BOOL ok;
   ok = UnmapViewOfFile(_producer.buffer);
   assert(ok);
@@ -366,6 +376,7 @@ BoundedSPSCQueue<TBaseObject, Capacity>::~BoundedSPSCQueue()
   assert(ok);
   ok = CloseHandle((HANDLE)mem->priv);
   assert(ok);
+  */
 #else
   int err = munmap(_producer.buffer, 2 * capacity());
   (void)err;
@@ -453,9 +464,10 @@ uint32_t BoundedSPSCQueue<TBaseObject, Capacity>::_get_page_size() noexcept
   // thread local to avoid race condition when more than one threads are creating the queue at the same time
   static thread_local uint32_t page_size{0};
 #if defined(_WIN32)
-  SYSTEM_INFO system_info;
-  GetSystemInfo(&system_info);
-  page_size = std::max(system_info.dwPageSize, system_info.dwAllocationGranularity);
+  // TODO:: Fix me on windows
+  // SYSTEM_INFO system_info;
+  // GetSystemInfo(&system_info);
+  // page_size = std::max(system_info.dwPageSize, system_info.dwAllocationGranularity);
 #else
   page_size = static_cast<uint32_t>(sysconf(_SC_PAGESIZE));
 #endif

@@ -3,7 +3,13 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <x86intrin.h>
+
+#if defined(_WIN32)
+  #include <intrin.h>
+#else
+  #include <x86intrin.h>
+#endif
+
 
 #include "quill/detail/CommonMacros.h"
 

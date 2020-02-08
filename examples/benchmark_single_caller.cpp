@@ -8,6 +8,7 @@
 #include <random>
 #include <thread>
 #include <algorithm>
+#include <numeric>
 
 template <typename T>
 std::pair<std::string, std::vector<double>> log_numeric_performance(int amount, std::string name);

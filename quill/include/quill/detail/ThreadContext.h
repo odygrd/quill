@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <cstdlib>
 
 #include "quill/TweakMe.h"
 
@@ -36,6 +37,24 @@ public:
    */
   ThreadContext(ThreadContext const&) = delete;
   ThreadContext& operator=(ThreadContext const&) = delete;
+
+  void* operator new(size_t i) 
+  { 
+#if defined(_WIN32)
+    return _aligned_malloc(i, 64);
+#else
+    // TODO:: memalign on linux
+#endif
+  }
+
+  void operator delete(void* p)
+  { 
+#if defined(_WIN32)
+    _aligned_free(p);
+#else
+    // TODO:: memalign on linux
+#endif
+  }
 
   /**
    * @return A reference to the single-producer-single-consumer queue

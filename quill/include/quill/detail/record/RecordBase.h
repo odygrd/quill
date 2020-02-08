@@ -6,7 +6,13 @@
 #include <cstdint>
 #include <functional>
 #include <vector>
-#include <x86intrin.h>
+
+#if defined(_WIN32)
+  #include <intrin.h>
+#else
+  #include <x86intrin.h>
+#endif
+
 
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/utility/RdtscClock.h"
