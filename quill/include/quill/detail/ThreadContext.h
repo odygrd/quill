@@ -55,7 +55,7 @@ public:
   }
 
   /**
-   * Operaator delete
+   * Operator delete
    * @see operator new
    * @param p
    */
