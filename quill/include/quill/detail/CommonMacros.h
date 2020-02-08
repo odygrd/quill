@@ -32,7 +32,7 @@
  */
 #if defined(__GNUC__)
   #define QUILL_ALWAYS_INLINE inline __attribute__((__always_inline__))
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
   #define QUILL_ALWAYS_INLINE __forceinline
 #else
   #define QUILL_ALWAYS_INLINE inline
