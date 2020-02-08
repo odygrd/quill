@@ -139,7 +139,8 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   // convert timestamp to date
   int64_t const rawtime_seconds = epoch / 1'000'000'000;
 
-  // TODO: gmt time or local time ?
+  // Because on windows gmtime/localtime is thread safe by default there is no gmtime_r and since we
+  // only have the backend thread using this function we just use the non thread safe versions
   tm* timeinfo;
 
   // Convert timestamp to date based on the option
@@ -153,7 +154,7 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   }
 
   // extract the nanoseconds
-  std::uint64_t const usec = static_cast<uint64_t>(epoch - (rawtime_seconds * 1'000'000'000));
+  auto const usec = static_cast<uint64_t>(epoch - (rawtime_seconds * 1'000'000'000));
 
   _formatted_date.clear();
 

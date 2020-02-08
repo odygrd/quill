@@ -38,21 +38,33 @@ public:
   ThreadContext(ThreadContext const&) = delete;
   ThreadContext& operator=(ThreadContext const&) = delete;
 
-  void* operator new(size_t i) 
-  { 
+  /**
+   * Operator new to align this object to a cache line boundary as we always create it on the heap
+   * This object should always be aligned to a cache line as it contains the SPSC queue as a member
+   * which has cache line alignement requirements
+   * @param i
+   * @return
+   */
+  void* operator new(size_t i)
+  {
 #if defined(_WIN32)
-    return _aligned_malloc(i, 64);
+    return _aligned_malloc(i, detail::CACHELINE_SIZE);
 #else
-    // TODO:: memalign on linux
+    return aligned_alloc(detail::CACHELINE_SIZE, i);
 #endif
   }
 
+  /**
+   * Operaator delete
+   * @see operator new
+   * @param p
+   */
   void operator delete(void* p)
-  { 
+  {
 #if defined(_WIN32)
     _aligned_free(p);
 #else
-    // TODO:: memalign on linux
+    free(p);
 #endif
   }
 

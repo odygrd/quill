@@ -68,7 +68,7 @@ find_package(Threads REQUIRED)
 
 if (QUILL_BUILD_TESTS)
     enable_testing()
-    find_package(GTest CONFIG REQUIRED)
+    find_package(GTest REQUIRED)
     include_directories(${GTEST_INCLUDE_DIRS})
 endif ()
 
