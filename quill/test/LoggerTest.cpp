@@ -15,7 +15,7 @@ TEST(Logger, logger_should_log)
 
   LoggerCollection logger_collection{tc, hc};
 
-  [[maybe_unused]] Logger* logger_1 = logger_collection.create_logger("logger_1");
+  QUILL_MAYBE_UNUSED Logger* logger_1 = logger_collection.create_logger("logger_1");
 
   {
     LogLevel log_statement_level{LogLevel::Debug};

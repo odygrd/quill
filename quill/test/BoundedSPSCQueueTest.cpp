@@ -31,7 +31,7 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
   {
     for (uint32_t i = 0; i < 170; ++i)
     {
-      [[maybe_unused]] auto res = buffer.try_emplace<test_struct_ints>(i, i);
+      QUILL_MAYBE_UNUSED auto res = buffer.try_emplace<test_struct_ints>(i, i);
     }
 
     ASSERT_EQ(buffer.empty(), false);
@@ -62,7 +62,7 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
   {
     for (uint32_t i = 0; i < 85; ++i)
     {
-      [[maybe_unused]] auto res = buffer.try_emplace<test_struct_ints>(i + 100, i + 100);
+      QUILL_MAYBE_UNUSED auto res = buffer.try_emplace<test_struct_ints>(i + 100, i + 100);
     }
 
     ASSERT_EQ(buffer.empty(), false);
@@ -147,7 +147,7 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
   {
     for (uint32_t i = 0; i < 43; ++i)
     {
-      [[maybe_unused]] auto res = buffer.try_emplace<TestDerivedSmall>(static_cast<double>(i));
+      QUILL_MAYBE_UNUSED auto res = buffer.try_emplace<TestDerivedSmall>(static_cast<double>(i));
     }
 
     for (uint32_t i = 0; i < 43; ++i)
@@ -164,7 +164,7 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
   {
     for (uint32_t i = 0; i < 92; ++i)
     {
-      [[maybe_unused]] auto res =
+      QUILL_MAYBE_UNUSED auto res =
         buffer.try_emplace<TestDerivedLarge>(i + 10, i + 20, static_cast<double>(i));
     }
 
@@ -181,7 +181,7 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
   {
     for (uint32_t i = 0; i < 43; ++i)
     {
-      [[maybe_unused]] auto res = buffer.try_emplace<TestDerivedSmall>(static_cast<double>(i));
+      QUILL_MAYBE_UNUSED auto res = buffer.try_emplace<TestDerivedSmall>(static_cast<double>(i));
     }
 
     for (uint32_t i = 0; i < 43; ++i)
@@ -197,7 +197,7 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
   {
     for (uint32_t i = 0; i < 92; ++i)
     {
-      [[maybe_unused]] auto res =
+      QUILL_MAYBE_UNUSED auto res =
         buffer.try_emplace<TestDerivedLarge>(i + 10, i + 20, static_cast<double>(i));
     }
 

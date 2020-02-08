@@ -33,7 +33,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
       auto& thread_terminate_flag = terminate_flag[i];
       threads[i] = std::thread([&thread_terminate_flag, &threads_started, &thread_context_collection]() {
         // create a context for that thread
-        [[maybe_unused]] auto tc = thread_context_collection.local_thread_context();
+        QUILL_MAYBE_UNUSED auto tc = thread_context_collection.local_thread_context();
         threads_started.fetch_add(1);
         while (!thread_terminate_flag.load())
         {
@@ -48,7 +48,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
     {
       // loop until all threads start
       // Instead of just waitng we will just call get cached contexts many times for additional testing
-      [[maybe_unused]] auto& cached_thread_contexts =
+      QUILL_MAYBE_UNUSED auto& cached_thread_contexts =
         thread_context_collection.backend_thread_contexts_cache();
     }
 
@@ -112,7 +112,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
       auto& thread_terminate_flag = terminate_flag[i];
       threads[i] = std::thread([&thread_terminate_flag, &threads_started, &thread_context_collection]() {
         // create a context for that thread
-        [[maybe_unused]] auto tc = thread_context_collection.local_thread_context();
+        QUILL_MAYBE_UNUSED auto tc = thread_context_collection.local_thread_context();
         threads_started.fetch_add(1);
         while (!thread_terminate_flag.load())
         {
@@ -127,7 +127,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
     {
       // loop until all threads start
       // Instead of just waitng we will just call get cached contexts many times for additional testing
-      [[maybe_unused]] auto& cached_thread_contexts =
+      QUILL_MAYBE_UNUSED auto& cached_thread_contexts =
         thread_context_collection.backend_thread_contexts_cache();
     }
 

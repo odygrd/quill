@@ -55,7 +55,7 @@ TEST(LogLevel, to_string)
   {
     LogLevel log_level;
     log_level = static_cast<LogLevel>(-1);
-    EXPECT_THROW([[maybe_unused]] auto s = to_string(log_level), std::runtime_error);
+    EXPECT_THROW(QUILL_MAYBE_UNUSED auto s = to_string(log_level), std::runtime_error);
   }
 }
 
@@ -109,6 +109,6 @@ TEST(LogLevel, from_string)
 
   {
     std::string log_level{"dummy"};
-    EXPECT_THROW([[maybe_unused]] auto res = from_string(log_level), std::runtime_error);
+    EXPECT_THROW(QUILL_MAYBE_UNUSED auto res = from_string(log_level), std::runtime_error);
   }
 }

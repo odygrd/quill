@@ -83,12 +83,12 @@ void custom_default_logger_same_handler(int test_case = 0)
   {
     // Add a second logger using the same file handler
     Handler* file_handler_2 = lm.handler_collection().filehandler(filename);
-    [[maybe_unused]] Logger* logger_2 = lm.logger_collection().create_logger("custom_logger", file_handler_2);
+    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger", file_handler_2);
   }
   else if (test_case == 1)
   {
     // Add the other logger by using the default logger params
-    [[maybe_unused]] Logger* logger_2 = lm.logger_collection().create_logger("custom_logger");
+    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger");
   }
   // Thread for default pattern
   std::thread frontend_default([&lm]() {
@@ -178,13 +178,13 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
     // Add a second logger using the same file handler
     Handler* file_handler_a = lm.handler_collection().filehandler(filename_1);
     Handler* file_handler_b = lm.handler_collection().filehandler(filename_2);
-    [[maybe_unused]] Logger* logger_2 =
+    QUILL_MAYBE_UNUSED Logger* logger_2 =
       lm.logger_collection().create_logger("custom_logger", {file_handler_a, file_handler_b});
   }
   else if (test_case == 1)
   {
     // Add the second logger constructing it from the params of the default logger
-    [[maybe_unused]] Logger* logger_2 = lm.logger_collection().create_logger("custom_logger");
+    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger");
   }
 
   // Thread for default pattern
@@ -291,8 +291,8 @@ TEST(Log, many_loggers_multiple_threads)
 
   // Spawn many threads
   std::vector<std::thread> threads;
-  constexpr size_t thread_count = 40;
-  constexpr size_t message_count = 200;
+  static constexpr size_t thread_count = 40;
+  static constexpr size_t message_count = 200;
 
   for (int i = 0; i < thread_count; ++i)
   {

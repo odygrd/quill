@@ -45,7 +45,7 @@ TEST(LoggerCollection, create_get_different_loggers)
 
   // try to get a new logger with a default log level
   Handler* stream_handler_2 = hc.stdout_streamhandler();
-  [[maybe_unused]] Logger* logger_2 = logger_collection.create_logger("logger_2", stream_handler_2);
+  QUILL_MAYBE_UNUSED Logger* logger_2 = logger_collection.create_logger("logger_2", stream_handler_2);
   Logger* logger_3 = logger_collection.get_logger("logger_2");
   EXPECT_EQ(logger_3->log_level(), LogLevel::Info);
 }
@@ -59,7 +59,7 @@ TEST(LoggerCollection, get_non_existing_logger)
   LoggerCollection logger_collection{tc, hc};
 
   // try to get a new logger with a default log level
-  EXPECT_THROW([[maybe_unused]] auto logger = logger_collection.get_logger("logger_2"), std::runtime_error);
+  EXPECT_THROW(QUILL_MAYBE_UNUSED auto logger = logger_collection.get_logger("logger_2"), std::runtime_error);
 }
 
 /***/

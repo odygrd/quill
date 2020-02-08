@@ -17,12 +17,18 @@ TEST(Record, construct)
                                               "Test fmt {}", quill::LogLevel::Debug};
   LoggerDetails logger_details{"default", hc.stdout_streamhandler()};
   {
-    // test with char const
+    // test with char const the tuple get's promoted
     using record_t = LogRecord<int, double, char const*>;
     static_assert(std::is_same<record_t::PromotedTupleT, std::tuple<int, double, std::string>>::value,
                   "tuple is not promoted");
 
+    // Try to contruct one using the same args
     record_t msg{&log_line_info, &logger_details, 1337, 13.5, "test"};
+
+    // Check that the constructed msg has a promoted underlying tuple
+    static_assert(std::is_same<decltype(msg)::PromotedTupleT, std::tuple<int, double, std::string>>::value,
+                  "tuple is not promoted");
+
   }
 
   {
@@ -32,6 +38,11 @@ TEST(Record, construct)
     static_assert(std::is_same<record_t::PromotedTupleT, std::tuple<int, double, std::string>>::value,
                   "tuple is not promoted");
 
-    record_t msg{&log_line_info, &logger_details, 1337, 13.5, test_char};
+    // Try to contruct one using the same args
+    record_t msg(&log_line_info, &logger_details, 1337, 13.5, test_char);
+
+    // Check that the constructed msg has a promoted underlying tuple
+    static_assert(std::is_same<decltype(msg)::PromotedTupleT, std::tuple<int, double, std::string>>::value,
+                  "tuple is not promoted");
   }
 }

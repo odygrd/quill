@@ -33,14 +33,16 @@ public:
   /**
    * Make a new LogRecord.
    * This is created by the caller every time we want to log a new message
+   * To perfectly forward the argument we have to provide a templated contructor
    * @param log_line_info
    * @param logger_details
    * @param fmt_args
    */
-  explicit LogRecord(StaticLogRecordInfo const* log_line_info, LoggerDetails const* logger_details, FmtArgs&&... fmt_args)
+  template <typename... UFmtArgs>
+  LogRecord(StaticLogRecordInfo const* log_line_info, LoggerDetails const* logger_details, UFmtArgs&&... fmt_args)
     : _log_line_info(log_line_info),
       _logger_details(logger_details),
-      _fmt_args(std::make_tuple(std::forward<FmtArgs>(fmt_args)...))
+      _fmt_args(std::make_tuple(std::forward<UFmtArgs>(fmt_args)...))
   {
   }
 
