@@ -28,7 +28,6 @@ TEST(Record, construct)
     // Check that the constructed msg has a promoted underlying tuple
     static_assert(std::is_same<decltype(msg)::PromotedTupleT, std::tuple<int, double, std::string>>::value,
                   "tuple is not promoted");
-
   }
 
   {

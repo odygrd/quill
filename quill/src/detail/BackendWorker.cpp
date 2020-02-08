@@ -2,21 +2,11 @@
 
 #include <vector>
 
-#if defined(_WIN32)
-#elif defined(__APPLE__)
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <mach/thread_policy.h>
-#include <mach/thread_act.h>
-#else
-  #include <sched.h>
-  #include <sys/prctl.h>
-#endif
-
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/utility/Os.h"
 
 namespace quill
 {
@@ -61,11 +51,11 @@ void BackendWorker::run()
       if (_config.backend_thread_cpu_affinity() != std::numeric_limits<uint16_t>::max())
       {
         // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
-        _set_cpu_affinity();
+        set_cpu_affinity(_config.backend_thread_cpu_affinity());
       }
 
       // Set the thread name to the desired name
-      _set_thread_name();
+      set_thread_name(_config.backend_thread_name().data());
 
 #if defined(QUILL_RDTSC_CLOCK)
       // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
@@ -99,58 +89,6 @@ void BackendWorker::stop() noexcept
   {
     _backend_worker_thread.join();
   }
-}
-
-/***/
-void BackendWorker::_set_cpu_affinity() const
-{
-#if defined(_WIN32)
-  // TODO:: Cpu affinity for windows
-#elif defined(__APPLE__)
-  // I don't think that's possible to link a thread with a specific core with Mac OS X
-  // This may be used to express affinity relationships  between threads in the task.
-  // Threads with the same affinity tag will be scheduled to share an L2 cache if possible.
-  thread_affinity_policy_data_t policy = { _config.backend_thread_cpu_affinity() };
-
-  // Get the mach thread bound to this thread
-  thread_port_t mach_thread = pthread_mach_thread_np(pthread_self());
-
-  thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY,
-                    (thread_policy_t)&policy, 1);
-#else
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(_config.backend_thread_cpu_affinity(), &cpuset);
-
-  auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
-
-  if (QUILL_UNLIKELY(err == -1))
-  {
-    throw std::system_error((errno), std::generic_category());
-  }
-#endif
-}
-
-/***/
-void BackendWorker::_set_thread_name() const
-{
-#if defined(_WIN32)
-  // TODO:: Thread name for windows
-#elif defined(__APPLE__)
-  auto const res = pthread_setname_np(_config.backend_thread_name().data());
-  if (res != 0)
-  {
-    throw std::runtime_error("Failed to set thread name. error: " + std::to_string(res));
-  }
-#else
-  auto const err =
-    prctl(PR_SET_NAME, reinterpret_cast<unsigned long>(_config.backend_thread_name().data()), 0, 0, 0);
-
-  if (QUILL_UNLIKELY(err == -1))
-  {
-    throw std::system_error((errno), std::generic_category());
-  }
-#endif
 }
 
 /***/

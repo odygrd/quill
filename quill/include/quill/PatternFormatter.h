@@ -292,7 +292,7 @@ private:
    * @note: we always expect to find %(message)
    * */
   template <typename TConstantString>
-  QUILL_NODISCARD static constexpr std::array<std::size_t, 2> _parse_format_pattern();
+  QUILL_NODISCARD static constexpr std::array<size_t, 2> _parse_format_pattern();
 
   /**
    * Process part of the pattern and create a helper formatter class
@@ -387,7 +387,7 @@ void PatternFormatter::_set_pattern(TConstantString)
   std::string const pattern = TConstantString::value();
 
   // parse and check the given pattern
-  std::size_t const message_found = pattern.find("%(message)");
+  size_t const message_found = pattern.find("%(message)");
   if (message_found == std::string::npos)
   {
     throw std::runtime_error("%(message) is required in the format pattern");
@@ -399,7 +399,7 @@ void PatternFormatter::_set_pattern(TConstantString)
 
   // calculate the size of the format specifiers '%'
   // pos 0 = number of part_1 args, pos 1 = number of part_3 args
-  constexpr std::array<std::size_t, 2> arr = _parse_format_pattern<TConstantString>();
+  constexpr std::array<size_t, 2> arr = _parse_format_pattern<TConstantString>();
   constexpr size_t part_1_args_count = arr[0];
   constexpr size_t part_3_args_count = arr[1];
 
@@ -410,7 +410,7 @@ void PatternFormatter::_set_pattern(TConstantString)
 
 /***/
 template <typename TConstantString>
-constexpr std::array<std::size_t, 2> PatternFormatter::_parse_format_pattern()
+constexpr std::array<size_t, 2> PatternFormatter::_parse_format_pattern()
 {
   constexpr char const* pattern = TConstantString::value();
   constexpr size_t len = quill::detail::strlen(pattern);

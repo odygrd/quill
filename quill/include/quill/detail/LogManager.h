@@ -59,7 +59,7 @@ public:
   void stop_backend_worker();
 
 private:
-  Config const& _config;                              // TODO: Move ownership here
+  Config const& _config; // TODO: Move ownership here
   HandlerCollection _handler_collection;
   ThreadContextCollection _thread_context_collection;
   LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};

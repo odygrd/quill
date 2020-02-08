@@ -1,5 +1,5 @@
 #include "quill/PatternFormatter.h"
-#include <ctime>
+#include "quill/detail/utility/Os.h"
 
 namespace quill
 {
@@ -144,11 +144,12 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   // Convert timestamp to date based on the option
   if (_timezone_type == Timezone::GmtTime)
   {
-    gmtime_s(std::addressof(timeinfo), reinterpret_cast<time_t const*>(std::addressof(rawtime_seconds)));
+    detail::gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(rawtime_seconds)), std::addressof(timeinfo));
   }
   else if (_timezone_type == Timezone::LocalTime)
   {
-    localtime_s(std::addressof(timeinfo), reinterpret_cast<time_t const*>(std::addressof(rawtime_seconds)));
+    detail::localtime_rs(reinterpret_cast<time_t const*>(std::addressof(rawtime_seconds)),
+                         std::addressof(timeinfo));
   }
   else
   {
@@ -161,12 +162,14 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   _formatted_date.clear();
 
   // add time
-  auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(), std::addressof(timeinfo));
+  auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(),
+                      std::addressof(timeinfo));
 
   while (QUILL_UNLIKELY(res == 0))
   {
     _formatted_date.resize(_formatted_date.capacity() * 2);
-    res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(), std::addressof(timeinfo));
+    res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(),
+                   std::addressof(timeinfo));
   }
 
   // Add precision

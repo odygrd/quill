@@ -8,6 +8,7 @@
 
 #include "quill/detail/BoundedSPSCQueue.h"
 #include "quill/detail/record/RecordBase.h"
+#include "quill/detail/utility/Os.h"
 
 namespace quill
 {
@@ -45,28 +46,14 @@ public:
    * @param i
    * @return
    */
-  void* operator new(size_t i)
-  {
-#if defined(_WIN32)
-    return _aligned_malloc(i, detail::CACHELINE_SIZE);
-#else
-    return aligned_alloc(detail::CACHELINE_SIZE, i);
-#endif
-  }
+  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHELINE_SIZE, i); }
 
   /**
    * Operator delete
    * @see operator new
    * @param p
    */
-  void operator delete(void* p)
-  {
-#if defined(_WIN32)
-    _aligned_free(p);
-#else
-    free(p);
-#endif
-  }
+  void operator delete(void* p) { detail::aligned_free(p); }
 
   /**
    * @return A reference to the single-producer-single-consumer queue

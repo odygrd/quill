@@ -11,12 +11,12 @@ ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContex
 {
   // We can not use std::make_shared above.
   // Explanation :
-  // ThreadContext has the SPSC queue as a class member which requires a 64 cache byte alignment, 
+  // ThreadContext has the SPSC queue as a class member which requires a 64 cache byte alignment,
   // since we are creating this object on the heap this is not guaranted.
   // Visual Studio is the only compiler that gives a warning that ThreadContext might not be aligned to 64 bytes,
-  // as it is allocated on the heap and we should use aligned alloc instead. 
+  // as it is allocated on the heap and we should use aligned alloc instead.
   // The solution to solve this would be to define a custom operator new and operator delete for ThreadContext.
-  // However, when using std::make_shared, the default allocator is used. 
+  // However, when using std::make_shared, the default allocator is used.
   // This is a problem if the class is supposed to use a non-default allocator like ThreadContext
   _thread_context_collection.register_thread_context(_thread_context);
 }

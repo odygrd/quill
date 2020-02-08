@@ -7,14 +7,8 @@
 #include <functional>
 #include <vector>
 
-#if defined(_WIN32)
-  #include <intrin.h>
-#else
-  #include <x86intrin.h>
-#endif
-
-
 #include "quill/detail/LoggerDetails.h"
+#include "quill/detail/utility/Os.h"
 #include "quill/detail/utility/RdtscClock.h"
 
 namespace quill
@@ -64,7 +58,7 @@ public:
 
 private:
 #if defined(QUILL_RDTSC_CLOCK)
-  uint64_t _timestamp{__rdtsc()};
+  uint64_t _timestamp{rdtsc()};
 #else
   uint64_t _timestamp{static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())};
 #endif

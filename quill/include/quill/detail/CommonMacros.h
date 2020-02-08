@@ -39,8 +39,8 @@
 #endif
 
 /**
-* __has_attribute
-*/
+ * __has_attribute
+ */
 #ifdef __has_attribute
   #define QUILL_HAS_ATTRIBUTE(x) __has_attribute(x)
 #else
@@ -48,8 +48,8 @@
 #endif
 
 /**
-* __has_cpp_attribute
-*/
+ * __has_cpp_attribute
+ */
 #if defined(__cplusplus) && defined(__has_cpp_attribute)
   #define QUILL_HAS_CPP_ATTRIBUTE(x) __has_cpp_attribute(x)
 #else
@@ -72,9 +72,9 @@
 #endif
 
 /**
-* Portable maybe_unsed
-*/
-#if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused)
+ * Portable maybe_unsed
+ */
+#if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused) && (defined(_HAS_CXX17) && _HAS_CXX17 == 1)
   #define QUILL_MAYBE_UNUSED [[maybe_unused]]
 #elif QUILL_HAS_ATTRIBUTE(__unused__) || defined(__GNUC__)
   #define QUILL_MAYBE_UNUSED __attribute__((__unused__))
@@ -83,11 +83,11 @@
 #endif
 
 /**
-* Gcc hot/cold attributes
-* Tells GCC that a function is hot or cold. GCC can use this information to
-* improve static analysis, i.e. a conditional branch to a cold function
-* is likely to be not-taken.
-*/
+ * Gcc hot/cold attributes
+ * Tells GCC that a function is hot or cold. GCC can use this information to
+ * improve static analysis, i.e. a conditional branch to a cold function
+ * is likely to be not-taken.
+ */
 #if QUILL_HAS_ATTRIBUTE(hot) || (defined(__GNUC__) && !defined(__clang__))
   #define QUILL_ATTRIBUTE_HOT __attribute__((hot))
 #else

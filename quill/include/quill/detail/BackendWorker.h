@@ -6,7 +6,6 @@
 #include <thread>
 #include <vector>
 
-#include "quill/detail/CommonUtilities.h"
 #include "quill/detail/Config.h"
 #include "quill/detail/utility/RdtscClock.h"
 
@@ -54,18 +53,6 @@ public:
   void stop() noexcept;
 
 private:
-  /**
-   * Sets the cpu affinity of the backend thread based on the configured value
-   * @throws if fails to set cpu affinity
-   */
-  void _set_cpu_affinity() const;
-
-  /**
-   * Sets the name of the thread
-   * @throws
-   */
-  void _set_thread_name() const;
-
   /**
    * Backend worker thread main function
    */

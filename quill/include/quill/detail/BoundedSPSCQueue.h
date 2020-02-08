@@ -1,33 +1,12 @@
 #pragma once
 
 #include <atomic>
-#include <cassert>
-#include <cstddef>
 #include <cstdint>
-#include <cstring>
-#include <sstream>
-#include <stdexcept>
 #include <type_traits>
 
-#include "quill/detail/BoundedSPSCQueueUtility.h"
 #include "quill/detail/CommonMacros.h"
 #include "quill/detail/CommonUtilities.h"
-
-/**
- * Detect if _MAP_POPULATE is available for mmap
- */
-#if defined(__linux__)
-  #include <linux/version.h>
-  #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 22)
-    #define _MAP_POPULATE_AVAILABLE
-  #endif
-#endif
-
-#ifdef _MAP_POPULATE_AVAILABLE
-  #define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE)
-#else
-  #define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS)
-#endif
+#include "quill/detail/utility/Os.h"
 
 namespace quill
 {
@@ -213,7 +192,7 @@ public:
   /**
    * @return total capacity of the queue in bytes
    */
-  QUILL_NODISCARD inline std::size_t capacity() const noexcept { return Capacity; }
+  QUILL_NODISCARD inline size_t capacity() const noexcept { return Capacity; }
 
   /**
    * @return True when the queue is empty, false if there is still data to read
@@ -222,7 +201,7 @@ public:
 
 private:
   /** Mask to shift around power of two capacity */
-  static constexpr std::size_t MASK{Capacity - 1};
+  static constexpr size_t MASK{Capacity - 1};
 
   /**
    * Packed in a struct to maintain both in the same cache line
@@ -235,17 +214,20 @@ private:
 
   /** Local State - Read and Write only by either the producer or consumer **/
   alignas(detail::CACHELINE_SIZE) local_state _producer;
-  char _pad1[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  QUILL_MAYBE_UNUSED char _pad1[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
   alignas(detail::CACHELINE_SIZE) local_state _consumer;
-  char _pad2[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  QUILL_MAYBE_UNUSED char _pad2[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
 
   /** Shared State - Both consumer and producer can read and write on each variable **/
   alignas(detail::CACHELINE_SIZE) std::atomic<uint64_t> _head{0}; /**< The index of the head */
-  char _pad3[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  QUILL_MAYBE_UNUSED char _pad3[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
   alignas(detail::CACHELINE_SIZE) std::atomic<uint64_t> _tail{0}; /**< The index of the tail */
-  char _pad4[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  QUILL_MAYBE_UNUSED char _pad4[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
 
 #if defined(_WIN32)
+  /**
+   * For windows we have to store an extra pointer that we will give later to free
+   */
   void* _mapped_file_handler{nullptr};
 #endif
 };
@@ -254,16 +236,6 @@ private:
 template <typename TBaseObject, size_t Capacity>
 BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
 {
-  if (!is_pow_of_two(capacity()))
-  {
-    throw std::runtime_error("capacity needs to be power of two");
-  }
-  
-  if (capacity() % page_size() != 0)
-  {
-    throw std::runtime_error("capacity needs to be multiple of page size");
-  }
-
   std::pair<unsigned char*, void*> res = create_memory_mapped_files(capacity());
 
   // Save the returned address
@@ -271,24 +243,25 @@ BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
   _consumer.buffer = res.first;
 
 #if defined(_WIN32)
-  // On windows we have to store the extra pointer, elsewhere it is just nullptr
+  // On windows we have to store the extra pointer, for linux and macos it is just nullptr
   _mapped_file_handler = res.second;
 #endif
 }
 
 /***/
-template <typename TBaseObject, std::size_t Capacity>
+template <typename TBaseObject, size_t Capacity>
 BoundedSPSCQueue<TBaseObject, Capacity>::~BoundedSPSCQueue()
 {
 #if defined(_WIN32)
-  destroy_memory_mapped_files(std::pair<unsigned char*, void*>{_producer.buffer, _mapped_file_handler}, capacity());
+  destroy_memory_mapped_files(
+    std::pair<unsigned char*, void*>{_producer.buffer, _mapped_file_handler}, capacity());
 #else
   destroy_memory_mapped_files(std::pair<unsigned char*, void*>{_producer.buffer, nullptr}, capacity());
 #endif
 }
 
 /***/
-template <typename TBaseObject, std::size_t Capacity>
+template <typename TBaseObject, size_t Capacity>
 template <typename TInsertedObject, typename... Args>
 bool BoundedSPSCQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) noexcept
 {
@@ -323,7 +296,7 @@ bool BoundedSPSCQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) noexce
 }
 
 /***/
-template <typename TBaseObject, std::size_t Capacity>
+template <typename TBaseObject, size_t Capacity>
 typename BoundedSPSCQueue<TBaseObject, Capacity>::Handle BoundedSPSCQueue<TBaseObject, Capacity>::try_pop() noexcept
 {
   // we have been asked to consume but we don't know yet how much to consume
@@ -354,7 +327,7 @@ typename BoundedSPSCQueue<TBaseObject, Capacity>::Handle BoundedSPSCQueue<TBaseO
 }
 
 /***/
-template <typename TBaseObject, std::size_t Capacity>
+template <typename TBaseObject, size_t Capacity>
 bool BoundedSPSCQueue<TBaseObject, Capacity>::empty() const noexcept
 {
   return _head.load(std::memory_order_relaxed) == _tail.load(std::memory_order_relaxed);

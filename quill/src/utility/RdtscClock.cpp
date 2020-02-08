@@ -10,8 +10,7 @@
   #include <x86intrin.h>
 #endif
 
-
-#include "quill/detail/CommonMacros.h"
+#include "quill/detail/utility/Os.h"
 
 namespace quill
 {
@@ -35,13 +34,13 @@ RdtscClock::RdtscTicks::RdtscTicks()
     uint64_t beg_tsc, end_tsc;
 
     beg_ts = std::chrono::nanoseconds{std::chrono::steady_clock::now().time_since_epoch().count()};
-    beg_tsc = __rdtsc();
+    beg_tsc = rdtsc();
 
     std::chrono::nanoseconds elapsed_ns;
     do
     {
       end_ts = std::chrono::nanoseconds{std::chrono::steady_clock::now().time_since_epoch().count()};
-      end_tsc = __rdtsc();
+      end_tsc = rdtsc();
 
       elapsed_ns = end_ts - beg_ts;       // calculates ns between two timespecs
     } while (elapsed_ns < spin_duration); // busy spin for 10ms
@@ -98,11 +97,11 @@ void RdtscClock::resync() const noexcept
 
   for (uint8_t attempt = 0; attempt < max_attempts; ++attempt)
   {
-    uint64_t const beg = __rdtsc();
+    uint64_t const beg = rdtsc();
     // we force convert to nanoseconds because the precision of system_clock::time-point is not portable across platforms.
     int64_t const wall_time =
       std::chrono::nanoseconds{std::chrono::system_clock::now().time_since_epoch()}.count();
-    uint64_t const end = __rdtsc();
+    uint64_t const end = rdtsc();
 
     if (QUILL_LIKELY(end - beg <= 2000))
     {

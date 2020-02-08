@@ -34,12 +34,6 @@ QUILL_NODISCARD constexpr bool is_pow_of_two(uint64_t number) noexcept
 QUILL_NODISCARD constexpr size_t strlen(char const* str) { return *str ? 1 + strlen(str + 1) : 0; }
 
 /**
- * Returns the os assigned id of the thread
- * @return
- */
-QUILL_NODISCARD uint32_t get_thread_id() noexcept;
-
-/**
  * Simple wrapper around fwrite, throws on error
  * @param ptr
  * @param size

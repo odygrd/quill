@@ -124,9 +124,10 @@ void custom_default_logger_same_handler(int test_case = 0)
   std::string const second_log_line_default =
     "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus "
     "ante";
- 
+
   std::string const first_log_line_custom =
-    "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit [custom_logger]";
+    "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit "
+    "[custom_logger]";
   std::string const second_log_line_custom =
     "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
     "[custom_logger]";
@@ -225,7 +226,8 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
       "[root]";
 
     std::string const first_log_line_custom =
-      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit [custom_logger]";
+      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit "
+      "[custom_logger]";
     std::string const second_log_line_custom =
       "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
       "ante [custom_logger]";
