@@ -13,7 +13,7 @@ namespace quill
 {
 namespace detail
 {
-static constexpr uint32_t CACHELINE_SIZE{64};
+static constexpr size_t CACHELINE_SIZE{64u};
 
 /**
  * Check if a number is a power of 2

@@ -1,7 +1,5 @@
 set(TEST_NAME "TEST_quill")
 
-set(CMAKE_CXX_STANDARD 14)
-
 set(HEADER_FILES
         misc/TestMain.cpp
         misc/TestUtilities.cpp

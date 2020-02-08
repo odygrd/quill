@@ -82,7 +82,14 @@ target_include_directories(${TARGET_NAME}
 target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
 
 # Compiler options
+target_compile_options(${TARGET_NAME} PRIVATE		
+         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:		
+         -Wall -Wextra -Wconversion -pedantic -Wfatal-errors>		
+         $<$<CXX_COMPILER_ID:MSVC>:/W4>)
 
+if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015		
+     target_compile_options(${TARGET_NAME} PRIVATE /WX)		
+ endif ()
 
 # Properties
 set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSION ${QUILL_VERSION})

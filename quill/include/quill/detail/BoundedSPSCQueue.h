@@ -243,14 +243,21 @@ private:
 
   /** Local State - Read and Write only by either the producer or consumer **/
   alignas(detail::CACHELINE_SIZE) local_state _producer;
+  char _pad1[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
   alignas(detail::CACHELINE_SIZE) local_state _consumer;
+  char _pad2[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
 
   /** Shared State - Both consumer and producer can read and write on each variable **/
   alignas(detail::CACHELINE_SIZE) std::atomic<uint64_t> _head{0}; /**< The index of the head */
+  char _pad3[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
   alignas(detail::CACHELINE_SIZE) std::atomic<uint64_t> _tail{0}; /**< The index of the tail */
+  char _pad4[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
 };
 
-/***/
+static_assert(sizeof(BoundedSPSCQueue<void,1>) == 4 * detail::CACHELINE_SIZE,
+              "Size of BoundedSPSCQueue should be 4 cache lines");
+
+  /***/
 template <typename TBaseObject, std::size_t Capacity>
 BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
 {

@@ -42,7 +42,8 @@ LogLevel from_string(std::string log_level)
     {"none", LogLevel::None}};
 
   // parse log level
-  std::transform(log_level.begin(), log_level.end(), log_level.begin(), ::tolower);
+  std::transform(log_level.begin(), log_level.end(), log_level.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
   auto const search = log_levels_map.find(log_level);
 

@@ -139,18 +139,20 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   // convert timestamp to date
   int64_t const rawtime_seconds = epoch / 1'000'000'000;
 
-  // Because on windows gmtime/localtime is thread safe by default there is no gmtime_r and since we
-  // only have the backend thread using this function we just use the non thread safe versions
-  tm* timeinfo;
+  struct tm timeinfo;
 
   // Convert timestamp to date based on the option
   if (_timezone_type == Timezone::GmtTime)
   {
-    timeinfo = gmtime(reinterpret_cast<const time_t*>(&rawtime_seconds));
+    gmtime_s(std::addressof(timeinfo), reinterpret_cast<time_t const*>(std::addressof(rawtime_seconds)));
   }
   else if (_timezone_type == Timezone::LocalTime)
   {
-    timeinfo = localtime(reinterpret_cast<const time_t*>(&rawtime_seconds));
+    localtime_s(std::addressof(timeinfo), reinterpret_cast<time_t const*>(std::addressof(rawtime_seconds)));
+  }
+  else
+  {
+    throw std::runtime_error("Unknown timezone type");
   }
 
   // extract the nanoseconds
@@ -159,12 +161,12 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   _formatted_date.clear();
 
   // add time
-  auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(), timeinfo);
+  auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(), std::addressof(timeinfo));
 
   while (QUILL_UNLIKELY(res == 0))
   {
     _formatted_date.resize(_formatted_date.capacity() * 2);
-    res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(), timeinfo);
+    res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(), std::addressof(timeinfo));
   }
 
   // Add precision
