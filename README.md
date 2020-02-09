@@ -35,3 +35,11 @@ Quill focuses on low latency, not high throughput. The main priority is set on r
 ## Usage samples
 
 #### Basic usage
+
+## Additional License Info:
+Quill depends on third party libraries with separate copyright notices and license terms. 
+Your use of the source code for the these subcomponents is subject to the terms and conditions of the following licenses.
+
+   * (MIT License) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
+   * (MIT License) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
+
