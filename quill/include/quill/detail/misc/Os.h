@@ -27,7 +27,7 @@ QUILL_ALWAYS_INLINE uint64_t rdtsc() noexcept { return __rdtsc(); }
  * @param restrict
  * @return
  */
-tm* gmtime_rs(time_t const* timer, tm* buf) noexcept;
+tm* gmtime_rs(time_t const* timer, tm* buf);
 
 /**
  * Portable localtime_r or _s per operating system
@@ -35,11 +35,12 @@ tm* gmtime_rs(time_t const* timer, tm* buf) noexcept;
  * @param restrict
  * @return
  */
-tm* localtime_rs(time_t const* timer, tm* buf) noexcept;
+tm* localtime_rs(time_t const* timer, tm* buf);
 
 /**
  * Sets the cpu affinity of the caller thread to the given cpu id
  * @param cpu the cpu_id to pin the caller thread
+ * @note: cpu_id starts from zero
  * @throws if fails to set cpu affinity
  */
 QUILL_ATTRIBUTE_COLD void set_cpu_affinity(uint16_t cpu_id);

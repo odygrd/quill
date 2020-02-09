@@ -48,9 +48,9 @@ std::pair<std::string, std::vector<double>> log_numeric_performance(int amount, 
   quill::Logger* logger = quill::get_logger("bench");
   for (auto elem : stored_keys)
   {
-    auto const start = std::chrono::steady_clock::now();
+    auto const start = std::chrono::high_resolution_clock::now();
     LOG_INFO(logger, "This is an int [{}]", elem);
-    auto const end = std::chrono::steady_clock::now();
+    auto const end = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     results.push_back(duration);
@@ -79,9 +79,9 @@ std::pair<std::string, std::vector<double>> log_double_performance(int amount, s
   quill::Logger* logger = quill::get_logger("bench");
   for (auto elem : stored_keys)
   {
-    auto const start = std::chrono::steady_clock::now();
+    auto const start = std::chrono::high_resolution_clock::now();
     LOG_INFO(logger, "This is an double [{}]", elem);
-    auto const end = std::chrono::steady_clock::now();
+    auto const end = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     results.push_back(duration);
@@ -112,7 +112,7 @@ std::pair<std::string, std::vector<double>> log_double_and_long_int_performance(
   quill::Logger* logger = quill::get_logger("bench");
   for (size_t i = 0; i < stored_keys_ints.size(); i = i + 5)
   {
-    auto const start = std::chrono::steady_clock::now();
+    auto const start = std::chrono::high_resolution_clock::now();
     LOG_INFO(logger,
              "This is an double and an int and a double and an int and a double and an int and a "
              "double and an int and a double and an int [{}, {}, {}, {}, {}, "
@@ -121,7 +121,7 @@ std::pair<std::string, std::vector<double>> log_double_and_long_int_performance(
              stored_keys_ints[i + 1], stored_keys_doubles[i + 2], stored_keys_ints[i + 2],
              stored_keys_doubles[i + 3], stored_keys_ints[i + 3], stored_keys_doubles[i + 4],
              stored_keys_ints[i + 4]);
-    auto const end = std::chrono::steady_clock::now();
+    auto const end = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     results.push_back(duration);
@@ -177,9 +177,9 @@ std::pair<std::string, std::vector<double>> log_string_performance(int iteration
 
   for (auto const& elem : stored_keys)
   {
-    auto const start = std::chrono::steady_clock::now();
+    auto const start = std::chrono::high_resolution_clock::now();
     LOG_INFO(logger, "This is an string [{}]", elem);
-    auto const end = std::chrono::steady_clock::now();
+    auto const end = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     results.push_back(duration);
@@ -216,10 +216,10 @@ std::pair<std::string, std::vector<double>> log_multiple_string_performance(int 
 
     quill::Logger* logger = quill::get_logger("bench");
 
-    auto const start = std::chrono::steady_clock::now();
+    auto const start = std::chrono::high_resolution_clock::now();
     LOG_INFO(logger, "This is an string and another string and another string [{}{}{}]",
              stored_keys[i], stored_keys[i + 1], stored_keys[i + 2]);
-    auto const end = std::chrono::steady_clock::now();
+    auto const end = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     results.push_back(duration);
@@ -266,10 +266,10 @@ std::pair<std::string, std::vector<double>> log_multiple_string_and_int_performa
 
     quill::Logger* logger = quill::get_logger("bench");
 
-    auto const start = std::chrono::steady_clock::now();
+    auto const start = std::chrono::high_resolution_clock::now();
     LOG_INFO(logger, "This is an string and an int and another string [{}{}{}]", stored_strings[i],
              stored_ints[i], stored_strings[i + 1], stored_ints[i + 1]);
-    auto const end = std::chrono::steady_clock::now();
+    auto const end = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
     results.push_back(duration);
@@ -296,7 +296,7 @@ int main()
   quill::config::set_backend_thread_cpu_affinity(0);
   quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
 
-  auto file_handler = quill::filehandler("bench_log", "w");
+  auto file_handler = quill::file_handler("bench_log", "w");
   quill::Logger* logger = quill::create_logger("bench", file_handler);
 
   // Change the LogLevel to print everything
@@ -309,7 +309,7 @@ int main()
 
   std::vector<std::pair<std::string, std::vector<double>>> results;
 
-  auto const start = std::chrono::steady_clock::now();
+  auto const start = std::chrono::high_resolution_clock::now();
   // Int bench
   {
     auto res = log_numeric_performance<std::uint32_t>(100'000, "log one uint32_t");
@@ -347,7 +347,7 @@ int main()
   //  }
 
   quill::flush();
-  auto const end = std::chrono::steady_clock::now();
+  auto const end = std::chrono::high_resolution_clock::now();
 
   auto const total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 

@@ -50,7 +50,7 @@ private:
   std::string _backend_thread_name{"Quill_Backend"}; /** Custom name for the backend thread */
   std::chrono::nanoseconds _backend_thread_sleep_duration{500};
   uint16_t _backend_thread_cpu_affinity{
-    std::numeric_limits<uint16_t>::max()}; /** max() as undefined value, cpu affinity will not be set */
+    (std::numeric_limits<uint16_t>::max)()}; /** max() as undefined value, cpu affinity will not be set */
 };
 } // namespace detail
 } // namespace quill

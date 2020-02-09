@@ -51,22 +51,42 @@ namespace detail
 {
 
 /***/
-tm* gmtime_rs(time_t const* timer, tm* buf) noexcept
+tm* gmtime_rs(time_t const* timer, tm* buf)
 {
 #if defined(_WIN32)
-  return gmtime_s(buf, timer);
+  errno_t const res = gmtime_s(buf, timer);
+  if (res)
+  {
+    throw std::system_error(res, std::system_category());
+  }
+  return buf;
 #else
-  return gmtime_r(timer, buf);
+  tm* res = gmtime_r(timer, buf);
+  if (QUILL_UNLIKELY(!res))
+  {
+    throw std::system_error(errno, std::system_category());
+  }
+  return res;
 #endif
 }
 
 /***/
-tm* localtime_rs(time_t const* timer, tm* buf) noexcept
+tm* localtime_rs(time_t const* timer, tm* buf)
 {
 #if defined(_WIN32)
-  return localtime_s(buf, timer);
+  errno_t const res = localtime_s(buf, timer);
+  if (res)
+  {
+    throw std::system_error(res, std::system_category());
+  }
+  return buf;
 #else
-  return localtime_r(timer, buf);
+  tm* res = localtime_r(timer, buf);
+  if (QUILL_UNLIKELY(!res))
+  {
+    throw std::system_error(errno, std::system_category());
+  }
+  return res;
 #endif
 }
 
@@ -74,7 +94,13 @@ tm* localtime_rs(time_t const* timer, tm* buf) noexcept
 void set_cpu_affinity(uint16_t cpu_id)
 {
 #if defined(_WIN32)
-// TODO:: Cpu affinity for windows
+  // core number starts from 0
+  auto mask = (static_cast<DWORD_PTR>(1) << cpu_id);
+  auto ret = SetThreadAffinityMask(GetCurrentThread(), mask);
+  if (ret == 0) 
+  {
+    throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+  }
 #elif defined(__APPLE__)
   // I don't think that's possible to link a thread with a specific core with Mac OS X
   // This may be used to express affinity relationships  between threads in the task.
@@ -94,7 +120,7 @@ void set_cpu_affinity(uint16_t cpu_id)
 
   if (QUILL_UNLIKELY(err == -1))
   {
-    throw std::system_error((errno), std::generic_category());
+    throw std::system_error(errno, std::system_category());
   }
 #endif
 }
@@ -103,7 +129,19 @@ void set_cpu_affinity(uint16_t cpu_id)
 void set_thread_name(char const* name)
 {
 #if defined(_WIN32)
-// TODO:: Thread name for windows
+  // First convert the name to wide string
+  size_t name_length = strlen(name) + 1;
+  auto w_name_length = std::make_unique<wchar_t[]>(name_length);
+
+  size_t w_name_length_size_out;
+  mbstowcs_s(&w_name_length_size_out, w_name_length.get(), name_length, name, name_length - 1);
+
+  // Set the thread name
+  HRESULT hr = SetThreadDescription(GetCurrentThread(), w_name_length.get());
+  if (FAILED(hr))
+  {
+    throw std::runtime_error("Failed to set thread name");
+  }
 #elif defined(__APPLE__)
   auto const res = pthread_setname_np(name);
   if (res != 0)
@@ -115,7 +153,7 @@ void set_thread_name(char const* name)
 
   if (QUILL_UNLIKELY(err == -1))
   {
-    throw std::system_error((errno), std::generic_category());
+    throw std::system_error(errno, std::system_category());
   }
 #endif
 }
@@ -125,7 +163,7 @@ uint32_t get_thread_id() noexcept
 {
 #if defined(_WIN32)
   // TODO:: Frix thread id on windows
-  return 0;
+  return static_cast<uint32_t>(GetCurrentThreadId());
 #elif defined(__linux__)
   return static_cast<uint32_t>(::syscall(SYS_gettid));
 #elif defined(__APPLE__)

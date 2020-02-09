@@ -53,7 +53,7 @@ template <size_t N>
 void safe_strncpy(std::array<char, N>& destination, char const* source) noexcept
 {
   assert(source && "source pointer can not be nullptr");
-  size_t const len = std::min(std::strlen(source), N - 1);
+  size_t const len = (std::min)(std::strlen(source), N - 1);
   std::memcpy(destination.data(), source, len);
   destination[len] = '\0';
 }
