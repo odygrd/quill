@@ -1,6 +1,6 @@
 # Quill
 
-#### Low Latency Asynchronous Logging Library
+#### Asynchronous Low Latency Logging Library
 
 [![language][badge.language]][language]
 [![license][badge.license]][license]
