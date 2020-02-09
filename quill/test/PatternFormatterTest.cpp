@@ -1,5 +1,5 @@
 #include "quill/PatternFormatter.h"
-#include "quill/detail/utility/Macros.h"
+#include "quill/detail/misc/Macros.h"
 #include <chrono>
 #include <gtest/gtest.h>
 

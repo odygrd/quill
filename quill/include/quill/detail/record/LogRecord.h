@@ -2,7 +2,7 @@
 
 #include "fmt/format.h"
 #include "invoke/invoke.h"
-#include "quill/detail/record/LogRecordUtilities.h"
+#include "quill/detail/misc/TypeTraits.h"
 #include "quill/detail/record/RecordBase.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
 #include <tuple>

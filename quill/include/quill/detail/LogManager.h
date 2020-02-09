@@ -51,12 +51,12 @@ public:
   /**
    * Starts the backend worker thread
    */
-  void start_backend_worker();
+  QUILL_ATTRIBUTE_COLD void start_backend_worker();
 
   /**
    * Stops the backend worker thread
    */
-  void stop_backend_worker();
+  QUILL_ATTRIBUTE_COLD void stop_backend_worker();
 
 private:
   Config const& _config; // TODO: Move ownership here

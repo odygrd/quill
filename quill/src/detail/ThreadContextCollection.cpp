@@ -1,5 +1,5 @@
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/utility/Macros.h"
+#include "quill/detail/misc/Macros.h"
 
 namespace quill
 {
@@ -48,14 +48,14 @@ void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadCont
 /***/
 std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_contexts_cache()
 {
-  if (_has_invalid_thread_context())
+  if (QUILL_UNLIKELY(_has_invalid_thread_context()))
   {
     // Remove any invalidated contexts, this can happen only when a thread is terminating
     _find_and_remove_invalidated_thread_contexts();
   }
 
   // Check if _thread_contexts has changed. This can happen only when a new thread context is added by any Logger
-  if (_has_new_thread_context())
+  if (QUILL_UNLIKELY(_has_new_thread_context()))
   {
     // if the thread _thread_contexts was changed we lock and remake our reference cache
     std::lock_guard<Spinlock> const lock(_spinlock);

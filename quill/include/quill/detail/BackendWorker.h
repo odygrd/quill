@@ -1,7 +1,7 @@
 #pragma once
 
 #include "quill/detail/Config.h"
-#include "quill/detail/utility/RdtscClock.h"
+#include "quill/detail/misc/RdtscClock.h"
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -38,35 +38,35 @@ public:
    * Returns the status of the backend worker thread
    * @return true when the worker is running, false otherwise
    */
-  QUILL_NODISCARD bool is_running() const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool is_running() const noexcept;
 
   /**
    * Starts the backend worker thread
    * @throws
    */
-  void run();
+  QUILL_ATTRIBUTE_COLD void run();
 
   /**
    * Stops the backend worker thread
    */
-  void stop() noexcept;
+  QUILL_ATTRIBUTE_COLD void stop() noexcept;
 
 private:
   /**
    * Backend worker thread main function
    */
-  void _main_loop();
+  QUILL_ATTRIBUTE_HOT void _main_loop();
 
   /**
    * Logging thread exist function that flushes everything after stop() is called
    */
-  void _exit();
+  QUILL_ATTRIBUTE_COLD void _exit();
 
   /**
    * Checks for records in all queues and processes the one with the minimum timestamp
    * @return true if one record was found and processed
    */
-  QUILL_NODISCARD bool _process_record(std::vector<ThreadContext*> const& thread_contexts);
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool _process_record(std::vector<ThreadContext*> const& thread_contexts);
 
 private:
   /** This is exactly 1 cache line **/

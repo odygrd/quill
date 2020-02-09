@@ -1,6 +1,6 @@
 #include "quill/LogLevel.h"
 
-#include "quill/detail/utility/Macros.h"
+#include "quill/detail/misc/Macros.h"
 #include <algorithm>
 #include <array>
 #include <sstream>

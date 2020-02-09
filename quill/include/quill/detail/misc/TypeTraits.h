@@ -10,8 +10,8 @@ namespace quill
 namespace detail
 {
 /**
- * We use promoted to convert all char const* to a std::string when the Logger is creating a LogRecord as the record
- * wll be later be processed by the backend thread and the char const* could be easily out of scope
+ * We use promoted to convert all char const* or char* to a std::string when the Logger is creating a LogRecord
+ * This is because the record is processed later by the backend thread and the char* could be out of scope
  * @tparam T
  */
 template <typename T>

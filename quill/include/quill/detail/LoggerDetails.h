@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quill/detail/utility/Misc.h"
+#include "quill/detail/misc/Utilities.h"
 #include "quill/handlers/Handler.h"
 #include <memory>
 #include <string>

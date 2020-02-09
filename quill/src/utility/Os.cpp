@@ -1,7 +1,7 @@
-#include "quill/detail/utility/Os.h"
+#include "quill/detail/misc/Os.h"
 
-#include "quill/detail/utility/Macros.h"
-#include "quill/detail/utility/Misc.h"
+#include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/Utilities.h"
 #include <cstdint>
 #include <cstdlib>
 #include <stdexcept>

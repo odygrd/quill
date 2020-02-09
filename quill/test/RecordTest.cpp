@@ -1,7 +1,7 @@
 #include "quill/detail/HandlerCollection.h"
+#include "quill/detail/misc/Macros.h"
 #include "quill/detail/record/CommandRecord.h"
 #include "quill/detail/record/LogRecord.h"
-#include "quill/detail/utility/Macros.h"
 #include <gtest/gtest.h>
 #include <string>
 

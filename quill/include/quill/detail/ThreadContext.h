@@ -3,8 +3,8 @@
 #include "quill/TweakMe.h"
 
 #include "quill/detail/BoundedSPSCQueue.h"
+#include "quill/detail/misc/Os.h"
 #include "quill/detail/record/RecordBase.h"
-#include "quill/detail/utility/Os.h"
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
@@ -45,29 +45,32 @@ public:
    * @param i
    * @return
    */
-  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHELINE_SIZE, i); }
+  void* operator new(size_t i) { return aligned_alloc(CACHELINE_SIZE, i); }
 
   /**
    * Operator delete
    * @see operator new
    * @param p
    */
-  void operator delete(void* p) { detail::aligned_free(p); }
+  void operator delete(void* p) { aligned_free(p); }
 
   /**
    * @return A reference to the single-producer-single-consumer queue
    */
-  QUILL_NODISCARD inline SPSCQueueT& spsc_queue() noexcept { return _spsc_queue; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT SPSCQueueT& spsc_queue() noexcept { return _spsc_queue; }
 
   /**
    * @return A reference to the single-producer-single-consumer queue const overload
    */
-  QUILL_NODISCARD inline SPSCQueueT const& spsc_queue() const noexcept { return _spsc_queue; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT SPSCQueueT const& spsc_queue() const noexcept
+  {
+    return _spsc_queue;
+  }
 
   /**
    * @return The cached thread id value
    */
-  QUILL_NODISCARD const char* thread_id() const noexcept { return _thread_id.data(); }
+  QUILL_NODISCARD char const* thread_id() const noexcept { return _thread_id.data(); }
 
   /**
    * Invalidate the context.

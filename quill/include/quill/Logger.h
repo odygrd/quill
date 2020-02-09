@@ -3,9 +3,9 @@
 #include "quill/LogLevel.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/Utilities.h"
 #include "quill/detail/record/LogRecord.h"
-#include "quill/detail/utility/Macros.h"
-#include "quill/detail/utility/Misc.h"
 #include <atomic>
 #include <cstdint>
 #include <vector>
@@ -63,7 +63,7 @@ public:
    * @return
    */
   template <LogLevel log_statement_level>
-  QUILL_NODISCARD bool should_log() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log() const noexcept
   {
     return log_statement_level >= log_level();
   }
@@ -75,7 +75,7 @@ public:
    * @note This function is thread-safe.
    */
   template <LogLevel log_statement_level, typename... FmtArgs>
-  inline
+  QUILL_ALWAYS_INLINE_HOT
     typename std::enable_if_t<(log_statement_level == LogLevel::TraceL3 || log_statement_level == LogLevel::TraceL2 ||
                                log_statement_level == LogLevel::TraceL1 || log_statement_level == LogLevel::Debug),
                               void>
@@ -107,9 +107,11 @@ public:
    * @note This function is thread-safe.
    */
   template <LogLevel log_statement_level, typename... FmtArgs>
-  inline typename std::enable_if_t<(log_statement_level == LogLevel::Info || log_statement_level == LogLevel::Warning || log_statement_level == LogLevel::Error || log_statement_level == LogLevel::Critical), void> log(
-    detail::StaticLogRecordInfo const* log_line_info,
-    FmtArgs&&... fmt_args)
+  QUILL_ALWAYS_INLINE_HOT
+    typename std::enable_if_t<(log_statement_level == LogLevel::Info || log_statement_level == LogLevel::Warning ||
+                               log_statement_level == LogLevel::Error || log_statement_level == LogLevel::Critical),
+                              void>
+    log(detail::StaticLogRecordInfo const* log_line_info, FmtArgs&&... fmt_args)
   {
     // it is usually unlikely we will not log those levels
     if (QUILL_UNLIKELY(!should_log<log_statement_level>()))

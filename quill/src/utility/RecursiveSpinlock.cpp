@@ -1,4 +1,4 @@
-#include "quill/detail/utility/RecursiveSpinlock.h"
+#include "quill/detail/misc/RecursiveSpinlock.h"
 
 #include <cstdint>
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "quill/detail/ThreadContext.h"
-#include "quill/detail/utility/Spinlock.h"
+#include "quill/detail/misc/Spinlock.h"
 #include <atomic>
 #include <cassert>
 #include <cstdint>
@@ -49,7 +49,7 @@ private:
     /**
      * @return The pointer to this thread context
      */
-    inline ThreadContext* thread_context() const noexcept
+    QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* thread_context() const noexcept
     {
       assert(_thread_context && "_thread_context can not be null");
       return _thread_context.get();
@@ -86,7 +86,7 @@ public:
    * Called by caller threads
    * @return A reference to the specific for this thread thread context
    */
-  inline ThreadContext* local_thread_context() noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
     static thread_local ThreadContextWrapper thread_context_wrapper{*this};
     return thread_context_wrapper.thread_context();
@@ -106,7 +106,7 @@ public:
    * If there are no invalidated contexts or no new contexts the existing cache is returned
    * @return All current owned thread contexts
    */
-  std::vector<ThreadContext*> const& backend_thread_contexts_cache();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::vector<ThreadContext*> const& backend_thread_contexts_cache();
 
 private:
   /**
@@ -114,7 +114,7 @@ private:
    * @note Only accessed by the backend thread
    * @return true if the shared data structure was changed by any calls to Logger
    */
-  QUILL_NODISCARD bool _has_new_thread_context() noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool _has_new_thread_context() noexcept;
 
   /**
    * Indicate that the context has changed. A new thread context has been added or removed
@@ -136,7 +136,7 @@ private:
   /**
    * @return True if there is an invalid thread context
    */
-  bool _has_invalid_thread_context() const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool _has_invalid_thread_context() const noexcept;
 
   /**
    * Remove a thread context from our main thread context collection

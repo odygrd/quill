@@ -2,7 +2,7 @@
 
 #include "quill/Logger.h"
 #include "quill/detail/HandlerCollection.h"
-#include "quill/detail/utility/RecursiveSpinlock.h"
+#include "quill/detail/misc/RecursiveSpinlock.h"
 #include <initializer_list>
 #include <memory>
 #include <string>

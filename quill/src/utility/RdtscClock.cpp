@@ -1,7 +1,7 @@
-#include "quill/detail/utility/RdtscClock.h"
+#include "quill/detail/misc/RdtscClock.h"
 
-#include "quill/detail/utility/Macros.h"
-#include "quill/detail/utility/Os.h"
+#include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/Os.h"
 #include <algorithm>
 #include <array>
 #include <chrono>

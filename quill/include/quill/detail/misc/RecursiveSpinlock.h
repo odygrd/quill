@@ -1,34 +1,26 @@
 #pragma once
 
-#include "quill/detail/utility/Attributes.h"
-#include <atomic>
-#include <mutex> // for std::lock_guard
+#include "quill/detail/misc/Spinlock.h"
 
 namespace quill
 {
 namespace detail
 {
 /**
- * A Spinlock class
+ * A recursive spinlock class
  */
-class Spinlock
+class RecursiveSpinlock
 {
 public:
   /**
    * Constructs a new spin lock.
    */
-  Spinlock() = default;
+  RecursiveSpinlock() = default;
 
   /**
    * Acquires the lock, spinning until successful.
    */
   void lock() noexcept;
-
-  /**
-   * Tries to acquire the lock, spinning until successful.
-   * @return true if lock was acquired, false otherwise
-   */
-  QUILL_NODISCARD bool try_lock() noexcept;
 
   /**
    * Releases the lock.
@@ -39,7 +31,8 @@ public:
   void unlock() noexcept;
 
 private:
-  std::atomic_flag _Spinlock_flag = ATOMIC_FLAG_INIT;
+  Spinlock _spinlock;
+  static thread_local uint16_t _counter;
 };
 } // namespace detail
 } // namespace quill

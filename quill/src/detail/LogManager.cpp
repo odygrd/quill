@@ -1,7 +1,7 @@
 #include "quill/detail/LogManager.h"
 
+#include "quill/detail/misc/Spinlock.h"
 #include "quill/detail/record/CommandRecord.h"
-#include "quill/detail/utility/Spinlock.h"
 #include <condition_variable>
 
 namespace quill

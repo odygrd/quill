@@ -5,18 +5,18 @@ set(TARGET_NAME quill)
 
 # header files
 set(HEADER_FILES
+        include/quill/detail/misc/Attributes.h
+        include/quill/detail/misc/Macros.h
+        include/quill/detail/misc/Os.h
+        include/quill/detail/misc/RdtscClock.h
+        include/quill/detail/misc/RecursiveSpinlock.h
+        include/quill/detail/misc/Spinlock.h
+        include/quill/detail/misc/Utilities.h
+        include/quill/detail/misc/TypeTraits.h
         include/quill/detail/record/CommandRecord.h
         include/quill/detail/record/LogRecord.h
-        include/quill/detail/record/LogRecordUtilities.h
         include/quill/detail/record/RecordBase.h
         include/quill/detail/record/StaticLogRecordInfo.h
-        include/quill/detail/utility/Attributes.h
-        include/quill/detail/utility/Macros.h
-        include/quill/detail/utility/Misc.h
-        include/quill/detail/utility/Os.h
-        include/quill/detail/utility/RdtscClock.h
-        include/quill/detail/utility/RecursiveSpinlock.h
-        include/quill/detail/utility/Spinlock.h
         include/quill/detail/BackendWorker.h
         include/quill/detail/BoundedSPSCQueue.h
         include/quill/detail/Config.h
@@ -51,7 +51,7 @@ set(SOURCE_FILES
         src/detail/ThreadContextCollection.cpp
         src/handlers/FileHandler.cpp
         src/handlers/StreamHandler.cpp
-        src/utility/Misc.cpp
+        src/utility/Utilities.cpp
         src/utility/Os.cpp
         src/utility/RdtscClock.cpp
         src/utility/RecursiveSpinlock.cpp

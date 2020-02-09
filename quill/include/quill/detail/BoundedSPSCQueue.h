@@ -1,9 +1,9 @@
 #pragma once
 
-#include "quill/detail/utility/Attributes.h"
-#include "quill/detail/utility/Macros.h"
-#include "quill/detail/utility/Misc.h"
-#include "quill/detail/utility/Os.h"
+#include "quill/detail/misc/Attributes.h"
+#include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/Os.h"
+#include "quill/detail/misc/Utilities.h"
 #include <atomic>
 #include <cstdint>
 #include <type_traits>
@@ -180,24 +180,24 @@ public:
    * @return
    */
   template <typename TInsertedObject, typename... Args>
-  QUILL_NODISCARD inline bool try_emplace(Args&&... args) noexcept;
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool try_emplace(Args&&... args) noexcept;
 
   /**
    * Return a handle containing the consumed data of the requested size
    * @param size the size we requested to consume
    * @return
    */
-  QUILL_NODISCARD inline Handle try_pop() noexcept;
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT Handle try_pop() noexcept;
 
   /**
    * @return total capacity of the queue in bytes
    */
-  QUILL_NODISCARD inline size_t capacity() const noexcept { return Capacity; }
+  QUILL_NODISCARD size_t capacity() const noexcept { return Capacity; }
 
   /**
    * @return True when the queue is empty, false if there is still data to read
    */
-  QUILL_NODISCARD inline bool empty() const noexcept;
+  QUILL_NODISCARD bool empty() const noexcept;
 
 private:
   /** Mask to shift around power of two capacity */

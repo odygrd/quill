@@ -2,9 +2,9 @@
 
 #include "fmt/format.h"
 #include "invoke/invoke.h"
+#include "quill/detail/misc/Attributes.h"
+#include "quill/detail/misc/Utilities.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
-#include "quill/detail/utility/Attributes.h"
-#include "quill/detail/utility/Misc.h"
 #include <chrono>
 #include <cstdint>
 #include <functional>

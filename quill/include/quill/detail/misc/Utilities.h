@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quill/detail/utility/Attributes.h"
+#include "quill/detail/misc/Attributes.h"
 #include <array>
 #include <cassert>
 #include <cerrno>

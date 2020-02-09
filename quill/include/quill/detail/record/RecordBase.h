@@ -3,8 +3,8 @@
 #include "quill/TweakMe.h"
 
 #include "quill/detail/LoggerDetails.h"
-#include "quill/detail/utility/Os.h"
-#include "quill/detail/utility/RdtscClock.h"
+#include "quill/detail/misc/Os.h"
+#include "quill/detail/misc/RdtscClock.h"
 #include <chrono>
 #include <cstdint>
 #include <functional>

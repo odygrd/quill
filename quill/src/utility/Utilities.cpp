@@ -1,6 +1,6 @@
-#include "quill/detail/utility/Misc.h"
+#include "quill/detail/misc/Utilities.h"
 
-#include "quill/detail/utility/Macros.h"
+#include "quill/detail/misc/Macros.h"
 #include <system_error>
 
 namespace quill

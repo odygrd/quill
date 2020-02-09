@@ -6,7 +6,7 @@
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/utility/Os.h"
+#include "quill/detail/misc/Os.h"
 
 namespace quill
 {
@@ -64,7 +64,7 @@ void BackendWorker::run()
 #endif
 
       // Running
-      while (is_running())
+      while (QUILL_LIKELY(is_running()))
       {
         _main_loop();
       }
@@ -161,9 +161,9 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
     }
   }
 
-  if (!desired_record_handle.is_valid())
+  if (QUILL_UNLIKELY(!desired_record_handle.is_valid()))
   {
-    // there is nothing to process
+    // there is nothing to process and we have nothing to do
     return false;
   }
 

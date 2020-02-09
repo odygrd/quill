@@ -4,8 +4,8 @@
 #include <stdexcept>
 
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/utility/Macros.h"
-#include "quill/detail/utility/Misc.h"
+#include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/Utilities.h"
 #include "quill/handlers/StreamHandler.h"
 
 namespace quill

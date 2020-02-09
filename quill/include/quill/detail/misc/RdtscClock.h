@@ -2,7 +2,7 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/detail/utility/Attributes.h"
+#include "quill/detail/misc/Attributes.h"
 #include <chrono>
 
 namespace quill

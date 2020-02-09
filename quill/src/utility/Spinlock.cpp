@@ -1,4 +1,4 @@
-#include "quill/detail/utility/Spinlock.h"
+#include "quill/detail/misc/Spinlock.h"
 
 namespace quill
 {
