@@ -52,7 +52,7 @@ public:
    * @param logger_name
    * @return
    */
-  QUILL_NODISCARD Logger* create_logger(char const* logger_name);
+  Logger* create_logger(char const* logger_name);
 
   /**
    * Creates a new logger
@@ -60,7 +60,7 @@ public:
    * @param handler The handler of the loggfer
    * @return
    */
-  QUILL_NODISCARD Logger* create_logger(char const* logger_name, Handler* handler);
+  Logger* create_logger(char const* logger_name, Handler* handler);
 
   /**
    * Create a new logger with multiple handler
@@ -68,19 +68,19 @@ public:
    * @param handlers
    * @return
    */
-  QUILL_NODISCARD Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
+  Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
 
   /**
    * Set a custom default logger with a single handler
    * @param handler
    */
-  void set_default_logger_handler(Handler* handler);
+  QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
 
   /**
    *  Set a custom default logger with multiple handlers
    * @param handlers
    */
-  void set_default_logger_handler(std::initializer_list<Handler*> handlers);
+  QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
 
 private:
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */

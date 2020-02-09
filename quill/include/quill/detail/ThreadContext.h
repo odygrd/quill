@@ -41,7 +41,7 @@ public:
   /**
    * Operator new to align this object to a cache line boundary as we always create it on the heap
    * This object should always be aligned to a cache line as it contains the SPSC queue as a member
-   * which has cache line alignement requirements
+   * which has cache line alignment requirements
    * @param i
    * @return
    */

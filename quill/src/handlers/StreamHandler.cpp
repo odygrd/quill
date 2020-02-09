@@ -36,5 +36,5 @@ void StreamHandler::emit(PatternFormatter::log_record_memory_buffer const& forma
 void StreamHandler::flush() { fflush(_file); }
 
 /***/
-std::string StreamHandler::filename() { return _filename; }
+std::string const& StreamHandler::filename() const noexcept { return _filename; }
 } // namespace quill

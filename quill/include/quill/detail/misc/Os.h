@@ -42,25 +42,25 @@ tm* localtime_rs(time_t const* timer, tm* buf) noexcept;
  * @param cpu the cpu_id to pin the caller thread
  * @throws if fails to set cpu affinity
  */
-void set_cpu_affinity(uint16_t cpu_id);
+QUILL_ATTRIBUTE_COLD void set_cpu_affinity(uint16_t cpu_id);
 
 /**
  * Sets the name of the caller thread
  * @param name the name of the thread
  * @throws
  */
-void set_thread_name(char const* name);
+QUILL_ATTRIBUTE_COLD void set_thread_name(char const* name);
 
 /**
  * Returns the os assigned id of the thread
  * @return
  */
-QUILL_NODISCARD uint32_t get_thread_id() noexcept;
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_thread_id() noexcept;
 
 /**
  * Get's the page size
  */
-QUILL_NODISCARD size_t get_page_size() noexcept;
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t get_page_size() noexcept;
 
 /**
  * Aligned alloc
@@ -82,12 +82,13 @@ void aligned_free(void* ptr) noexcept;
  * first: valid address
  * second: file_handler (windows only)
  */
-QUILL_NODISCARD std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity);
 
 /**
  * Destroys the memory mapped files that were created using create_memory_mapped_files
  */
-void destroy_memory_mapped_files(std::pair<unsigned char*, void*> pointer_pair, size_t capacity);
+QUILL_ATTRIBUTE_COLD void destroy_memory_mapped_files(std::pair<unsigned char*, void*> pointer_pair,
+                                                      size_t capacity);
 
 } // namespace detail
 } // namespace quill

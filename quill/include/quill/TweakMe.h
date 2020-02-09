@@ -33,12 +33,12 @@
 #define QUILL_RDTSC_CLOCK
 
 /**
- * This option is only applicable if the RDTSC clock is enabled. When QUILL_RDTSC_CLOCK is not
- * defined this option can be ignored, but it shouldn't be commented out.
+ * This option is only applicable if the RDTSC clock is enabled. The value is in seconds
+ * When QUILL_RDTSC_CLOCK is not defined this option can be ignored, but it shouldn't be commented out.
  *
  * Quill by default will re-calculate and sync TSC based on the system wall clock
  */
-#define QUILL_RDTSC_RESYNC_INTERVAL 10
+#define QUILL_RDTSC_RESYNC_INTERVAL 1
 
 /**
  * Completely compiles out log level with zero cost.

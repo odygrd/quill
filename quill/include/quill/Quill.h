@@ -11,17 +11,17 @@ namespace quill
  * Starts the backend thread to write the logs to the handlers
  * @throws When the backend thread fails to start
  */
-void start();
+QUILL_ATTRIBUTE_COLD void start();
 
 /**
  * @return a handler to the standard output stream
  */
-Handler* stdout_streamhandler();
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stdout_handler();
 
 /**
  * @return a handler to the standard error stream
  */
-Handler* stderr_streamhandler();
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler();
 
 /**
  * Creates or returns an existing handler to a file.
@@ -31,7 +31,8 @@ Handler* stderr_streamhandler();
  * If no value is specified during the file creation "a" is used as default.
  * @return A handler to a file
  */
-Handler* filehandler(std::string const& filename, std::string const& mode = std::string{});
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::string const& filename,
+                                                           std::string const& mode = std::string{});
 
 /**
  * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed
@@ -60,7 +61,7 @@ QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr);
  * @param logger_name
  * @return A pointer to a thread-safe Logger object
  */
-QUILL_NODISCARD Logger* create_logger(char const* logger_name);
+Logger* create_logger(char const* logger_name);
 
 /**
  * Creates a new Logger using the custom given handler.
@@ -73,7 +74,7 @@ QUILL_NODISCARD Logger* create_logger(char const* logger_name);
  * @param handler
  * @return A pointer to a thread-safe Logger object
  */
-QUILL_NODISCARD Logger* create_logger(char const* logger_name, Handler* handler);
+Logger* create_logger(char const* logger_name, Handler* handler);
 
 /***
  * Creates a new Logger using the custom given handler.
@@ -85,7 +86,7 @@ QUILL_NODISCARD Logger* create_logger(char const* logger_name, Handler* handler)
  * @param handlers
  * @return
  */
-QUILL_NODISCARD Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
+Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
 
 /**
  * Resets the default logger and re-creates the logger with the given handler
@@ -99,7 +100,7 @@ QUILL_NODISCARD Logger* create_logger(char const* logger_name, std::initializer_
  *
  * @param handler
  */
-void set_default_logger_handler(Handler* handler);
+QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
 
 /**
  * Resets the default logger and re-creates the logger with the given multiple handlers
@@ -111,7 +112,7 @@ void set_default_logger_handler(Handler* handler);
  *
  * @param handlers
  */
-void set_default_logger_handler(std::initializer_list<Handler*> handlers);
+QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
 
 /**
  * Blocks the caller thread until all log messages until the current timestamp are flushed
@@ -149,7 +150,7 @@ namespace config
  * @warning: The backend thread will read this value when quill::start() is called.
  * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
  */
-void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept;
+QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept;
 
 /**
  * Pins the backend thread to the given CPU
@@ -164,7 +165,7 @@ void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) 
  *
  * @see set_backend_thread_sleep_duration
  */
-void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
+QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
 
 /**
  * Names the backend thread
@@ -176,7 +177,7 @@ void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
  *
  * @param name The desired name
  */
-void set_backend_thread_name(std::string const& name) noexcept;
+QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexcept;
 } // namespace config
 
 } // namespace quill

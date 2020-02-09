@@ -24,11 +24,12 @@ public:
   HandlerCollection(HandlerCollection const&) = delete;
   HandlerCollection& operator=(HandlerCollection const&) = delete;
 
-  StreamHandler* stdout_streamhandler();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stdout_streamhandler();
 
-  StreamHandler* stderr_streamhandler();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_streamhandler();
 
-  StreamHandler* filehandler(std::string const& filename, std::string const& mode = std::string{"a"});
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(std::string const& filename,
+                                                                   std::string const& mode = std::string{"a"});
 
   /**
    * Subscribe a handler to the vector of active handlers so that the backend thread can see it
@@ -45,13 +46,13 @@ public:
    * This is not used for logging by the backend but only in special cases when
    * e.g. it needs to iterate through all handlers for e.g. to flush
    */
-  std::vector<Handler*> active_handlers() const;
+  QUILL_NODISCARD std::vector<Handler*> active_handlers() const;
 
   // TODO: Remove handlers. e.g when we are set_default_logger to FILE* and stdout remains in our
   // list Check if no other logger is using it first
 
 private:
-  StreamHandler* _create_streamhandler(std::string const& stream);
+  QUILL_NODISCARD StreamHandler* _create_streamhandler(std::string const& stream);
 
 private:
   /**

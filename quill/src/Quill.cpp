@@ -9,21 +9,21 @@ namespace quill
 void start() { detail::LogManagerSingleton::instance().log_manager().start_backend_worker(); }
 
 /***/
-Handler* stdout_streamhandler()
+Handler* stdout_handler()
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().stdout_streamhandler();
 }
 
 /***/
-Handler* stderr_streamhandler()
+Handler* stderr_handler()
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().stderr_streamhandler();
 }
 
 /***/
-Handler* filehandler(std::string const& filename, std::string const& mode /* = std::string{} */)
+Handler* file_handler(std::string const& filename, std::string const& mode /* = std::string{} */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().filehandler(filename, mode);
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().file_handler(filename, mode);
 }
 
 /***/

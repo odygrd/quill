@@ -29,7 +29,7 @@ public:
    */
   void flush() override;
 
-  virtual std::string filename();
+  QUILL_NODISCARD virtual std::string const& filename() const noexcept;
 
 protected:
   StreamHandler(FILE* file_pointer, char const* filename);

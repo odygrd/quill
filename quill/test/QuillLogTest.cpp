@@ -20,7 +20,7 @@ void test_quil_log(char const* test_id, char const* filename, uint16_t number_of
   {
     threads.emplace_back([filename, number_of_messages, test_id, i]() {
       // Set writing logging to a file
-      quill::Handler* log_from_one_thread_file = quill::filehandler(filename, "w");
+      quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
 
       std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
       quill::Logger* logger = quill::create_logger(logger_name.data(), log_from_one_thread_file);
@@ -96,7 +96,7 @@ public:
   log_test_class(char const* filename)
   {
     // create a new logger in the ctor
-    quill::Handler* filehandler = quill::filehandler(filename, "w");
+    quill::Handler* filehandler = quill::file_handler(filename, "w");
     _logger = quill::create_logger("test_class", filehandler);
   }
 

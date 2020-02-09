@@ -60,7 +60,6 @@ Logger* LoggerCollection::create_logger(char const* logger_name)
   // Register the handlers, even if they already exist
   for (auto& handler : handlers)
   {
-    // TODO: could improve the lock
     _handler_collection.subscribe_handler(handler);
   }
 

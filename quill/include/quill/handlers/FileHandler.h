@@ -25,6 +25,6 @@ private:
    * @throws
    * @return
    */
-  static FILE* _fopen(char const* filename, char const* mode);
+  QUILL_NODISCARD static FILE* _fopen(char const* filename, char const* mode);
 };
 } // namespace quill

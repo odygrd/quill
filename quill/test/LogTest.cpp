@@ -35,7 +35,7 @@ TEST(Log, default_logger_with_filehandler)
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().filehandler(filename, "w"));
+    lm.handler_collection().file_handler(filename, "w"));
 
   lm.start_backend_worker();
 
@@ -71,7 +71,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   std::string const filename{"test_custom_default_logger_same_handler"};
 
   // Set a file handler the custom logger handler and log to it
-  Handler* file_handler = lm.handler_collection().filehandler(filename, "w");
+  Handler* file_handler = lm.handler_collection().file_handler(filename, "w");
   file_handler->set_pattern(
     QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(logger_name)]"));
   lm.logger_collection().set_default_logger_handler(file_handler);
@@ -82,7 +82,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   if (test_case == 0)
   {
     // Add a second logger using the same file handler
-    Handler* file_handler_2 = lm.handler_collection().filehandler(filename);
+    Handler* file_handler_2 = lm.handler_collection().file_handler(filename);
     QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger", file_handler_2);
   }
   else if (test_case == 1)
@@ -160,12 +160,12 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
   // Set a file handler the custom logger handler and log to it
 
   // First handler
-  Handler* file_handler_1 = lm.handler_collection().filehandler(filename_1, "w");
+  Handler* file_handler_1 = lm.handler_collection().file_handler(filename_1, "w");
   file_handler_1->set_pattern(
     QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(logger_name)]"));
 
   // Second handler with different pattern
-  Handler* file_handler_2 = lm.handler_collection().filehandler(filename_2, "w");
+  Handler* file_handler_2 = lm.handler_collection().file_handler(filename_2, "w");
   file_handler_2->set_pattern(QUILL_STRING("%(ascii_time) %(logger_name) - %(message)"),
                               "%D %H:%M:%S", PatternFormatter::TimestampPrecision::MilliSeconds);
 
@@ -177,8 +177,8 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
   if (test_case == 0)
   {
     // Add a second logger using the same file handler
-    Handler* file_handler_a = lm.handler_collection().filehandler(filename_1);
-    Handler* file_handler_b = lm.handler_collection().filehandler(filename_2);
+    Handler* file_handler_a = lm.handler_collection().file_handler(filename_1);
+    Handler* file_handler_b = lm.handler_collection().file_handler(filename_2);
     QUILL_MAYBE_UNUSED Logger* logger_2 =
       lm.logger_collection().create_logger("custom_logger", {file_handler_a, file_handler_b});
   }
@@ -287,7 +287,7 @@ TEST(Log, many_loggers_multiple_threads)
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().filehandler(filename, "w"));
+    lm.handler_collection().file_handler(filename, "w"));
 
   lm.start_backend_worker();
 
