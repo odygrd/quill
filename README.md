@@ -11,8 +11,8 @@
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: http://opensource.org/licenses/MIT
 
-- [Design Goals](#design-goals)
 - [Features](#features)
+- [Design Goals](#design-goals)
 - [Supported Compilers](#supported-compilers)
 - [Integration](#integration)
   - [CMake](#cmake)
@@ -22,11 +22,6 @@
 - [Documentation](#documentation)
 - [License](#license)
 
-## Design Goals
-There are many C++ logging libraries out there. Quill had these design goals:
-
-- **Low latency not high throughput**. The main priority is set on reducing the latency on caller threads as much as possible. There is only one backend consumer thread responsible for writing the log file and how quickly we right to the file comes as a second priority.
-
  ## Features
  * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
  * Custom LogRecord formatting, with attributes similar to python logging (https://docs.python.org/3/library/logging.html)
@@ -35,6 +30,11 @@ There are many C++ logging libraries out there. Quill had these design goals:
     * Rotating log files [Work in progress]
     * Daily log files [Work in progress]
  * Multiple thread-safe Loggers
+ 
+## Design Goals
+There are many C++ logging libraries out there. Quill had these design goals:
+
+- **Low latency not high throughput**. The main priority is set on reducing the latency on caller threads as much as possible. There is only one backend consumer thread responsible for writing the log file and how quickly we right to the file comes as a second priority.
 
 ## Supported Compilers 
 (TODO: Update compiler list)
