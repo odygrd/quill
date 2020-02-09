@@ -1,6 +1,4 @@
-<img src="https://i.postimg.cc/FssWB25k/quill-logo.png" alt="Quill logo" width="140" >
-
-#### Asynchronous Low Latency Logging Library
+<h2> <img src="https://i.postimg.cc/FssWB25k/quill-logo.png" alt="Quill logo" width="140"><br>Asynchronous Low Latency Logging Library</h2>
 
 [![language][badge.language]][language]
 [![license][badge.license]][license]
