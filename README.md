@@ -9,8 +9,8 @@
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: http://opensource.org/licenses/MIT
 
-- [Features](#features)
 - [Supported Compilers](#supported-compilers)
+- [Features](#features)
 - [Design Goals](#design-goals)
 - [Integration](#integration)
   - [CMake](#cmake)
@@ -20,15 +20,6 @@
 - [Documentation](#documentation)
 - [License](#license)
 
- ## Features
- * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
- * Custom LogRecord formatting, with attributes similar to python logging (https://docs.python.org/3/library/logging.html)
- * Various log targets (Handlers)
-    * Console logging 
-    * Rotating log files [Work in progress]
-    * Daily log files [Work in progress]
- * Multiple thread-safe Loggers
-
 ## Supported Compilers 
 (TODO: Update compiler list)
 - GCC 4.8 - 9.2 (and possibly later)
@@ -36,6 +27,15 @@
 - Microsoft Visual C++ 2015 / Build Tools 14.0.25123.0 (and possibly later)
 - Microsoft Visual C++ 2017 / Build Tools 15.5.180.51428 (and possibly later)
 - Microsoft Visual C++ 2019 / Build Tools 16.3.1+1def00d3d (and possibly later)
+
+## Features
+ * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
+ * Custom LogRecord formatting, with attributes similar to python logging (https://docs.python.org/3/library/logging.html)
+ * Various log targets (Handlers)
+    * Console logging 
+    * Rotating log files [Work in progress]
+    * Daily log files [Work in progress]
+ * Multiple thread-safe Loggers
 
 ## Design Goals
 There are many C++ logging libraries out there. Quill had these design goals:
