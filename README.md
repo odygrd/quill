@@ -11,9 +11,9 @@
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: http://opensource.org/licenses/MIT
 
-- [Design goals](#design-goals)
+- [Design Goals](#design-goals)
 - [Features](#features)
-- [Supported compilers](#supported-compilers)
+- [Supported Compilers](#supported-compilers)
 - [Integration](#integration)
   - [CMake](#cmake)
   - [Package Managers](#package-managers)
@@ -21,7 +21,7 @@
   - [Basic Usage](#basic-usage)
 - [License](#license)
 
-## Design goals
+## Design Goals
 There are many C++ logging libraries out there. Quill had these design goals:
 
 - **Low latency not high throughput**. The main priority is set on reducing the latency on caller threads as much as possible. There is only one backend consumer thread responsible for writing the log file and how quickly we right to the file comes as a second priority.
@@ -35,7 +35,7 @@ There are many C++ logging libraries out there. Quill had these design goals:
     * Daily log files [Work in progress]
  * Multiple thread-safe Loggers
 
-## Supported compilers 
+## Supported Compilers 
 (TODO: Update compiler list)
 - GCC 4.8 - 9.2 (and possibly later)
 - Clang 3.4 - 9.0 (and possibly later)
