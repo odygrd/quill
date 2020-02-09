@@ -19,6 +19,7 @@
   - [Package Managers](#package-managers)
 - [Examples](#examples)
   - [Basic Usage](#basic-usage)
+- [Documentation](#documentation)
 - [License](#license)
 
 ## Design Goals
@@ -77,6 +78,8 @@ target_link_libraries(foo PRIVATE quill::quill)
 ## Examples
 
 ### Basic usage
+
+## Documentation
 
 ## License
 Quill is licensed under the [MIT License](http://opensource.org/licenses/MIT)
