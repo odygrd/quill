@@ -1,4 +1,4 @@
-<img src="https://i.postimg.cc/HsGRvSWQ/quill-logo.png" alt="Quill logo" height="70" >
+<img src="https://i.postimg.cc/FssWB25k/quill-logo.png" alt="Quill logo" height="65" >
 
 #### Asynchronous Low Latency Logging Library
 
