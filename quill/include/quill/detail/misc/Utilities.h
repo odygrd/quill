@@ -8,7 +8,6 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
-#include <codecvt>
 
 namespace quill
 {

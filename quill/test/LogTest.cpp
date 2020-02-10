@@ -31,11 +31,11 @@ TEST(Log, default_logger_with_filehandler)
 {
   LogManager lm{default_cfg};
 
-  #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
   std::wstring const filename{L"test_default_logger_with_filehandler"};
-  #elif
+#else
   std::string const filename{"test_default_logger_with_filehandler"};
-  #endif
+#endif
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -72,11 +72,11 @@ void custom_default_logger_same_handler(int test_case = 0)
 {
   LogManager lm{default_cfg};
 
-    #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
-    std::wstring const filename{L"test_custom_default_logger_same_handler"};
-    #elif
-    std::string const filename{"test_custom_default_logger_same_handler"};
-    #endif
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  std::wstring const filename{L"test_custom_default_logger_same_handler"};
+#else
+  std::string const filename{"test_custom_default_logger_same_handler"};
+#endif
 
   // Set a file handler the custom logger handler and log to it
   Handler* file_handler = lm.handler_collection().file_handler(filename, "w");
@@ -165,7 +165,7 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
 #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
   std::wstring const filename_1{L"test_custom_default_logger_multiple_handlers_1"};
   std::wstring const filename_2{L"test_custom_default_logger_multiple_handlers_2"};
-#elif
+#else
   std::string const filename_1{"test_custom_default_logger_multiple_handlers_1"};
   std::string const filename_2{"test_custom_default_logger_multiple_handlers_2"};
 #endif
@@ -298,7 +298,7 @@ TEST(Log, many_loggers_multiple_threads)
 
 #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
   std::wstring const filename{L"test_many_loggers_multiple_threads"};
-#elif
+#else
   std::string const filename{"test_many_loggers_multiple_threads"};
 #endif
 

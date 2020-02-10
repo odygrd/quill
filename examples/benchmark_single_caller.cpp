@@ -2,13 +2,13 @@
 #include <string>
 
 #include "quill/Quill.h"
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <limits>
+#include <numeric>
 #include <random>
 #include <thread>
-#include <algorithm>
-#include <numeric>
 
 template <typename T>
 std::pair<std::string, std::vector<double>> log_numeric_performance(int amount, std::string name);
@@ -280,27 +280,28 @@ std::pair<std::string, std::vector<double>> log_multiple_string_and_int_performa
 int main()
 {
   // Set this thread affinity
-//
-//  cpu_set_t cpuset;
-//  CPU_ZERO(&cpuset);
-//  CPU_SET(1, &cpuset);
-//
-//  auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
+  //
+  //  cpu_set_t cpuset;
+  //  CPU_ZERO(&cpuset);
+  //  CPU_SET(1, &cpuset);
+  //
+  //  auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
 
-//  if (QUILL_UNLIKELY(err == -1))
-//  {
-//    throw std::system_error((errno), std::generic_category());
-//  }
+  //  if (QUILL_UNLIKELY(err == -1))
+  //  {
+  //    throw std::system_error((errno), std::generic_category());
+  //  }
 
   // Logging
   quill::config::set_backend_thread_cpu_affinity(0);
   quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
 
-  #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
   auto file_handler = quill::file_handler(L"bench_log", "w");
-  #elif
+#else
   auto file_handler = quill::file_handler("bench_log", "w");
-  #endif
+#endif
+
   quill::Logger* logger = quill::create_logger("bench", file_handler);
 
   // Change the LogLevel to print everything

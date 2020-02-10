@@ -89,9 +89,9 @@ void aligned_free(void* ptr) noexcept;
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* fopen(filename_t const& filename, std::string const& mode);
 
 /**
-* Removes a file
-* @param filename
-*/
+ * Removes a file
+ * @param filename
+ */
 QUILL_ATTRIBUTE_COLD int remove(filename_t const& filename) noexcept;
 
 /**

@@ -163,8 +163,8 @@ private:
 };
 
 #if !(defined(_WIN32) && defined(_DEBUG))
-    // In MSVC debug mode the class has increased size
-    static_assert(sizeof(Logger) <= detail::CACHELINE_SIZE, "Logger needs to fit in 1 cache line");
+// In MSVC debug mode the class has increased size
+static_assert(sizeof(Logger) <= detail::CACHELINE_SIZE, "Logger needs to fit in 1 cache line");
 #endif
 
 } // namespace quill

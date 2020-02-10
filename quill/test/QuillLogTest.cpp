@@ -71,7 +71,7 @@ TEST(Quill, log_from_one_thread)
 
 #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
   static constexpr wchar_t const* filename = L"log_from_one_thread.log";
-#elif
+#else
   static constexpr char const* filename = "log_from_one_thread.log";
 #endif
 
@@ -88,7 +88,7 @@ TEST(Quill, log_from_multiple_threads)
 
 #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
   static constexpr wchar_t const* filename = L"log_from_multiple_threads.log";
-#elif
+#else
   static constexpr char const* filename = "log_from_multiple_threads.log";
 #endif
 
@@ -131,7 +131,7 @@ TEST(Quill, log_from_const_function)
 {
 #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
   static constexpr wchar_t const* filename = L"log_test_class.log";
-#elif
+#else
   static constexpr char const* filename = "log_test_class.log";
 #endif
 

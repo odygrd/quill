@@ -3,8 +3,8 @@
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/Utilities.h"
 #include <cstdint>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <stdexcept>
 #include <system_error>
 
@@ -98,7 +98,7 @@ void set_cpu_affinity(uint16_t cpu_id)
   // core number starts from 0
   auto mask = (static_cast<DWORD_PTR>(1) << cpu_id);
   auto ret = SetThreadAffinityMask(GetCurrentThread(), mask);
-  if (ret == 0) 
+  if (ret == 0)
   {
     throw std::system_error(std::error_code(GetLastError(), std::system_category()));
   }

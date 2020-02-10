@@ -1,6 +1,8 @@
 #include "quill/detail/misc/Utilities.h"
 
 #include "quill/detail/misc/Macros.h"
+#include <codecvt>
+#include <locale>
 #include <system_error>
 
 namespace quill

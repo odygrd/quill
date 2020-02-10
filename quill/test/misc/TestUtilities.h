@@ -1,11 +1,11 @@
 #pragma once
 
+#include "quill/detail/misc/Common.h"
 #include <algorithm>
 #include <fstream>
 #include <string>
 #include <system_error>
 #include <vector>
-#include "quill/detail/misc/Common.h"
 
 namespace quill
 {
