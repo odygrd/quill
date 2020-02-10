@@ -33,12 +33,17 @@
 #define QUILL_RDTSC_CLOCK
 
 /**
- * This option is only applicable if the RDTSC clock is enabled. The value is in seconds
- * When QUILL_RDTSC_CLOCK is not defined this option can be ignored, but it shouldn't be commented out.
+ * This option is only applicable if the RDTSC clock is enabled.
+ * When QUILL_RDTSC_CLOCK is not defined this option can be ignored
  *
- * Quill by default will re-calculate and sync TSC based on the system wall clock
+ * This value controls how frequently the backend thread will re-calculate and sync the TSC by
+ * getting the system time from the system wall clock.
+ * The TSC clock drifts slightly over time and is also not synchronised with the NTP server updates
+ * Therefore the smaller this value is the more acquire the log timestamps will be.
+ *
+ * The value is in milliseconds and the default value is 1000
  */
-#define QUILL_RDTSC_RESYNC_INTERVAL 1
+// #define QUILL_RDTSC_RESYNC_INTERVAL 1000
 
 /**
  * Completely compiles out log level with zero cost.
@@ -60,7 +65,7 @@
  * QUILL_LOG_LEVEL_ERROR
  * QUILL_LOG_LEVEL_CRITICAL
  */
-#define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
+// #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
 /**
  * Quill uses a bounded SPSC queue per spawned thread to forward the LogRecords to the backend
@@ -69,7 +74,7 @@
  * able to consume fast enough and the queue will become full. In this scenario the caller thread
  * will block until there is some free space in the queue to push the LogRecord
  *
- * By default Quill is using a 16 Mebibyte queue.
+ * By default Quill is using a 8 Mebibyte queue per thread
  *
  * The queue size can be increased or decreased based on the user needs.
  *
@@ -77,4 +82,10 @@
  * of the page size.
  * Look for an online Mebibyte to Byte converted to easily find a correct value
  */
-#define QUILL_BOUNDED_SPSC_QUEUE_SIZE 8388608u
+// #define QUILL_BOUNDED_SPSC_QUEUE_SIZE 8388608u
+
+/**
+ * When this option is defined, Quill will use wchar_t and wstring for filenames
+ * @note This option is only available on windows and it is always enabled by default
+ */
+#define QUILL_WCHAR_FILENAMES

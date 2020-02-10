@@ -1,6 +1,7 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h"
+#include "quill/detail/misc/Common.h"
 #include <cstdint>
 #include <ctime>
 #include <utility>
@@ -76,6 +77,16 @@ QUILL_NODISCARD void* aligned_alloc(size_t alignment, size_t size);
  * @param ptr
  */
 void aligned_free(void* ptr) noexcept;
+
+/**
+ * Opens a file
+ * @param fp
+ * @param filename
+ * @param mode
+ * @return Valid FILE*
+ * @throws
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* fopen(filename_t const& filename, filename_t const& mode);
 
 /**
  * Creates the memory map files needed for the queue buffer

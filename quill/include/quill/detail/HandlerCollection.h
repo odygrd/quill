@@ -28,8 +28,8 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_streamhandler();
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(std::string const& filename,
-                                                                   std::string const& mode = std::string{"a"});
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(filename_t const& filename,
+                                                                   filename_t const& mode = std::string{"a"});
 
   /**
    * Subscribe a handler to the vector of active handlers so that the backend thread can see it
@@ -65,7 +65,7 @@ private:
   /**
    * All related to files Streamhandlers, stored per unique filename so that we don't open the same file twice
    */
-  std::unordered_map<std::string, std::unique_ptr<StreamHandler>> _file_handler_collection;
+  std::unordered_map<filename_t, std::unique_ptr<StreamHandler>> _file_handler_collection;
 
   /** Use to lock both _active_handlers_collection and _file_handler_collection, mutable to have an active_handlers() const function */
   mutable Spinlock _spinlock;

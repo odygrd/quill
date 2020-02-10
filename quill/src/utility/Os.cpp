@@ -217,6 +217,26 @@ void aligned_free(void* ptr) noexcept
 }
 
 /***/
+FILE* fopen(filename_t const& filename, filename_t const& mode)
+{
+  FILE* fp{nullptr};
+#if defined(_WIN32)
+  #if defined(QUILL_WCHAR_FILENAMES)
+  fp = ::_wfsopen((filename.c_str()), mode.c_str(), _SH_DENYNO);
+  #else
+  fp = ::_fsopen((filename.c_str()), mode.c_str(), _SH_DENYNO);
+  #endif
+#else
+  fp = ::fopen(filename.data(), mode.data());
+#endif
+  if (!fp)
+  {
+    throw std::system_error(errno, std::system_category());
+  }
+  return fp;
+}
+
+/***/
 std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
 {
   if (!is_pow_of_two(capacity))

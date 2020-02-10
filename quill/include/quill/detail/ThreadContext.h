@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quill/TweakMe.h"
+#include "quill/detail/misc/Common.h"
 
 #include "quill/detail/BoundedSPSCQueue.h"
 #include "quill/detail/misc/Os.h"

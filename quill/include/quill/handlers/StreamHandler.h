@@ -1,5 +1,6 @@
 #pragma once
 
+#include "quill/detail/misc/Common.h"
 #include "quill/handlers/Handler.h"
 #include <cstdio>
 #include <string>
@@ -12,9 +13,10 @@ public:
   /**
    * Constructor
    * Uses the default pattern formatter
+   * @param stream only stdout or stderr
    * @throws on invalid param
    */
-  explicit StreamHandler(std::string stream);
+  explicit StreamHandler(std::string const& stream);
 
   ~StreamHandler() override = default;
 
@@ -29,13 +31,18 @@ public:
    */
   void flush() override;
 
-  QUILL_NODISCARD virtual std::string const& filename() const noexcept;
+  QUILL_NODISCARD virtual filename_t const& filename() const noexcept;
 
 protected:
-  StreamHandler(FILE* file_pointer, char const* filename);
+  /**
+   * Protected contructor used by the file handler
+   * @param file_pointer
+   * @param filename
+   */
+  StreamHandler(FILE* file_pointer, filename_t filename);
 
 protected:
-  std::string _filename;
+  filename_t _filename;
   FILE* _file{nullptr};
 };
 } // namespace quill

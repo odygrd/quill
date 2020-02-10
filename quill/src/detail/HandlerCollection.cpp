@@ -18,7 +18,7 @@ StreamHandler* HandlerCollection::stderr_streamhandler()
 }
 
 /***/
-StreamHandler* HandlerCollection::file_handler(std::string const& filename, std::string const& mode /* = std::string{"a"} */)
+StreamHandler* HandlerCollection::file_handler(filename_t const& filename, filename_t const& mode /* = filename_t{"a"} */)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};

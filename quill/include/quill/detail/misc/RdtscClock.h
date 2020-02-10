@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quill/TweakMe.h"
+#include "quill/detail/misc/Common.h"
 
 #include "quill/detail/misc/Attributes.h"
 #include <chrono>
@@ -43,7 +43,7 @@ public:
    * Constructor
    * @param resync_interval the interval to resync the tsc clock with the real system wall clock
    */
-  explicit RdtscClock(std::chrono::nanoseconds resync_interval = std::chrono::seconds{QUILL_RDTSC_RESYNC_INTERVAL});
+  explicit RdtscClock(std::chrono::nanoseconds resync_interval = std::chrono::milliseconds{QUILL_RDTSC_RESYNC_INTERVAL});
 
   /**
    * Convert tsc cycles to nanoseconds

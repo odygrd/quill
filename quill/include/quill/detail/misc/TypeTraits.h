@@ -31,6 +31,16 @@ struct Promoted<char const*>
 };
 
 /**
+ * Specialization for wchar_t const*
+ * @see promoted
+ */
+template <>
+struct Promoted<wchar_t const*>
+{
+  using type = std::wstring;
+};
+
+/**
  * Specialization for char*
  * @see promoted
  */
@@ -38,6 +48,16 @@ template <>
 struct Promoted<char*>
 {
   using type = std::string;
+};
+
+/**
+ * Specialization for char*
+ * @see promoted
+ */
+template <>
+struct Promoted<wchar_t*>
+{
+  using type = std::wstring;
 };
 
 /**

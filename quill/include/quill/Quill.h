@@ -1,7 +1,8 @@
 #pragma once
 
-#include "quill/Utility.h"
 #include "quill/detail/LogMacros.h"
+
+#include "quill/Utility.h"
 #include "quill/detail/LogManagerSingleton.h"
 #include <initializer_list>
 
@@ -31,8 +32,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler();
  * If no value is specified during the file creation "a" is used as default.
  * @return A handler to a file
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::string const& filename,
-                                                           std::string const& mode = std::string{});
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& filename,
+                                                           filename_t const& mode = filename_t{});
 
 /**
  * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed

@@ -13,18 +13,8 @@ namespace quill
 class FileHandler : public StreamHandler
 {
 public:
-  explicit FileHandler(char const* filename, char const* mode = "a");
+  explicit FileHandler(filename_t filename, filename_t const& mode);
 
   ~FileHandler() override;
-
-private:
-  /**
-   *
-   * @param filename
-   * @param mode
-   * @throws
-   * @return
-   */
-  QUILL_NODISCARD static FILE* _fopen(char const* filename, char const* mode);
 };
 } // namespace quill
