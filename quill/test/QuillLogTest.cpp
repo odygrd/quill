@@ -9,7 +9,7 @@
 // this is never an issue in real logger as everything goes through the singleton, but we are not using the
 // singleton all the time during testing
 
-void test_quil_log(char const* test_id, quill::filename_t filename, uint16_t number_of_threads, uint32_t number_of_messages)
+void test_quil_log(char const* test_id, std::string const& filename, uint16_t number_of_threads, uint32_t number_of_messages)
 {
   // Start the logging backend thread
   quill::start();
@@ -62,14 +62,18 @@ void test_quil_log(char const* test_id, quill::filename_t filename, uint16_t num
     }
   }
 
-  quill::detail::remove(filename); // delete file
+#if defined(_WIN32)
+  quill::detail::remove(quill::detail::s2ws(filename));
+#else
+  quill::detail::remove(filename);
+#endif
 }
 
 /***/
 TEST(Quill, log_from_one_thread)
 {
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   static constexpr wchar_t const* filename = L"log_from_one_thread.log";
 #else
   static constexpr char const* filename = "log_from_one_thread.log";
@@ -86,7 +90,7 @@ TEST(Quill, log_from_one_thread)
 TEST(Quill, log_from_multiple_threads)
 {
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   static constexpr wchar_t const* filename = L"log_from_multiple_threads.log";
 #else
   static constexpr char const* filename = "log_from_multiple_threads.log";
@@ -105,7 +109,7 @@ TEST(Quill, log_from_multiple_threads)
 class log_test_class
 {
 public:
-  log_test_class(quill::filename_t filename)
+  explicit log_test_class(std::string const& filename)
   {
     // create a new logger in the ctor
     quill::Handler* filehandler = quill::file_handler(filename, "w");
@@ -129,11 +133,7 @@ private:
 /***/
 TEST(Quill, log_from_const_function)
 {
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
-  static constexpr wchar_t const* filename = L"log_test_class.log";
-#else
   static constexpr char const* filename = "log_test_class.log";
-#endif
 
   // log for class a
   log_test_class log_test_class_a{filename};
@@ -150,5 +150,9 @@ TEST(Quill, log_from_const_function)
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   EXPECT_EQ(file_contents.size(), 3);
 
+#if defined(_WIN32)
+  quill::detail::remove(quill::detail::s2ws(filename));
+#else
   quill::detail::remove(filename);
+#endif
 }

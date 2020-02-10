@@ -31,7 +31,7 @@ TEST(Log, default_logger_with_filehandler)
 {
   LogManager lm{default_cfg};
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   std::wstring const filename{L"test_default_logger_with_filehandler"};
 #else
   std::string const filename{"test_default_logger_with_filehandler"};
@@ -72,7 +72,7 @@ void custom_default_logger_same_handler(int test_case = 0)
 {
   LogManager lm{default_cfg};
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   std::wstring const filename{L"test_custom_default_logger_same_handler"};
 #else
   std::string const filename{"test_custom_default_logger_same_handler"};
@@ -162,7 +162,7 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
 {
   LogManager lm{default_cfg};
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   std::wstring const filename_1{L"test_custom_default_logger_multiple_handlers_1"};
   std::wstring const filename_2{L"test_custom_default_logger_multiple_handlers_2"};
 #else
@@ -296,7 +296,7 @@ TEST(Log, many_loggers_multiple_threads)
 {
   LogManager lm{default_cfg};
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   std::wstring const filename{L"test_many_loggers_multiple_threads"};
 #else
   std::string const filename{"test_many_loggers_multiple_threads"};

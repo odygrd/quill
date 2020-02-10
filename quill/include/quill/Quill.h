@@ -35,6 +35,17 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler();
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& filename,
                                                            std::string const& mode = std::string{});
 
+#if defined(_WIN32)
+/**
+ * On windows filename_t always defaults to std::wstring so we provide another overload for std::string
+ * Converts a std::string to std::wstring. All filesnames on windows are opened as wide strings
+ * @param filename the name of the file
+ * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::string const& filename,
+                                                           std::string const& mode = std::string{});
+#endif
+
 /**
  * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed
  *

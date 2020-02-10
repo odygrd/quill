@@ -10,7 +10,7 @@ TEST(HandlerCollection, create_get)
 {
   HandlerCollection hc;
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   // Create a file handler
   StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler", "w");
 
@@ -34,7 +34,7 @@ TEST(HandlerCollection, subscribe_get_active_same_handler)
 {
   HandlerCollection hc;
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   // Create a file handler
   StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler", "w");
 
@@ -77,7 +77,7 @@ TEST(HandlerCollection, subscribe_get_active_different_handlers)
 {
   HandlerCollection hc;
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   // Create a file handler
   StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler_1", "w");
 

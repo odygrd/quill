@@ -22,7 +22,7 @@
 namespace quill
 {
 // Expose filename_t outside detail namespace
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
 using filename_t = std::wstring;
 #else
 using filename_t = std::string;

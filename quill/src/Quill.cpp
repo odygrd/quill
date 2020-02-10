@@ -27,6 +27,14 @@ Handler* file_handler(filename_t const& filename, std::string const& mode /* = s
 }
 
 /***/
+#if defined(_WIN32)
+Handler* file_handler(std::string const& filename, std::string const& mode /* = std::string{} */)
+{
+  return file_handler(detail::s2ws(filename));
+}
+#endif
+
+/***/
 Logger* get_logger(char const* logger_name /* = nullptr */)
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().get_logger(logger_name);

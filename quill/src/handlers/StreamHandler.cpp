@@ -7,7 +7,7 @@ namespace quill
 /***/
 StreamHandler::StreamHandler(filename_t stream) : _filename(std::move(stream))
 {
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   if (_filename == std::wstring{L"stdout"})
   {
     _file = stdout;

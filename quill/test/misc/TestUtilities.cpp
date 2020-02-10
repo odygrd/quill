@@ -5,7 +5,7 @@ namespace quill
 namespace testing
 {
 // Convert the given file to a vector
-std::vector<std::string> file_contents(quill::filename_t const& filename)
+std::vector<std::string> file_contents(std::string const& filename)
 {
   std::ifstream out_file(filename);
 

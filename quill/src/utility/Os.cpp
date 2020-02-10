@@ -157,7 +157,6 @@ void set_thread_name(char const* name)
 uint32_t get_thread_id() noexcept
 {
 #if defined(_WIN32)
-  // TODO:: Frix thread id on windows
   return static_cast<uint32_t>(GetCurrentThreadId());
 #elif defined(__linux__)
   return static_cast<uint32_t>(::syscall(SYS_gettid));
@@ -216,12 +215,7 @@ FILE* fopen(filename_t const& filename, std::string const& mode)
 {
   FILE* fp{nullptr};
 #if defined(_WIN32)
-  #if defined(QUILL_WCHAR_FILENAMES)
-  std::wstring mode_ws = s2ws(mode);
   fp = ::_wfsopen((filename.c_str()), mode_ws.data(), _SH_DENYNO);
-  #else
-  fp = ::_fsopen((filename.c_str()), mode.data(), _SH_DENYNO);
-  #endif
 #else
   fp = ::fopen(filename.data(), mode.data());
 #endif
@@ -234,7 +228,7 @@ FILE* fopen(filename_t const& filename, std::string const& mode)
 
 int remove(filename_t const& filename) noexcept
 {
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   return ::_wremove(filename.c_str());
 #else
   return std::remove(filename.c_str());
@@ -260,8 +254,7 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
 
   if (!hMapFile)
   {
-    // TODO:: GetLastError message
-    throw std::runtime_error("Could not create file mapping");
+    throw std::system_error(std::error_code(GetLastError(), std::system_category()));
   }
 
   for (;;)
@@ -273,8 +266,7 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
     if (!address)
     {
       CloseHandle(hMapFile);
-      // TODO:: GetLastError message
-      throw std::runtime_error("Could not create file mapping");
+      throw std::system_error(std::error_code(GetLastError(), std::system_category()));
     }
 
     // found a big enough address space. hopefully it will remain free while we map to it. if not,
@@ -295,9 +287,7 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
       else
       {
         CloseHandle(hMapFile);
-
-        // TODO:: GetLastError message
-        throw std::runtime_error("Could not create file mapping");
+        throw std::system_error(std::error_code(GetLastError(), std::system_category()));
       }
     }
 
@@ -317,9 +307,7 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
       else
       {
         CloseHandle(hMapFile);
-
-        // TODO:: GetLastError message
-        throw std::runtime_error("Could not create file mapping");
+        throw std::system_error(std::error_code(err, std::system_category()));
       }
     }
 

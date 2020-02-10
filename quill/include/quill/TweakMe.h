@@ -83,9 +83,3 @@
  * Look for an online Mebibyte to Byte converted to easily find a correct value
  */
 // #define QUILL_BOUNDED_SPSC_QUEUE_SIZE 8388608u
-
-/**
- * When this option is defined, Quill will use wchar_t and wstring for filenames
- * @note This option is only available on windows and it is always enabled by default
- */
-#define QUILL_WCHAR_FILENAMES

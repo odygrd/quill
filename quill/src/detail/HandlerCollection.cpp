@@ -8,7 +8,7 @@ namespace detail
 /***/
 StreamHandler* HandlerCollection::stdout_streamhandler()
 {
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   return _create_streamhandler(std::wstring{L"stdout"});
 #else
   return _create_streamhandler(std::string{"stdout"});
@@ -18,7 +18,7 @@ StreamHandler* HandlerCollection::stdout_streamhandler()
 /***/
 StreamHandler* HandlerCollection::stderr_streamhandler()
 {
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   return _create_streamhandler(std::wstring{L"stderr"});
 #else
   return _create_streamhandler(std::string{"stderr"});

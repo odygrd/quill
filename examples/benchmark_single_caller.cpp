@@ -281,22 +281,22 @@ int main()
 {
   // Set this thread affinity
   //
-  //  cpu_set_t cpuset;
-  //  CPU_ZERO(&cpuset);
-  //  CPU_SET(1, &cpuset);
-  //
-  //  auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(1, &cpuset);
 
-  //  if (QUILL_UNLIKELY(err == -1))
-  //  {
-  //    throw std::system_error((errno), std::generic_category());
-  //  }
+  auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
+
+  if (QUILL_UNLIKELY(err == -1))
+  {
+    throw std::system_error((errno), std::generic_category());
+  }
 
   // Logging
   quill::config::set_backend_thread_cpu_affinity(0);
   quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+#if defined(_WIN32)
   auto file_handler = quill::file_handler(L"bench_log", "w");
 #else
   auto file_handler = quill::file_handler("bench_log", "w");
