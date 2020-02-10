@@ -10,11 +10,19 @@ TEST(HandlerCollection, create_get)
 {
   HandlerCollection hc;
 
+  #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  // Create a file handler
+  StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler", "w");
+
+  // Request the same file handler
+  StreamHandler* filehandler_2 = hc.file_handler(L"create_get_file_handler");
+  #else
   // Create a file handler
   StreamHandler* filehandler = hc.file_handler("create_get_file_handler", "w");
 
   // Request the same file handler
   StreamHandler* filehandler_2 = hc.file_handler("create_get_file_handler");
+  #endif
 
   // Compare the pointers
   EXPECT_EQ(filehandler, filehandler_2);
@@ -26,11 +34,19 @@ TEST(HandlerCollection, subscribe_get_active_same_handler)
 {
   HandlerCollection hc;
 
+  #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  // Create a file handler
+  StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler", "w");
+
+  // Request the same file handler
+  StreamHandler* filehandler_2 = hc.file_handler(L"create_get_file_handler");
+#else
   // Create a file handler
   StreamHandler* filehandler = hc.file_handler("create_get_file_handler", "w");
 
   // Request the same file handler
   StreamHandler* filehandler_2 = hc.file_handler("create_get_file_handler");
+#endif
 
   // Compare the pointers
   EXPECT_EQ(filehandler, filehandler_2);
@@ -61,11 +77,19 @@ TEST(HandlerCollection, subscribe_get_active_different_handlers)
 {
   HandlerCollection hc;
 
+  #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  // Create a file handler
+  StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler_1", "w");
+
+  // Request the same file handler
+  StreamHandler* filehandler_2 = hc.file_handler(L"create_get_file_handler_2");
+#else
   // Create a file handler
   StreamHandler* filehandler = hc.file_handler("create_get_file_handler_1", "w");
 
   // Request the same file handler
-  StreamHandler* filehandler_2 = hc.file_handler("create_get_file_handler_2", "w");
+  StreamHandler* filehandler_2 = hc.file_handler("create_get_file_handler_2");
+#endif
 
   // Compare the pointers
   EXPECT_NE(filehandler, filehandler_2);

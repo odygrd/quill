@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <string>
+#include <codecvt>
 
 namespace quill
 {
@@ -40,6 +42,18 @@ QUILL_NODISCARD constexpr size_t strlen(char const* str) { return *str ? 1 + str
  * @param stream
  */
 void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream);
+
+/**
+ * string to wstring
+ * @param str
+ */
+QUILL_NODISCARD std::wstring s2ws(std::string const& str) noexcept;
+
+/**
+ * wstring to string
+ * @param wstr
+ */
+QUILL_NODISCARD std::string ws2s(std::wstring const& wstr) noexcept;
 
 /**
  * Same as strncpy.

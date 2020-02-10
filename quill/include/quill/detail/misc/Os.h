@@ -86,7 +86,13 @@ void aligned_free(void* ptr) noexcept;
  * @return Valid FILE*
  * @throws
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* fopen(filename_t const& filename, filename_t const& mode);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* fopen(filename_t const& filename, std::string const& mode);
+
+/**
+* Removes a file
+* @param filename
+*/
+QUILL_ATTRIBUTE_COLD int remove(filename_t const& filename) noexcept;
 
 /**
  * Creates the memory map files needed for the queue buffer

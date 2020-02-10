@@ -9,7 +9,7 @@
 // this is never an issue in real logger as everything goes through the singleton, but we are not using the
 // singleton all the time during testing
 
-void test_quil_log(char const* test_id, char const* filename, uint16_t number_of_threads, uint32_t number_of_messages)
+void test_quil_log(char const* test_id, quill::filename_t filename, uint16_t number_of_threads, uint32_t number_of_messages)
 {
   // Start the logging backend thread
   quill::start();
@@ -62,13 +62,19 @@ void test_quil_log(char const* test_id, char const* filename, uint16_t number_of
     }
   }
 
-  std::remove(filename); // delete file
+  quill::detail::remove(filename); // delete file
 }
 
 /***/
 TEST(Quill, log_from_one_thread)
 {
+
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  static constexpr wchar_t const* filename = L"log_from_one_thread.log";
+#elif
   static constexpr char const* filename = "log_from_one_thread.log";
+#endif
+
   static constexpr size_t number_of_messages = 10000u;
   static constexpr size_t number_of_threads = 1;
   static constexpr char const* test_id = "single";
@@ -79,7 +85,13 @@ TEST(Quill, log_from_one_thread)
 /***/
 TEST(Quill, log_from_multiple_threads)
 {
+
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  static constexpr wchar_t const* filename = L"log_from_multiple_threads.log";
+#elif
   static constexpr char const* filename = "log_from_multiple_threads.log";
+#endif
+
   static constexpr size_t number_of_messages = 500u;
   static constexpr size_t number_of_threads = 10;
   static constexpr char const* test_id = "multi";
@@ -93,7 +105,7 @@ TEST(Quill, log_from_multiple_threads)
 class log_test_class
 {
 public:
-  log_test_class(char const* filename)
+  log_test_class(quill::filename_t filename)
   {
     // create a new logger in the ctor
     quill::Handler* filehandler = quill::file_handler(filename, "w");
@@ -117,7 +129,12 @@ private:
 /***/
 TEST(Quill, log_from_const_function)
 {
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  static constexpr wchar_t const* filename = L"log_test_class.log";
+#elif
   static constexpr char const* filename = "log_test_class.log";
+#endif
+
   // log for class a
   log_test_class log_test_class_a{filename};
   log_test_class_a.use_logger_const();
@@ -133,5 +150,5 @@ TEST(Quill, log_from_const_function)
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   EXPECT_EQ(file_contents.size(), 3);
 
-  std::remove(filename);
+  quill::detail::remove(filename);
 }

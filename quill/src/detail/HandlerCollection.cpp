@@ -8,17 +8,25 @@ namespace detail
 /***/
 StreamHandler* HandlerCollection::stdout_streamhandler()
 {
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  return _create_streamhandler(std::wstring{L"stdout"});
+#else
   return _create_streamhandler(std::string{"stdout"});
+#endif
 }
 
 /***/
 StreamHandler* HandlerCollection::stderr_streamhandler()
 {
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  return _create_streamhandler(std::wstring{L"stderr"});
+#else
   return _create_streamhandler(std::string{"stderr"});
+#endif
 }
 
 /***/
-StreamHandler* HandlerCollection::file_handler(filename_t const& filename, filename_t const& mode /* = filename_t{"a"} */)
+StreamHandler* HandlerCollection::file_handler(filename_t const& filename, std::string const& mode /* = std::string{"a"} */)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};
@@ -71,7 +79,7 @@ std::vector<Handler*> HandlerCollection::active_handlers() const
 }
 
 /***/
-StreamHandler* HandlerCollection::_create_streamhandler(std::string const& stream)
+StreamHandler* HandlerCollection::_create_streamhandler(filename_t const& stream)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};

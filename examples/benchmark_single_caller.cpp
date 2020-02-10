@@ -296,7 +296,11 @@ int main()
   quill::config::set_backend_thread_cpu_affinity(0);
   quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
 
+  #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  auto file_handler = quill::file_handler(L"bench_log", "w");
+  #elif
   auto file_handler = quill::file_handler("bench_log", "w");
+  #endif
   quill::Logger* logger = quill::create_logger("bench", file_handler);
 
   // Change the LogLevel to print everything

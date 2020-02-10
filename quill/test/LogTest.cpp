@@ -31,7 +31,11 @@ TEST(Log, default_logger_with_filehandler)
 {
   LogManager lm{default_cfg};
 
+  #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  std::wstring const filename{L"test_default_logger_with_filehandler"};
+  #elif
   std::string const filename{"test_default_logger_with_filehandler"};
+  #endif
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -61,14 +65,18 @@ TEST(Log, default_logger_with_filehandler)
     file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
-  std::remove(filename.data());
+  quill::detail::remove(filename.data());
 }
 
 void custom_default_logger_same_handler(int test_case = 0)
 {
   LogManager lm{default_cfg};
 
-  std::string const filename{"test_custom_default_logger_same_handler"};
+    #if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+    std::wstring const filename{L"test_custom_default_logger_same_handler"};
+    #elif
+    std::string const filename{"test_custom_default_logger_same_handler"};
+    #endif
 
   // Set a file handler the custom logger handler and log to it
   Handler* file_handler = lm.handler_collection().file_handler(filename, "w");
@@ -138,7 +146,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
 
   lm.stop_backend_worker();
-  std::remove(filename.data());
+  quill::detail::remove(filename.data());
 }
 
 /***/
@@ -154,8 +162,13 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
 {
   LogManager lm{default_cfg};
 
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  std::wstring const filename_1{L"test_custom_default_logger_multiple_handlers_1"};
+  std::wstring const filename_2{L"test_custom_default_logger_multiple_handlers_2"};
+#elif
   std::string const filename_1{"test_custom_default_logger_multiple_handlers_1"};
   std::string const filename_2{"test_custom_default_logger_multiple_handlers_2"};
+#endif
 
   // Set a file handler the custom logger handler and log to it
 
@@ -262,8 +275,8 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
   }
 
   lm.stop_backend_worker();
-  std::remove(filename_1.data());
-  std::remove(filename_2.data());
+  quill::detail::remove(filename_1.data());
+  quill::detail::remove(filename_2.data());
 }
 
 /***/
@@ -283,7 +296,11 @@ TEST(Log, many_loggers_multiple_threads)
 {
   LogManager lm{default_cfg};
 
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  std::wstring const filename{L"test_many_loggers_multiple_threads"};
+#elif
   std::string const filename{"test_many_loggers_multiple_threads"};
+#endif
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -337,6 +354,5 @@ TEST(Log, many_loggers_multiple_threads)
   }
 
   lm.stop_backend_worker();
-
-  std::remove(filename.data());
+  quill::detail::remove(filename.data());
 }

@@ -29,7 +29,7 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_streamhandler();
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(filename_t const& filename,
-                                                                   filename_t const& mode = std::string{"a"});
+                                                                   std::string const& mode = std::string{"a"});
 
   /**
    * Subscribe a handler to the vector of active handlers so that the backend thread can see it
@@ -52,7 +52,7 @@ public:
   // list Check if no other logger is using it first
 
 private:
-  QUILL_NODISCARD StreamHandler* _create_streamhandler(std::string const& stream);
+  QUILL_NODISCARD StreamHandler* _create_streamhandler(filename_t const& stream);
 
 private:
   /**

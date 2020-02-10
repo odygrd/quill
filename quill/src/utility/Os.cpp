@@ -4,6 +4,7 @@
 #include "quill/detail/misc/Utilities.h"
 #include <cstdint>
 #include <cstdlib>
+#include <cstdio>
 #include <stdexcept>
 #include <system_error>
 
@@ -129,15 +130,9 @@ void set_cpu_affinity(uint16_t cpu_id)
 void set_thread_name(char const* name)
 {
 #if defined(_WIN32)
-  // First convert the name to wide string
-  size_t name_length = strlen(name) + 1;
-  auto w_name_length = std::make_unique<wchar_t[]>(name_length);
-
-  size_t w_name_length_size_out;
-  mbstowcs_s(&w_name_length_size_out, w_name_length.get(), name_length, name, name_length - 1);
-
+  std::wstring name_ws = s2ws(name);
   // Set the thread name
-  HRESULT hr = SetThreadDescription(GetCurrentThread(), w_name_length.get());
+  HRESULT hr = SetThreadDescription(GetCurrentThread(), name_ws.data());
   if (FAILED(hr))
   {
     throw std::runtime_error("Failed to set thread name");
@@ -217,14 +212,15 @@ void aligned_free(void* ptr) noexcept
 }
 
 /***/
-FILE* fopen(filename_t const& filename, filename_t const& mode)
+FILE* fopen(filename_t const& filename, std::string const& mode)
 {
   FILE* fp{nullptr};
 #if defined(_WIN32)
   #if defined(QUILL_WCHAR_FILENAMES)
-  fp = ::_wfsopen((filename.c_str()), mode.c_str(), _SH_DENYNO);
+  std::wstring mode_ws = s2ws(mode);
+  fp = ::_wfsopen((filename.c_str()), mode_ws.data(), _SH_DENYNO);
   #else
-  fp = ::_fsopen((filename.c_str()), mode.c_str(), _SH_DENYNO);
+  fp = ::_fsopen((filename.c_str()), mode.data(), _SH_DENYNO);
   #endif
 #else
   fp = ::fopen(filename.data(), mode.data());
@@ -234,6 +230,15 @@ FILE* fopen(filename_t const& filename, filename_t const& mode)
     throw std::system_error(errno, std::system_category());
   }
   return fp;
+}
+
+int remove(filename_t const& filename) noexcept
+{
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  return ::_wremove(filename.c_str());
+#else
+  return std::remove(filename.c_str());
+#endif
 }
 
 /***/

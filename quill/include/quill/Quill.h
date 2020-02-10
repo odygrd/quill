@@ -33,7 +33,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler();
  * @return A handler to a file
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& filename,
-                                                           filename_t const& mode = filename_t{});
+                                                           std::string const& mode = std::string{});
 
 /**
  * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed

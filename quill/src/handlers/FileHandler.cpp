@@ -5,8 +5,8 @@
 namespace quill
 {
 /***/
-FileHandler::FileHandler(filename_t filename, filename_t const& mode)
-  : StreamHandler(detail::fopen(filename, mode), std::move(filename))
+FileHandler::FileHandler(filename_t const& filename, std::string const& mode)
+  : StreamHandler(detail::fopen(filename, mode), filename)
 {
 }
 

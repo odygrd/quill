@@ -16,7 +16,7 @@ public:
    * @param stream only stdout or stderr
    * @throws on invalid param
    */
-  explicit StreamHandler(std::string const& stream);
+  explicit StreamHandler(filename_t stream);
 
   ~StreamHandler() override = default;
 

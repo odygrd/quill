@@ -13,7 +13,7 @@ namespace quill
 class FileHandler : public StreamHandler
 {
 public:
-  explicit FileHandler(filename_t filename, filename_t const& mode);
+  explicit FileHandler(filename_t const& filename, std::string const& mode);
 
   ~FileHandler() override;
 };

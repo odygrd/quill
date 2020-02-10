@@ -1,21 +1,18 @@
 #include "quill/handlers/StreamHandler.h"
+#include "quill/detail/misc/Utilities.h"
 #include <stdexcept>
 
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
-  #include <codecvt>
-#endif
-
-#include <codecvt>
 namespace quill
 {
 /***/
-StreamHandler::StreamHandler(std::string const& stream)
+StreamHandler::StreamHandler(filename_t stream) : _filename(std::move(stream))
 {
-  if (stream == std::string{"stdout"})
+#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
+  if (_filename == std::wstring{L"stdout"})
   {
     _file = stdout;
   }
-  else if (stream == std::string{"stderr"})
+  else if (_filename == std::wstring{L"stderr"})
   {
     _file = stderr;
   }
@@ -23,17 +20,19 @@ StreamHandler::StreamHandler(std::string const& stream)
   {
     throw std::runtime_error("Invalid StreamHandler constructor value");
   }
-
-  // Store it also as filename but first check if we have to convert to wstring because of filename_t
-#if defined(_WIN32) && defined(QUILL_WCHAR_FILENAMES)
-  // In this case filename_t will be wstring so convert first
-
-  using convert_t = std::codecvt_utf8<wchar_t>;
-  std::wstring_convert<convert_t, wchar_t> converter;
-
-  _filename = converter.from_bytes(stream);
 #else
-  _filename = stream;
+  if (_filename == std::string{"stdout"})
+  {
+    _file = stdout;
+  }
+  else if (_filename == std::string{"stderr"})
+  {
+    _file = stderr;
+  }
+  else
+  {
+    throw std::runtime_error("Invalid StreamHandler constructor value");
+  }
 #endif
 }
 
