@@ -361,7 +361,7 @@ private:
 
 #if defined(_WIN32)
   /** Windows support for wide characters **/
-  fmt::wmemory_buffer _w_memory_buffer;
+  mutable fmt::wmemory_buffer _w_memory_buffer;
 #endif
 
   std::string _date_format{"%H:%M:%S"};       /** Timestamp format **/
@@ -425,8 +425,8 @@ typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::valu
   std::wstring const w_message_format = detail::s2ws(logline_info.message_format());
 
   // Format the whole message to a wide buffer
-  fmt::wmemory_buffer w_memory_buffer;
-  fmt::format_to(w_memory_buffer, w_message_format, args...);
+  _w_memory_buffer.clear();
+  fmt::format_to(_w_memory_buffer, w_message_format, args...);
 
   // Convert the results to UTF-8
   detail::wstring_to_utf8(_w_memory_buffer, _formatted_log_record);
