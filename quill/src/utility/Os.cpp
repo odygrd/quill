@@ -245,8 +245,8 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
   if ((w_mem_buffer.size() + 1) * 2 > bytes_needed)
   {
     // if our given string is larger than the capacity, calculate how many bytes we need
-    bytes_needed =
-      ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), static_cast<int>(w_mem_buffer.size()), NULL, 0, NULL, NULL);
+    bytes_needed = ::WideCharToMultiByte(
+      CP_UTF8, 0, w_mem_buffer.data(), static_cast<int>(w_mem_buffer.size()), NULL, 0, NULL, NULL);
   }
 
   if (QUILL_UNLIKELY(bytes_needed == 0))
@@ -255,8 +255,9 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
   }
 
   // convert
-  bytes_needed = ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), static_cast<int>(w_mem_buffer.size()),
-                                       mem_buffer.data() + mem_buffer.size(), bytes_needed, NULL, NULL);
+  bytes_needed =
+    ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), static_cast<int>(w_mem_buffer.size()),
+                          mem_buffer.data() + mem_buffer.size(), bytes_needed, NULL, NULL);
 
   if (QUILL_UNLIKELY(bytes_needed == 0))
   {

@@ -1,25 +1,25 @@
 set(TEST_NAME "TEST_quill")
 
 set(HEADER_FILES
-        misc/TestMain.cpp
-        misc/TestUtilities.cpp
-        misc/TestUtilities.h
-        )
+    misc/TestMain.cpp
+    misc/TestUtilities.cpp
+    misc/TestUtilities.h
+    )
 
 set(SOURCE_FILES
-        BoundedSPSCQueueTest.cpp
-        HandlerCollectionTest.cpp
-        LoggerCollectionTest.cpp
-        LoggerTest.cpp
-        LogLevelTest.cpp
-        LogTest.cpp
-        PatternFormatterTest.cpp
-        QuillLogTest.cpp
-        RecordTest.cpp
-        StaticLogRecordInfoTest.cpp
-        ThreadContextCollectionTest.cpp
-        UtilityTest.cpp
-        )
+    BoundedSPSCQueueTest.cpp
+    HandlerCollectionTest.cpp
+    LoggerCollectionTest.cpp
+    LoggerTest.cpp
+    LogLevelTest.cpp
+    LogTest.cpp
+    PatternFormatterTest.cpp
+    QuillLogTest.cpp
+    RecordTest.cpp
+    StaticLogRecordInfoTest.cpp
+    ThreadContextCollectionTest.cpp
+    UtilityTest.cpp
+    )
 
 # Create a test executable
 add_executable(${TEST_NAME} "")
@@ -29,11 +29,11 @@ target_sources(${TEST_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
 # include dirs
 target_include_directories(${TARGET_NAME}
-        PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/misc>
-        $<INSTALL_INTERFACE:include>
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR})
+                           PUBLIC
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/misc>
+                           $<INSTALL_INTERFACE:include>
+                           PRIVATE
+                           ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link dependencies
 target_link_libraries(${TEST_NAME} quill ${GTEST_BOTH_LIBRARIES})

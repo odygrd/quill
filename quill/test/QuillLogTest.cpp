@@ -43,8 +43,13 @@ void test_quil_log(char const* test_id, std::string const& filename, uint16_t nu
   // Flush all log
   quill::flush();
 
+#if defined(_WIN32)
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
+#else
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+#endif
 
   EXPECT_EQ(file_contents.size(), number_of_messages * number_of_threads);
 
@@ -72,35 +77,33 @@ void test_quil_log(char const* test_id, std::string const& filename, uint16_t nu
 /***/
 TEST(Quill, log_from_one_thread)
 {
-
-#if defined(_WIN32)
-  static constexpr wchar_t const* filename = L"log_from_one_thread.log";
-#else
-  static constexpr char const* filename = "log_from_one_thread.log";
-#endif
-
   static constexpr size_t number_of_messages = 10000u;
   static constexpr size_t number_of_threads = 1;
   static constexpr char const* test_id = "single";
 
+#if defined(_WIN32)
+  static constexpr wchar_t const* filename = L"log_from_one_thread.log";
   test_quil_log(test_id, quill::detail::ws2s(filename), number_of_threads, number_of_messages);
+#else
+  static constexpr char const* filename = "log_from_one_thread.log";
+  test_quil_log(test_id, filename, number_of_threads, number_of_messages);
+#endif
 }
 
 /***/
 TEST(Quill, log_from_multiple_threads)
 {
-
-#if defined(_WIN32)
-  static constexpr wchar_t const* filename = L"log_from_multiple_threads.log";
-#else
-  static constexpr char const* filename = "log_from_multiple_threads.log";
-#endif
-
   static constexpr size_t number_of_messages = 500u;
   static constexpr size_t number_of_threads = 10;
   static constexpr char const* test_id = "multi";
 
+#if defined(_WIN32)
+  static constexpr wchar_t const* filename = L"log_from_multiple_threads.log";
   test_quil_log(test_id, quill::detail::ws2s(filename), number_of_threads, number_of_messages);
+#else
+  static constexpr char const* filename = "log_from_multiple_threads.log";
+  test_quil_log(test_id, filename, number_of_threads, number_of_messages);
+#endif
 }
 
 /**
@@ -146,13 +149,15 @@ TEST(Quill, log_from_const_function)
 
   quill::flush();
 
+#if defined(_WIN32)
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
   EXPECT_EQ(file_contents.size(), 3);
-
-#if defined(_WIN32)
   quill::detail::remove(quill::detail::s2ws(filename));
 #else
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+  EXPECT_EQ(file_contents.size(), 3);
   quill::detail::remove(filename);
 #endif
 }

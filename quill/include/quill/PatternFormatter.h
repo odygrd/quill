@@ -189,9 +189,27 @@ public:
    */
   ~PatternFormatter() = default;
 
+#if !defined(_WIN32)
   /**
    * Formats the given LogRecord
-   * This is enabled when the buffer has no wide strings
+   * @tparam Args
+   * @param timestamp
+   * @param thread_id
+   * @param logger_name
+   * @param logline_info
+   * @param args
+   * @return a fmt::memory_buffer that contains the formatted log record
+   */
+  template <typename... Args>
+  void format(std::chrono::nanoseconds timestamp,
+              char const* thread_id,
+              char const* logger_name,
+              detail::StaticLogRecordInfo const& logline_info,
+              Args const&... args) const;
+#else
+  /**
+   * Formats the given LogRecord
+   * Enabled only when there are no wide strings as arguments
    * @tparam Args
    * @param timestamp
    * @param thread_id
@@ -208,10 +226,9 @@ public:
     detail::StaticLogRecordInfo const& logline_info,
     Args const&... args) const;
 
-#if defined(_WIN32)
   /**
    * Formats the given LogRecord after converting the wide characters to UTF-8
-   * Only enabled when the user passes a wide character as an argument
+   * Enabled when a wide character is passed as an argument
    * @tparam Args
    * @param timestamp
    * @param thread_id
@@ -360,7 +377,7 @@ private:
   mutable fmt::memory_buffer _formatted_log_record;
 
 #if defined(_WIN32)
-  /** Windows support for wide characters **/
+  /** Windows support for wide characters, we need to store extra buffers to convert wide strings to utf8 before passing them to fmt format as narrow characters**/
   mutable fmt::wmemory_buffer _w_memory_buffer;
 #endif
 
@@ -371,6 +388,37 @@ private:
 
 /** Inline Implementation **/
 
+#if !defined(_WIN32)
+/***/
+template <typename... Args>
+void PatternFormatter::format(std::chrono::nanoseconds timestamp,
+                              const char* thread_id,
+                              char const* logger_name,
+                              detail::StaticLogRecordInfo const& logline_info,
+                              Args const&... args) const
+{
+  // clear out existing buffer
+  _formatted_log_record.clear();
+
+  // Format part 1 of the pattern first
+  if (_pattern_formatter_helper_part_1)
+  {
+    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
+  }
+
+  // Format the user requested string
+  fmt::format_to(_formatted_log_record, logline_info.message_format(), args...);
+
+  // Format part 3 of the pattern
+  if (_pattern_formatter_helper_part_3)
+  {
+    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
+  }
+
+  // Append a new line
+  _formatted_log_record.push_back('\n');
+}
+#else
 /***/
 template <typename... Args>
 typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::value, void> PatternFormatter::format(
@@ -402,7 +450,6 @@ typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::val
   _formatted_log_record.push_back('\n');
 }
 
-#if defined(_WIN32)
 /***/
 template <typename... Args>
 typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::value, void> PatternFormatter::format(
