@@ -27,7 +27,7 @@ class RdtscClock
     }
 
     /***/
-    double ticks_per_ns() const noexcept { return ticks_per_ns_; }
+    double ticks_per_ns() const noexcept { return _ticks_per_ns; }
 
   private:
     /**
@@ -35,7 +35,7 @@ class RdtscClock
      */
     RdtscTicks();
 
-    double ticks_per_ns_{0};
+    double _ticks_per_ns{0};
   };
 
 public:
@@ -58,12 +58,18 @@ public:
    */
   void resync() const noexcept;
 
+  /**
+   * return the ticks per nanosecond
+   * @return
+   */
+  double ticks_per_nanosecond() const noexcept { return _ticks_per_nanosecond; }
+
 private:
-  mutable int64_t base_time_{0}; /**< Get the initial base time in nanoseconds from epoch */
-  mutable uint64_t base_tsc_{0}; /**< Get the initial base tsc time */
-  mutable int64_t resync_interval_ticks_{0};
-  int64_t resync_interval_orginal_{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
-  double ticks_per_nanosecond_{0};
+  mutable int64_t _base_time{0}; /**< Get the initial base time in nanoseconds from epoch */
+  mutable uint64_t _base_tsc{0}; /**< Get the initial base tsc time */
+  mutable int64_t _resync_interval_ticks{0};
+  int64_t _resync_interval_original{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
+  double _ticks_per_nanosecond{0};
 }; // namespace detailclassRdtscClock
 } // namespace detail
 } // namespace quill

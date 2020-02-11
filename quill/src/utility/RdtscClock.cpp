@@ -44,15 +44,15 @@ RdtscClock::RdtscTicks::RdtscTicks()
 
   std::nth_element(rates.begin(), rates.begin() + trials / 2, rates.end());
 
-  ticks_per_ns_ = rates[trials / 2];
+  _ticks_per_ns = rates[trials / 2];
 }
 
 /***/
 RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono::seconds{100} */)
-  : resync_interval_ticks_(static_cast<std::int64_t>(static_cast<double>(resync_interval.count()) *
+  : _resync_interval_ticks(static_cast<std::int64_t>(static_cast<double>(resync_interval.count()) *
                                                      RdtscTicks::instance().ticks_per_ns())),
-    resync_interval_orginal_(resync_interval_ticks_),
-    ticks_per_nanosecond_(RdtscTicks::instance().ticks_per_ns())
+    _resync_interval_original(_resync_interval_ticks),
+    _ticks_per_nanosecond(RdtscTicks::instance().ticks_per_ns())
 
 {
   resync();
@@ -66,13 +66,13 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
 std::chrono::nanoseconds RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
   // get rtsc current value and compare the diff then add it to base wall time
-  auto const diff = static_cast<int64_t>(rdtsc_value - base_tsc_);
+  auto const diff = static_cast<int64_t>(rdtsc_value - _base_tsc);
 
   auto const duration_since_epoch = std::chrono::nanoseconds{
-    base_time_ + static_cast<int64_t>(static_cast<double>(diff) / ticks_per_nanosecond_)};
+    _base_time + static_cast<int64_t>(static_cast<double>(diff) / _ticks_per_nanosecond)};
 
   // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value
-  if (diff > resync_interval_ticks_)
+  if (diff > _resync_interval_ticks)
   {
     resync();
   }
@@ -99,16 +99,16 @@ void RdtscClock::resync() const noexcept
 
     if (QUILL_LIKELY(end - beg <= 2000))
     {
-      base_time_ = wall_time;
-      base_tsc_ = end;
-      resync_interval_ticks_ = resync_interval_orginal_;
+      _base_time = wall_time;
+      _base_tsc = end;
+      _resync_interval_ticks = _resync_interval_original;
       return;
     }
   }
 
   // we failed to return earlier and we never resynced but we don't really want to keep retrying on each call
   // to time_since_epoch() so we do non accurate resync we will increace the resynce duration to resync later
-  resync_interval_ticks_ = resync_interval_ticks_ * 2;
+  _resync_interval_ticks = _resync_interval_ticks * 2;
 }
 } // namespace detail
 } // namespace quill
