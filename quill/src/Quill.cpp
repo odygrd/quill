@@ -30,7 +30,7 @@ Handler* file_handler(filename_t const& filename, std::string const& mode /* = s
 #if defined(_WIN32)
 Handler* file_handler(std::string const& filename, std::string const& mode /* = std::string{} */)
 {
-  return file_handler(detail::s2ws(filename));
+  return file_handler(detail::s2ws(filename), mode);
 }
 #endif
 

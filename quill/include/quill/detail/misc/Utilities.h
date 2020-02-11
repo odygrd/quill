@@ -49,6 +49,12 @@ void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream);
 QUILL_NODISCARD std::wstring s2ws(std::string const& str) noexcept;
 
 /**
+ * wstring to string
+ * @param wstr
+ */
+QUILL_NODISCARD std::string ws2s(std::wstring const& wstr) noexcept;
+
+/**
  * Same as strncpy.
  * Compared to normal strncpy :
  * a) It copies only the required bytes and b) always null terminates.

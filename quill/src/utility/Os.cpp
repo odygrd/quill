@@ -215,7 +215,8 @@ FILE* fopen(filename_t const& filename, std::string const& mode)
 {
   FILE* fp{nullptr};
 #if defined(_WIN32)
-  fp = ::_wfsopen((filename.c_str()), mode_ws.data(), _SH_DENYNO);
+  std::wstring const w_mode = s2ws(mode);
+  fp = ::_wfsopen((filename.c_str()), w_mode.data(), _SH_DENYNO);
 #else
   fp = ::fopen(filename.data(), mode.data());
 #endif
@@ -245,7 +246,7 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
   {
     // if our given string is larger than the capacity, calculate how many bytes we need
     bytes_needed =
-      ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), w_mem_buffer.size(), NULL, 0, NULL, NULL);
+      ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), static_cast<int>(w_mem_buffer.size()), NULL, 0, NULL, NULL);
   }
 
   if (QUILL_UNLIKELY(bytes_needed == 0))
@@ -257,7 +258,7 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
   mem_buffer.resize(static_cast<uint32_t>(bytes_needed));
 
   // convert
-  bytes_needed = ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), w_mem_buffer.size(),
+  bytes_needed = ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), static_cast<int>(w_mem_buffer.size()),
                                        mem_buffer.data(), bytes_needed, NULL, NULL);
 
   if (QUILL_UNLIKELY(bytes_needed == 0))
