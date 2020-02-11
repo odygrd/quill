@@ -3,6 +3,9 @@
 #include "fmt/format.h"
 #include "invoke/invoke.h"
 #include "quill/detail/misc/Attributes.h"
+#include "quill/detail/misc/Common.h"
+#include "quill/detail/misc/Os.h"
+#include "quill/detail/misc/TypeTraits.h"
 #include "quill/detail/misc/Utilities.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
 #include <chrono>
@@ -53,12 +56,6 @@ namespace quill
  */
 class PatternFormatter
 {
-public:
-  /**
-   * We use two custom buffers from fmt, they will resize automatically
-   */
-  using log_record_memory_buffer = fmt::basic_memory_buffer<char, 544>;
-
 private:
   /**
    * A helper class to store the type of the generated tuple of callbacks for part_1 and part_3 of
@@ -78,7 +75,7 @@ private:
      * @param logger_name
      * @param logline_info
      */
-    virtual void format(PatternFormatter::log_record_memory_buffer& memory_buffer,
+    virtual void format(fmt::memory_buffer& memory_buffer,
                         std::chrono::nanoseconds timestamp,
                         char const* thread_id,
                         char const* logger_name,
@@ -106,7 +103,7 @@ private:
      * @param logger_name
      * @param logline_info
      */
-    void format(PatternFormatter::log_record_memory_buffer& memory_buffer,
+    void format(fmt::memory_buffer& memory_buffer,
                 std::chrono::nanoseconds timestamp,
                 char const* thread_id,
                 char const* logger_name,
@@ -194,6 +191,7 @@ public:
 
   /**
    * Formats the given LogRecord
+   * This is enabled when the buffer has no wide strings
    * @tparam Args
    * @param timestamp
    * @param thread_id
@@ -203,20 +201,39 @@ public:
    * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
-  void format(std::chrono::nanoseconds timestamp,
-              char const* thread_id,
-              char const* logger_name,
-              detail::StaticLogRecordInfo const& logline_info,
-              Args const&... args) const;
+  typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::value, void> format(
+    std::chrono::nanoseconds timestamp,
+    char const* thread_id,
+    char const* logger_name,
+    detail::StaticLogRecordInfo const& logline_info,
+    Args const&... args) const;
+
+#if defined(_WIN32)
+  /**
+   * Formats the given LogRecord after converting the wide characters to UTF-8
+   * Only enabled when the user passes a wide character as an argument
+   * @tparam Args
+   * @param timestamp
+   * @param thread_id
+   * @param logger_name
+   * @param logline_info
+   * @param args
+   * @return
+   */
+  template <typename... Args>
+  typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::value, void> format(
+    std::chrono::nanoseconds timestamp,
+    char const* thread_id,
+    char const* logger_name,
+    detail::StaticLogRecordInfo const& logline_info,
+    Args const&... args) const;
+#endif
 
   /**
    * Returned the stored formatted record, to be called after format
    * @return
    */
-  log_record_memory_buffer const& formatted_log_record() const noexcept
-  {
-    return _formatted_log_record;
-  }
+  fmt::memory_buffer const& formatted_log_record() const noexcept { return _formatted_log_record; }
 
 private:
   /**
@@ -340,7 +357,12 @@ private:
 
   /** The buffer where we store each formatted string, also stored as class member to avoid
    * re-allocations. This is mutable so we can have a format() const function **/
-  mutable log_record_memory_buffer _formatted_log_record;
+  mutable fmt::memory_buffer _formatted_log_record;
+
+#if defined(_WIN32)
+  /** Windows support for wide characters **/
+  fmt::wmemory_buffer _w_memory_buffer;
+#endif
 
   std::string _date_format{"%H:%M:%S"};       /** Timestamp format **/
   Timezone _timezone_type{Timezone::GmtTime}; /** Timezone, GMT time by default **/
@@ -351,11 +373,12 @@ private:
 
 /***/
 template <typename... Args>
-void PatternFormatter::format(std::chrono::nanoseconds timestamp,
-                              const char* thread_id,
-                              char const* logger_name,
-                              detail::StaticLogRecordInfo const& logline_info,
-                              Args const&... args) const
+typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::value, void> PatternFormatter::format(
+  std::chrono::nanoseconds timestamp,
+  const char* thread_id,
+  char const* logger_name,
+  detail::StaticLogRecordInfo const& logline_info,
+  Args const&... args) const
 {
   // clear out existing buffer
   _formatted_log_record.clear();
@@ -375,10 +398,49 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp,
     _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
   }
 
-  // TODO: This could be customised in config
   // Append a new line
   _formatted_log_record.push_back('\n');
 }
+
+#if defined(_WIN32)
+/***/
+template <typename... Args>
+typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::value, void> PatternFormatter::format(
+  std::chrono::nanoseconds timestamp,
+  char const* thread_id,
+  char const* logger_name,
+  detail::StaticLogRecordInfo const& logline_info,
+  Args const&... args) const
+{
+  // clear out existing buffer
+  _formatted_log_record.clear();
+
+  // Format part 1 of the pattern first
+  if (_pattern_formatter_helper_part_1)
+  {
+    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
+  }
+
+  // Format the user message format string to a wide char buffer
+  std::wstring const w_message_format = detail::s2ws(logline_info.message_format());
+
+  // Format the whole message to a wide buffer
+  fmt::wmemory_buffer w_memory_buffer;
+  fmt::format_to(w_memory_buffer, w_message_format, args...);
+
+  // Convert the results to UTF-8
+  detail::wstring_to_utf8(_w_memory_buffer, _formatted_log_record);
+
+  // Format part 3 of the pattern
+  if (_pattern_formatter_helper_part_3)
+  {
+    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
+  }
+
+  // Append a new line
+  _formatted_log_record.push_back('\n');
+}
+#endif
 
 /***/
 template <typename TConstantString>

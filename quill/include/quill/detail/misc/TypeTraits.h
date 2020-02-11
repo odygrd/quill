@@ -81,5 +81,24 @@ struct UnwrapRefWrapper<std::reference_wrapper<T>>
  */
 template <typename T>
 using PromotedTypeT = typename UnwrapRefWrapper<typename Promoted<std::decay_t<T>>::type>::type;
+
+/**
+ * any_is_same
+ * Detect if the parameter pack contains this type in it's arguments.
+ * This is used to find if any of the passed arguments were wide characters or strings and convert
+ * them
+ */
+template <typename TSame, typename TFirst, typename... TRest>
+struct any_is_same
+{
+  static constexpr bool value = std::is_same<TSame, std::decay_t<TFirst>>::value ||
+    any_is_same<TSame, std::decay_t<TRest>...>::value;
+};
+
+template <typename TSame, typename TFirst>
+struct any_is_same<TSame, TFirst> : std::is_same<TSame, std::decay_t<TFirst>>
+{
+};
+
 } // namespace detail
 } // namespace quill

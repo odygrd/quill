@@ -27,4 +27,5 @@ using filename_t = std::wstring;
 #else
 using filename_t = std::string;
 #endif
+
 } // namespace quill

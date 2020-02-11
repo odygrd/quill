@@ -235,6 +235,41 @@ int remove(filename_t const& filename) noexcept
 #endif
 }
 
+#if defined(_WIN32)
+/***/
+void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer& mem_buffer)
+{
+  auto bytes_needed = static_cast<int32_t>(mem_buffer.capacity());
+
+  if ((w_mem_buffer.size() + 1) * 2 > mem_buffer.capacity())
+  {
+    // if our given string is larger than the capacity, calculate how many bytes we need
+    bytes_needed =
+      ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), w_mem_buffer.size(), NULL, 0, NULL, NULL);
+  }
+
+  if (QUILL_UNLIKELY(bytes_needed == 0))
+  {
+    throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+  }
+
+  // Resize to the bytes needed
+  mem_buffer.resize(static_cast<uint32_t>(bytes_needed));
+
+  // convert
+  bytes_needed = ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), w_mem_buffer.size(),
+                                       mem_buffer.data(), bytes_needed, NULL, NULL);
+
+  if (QUILL_UNLIKELY(bytes_needed == 0))
+  {
+    throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+  }
+
+  // resize again in case we didn't calculate before how many bytes needed (1st call to WideCharToMultiByte was skipped)
+  mem_buffer.resize(static_cast<uint32_t>(bytes_needed));
+}
+#endif
+
 /***/
 std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
 {

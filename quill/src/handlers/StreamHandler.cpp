@@ -43,7 +43,7 @@ StreamHandler::StreamHandler(FILE* file_pointer, filename_t filename)
 }
 
 /***/
-void StreamHandler::emit(PatternFormatter::log_record_memory_buffer const& formatted_log_record)
+void StreamHandler::emit(fmt::memory_buffer const& formatted_log_record)
 {
   detail::fwrite_fully(formatted_log_record.data(), sizeof(char), formatted_log_record.size(), _file);
 }

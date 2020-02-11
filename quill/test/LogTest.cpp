@@ -68,49 +68,6 @@ TEST(Log, default_logger_with_filehandler)
   quill::detail::remove(filename);
 }
 
-/***/
-TEST(Log, default_logger_with_filehandler_wide_chars)
-{
-  LogManager lm{default_cfg};
-
-#if defined(_WIN32)
-  std::wstring const filename{L"test_default_logger_with_filehandler"};
-#else
-  std::string const filename{"test_default_logger_with_filehandler"};
-#endif
-
-  // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().file_handler(filename, "w"));
-
-  lm.start_backend_worker();
-
-  std::thread frontend([&lm]() {
-    Logger* default_logger = lm.logger_collection().get_logger();
-
-    std::wstring arg_1 = L"consectetur adipiscing elit";
-    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, {}", arg_1);
-    wchar_t const* arg_2 = L"lectus libero finibus ante";
-    LOG_ERROR(default_logger, "Nulla tempus, libero at dignissim viverra, {}", arg_2);
-
-    // Let all log get flushed to the file
-    lm.flush();
-  });
-
-  frontend.join();
-
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
-  EXPECT_EQ(file_contents.size(), 2);
-  EXPECT_TRUE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO     root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
-  EXPECT_TRUE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
-
-  lm.stop_backend_worker();
-  quill::detail::remove(filename);
-}
-
 void custom_default_logger_same_handler(int test_case = 0)
 {
   LogManager lm{default_cfg};
@@ -399,3 +356,48 @@ TEST(Log, many_loggers_multiple_threads)
   lm.stop_backend_worker();
   quill::detail::remove(filename);
 }
+
+#if defined(_WIN32)
+/***/
+TEST(Log, default_logger_with_filehandler_wide_chars)
+{
+  LogManager lm{default_cfg};
+
+  #if defined(_WIN32)
+  std::wstring const filename{L"test_default_logger_with_filehandler"};
+  #else
+  std::string const filename{"test_default_logger_with_filehandler"};
+  #endif
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().file_handler(filename, "w"));
+
+  lm.start_backend_worker();
+
+  std::thread frontend([&lm]() {
+    Logger* default_logger = lm.logger_collection().get_logger();
+
+    std::wstring arg_1 = L"consectetur adipiscing elit";
+    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, {}", arg_1);
+    wchar_t const* arg_2 = L"lectus libero finibus ante";
+    LOG_ERROR(default_logger, "Nulla tempus, libero at dignissim viverra, {}", arg_2);
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  EXPECT_EQ(file_contents.size(), 2);
+  EXPECT_TRUE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO     root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+  EXPECT_TRUE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+
+  lm.stop_backend_worker();
+  quill::detail::remove(filename);
+}
+#endif

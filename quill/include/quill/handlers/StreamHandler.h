@@ -24,7 +24,7 @@ public:
    * Emit a formatted log record to the stream
    * @param formatted_log_record
    */
-  void emit(PatternFormatter::log_record_memory_buffer const& formatted_log_record) override;
+  void emit(fmt::memory_buffer const& formatted_log_record) override;
 
   /**
    * Flushes the stream

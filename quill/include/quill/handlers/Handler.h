@@ -51,7 +51,7 @@ public:
    * @note: Accessor for backend processing
    * @param formatted_log_record
    */
-  virtual void emit(PatternFormatter::log_record_memory_buffer const& formatted_log_record) = 0;
+  virtual void emit(fmt::memory_buffer const& formatted_log_record) = 0;
 
   /**
    * Flush the handler synchronising the associated handler with its controlled output sequence.

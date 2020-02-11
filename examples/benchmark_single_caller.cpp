@@ -281,16 +281,16 @@ int main()
 {
   // Set this thread affinity
   //
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(1, &cpuset);
-
-  auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
-
-  if (QUILL_UNLIKELY(err == -1))
-  {
-    throw std::system_error((errno), std::generic_category());
-  }
+  //  cpu_set_t cpuset;
+  //  CPU_ZERO(&cpuset);
+  //  CPU_SET(1, &cpuset);
+  //
+  //  auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
+  //
+  //  if (QUILL_UNLIKELY(err == -1))
+  //  {
+  //    throw std::system_error((errno), std::generic_category());
+  //  }
 
   // Logging
   quill::config::set_backend_thread_cpu_affinity(0);

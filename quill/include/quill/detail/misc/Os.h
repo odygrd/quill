@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fmt/format.h"
 #include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 #include <cstdint>
@@ -93,6 +94,15 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* fopen(filename_t const& filename, std
  * @param filename
  */
 QUILL_ATTRIBUTE_COLD int remove(filename_t const& filename) noexcept;
+
+#if defined(_WIN32)
+/**
+ * Given aa wide character fmt memory buffer convert it to a memory buffer
+ * @param mem_buffer [out]
+ * @param w_mem_buffer [in]
+ */
+void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer& mem_buffer);
+#endif
 
 /**
  * Creates the memory map files needed for the queue buffer
