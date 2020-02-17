@@ -1,7 +1,5 @@
 #include "quill/Quill.h"
 
-using namespace quill;
-
 int main()
 {
   // Start the logging backend thread
@@ -13,7 +11,7 @@ int main()
     // Default handler : stdout
     // Default LogLevel : Info
     // Default pattern : "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"
-    Logger* logger = quill::get_logger();
+    quill::Logger* logger = quill::get_logger();
 
     // Change the LogLevel to print everything
     logger->set_log_level(quill::LogLevel::TraceL3);
@@ -47,4 +45,26 @@ int main()
     quill::get_logger()->set_log_level(quill::LogLevel::Info);
     DEF_LOG_INFO("This is a log info example {}", 5);
   }
+
+  // d) Basic Usage
+  // Get a pointer to the default logger
+  quill::Logger* default_logger = quill::get_logger();
+
+  LOG_INFO(default_logger, "Welcome to Quill!");
+  LOG_ERROR(default_logger, "An error message with error code {}, error message {}", 123,
+            "system_error");
+
+  LOG_WARNING(default_logger, "Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}", 42);
+  LOG_CRITICAL(default_logger, "Easy padding in numbers like {:08d}", 12);
+
+  LOG_DEBUG(default_logger,
+            "This message and any message below this log level will not be displayed..");
+
+  // Enable additional log levels
+  default_logger->set_log_level(quill::LogLevel::TraceL3);
+
+  LOG_DEBUG(default_logger, "The answer is {}", 1337);
+  LOG_TRACE_L1(default_logger, "{:>30}", "right aligned");
+  LOG_TRACE_L2(default_logger, "Positional arguments are {1} {0} ", "too", "supported");
+  LOG_TRACE_L3(default_logger, "Support for floats {:03.2f}", 1.23456);
 }
