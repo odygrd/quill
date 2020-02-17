@@ -42,6 +42,7 @@ matrix:
           packages: [g++-9, valgrind]
 
 install:
+  - wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
   - sudo apt-get -qq update
   - sudo apt-get install -y libgtest-dev cmake
   - sudo pip install codecov
