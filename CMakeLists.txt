@@ -68,6 +68,8 @@ option(QUILL_SANITIZE_ADDRESS "Enable address sanitizer in tests" OFF)
 
 option(QUILL_SANITIZE_THREAD "Enable thread sanitizer in tests (Using this option with any other compiler except clang may result to false positives)" OFF)
 
+option(QUILL_CODE_COVERAGE "Enable code coverage" OFF)
+
 #-------------------------------------------------------------------------------------------------------
 # Required Packages
 #-------------------------------------------------------------------------------------------------------
@@ -98,6 +100,11 @@ endif ()
 # thread sanitizer flags
 if (QUILL_SANITIZE_THREAD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+endif ()
+
+# Append extra options for coverage
+if (QUILL_CODE_COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif ()
 
 #-------------------------------------------------------------------------------------------------------
