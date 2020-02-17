@@ -88,13 +88,19 @@ target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
 
 # Compiler options
 target_compile_options(${TARGET_NAME} PRIVATE
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field>
-        $<$<CXX_COMPILER_ID:MSVC>:/W4>)
+                       $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+                       -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field>
+                       $<$<CXX_COMPILER_ID:MSVC>:/W4>)
 
 if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015		
-     target_compile_options(${TARGET_NAME} PRIVATE /WX)		
- endif ()
+    target_compile_options(${TARGET_NAME} PRIVATE /WX)
+endif ()
+
+# If clang on linux then build using libc++
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -v")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
+endif ()
 
 # Properties
 set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSION ${QUILL_VERSION})
