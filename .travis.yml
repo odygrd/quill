@@ -6,7 +6,7 @@ matrix:
 #    # Linux C++14 Build
     #    - os: linux
     #      compiler: gcc
-    #      env: COMPILER=g++-5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
+    #      env: $GCC_VERSION=5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
     #          update: true
@@ -15,7 +15,7 @@ matrix:
     #
     #    - os: linux
     #      compiler: gcc
-    #      env: COMPILER=g++-5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
+    #      env: $GCC_VERSION=5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
     #          update: true
@@ -25,7 +25,7 @@ matrix:
     #    # Linux C++17 Build
     #    - os: linux
     #      compiler: gcc
-    #      env: COMPILER=g++-9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
+    #      env: $GCC_VERSION=9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
     #          update: true
@@ -34,7 +34,7 @@ matrix:
     #
     #    - os: linux
     #      compiler: gcc
-    #      env: COMPILER=g++-9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
+    #      env: $GCC_VERSION=9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
     #          update: true
@@ -42,17 +42,17 @@ matrix:
     #          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
 
     - os: linux
-      env: COMPILER=clang++-9 BUILD=Debug STANDARD=17 ASAN=ON TSAN=OFF
+      env: $CLANG_VERSION=8 BUILD=Debug STANDARD=17 ASAN=ON TSAN=OFF
       compiler: clang
       addons:
         apt:
           update: true
           sources:
             - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-9 main'
+            - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-8 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-9
+            - clang-8
             - valgrind
             - cmake
             - cmake-data
@@ -72,7 +72,9 @@ install:
   - sudo pip install codecov
 
 before_script:
-  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then export CXX=${COMPILER}; fi
+  - if [ -n "$GCC_VERSION" ]; then export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}"; fi
+  - if [ -n "$CLANG_VERSION" ]; then export CXX="clang++-${CLANG_VERSION}" CC="clang-${CLANG_VERSION}"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
   - ${CXX} --version
   - cmake --version
 
