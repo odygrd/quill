@@ -6,7 +6,7 @@ matrix:
 #    # Linux C++14 Build
     #    - os: linux
     #      compiler: gcc
-    #      env: $GCC_VERSION=5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
+    #      env: GCC_VERSION=5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
     #          update: true
@@ -15,7 +15,7 @@ matrix:
     #
     #    - os: linux
     #      compiler: gcc
-    #      env: $GCC_VERSION=5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
+    #      env: GCC_VERSION=5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
     #          update: true
@@ -25,7 +25,7 @@ matrix:
     #    # Linux C++17 Build
     #    - os: linux
     #      compiler: gcc
-    #      env: $GCC_VERSION=9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
+    #      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
     #          update: true
@@ -34,15 +34,17 @@ matrix:
     #
     #    - os: linux
     #      compiler: gcc
-    #      env: $GCC_VERSION=9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
+    #      env: GCC_VERSION=9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
     #          update: true
     #          sources: ['ubuntu-toolchain-r-test']
     #          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
 
+    # Linux Clang build
     - os: linux
-      env: $CLANG_VERSION=8 BUILD=Debug STANDARD=17 ASAN=ON TSAN=OFF
+      dist: bionic
+      env: CLANG_VERSION=8 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
       compiler: clang
       addons:
         apt:
@@ -52,7 +54,6 @@ matrix:
             - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-8 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - g++-5 # for c++14 libstdc++
             - clang-8
             - valgrind
             - cmake
@@ -60,14 +61,38 @@ matrix:
             - ninja-build
             - lcov
 
+    - os: linux
+      dist: bionic
+      env: CLANG_VERSION=3.5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
+      compiler: clang
+      addons:
+        apt:
+          update: true
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.5 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-3.5
+            - valgrind
+            - cmake
+            - cmake-data
+            - ninja-build
+            - lcov
+
+    # MacOs Clang build
+    - os: osx
+      env: CLANG_VERSION=3.5 BUILD=Debug STANDARD=14 ASAN=ON TSAN=OFF
+      compiler: clang
+      addons:
+        homebrew:
+          update: true
+          packages:
+            - ninja
+
 before_install:
   - if [ -n "$GCC_VERSION" ]; then export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}"; fi
-
-  # For clang also use gcc-5 as we need c++14 libstdc++
   - if [ -n "$CLANG_VERSION" ]; then export CXX="clang++-${CLANG_VERSION}" CC="clang-${CLANG_VERSION}"; fi
-  - if [ -n "$CLANG_VERSION" ]; then sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc; fi
-  - if [ -n "$CLANG_VERSION" ]; then sudo unlink /usr/bin/g++ && sudo ln -s /usr/bin/g++-5 /usr/bin/g++; fi
-
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
   - ${CXX} --version
   - cmake --version
