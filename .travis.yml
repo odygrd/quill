@@ -13,6 +13,15 @@ matrix:
     - os: linux
       dist: trusty
       compiler: gcc
+      env: GCC_VERSION=5 BUILD_TYPE=Release CPP=14 ASAN=OFF TSAN=OFF
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: [g++-5, valgrind]
+
+    - os: linux
+      dist: trusty
+      compiler: gcc
       env: GCC_VERSION=9 BUILD_TYPE=Debug CPP=17 ASAN=OFF TSAN=OFF
       addons:
         apt:
