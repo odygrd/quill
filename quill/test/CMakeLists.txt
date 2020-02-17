@@ -45,4 +45,4 @@ set_property(TARGET ${TEST_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 set_target_properties(${TEST_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/test)
 
 # Add this target to the post build unit tests
-add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} --gtest_output=xml:${TEST_OUTPUT_DIR}/${TEST_NAME}_report.xml)
+add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} --gtest_output=xml:${TEST_NAME}_report.xml)

@@ -42,7 +42,6 @@ script:
       -DQUILL_SANITIZE_THREAD=$TSAN \
       -DQUILL_BUILD_TESTS=ON \
       -DQUILL_BUILD_EXAMPLES=ON
-  - pwd
   - make VERBOSE=1 -j2
   - ctest --output-on-failure
 
