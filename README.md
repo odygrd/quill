@@ -77,6 +77,51 @@ target_link_libraries(foo PRIVATE quill::quill)
 
 ### Basic usage
 
+```c++
+#include "quill/Quill.h"
+
+int main()
+{
+  // Start the logging backend thread
+  quill::start();
+  
+  // Get a pointer to the default logger
+  quill::Logger* default_logger = quill::get_logger();
+
+  LOG_INFO(default_logger, "Welcome to Quill!");
+  LOG_ERROR(default_logger, "An error message with error code {}, error message {}", 123, "system_error");
+
+  LOG_WARNING(default_logger, "Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}", 42);
+  LOG_CRITICAL(default_logger, "Easy padding in numbers like {:08d}", 12);
+
+  LOG_DEBUG(default_logger, "This message and any message below this log level will not be displayed..");
+
+  // Enable additional log levels on this logger
+  default_logger->set_log_level(quill::LogLevel::TraceL3);
+
+  LOG_DEBUG(default_logger, "The answer is {}", 1337);
+  LOG_TRACE_L1(default_logger, "{:>30}", "right aligned");
+  LOG_TRACE_L2(default_logger, "Positional arguments are {1} {0} ", "too", "supported");
+  LOG_TRACE_L3(default_logger, "Support for floats {:03.2f}", 1.23456);
+}
+```
+
+#### Output
+By default Quill outputs to stdout using the default formatting pattern:
+
+`ascii_time [thread_id] filename:line log_level logger_name - message`
+
+```
+01:29:06.190725386 [1783860] example_01.cpp:11 LOG_INFO     root - Welcome to Quill!
+01:29:06.190727584 [1783860] example_01.cpp:12 LOG_ERROR    root - An error message with error code 123, error message system_error
+01:29:06.190731526 [1783860] example_01.cpp:14 LOG_WARNING  root - Support for int: 42;  hex: 2a;  oct: 52; bin: 101010
+01:29:06.190732157 [1783860] example_01.cpp:15 LOG_CRITICAL root - Easy padding in numbers like 00000012
+01:29:06.190732723 [1783860] example_01.cpp:22 LOG_DEBUG    root - The answer is 1337
+01:29:06.190733093 [1783860] example_01.cpp:23 LOG_TRACE_L1 root -                  right aligned
+01:29:06.190735322 [1783860] example_01.cpp:24 LOG_TRACE_L2 root - Positional arguments are supported too 
+01:29:06.190736334 [1783860] example_01.cpp:25 LOG_TRACE_L3 root - Support for floats 1.23
+```
+
 ## Documentation
 
 ## License
