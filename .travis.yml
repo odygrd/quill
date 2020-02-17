@@ -1,61 +1,54 @@
 language: cpp
+dist: trusty
+
 matrix:
   include:
+    # Linux C++14 Build
     - os: linux
-      dist: trusty
       compiler: gcc
-      env: GCC_VERSION=5 BUILD_TYPE=Debug CPP=14 ASAN=OFF TSAN=OFF
+      env: COMPILER=g++-5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
       addons:
         apt:
+          update: true
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-5, valgrind]
 
     - os: linux
-      dist: trusty
       compiler: gcc
-      env: GCC_VERSION=5 BUILD_TYPE=Release CPP=14 ASAN=OFF TSAN=OFF
+      env: COMPILER=g++-5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
       addons:
         apt:
+          update: true
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-5, valgrind]
 
+    # Linux C++17 Build
     - os: linux
-      dist: trusty
       compiler: gcc
-      env: GCC_VERSION=9 BUILD_TYPE=Debug CPP=17 ASAN=OFF TSAN=OFF
+      env: COMPILER=g++-9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
       addons:
         apt:
+          update: true
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-9, valgrind]
 
     - os: linux
-      dist: trusty
       compiler: gcc
-      env: GCC_VERSION=9 BUILD_TYPE=Release CPP=17 ASAN=OFF TSAN=OFF
+      env: COMPILER=g++-9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
       addons:
         apt:
+          update: true
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-9, valgrind]
 
-before_install:
+install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libgtest-dev valgrind cmake
-  - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
-  - sudo tar xf release-1.10.0.tar.gz
-  - cd googletest-release-1.10.0
-  - sudo cmake -DBUILD_SHARED_LIBS=ON .
-  - sudo make
-  - sudo cp -a ./googletest/include/gtest /usr/include
-  - sudo cp -a ./lib/libgtest_main.so lib/libgtest.so /usr/lib/
-  - which valgrind
+  - sudo apt-get install -y libgtest-dev cmake
+  - sudo pip install codecov
 
 before_script:
-  - if [ -n "$GCC_VERSION" ]; then export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}"; fi
-  - if [ -n "$CLANG_VERSION" ]; then export CXX="clang++-${CLANG_VERSION}" CC="clang-${CLANG_VERSION}"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
-  - which $CXX
-  - which $CC
-  - $CXX --version
+  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then export CXX=${COMPILER}; fi
+  - ${CXX} --version
   - cmake --version
 
 script:
@@ -63,8 +56,8 @@ script:
   - mkdir -p build && cd build
   - |
     cmake .. \
-      -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-      -DCMAKE_CXX_STANDARD=$CPP \
+      -DCMAKE_BUILD_TYPE=$BUILD \
+      -DCMAKE_CXX_STANDARD=$STANDARD \
       -DQUILL_SANITIZE_ADDRESS=$ASAN \
       -DQUILL_SANITIZE_THREAD=$TSAN \
       -DQUILL_BUILD_TESTS=ON \
