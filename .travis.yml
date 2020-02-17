@@ -52,6 +52,7 @@ matrix:
             - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-8 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
+            - g++-5 # for
             - clang-8
             - valgrind
             - cmake
@@ -61,7 +62,12 @@ matrix:
 
 before_install:
   - if [ -n "$GCC_VERSION" ]; then export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}"; fi
+
+  # For clang also use gcc-5 as we need c++14 libstdc++
   - if [ -n "$CLANG_VERSION" ]; then export CXX="clang++-${CLANG_VERSION}" CC="clang-${CLANG_VERSION}"; fi
+  - if [ -n "$CLANG_VERSION" ]; sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc; fi
+  - if [ -n "$CLANG_VERSION" ]; sudo unlink /usr/bin/g++ && sudo ln -s /usr/bin/g++-5 /usr/bin/g++; fi
+
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
   - ${CXX} --version
   - cmake --version
