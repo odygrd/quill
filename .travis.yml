@@ -1,0 +1,53 @@
+language: cpp
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      compiler: gcc
+      env: GCC_VERSION=9 BUILD_TYPE=Debug CPP=17 ASAN=Off TSAN=Off
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: [g++-9, valgrind]
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libgtest-dev valgrind cmake
+  - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
+  - sudo tar xf release-1.10.0.tar.gz
+  - cd googletest-release-1.10.0
+  - sudo cmake -DBUILD_SHARED_LIBS=ON .
+  - sudo make
+  - sudo cp -a include/gtest /usr/include
+  - sudo cp -a libgtest_main.so libgtest.so /usr/lib/
+  - which valgrind
+
+before_script:
+  - if [ -n "$GCC_VERSION" ]; then export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}"; fi
+  - if [ -n "$CLANG_VERSION" ]; then export CXX="clang++-${CLANG_VERSION}" CC="clang-${CLANG_VERSION}"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
+  - which $CXX
+  - which $CC
+  - $CXX --version
+  - cmake --version
+
+script:
+  - cd ${TRAVIS_BUILD_DIR}
+  - mkdir -p build && cd build
+  - cmake .. \
+    -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+    -DCMAKE_CXX_STANDARD=$CPP \
+    -DQUILL_SANITIZE_ADDRESS=$ASAN \
+    -DQUILL_SANITIZE_THREAD=$TSAN \
+    -DQUILL_BUILD_TESTS=ON \
+    -DQUILL_BUILD_EXAMPLES=ON
+
+  - make VERBOSE=1 -j2
+  - ctest --output-on-failure
+
+branches:
+  only:
+    - master
+
+notifications:
+  email: false

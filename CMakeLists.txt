@@ -51,9 +51,9 @@ endif ()
 
 option(QUILL_BUILD_SHARED "Build as shared library" OFF)
 
-option(QUILL_BUILD_EXAMPLES "Build the examples" ${QUILL_MASTER_PROJECT})
+option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
-option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" ${QUILL_MASTER_PROJECT})
+option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
 
 option(QUILL_BUILD_BENCHMARKS "Build benchmarks" OFF)
 
