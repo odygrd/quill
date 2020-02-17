@@ -63,7 +63,7 @@ matrix:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-4 main'
+            - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - g++-5 # for c++14 libstdc++
@@ -104,8 +104,9 @@ install:
   - cd googletest-release-1.10.0
   - sudo cmake -GNinja -DBUILD_SHARED_LIBS=ON .
   - sudo cmake --build .
-  - sudo cp -r ./googletest/include/gtest /usr/local/include
-  - sudo cp ./lib/lib*.so /usr/local/lib
+  - ls -la
+  - sudo cp -a ./googletest/include/gtest /usr/local/include
+  - sudo cp -a ./lib/* /usr/local/lib
 
   # Install codecov
   - sudo pip install codecov
