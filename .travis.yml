@@ -9,7 +9,6 @@ matrix:
     #      env: GCC_VERSION=5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
-    #          update: true
     #          sources: ['ubuntu-toolchain-r-test']
     #          packages: [g++-5, valgrind, cmake, cmake-data, ninja-build, lcov]
     #
@@ -18,7 +17,6 @@ matrix:
     #      env: GCC_VERSION=5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
-    #          update: true
     #          sources: ['ubuntu-toolchain-r-test']
     #          packages: [g++-5, valgrind, cmake, cmake-data, ninja-build, lcov]
     #
@@ -28,7 +26,6 @@ matrix:
     #      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
-    #          update: true
     #          sources: ['ubuntu-toolchain-r-test']
     #          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
     #
@@ -37,7 +34,6 @@ matrix:
     #      env: GCC_VERSION=9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
     #      addons:
     #        apt:
-    #          update: true
     #          sources: ['ubuntu-toolchain-r-test']
     #          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
 
@@ -47,7 +43,6 @@ matrix:
       compiler: clang
       addons:
         apt:
-          update: true
           sources:
             - ubuntu-toolchain-r-test
             - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-8 main'
@@ -62,12 +57,10 @@ matrix:
             - lcov
 
     - os: linux
-      dist: bionic
       env: CLANG_VERSION=3.5 USE_LIB_STDC++=ON BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
       compiler: clang
       addons:
         apt:
-          update: true
           sources:
             - ubuntu-toolchain-r-test
             - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.5 main'
@@ -87,7 +80,6 @@ matrix:
       compiler: clang
       addons:
         homebrew:
-          update: true
           packages:
             - ninja
 
@@ -97,8 +89,8 @@ before_install:
   - if [ -n "$CLANG_VERSION" ]; then export CXX="clang++-${CLANG_VERSION}" CC="clang-${CLANG_VERSION}"; fi
 
   # For clang also use gcc-5 as we need c++14 libstdc++
-  - if [ -n "USE_LIB_STDC" ]; then sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc; fi
-  - if [ -n "USE_LIB_STDC" ]; then sudo unlink /usr/bin/g++ && sudo ln -s /usr/bin/g++-5 /usr/bin/g++; fi
+  - if [ -n "$USE_LIB_STDC" ]; then sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc; fi
+  - if [ -n "$USE_LIB_STDC" ]; then sudo unlink /usr/bin/g++ && sudo ln -s /usr/bin/g++-5 /usr/bin/g++; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
   - ${CXX} --version
