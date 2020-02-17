@@ -1,17 +1,15 @@
 <h2> <img src="https://i.postimg.cc/FssWB25k/quill-logo.png" alt="Quill logo" width="140"><br>Asynchronous Low Latency Logging Library</h2>
 
-<!-- Replace with badge from img.shields -->
-[![Build Status](https://travis-ci.com/odygrd/quill.svg?token=DKUCEq1ZRPLs2uAfsCSg&branch=master)](https://travis-ci.com/odygrd/quill)
 
-<!-- [![travis][badge.travis]][travis] -->
+[![travis][badge.travis]][travis]
 [![language][badge.language]][language]
 [![license][badge.license]][license]
 
-<!-- [badge.travis]: https://img.shields.io/travis/odygrd/quill/master.svg?logo=travis -->
+[badge.travis]: https://img.shields.io/travis/odygrd/quill/master.svg?logo=travis
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-red.svg
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
 
-<!-- [travis]: https://travis-ci.org/odygrd/quill -->
+[travis]: https://travis-ci.org/odygrd/quill
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: http://opensource.org/licenses/MIT
 
