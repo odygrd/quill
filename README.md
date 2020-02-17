@@ -15,8 +15,7 @@
 - [Integration](#integration)
   - [CMake](#cmake)
   - [Package Managers](#package-managers)
-- [Examples](#examples)
-  - [Basic Usage](#basic-usage)
+- [Basic Usage](#basic-usage)
 - [Documentation](#documentation)
 - [License](#license)
 
@@ -73,9 +72,7 @@ target_link_libraries(foo PRIVATE quill::quill)
 
 ### Package Managers
 
-## Examples
-
-### Basic usage
+## Basic usage
 
 ```c++
 #include "quill/Quill.h"
@@ -106,7 +103,7 @@ int main()
 }
 ```
 
-#### Output
+### Output
 By default Quill outputs to stdout using the default formatting pattern:
 
 `ascii_time [thread_id] filename:line log_level logger_name - message`
