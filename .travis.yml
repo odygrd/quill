@@ -18,7 +18,6 @@ before_install:
   - cd googletest-release-1.10.0
   - sudo cmake -DBUILD_SHARED_LIBS=ON .
   - sudo make
-  - sudo cp -a include/gtest /usr/include
   - sudo cp -a ./googletest/include/gtest /usr/include
   - sudo cp -a ./lib/libgtest_main.so lib/libgtest.so /usr/lib/
   - which valgrind
