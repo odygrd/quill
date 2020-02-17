@@ -91,7 +91,6 @@ script:
   - |
     cmake .. \
       -GNinja \
-      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
       -DCMAKE_BUILD_TYPE=$BUILD \
       -DCMAKE_CXX_STANDARD=$STANDARD \
       -DQUILL_SANITIZE_ADDRESS=$ASAN \

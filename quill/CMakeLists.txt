@@ -84,7 +84,7 @@ target_include_directories(${TARGET_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link dependencies
-target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
+target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads -fsanitize=address)
 
 # Compiler options
 target_compile_options(${TARGET_NAME} PRIVATE
@@ -92,8 +92,19 @@ target_compile_options(${TARGET_NAME} PRIVATE
                        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field>
                        $<$<CXX_COMPILER_ID:MSVC>:/W4>)
 
-if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015		
+if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015
     target_compile_options(${TARGET_NAME} PRIVATE /WX)
+endif ()
+
+
+# Additional address sanitizer flags
+if (ENABLE_ADDRESS_SANITIZER)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+endif ()
+
+# Additional thread sanitizer flags
+if (QUILL_SANITIZE_THREAD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
 endif ()
 
 # Properties
