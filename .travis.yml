@@ -70,7 +70,7 @@ script:
       -DQUILL_BUILD_TESTS=ON \
       -DQUILL_BUILD_EXAMPLES=ON
   - make VERBOSE=1 -j2
-  - ctest --output-on-failure
+  - ctest
 
 branches:
   only:
