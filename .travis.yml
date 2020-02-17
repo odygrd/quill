@@ -42,17 +42,17 @@ matrix:
     #          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
 
     - os: linux
-      env: COMPILER=clang++-8.0 BUILD=Debug STANDARD=17 ASAN=ON TSAN=OFF
+      env: COMPILER=clang++-9 BUILD=Debug STANDARD=17 ASAN=ON TSAN=OFF
       compiler: clang
       addons:
         apt:
           update: true
           sources:
             - ubuntu-toolchain-r-test
-            - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-8 main'
+            - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-9 main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - clang-8
+            - clang-9
             - valgrind
             - cmake
             - cmake-data
