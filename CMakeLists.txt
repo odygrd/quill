@@ -91,7 +91,7 @@ endif ()
 # Additional Compiler Options
 #-------------------------------------------------------------------------------------------------------
 # address sanitizer flags
-if (ENABLE_ADDRESS_SANITIZER)
+if (QUILL_SANITIZE_ADDRESS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
 endif ()
 
