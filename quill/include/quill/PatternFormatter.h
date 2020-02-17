@@ -557,7 +557,7 @@ constexpr std::array<size_t, 2> PatternFormatter::_parse_format_pattern()
     pos += 1;
   }
 
-  return {part_1_style_counter, part_3_style_counter};
+  return std::array<size_t, 2>{{part_1_style_counter, part_3_style_counter}};
 }
 
 /***/

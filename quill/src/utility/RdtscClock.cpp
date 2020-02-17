@@ -20,7 +20,7 @@ RdtscClock::RdtscTicks::RdtscTicks()
   constexpr std::chrono::milliseconds spin_duration = std::chrono::milliseconds{10};
 
   constexpr int trials = 13;
-  std::array<double, trials> rates = {0};
+  std::array<double, trials> rates = {{0}};
 
   for (size_t i = 0; i < trials; ++i)
   {
