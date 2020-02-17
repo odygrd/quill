@@ -47,9 +47,17 @@ matrix:
       addons:
         apt:
           update: true
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8.0']
-          packages: [clang-8, valgrind, cmake, cmake-data, ninja-build, lcov]
-
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb https://apt.llvm.org/trusty/ llvm-toolchain-trusty-8 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-8
+            - valgrind
+            - cmake
+            - cmake-data
+            - ninja-build
+            - lcov
 install:
   # Get latest gtest
   - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
