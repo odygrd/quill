@@ -112,7 +112,7 @@ install:
   - sudo cmake -GNinja -DBUILD_SHARED_LIBS=ON .
   - sudo cmake --build .
   - sudo cp -a ./googletest/include/gtest /usr/local/include
-  - sudo cp -a *.so /usr/local/lib
+  - sudo cp -a ./lib/libgtest_main.so lib/libgtest.so /usr/local/lib
 
   # Install codecov
   - sudo pip install codecov
