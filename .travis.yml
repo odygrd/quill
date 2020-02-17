@@ -48,7 +48,7 @@ matrix:
         apt:
           update: true
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8.0']
-          packages: [clang-8.0, valgrind, cmake, cmake-data, ninja-build, lcov]
+          packages: [clang-8, valgrind, cmake, cmake-data, ninja-build, lcov]
 
 install:
   # Get latest gtest
