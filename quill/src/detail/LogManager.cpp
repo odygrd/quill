@@ -10,9 +10,6 @@ namespace detail
 {
 
 /***/
-LogManager::LogManager(Config const& config) : _config(config) {}
-
-/***/
 void LogManager::flush()
 {
   if (!_backend_worker.is_running())

@@ -22,8 +22,5 @@ LogManagerSingleton& LogManagerSingleton::instance() noexcept
 /***/
 detail::LogManager& LogManagerSingleton::log_manager() noexcept { return _log_manager; }
 
-/***/
-detail::Config& LogManagerSingleton::config() noexcept { return _config; }
-
 } // namespace detail
 } // namespace quill

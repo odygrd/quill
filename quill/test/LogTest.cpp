@@ -16,8 +16,6 @@
 using namespace quill;
 using namespace quill::detail;
 
-static Config default_cfg;
-
 // Important - Because LogManager each time creates a new ThreadContextCollection the following can happen
 // 1st Test - Main thread creates static thread local inside ThreadContext
 // 2nd Test - Main thread will not recreate the ThreadContext but the new LogManager instance
@@ -29,7 +27,7 @@ static Config default_cfg;
 /***/
 TEST(Log, default_logger_with_filehandler)
 {
-  LogManager lm{default_cfg};
+  LogManager lm;
 
 #if defined(_WIN32)
   std::wstring const filename{L"test_default_logger_with_filehandler"};
@@ -70,7 +68,7 @@ TEST(Log, default_logger_with_filehandler)
 
 void custom_default_logger_same_handler(int test_case = 0)
 {
-  LogManager lm{default_cfg};
+  LogManager lm;
 
 #if defined(_WIN32)
   std::wstring const filename{L"test_custom_default_logger_same_handler"};
@@ -160,7 +158,7 @@ TEST(Log, custom_default_logger_same_file_from_default_logger)
 
 void test_custom_default_logger_multiple_handlers(int test_case = 0)
 {
-  LogManager lm{default_cfg};
+  LogManager lm;
 
 #if defined(_WIN32)
   std::wstring const filename_1{L"test_custom_default_logger_multiple_handlers_1"};
@@ -294,7 +292,7 @@ TEST(Log, custom_default_logger_multiple_handlers_from_default_logger)
 /***/
 TEST(Log, many_loggers_multiple_threads)
 {
-  LogManager lm{default_cfg};
+  LogManager lm;
 
 #if defined(_WIN32)
   std::wstring const filename{L"test_many_loggers_multiple_threads"};

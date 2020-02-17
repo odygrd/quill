@@ -22,13 +22,18 @@ public:
   /**
    * Constructor
    */
-  explicit LogManager(Config const& config);
+  LogManager() = default;
 
   /**
    * Deleted
    */
   LogManager(LogManager const&) = delete;
   LogManager& operator=(LogManager const&) = delete;
+
+  /**
+   * @return A reference to the current config
+   */
+  QUILL_NODISCARD detail::Config& config() noexcept { return _config; }
 
   /**
    * @return A reference to the logger collection
@@ -59,7 +64,7 @@ public:
   QUILL_ATTRIBUTE_COLD void stop_backend_worker();
 
 private:
-  Config const& _config; // TODO: Move ownership here
+  Config _config;
   HandlerCollection _handler_collection;
   ThreadContextCollection _thread_context_collection;
   LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
