@@ -96,17 +96,6 @@ if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015
     target_compile_options(${TARGET_NAME} PRIVATE /WX)
 endif ()
 
-
-# Additional address sanitizer flags
-if (ENABLE_ADDRESS_SANITIZER)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
-endif ()
-
-# Additional thread sanitizer flags
-if (QUILL_SANITIZE_THREAD)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
-endif ()
-
 # Properties
 set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSION ${QUILL_VERSION})
 

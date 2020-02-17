@@ -88,6 +88,19 @@ if (QUILL_MASTER_PROJECT)
 endif ()
 
 #-------------------------------------------------------------------------------------------------------
+# Additional Compiler Options
+#-------------------------------------------------------------------------------------------------------
+# address sanitizer flags
+if (ENABLE_ADDRESS_SANITIZER)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+endif ()
+
+# thread sanitizer flags
+if (QUILL_SANITIZE_THREAD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+endif ()
+
+#-------------------------------------------------------------------------------------------------------
 # Subdirectories
 #-------------------------------------------------------------------------------------------------------
 add_subdirectory(quill)
