@@ -3,8 +3,8 @@ dist: trusty
 
 matrix:
   include:
-    # Linux Gcc C++14 Build Debug
-    - os: linux
+    - name: 'Linux Gcc C++14 Debug'
+      os: linux
       compiler: gcc
       env: GCC_VERSION=5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
       addons:
@@ -12,8 +12,8 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-5, valgrind, cmake, cmake-data, ninja-build, lcov]
 
-    # Linux Gcc C++14 Build Release
-    - os: linux
+    - name: 'Linux Gcc C++14 Release'
+      os: linux
       compiler: gcc
       env: GCC_VERSION=5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
       addons:
@@ -21,8 +21,8 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-5, valgrind, cmake, cmake-data, ninja-build, lcov]
 
-    # Linux Gcc C++17 Build Debug
-    - os: linux
+    - name: 'Linux Gcc C++17 Debug'
+      os: linux
       compiler: gcc
       env: GCC_VERSION=9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
       addons:
@@ -30,8 +30,8 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
 
-    # Linux Gcc C++17 Build Release
-    - os: linux
+    - name: 'Linux Gcc C++17 Release'
+      os: linux
       compiler: gcc
       env: GCC_VERSION=9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
       addons:
@@ -39,8 +39,8 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
 
-    # MacOs Clang build C++14 Debug
-    - os: osx
+    - name: 'MacOs Clang C++14 Debug'
+      os: osx
       env: BUILD=Debug STANDARD=14 ASAN=ON TSAN=OFF
       compiler: clang
       addons:
@@ -48,8 +48,8 @@ matrix:
           packages:
             - ninja
 
-    # MacOs Clang build C++14 Release
-    - os: osx
+    - name: 'MacOs Clang C++14 Release'
+      os: osx
       env: BUILD=Release STANDARD=14 ASAN=OFF TSAN=ON
       compiler: clang
       addons:
@@ -57,8 +57,8 @@ matrix:
           packages:
             - ninja
 
-    # MacOs Clang build C++17 with Address Sanitiser
-    - os: osx
+    - name: 'MacOs Clang C++17 Debug with Address Sanitiser'
+      os: osx
       osx_image: xcode11.2
       env: BUILD=Debug STANDARD=17 ASAN=ON TSAN=OFF
       compiler: clang
@@ -67,8 +67,8 @@ matrix:
           packages:
             - ninja
 
-    # MacOs Clang build C++17 with Thread Sanitiser
-    - os: osx
+    - name: 'MacOs Clang C++17 Release with Thread Sanitiser'
+      os: osx
       osx_image: xcode11.2
       env: BUILD=Release STANDARD=17 ASAN=OFF TSAN=ON
       compiler: clang
