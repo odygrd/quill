@@ -123,6 +123,7 @@ By default Quill outputs to stdout using the default formatting pattern:
 ```
 
 ## Documentation
+Advanced usage and additional documentation can be found in the [wiki](https://github.com/odygrd/quill) pages.
 
 ## License
 Quill is licensed under the [MIT License](http://opensource.org/licenses/MIT)
