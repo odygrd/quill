@@ -34,14 +34,15 @@ before_script:
 script:
   - cd ${TRAVIS_BUILD_DIR}
   - mkdir -p build && cd build
-  - cmake .. \
-    -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-    -DCMAKE_CXX_STANDARD=$CPP \
-    -DQUILL_SANITIZE_ADDRESS=$ASAN \
-    -DQUILL_SANITIZE_THREAD=$TSAN \
-    -DQUILL_BUILD_TESTS=ON \
-    -DQUILL_BUILD_EXAMPLES=ON
-
+  - |
+    cmake .. \
+      -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+      -DCMAKE_CXX_STANDARD=$CPP \
+      -DQUILL_SANITIZE_ADDRESS=$ASAN \
+      -DQUILL_SANITIZE_THREAD=$TSAN \
+      -DQUILL_BUILD_TESTS=ON \
+      -DQUILL_BUILD_EXAMPLES=ON
+  - pwd
   - make VERBOSE=1 -j2
   - ctest --output-on-failure
 
