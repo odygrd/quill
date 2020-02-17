@@ -3,10 +3,11 @@ dist: trusty
 
 matrix:
   include:
+
     - name: 'Linux Gcc C++17 Debug with Code Coverage'
       os: linux
       compiler: gcc
-      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=ON  ASAN=OFF TSAN=OFF
+      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=ON ASAN=OFF TSAN=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
@@ -122,7 +123,6 @@ script:
   - ctest --verbose
 
   # Code Coverage
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then /get_code_cov; fi
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
 
 after_success:
