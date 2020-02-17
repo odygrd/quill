@@ -74,7 +74,7 @@
  * able to consume fast enough and the queue will become full. In this scenario the caller thread
  * will block until there is some free space in the queue to push the LogRecord
  *
- * By default Quill is using a 8 Mebibyte queue per thread
+ * By default Quill is using a 2 Mebibyte queue per thread
  *
  * The queue size can be increased or decreased based on the user needs.
  *
@@ -82,4 +82,4 @@
  * of the page size.
  * Look for an online Mebibyte to Byte converted to easily find a correct value
  */
-// #define QUILL_BOUNDED_SPSC_QUEUE_SIZE 8388608u
+// #define QUILL_BOUNDED_SPSC_QUEUE_SIZE 2097152u

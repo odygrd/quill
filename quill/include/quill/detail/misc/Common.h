@@ -16,7 +16,7 @@
 #endif
 
 #if !defined(QUILL_BOUNDED_SPSC_QUEUE_SIZE)
-  #define QUILL_BOUNDED_SPSC_QUEUE_SIZE 8388608u
+  #define QUILL_BOUNDED_SPSC_QUEUE_SIZE 2097152u
 #endif
 
 namespace quill
