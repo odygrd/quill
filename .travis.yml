@@ -3,43 +3,52 @@ dist: trusty
 
 matrix:
   include:
-    # Linux C++14 Build
-    - os: linux
-      compiler: gcc
-      env: COMPILER=g++-5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
-      addons:
-        apt:
-          update: true
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, valgrind, cmake, cmake-data, ninja-build, lcov]
+#    # Linux C++14 Build
+    #    - os: linux
+    #      compiler: gcc
+    #      env: COMPILER=g++-5 BUILD=Debug STANDARD=14 ASAN=OFF TSAN=OFF
+    #      addons:
+    #        apt:
+    #          update: true
+    #          sources: ['ubuntu-toolchain-r-test']
+    #          packages: [g++-5, valgrind, cmake, cmake-data, ninja-build, lcov]
+    #
+    #    - os: linux
+    #      compiler: gcc
+    #      env: COMPILER=g++-5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
+    #      addons:
+    #        apt:
+    #          update: true
+    #          sources: ['ubuntu-toolchain-r-test']
+    #          packages: [g++-5, valgrind, cmake, cmake-data, ninja-build, lcov]
+    #
+    #    # Linux C++17 Build
+    #    - os: linux
+    #      compiler: gcc
+    #      env: COMPILER=g++-9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
+    #      addons:
+    #        apt:
+    #          update: true
+    #          sources: ['ubuntu-toolchain-r-test']
+    #          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
+    #
+    #    - os: linux
+    #      compiler: gcc
+    #      env: COMPILER=g++-9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
+    #      addons:
+    #        apt:
+    #          update: true
+    #          sources: ['ubuntu-toolchain-r-test']
+    #          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
 
     - os: linux
-      compiler: gcc
-      env: COMPILER=g++-5 BUILD=Release STANDARD=14 ASAN=OFF TSAN=OFF
+      env: COMPILER=clang++-8.0 BUILD=Debug STANDARD=17 ASAN=ON TSAN=OFF
+      compiler: clang
       addons:
         apt:
           update: true
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, valgrind, cmake, cmake-data, ninja-build, lcov]
-
-    # Linux C++17 Build
-    - os: linux
-      compiler: gcc
-      env: COMPILER=g++-9 BUILD=Debug STANDARD=17 ASAN=OFF TSAN=OFF
-      addons:
-        apt:
-          update: true
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
-
-    - os: linux
-      compiler: gcc
-      env: COMPILER=g++-9 BUILD=Release STANDARD=17 ASAN=OFF TSAN=OFF
-      addons:
-        apt:
-          update: true
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build, lcov]
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8.0']
+          packages: [clang-8.0, valgrind, cmake, cmake-data, ninja-build, lcov]
 
 install:
   # Get latest gtest

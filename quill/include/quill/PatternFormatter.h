@@ -90,8 +90,8 @@ private:
   class FormatterHelper final : public FormatterHelperBase
   {
   public:
-    FormatterHelper(TTuple const& tuple_of_callbacks, std::string fmt_pattern)
-      : _tuple_of_callbacks(tuple_of_callbacks), _fmt_pattern(std::move(fmt_pattern)){};
+    FormatterHelper(TTuple tuple_of_callbacks, std::string fmt_pattern)
+      : _tuple_of_callbacks(std::move(tuple_of_callbacks)), _fmt_pattern(std::move(fmt_pattern)){};
 
     ~FormatterHelper() override = default;
 
@@ -572,7 +572,7 @@ std::unique_ptr<PatternFormatter::FormatterHelperBase> PatternFormatter::_make_f
   if (!args_callback_collection.empty())
   {
     // Wrap the vector of functions to a tuple for part 1
-    auto callbacks_tuple =
+    auto const callbacks_tuple =
       _generate_tuple<N>([args_callback_collection](size_t i) { return args_callback_collection[i]; });
 
     std::string const fmt_format = _generate_fmt_format_string(format_pattern_part);
