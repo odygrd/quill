@@ -19,7 +19,8 @@ before_install:
   - sudo cmake -DBUILD_SHARED_LIBS=ON .
   - sudo make
   - sudo cp -a include/gtest /usr/include
-  - sudo cp -a libgtest_main.so libgtest.so /usr/lib/
+  - sudo cp -a ./googletest/include/gtest /usr/include
+  - sudo cp -a ./lib/libgtest_main.so lib/libgtest.so /usr/lib/
   - which valgrind
 
 before_script:
