@@ -84,7 +84,7 @@ target_include_directories(${TARGET_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link dependencies
-target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads -fsanitize=address)
+target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
 
 # Compiler options
 target_compile_options(${TARGET_NAME} PRIVATE
