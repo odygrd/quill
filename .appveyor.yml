@@ -19,12 +19,8 @@ install:
 build_script:
   - cmd: >-
       set
-
       mkdir build
-
       cd build
-      set PATH=%PATH%:C:\Program Files\Git\usr\bin
-
       cmake -G %GENERATOR% -A %ARCH% -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake ..
       cmake --build . --config %BUILD_TYPE%
 
