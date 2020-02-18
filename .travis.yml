@@ -99,6 +99,9 @@ install:
   - sudo cp -a ./googletest/include/gtest /usr/local/include
   - sudo cp -a ./lib/* /usr/local/lib
 
+  # Install codecov
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo pip install codecov; fi
+
 script:
   - cd ${TRAVIS_BUILD_DIR}
   - mkdir -p build && cd build
@@ -117,6 +120,9 @@ script:
 
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else ctest --verbose; fi
+
+  # Code Coverage
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
 
 after_success:
   # Code Coverage
