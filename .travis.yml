@@ -62,7 +62,7 @@ matrix:
 
     - name: 'MacOs Clang C++14 Debug'
       os: osx
-      env: BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF ASAN=ON TSAN=OFF
+      env: BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF ASAN=OFF TSAN=OFF
       compiler: clang
       addons:
         homebrew:
@@ -71,7 +71,7 @@ matrix:
 
     - name: 'MacOs Clang C++14 Release'
       os: osx
-      env: BUILD=Release STANDARD=14 CODE_COVERAGE=OFF ASAN=OFF TSAN=ON
+      env: BUILD=Release STANDARD=14 CODE_COVERAGE=OFF ASAN=OFF TSAN=OFF
       compiler: clang
       addons:
         homebrew:
