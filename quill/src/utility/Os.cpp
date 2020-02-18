@@ -13,6 +13,7 @@
   #define NOMINMAX
   #include <malloc.h>
   #include <windows.h>
+  #include <processthreadsapi.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
