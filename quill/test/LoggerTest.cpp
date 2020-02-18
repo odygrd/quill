@@ -32,7 +32,7 @@ TEST(Logger, get_non_existent_logger)
 
   LoggerCollection logger_collection{tc, hc};
 
-  EXPECT_THROW(logger_collection.get_logger("logger_1"), std::runtime_error);
+  EXPECT_THROW((void)logger_collection.get_logger("logger_1"), std::runtime_error);
 }
 
 /***/

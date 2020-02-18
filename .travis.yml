@@ -7,16 +7,16 @@ matrix:
     - name: 'Linux Gcc C++17 Debug with Code Coverage'
       os: linux
       compiler: gcc
-      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=ON ASAN=OFF TSAN=OFF
+      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=ON VALGRIND=OFF ASAN=OFF TSAN=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build]
+          packages: [g++-9, cmake, cmake-data, ninja-build]
 
-    - name: 'Linux Gcc C++17 Release'
+    - name: 'Linux Gcc C++17 Release With Valgrind'
       os: linux
       compiler: gcc
-      env: GCC_VERSION=9 BUILD=Release STANDARD=17 CODE_COVERAGE=OFF ASAN=OFF TSAN=OFF
+      env: GCC_VERSION=9 BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=ON ASAN=OFF TSAN=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
@@ -25,25 +25,25 @@ matrix:
     - name: 'Linux Gcc C++14 Debug'
       os: linux
       compiler: gcc
-      env: GCC_VERSION=5 BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF ASAN=OFF TSAN=OFF
+      env: GCC_VERSION=5 BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, valgrind, cmake, cmake-data, ninja-build]
+          packages: [g++-5, cmake, cmake-data, ninja-build]
 
     - name: 'Linux Gcc C++14 Release'
       os: linux
       compiler: gcc
-      env: GCC_VERSION=5 BUILD=Release STANDARD=14 CODE_COVERAGE=OFF ASAN=OFF TSAN=OFF
+      env: GCC_VERSION=5 BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, valgrind, cmake, cmake-data, ninja-build]
+          packages: [g++-5, cmake, cmake-data, ninja-build]
 
     - name: 'MacOs Clang C++17 Release with Address Sanitiser'
       os: osx
       osx_image: xcode11.2
-      env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF ASAN=ON TSAN=OFF
+      env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=ON TSAN=OFF
       compiler: clang
       addons:
         homebrew:
@@ -53,7 +53,7 @@ matrix:
     - name: 'MacOs Clang C++17 Release with Thread Sanitiser'
       os: osx
       osx_image: xcode11.2
-      env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF ASAN=OFF TSAN=ON
+      env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=ON
       compiler: clang
       addons:
         homebrew:
@@ -62,7 +62,7 @@ matrix:
 
     - name: 'MacOs Clang C++14 Debug'
       os: osx
-      env: BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF ASAN=OFF TSAN=OFF
+      env: BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       compiler: clang
       addons:
         homebrew:
@@ -71,7 +71,7 @@ matrix:
 
     - name: 'MacOs Clang C++14 Release'
       os: osx
-      env: BUILD=Release STANDARD=14 CODE_COVERAGE=OFF ASAN=OFF TSAN=OFF
+      env: BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       compiler: clang
       addons:
         homebrew:
@@ -84,9 +84,6 @@ before_install:
 
   # On MacOs use the default system compiler version
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
-
-  # Install gcov for coverage build
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-9 800; fi
 
   - ${CXX} --version
   - cmake --version
@@ -102,9 +99,6 @@ install:
   - sudo cp -a ./googletest/include/gtest /usr/local/include
   - sudo cp -a ./lib/* /usr/local/lib
 
-  # Install codecov
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo pip install codecov; fi
-
 script:
   - cd ${TRAVIS_BUILD_DIR}
   - mkdir -p build && cd build
@@ -116,13 +110,13 @@ script:
       -DQUILL_SANITIZE_ADDRESS=$ASAN \
       -DQUILL_SANITIZE_THREAD=$TSAN \
       -DQUILL_CODE_COVERAGE=$CODE_COVERAGE \
+      -DQUILL_USE_VALGRIND=$VALGRIND \
       -DQUILL_BUILD_TESTS=ON \
       -DQUILL_BUILD_EXAMPLES=ON
   - cmake --build .
-  - ctest --verbose
 
-  # Code Coverage
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
+  # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
+  - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else ctest --verbose; fi
 
 after_success:
   # Code Coverage

@@ -70,6 +70,8 @@ option(QUILL_SANITIZE_THREAD "Enable thread sanitizer in tests (Using this optio
 
 option(QUILL_CODE_COVERAGE "Enable code coverage" OFF)
 
+option(QUILL_USE_VALGRIND "Use valgrind as the default memcheck tool in CTest (Requires Valgrind)" OFF)
+
 #-------------------------------------------------------------------------------------------------------
 # Required Packages
 #-------------------------------------------------------------------------------------------------------
@@ -79,6 +81,20 @@ if (QUILL_BUILD_TESTS)
     enable_testing()
     find_package(GTest REQUIRED)
     include_directories(${GTEST_INCLUDE_DIRS})
+
+    if (QUILL_USE_VALGRIND)
+        # find valgrind
+        find_program(MEMORYCHECK_COMMAND NAMES valgrind)
+        if (NOT MEMORYCHECK_COMMAND)
+            message(WARNING "Valgrind not found")
+        endif ()
+
+        # set valgrind params
+        set(MEMORYCHECK_COMMAND_OPTIONS "--tool=memcheck --leak-check=full --leak-resolution=med --show-leak-kinds=all --track-origins=yes --vgdb=no --fair-sched=yes")
+
+        # add memcheck test action to ctest
+        include(CTest)
+    endif ()
 endif ()
 
 #-------------------------------------------------------------------------------------------------------
