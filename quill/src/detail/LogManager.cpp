@@ -34,12 +34,12 @@ void LogManager::flush()
     // unlikely case if the queue gets full we will wait until we can log
   } while (QUILL_UNLIKELY(!pushed));
 
-  // The caller thread keeps checking the flag
-  while (!backend_thread_flushed.load())
+  // The caller thread keeps checking the flag until the backend thread flushes
+  do
   {
     // wait
     std::this_thread::sleep_for(std::chrono::nanoseconds{100});
-  }
+  } while (!backend_thread_flushed.load());
 }
 
 /***/
