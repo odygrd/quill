@@ -8,19 +8,16 @@
 
 #include "quill/Quill.h"
 
-/* Returns nanoseconds since epoch */
-QUILL_ALWAYS_INLINE uint64_t timestamp_now()
-{
-  return std::chrono::high_resolution_clock::now().time_since_epoch().count();
-}
-
 template <typename Function>
 void run_log_benchmark(Function&& f, char const* benchmark_name, std::mutex& m, int thread_num)
 {
+  // Set the caller thread affinity to a different cpu, cpu 0 is used by the backend
+  quill::detail::set_cpu_affinity(thread_num + 1);
+
   // Always ignore the first log statement as it will be doing initialisation for most loggers
   f(100, 100, "initial");
 
-  int iterations = 100000;
+  int iterations = 100'000;
   std::vector<uint64_t> latencies;
   constexpr char const* str = "benchmark";
 
@@ -28,8 +25,8 @@ void run_log_benchmark(Function&& f, char const* benchmark_name, std::mutex& m, 
   {
     // generate a double from i
     double const d = i + (0.1 * i);
-    uint64_t const latency = f(i, d, str);
-    latencies.push_back(latency);
+    std::chrono::nanoseconds const latency = f(i, d, str);
+    latencies.push_back(latency.count());
   }
 
   // Sort all latencies
@@ -39,7 +36,7 @@ void run_log_benchmark(Function&& f, char const* benchmark_name, std::mutex& m, 
   uint64_t sum = std::accumulate(latencies.begin(), latencies.end(), static_cast<uint64_t>(0));
 
   // protect access to cout
-  std::lock_guard lock{m};
+  std::lock_guard<std::mutex> lock{m};
   std::cout << "Thread: " << thread_num << std::setw(12) << "50th" << std::setw(20) << "75th"
             << std::setw(20) << "90th" << std::setw(19) << "99th" << std::setw(20) << "99.9th"
             << std::setw(20) << "Worst" << std::setw(21) << "Average\n"
@@ -81,15 +78,16 @@ int main(int argc, char* argv[])
     return 0;
   }
 
+  std::array<int32_t, 4> threads_num{{1, 2, 3, 4}};
+
+  // Main thread is not important so set it to the same cpu as the backend
+  quill::detail::set_cpu_affinity(0);
+
   if (strcmp(argv[1], "quill") == 0)
   {
     // Setup
-
-    // Set the main thread affinity to cpu 0
-    quill::detail::set_cpu_affinity(0);
-
-    // Pin the backend thread to cpu 1
-    quill::config::set_backend_thread_cpu_affinity(1);
+    // Pin the backend thread to cpu 0
+    quill::config::set_backend_thread_cpu_affinity(0);
     quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
 
     // Start the logging backend thread
@@ -106,13 +104,12 @@ int main(int argc, char* argv[])
 
     // Define a logging lambda
     auto quill_benchmark = [logger](int32_t i, double d, char const* str) {
-      uint64_t const start = timestamp_now();
+      auto const start = std::chrono::steady_clock::now();
       LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d);
-      uint64_t const end = timestamp_now();
-      return end - start;
+      auto const end = std::chrono::steady_clock::now();
+      return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     };
 
-    std::array<int32_t, 4> threads_num{{1, 2, 3, 4}};
     // Run the benchmark for n threads
     for (auto threads : threads_num)
     {

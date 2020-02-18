@@ -141,6 +141,3 @@ add_subdirectory(quill)
 # Examples
 add_executable(example_01 examples/example_01.cpp)
 target_link_libraries(example_01 quill)
-
-add_executable(benchmark_single_caller.cpp examples/benchmark_single_caller.cpp)
-target_link_libraries(benchmark_single_caller.cpp quill)
