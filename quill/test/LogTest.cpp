@@ -359,7 +359,7 @@ TEST(Log, many_loggers_multiple_threads)
 /***/
 TEST(Log, default_logger_with_filehandler_wide_chars)
 {
-  LogManager lm{default_cfg};
+  LogManager lm;
 
   #if defined(_WIN32)
   std::wstring const filename{L"test_default_logger_with_filehandler"};
