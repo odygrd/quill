@@ -12,6 +12,7 @@
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
   #include <malloc.h>
+  #include <processthreadsapi.h>
   #include <windows.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
