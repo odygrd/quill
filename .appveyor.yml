@@ -21,8 +21,8 @@ build_script:
       set
       mkdir build
       cd build
-      cmake -G %GENERATOR% -A %ARCH% -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake ..
-      cmake --build . --config %BUILD_TYPE%
+      cmake .. -G %GENERATOR% -A %ARCH% -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+      cmake --build .
 
 test_script:
-  - ctest --verbose --build-config "%BUILD_TYPE%"
+  - ctest --verbose
