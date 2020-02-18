@@ -14,7 +14,7 @@ TEST(HandlerCollection, stdout_stderr_handlers)
   StreamHandler* stdout_handler = hc.stdout_streamhandler();
 
 #if defined(_WIN32)
-  EXPECT_EQ(stdout_handler->filename(), std::wstring{"stdout"});
+  EXPECT_EQ(stdout_handler->filename(), std::wstring{L"stdout"});
 #else
   EXPECT_EQ(stdout_handler->filename(), std::string{"stdout"});
 #endif
@@ -30,7 +30,7 @@ TEST(HandlerCollection, stdout_stderr_handlers)
   // Get the default stderr stream handler
   StreamHandler* stderr_handler = hc.stderr_streamhandler();
 #if defined(_WIN32)
-  EXPECT_EQ(stderr_handler->filename(), std::wstring{"stderr"});
+  EXPECT_EQ(stderr_handler->filename(), std::wstring{L"stderr"});
 #else
   EXPECT_EQ(stderr_handler->filename(), std::string{"stderr"});
 #endif
