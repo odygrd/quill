@@ -1,26 +1,41 @@
 image:
   - Visual Studio 2019
+  - Visual Studio 2017
 
-environment:
-  matrix:
-    - GENERATOR: '"Visual Studio 16 2019"'
-      ARCH: '"x64"'
-      BUILD_TYPE: Debug
-    - GENERATOR: '"Visual Studio 16 2019"'
-      ARCH: '"x64"'
-      BUILD_TYPE: Release
+configuration:
+  - Debug
+  - Release
 
 install:
   - cd c:\tools\vcpkg
   - vcpkg install gtest:x64-windows
   - vcpkg integrate install
 
-build_script:
-  - cd %APPVEYOR_BUILD_FOLDER%
-  - mkdir build
-  - cd build
-  - cmake .. -G %GENERATOR% -A %ARCH% -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-  - cmake --build . --config %BUILD_TYPE%
+for:
+  - matrix:
+      only:
+        - image: Visual Studio 2019
 
-test_script:
-  - ctest --verbose --build-config "%BUILD_TYPE%"
+    build_script:
+      - cd %APPVEYOR_BUILD_FOLDER%
+      - mkdir build
+      - cd build
+      - cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=%CONFIGURATION% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - cmake --build . --config %CONFIGURATION%
+
+    test_script:
+      - ctest --verbose --build-config "%CONFIGURATION%"
+
+  - matrix:
+      only:
+        - image: Visual Studio 2017
+
+    build_script:
+      - cd %APPVEYOR_BUILD_FOLDER%
+      - mkdir build
+      - cd build
+      - cmake .. -G "Visual Studio 15 2017" -A x64 -DCMAKE_BUILD_TYPE=%CONFIGURATION% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - cmake --build . --config %CONFIGURATION%
+
+    test_script:
+      - ctest --verbose --build-config "%CONFIGURATION%"
