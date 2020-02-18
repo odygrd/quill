@@ -117,5 +117,6 @@ int main(int argc, char* argv[])
     }
   }
 
+  std::remove("quill_call_site_latency_percentile_linux_benchmark");
   return 0;
 }

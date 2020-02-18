@@ -87,7 +87,8 @@ int main(int argc, char* argv[])
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // Create a file handler to write to a file
-    quill::Handler* file_handler = quill::file_handler("total_time_until_completion_benchmark", "w");
+    quill::Handler* file_handler =
+      quill::file_handler("quill_total_time_until_completion_benchmark", "w");
 
     quill::Logger* logger = quill::create_logger("bench_logger", file_handler);
 
@@ -109,5 +110,6 @@ int main(int argc, char* argv[])
     }
   }
 
+  std::remove("quill_total_time_until_completion_benchmark");
   return 0;
 }
