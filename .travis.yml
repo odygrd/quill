@@ -85,6 +85,9 @@ before_install:
   # On MacOs use the default system compiler version
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
 
+  # Install gcov for coverage build
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-9 800; fi
+
   - ${CXX} --version
   - cmake --version
 
@@ -98,9 +101,6 @@ install:
   - ls -la
   - sudo cp -a ./googletest/include/gtest /usr/local/include
   - sudo cp -a ./lib/* /usr/local/lib
-
-  # Install codecov
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo pip install codecov; fi
 
 script:
   - cd ${TRAVIS_BUILD_DIR}
@@ -120,9 +120,6 @@ script:
 
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else ctest --verbose; fi
-
-  # Code Coverage
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
 
 after_success:
   # Code Coverage
