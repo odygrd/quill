@@ -1,6 +1,5 @@
 image:
   - Visual Studio 2019
-  - Visual Studio 2017
 
 configuration:
   - Debug
@@ -23,21 +22,6 @@ for:
       - mkdir build
       - cd build
       - cmake .. -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=%CONFIGURATION% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-      - cmake --build . --config %CONFIGURATION%
-
-    test_script:
-      - ctest --verbose --build-config "%CONFIGURATION%"
-
-  # Visual Studio 2017 Build
-  - matrix:
-      only:
-        - image: Visual Studio 2017
-
-    build_script:
-      - cd %APPVEYOR_BUILD_FOLDER%
-      - mkdir build
-      - cd build
-      - cmake .. -G "Visual Studio 15 2017" -A x64 -DCMAKE_BUILD_TYPE=%CONFIGURATION% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
       - cmake --build . --config %CONFIGURATION%
 
     test_script:
