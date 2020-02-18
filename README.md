@@ -1,15 +1,18 @@
 <h2> <img src="https://i.postimg.cc/FssWB25k/quill-logo.png" alt="Quill logo" width="140"><br>Asynchronous Low Latency Logging Library</h2>
 
+[![project_status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.][badge.project_status]][project_status]
 [![travis][badge.travis]][travis]
 [![codecov][badge.codecov]][codecov]
 [![language][badge.language]][language]
 [![license][badge.license]][license]
 
+[badge.project_status]: https://www.repostatus.org/badges/latest/wip.svg
 [badge.travis]: https://img.shields.io/travis/odygrd/quill/master.svg?logo=travis
-[badge.codecov]: https://codecov.io/gh/odygrd/quill/branch/master/graph/badge.svg?token=t6o0Xtb4WU
+[badge.codecov]: https://codecov.io/gh/odygrd/quill/branch/master/graph/badge.svg
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-red.svg
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
 
+[project_status]: https://www.repostatus.org/#wip 
 [travis]: https://travis-ci.org/odygrd/quill
 [codecov]: https://codecov.io/gh/odygrd/quill
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
