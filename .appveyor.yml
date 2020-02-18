@@ -7,11 +7,13 @@ configuration:
   - Release
 
 install:
+  # Install gtest
   - cd c:\tools\vcpkg
   - vcpkg install gtest:x64-windows
   - vcpkg integrate install
 
 for:
+  # Visual Studio 2019 Build
   - matrix:
       only:
         - image: Visual Studio 2019
@@ -26,6 +28,7 @@ for:
     test_script:
       - ctest --verbose --build-config "%CONFIGURATION%"
 
+  # Visual Studio 2017 Build
   - matrix:
       only:
         - image: Visual Studio 2017
