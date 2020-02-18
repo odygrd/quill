@@ -17,6 +17,9 @@ QUILL_ALWAYS_INLINE uint64_t timestamp_now()
 template <typename Function>
 void run_log_benchmark(Function&& f, char const* benchmark_name, std::mutex& m, int thread_num)
 {
+  // Always ignore the first log statement as it will be doing initialisation for most loggers
+  f(100, 100, "initial");
+
   int iterations = 100000;
   std::vector<uint64_t> latencies;
   constexpr char const* str = "benchmark";
