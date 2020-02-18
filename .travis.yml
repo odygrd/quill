@@ -100,7 +100,7 @@ install:
   - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
   - sudo tar xf release-1.10.0.tar.gz
   - cd googletest-release-1.10.0
-  - sudo cmake -GNinja -DBUILD_SHARED_LIBS=ON .
+  - sudo cmake -GNinja .
   - sudo cmake --build .
   - ls -la
   - sudo cp -a ./googletest/include/gtest /usr/local/include
@@ -119,7 +119,7 @@ script:
       -DCMAKE_CXX_STANDARD=$STANDARD \
       -DQUILL_SANITIZE_ADDRESS=$ASAN \
       -DQUILL_SANITIZE_THREAD=$TSAN \
-      -DQUILL_CODE_COVERAGE=$$CODE_COVERAGE \
+      -DQUILL_CODE_COVERAGE=$CODE_COVERAGE \
       -DQUILL_BUILD_TESTS=ON \
       -DQUILL_BUILD_EXAMPLES=ON
   - cmake --build .
