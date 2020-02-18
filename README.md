@@ -8,7 +8,7 @@
 
 [badge.project_status]: https://www.repostatus.org/badges/latest/wip.svg
 [badge.travis]: https://img.shields.io/travis/odygrd/quill/master.svg?logo=travis
-[badge.codecov]: https://codecov.io/gh/odygrd/quill/branch/master/graph/badge.svg
+[badge.codecov]: https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov 
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-red.svg
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
 
