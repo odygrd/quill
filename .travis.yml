@@ -43,13 +43,7 @@ matrix:
     - name: 'MacOs Clang C++17 Release with Address Sanitiser'
       os: osx
       osx_image: xcode11.2
-      env:
-        - BUILD=Release
-        - STANDARD=17
-        - CODE_COVERAGE=OFF
-        - ASAN=ON
-        - TSAN=OFF
-        - CXXFLAGS="-fsanitize=address -fno-omit-frame-pointer -g"
+      env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF ASAN=ON TSAN=OFF
       compiler: clang
       addons:
         homebrew:
@@ -95,7 +89,6 @@ before_install:
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-9 800; fi
 
   - ${CXX} --version
-  - echo ${CXXFLAGS}
   - cmake --version
 
 install:
