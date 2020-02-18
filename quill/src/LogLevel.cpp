@@ -3,6 +3,7 @@
 #include "quill/detail/misc/Macros.h"
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <sstream>
 #include <stdexcept>
 #include <type_traits>
