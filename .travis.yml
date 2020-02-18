@@ -85,11 +85,14 @@ before_install:
   # On MacOs use the default system compiler version
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
 
-
   # Install gcov for coverage build
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-9 800; fi
 
+  # If Address Sanitizer is ON then we also have to build gtest with it ..
+  - if [[ "$ASAN" == "ON" ]]; then export CXXFLAGS="-fsanitize=address -fno-omit-frame-pointer -g"; fi
+
   - ${CXX} --version
+  - echo ${CXXFLAGS}
   - cmake --version
 
 install:
