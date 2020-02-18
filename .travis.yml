@@ -40,11 +40,11 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-5, valgrind, cmake, cmake-data, ninja-build]
 
-    - name: 'MacOs Clang C++17 Debug with Address Sanitiser'
+    - name: 'MacOs Clang C++17 Release with Address Sanitiser'
       os: osx
       osx_image: xcode11.2
       env:
-        - BUILD=Debug
+        - BUILD=Release
         - STANDARD=17
         - CODE_COVERAGE=OFF
         - ASAN=ON
@@ -103,7 +103,7 @@ install:
   - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
   - sudo tar xf release-1.10.0.tar.gz
   - cd googletest-release-1.10.0
-  - sudo cmake -GNinja .
+  - sudo cmake -GNinja -DCMAKE_BUILD_TYPE=Release .
   - sudo cmake --build .
   - ls -la
   - sudo cp -a ./googletest/include/gtest /usr/local/include
