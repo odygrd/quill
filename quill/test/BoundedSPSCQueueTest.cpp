@@ -24,8 +24,8 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
 {
   BoundedSPSCQueue<test_struct_ints, 2097152> buffer;
 
-  ASSERT_EQ(buffer.capacity(), 2097152);
-  ASSERT_EQ(buffer.empty(), true);
+  EXPECT_EQ(buffer.capacity(), 2097152);
+  EXPECT_EQ(buffer.empty(), true);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
   {
@@ -34,15 +34,15 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
       QUILL_MAYBE_UNUSED auto res = buffer.try_emplace<test_struct_ints>(i, i);
     }
 
-    ASSERT_EQ(buffer.empty(), false);
+    EXPECT_EQ(buffer.empty(), false);
 
     // first observe the first value without removing
     for (uint32_t i = 0; i < 10; ++i)
     {
       auto handl = buffer.try_pop();
 
-      ASSERT_EQ(handl.data()->x, 0);
-      ASSERT_EQ(handl.data()->y, 0);
+      EXPECT_EQ(handl.data()->x, 0);
+      EXPECT_EQ(handl.data()->y, 0);
       handl.release();
     }
 
@@ -51,11 +51,11 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
     {
       auto handl = buffer.try_pop();
 
-      ASSERT_EQ(handl.data()->x, i);
-      ASSERT_EQ(handl.data()->y, i);
+      EXPECT_EQ(handl.data()->x, i);
+      EXPECT_EQ(handl.data()->y, i);
     }
 
-    ASSERT_EQ(buffer.empty(), true);
+    EXPECT_EQ(buffer.empty(), true);
   }
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
@@ -65,14 +65,14 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
       QUILL_MAYBE_UNUSED auto res = buffer.try_emplace<test_struct_ints>(i + 100, i + 100);
     }
 
-    ASSERT_EQ(buffer.empty(), false);
+    EXPECT_EQ(buffer.empty(), false);
 
     // first observe the first value without removing
     for (uint32_t i = 0; i < 10; ++i)
     {
       auto handl = buffer.try_pop();
-      ASSERT_EQ(handl.data()->x, 0 + 100);
-      ASSERT_EQ(handl.data()->y, 0 + 100);
+      EXPECT_EQ(handl.data()->x, 0 + 100);
+      EXPECT_EQ(handl.data()->y, 0 + 100);
       handl.release();
     }
 
@@ -80,11 +80,11 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
     for (uint32_t i = 0; i < 85; ++i)
     {
       auto handl = buffer.try_pop();
-      ASSERT_EQ(handl.data()->x, i + 100);
-      ASSERT_EQ(handl.data()->y, i + 100);
+      EXPECT_EQ(handl.data()->x, i + 100);
+      EXPECT_EQ(handl.data()->y, i + 100);
     }
 
-    ASSERT_EQ(buffer.empty(), true);
+    EXPECT_EQ(buffer.empty(), true);
   }
 }
 
@@ -141,7 +141,7 @@ private:
 TEST(BoundedSPSCQueue, produce_consume_many_different_types)
 {
   BoundedSPSCQueue<TestBase, 2097152> buffer;
-  ASSERT_EQ(buffer.capacity(), 2097152);
+  EXPECT_EQ(buffer.capacity(), 2097152);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
   {
@@ -153,10 +153,10 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
     for (uint32_t i = 0; i < 43; ++i)
     {
       auto handl = buffer.try_pop();
-      ASSERT_EQ(handl.data()->get_x(), 0);
-      ASSERT_EQ(handl.data()->get_y(), 0);
-      ASSERT_EQ(handl.data()->get_z(), i);
-      ASSERT_EQ(handl.data()->get_vec().size(), 12);
+      EXPECT_EQ(handl.data()->get_x(), 0);
+      EXPECT_EQ(handl.data()->get_y(), 0);
+      EXPECT_EQ(handl.data()->get_z(), i);
+      EXPECT_EQ(handl.data()->get_vec().size(), 12);
     }
   }
 
@@ -171,9 +171,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
     for (uint32_t i = 0; i < 92; ++i)
     {
       auto handl = buffer.try_pop();
-      ASSERT_EQ(handl.data()->get_x(), i + 10);
-      ASSERT_EQ(handl.data()->get_y(), i + 20);
-      ASSERT_EQ(handl.data()->get_z(), i);
+      EXPECT_EQ(handl.data()->get_x(), i + 10);
+      EXPECT_EQ(handl.data()->get_y(), i + 20);
+      EXPECT_EQ(handl.data()->get_z(), i);
     }
   }
 
@@ -187,9 +187,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
     for (uint32_t i = 0; i < 43; ++i)
     {
       auto handl = buffer.try_pop();
-      ASSERT_EQ(handl.data()->get_x(), 0);
-      ASSERT_EQ(handl.data()->get_y(), 0);
-      ASSERT_EQ(handl.data()->get_z(), i);
+      EXPECT_EQ(handl.data()->get_x(), 0);
+      EXPECT_EQ(handl.data()->get_y(), 0);
+      EXPECT_EQ(handl.data()->get_z(), i);
     }
   }
 
@@ -204,9 +204,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
     for (uint32_t i = 0; i < 92; ++i)
     {
       auto handl = buffer.try_pop();
-      ASSERT_EQ(handl.data()->get_x(), i + 10);
-      ASSERT_EQ(handl.data()->get_y(), i + 20);
-      ASSERT_EQ(handl.data()->get_z(), i);
+      EXPECT_EQ(handl.data()->get_x(), i + 10);
+      EXPECT_EQ(handl.data()->get_y(), i + 20);
+      EXPECT_EQ(handl.data()->get_z(), i);
     }
   }
 }
@@ -215,7 +215,7 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
 {
   BoundedSPSCQueue<TestBase, 2097152> buffer;
 
-  ASSERT_EQ(buffer.capacity(), 2097152);
+  EXPECT_EQ(buffer.capacity(), 2097152);
 
   std::thread producer_thread([&buffer]() {
     for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
@@ -286,9 +286,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
           handl = buffer.try_pop();
         }
 
-        ASSERT_EQ(handl.data()->get_x(), 0);
-        ASSERT_EQ(handl.data()->get_y(), 0);
-        ASSERT_EQ(handl.data()->get_z(), i);
+        EXPECT_EQ(handl.data()->get_x(), 0);
+        EXPECT_EQ(handl.data()->get_y(), 0);
+        EXPECT_EQ(handl.data()->get_z(), i);
       }
     }
 
@@ -304,9 +304,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
           handl = buffer.try_pop();
         }
 
-        ASSERT_EQ(handl.data()->get_x(), i + 10);
-        ASSERT_EQ(handl.data()->get_y(), i + 20);
-        ASSERT_EQ(handl.data()->get_z(), i);
+        EXPECT_EQ(handl.data()->get_x(), i + 10);
+        EXPECT_EQ(handl.data()->get_y(), i + 20);
+        EXPECT_EQ(handl.data()->get_z(), i);
       }
     }
 
@@ -322,9 +322,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
           handl = buffer.try_pop();
         }
 
-        ASSERT_EQ(handl.data()->get_x(), 0);
-        ASSERT_EQ(handl.data()->get_y(), 0);
-        ASSERT_EQ(handl.data()->get_z(), i);
+        EXPECT_EQ(handl.data()->get_x(), 0);
+        EXPECT_EQ(handl.data()->get_y(), 0);
+        EXPECT_EQ(handl.data()->get_z(), i);
       }
     }
 
@@ -340,9 +340,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
           handl = buffer.try_pop();
         }
 
-        ASSERT_EQ(handl.data()->get_x(), i + 10);
-        ASSERT_EQ(handl.data()->get_y(), i + 20);
-        ASSERT_EQ(handl.data()->get_z(), i);
+        EXPECT_EQ(handl.data()->get_x(), i + 10);
+        EXPECT_EQ(handl.data()->get_y(), i + 20);
+        EXPECT_EQ(handl.data()->get_z(), i);
       }
     }
   });

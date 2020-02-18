@@ -178,15 +178,15 @@ TEST(ThreadContextCollection, configurable_queue_size)
   // Check that the size of the queue is the same as we one that was configured
   auto th = std::thread([&thread_context_collection]() {
     ThreadContext const* thread_context = thread_context_collection.local_thread_context();
-    ASSERT_EQ(thread_context->spsc_queue().capacity(), QUILL_BOUNDED_SPSC_QUEUE_SIZE);
+    EXPECT_EQ(thread_context->spsc_queue().capacity(), QUILL_BOUNDED_SPSC_QUEUE_SIZE);
   });
 
   // Wait for thread to complete
   th.join();
 
   // First time we had nothing in our cache but the shared collection has an empty thread context
-  ASSERT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 1);
+  EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 1);
 
   // Second time the invalid and empty thread context is removed from our cache
-  ASSERT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
+  EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
 }

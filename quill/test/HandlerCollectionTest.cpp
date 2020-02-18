@@ -6,6 +6,45 @@ using namespace quill;
 using namespace quill::detail;
 
 /***/
+TEST(HandlerCollection, stdout_stderr_handlers)
+{
+  HandlerCollection hc;
+
+  // Get the default stdout stream handler
+  StreamHandler* stdout_handler = hc.stdout_streamhandler();
+
+#if defined(_WIN32)
+  EXPECT_EQ(stdout_handler->filename(), std::wstring{"stdout"});
+#else
+  EXPECT_EQ(stdout_handler->filename(), std::string{"stdout"});
+#endif
+
+  // Attempt to create a file handler with stdout as name and check that it is the same as the default
+#if defined(_WIN32)
+  StreamHandler* filehandler_1 = hc.file_handler(L"stdout");
+#else
+  StreamHandler* filehandler_1 = hc.file_handler("stdout");
+#endif
+  EXPECT_EQ(filehandler_1, stdout_handler);
+
+  // Get the default stderr stream handler
+  StreamHandler* stderr_handler = hc.stderr_streamhandler();
+#if defined(_WIN32)
+  EXPECT_EQ(stderr_handler->filename(), std::wstring{"stderr"});
+#else
+  EXPECT_EQ(stderr_handler->filename(), std::string{"stderr"});
+#endif
+
+  // Attempt to create a file handler with stderr as name and check that it is the same as the default
+#if defined(_WIN32)
+  StreamHandler* filehandler_2 = hc.file_handler(L"stderr");
+#else
+  StreamHandler* filehandler_2 = hc.file_handler("stderr");
+#endif
+  EXPECT_EQ(filehandler_2, stderr_handler);
+}
+
+/***/
 TEST(HandlerCollection, create_get)
 {
   HandlerCollection hc;

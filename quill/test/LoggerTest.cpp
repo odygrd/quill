@@ -7,6 +7,35 @@ using namespace quill;
 using namespace quill::detail;
 
 /***/
+TEST(Logger, log_level)
+{
+  ThreadContextCollection tc;
+  HandlerCollection hc;
+
+  LoggerCollection logger_collection{tc, hc};
+
+  Logger* logger = logger_collection.create_logger("logger_1");
+
+  // Check default log level
+  EXPECT_EQ(logger->log_level(), LogLevel::Info);
+
+  // Change the log level
+  logger->set_log_level(LogLevel::TraceL2);
+  EXPECT_EQ(logger->log_level(), LogLevel::TraceL2);
+}
+
+/***/
+TEST(Logger, get_non_existent_logger)
+{
+  ThreadContextCollection tc;
+  HandlerCollection hc;
+
+  LoggerCollection logger_collection{tc, hc};
+
+  EXPECT_THROW(logger_collection.get_logger("logger_1"), std::runtime_error);
+}
+
+/***/
 TEST(Logger, logger_should_log)
 {
   ThreadContextCollection tc;
