@@ -108,8 +108,3 @@ set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSI
 if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
     add_subdirectory(test)
 endif ()
-
-# ---- Benchmarks ---- #
-if (QUILL_BUILD_BENCHMARKS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/benchmark)
-    add_subdirectory(benchmark)
-endif ()
