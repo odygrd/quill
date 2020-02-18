@@ -2,7 +2,6 @@
 
 #include "quill/detail/misc/Spinlock.h"
 #include "quill/detail/record/CommandRecord.h"
-#include <condition_variable>
 
 namespace quill
 {
@@ -18,20 +17,14 @@ void LogManager::flush()
     return;
   }
 
-  Spinlock spinlock;
-  std::condition_variable_any cond;
-  bool done = false;
+  // Create an atomic variable
+  std::atomic<bool> backend_thread_flushed{false};
 
-  // notify will be invoked by the backend thread when this message is processed
-  auto notify_callback = [&spinlock, &cond, &done]() {
-    {
-      std::lock_guard<Spinlock> const lock{spinlock};
-      done = true;
-    }
-    cond.notify_one();
+  // notify will be invoked done the backend thread when this message is processed
+  auto notify_callback = [&backend_thread_flushed]() {
+    // When the backend thread is done flushing it will set the flag to true
+    backend_thread_flushed.store(true);
   };
-
-  std::unique_lock<Spinlock> lock(spinlock);
 
   using log_record_t = detail::CommandRecord;
   bool pushed;
@@ -41,8 +34,12 @@ void LogManager::flush()
     // unlikely case if the queue gets full we will wait until we can log
   } while (QUILL_UNLIKELY(!pushed));
 
-  // Wait until notify is called
-  cond.wait(lock, [&] { return done; });
+  // The caller thread keeps checking the flag
+  while (!backend_thread_flushed.load())
+  {
+    // wait
+    std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+  }
 }
 
 /***/

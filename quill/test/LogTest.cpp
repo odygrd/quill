@@ -308,8 +308,8 @@ TEST(Log, many_loggers_multiple_threads)
 
   // Spawn many threads
   std::vector<std::thread> threads;
-  static constexpr size_t thread_count = 40;
-  static constexpr size_t message_count = 200;
+  static constexpr size_t thread_count = 100;
+  static constexpr size_t message_count = 120;
 
   for (int i = 0; i < thread_count; ++i)
   {
