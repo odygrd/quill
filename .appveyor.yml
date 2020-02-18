@@ -1,0 +1,32 @@
+image:
+  - Visual Studio 2019
+
+environment:
+  matrix:
+    - GENERATOR: '"Visual Studio 16 2019"'
+      ARCH: '"x64"'
+      BUILD_TYPE: Debug
+    - GENERATOR: '"Visual Studio 16 2019"'
+      ARCH: '"x64"'
+      BUILD_TYPE: Release
+
+install:
+  - cd c:\tools\vcpkg
+  - vcpkg install gtest:x64-windows
+  - vcpkg integrate install
+  - cd %APPVEYOR_BUILD_FOLDER%
+
+build_script:
+  - cmd: >-
+      set
+
+      mkdir build
+
+      cd build
+      set PATH=%PATH%:C:\Program Files\Git\usr\bin
+
+      cmake -G %GENERATOR% -A %ARCH% -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake ..
+      cmake --build . --config %BUILD_TYPE%
+
+test_script:
+  - ctest --verbose --build-config "%BUILD_TYPE%"
