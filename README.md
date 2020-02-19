@@ -30,6 +30,7 @@
 - [Basic Usage](#basic-usage)
 - [Documentation](#documentation)
 - [License](#license)
+- [Disclaimer](#disclaimer)
 
 ## Design Rationale
 The library aims to make logging significantly easier for the application developer while at the same time reduce the overhead of logging in the critical path as much as possible.
