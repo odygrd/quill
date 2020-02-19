@@ -21,7 +21,7 @@
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: http://opensource.org/licenses/MIT
 
-- [Supported Compilers](#supported-compilers)
+- [Supported Platforms And Compilers](#supported-platforms-and-compilers)
 - [Features](#features)
 - [Design Goals](#design-goals)
 - [Integration](#integration)
@@ -31,13 +31,25 @@
 - [Documentation](#documentation)
 - [License](#license)
 
-## Supported Compilers 
-(TODO: Update compiler list)
-- GCC 4.8 - 9.2 (and possibly later)
-- Clang 3.4 - 9.0 (and possibly later)
-- Microsoft Visual C++ 2015 / Build Tools 14.0.25123.0 (and possibly later)
-- Microsoft Visual C++ 2017 / Build Tools 15.5.180.51428 (and possibly later)
-- Microsoft Visual C++ 2019 / Build Tools 16.3.1+1def00d3d (and possibly later)
+## Supported Platforms And Compilers
+Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
+
+| *****    | Compiler                  |    Notes                               |
+|----------|---------------------------|------------------------------------------|
+|![gcc]    | GCC 5.0 | |
+|![llvm]   | Clang 5, Apple LLVM version 9.1.0 | |      
+|![msvc]   | Visual Studio 2019, MSVC++ 14.2 | Quill is using SetThreadDescription that was introduced in Visual Studio 2017 version 15.6 and later versions |
+
+| *****    | Platform                   |   Notes                               |
+|----------|----------------------------|---------------------------------------|
+|![ubuntu] | Ubuntu 14.04 and onwards   | Tested on 64-bit |
+|![rhel]   | Red Hat Enterprise Linux 7 | Tested on 64-bit, should also work on Fedora |
+|![centos] | CentOs 7                   | Tested on 64-bit |
+|![win10]  | Windows 10 - version 1607, Windows Server 2016 | Tested on 64-bit, should also work on 32-bit. Quill is using SetThreadDescription |
+|![mac]    | macOS 10.13 and onwards    | Tested on 64-bit with Xcode 9.4   |
+
+
+
 
 ## Features
  * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
@@ -143,3 +155,15 @@ Your use of the source code for these subcomponents is subject to the terms and 
    * ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
    * ([MIT License](http://opensource.org/licenses/MIT)) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
 
+
+[gcc]: https://github.com/odygrd/quill/blob/master/gcc_logo.png?raw=true
+[llvm]: https://github.com/odygrd/quill/blob/master/llvm_logo.png?raw=true
+[msvc]: https://github.com/odygrd/quill/blob/master/msvc_logo.png?raw=true
+[win10]: https://github.com/odygrd/quill/blob/master/win10_logo.png?raw=true
+[mac]: https://github.com/odygrd/quill/blob/master/macos_logo.png?raw=true
+[ubuntu]: https://github.com/odygrd/quill/blob/master/ubuntu-logo.png?raw=true
+[rhel]: https://github.com/odygrd/quill/blob/master/rhel_logo.png?raw=true
+[centos]: https://github.com/odygrd/quill/blob/master/centos_logo.png?raw=true
+
+## Disclaimer
+Icons used in this readme in Supported Platforms And Compilers section are solely for information readability purposes. I do not own these icons. 
