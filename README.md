@@ -48,8 +48,14 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 |![win10]  | Windows 10 - version 1607, Windows Server 2016 | Tested on 64-bit, should also work on 32-bit. Quill is using SetThreadDescription |
 |![mac]    | macOS 10.13 and onwards    | Tested on 64-bit with Xcode 9.4   |
 
-
-
+[gcc]: https://github.com/odygrd/quill/blob/master/images/gcc_logo.png?raw=true
+[llvm]: https://github.com/odygrd/quill/blob/master/images/llvm_logo.png?raw=true
+[msvc]: https://github.com/odygrd/quill/blob/master/images/msvc_logo.png?raw=true
+[win10]: https://github.com/odygrd/quill/blob/master/images/win10_logo.png?raw=true
+[mac]: https://github.com/odygrd/quill/blob/master/images/macos_logo.png?raw=true
+[ubuntu]: https://github.com/odygrd/quill/blob/master/images/ubuntu-logo.png?raw=true
+[rhel]: https://github.com/odygrd/quill/blob/master/images/rhel_logo.png?raw=true
+[centos]: https://github.com/odygrd/quill/blob/master/images/centos_logo.png?raw=true
 
 ## Features
  * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
@@ -154,16 +160,6 @@ Your use of the source code for these subcomponents is subject to the terms and 
 
    * ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
    * ([MIT License](http://opensource.org/licenses/MIT)) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
-
-
-[gcc]: https://github.com/odygrd/quill/blob/master/gcc_logo.png?raw=true
-[llvm]: https://github.com/odygrd/quill/blob/master/llvm_logo.png?raw=true
-[msvc]: https://github.com/odygrd/quill/blob/master/msvc_logo.png?raw=true
-[win10]: https://github.com/odygrd/quill/blob/master/win10_logo.png?raw=true
-[mac]: https://github.com/odygrd/quill/blob/master/macos_logo.png?raw=true
-[ubuntu]: https://github.com/odygrd/quill/blob/master/ubuntu-logo.png?raw=true
-[rhel]: https://github.com/odygrd/quill/blob/master/rhel_logo.png?raw=true
-[centos]: https://github.com/odygrd/quill/blob/master/centos_logo.png?raw=true
 
 ## Disclaimer
 Icons used in this readme in Supported Platforms And Compilers section are solely for information readability purposes. I do not own these icons. 
