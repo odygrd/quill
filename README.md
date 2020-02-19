@@ -68,12 +68,11 @@ The main goals of the library are:
 
 ## Features
  * Clean warning-free codebase even on high warning levels
- * Adress Sanitizer,Thread Sanitizer, Valgrind warning-free
- * Extensive set of unit tests
+ * Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
  * Thread and Type safe with compile time checks
- * Configurable
  * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
  * Build in support for logging STL containers, std::pair, std::tuple, std::chrono and user defined types with overloaded operator<<
+ * Configurable
  * Custom log patterns. Log statements can be formatted by providing a simple pattern
  * Log levels can be stripped out at compile time in release builds
  * Log records are written in timestamp order even if they were created by different threads
