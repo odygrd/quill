@@ -67,13 +67,19 @@ The main goals of the library are:
 - **Convenience** While keeping low latency on the fast-path, the library aims to assist the developer in debugging the application by providing a nicely formatted direct textual output with all log statements ordered by timestamp
 
 ## Features
- * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
- * Build in support for printing STL containers, std::pair, std::tuple, std::chrono and C++ classes with overloaded operator<<
+ * Clean warning-free codebase even on high warning levels
+ * Adress Sanitizer,Thread Sanitizer, Valgrind warning-free
+ * Extensive set of unit tests
  * Thread and Type safe with compile time checks
  * Configurable
+ * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
+ * Build in support for logging STL containers, std::pair, std::tuple, std::chrono and user defined types with overloaded operator<<
  * Custom log patterns. Log statements can be formatted by providing a simple pattern
  * Log levels can be stripped out at compile time in release builds
  * Log records are written in timestamp order even if they were created by different threads
+ * Guaranteed logging log messages are never dropped
+ * Support for wide string logging (Windows only)
+ * Support for wide string filenames (Windows only)
  * Various log targets (Handlers)
    * Console logging 
    * Rotating log files [Work in progress]
