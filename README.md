@@ -60,11 +60,11 @@ The main goals of the library are:
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
 
-| *****    | Compiler                        |    Notes                                 |
-|----------|---------------------------------|------------------------------------------|
-|![gcc]    | GCC 5.0                         |                                          |
-|![llvm]   | Clang 5, Apple LLVM 9.1.0       |                                          |      
-|![msvc]   | Visual Studio 2019, MSVC++ 14.2 | Quill is using SetThreadDescription that was introduced in Visual Studio 2017 version 15.6 and later versions |
+| *****    | Compiler  |    Notes         |
+|----------|-----------|------------------|
+|![gcc]    | GCC       | version >= 5.0   |
+|![llvm]   | Clang     | version >= 5.0   |      
+|![msvc]   | MSVC++    | version >= 14.2  |
 
 | *****    | Platform           |   Notes                                                                   |
 |----------|--------------------|---------------------------------------------------------------------------|
