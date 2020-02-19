@@ -22,8 +22,8 @@
 [license]: http://opensource.org/licenses/MIT
 
 - [Supported Platforms And Compilers](#supported-platforms-and-compilers)
+- [Design Rationale](#design-rationale)
 - [Features](#features)
-- [Design Goals](#design-goals)
 - [Integration](#integration)
   - [CMake](#cmake)
   - [Package Managers](#package-managers)
@@ -57,20 +57,28 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 [rhel]: https://github.com/odygrd/quill/blob/master/images/rhel_logo.png?raw=true
 [centos]: https://github.com/odygrd/quill/blob/master/images/centos_logo.png?raw=true
 
+## Design Rationale
+The library aims to make logging significantly easier for the application developer while at the same time reduce the overhead of logging in the critical path as much as possible.
+
+The main goals of the library are:
+
+- **Simplicity** A small example code snippet should be enough to get started and use most of features.
+- **Performance** Ultra low latency for the caller threads, no string formatting on the hot path, no heap allocations after initialisation, asynchronous only mode.
+- **Convenience** While super fast on the fast-path, the library aims to assist the devloper debugging the applicaation by providing textual output and ordered by timestamp log records.
+
 ## Features
  * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
- * Custom LogRecord formatting, with attributes similar to python logging (https://docs.python.org/3/library/logging.html)
+ * Build in support for printing STL containers, std::pair, std::tuple, std::chrono and C++ classes with overloaded operator<<
+ * Thread and Type safe with compile time checks
+ * Configurable
+ * Custom log patterns. Log statements can be formatted by providing a simple pattern
+ * Log levels can be stripped out at compile time in release builds
+ * Log records are written in timestamp order even if they were created by different threads
  * Various log targets (Handlers)
-    * Console logging 
-    * Rotating log files [Work in progress]
-    * Daily log files [Work in progress]
- * Multiple thread-safe Loggers
-
-## Design Goals
-There are many C++ logging libraries out there. Quill had these design goals:
-
-- **Low latency not high throughput**. The main priority is set on reducing the latency on caller threads as much as possible. There is only one backend consumer thread responsible for writing the log file and how quickly we right to the file comes as a second priority.
-
+   * Console logging 
+   * Rotating log files [Work in progress]
+   * Daily log files [Work in progress]
+    
 ## Integration
 
 ### CMake
