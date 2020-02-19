@@ -71,7 +71,7 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 |![ubuntu] | Ubuntu 14.04 and onwards   | Tested on 64-bit |
 |![rhel]   | Red Hat Enterprise Linux 7 | Tested on 64-bit, should also work on Fedora |
 |![centos] | CentOs 7                   | Tested on 64-bit |
-|![win10]  | Windows 10 - version 1607, Windows Server 2016 | Tested on 64-bit, should also work on 32-bit. Quill is using SetThreadDescription |
+|![win10]  | Windows 10 - version 1607, Windows Server 2016 | Tested on 64-bit, should also work on 32-bit |
 |![mac]    | macOS 10.13 and onwards    | Tested on 64-bit with Xcode 9.4   |
 
 [gcc]: https://github.com/odygrd/quill/blob/master/images/gcc_logo.png?raw=true
