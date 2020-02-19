@@ -75,9 +75,8 @@ The main goals of the library are:
  * Custom log patterns. Log statements can be formatted by providing a simple pattern
  * Log levels can be stripped out at compile time in release builds
  * Log records are written in timestamp order even if they were created by different threads
- * Guaranteed logging log messages are never dropped
- * Support for wide string logging (Windows only)
- * Support for wide string filenames (Windows only)
+ * Guaranteed logging. Log messages are never dropped
+ * Support for wide character logging and wide character filenames (Windows only)
  * Various log targets (Handlers)
    * Console logging 
    * Rotating log files [Work in progress]
