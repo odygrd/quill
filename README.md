@@ -60,19 +60,19 @@ The main goals of the library are:
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
 
-| *****    | Compiler  |    Notes         |
+| *****    | Compiler  | Notes            |
 |----------|-----------|------------------|
 |![gcc]    | GCC       | version >= 5.0   |
 |![llvm]   | Clang     | version >= 5.0   |      
-|![msvc]   | MSVC++    | version >= 14.2  |
+|![msvc]   | MSVC++    | version >= 14.3  |
 
-| *****    | Platform           |   Notes                                                                   |
-|----------|--------------------|---------------------------------------------------------------------------|
-|![ubuntu] | Ubuntu             | Tested on 64-bit                                                          |
-|![rhel]   | Red Hat Enterprise | Tested on 64-bit, should also work on Fedora                              |
-|![centos] | CentOs             | Tested on 64-bit                                                          |
-|![win10]  | Windows            | Tested on 64-bit, Windows 10 - version 1607, Windows Server 2016 required |
-|![mac]    | macOS              | Tested on 64-bit, Xcode 9.4                                               |
+| *****    | Platform           | Notes                                                   |
+|----------|--------------------|---------------------------------------------------------|
+|![ubuntu] | Ubuntu             |                                                         |
+|![rhel]   | Red Hat Enterprise | Should also work on Fedora                              |
+|![centos] | CentOs             |                                                         |
+|![win10]  | Windows            | Windows 10 - version 1607, Windows Server 2016 required |
+|![mac]    | macOS              | Tested with Xcode 9.4                                   |
 
 [gcc]: https://github.com/odygrd/quill/blob/master/images/gcc_logo.png?raw=true
 [llvm]: https://github.com/odygrd/quill/blob/master/images/llvm_logo.png?raw=true
