@@ -66,13 +66,13 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 |![llvm]   | Clang 5, Apple LLVM version 9.1.0 | |      
 |![msvc]   | Visual Studio 2019, MSVC++ 14.2 | Quill is using SetThreadDescription that was introduced in Visual Studio 2017 version 15.6 and later versions |
 
-| *****    | Platform                   |   Notes                               |
-|----------|----------------------------|---------------------------------------|
-|![ubuntu] | Ubuntu 14.04 and onwards   | Tested on 64-bit |
-|![rhel]   | Red Hat Enterprise Linux 7 | Tested on 64-bit, should also work on Fedora |
-|![centos] | CentOs 7                   | Tested on 64-bit |
-|![win10]  | Windows 10 - version 1607, Windows Server 2016 | Tested on 64-bit, should also work on 32-bit |
-|![mac]    | macOS 10.13 and onwards    | Tested on 64-bit with Xcode 9.4   |
+| *****    | Platform                   |   Notes                                                                   |
+|----------|----------------------------|---------------------------------------------------------------------------|
+|![ubuntu] | Ubuntu                     | Tested on 64-bit                                                          |
+|![rhel]   | Red Hat Enterprise Linux   | Tested on 64-bit, should also work on Fedora                              |
+|![centos] | CentOs                     | Tested on 64-bit                                                          |
+|![win10]  | Windows                    | Tested on 64-bit, Windows 10 - version 1607, Windows Server 2016 required |
+|![mac]    | macOS                      | Tested on 64-bit, Xcode 9.4                                               |
 
 [gcc]: https://github.com/odygrd/quill/blob/master/images/gcc_logo.png?raw=true
 [llvm]: https://github.com/odygrd/quill/blob/master/images/llvm_logo.png?raw=true
