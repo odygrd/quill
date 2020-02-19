@@ -63,8 +63,8 @@ The library aims to make logging significantly easier for the application develo
 The main goals of the library are:
 
 - **Simplicity** A small example code snippet should be enough to get started and use most of features.
-- **Performance** Ultra low latency for the caller threads, no string formatting on the hot path, no heap allocations after initialisation, asynchronous only mode.
-- **Convenience** While super fast on the fast-path, the library aims to assist the devloper debugging the applicaation by providing textual output and ordered by timestamp log records.
+- **Performance** Ultra low latency for the caller threads, no string formatting on the fast-path, no heap allocations after initialisation, asynchronous only mode.
+- **Convenience** While keeping low latency on the fast-path, the library aims to assist the developer in debugging the application by providing a nicely formatted direct textual output with all log statements ordered by timestamp
 
 ## Features
  * Python style formatting by the excellent [{fmt}](https://github.com/fmtlib/fmt) library
