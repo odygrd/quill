@@ -21,15 +21,40 @@
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: http://opensource.org/licenses/MIT
 
-- [Supported Platforms And Compilers](#supported-platforms-and-compilers)
 - [Design Rationale](#design-rationale)
 - [Features](#features)
+- [Supported Platforms And Compilers](#supported-platforms-and-compilers)
 - [Integration](#integration)
   - [CMake](#cmake)
   - [Package Managers](#package-managers)
 - [Basic Usage](#basic-usage)
 - [Documentation](#documentation)
 - [License](#license)
+
+## Design Rationale
+The library aims to make logging significantly easier for the application developer while at the same time reduce the overhead of logging in the critical path as much as possible.
+
+The main goals of the library are:
+
+- **Simplicity** A small example code snippet should be enough to get started and use most of features.
+- **Performance** Ultra low latency for the caller threads, no string formatting on the fast-path, no heap allocations after initialisation, asynchronous only mode.
+- **Convenience** While keeping low latency on the fast-path, the library aims to assist the developer in debugging the application by providing a nicely formatted direct textual output with all log statements ordered by timestamp
+
+## Features
+ * Clean warning-free codebase even on high warning levels
+ * Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
+ * Thread and Type safe with compile time checks
+ * Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
+ * Configurable
+ * Custom log patterns. Log statements can be formatted by providing a simple pattern
+ * Log levels can be stripped out at compile time in release builds
+ * Log records are written in timestamp order even if they were created by different threads
+ * Guaranteed logging. Log messages are never dropped
+ * Support for wide character logging and wide character filenames (Windows only)
+ * Various log targets (Handlers)
+   * Console logging 
+   * Rotating log files [Work in progress]
+   * Daily log files [Work in progress]
 
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
@@ -57,31 +82,6 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 [rhel]: https://github.com/odygrd/quill/blob/master/images/rhel_logo.png?raw=true
 [centos]: https://github.com/odygrd/quill/blob/master/images/centos_logo.png?raw=true
 
-## Design Rationale
-The library aims to make logging significantly easier for the application developer while at the same time reduce the overhead of logging in the critical path as much as possible.
-
-The main goals of the library are:
-
-- **Simplicity** A small example code snippet should be enough to get started and use most of features.
-- **Performance** Ultra low latency for the caller threads, no string formatting on the fast-path, no heap allocations after initialisation, asynchronous only mode.
-- **Convenience** While keeping low latency on the fast-path, the library aims to assist the developer in debugging the application by providing a nicely formatted direct textual output with all log statements ordered by timestamp
-
-## Features
- * Clean warning-free codebase even on high warning levels
- * Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
- * Thread and Type safe with compile time checks
- * Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
- * Configurable
- * Custom log patterns. Log statements can be formatted by providing a simple pattern
- * Log levels can be stripped out at compile time in release builds
- * Log records are written in timestamp order even if they were created by different threads
- * Guaranteed logging. Log messages are never dropped
- * Support for wide character logging and wide character filenames (Windows only)
- * Various log targets (Handlers)
-   * Console logging 
-   * Rotating log files [Work in progress]
-   * Daily log files [Work in progress]
-    
 ## Integration
 
 ### CMake
