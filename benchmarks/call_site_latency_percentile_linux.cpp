@@ -6,8 +6,19 @@
 #include <numeric>
 #include <thread>
 
+// Quill
 #include "quill/Quill.h"
 
+#if 0
+
+// Spdlog
+  #include "spdlog/async.h"
+  #include "spdlog/sinks/basic_file_sink.h"
+  #include "spdlog/spdlog.h"
+
+#endif
+
+/***/
 template <typename Function>
 void run_log_benchmark(Function&& f, char const* benchmark_name, std::mutex& m, int thread_num)
 {
@@ -47,6 +58,7 @@ void run_log_benchmark(Function&& f, char const* benchmark_name, std::mutex& m, 
             << std::setw(20) << (sum * 1.0) / latencies.size() << "\n\n";
 }
 
+/***/
 template <typename Function>
 void run_benchmark(Function&& f, int32_t thread_count, char const* benchmark_name)
 {
@@ -69,6 +81,83 @@ void run_benchmark(Function&& f, int32_t thread_count, char const* benchmark_nam
   }
 }
 
+/***/
+void quill_benchmark(std::array<int32_t, 4> threads_num)
+{
+  std::remove("quill_call_site_latency_percentile_linux_benchmark.log");
+
+  // Setup
+  // Pin the backend thread to cpu 0
+  quill::config::set_backend_thread_cpu_affinity(0);
+  quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
+
+  // Start the logging backend thread
+  quill::start();
+
+  // wait for the backend thread to start
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+
+  // Create a file handler to write to a file
+  quill::Handler* file_handler =
+    quill::file_handler("quill_call_site_latency_percentile_linux_benchmark.log", "w");
+
+  quill::Logger* logger = quill::create_logger("bench_logger", file_handler);
+
+  // Define a logging lambda
+  auto quill_benchmark = [logger](int32_t i, double d, char const* str) {
+    auto const start = std::chrono::steady_clock::now();
+    LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d);
+    auto const end = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  };
+
+  // Run the benchmark for n threads
+  for (auto threads : threads_num)
+  {
+    run_benchmark(quill_benchmark, threads, "Logger: Quill - Benchmark: Caller Thread Latency");
+  }
+}
+
+#if 0
+
+/***/
+void spdlog_benchmark(std::array<int32_t, 4> threads_num)
+{
+  std::remove("spdlog_call_site_latency_percentile_linux_benchmark.log");
+
+  // Setup
+  spdlog::set_automatic_registration(false);
+
+
+  auto on_backend_start = [](){
+    // Set the spdlog backend thread cpu aaffinity to zero
+    quill::detail::set_cpu_affinity(0); };
+
+  spdlog::init_thread_pool(8388608, 1, on_backend_start);
+
+  auto sink = std::make_shared<spdlog::sinks::basic_file_sink_st >("spdlog_call_site_latency_percentile_linux_benchmark.log");
+  auto logger = std::make_shared<spdlog::async_logger>("bench_logger", sink, spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+  logger->set_pattern("%T.%F [%t] %s:%# %l     %n - %v");
+
+  std::this_thread::sleep_for(std::chrono::seconds (3));
+
+  // Define a logging lambda
+  auto spdlog_benchmark = [logger](int32_t i, double d, char const* str) {
+    auto const start = std::chrono::steady_clock::now();
+    SPDLOG_LOGGER_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d);
+    auto const end = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  };
+
+  // Run the benchmark for n threads
+  for (auto threads : threads_num)
+  {
+    run_benchmark(spdlog_benchmark, threads, "Logger: Spdlog - Benchmark: Caller Thread Latency");
+  }
+}
+
+#endif
+
 int main(int argc, char* argv[])
 {
 
@@ -85,38 +174,16 @@ int main(int argc, char* argv[])
 
   if (strcmp(argv[1], "quill") == 0)
   {
-    // Setup
-    // Pin the backend thread to cpu 0
-    quill::config::set_backend_thread_cpu_affinity(0);
-    quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
-
-    // Start the logging backend thread
-    quill::start();
-
-    // wait for the backend thread to start
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    // Create a file handler to write to a file
-    quill::Handler* file_handler =
-      quill::file_handler("quill_call_site_latency_percentile_linux_benchmark", "w");
-
-    quill::Logger* logger = quill::create_logger("bench_logger", file_handler);
-
-    // Define a logging lambda
-    auto quill_benchmark = [logger](int32_t i, double d, char const* str) {
-      auto const start = std::chrono::steady_clock::now();
-      LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d);
-      auto const end = std::chrono::steady_clock::now();
-      return std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-    };
-
-    // Run the benchmark for n threads
-    for (auto threads : threads_num)
-    {
-      run_benchmark(quill_benchmark, threads, "Logger: Quill - Benchmark: Caller Thread Latency");
-    }
+    quill_benchmark(threads_num);
   }
 
-  std::remove("quill_call_site_latency_percentile_linux_benchmark");
+#if 0
+  else if (strcmp(argv[1], "spdlog") == 0)
+  {
+    spdlog_benchmark(threads_num);
+  }
+
+#endif
+
   return 0;
 }

@@ -1,9 +1,7 @@
+# include spdlog
+# include_directories(/home/ody/CLionProjects/untitled/spdlog)
+
 # call_site_latency_percentile_linux_benchmark
 add_executable(call_site_latency_percentile_linux_benchmark)
 target_sources(call_site_latency_percentile_linux_benchmark PRIVATE call_site_latency_percentile_linux.cpp)
-target_link_libraries(call_site_latency_percentile_linux_benchmark PRIVATE quill)
-
-# total_time_until_completion_benchmark
-add_executable(total_time_until_completion_benchmark)
-target_sources(total_time_until_completion_benchmark PRIVATE total_time_until_completion.cpp)
-target_link_libraries(total_time_until_completion_benchmark PRIVATE quill)
+target_link_libraries(call_site_latency_percentile_linux_benchmark PRIVATE quill Threads::Threads)
