@@ -74,8 +74,7 @@ The main goals of the library are:
     <a href="https://plot.ly/~odygrd/3/?share_key=TrxGpU3XafXAb9pavm5Ks9" target="_blank" title="1_Thread_95th_Latency" style="display: block; text-align: center;"><img src="https://plot.ly/~odygrd/3.png?share_key=TrxGpU3XafXAb9pavm5Ks9" alt="1_Thread_95th_Latency" style="max-width: 100%;width: 600px;"  width="600" onerror="this.onerror=null;this.src='https://plot.ly/404.png';" /></a>
 </div>
 
-
-The results were generated on linux (ubuntu/rhel) and results may differ in other operating systems.
+The results were generated on linux (ubuntu/rhel) and they may differ in other operating systems.
 The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).
 For the detailed benchmark results see [here](https://github.com/odygrd/logger_benchmarks/blob/master/results.txt).
 
