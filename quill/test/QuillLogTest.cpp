@@ -19,6 +19,9 @@ void test_quil_log(char const* test_id, std::string const& filename, uint16_t nu
   for (int i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back([filename, number_of_messages, test_id, i]() {
+      // Also use preallocate
+      quill::preallocate();
+
       // Set writing logging to a file
       quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
 

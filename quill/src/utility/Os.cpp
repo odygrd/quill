@@ -12,8 +12,8 @@
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
   #include <malloc.h>
-  #include <windows.h>
   #include <processthreadsapi.h>
+  #include <windows.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
@@ -181,6 +181,25 @@ size_t get_page_size() noexcept
   page_size = static_cast<uint32_t>(sysconf(_SC_PAGESIZE));
 #endif
   return page_size;
+}
+
+/***/
+void madvice(void* addr, size_t len)
+{
+#if defined(__linux__)
+  // It looks like madvice hint has no effect but we do it anyway ..
+  int32_t res = madvise(addr, len, MADV_WILLNEED);
+  if (res == -1)
+  {
+    throw std::system_error(res, std::system_category());
+  }
+
+  res = madvise(addr, len, MADV_SEQUENTIAL);
+  if (res == -1)
+  {
+    throw std::system_error(res, std::system_category());
+  }
+#endif
 }
 
 /***/
@@ -398,7 +417,7 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
 
   // map first region
   auto other_address = static_cast<unsigned char*>(
-    mmap(address, capacity, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE, fd, 0));
+    mmap(address, capacity, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0));
 
   if (other_address != address)
   {
@@ -409,7 +428,7 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
 
   // map second region
   other_address = static_cast<unsigned char*>(
-    mmap(address + capacity, capacity, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE, fd, 0));
+    mmap(address + capacity, capacity, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0));
 
   if (other_address != address + capacity)
   {

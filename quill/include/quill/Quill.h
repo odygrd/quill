@@ -8,6 +8,14 @@
 
 namespace quill
 {
+
+/**
+ * Pre-allocates the thread-local data structures needed for the current thread.
+ * Walks and pre-fetches all allocated memory
+ * Although optional, it is recommended to invoke this function during the thread initialisation phase before the first log message.
+ */
+QUILL_ATTRIBUTE_COLD void preallocate();
+
 /**
  * Starts the backend thread to write the logs to the handlers
  * @throws When the backend thread fails to start

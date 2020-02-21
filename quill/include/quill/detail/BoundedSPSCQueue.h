@@ -173,6 +173,13 @@ public:
   BoundedSPSCQueue& operator=(BoundedSPSCQueue const&) = delete;
 
   /**
+   * madvices and prefetches the memory in the allocated queue buffer.
+   * This optimises page size misses which occur every 4K otherwise.
+   * Should only be called once during init
+   */
+  QUILL_ATTRIBUTE_COLD void prefetch_memory_pages() const;
+
+  /**
    * Add a new object to the queue
    * @tparam TInsertedObject
    * @tparam Args
@@ -258,6 +265,20 @@ BoundedSPSCQueue<TBaseObject, Capacity>::~BoundedSPSCQueue()
 #else
   destroy_memory_mapped_files(std::pair<unsigned char*, void*>{_producer.buffer, nullptr}, capacity());
 #endif
+}
+
+/***/
+template <typename TBaseObject, size_t Capacity>
+void BoundedSPSCQueue<TBaseObject, Capacity>::prefetch_memory_pages() const
+{
+  madvice(_producer.buffer, 2 * capacity());
+
+  // Walk all queue memory. This is done to prefetch all the pages.
+  QUILL_MAYBE_UNUSED volatile unsigned int sum = 0;
+  for (size_t z = (2 * capacity()) - 1; z != 0; --z)
+  {
+    sum += ((unsigned char*)_producer.buffer)[z];
+  }
 }
 
 /***/

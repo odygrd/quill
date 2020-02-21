@@ -46,6 +46,14 @@ public:
   QUILL_NODISCARD HandlerCollection& handler_collection() noexcept { return _handler_collection; }
 
   /**
+   * @return A reference to the thread context collection
+   */
+  QUILL_NODISCARD ThreadContextCollection& thread_context_collection() noexcept
+  {
+    return _thread_context_collection;
+  }
+
+  /**
    * Blocks the caller thread until all log messages until the current timestamp are flushed
    *
    * The backend thread will flush all loggers and all handlers up to the point (timestamp) that

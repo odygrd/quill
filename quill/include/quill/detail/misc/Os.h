@@ -66,6 +66,15 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_thread_id() noexcept;
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t get_page_size() noexcept;
 
 /**
+ * Provides hints to OS for memory page usage
+ * @param addr
+ * @param len
+ * @param advice
+ * @return
+ */
+QUILL_ATTRIBUTE_COLD void madvice(void* addr, size_t len);
+
+/**
  * Aligned alloc
  * @param alignment
  * @param size

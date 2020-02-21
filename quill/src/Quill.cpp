@@ -4,6 +4,16 @@
 
 namespace quill
 {
+/***/
+void preallocate()
+{
+  detail::LogManagerSingleton::instance()
+    .log_manager()
+    .thread_context_collection()
+    .local_thread_context()
+    ->spsc_queue()
+    .prefetch_memory_pages();
+}
 
 /***/
 void start() { detail::LogManagerSingleton::instance().log_manager().start_backend_worker(); }
