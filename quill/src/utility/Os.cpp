@@ -186,15 +186,9 @@ size_t get_page_size() noexcept
 /***/
 void madvice(void* addr, size_t len)
 {
-#if defined(__linux__)
+#if !defined(_WIN32)
   // It looks like madvice hint has no effect but we do it anyway ..
-  int32_t res = madvise(addr, len, MADV_WILLNEED);
-  if (res == -1)
-  {
-    throw std::system_error(res, std::system_category());
-  }
-
-  res = madvise(addr, len, MADV_SEQUENTIAL);
+  auto const res = madvise(addr, len, MADV_SEQUENTIAL);
   if (res == -1)
   {
     throw std::system_error(res, std::system_category());

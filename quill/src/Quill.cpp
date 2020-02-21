@@ -12,7 +12,7 @@ void preallocate()
     .thread_context_collection()
     .local_thread_context()
     ->spsc_queue()
-    .prefetch_memory_pages();
+    .madvice();
 }
 
 /***/
