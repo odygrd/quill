@@ -72,9 +72,10 @@ The main goals of the library are:
 
 [![Benchmark](https://github.com/odygrd/quill/blob/master/images/benchmark_90th.png?raw=true)](https://charts.hohli.com/embed.html?created=1582255481780#w=640&h=480&d={"containerId":"chart","dataTable":{"cols":[{"label":"A","type":"string","p":{}},{"label":"B","type":"number","p":{}},{"label":"C","type":"number","p":{}},{"label":"D","type":"number","p":{}},{"label":"E","type":"number","p":{}},{"label":"F","type":"number"}],"rows":[{"c":[{"v":"Spdlog"},{"v":369},{"v":0},{"v":0},{"v":0},{"v":0}]},{"c":[{"v":"Lyengar%20NanoLog"},{"v":0},{"v":75},{"v":0},{"v":0},{"v":0}]},{"c":[{"v":"Reckless"},{"v":0},{"v":0},{"v":53},{"v":0},{"v":0}]},{"c":[{"v":"PlatformLab%20NanoLog"},{"v":0},{"v":0},{"v":0},{"v":19},{"v":0}]},{"c":[{"v":"Quill"},{"v":0},{"v":0},{"v":0},{"v":0},{"v":17}]}]},"options":{"legacyScatterChartLabels":true,"isStacked":true,"booleanRole":"certainty","vAxes":[{"minValue":null,"maxValue":null,"viewWindow":null,"viewWindowMode":null,"useFormatFromData":true},{"useFormatFromData":true}],"hAxis":{"viewWindow":{"max":90,"min":0},"minValue":0,"maxValue":90,"useFormatFromData":true,"logScale":false,"title":"Time%20(ns)","titleTextStyle":{"color":"#222","fontSize":12,"italic":true,"bold":true},"viewWindowMode":"explicit","gridlines":{"count":"6"},"minorGridlines":{"count":"0"},"slantedText":false},"legend":"none","width":640,"height":480,"title":"1%20Thread-%2090th%20Percentile%20Latency%20","titleTextStyle":{"color":"#000","fontSize":"13","bold":true,"italic":false},"fontName":"Tahoma"},"state":{},"view":{"columns":null,"rows":null},"isDefaultVisualization":false,"chartType":"BarChart"})
 
-The results were generated on linux (ubuntu/rhel) and they may differ in other operating systems.
+The benchmarks aare done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)```.  
+
 The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).  
-For more detailed benchmark results including logging from multiple threads see [here](https://github.com/odygrd/logger_benchmarks/blob/master/results.txt).
+More benchmarks can be found [here](https://github.com/odygrd/logger_benchmarks/blob/master/results.txt).
 
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
