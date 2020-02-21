@@ -62,8 +62,6 @@ option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
 option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
 
-option(QUILL_BUILD_BENCHMARKS "Build benchmarks" OFF)
-
 option(QUILL_SANITIZE_ADDRESS "Enable address sanitizer in tests" OFF)
 
 option(QUILL_SANITIZE_THREAD "Enable thread sanitizer in tests (Using this option with any other compiler except clang may result to false positives)" OFF)
@@ -122,15 +120,6 @@ endif ()
 if (QUILL_CODE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif ()
-
-#-------------------------------------------------------------------------------------------------------
-# Benchmarks
-#-------------------------------------------------------------------------------------------------------
-if (QUILL_BUILD_BENCHMARKS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-    add_subdirectory(benchmarks)
-endif ()
-
 
 #-------------------------------------------------------------------------------------------------------
 # Subdirectories
