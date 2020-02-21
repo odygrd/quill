@@ -23,6 +23,7 @@
 
 - [Design Rationale](#design-rationale)
 - [Features](#features)
+- [Performance](#performance)
 - [Supported Platforms And Compilers](#supported-platforms-and-compilers)
 - [Integration](#integration)
   - [CMake](#cmake)
@@ -56,6 +57,27 @@ The main goals of the library are:
    * Console logging 
    * Rotating log files [Work in progress]
    * Daily log files [Work in progress]
+
+## Performance
+
+### 1 Thread Logging
+
+| Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
+|--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
+|[Quill](https://github.com/odygrd/quill)               | 16       | 17       | 17       | 17       | 1625     | 2961     | 4709      |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog) | 18       | 18       | 19       | 21       | 24       | 46       | 32407     |
+|[Reckless](https://github.com/mattiasflodin/reckless)            | 50       | 51       | 53       | 54       | 57       | 106982   | 600779234 |
+|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)     | 62       | 63       | 75       | 1042     | 1154     | 3187     | 13002667  |
+|[spdlog](https://github.com/gabime/spdlog)              | 183      | 226      | 369      | 2842     | 2906     | 5598     | 1079157   |
+
+<div>
+    <a href="https://plot.ly/~odygrd/3/?share_key=TrxGpU3XafXAb9pavm5Ks9" target="_blank" title="1_Thread_95th_Latency" style="display: block; text-align: center;"><img src="https://plot.ly/~odygrd/3.png?share_key=TrxGpU3XafXAb9pavm5Ks9" alt="1_Thread_95th_Latency" style="max-width: 100%;width: 600px;"  width="600" onerror="this.onerror=null;this.src='https://plot.ly/404.png';" /></a>
+</div>
+
+
+The results were generated on linux (ubuntu/rhel) and results may differ in other operating systems.
+The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).
+For the detailed benchmark results see [here](https://github.com/odygrd/logger_benchmarks/blob/master/results.txt).
 
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
