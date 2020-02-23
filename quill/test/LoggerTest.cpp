@@ -9,7 +9,8 @@ using namespace quill::detail;
 /***/
 TEST(Logger, log_level)
 {
-  ThreadContextCollection tc;
+  Config cfg;
+  ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
   LoggerCollection logger_collection{tc, hc};
@@ -27,7 +28,8 @@ TEST(Logger, log_level)
 /***/
 TEST(Logger, get_non_existent_logger)
 {
-  ThreadContextCollection tc;
+  Config cfg;
+  ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
   LoggerCollection logger_collection{tc, hc};
@@ -38,7 +40,8 @@ TEST(Logger, get_non_existent_logger)
 /***/
 TEST(Logger, logger_should_log)
 {
-  ThreadContextCollection tc;
+  Config cfg;
+  ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
   LoggerCollection logger_collection{tc, hc};

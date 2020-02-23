@@ -11,8 +11,9 @@ using namespace quill::detail;
 TEST(LoggerCollection, create_get_same_logger)
 {
   // Create and then get the same logger and check that the values we set are cached
+  Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
   Handler* stream_handler = hc.stdout_streamhandler();
@@ -31,8 +32,9 @@ TEST(LoggerCollection, create_get_same_logger)
 TEST(LoggerCollection, create_get_different_loggers)
 {
   // Create and then get the same logger and check that the values we set are different
+  Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
   Handler* stream_handler = hc.stdout_streamhandler();
@@ -53,8 +55,9 @@ TEST(LoggerCollection, create_get_different_loggers)
 TEST(LoggerCollection, get_non_existing_logger)
 {
   // Check that we throw if we try to get a logger that was never created before
+  Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
   // try to get a new logger with a default log level
@@ -66,8 +69,9 @@ TEST(LoggerCollection, default_logger)
 {
   // Get the default logger and change the log level, then get the default logger again ans check
   // the values we set are cached
+  Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
   Logger* default_logger = logger_collection.get_logger();
@@ -89,8 +93,9 @@ TEST(LoggerCollection, default_logger)
 TEST(LoggerCollection, create_logger_from_default_logger)
 {
   // Create a new logger and check that the properties are the same as the default logger
+  Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
   Logger* default_logger = logger_collection.create_logger("logger_test");
@@ -101,8 +106,9 @@ TEST(LoggerCollection, create_logger_from_default_logger)
 TEST(LoggerCollection, set_default_logger_handler)
 {
   // Set a handler to the default logger
+  Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
   Handler* stream_handler = hc.stdout_streamhandler();
@@ -113,8 +119,9 @@ TEST(LoggerCollection, set_default_logger_handler)
 TEST(LoggerCollection, set_default_logger_pattern)
 {
   // Set a handler to the default logger with a default pattern
+  Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
   Handler* stream_handler = hc.stdout_streamhandler();
@@ -127,8 +134,9 @@ TEST(LoggerCollection, set_default_logger_pattern)
 TEST(LoggerCollection, set_default_logger_multiple_handlers)
 {
   // Set a handler to the default logger with a default pattern
+  Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
   logger_collection.set_default_logger_handler({hc.stdout_streamhandler(), hc.stderr_streamhandler()});

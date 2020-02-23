@@ -15,7 +15,8 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
   // the cache when the threads complete
 
   // run the test multiple times to create many thread contexts for the same thread context collection
-  ThreadContextCollection thread_context_collection;
+  Config cfg;
+  ThreadContextCollection thread_context_collection{cfg};
 
   constexpr uint32_t tries = 4;
   for (int k = 0; k < tries; ++k)
@@ -95,7 +96,8 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
   // the cache when the threads complete
 
   // run the test multiple times to create many thread contexts for the same thread context collection
-  ThreadContextCollection thread_context_collection;
+  Config cfg;
+  ThreadContextCollection thread_context_collection{cfg};
 
   constexpr uint32_t tries = 4;
   for (int k = 0; k < tries; ++k)
@@ -171,14 +173,16 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
 }
 
 /***/
-TEST(ThreadContextCollection, configurable_queue_size)
+TEST(ThreadContextCollection, configurable_queue_capacity)
 {
-  ThreadContextCollection thread_context_collection;
+  Config cfg;
+  cfg.set_initial_queue_capacity(262144);
+  ThreadContextCollection thread_context_collection{cfg};
 
-  // Check that the size of the queue is the same as we one that was configured
-  auto th = std::thread([&thread_context_collection]() {
+  // Check that the capacity of the queue is the same as we one that was configured
+  auto th = std::thread([&thread_context_collection, &cfg]() {
     ThreadContext const* thread_context = thread_context_collection.local_thread_context();
-    EXPECT_EQ(thread_context->spsc_queue().capacity(), QUILL_BOUNDED_SPSC_QUEUE_SIZE);
+    EXPECT_EQ(thread_context->spsc_queue().capacity(), cfg.initial_queue_capacity());
   });
 
   // Wait for thread to complete

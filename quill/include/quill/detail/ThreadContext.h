@@ -2,6 +2,7 @@
 
 #include "quill/detail/misc/Common.h"
 
+#include "quill/detail/ThreadContext.h"
 #include "quill/detail/UnboundedSPSCQueue.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/record/RecordBase.h"
@@ -30,7 +31,7 @@ public:
   /**
    * Constructor
    */
-  ThreadContext() = default;
+  explicit ThreadContext(Config const& config) : _spsc_queue(config.initial_queue_capacity()){};
 
   /**
    * Deleted
@@ -84,7 +85,7 @@ public:
   QUILL_NODISCARD bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
 
 private:
-  SPSCQueueT _spsc_queue{QUILL_BOUNDED_SPSC_QUEUE_SIZE};          /** queue for this thread */
+  SPSCQueueT _spsc_queue;                                         /** queue for this thread */
   std::string _thread_id{fmt::format_int(get_thread_id()).str()}; /**< cache this thread pid */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 };

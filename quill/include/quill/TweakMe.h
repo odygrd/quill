@@ -66,20 +66,3 @@
  * QUILL_LOG_LEVEL_CRITICAL
  */
 // #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
-
-/**
- * Quill uses a bounded SPSC queue per spawned thread to forward the LogRecords to the backend
- *
- * Since the queue is bounded, during very high logging activity the backend thread won't be
- * able to consume fast enough and the queue will become full. In this scenario the caller thread
- * will block until there is some free space in the queue to push the LogRecord
- *
- * By default if the below definition is commented out Quill is using a 2 Mebibyte queue per thread
- *
- * The queue size can be increased or decreased based on the user needs.
- *
- * @warning The configured queue size needs to be in bytes, it MUST be a power of two and a multiple
- * of the page size.
- * Look for an online Mebibyte to Byte converted to easily find a correct value
- */
-#define QUILL_BOUNDED_SPSC_QUEUE_SIZE 131072u

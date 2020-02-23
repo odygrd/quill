@@ -74,7 +74,7 @@ public:
 private:
   Config _config;
   HandlerCollection _handler_collection;
-  ThreadContextCollection _thread_context_collection;
+  ThreadContextCollection _thread_context_collection{_config};
   LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
 };

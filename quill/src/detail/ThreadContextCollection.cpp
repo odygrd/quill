@@ -6,9 +6,10 @@ namespace quill
 namespace detail
 {
 /***/
-ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection)
+ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection,
+                                                                    Config const& config)
   : _thread_context_collection(thread_context_collection),
-    _thread_context(std::shared_ptr<ThreadContext>(new ThreadContext()))
+    _thread_context(std::shared_ptr<ThreadContext>(new ThreadContext(config)))
 {
   // We can not use std::make_shared above.
   // Explanation :

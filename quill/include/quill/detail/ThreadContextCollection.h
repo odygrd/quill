@@ -1,5 +1,6 @@
 #pragma once
 
+#include "quill/detail/Config.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/misc/Spinlock.h"
 #include <atomic>
@@ -37,7 +38,7 @@ private:
      * Creates a new context and then registers it to the context collection sharing ownership
      * of the ThreadContext
      */
-    explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection);
+    explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection, Config const& config);
 
     /**
      * Destructor
@@ -68,7 +69,7 @@ public:
   /**
    * Constructor
    */
-  ThreadContextCollection() = default;
+  explicit ThreadContextCollection(Config const& config) : _config(config){};
 
   /**
    * Destructor
@@ -88,7 +89,7 @@ public:
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
-    static thread_local ThreadContextWrapper thread_context_wrapper{*this};
+    static thread_local ThreadContextWrapper thread_context_wrapper{*this, _config};
     return thread_context_wrapper.thread_context();
   }
 
@@ -158,7 +159,8 @@ private:
   void _find_and_remove_invalidated_thread_contexts();
 
 private:
-  /** This class all fits in 1 cache line **/
+  Config const& _config; /**< reference to config */
+
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 
   /**<
@@ -182,6 +184,5 @@ private:
    */
   std::atomic<uint8_t> _invalid_thread_context{0};
 };
-
 } // namespace detail
 } // namespace quill
