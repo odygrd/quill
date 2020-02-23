@@ -88,13 +88,6 @@ void flush() { detail::LogManagerSingleton::instance().log_manager().flush(); }
 // ** Config ** //
 namespace config
 {
-
-/***/
-void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept
-{
-  detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_sleep_duration(sleep_duration);
-}
-
 /***/
 void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
 {
@@ -105,6 +98,12 @@ void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
 void set_backend_thread_name(std::string const& name) noexcept
 {
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_name(name);
+}
+
+/***/
+void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept
+{
+  detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_sleep_duration(sleep_duration);
 }
 
 /***/

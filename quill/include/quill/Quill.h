@@ -148,31 +148,6 @@ void flush();
 namespace config
 {
 /**
- * The backend thread will always "busy wait" spinning around every caller thread's local spsc queue.
- *
- * The reason for this is to reduce latency on the caller thread as notifying the
- * backend thread even by a fast backed by atomics semaphone would add additional latency
- * to the caller thread.
- * The alternative to this is letting the backend thread "busy wait" and at the same time reduce the backend thread's
- * OS scheduler priority by a periodic call to sleep().
- *
- * Each time the backend thread sees that there are no remaining records left to process in the queues it will sleep.
- *
- * @param sleep_duration The sleep duration
- *
- * @note: It is recommended to pin the backend thread to a shared or a junk cpu core and use the
- * default sleep duration of 500ns.
- * If you really care about the backend thread speed you might want to pin that thread to an exclusive core
- * and change the sleep duration value to 0 so that the thread never sleeps
- *
- * @see set_backend_thread_cpu_affinity
- *
- * @warning: The backend thread will read this value when quill::start() is called.
- * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
- */
-QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept;
-
-/**
  * Pins the backend thread to the given CPU
  *
  * By default Quill does not pin the backend thread to any CPU, unless a value is specified by
@@ -200,6 +175,31 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
 QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexcept;
 
 /**
+ * The backend thread will always "busy wait" spinning around every caller thread's local spsc queue.
+ *
+ * The reason for this is to reduce latency on the caller thread as notifying the
+ * backend thread even by a fast backed by atomics semaphone would add additional latency
+ * to the caller thread.
+ * The alternative to this is letting the backend thread "busy wait" and at the same time reduce the backend thread's
+ * OS scheduler priority by a periodic call to sleep().
+ *
+ * Each time the backend thread sees that there are no remaining records left to process in the queues it will sleep.
+ *
+ * @param sleep_duration The sleep duration
+ *
+ * @note: It is recommended to pin the backend thread to a shared or a junk cpu core and use the
+ * default sleep duration of 300ns.
+ * If you really care about the backend thread speed you might want to pin that thread to an exclusive core
+ * and change the sleep duration value to 0 so that the thread never sleeps
+ *
+ * @see set_backend_thread_cpu_affinity
+ *
+ * @warning: The backend thread will read this value when quill::start() is called.
+ * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
+ */
+QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept;
+
+/**
  * Quill uses a unbounded SPSC queue per spawned thread to forward the LogRecords to the backend thread.
  *
  * During very high logging activity (e.g. logging in a loop every 10 nanoseconds) the backend thread won't be
@@ -207,11 +207,15 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexc
  * will not block but instead it will switch to a new queue.
  *
  * This function sets the initial capacity of the first queue. By default Quill starts with 131K queue.
+ *
  * The smallest the queue the better the locality aas the queue will be small enough to stay in the
  * cache and get reused. Increasing the size of the queue leads to more cache misses but less
- * re-allocations if the application is logging a lot.
+ * re-allocations if the application is logging a lot. If the backend thread is falling behind
+ * also consider reducing the sleep duration
  *
  * The queue size can be increased or decreased based on the user needs.
+ *
+ * @see set_backend_thread_sleep_duration
  *
  * @warning The configured queue size needs to be in bytes, it MUST be a power of two and a multiple
  * of the page size (4096).
