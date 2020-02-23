@@ -82,4 +82,4 @@
  * of the page size.
  * Look for an online Mebibyte to Byte converted to easily find a correct value
  */
-#define QUILL_BOUNDED_SPSC_QUEUE_SIZE 8388608u
+#define QUILL_BOUNDED_SPSC_QUEUE_SIZE 131072u

@@ -126,7 +126,7 @@ bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_co
   // Iterate through all records in all thread contexts queues and find the one with the lowest
   // rdtsc to process We will log the timestamps in order
   uint64_t min_rdtsc = std::numeric_limits<uint64_t>::max();
-  ThreadContext::SPSCQueueT::Handle desired_record_handle;
+  ThreadContext::SPSCQueueT::handle_t desired_record_handle;
   char const* desired_thread_id{nullptr};
 
   for (auto& elem : thread_contexts)

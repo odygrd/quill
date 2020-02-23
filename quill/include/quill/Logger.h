@@ -91,13 +91,9 @@ public:
     using log_record_t = quill::detail::LogRecord<FmtArgs...>;
 
     // emplace to the spsc queue owned by the ctx
-    bool retry;
-    do
-    {
-      retry = _thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(
-        log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
-      // unlikely case if the queue gets full we will wait until we can log
-    } while (QUILL_UNLIKELY(!retry));
+
+    _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(
+      log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
   }
 
   /**
@@ -123,13 +119,8 @@ public:
     using log_record_t = quill::detail::LogRecord<FmtArgs...>;
 
     // emplace to the spsc queue owned by the ctx
-    bool retry;
-    do
-    {
-      retry = _thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(
-        log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
-      // unlikely case if the queue gets full we will wait until we can log
-    } while (QUILL_UNLIKELY(!retry));
+    _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(
+      log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
   }
 
 private:

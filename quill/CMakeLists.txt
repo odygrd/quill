@@ -29,6 +29,7 @@ set(HEADER_FILES
     include/quill/detail/LogManagerSingleton.h
     include/quill/detail/ThreadContext.h
     include/quill/detail/ThreadContextCollection.h
+    include/quill/detail/UnboundedSPSCQueue.h
     include/quill/handlers/FileHandler.h
     include/quill/handlers/Handler.h
     include/quill/handlers/StreamHandler.h

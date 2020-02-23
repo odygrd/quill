@@ -27,12 +27,7 @@ void LogManager::flush()
   };
 
   using log_record_t = detail::CommandRecord;
-  bool pushed;
-  do
-  {
-    pushed = _thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(notify_callback);
-    // unlikely case if the queue gets full we will wait until we can log
-  } while (QUILL_UNLIKELY(!pushed));
+  _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(notify_callback);
 
   // The caller thread keeps checking the flag until the backend thread flushes
   do

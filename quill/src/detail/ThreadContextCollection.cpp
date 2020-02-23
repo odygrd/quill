@@ -148,7 +148,7 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
 {
   // First we iterate our existing cache and we look for any invalidated contexts
   auto found_invalid_and_empty_thread_context = std::find_if(
-    _thread_context_cache.cbegin(), _thread_context_cache.cend(), [](ThreadContext const* thread_context) {
+    _thread_context_cache.begin(), _thread_context_cache.end(), [](ThreadContext* thread_context) {
       // If the thread context is invalid it means the thread that created it has now died.
       // We also want to empty the queue from all LogRecords before removing the thread context
       return !thread_context->is_valid() && thread_context->spsc_queue().empty();
@@ -169,7 +169,7 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
 
     // And then look again
     found_invalid_and_empty_thread_context = std::find_if(
-      _thread_context_cache.cbegin(), _thread_context_cache.cend(), [](ThreadContext const* thread_context) {
+      _thread_context_cache.begin(), _thread_context_cache.end(), [](ThreadContext* thread_context) {
         // If the thread context is invalid it means the thread that created it has now died.
         // We also want to empty the queue from all LogRecords before removing the thread context
         return !thread_context->is_valid() && thread_context->spsc_queue().empty();

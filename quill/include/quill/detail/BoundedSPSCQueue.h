@@ -36,7 +36,7 @@ namespace detail
  * @tparam T A base class type
  * @tparam capacity The total buffer's capacity in bytes
  */
-template <typename TBaseObject, size_t Capacity>
+template <typename TBaseObject>
 class BoundedSPSCQueue
 {
 public:
@@ -159,7 +159,7 @@ public:
   /**
    * Circular Buffer class Constructor
    */
-  BoundedSPSCQueue();
+  explicit BoundedSPSCQueue(size_t capacity);
 
   /**
    * Destructor
@@ -199,7 +199,7 @@ public:
   /**
    * @return total capacity of the queue in bytes
    */
-  QUILL_NODISCARD size_t capacity() const noexcept { return Capacity; }
+  QUILL_NODISCARD size_t capacity() const noexcept { return _capacity; }
 
   /**
    * @return True when the queue is empty, false if there is still data to read
@@ -208,22 +208,11 @@ public:
 
 private:
   /** Mask to shift around power of two capacity */
-  static constexpr size_t MASK{Capacity - 1};
-
-  /**
-   * Packed in a struct to maintain both in the same cache line
-   */
-  struct local_state
-  {
-    unsigned char* buffer{nullptr}; /**< The whole buffer */
-    uint64_t cached_atomic{0}; /**< producer cache to tail address or consumer cache to head address */
-  };
-
-  /** Local State - Read and Write only by either the producer or consumer **/
-  alignas(detail::CACHELINE_SIZE) local_state _producer;
-  char _pad1[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
-  alignas(detail::CACHELINE_SIZE) local_state _consumer;
-  char _pad2[detail::CACHELINE_SIZE - sizeof(local_state)]; /** We don't really need to specify the padding explictly but Visual Studio will give a warning */
+  unsigned char* _buffer{nullptr}; /**< The whole buffer */
+  size_t _capacity{0};
+  size_t _mask{0}; /** capacity - 1 mask for quick mod with &. Only for pow of 2 capacity */
+  uint64_t _cached_head{0};
+  uint64_t _cached_tail{0};
 
   /** Shared State - Both consumer and producer can read and write on each variable **/
   alignas(detail::CACHELINE_SIZE) std::atomic<uint64_t> _head{0}; /**< The index of the head */
@@ -240,44 +229,45 @@ private:
 };
 
 /***/
-template <typename TBaseObject, size_t Capacity>
-BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
+template <typename TBaseObject>
+BoundedSPSCQueue<TBaseObject>::BoundedSPSCQueue(size_t capacity)
+  : _capacity(capacity), _mask(capacity - 1)
 {
-  std::pair<unsigned char*, void*> res = create_memory_mapped_files(capacity());
+  std::pair<unsigned char*, void*> res = create_memory_mapped_files(capacity);
 
   // Save the returned address
-  _producer.buffer = res.first;
-  _consumer.buffer = res.first;
+  _buffer = res.first;
 
 #if defined(_WIN32)
   // On windows we have to store the extra pointer, for linux and macos it is just nullptr
   _mapped_file_handler = res.second;
 #endif
+
+  madvice();
 }
 
 /***/
-template <typename TBaseObject, size_t Capacity>
-BoundedSPSCQueue<TBaseObject, Capacity>::~BoundedSPSCQueue()
+template <typename TBaseObject>
+BoundedSPSCQueue<TBaseObject>::~BoundedSPSCQueue()
 {
 #if defined(_WIN32)
-  destroy_memory_mapped_files(
-    std::pair<unsigned char*, void*>{_producer.buffer, _mapped_file_handler}, capacity());
+  destroy_memory_mapped_files(std::pair<unsigned char*, void*>{_buffer, _mapped_file_handler}, capacity());
 #else
-  destroy_memory_mapped_files(std::pair<unsigned char*, void*>{_producer.buffer, nullptr}, capacity());
+  destroy_memory_mapped_files(std::pair<unsigned char*, void*>{_buffer, nullptr}, capacity());
 #endif
 }
 
 /***/
-template <typename TBaseObject, size_t Capacity>
-void BoundedSPSCQueue<TBaseObject, Capacity>::madvice() const
+template <typename TBaseObject>
+void BoundedSPSCQueue<TBaseObject>::madvice() const
 {
-  detail::madvice(_producer.buffer, 2 * capacity());
+  detail::madvice(_buffer, 2 * _capacity);
 }
 
 /***/
-template <typename TBaseObject, size_t Capacity>
+template <typename TBaseObject>
 template <typename TInsertedObject, typename... Args>
-bool BoundedSPSCQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) noexcept
+bool BoundedSPSCQueue<TBaseObject>::try_emplace(Args&&... args) noexcept
 {
   // Try to produce the required Bytes
 
@@ -286,13 +276,13 @@ bool BoundedSPSCQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) noexce
 
   // The remaining buffer capacity is capacity - (head - tail)
   // Tail is also only going once direction so we can first check the cached value
-  if (QUILL_UNLIKELY((capacity() - sizeof(TInsertedObject)) < (head_loaded - _producer.cached_atomic)))
+  if (QUILL_UNLIKELY((capacity() - sizeof(TInsertedObject)) < (head_loaded - _cached_head)))
   {
     // we can't produce based on the cached tail so lets load the real one
     // get the updated tail value as the consumer now may have consumed some data
-    _producer.cached_atomic = _tail.load(std::memory_order_acquire);
+    _cached_head = _tail.load(std::memory_order_acquire);
 
-    if (QUILL_UNLIKELY((capacity() - sizeof(TInsertedObject)) < (head_loaded - _producer.cached_atomic)))
+    if (QUILL_UNLIKELY((capacity() - sizeof(TInsertedObject)) < (head_loaded - _cached_head)))
     {
       // not enough space to produce
       return false;
@@ -301,7 +291,7 @@ bool BoundedSPSCQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) noexce
 
   // Get the pointer to the beginning of the buffer
   // copy construct the Message there
-  new (_producer.buffer + (head_loaded & MASK)) TInsertedObject{std::forward<Args>(args)...};
+  new (_buffer + (head_loaded & _mask)) TInsertedObject{std::forward<Args>(args)...};
 
   // update the head
   _head.store(head_loaded + sizeof(TInsertedObject), std::memory_order_release);
@@ -310,8 +300,8 @@ bool BoundedSPSCQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) noexce
 }
 
 /***/
-template <typename TBaseObject, size_t Capacity>
-typename BoundedSPSCQueue<TBaseObject, Capacity>::Handle BoundedSPSCQueue<TBaseObject, Capacity>::try_pop() noexcept
+template <typename TBaseObject>
+typename BoundedSPSCQueue<TBaseObject>::Handle BoundedSPSCQueue<TBaseObject>::try_pop() noexcept
 {
   // we have been asked to consume but we don't know yet how much to consume
   // e.g object T might be a base class
@@ -320,13 +310,13 @@ typename BoundedSPSCQueue<TBaseObject, Capacity>::Handle BoundedSPSCQueue<TBaseO
   uint64_t const tail_loaded = _tail.load(std::memory_order_relaxed);
 
   // Check for data
-  if (_consumer.cached_atomic == tail_loaded)
+  if (_cached_tail == tail_loaded)
   {
-    // We can't consume based on the cached head but we can load the actual value
+    // We can't consume based on the cached tail but we can load the actual value
     // and try again see if the producer has produced more data
-    _consumer.cached_atomic = _head.load(std::memory_order_acquire);
+    _cached_tail = _head.load(std::memory_order_acquire);
 
-    if (_consumer.cached_atomic == tail_loaded)
+    if (_cached_tail == tail_loaded)
     {
       // nothing to consume
       return Handle{};
@@ -334,15 +324,15 @@ typename BoundedSPSCQueue<TBaseObject, Capacity>::Handle BoundedSPSCQueue<TBaseO
   }
 
   // Get the tail pointer (beginning of the new object)
-  auto object_base = reinterpret_cast<value_type*>(_consumer.buffer + (tail_loaded & MASK));
+  auto object_base = reinterpret_cast<value_type*>(_buffer + (tail_loaded & _mask));
 
   // Return a Handle to the user for this object and increment the tail
   return Handle(object_base, _tail, _tail + object_base->size());
 }
 
 /***/
-template <typename TBaseObject, size_t Capacity>
-bool BoundedSPSCQueue<TBaseObject, Capacity>::empty() const noexcept
+template <typename TBaseObject>
+bool BoundedSPSCQueue<TBaseObject>::empty() const noexcept
 {
   return _head.load(std::memory_order_relaxed) == _tail.load(std::memory_order_relaxed);
 }

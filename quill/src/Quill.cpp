@@ -7,12 +7,12 @@ namespace quill
 /***/
 void preallocate()
 {
-  detail::LogManagerSingleton::instance()
-    .log_manager()
-    .thread_context_collection()
-    .local_thread_context()
-    ->spsc_queue()
-    .madvice();
+  QUILL_MAYBE_UNUSED size_t const volatile x = detail::LogManagerSingleton::instance()
+                                                 .log_manager()
+                                                 .thread_context_collection()
+                                                 .local_thread_context()
+                                                 ->spsc_queue()
+                                                 .capacity();
 }
 
 /***/
