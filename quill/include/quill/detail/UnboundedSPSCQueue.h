@@ -47,7 +47,7 @@ private:
   /**
    * A node has a buffer and a pointer to the next node
    */
-  struct node
+  struct alignas(CACHELINE_SIZE) node
   {
     /**
      * Constructor
@@ -201,8 +201,10 @@ public:
 
 private:
   static constexpr uint8_t _grow_factor{2};
-  node* _producer;
-  node* _consumer;
+
+  /** Modified by either the producer or consumer but never both */
+  alignas(CACHELINE_SIZE) node* _producer;
+  alignas(CACHELINE_SIZE) node* _consumer;
 };
 
 } // namespace detail
