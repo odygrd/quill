@@ -95,7 +95,7 @@ I ran each logger benchmark three times and I keep the second best result.
 
 ### Verdict
 PlatformLab NanoLog is a very fast logger with very low latency and high throughput. However, this comes at the cost of having to decompress a binary file and the use of a non-type safe printf API where only primitive times can be passed. 
-e.g. To log a C++ class or a ```std::vector``` via NanoLog you would have to convert it to a string first in the caller thread. Instead, Quill copies the class object and call the class ```operator<<``` in the background thread
+e.g. To log a C++ class or a ```std::vector``` via NanoLog you would have to convert it to a string first in the caller thread. Instead, Quill copies the object and any string formatting is performed by the backend thread
 
 Quill is not as high throughput as NanoLog but in terms of latency it is faster than NanoLog in almost every case. It is much more feature rich with custom formatting, several logger objects, human readable log files and a most importantly a superior format API with custom types support.
 
