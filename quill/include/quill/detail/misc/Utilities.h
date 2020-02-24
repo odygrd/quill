@@ -71,5 +71,18 @@ void safe_strncpy(std::array<char, N>& destination, char const* source) noexcept
   destination[len] = '\0';
 }
 
+/**
+ * align a pointer to the given alignment
+ * @tparam alignment
+ * @tparam T
+ * @param pointer
+ * @return
+ */
+template <uint64_t alignment, typename T>
+QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr T* align_pointer(void* pointer) noexcept
+{
+  static_assert(is_pow_of_two(alignment), "alignment must be a power of two");
+  return reinterpret_cast<T*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) & ~(alignment - 1ul));
+}
 } // namespace detail
 } // namespace quill

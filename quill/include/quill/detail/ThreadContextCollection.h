@@ -89,7 +89,7 @@ public:
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
-    static thread_local ThreadContextWrapper thread_context_wrapper{*this, _config};
+    alignas(CACHELINE_SIZE) static thread_local ThreadContextWrapper thread_context_wrapper{*this, _config};
     return thread_context_wrapper.thread_context();
   }
 
@@ -175,14 +175,14 @@ private:
   Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
 
   /**< Indicator that a new context was added, set by caller thread to true, read by the backend thread only, updated by any thread */
-  std::atomic<bool> _new_thread_context{false};
+  alignas(CACHELINE_SIZE) std::atomic<bool> _new_thread_context{false};
 
   /**<
    * Indicator of how many thread contexts are removed, if this number is not zero we will search for invalidated and empty
    * queue context until we find it to remove it.
    * Incremented by any thread on thread local destruction, decremented by the backend thread
    */
-  std::atomic<uint8_t> _invalid_thread_context{0};
+  alignas(CACHELINE_SIZE) std::atomic<uint8_t> _invalid_thread_context{0};
 };
 } // namespace detail
 } // namespace quill

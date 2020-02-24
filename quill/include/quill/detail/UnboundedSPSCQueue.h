@@ -65,7 +65,8 @@ private:
 
     /** members */
     bounded_spsc_queue_t bounded_spsc_queue;
-    std::atomic<node*> next{nullptr};
+    alignas(CACHELINE_SIZE) std::atomic<node*> next{nullptr};
+    char _pad1[detail::CACHELINE_SIZE - sizeof(std::atomic<node*>)];
   };
 
 public:
@@ -203,8 +204,9 @@ private:
   static constexpr uint8_t _grow_factor{2};
 
   /** Modified by either the producer or consumer but never both */
-  alignas(CACHELINE_SIZE) node* _producer;
-  alignas(CACHELINE_SIZE) node* _consumer;
+  alignas(CACHELINE_SIZE) node* _producer{nullptr};
+  alignas(CACHELINE_SIZE) node* _consumer{nullptr};
+  char _pad2[detail::CACHELINE_SIZE - sizeof(node*)];
 };
 
 } // namespace detail
