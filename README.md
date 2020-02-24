@@ -61,7 +61,7 @@ The main goals of the library are:
 
 ## Performance
 
-### CPU affinity set to different CPUs
+### Each Thread is running on different CPU
 #### 1 Thread
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
@@ -82,7 +82,7 @@ The main goals of the library are:
 |[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  196  |  204  |  207  |  208  |  209  |  209  |  1303071  |
 |[spdlog](https://github.com/gabime/spdlog)                     |  525  |  1532  |  1563  |  1570  |  1575  |  1576  |  26036  |
 
-### All Threads on the same CPU
+### All Threads are running on the same CPU
 #### 1 Thread
 #### 4 Threads
 
@@ -90,6 +90,14 @@ The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following messa
 
 Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging library expect PlatformLab Nanolog which is writting a binary file and can follow up. Therefore a different
 approach was followed, a log message per caller thread is logged between 1 to 100 microseconds.
+
+I ran each logger benchmark three times and I keep the second best result.
+
+### Verdict
+PlatformLab NanoLog is a very fast logger with very low latency and high throughput. However, this comes at the cost of havving to decompress a binary file and using a non-type safe printf API where only primitive times can be passed. 
+e.g. To log a C++ class or a ```std::vector``` via NanoLog you would have to convert it to a string first in the caller thread. Instead, Quill copies the class object and call the class ```operator<<``` in the background thread
+
+Quill is not as high throughput as NanoLog but in terms of latency it is faster than NanoLog in almost every case. It is much more feature rich with custom formatting, several logger objects, human readable log files and a most importantly a superior format API with custom types support.
 
 The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).  
 More benchmarks can be found [here](https://github.com/odygrd/logger_benchmarks/blob/master/results.txt).
