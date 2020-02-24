@@ -89,7 +89,7 @@ public:
       if (is_valid())
       {
         _destroy();
-        _indicator->store(_indicator_value, std::memory_order_relaxed);
+        _indicator->store(_indicator_value, std::memory_order_release);
       }
     }
 
@@ -316,7 +316,7 @@ bool BoundedSPSCQueue<TBaseObject>::try_emplace(Args&&... args) noexcept
   {
     // we can't produce based on the cached tail so lets load the real one
     // get the updated tail value as the consumer now may have consumed some data
-    _local_cached_tail = _shared_tail.load(std::memory_order_relaxed);
+    _local_cached_tail = _shared_tail.load(std::memory_order_acquire);
 
     if (QUILL_UNLIKELY(obj_size > _immutable_data.capacity - (head_loaded - _local_cached_tail)))
     {
