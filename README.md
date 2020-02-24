@@ -91,7 +91,7 @@ The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following messa
 Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput ones like PlatformLab Nanolog. 
 Therefore, a different approach was followed, a log message per caller thread is logged between 1 to 100 microseconds.
 
-I ran each logger benchmark three times and I keep the second best result.
+I ran each logger benchmark three times and the above latencies are the second best result.
 
 ### Verdict
 PlatformLab NanoLog is a very fast logger with very low latency and high throughput. However, this comes at the cost of having to decompress a binary file and the use of a non-type safe printf API where only primitive times can be passed. 
