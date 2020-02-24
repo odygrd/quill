@@ -91,7 +91,7 @@ target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
 target_compile_options(${TARGET_NAME} PRIVATE
                        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
                        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field>
-                       $<$<CXX_COMPILER_ID:MSVC>:/W4>)
+                       $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324>)
 
 if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015
     target_compile_options(${TARGET_NAME} PRIVATE /WX)
