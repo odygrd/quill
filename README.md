@@ -46,12 +46,13 @@ The main goals of the library are:
  * Clean warning-free codebase even on high warning levels
  * Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
  * Thread and Type safe with compile time checks
+ * Optimised. Locality and cache friendly, minimal false sharing when threads are running on different cores
  * Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
  * Configurable
  * Custom log patterns. Log statements can be formatted by providing a simple pattern
  * Log levels can be stripped out at compile time in release builds
  * Log records are written in timestamp order even if they were created by different threads
- * Guaranteed logging. Log messages are never dropped
+ * Guaranteed logging. Log messages are never dropped. If in any case the internal queue gets full a new queue is created. Therefore, the caller will suffer aa very small performance penanalty instead of blocking.
  * Support for wide character logging and wide character filenames (Windows only)
  * Various log targets (Handlers)
    * Console logging 
@@ -60,19 +61,35 @@ The main goals of the library are:
 
 ## Performance
 
-### 1 Thread Logging
+### CPU affinity set to different CPUs
+#### 1 Thread
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
 |--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill](https://github.com/odygrd/quill)               | 16       | 17       | 17       | 17       | 1625     | 2961     | 4709      |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog) | 18       | 18       | 19       | 21       | 24       | 46       | 32407     |
-|[Reckless](https://github.com/mattiasflodin/reckless)            | 50       | 51       | 53       | 54       | 57       | 106982   | 600779234 |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)     | 62       | 63       | 75       | 1042     | 1154     | 3187     | 13002667  |
-|[spdlog](https://github.com/gabime/spdlog)              | 183      | 226      | 369      | 2842     | 2906     | 5598     | 1079157   |
+|[Quill](https://github.com/odygrd/quill) |  20  |  21  |  22  |  23  |  58  |  106  |  2214  |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog) |  52  |  54  |  56  |  58  |  64  |  98  |  1431  |
+|[Reckless](https://github.com/mattiasflodin/reckless)         |  76  |  120  |  179  |  189  |  215  |  298  |  597950664  |
+|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)      |  211  |  236  |  266  |  1175  |  1394  |  3310  |  735398  |
+|[spdlog](https://github.com/gabime/spdlog)                    |  1574  |  1611  |  1645  |  1666  |  1710  |  2858  |  6346  |
 
-[![Benchmark](https://github.com/odygrd/quill/blob/master/images/benchmark_90th.png?raw=true)](https://charts.hohli.com/embed.html?created=1582255481780#w=640&h=480&d={"containerId":"chart","dataTable":{"cols":[{"label":"A","type":"string","p":{}},{"label":"B","type":"number","p":{}},{"label":"C","type":"number","p":{}},{"label":"D","type":"number","p":{}},{"label":"E","type":"number","p":{}},{"label":"F","type":"number"}],"rows":[{"c":[{"v":"Spdlog"},{"v":369},{"v":0},{"v":0},{"v":0},{"v":0}]},{"c":[{"v":"Lyengar%20NanoLog"},{"v":0},{"v":75},{"v":0},{"v":0},{"v":0}]},{"c":[{"v":"Reckless"},{"v":0},{"v":0},{"v":53},{"v":0},{"v":0}]},{"c":[{"v":"PlatformLab%20NanoLog"},{"v":0},{"v":0},{"v":0},{"v":19},{"v":0}]},{"c":[{"v":"Quill"},{"v":0},{"v":0},{"v":0},{"v":0},{"v":17}]}]},"options":{"legacyScatterChartLabels":true,"isStacked":true,"booleanRole":"certainty","vAxes":[{"minValue":null,"maxValue":null,"viewWindow":null,"viewWindowMode":null,"useFormatFromData":true},{"useFormatFromData":true}],"hAxis":{"viewWindow":{"max":90,"min":0},"minValue":0,"maxValue":90,"useFormatFromData":true,"logScale":false,"title":"Time%20(ns)","titleTextStyle":{"color":"#222","fontSize":12,"italic":true,"bold":true},"viewWindowMode":"explicit","gridlines":{"count":"6"},"minorGridlines":{"count":"0"},"slantedText":false},"legend":"none","width":640,"height":480,"title":"1%20Thread-%2090th%20Percentile%20Latency%20","titleTextStyle":{"color":"#000","fontSize":"13","bold":true,"italic":false},"fontName":"Tahoma"},"state":{},"view":{"columns":null,"rows":null},"isDefaultVisualization":false,"chartType":"BarChart"})
+#### 4 Threads
 
-The benchmarks aare done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)```.  
+| Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
+|--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
+|[Quill](https://github.com/odygrd/quill) |  19  |  19  |  20  |  20  |  20  |  20  |  3596  |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)  |  26  |  28  |  29  |  29  |  30  |  30  |  2680  |
+|[Reckless](https://github.com/mattiasflodin/reckless)          |  168  |  181  |  185  |  186  |  187  |  187  |  2418  |
+|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  196  |  204  |  207  |  208  |  209  |  209  |  1303071  |
+|[spdlog](https://github.com/gabime/spdlog)                     |  525  |  1532  |  1563  |  1570  |  1575  |  1576  |  26036  |
+
+### All Threads on the same CPU
+#### 1 Thread
+#### 4 Threads
+
+The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)```.  
+
+Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging library expect PlatformLab Nanolog which is writting a binary file and can follow up. Therefore a different
+approach was followed, a log message per caller thread is logged between 1 to 100 microseconds.
 
 The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).  
 More benchmarks can be found [here](https://github.com/odygrd/logger_benchmarks/blob/master/results.txt).
