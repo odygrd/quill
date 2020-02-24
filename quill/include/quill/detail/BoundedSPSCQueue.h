@@ -391,7 +391,7 @@ size_t BoundedSPSCQueue<TBaseObject>::_distance_from_next_cache_line(unsigned ch
   // increment the pointer to obj size
   start_pos += obj_size;
   // get a new aligned ptr and return the difference from the original
-  return align_pointer<CACHELINE_SIZE, unsigned char>(start_pos) - start_pos;
+  return static_cast<size_t>(align_pointer<CACHELINE_SIZE, unsigned char>(start_pos) - start_pos);
 }
 } // namespace detail
 } // namespace quill
