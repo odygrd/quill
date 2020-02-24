@@ -245,7 +245,6 @@ private:
   /** Local state - modified by either the producer or consumer, but never both **/
   alignas(CACHELINE_SIZE) uint64_t _local_cached_head{0}; /**< cached head index */
   alignas(CACHELINE_SIZE) uint64_t _local_cached_tail{0}; /**< cached tail index */
-  char _pad5[detail::CACHELINE_SIZE - sizeof(std::atomic<uint64_t>)];
 };
 
 /***/

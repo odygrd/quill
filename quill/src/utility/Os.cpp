@@ -12,8 +12,9 @@
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
   #include <malloc.h>
-  #include <processthreadsapi.h>
   #include <windows.h>
+
+  #include <processthreadsapi.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
@@ -186,7 +187,11 @@ size_t get_page_size() noexcept
 /***/
 void madvice(void* addr, size_t len)
 {
-#if !defined(_WIN32)
+#if defined(_WIN32)
+  // Nothing to do on windows, silence the warning
+  (void)addr;
+  (void)len;
+#else
   // It looks like madvice hint has no effect but we do it anyway ..
   auto const res = madvise(addr, len, MADV_SEQUENTIAL);
   if (res == -1)
