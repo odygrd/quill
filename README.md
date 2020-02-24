@@ -86,10 +86,10 @@ The main goals of the library are:
 #### 1 Thread
 #### 4 Threads
 
-The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)``` all reported latencies are in nanoseconds
+The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times per thread ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)``` all reported latencies are in nanoseconds
 
-Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging library expect PlatformLab Nanolog which is writting a binary file and can follow up. Therefore a different
-approach was followed, a log message per caller thread is logged between 1 to 100 microseconds.
+Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput ones like PlatformLab Nanolog. 
+Therefore, a different approach was followed, a log message per caller thread is logged between 1 to 100 microseconds.
 
 I ran each logger benchmark three times and I keep the second best result.
 
