@@ -86,7 +86,7 @@ The main goals of the library are:
 #### 1 Thread
 #### 4 Threads
 
-The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)```.  
+The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)``` all reported latencies are in nanoseconds
 
 Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging library expect PlatformLab Nanolog which is writting a binary file and can follow up. Therefore a different
 approach was followed, a log message per caller thread is logged between 1 to 100 microseconds.
@@ -100,7 +100,7 @@ e.g. To log a C++ class or a ```std::vector``` via NanoLog you would have to con
 Quill is not as high throughput as NanoLog but in terms of latency it is faster than NanoLog in almost every case. It is much more feature rich with custom formatting, several logger objects, human readable log files and a most importantly a superior format API with custom types support.
 
 The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).  
-More benchmarks can be found [here](https://github.com/odygrd/logger_benchmarks/blob/master/results.txt).
+More benchmarks can be found [here](https://github.com/odygrd/logger_benchmarks/blob/master/results_thread_affinity_set.txt).
 
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
