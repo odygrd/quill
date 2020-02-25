@@ -21,7 +21,7 @@ class LoggerCollection;
  * Thread safe logger.
  * Logger must be obtained from LoggerCollection get_logger(), therefore constructors are private
  */
-class Logger
+class alignas(detail::CACHELINE_SIZE) Logger
 {
 public:
   /**
@@ -29,6 +29,15 @@ public:
    */
   Logger(Logger const&) = delete;
   Logger& operator=(Logger const&) = delete;
+
+  /**
+   * We align the logger object to it's own cache line. It shouldn't make much difference as the
+   * logger object size is exactly 1 cache line
+   * @param i
+   * @return
+   */
+  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHELINE_SIZE, i); }
+  void operator delete(void* p) { detail::aligned_free(p); }
 
   /**
    * @return The log level of the logger

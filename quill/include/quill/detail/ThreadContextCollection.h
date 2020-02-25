@@ -2,6 +2,7 @@
 
 #include "quill/detail/Config.h"
 #include "quill/detail/ThreadContext.h"
+#include "quill/detail/misc/AlignedAllocator.h"
 #include "quill/detail/misc/Spinlock.h"
 #include <atomic>
 #include <cassert>
@@ -67,6 +68,13 @@ private:
 
 public:
   /**
+   * Type definitions
+   */
+  using backend_thread_contexts_cache_t =
+    std::vector<ThreadContext*, detail::CacheAlignedAllocator<ThreadContext*>>;
+
+public:
+  /**
    * Constructor
    */
   explicit ThreadContextCollection(Config const& config) : _config(config){};
@@ -107,7 +115,7 @@ public:
    * If there are no invalidated contexts or no new contexts the existing cache is returned
    * @return All current owned thread contexts
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::vector<ThreadContext*> const& backend_thread_contexts_cache();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT backend_thread_contexts_cache_t const& backend_thread_contexts_cache();
 
 private:
   /**
@@ -161,6 +169,7 @@ private:
 private:
   Config const& _config; /**< reference to config */
 
+  alignas(CACHELINE_SIZE) Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 
   /**<
@@ -170,13 +179,10 @@ private:
    *
    * @note Accessed only by the backend thread
    * */
-  std::vector<ThreadContext*> _thread_context_cache;
-
-  Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+  alignas(CACHELINE_SIZE) backend_thread_contexts_cache_t _thread_context_cache;
 
   /**< Indicator that a new context was added, set by caller thread to true, read by the backend thread only, updated by any thread */
   alignas(CACHELINE_SIZE) std::atomic<bool> _new_thread_context{false};
-
 
   /**<
    * Indicator of how many thread contexts are removed, if this number is not zero we will search for invalidated and empty
@@ -184,7 +190,7 @@ private:
    * Incremented by any thread on thread local destruction, decremented by the backend thread
    */
   alignas(CACHELINE_SIZE) std::atomic<uint8_t> _invalid_thread_context{0};
-
+  char _pad0[detail::CACHELINE_SIZE - sizeof(std::atomic<uint8_t>)];
 };
 } // namespace detail
 } // namespace quill

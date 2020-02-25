@@ -1,6 +1,8 @@
 #pragma once
 
 #include "quill/detail/Config.h"
+#include "quill/detail/HandlerCollection.h"
+#include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/misc/RdtscClock.h"
 #include <atomic>
 #include <memory>
@@ -12,12 +14,6 @@ namespace quill
 {
 namespace detail
 {
-/** forward declaration **/
-class ThreadContextCollection;
-class ThreadContext;
-class RecordBase;
-class LoggerCollection;
-class HandlerCollection;
 
 class BackendWorker
 {
@@ -66,7 +62,8 @@ private:
    * Checks for records in all queues and processes the one with the minimum timestamp
    * @return true if one record was found and processed
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool _process_record(std::vector<ThreadContext*> const& thread_contexts);
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool _process_record(
+    ThreadContextCollection::backend_thread_contexts_cache_t const& thread_contexts);
 
 private:
   /** This is exactly 1 cache line **/

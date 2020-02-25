@@ -87,13 +87,9 @@ private:
   HandlerCollection& _handler_collection;              /** Collection of al handlers **/
   Logger* _default_logger{nullptr}; /**< A pointer to the default logger to avoid lookup */
 
-  // TODO::: Check the sizes here
-  /** We don't really need to specify the padding explicitly but Visual Studio will give a warning */
-  char _pad1[detail::CACHELINE_SIZE - 24];
-
   /** We can not avoid having less than 2 cache lines here, so we will just align the lock and the logger map on the same cache line as they are used together anyway */
-  alignas(detail::CACHELINE_SIZE) std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
-  mutable RecursiveSpinlock _spinlock; /**< Thread safe access to logger map, Mutable to have a const get_logger() function  */
+  alignas(detail::CACHELINE_SIZE) mutable RecursiveSpinlock _spinlock; /**< Thread safe access to logger map, Mutable to have a const get_logger() function  */
+  std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
 };
 
 } // namespace detail

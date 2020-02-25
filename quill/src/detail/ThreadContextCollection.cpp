@@ -47,7 +47,7 @@ void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadCont
 }
 
 /***/
-std::vector<ThreadContext*> const& ThreadContextCollection::backend_thread_contexts_cache()
+ThreadContextCollection::backend_thread_contexts_cache_t const& ThreadContextCollection::backend_thread_contexts_cache()
 {
   if (QUILL_UNLIKELY(_has_invalid_thread_context()))
   {

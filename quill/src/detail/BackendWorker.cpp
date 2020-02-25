@@ -2,10 +2,7 @@
 
 #include <vector>
 
-#include "quill/detail/HandlerCollection.h"
-#include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContext.h"
-#include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/misc/Os.h"
 
 namespace quill
@@ -95,7 +92,7 @@ void BackendWorker::stop() noexcept
 void BackendWorker::_main_loop()
 {
   // load all contexts locally in case any new ThreadContext (new thread) was added
-  std::vector<ThreadContext*> const& cached_thread_contexts =
+  ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
   bool const processed_record = _process_record(cached_thread_contexts);
@@ -111,7 +108,7 @@ void BackendWorker::_main_loop()
 void BackendWorker::_exit()
 {
   // load all contexts locally
-  std::vector<ThreadContext*> const& cached_thread_contexts =
+  ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
   while (_process_record(cached_thread_contexts))
@@ -121,7 +118,7 @@ void BackendWorker::_exit()
 }
 
 /***/
-bool BackendWorker::_process_record(std::vector<ThreadContext*> const& thread_contexts)
+bool BackendWorker::_process_record(ThreadContextCollection::backend_thread_contexts_cache_t const& thread_contexts)
 {
   // Iterate through all records in all thread contexts queues and find the one with the lowest
   // rdtsc to process We will log the timestamps in order

@@ -21,7 +21,7 @@ class LoggerDetails
 {
 public:
   /**
-   * Constructor for a single handle
+   * Constructor
    * @param name
    */
   LoggerDetails(char const* name, Handler* handler)
@@ -31,7 +31,7 @@ public:
   }
 
   /**
-   * Constructor for multiple handlers
+   * Constructor
    * @param name
    */
   LoggerDetails(char const* name, std::vector<Handler*> handlers)

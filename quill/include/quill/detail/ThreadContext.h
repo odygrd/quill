@@ -2,7 +2,6 @@
 
 #include "quill/detail/misc/Common.h"
 
-#include "quill/detail/ThreadContext.h"
 #include "quill/detail/UnboundedSPSCQueue.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/record/RecordBase.h"

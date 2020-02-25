@@ -5,6 +5,7 @@ set(TARGET_NAME quill)
 
 # header files
 set(HEADER_FILES
+    include/quill/detail/misc/AlignedAllocator.h
     include/quill/detail/misc/Attributes.h
     include/quill/detail/misc/Common.h
     include/quill/detail/misc/Macros.h
