@@ -97,7 +97,7 @@ public:
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
-    alignas(CACHELINE_SIZE) static thread_local ThreadContextWrapper thread_context_wrapper{*this, _config};
+    static thread_local ThreadContextWrapper thread_context_wrapper{*this, _config};
     return thread_context_wrapper.thread_context();
   }
 
@@ -169,7 +169,7 @@ private:
 private:
   Config const& _config; /**< reference to config */
 
-  alignas(CACHELINE_SIZE) Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+  Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 
   /**<
@@ -179,7 +179,7 @@ private:
    *
    * @note Accessed only by the backend thread
    * */
-  alignas(CACHELINE_SIZE) backend_thread_contexts_cache_t _thread_context_cache;
+  backend_thread_contexts_cache_t _thread_context_cache;
 
   /**< Indicator that a new context was added, set by caller thread to true, read by the backend thread only, updated by any thread */
   alignas(CACHELINE_SIZE) std::atomic<bool> _new_thread_context{false};
