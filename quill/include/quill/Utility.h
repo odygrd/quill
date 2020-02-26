@@ -2,6 +2,7 @@
 
 #include "quill/detail/misc/Attributes.h"
 #include <cstddef>
+#include <sstream>
 #include <string>
 
 /**
@@ -29,5 +30,26 @@ QUILL_NODISCARD std::string to_hex(unsigned char const* buffer, size_t size) noe
 QUILL_NODISCARD std::string to_hex(char* buffer, size_t size) noexcept;
 QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
 
+/**
+ * By default the logger will take a copy of the passed object and then will call the operator<< in the background thread
+ * Use this function when :
+ * 1) [to print a non copiable] It is not possible to take a copy of an object when the object is not copyable
+ * 2) [to avoid race condition] You want to log a class that contains a reference or a pointer to another object as a class member, that
+ * can be updated before the logger thread calls operator<<. In that case when the logger
+ * thread tries to call operator<< on the class itself but the internal reference object might have changed between the
+ * time you wanted to log and when the logged thread called operator <<.
+ * Therefore, we need to accept the performance penalty calling operator<< on the caller thread
+ * @requires requires the custom type to have an operator<< overload defined
+ * @tparam T
+ * @param obj
+ * @return
+ */
+template <typename T>
+QUILL_NODISCARD std::string to_string(T const& obj) noexcept
+{
+  std::stringstream ss;
+  ss << obj;
+  return ss.str();
+}
 } // namespace utility
 } // namespace quill
