@@ -204,9 +204,9 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanosec
  *
  * During very high logging activity (e.g. logging in a loop every 10 nanoseconds) the backend thread won't be
  * able to consume fast enough and the queue will become full. In this scenario the caller thread
- * will not block but instead it will switch to a new queue.
+ * will not block but instead it will allocate a new queue.
  *
- * This function sets the initial capacity of the first queue. By default Quill starts with 131K queue.
+ * This function sets the initial capacity of the first queue. By default Quill starts with a 16K queue.
  *
  * The smallest the queue the better the locality aas the queue will be small enough to stay in the
  * cache and get reused. Increasing the size of the queue leads to more cache misses but less
