@@ -134,10 +134,15 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 
 #### External
 
-##### Building Quill as library
-// TODO
+##### Building and Installing Quill as Static Library
+```
+git clone https://github.com/odygrd/quill.git
+mkdir cmake_build
+cd cmake_build
+make install
+```
 
-Then use this library from a CMake project, you can locate it directly with `find_lirabry()`
+Then use the library from a CMake project, you can locate it directly with `find_package()`
 ##### Directory Structure
 ```
 my_project/
@@ -150,25 +155,11 @@ my_project/
 # Set only if needed - quill was installed under a custom non-standard directory
 set(CMAKE_PREFIX_PATH /test_quill/usr/local/)
 
-# Find the library
-find_library(QUILL_LIBRARY NAMES quill)
-if(NOT QUILL_LIBRARY)
-    message(FATAL_ERROR "Quill library not found")
-endif()
-
-# Find include paths
-find_path(QUILL_INCLUDE_DIR Quill.h)
-
-# Store the variables that can be used by the library user
-mark_as_advanced(QUILL_INCLUDE_DIR QUILL_LIBRARY)
-find_package(Threads REQUIRED)
-set(QUILL_LIBRARY ${QUILL_LIBRARY} Threads::Threads)
-set(QUILL_INCLUDE_DIR ${QUILL_INCLUDE_DIR})
+find_package(quill REQUIRED)
 
 # Linking your project against quill
-add_executable(my_project main.cpp)
-target_include_directories(my_project PRIVATE ${QUILL_INCLUDE_DIR})
-target_link_libraries(my_project PRIVATE ${QUILL_LIBRARY})
+add_executable(example main.cpp)
+target_link_libraries(example quill::quill)
 ```
 
 ##### main.cpp
