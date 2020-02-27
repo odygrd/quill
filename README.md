@@ -166,7 +166,7 @@ add_executable(my_project main.cpp)
 target_link_libraries(my_project PRIVATE quill::quill)
 ```
 ##### main.cpp
-See basic usage below
+See [Basic Usage](#basic-usage)
 
 ### Package Managers
 
