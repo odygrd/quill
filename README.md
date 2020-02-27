@@ -134,16 +134,45 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 
 #### External
 
-To use this library from a CMake project, you can locate it directly with `find_package()` and use the namespaced imported target from the generated package configuration:
+##### Building Quill as library
+// TODO
 
-```cmake
-# CMakeLists.txt
-find_package(quill 3.2.0 REQUIRED)
-...
-add_library(foo ...)
-...
-target_link_libraries(foo PRIVATE quill::quill)
+Then use this library from a CMake project, you can locate it directly with `find_lirabry()`
+##### Directory Structure
 ```
+my_project/
+├── CMakeLists.txt
+├── main.cpp
+```
+
+##### CMakeLists.txt
+```cmake
+# Set only if needed - quill was installed under a custom non-standard directory
+set(CMAKE_PREFIX_PATH /test_quill/usr/local/)
+
+# Find the library
+find_library(QUILL_LIBRARY NAMES quill)
+if(NOT QUILL_LIBRARY)
+    message(FATAL_ERROR "Quill library not found")
+endif()
+
+# Find include paths
+find_path(QUILL_INCLUDE_DIR Quill.h)
+
+# Store the variables that can be used by the library user
+mark_as_advanced(QUILL_INCLUDE_DIR QUILL_LIBRARY)
+find_package(Threads REQUIRED)
+set(QUILL_LIBRARY ${QUILL_LIBRARY} Threads::Threads)
+set(QUILL_INCLUDE_DIR ${QUILL_INCLUDE_DIR})
+
+# Linking your project against quill
+add_executable(my_project main.cpp)
+target_include_directories(my_project PRIVATE ${QUILL_INCLUDE_DIR})
+target_link_libraries(my_project PRIVATE ${QUILL_LIBRARY})
+```
+
+##### main.cpp
+See [basic usage](#basic-usage)
 
 #### Embedded
 
