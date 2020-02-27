@@ -159,7 +159,7 @@ find_package(quill REQUIRED)
 
 # Linking your project against quill
 add_executable(example main.cpp)
-target_link_libraries(example quill::quill)
+target_link_libraries(example PRIVATE quill::quill)
 ```
 
 ##### main.cpp
