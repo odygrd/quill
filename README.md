@@ -147,15 +147,26 @@ target_link_libraries(foo PRIVATE quill::quill)
 
 #### Embedded
 
-To embed the library directly into an existing CMake project, place the entire source tree in a subdirectory and call `add_subdirectory()` in your `CMakeLists.txt` file:
+##### Directory Structure
+```
+my_project/
+├── quill/
+├── CMakeLists.txt
+├── main.cpp
+```
 
+To embed the library directly, place the entire ```quill``` directory in a subdirectory under your project and call `add_subdirectory()` in your `CMakeLists.txt` file
+
+##### CMakeLists.txt
 ```cmake
 add_subdirectory(quill)
 ...
-add_library(foo ...)
+add_executable(my_project main.cpp)
 ...
-target_link_libraries(foo PRIVATE quill::quill)
+target_link_libraries(my_project PRIVATE quill::quill)
 ```
+##### main.cpp
+See basic usage below
 
 ### Package Managers
 
