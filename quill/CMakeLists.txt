@@ -1,112 +1,127 @@
-add_subdirectory(bundled)
+cmake_minimum_required(VERSION 3.1.0)
 
-# library name
-set(TARGET_NAME quill)
-
-# header files
-set(HEADER_FILES
-    include/quill/detail/misc/AlignedAllocator.h
-    include/quill/detail/misc/Attributes.h
-    include/quill/detail/misc/Common.h
-    include/quill/detail/misc/Macros.h
-    include/quill/detail/misc/Os.h
-    include/quill/detail/misc/RdtscClock.h
-    include/quill/detail/misc/RecursiveSpinlock.h
-    include/quill/detail/misc/Spinlock.h
-    include/quill/detail/misc/Utilities.h
-    include/quill/detail/misc/TypeTraits.h
-    include/quill/detail/record/CommandRecord.h
-    include/quill/detail/record/LogRecord.h
-    include/quill/detail/record/RecordBase.h
-    include/quill/detail/record/StaticLogRecordInfo.h
-    include/quill/detail/BackendWorker.h
-    include/quill/detail/BoundedSPSCQueue.h
-    include/quill/detail/Config.h
-    include/quill/detail/HandlerCollection.h
-    include/quill/detail/LoggerCollection.h
-    include/quill/detail/LoggerDetails.h
-    include/quill/detail/LogMacros.h
-    include/quill/detail/LogManager.h
-    include/quill/detail/LogManagerSingleton.h
-    include/quill/detail/ThreadContext.h
-    include/quill/detail/ThreadContextCollection.h
-    include/quill/detail/UnboundedSPSCQueue.h
-    include/quill/handlers/FileHandler.h
-    include/quill/handlers/Handler.h
-    include/quill/handlers/StreamHandler.h
-    include/quill/Logger.h
-    include/quill/LogLevel.h
-    include/quill/PatternFormatter.h
-    include/quill/Quill.h
-    include/quill/TweakMe.h
-    include/quill/Utility.h
-    include/quill/Version.h
-    )
-
-# source files
-set(SOURCE_FILES
-    src/detail/BackendWorker.cpp
-    src/detail/Config.cpp
-    src/detail/HandlerCollection.cpp
-    src/detail/LoggerCollection.cpp
-    src/detail/LogManager.cpp
-    src/detail/LogManagerSingleton.cpp
-    src/detail/ThreadContextCollection.cpp
-    src/handlers/FileHandler.cpp
-    src/handlers/StreamHandler.cpp
-    src/utility/Utilities.cpp
-    src/utility/Os.cpp
-    src/utility/RdtscClock.cpp
-    src/utility/RecursiveSpinlock.cpp
-    src/utility/Spinlock.cpp
-    src/LogLevel.cpp
-    src/PatternFormatter.cpp
-    src/Quill.cpp
-    src/Utility.cpp
-    )
-
-# Add as a library
-if (QUILL_BUILD_SHARED)
-    add_library(${TARGET_NAME} SHARED "")
+#-------------------------------------------------------------------------------------------------------
+# Use newer policies if possible, up to most recent tested version of CMake.
+#-------------------------------------------------------------------------------------------------------
+if (${CMAKE_VERSION} VERSION_LESS 3.16)
+    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else ()
-    add_library(${TARGET_NAME} STATIC "")
+    cmake_policy(VERSION 3.16)
 endif ()
 
-add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
-
-# Add target sources
-target_sources(${TARGET_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
-
-# Add include directories for this library
-target_include_directories(${TARGET_NAME}
-                           PUBLIC
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                           $<INSTALL_INTERFACE:include>
-                           PRIVATE
-                           ${CMAKE_CURRENT_SOURCE_DIR})
-
-# Link dependencies
-target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
-
-# Compiler options
-target_compile_options(${TARGET_NAME} PRIVATE
-                       $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-                       -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field>
-                       $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324>)
-
-if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015
-    target_compile_options(${TARGET_NAME} PRIVATE /WX)
+#-------------------------------------------------------------------------------------------------------
+# Determine if fmt is built as a subproject (using add_subdirectory) or if it is the master project.
+#-------------------------------------------------------------------------------------------------------
+set(QUILL_MASTER_PROJECT OFF)
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(QUILL_MASTER_PROJECT ON)
 endif ()
 
-# TODO:: use MultiByteToWideChar() and WideCharToMultiByte() from <Windows.h> instead of covecvt
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_definitions(${TARGET_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
+#-------------------------------------------------------------------------------------------------------
+# Custom cmake functions
+#-------------------------------------------------------------------------------------------------------
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(Utility)
+
+#-------------------------------------------------------------------------------------------------------
+# Resolve version
+#-------------------------------------------------------------------------------------------------------
+quill_extract_version()
+
+project(quill VERSION ${QUILL_VERSION} LANGUAGES CXX)
+
+#-------------------------------------------------------------------------------------------------------
+# Set default build to release
+#-------------------------------------------------------------------------------------------------------
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build" FORCE)
 endif ()
 
-# Properties
-set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSION ${QUILL_VERSION})
-
-# ---- Tests ---- #
-if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
-    add_subdirectory(test)
+#---------------------------------------------------------------------------------------
+# Compiler config
+#---------------------------------------------------------------------------------------
+if (NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif ()
+
+#---------------------------------------------------------------------------------------
+# Always verbose make file
+#---------------------------------------------------------------------------------------
+if (QUILL_MASTER_PROJECT)
+    set(CMAKE_VERBOSE_MAKEFILE TRUE CACHE BOOL "Verbose output" FORCE)
+endif ()
+
+#-------------------------------------------------------------------------------------------------------
+# Options
+#-------------------------------------------------------------------------------------------------------
+
+option(QUILL_BUILD_SHARED "Build as shared library" OFF)
+
+option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
+
+option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
+
+option(QUILL_SANITIZE_ADDRESS "Enable address sanitizer in tests" OFF)
+
+option(QUILL_SANITIZE_THREAD "Enable thread sanitizer in tests (Using this option with any other compiler except clang may result to false positives)" OFF)
+
+option(QUILL_CODE_COVERAGE "Enable code coverage" OFF)
+
+option(QUILL_USE_VALGRIND "Use valgrind as the default memcheck tool in CTest (Requires Valgrind)" OFF)
+
+#-------------------------------------------------------------------------------------------------------
+# Required Packages
+#-------------------------------------------------------------------------------------------------------
+find_package(Threads REQUIRED)
+
+if (QUILL_BUILD_TESTS)
+    enable_testing()
+    find_package(GTest REQUIRED)
+    include_directories(${GTEST_INCLUDE_DIRS})
+
+    if (QUILL_USE_VALGRIND)
+        # find valgrind
+        find_program(MEMORYCHECK_COMMAND NAMES valgrind)
+        if (NOT MEMORYCHECK_COMMAND)
+            message(WARNING "Valgrind not found")
+        endif ()
+
+        # set valgrind params
+        set(MEMORYCHECK_COMMAND_OPTIONS "--tool=memcheck --leak-check=full --leak-resolution=med --show-leak-kinds=all --track-origins=yes --vgdb=no --fair-sched=yes")
+
+        # add memcheck test action to ctest
+        include(CTest)
+    endif ()
+endif ()
+
+#-------------------------------------------------------------------------------------------------------
+# Log Info
+#-------------------------------------------------------------------------------------------------------
+if (QUILL_MASTER_PROJECT)
+    message(STATUS "Build Type: " ${CMAKE_BUILD_TYPE})
+    message(STATUS "Quill Version: ${QUILL_VERSION}")
+endif ()
+
+#-------------------------------------------------------------------------------------------------------
+# Additional Compiler Options
+#-------------------------------------------------------------------------------------------------------
+# address sanitizer flags
+if (QUILL_SANITIZE_ADDRESS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+endif ()
+
+# thread sanitizer flags
+if (QUILL_SANITIZE_THREAD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+endif ()
+
+# Append extra options for coverage
+if (QUILL_CODE_COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+endif ()
+
+#-------------------------------------------------------------------------------------------------------
+# Subdirectories
+#-------------------------------------------------------------------------------------------------------
+add_subdirectory(quill)
