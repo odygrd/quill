@@ -2,11 +2,11 @@
 
 #include "quill/detail/misc/Common.h"
 
-#include "fmt/chrono.h"
-#include "fmt/format.h"
-#include "fmt/ostream.h"
-#include "fmt/ranges.h"
 #include "quill/Logger.h"
+#include "quill/bundled/fmt/chrono.h"
+#include "quill/bundled/fmt/format.h"
+#include "quill/bundled/fmt/ostream.h"
+#include "quill/bundled/fmt/ranges.h"
 #include "quill/detail/misc/Macros.h"
 
 // Config Options

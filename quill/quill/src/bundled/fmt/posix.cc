@@ -10,7 +10,7 @@
 #  define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include "fmt/posix.h"
+#include "quill/bundled/fmt/posix.h"
 
 #include <climits>
 

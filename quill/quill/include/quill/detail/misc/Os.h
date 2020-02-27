@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fmt/format.h"
+#include "quill/bundled/fmt/format.h"
 #include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 #include <cstdint>

@@ -1,10 +1,25 @@
-add_subdirectory(bundled)
-
 # library name
 set(TARGET_NAME quill)
 
 # header files
 set(HEADER_FILES
+    # Bundled fmt
+    include/quill/bundled/fmt/chrono.h
+    include/quill/bundled/fmt/color.h
+    include/quill/bundled/fmt/compile.h
+    include/quill/bundled/fmt/core.h
+    include/quill/bundled/fmt/format.h
+    include/quill/bundled/fmt/format-inl.h
+    include/quill/bundled/fmt/locale.h
+    include/quill/bundled/fmt/ostream.h
+    include/quill/bundled/fmt/posix.h
+    include/quill/bundled/fmt/printf.h
+    include/quill/bundled/fmt/ranges.h
+
+    # Bundled invoke
+    include/quill/bundled/invoke/invoke.h
+
+    # quill
     include/quill/detail/misc/AlignedAllocator.h
     include/quill/detail/misc/Attributes.h
     include/quill/detail/misc/Common.h
@@ -45,6 +60,11 @@ set(HEADER_FILES
 
 # source files
 set(SOURCE_FILES
+    # Bundled fmt
+    src/bundled/fmt/format.cc
+    src/bundled/fmt/posix.cc
+
+    # quill
     src/detail/BackendWorker.cpp
     src/detail/Config.cpp
     src/detail/HandlerCollection.cpp
@@ -86,7 +106,7 @@ target_include_directories(${TARGET_NAME}
                            ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link dependencies
-target_link_libraries(${TARGET_NAME} PUBLIC fmt invoke Threads::Threads)
+target_link_libraries(${TARGET_NAME} PUBLIC Threads::Threads)
 
 # Compiler options
 target_compile_options(${TARGET_NAME} PRIVATE

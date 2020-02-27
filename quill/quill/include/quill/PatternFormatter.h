@@ -1,7 +1,7 @@
 #pragma once
 
-#include "fmt/format.h"
-#include "invoke/invoke.h"
+#include "quill/bundled/fmt/format.h"
+#include "quill/bundled/invoke/invoke.h"
 #include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
