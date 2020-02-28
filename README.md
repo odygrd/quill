@@ -167,12 +167,12 @@ See [basic usage](#basic-usage)
 
 #### Embedded
 
-To embed the library directly, place the entire ```quill``` directory in a subdirectory under your project and call `add_subdirectory()` in your `CMakeLists.txt` file
+To embed the library directly, copy the source [folder](https://github.com/odygrd/quill/tree/master/quill/quill) to your project and call `add_subdirectory()` in your `CMakeLists.txt` file
 
 ##### Directory Structure
 ```
 my_project/
-├── quill/
+├── quill/            (source folder)
 ├── CMakeLists.txt
 ├── main.cpp
 ```
@@ -182,7 +182,7 @@ my_project/
 cmake_minimum_required(VERSION 3.1.0)
 project(my_project)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 14) 
 
 add_subdirectory(quill)
 
