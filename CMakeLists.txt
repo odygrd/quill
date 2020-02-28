@@ -119,5 +119,9 @@ if (QUILL_CODE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif ()
 
+# Build Examples
+if (QUILL_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif ()
+
 add_subdirectory(quill)
-add_subdirectory(examples)

@@ -132,63 +132,63 @@ if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
 endif ()
 
 if (QUILL_MASTER_PROJECT)
-# ---- Install ---- #
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
+    # ---- Install ---- #
+    include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
 
-set(version_config ${PROJECT_BINARY_DIR}/quill-config-version.cmake)
-set(project_config ${PROJECT_BINARY_DIR}/quill-config.cmake)
-set(pkgconfig ${PROJECT_BINARY_DIR}/quill.pc)
-set(targets_export_name quill-targets)
+    set(version_config ${PROJECT_BINARY_DIR}/quill-config-version.cmake)
+    set(project_config ${PROJECT_BINARY_DIR}/quill-config.cmake)
+    set(pkgconfig ${PROJECT_BINARY_DIR}/quill.pc)
+    set(targets_export_name quill-targets)
 
-set(QUILL_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/quill CACHE STRING
-        "Installation directory for cmake files, relative to ${CMAKE_INSTALL_PREFIX}.")
+    set(QUILL_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/quill CACHE STRING
+            "Installation directory for cmake files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
-set(QUILL_LIB_DIR ${CMAKE_INSTALL_LIBDIR} CACHE STRING
-        "Installation directory for libraries, relative to ${CMAKE_INSTALL_PREFIX}.")
+    set(QUILL_LIB_DIR ${CMAKE_INSTALL_LIBDIR} CACHE STRING
+            "Installation directory for libraries, relative to ${CMAKE_INSTALL_PREFIX}.")
 
-set(QUILL_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR} CACHE STRING
-        "Installation directory for include files, relative to ${CMAKE_INSTALL_PREFIX}.")
+    set(QUILL_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR} CACHE STRING
+            "Installation directory for include files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
-set(QUILL_PKGCONFIG_DIR ${CMAKE_INSTALL_PREFIX}/pkgconfig CACHE PATH
-        "Installation directory for pkgconfig (.pc) files, relative to ${CMAKE_INSTALL_PREFIX}.")
+    set(QUILL_PKGCONFIG_DIR ${CMAKE_INSTALL_PREFIX}/pkgconfig CACHE PATH
+            "Installation directory for pkgconfig (.pc) files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
-# Generate the version, config and target files into the build directory.
-# Generate version_config
-write_basic_package_version_file(
-        ${version_config}
-        VERSION ${QUILL_VERSION}
-        COMPATIBILITY AnyNewerVersion)
+    # Generate the version, config and target files into the build directory.
+    # Generate version_config
+    write_basic_package_version_file(
+            ${version_config}
+            VERSION ${QUILL_VERSION}
+            COMPATIBILITY AnyNewerVersion)
 
-# Generate pkgconfig
-configure_file(
-        "${CMAKE_SOURCE_DIR}/quill/cmake/quill.pc.in"
-        "${pkgconfig}"
-        @ONLY)
+    # Generate pkgconfig
+    configure_file(
+            "${CMAKE_SOURCE_DIR}/quill/cmake/quill.pc.in"
+            "${pkgconfig}"
+            @ONLY)
 
-configure_package_config_file(
-        ${CMAKE_SOURCE_DIR}/quill/cmake/quill-config.cmake.in
-        ${project_config}
-        INSTALL_DESTINATION ${QUILL_CMAKE_DIR})
+    configure_package_config_file(
+            ${CMAKE_SOURCE_DIR}/quill/cmake/quill-config.cmake.in
+            ${project_config}
+            INSTALL_DESTINATION ${QUILL_CMAKE_DIR})
 
-# Install version, config files
-install(FILES ${project_config} ${version_config}
-        DESTINATION ${QUILL_CMAKE_DIR})
+    # Install version, config files
+    install(FILES ${project_config} ${version_config}
+            DESTINATION ${QUILL_CMAKE_DIR})
 
-# Install the library and headers.
-install(TARGETS ${TARGET_NAME} EXPORT ${targets_export_name}
-        LIBRARY DESTINATION ${QUILL_LIB_DIR}
-        ARCHIVE DESTINATION ${QUILL_LIB_DIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    # Install the library and headers.
+    install(TARGETS ${TARGET_NAME} EXPORT ${targets_export_name}
+            LIBRARY DESTINATION ${QUILL_LIB_DIR}
+            ARCHIVE DESTINATION ${QUILL_LIB_DIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-# Export the library
-install(EXPORT ${targets_export_name} DESTINATION ${QUILL_CMAKE_DIR}
-        NAMESPACE quill::)
+    # Export the library
+    install(EXPORT ${targets_export_name} DESTINATION ${QUILL_CMAKE_DIR}
+            NAMESPACE quill::)
 
-# Copy the headers
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/quill/quill/include/quill DESTINATION ${QUILL_INC_DIR})
+    # Copy the headers
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/quill/quill/include/quill DESTINATION ${QUILL_INC_DIR})
 
-# Copy pkgconfig
-install(FILES "${pkgconfig}" DESTINATION "${QUILL_PKGCONFIG_DIR}")
-endif()
+    # Copy pkgconfig
+    install(FILES "${pkgconfig}" DESTINATION "${QUILL_PKGCONFIG_DIR}")
+endif ()
 
