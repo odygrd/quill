@@ -31,7 +31,6 @@
 - [Basic Usage](#basic-usage)
 - [Documentation](#documentation)
 - [License](#license)
-- [Disclaimer](#disclaimer)
 
 ## Design Rationale
 The library aims to make logging significantly easier for the application developer while at the same time reduce the overhead of logging in the critical path as much as possible.
@@ -82,16 +81,17 @@ The main goals of the library are:
 |[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  196  |  204  |  207  |  208  |  209  |  209  |  1303071  |
 |[spdlog](https://github.com/gabime/spdlog)                     |  525  |  1532  |  1563  |  1570  |  1575  |  1576  |  26036  |
 
-### All Threads are running on the same CPU
-#### 1 Thread
-#### 4 Threads
-
 The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times per thread ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)``` all reported latencies are in nanoseconds
 
 Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput ones like PlatformLab Nanolog. 
 Therefore, a different approach was followed, a log message per caller thread is logged between 1 to 3 microseconds.
 
 I ran each logger benchmark three times and the above latencies are the second best result.
+
+### All Threads are running on the same CPU
+#### 1 Thread
+#### 4 Threads
+
 
 ### Verdict
 PlatformLab NanoLog is a very fast logger with very low latency and high throughput. However, this comes at the cost of having to decompress a binary file and the use of a non-type safe printf API where only primitive times can be passed. 
@@ -105,28 +105,17 @@ More benchmarks can be found [here](https://github.com/odygrd/logger_benchmarks/
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
 
-| *****    | Compiler  | Notes            |
-|----------|-----------|------------------|
-|![gcc]    | GCC       | version >= 5.0   |
-|![llvm]   | Clang     | version >= 5.0   |      
-|![msvc]   | MSVC++    | version >= 14.3  |
+| Compiler  | Notes            |
+|-----------|------------------|
+| GCC       | version >= 5.0   |
+| Clang     | version >= 5.0   |      
+| MSVC++    | version >= 14.3  |
 
-| *****    | Platform           | Notes                                                   |
-|----------|--------------------|---------------------------------------------------------|
-|![ubuntu] | Ubuntu             |                                                         |
-|![rhel]   | Red Hat Enterprise | Should also work on Fedora                              |
-|![centos] | CentOs             |                                                         |
-|![win10]  | Windows            | Windows 10 - version 1607, Windows Server 2016 required |
-|![mac]    | macOS              | Tested with Xcode 9.4                                   |
-
-[gcc]: https://github.com/odygrd/quill/blob/master/images/gcc_logo.png?raw=true
-[llvm]: https://github.com/odygrd/quill/blob/master/images/llvm_logo.png?raw=true
-[msvc]: https://github.com/odygrd/quill/blob/master/images/msvc_logo.png?raw=true
-[win10]: https://github.com/odygrd/quill/blob/master/images/win10_logo.png?raw=true
-[mac]: https://github.com/odygrd/quill/blob/master/images/macos_logo.png?raw=true
-[ubuntu]: https://github.com/odygrd/quill/blob/master/images/ubuntu-logo.png?raw=true
-[rhel]: https://github.com/odygrd/quill/blob/master/images/rhel_logo.png?raw=true
-[centos]: https://github.com/odygrd/quill/blob/master/images/centos_logo.png?raw=true
+| Platform  | Notes                                                   |
+|-----------|---------------------------------------------------------|
+| Linux     | Ubuntu, RHEL, Centos, Fedora                   |                                                    |
+| Windows   | Windows 10 - version 1607, Windows Server 2016 |
+| macOS     | Tested with Xcode 9.4                          |
 
 ## Integration
 
@@ -194,6 +183,8 @@ See [basic usage](#basic-usage)
 
 ### Package Managers
 
+**TODO**
+
 ## Basic usage
 
 ```c++
@@ -252,6 +243,3 @@ Your use of the source code for these subcomponents is subject to the terms and 
 
    * ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
    * ([MIT License](http://opensource.org/licenses/MIT)) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
-
-## Disclaimer
-Icons used in this readme in Supported Platforms And Compilers section are solely for information readability purposes. I do not own these icons. 
