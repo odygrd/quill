@@ -9,5 +9,5 @@ Description: Low Latency C++ Logging Library
 URL: https://github.com/odygrd/quill
 Version: @QUILL_VERSION@
 CFlags: -I${includedir}
-Libs: -L${libdir} -lquill -pthread
+Libs: -L${libdir} -lquill -lpthread
 Requires: @PKG_CONFIG_REQUIRES@

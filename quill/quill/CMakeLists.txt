@@ -86,11 +86,7 @@ set(SOURCE_FILES
     )
 
 # Add as a library
-if (QUILL_BUILD_SHARED)
-    add_library(${TARGET_NAME} SHARED "")
-else ()
-    add_library(${TARGET_NAME} STATIC "")
-endif ()
+add_library(${TARGET_NAME} STATIC "")
 
 add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
 
@@ -126,6 +122,12 @@ endif ()
 # Properties
 set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSION ${QUILL_VERSION})
 
+# ---- Tests ---- #
+if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
+    add_subdirectory(test)
+endif ()
+
+if (QUILL_MASTER_PROJECT)
 # ---- Install ---- #
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -144,7 +146,7 @@ set(QUILL_LIB_DIR ${CMAKE_INSTALL_LIBDIR} CACHE STRING
 set(QUILL_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR} CACHE STRING
         "Installation directory for include files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
-set(QUILL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE PATH
+set(QUILL_PKGCONFIG_DIR ${CMAKE_INSTALL_PREFIX}/pkgconfig CACHE PATH
         "Installation directory for pkgconfig (.pc) files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
 # Generate the version, config and target files into the build directory.
@@ -154,15 +156,14 @@ write_basic_package_version_file(
         VERSION ${QUILL_VERSION}
         COMPATIBILITY AnyNewerVersion)
 
-# FIX PKGCONFIG
-## Generate pkgconfig
-#configure_file(
-#        "${PROJECT_SOURCE_DIR}/quill/cmake/quill.pc.in"
-#        "${pkgconfig}"
-#        @ONLY)
+# Generate pkgconfig
+configure_file(
+        "${CMAKE_SOURCE_DIR}/quill/cmake/quill.pc.in"
+        "${pkgconfig}"
+        @ONLY)
 
 configure_package_config_file(
-        ${PROJECT_SOURCE_DIR}/cmake/quill-config.cmake.in
+        ${CMAKE_SOURCE_DIR}/quill/cmake/quill-config.cmake.in
         ${project_config}
         INSTALL_DESTINATION ${QUILL_CMAKE_DIR})
 
@@ -181,12 +182,9 @@ install(EXPORT ${targets_export_name} DESTINATION ${QUILL_CMAKE_DIR}
         NAMESPACE quill::)
 
 # Copy the headers
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/quill/include/quill DESTINATION ${QUILL_INC_DIR})
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/quill/quill/include/quill DESTINATION ${QUILL_INC_DIR})
 
-# TODO: FIX
-#install(FILES "${pkgconfig}" DESTINATION "${QUILL_PKGCONFIG_DIR}")
+# Copy pkgconfig
+install(FILES "${pkgconfig}" DESTINATION "${QUILL_PKGCONFIG_DIR}")
+endif()
 
-# ---- Tests ---- #
-if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
-    add_subdirectory(test)
-endif ()
