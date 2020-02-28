@@ -60,7 +60,13 @@ public:
 private:
   std::string _backend_thread_name{"Quill_Backend"}; /** Custom name for the backend thread */
   std::chrono::nanoseconds _backend_thread_sleep_duration{300};
+
+#if defined(_WIN32)
+  size_t _initial_queue_capacity{65536}; /**< Initial queue capacity default to 64K due to allocation granularity */
+#else
   size_t _initial_queue_capacity{16384}; /**< Initial queue capacity default to 16K */
+#endif
+
   uint16_t _backend_thread_cpu_affinity{
     (std::numeric_limits<uint16_t>::max)()}; /** max() as undefined value, cpu affinity will not be set */
 };
