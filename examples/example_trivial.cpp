@@ -1,5 +1,9 @@
 #include "quill/Quill.h"
 
+/**
+ * Trivial logging example
+ */
+
 int main()
 {
   // Start the logging backend thread
