@@ -81,7 +81,8 @@ The main goals of the library are:
 |[spdlog](https://github.com/gabime/spdlog)                     |  525  |  1532  |  1563  |  1570  |  1575  |  1576  |  26036  |
 
 The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1.  
-The following message is logged 100'000 times per thread ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)``` all reported latencies are in nanoseconds.  
+The following message is logged 100'000 times per thread  
+```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)``` all reported latencies are in nanoseconds.  
 Each thread is pinned on a different cpu. Note that running the backend logger thread in the same CPU as the caller threads, slows down the log messaage processing and will cause Quill's queue to fill faster performing a new allocation. Therefore, you will see bigger worst timers.
 
 Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput loggers like PlatformLab Nanolog. 
