@@ -1,25 +1,25 @@
 <h2> <img src="https://i.postimg.cc/FssWB25k/quill-logo.png" alt="Quill logo" width="140"><br>Asynchronous Low Latency Logging Library</h2>
 
-[![project_status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.][badge.project_status]][project_status]
 [![travis][badge.travis]][travis]
 [![appveyor][badge.appveyor]][appveyor]
 [![codecov][badge.codecov]][codecov]
 [![language][badge.language]][language]
 [![license][badge.license]][license]
+[![project_status: The project has reached a stable, usable state and is being actively developed.][badge.project_status]][project_status]
 
-[badge.project_status]: https://www.repostatus.org/badges/latest/wip.svg
 [badge.travis]: https://img.shields.io/travis/odygrd/quill/master.svg?logo=travis
 [badge.appveyor]: https://img.shields.io/appveyor/ci/odygrd/quill/master.svg?logo=appveyor
 [badge.codecov]: https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov 
 [badge.language]: https://img.shields.io/badge/language-C%2B%2B14-red.svg
 [badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
-
-[project_status]: https://www.repostatus.org/#wip 
+[badge.project_status]: https://www.repostatus.org/badges/latest/active.svg
+ 
 [travis]: https://travis-ci.org/odygrd/quill
 [appveyor]: https://ci.appveyor.com/project/odygrd/quill
 [codecov]: https://codecov.io/gh/odygrd/quill
 [language]: https://en.wikipedia.org/wiki/C%2B%2B14
 [license]: http://opensource.org/licenses/MIT
+[project_status]: https://www.repostatus.org/#active
 
 - [Design Rationale](#design-rationale)
 - [Features](#features)
