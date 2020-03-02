@@ -1,4 +1,5 @@
 ignore:
   - "examples"
-  - "quill/bundled"
-  - "quill/test"
+  - "quill/quill/include/quill/bundled"
+  - "quill/quill/src/bundled"
+  - "quill/quill/test"
