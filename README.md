@@ -60,7 +60,6 @@ The main goals of the library are:
 
 ## Performance
 
-### Each Thread is running on different CPU
 #### 1 Thread
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
@@ -81,17 +80,14 @@ The main goals of the library are:
 |[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  196  |  204  |  207  |  208  |  209  |  209  |  1303071  |
 |[spdlog](https://github.com/gabime/spdlog)                     |  525  |  1532  |  1563  |  1570  |  1575  |  1576  |  26036  |
 
-The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1. The following message is logged 100'000 times per thread ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)``` all reported latencies are in nanoseconds
+The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1.  
+The following message is logged 100'000 times per thread ```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)``` all reported latencies are in nanoseconds.  
+Each thread is pinned on a different cpu. Note that running the backend logger thread in the same CPU as the caller threads, slows down the log messaage processing and will cause Quill's queue to fill faster performing a new allocation. Therefore, you will see bigger worst timers.
 
-Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput ones like PlatformLab Nanolog. 
-Therefore, a different approach was followed, a log message per caller thread is logged between 1 to 3 microseconds.
+Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput loggers like PlatformLab Nanolog. 
+Therefore, a different approach was followed that suits more to a real time application - a log message per caller thread is logged between 1 to 3 microseconds.
 
 I ran each logger benchmark three times and the above latencies are the second best result.
-
-### All Threads are running on the same CPU
-#### 1 Thread
-#### 4 Threads
-
 
 ### Verdict
 PlatformLab NanoLog is a very fast logger with very low latency and high throughput. However, this comes at the cost of having to decompress a binary file and the use of a non-type safe printf API where only primitive times can be passed. 
