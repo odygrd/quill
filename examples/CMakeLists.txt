@@ -3,3 +3,9 @@ target_link_libraries(example_trivial quill)
 
 add_executable(example_logging_to_file example_logging_to_file.cpp)
 target_link_libraries(example_logging_to_file quill)
+
+add_executable(example_custom_formatter example_custom_formatter.cpp)
+target_link_libraries(example_custom_formatter quill)
+
+add_executable(example_user_defined_types example_user_defined_types.cpp)
+target_link_libraries(example_user_defined_types quill)
