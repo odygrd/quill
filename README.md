@@ -64,22 +64,25 @@ The main goals of the library are:
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
 |--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill](https://github.com/odygrd/quill) |  25  |  26  |  52  |  55  |  61  |  95  |  1987  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog) |  25  |  26  |  28  |  50  |  59  |  74  |  1417  |
-|[Reckless](https://github.com/mattiasflodin/reckless)         |  167  |  189  |  210  |  253  |  315  |  371  |  607326958  |
+|[Quill](https://github.com/odygrd/quill)  |  25  |  26  |  52  |  58  |  90  |  103  |  2071  |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)  |  25  |  26  |  28  |  51  |  59  |  71  |  1806  |
+|[MS BinLog](https://github.com/Morgan-Stanley/binlog)  |  41  |  43  |  46  |  88  |  120  |  1184  |  3211  |
+|[Reckless](https://github.com/mattiasflodin/reckless)         |  184  |  204  |  231  |  268  |  337  |  403  |  601433603  |
 |[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)      |  164  |  171  |  179  |  1077  |  1244  |  3317  |  532826  |
-|[spdlog](https://github.com/gabime/spdlog)                    |  1604  |  1661  |  1713  |  1778  |  2897  |  3203  |  8907  |
-|[g3log](https://github.com/KjellKod/g3log)                    |  2880  |  3074  |  4315  |  4904  |  5899  |  7644  |  10721  |
+|[spdlog](https://github.com/gabime/spdlog)                    |  1511  |  1575  |  1630  |  1680  |  2797  |  3085  |  7330  |
+|[g3log](https://github.com/KjellKod/g3log)                    |  2846  |  3035  |  4324  |  4963  |  5917  |  7612  |  9990  |
 #### 4 Threads
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
 |--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill](https://github.com/odygrd/quill) |  23  |  23  |  24  |  24  |  24  |  24  |  2071  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)  |  21  |  21  |  21  |  21  |  21  |  21  |  1932  |
-|[Reckless](https://github.com/mattiasflodin/reckless)          |  180  |  187  |  191  |  192  |  193  |  193  |  878574  |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  192  |  197  |  200  |  201  |  202  |  202  |  497156  |
-|[spdlog](https://github.com/gabime/spdlog)                     |  434  |  471  |  497  |  506  |  515  |  516  |  27572  |
-|[g3log](https://github.com/KjellKod/g3log)  |  1283  |  1315  |  1338  |  1347  |  1355  |  1356  |  56833  |
+|[Quill](https://github.com/odygrd/quill)  |  23  |  23  |  24  |  24  |  24  |  24  |  2208  |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)  |  21  |  21  |  21  |  21  |  21  |  21  |  1725  |
+|[MS BinLog](https://github.com/Morgan-Stanley/binlog)  |  36  |  36  |  37  |  37  |  37  |  37  |  4415  |
+|[Reckless](https://github.com/mattiasflodin/reckless)           |  181  |  188  |  192  |  193  |  194  |  194  |  924498  |
+|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  188  |  193  |  196  |  197  |  197  |  198  |  475670  |
+|[spdlog](https://github.com/gabime/spdlog)                     |  433  |  472  |  499  |  509  |  518  |  520  |  16647  |
+|[g3log](https://github.com/KjellKod/g3log)  |  1289  |  1321  |  1344  |  1353  |  1361  |  1362  |  31423  |
+
 
 The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1.  
 The following message is logged 100'000 times per thread  
