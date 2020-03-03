@@ -55,6 +55,7 @@ The main goals of the library are:
  * Support for wide character logging and wide character filenames (Windows only)
  * Various log targets (Handlers)
    * Console logging 
+   * File Logging
    * Rotating log files [Work in progress]
    * Daily log files [Work in progress]
 
@@ -91,7 +92,7 @@ all reported latencies are in nanoseconds.
 
 Each thread is pinned on a different cpu. Note that running the backend logger thread in the same CPU as the caller threads, slows down the log messaage processing and will cause Quill's queue to fill faster performing a new allocation. Therefore, you will see bigger worst latencies.
 
-Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput loggers like PlatformLab Nanolog. 
+Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog. 
 Therefore, a different approach was followed that suits more to a real time application - a log message per caller thread is logged between 1 to 3 microseconds.
 
 I ran each logger benchmark three times and the above latencies are the second best result.
