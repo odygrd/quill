@@ -65,24 +65,24 @@ The main goals of the library are:
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
 |--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill](https://github.com/odygrd/quill)  |  25  |  26  |  52  |  58  |  90  |  103  |  2071  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)  |  25  |  26  |  28  |  51  |  59  |  71  |  1806  |
-|[MS BinLog](https://github.com/Morgan-Stanley/binlog)  |  41  |  43  |  46  |  88  |  120  |  1184  |  3211  |
-|[Reckless](https://github.com/mattiasflodin/reckless)         |  184  |  204  |  231  |  268  |  337  |  403  |  601433603  |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)      |  164  |  171  |  179  |  1077  |  1244  |  3317  |  532826  |
-|[spdlog](https://github.com/gabime/spdlog)                    |  1511  |  1575  |  1630  |  1680  |  2797  |  3085  |  7330  |
-|[g3log](https://github.com/KjellKod/g3log)                    |  2846  |  3035  |  4324  |  4963  |  5917  |  7612  |  9990  |
+|[Quill](https://github.com/odygrd/quill)   |  25  |  26  |  52  |  57  |  66  |  117  |  1600  |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)   |  25  |  27  |  29  |  55  |  70  |  108  |  1702  |
+|[MS BinLog](https://github.com/Morgan-Stanley/binlog)   |  41  |  43  |  49  |  86  |  129  |  1156  |  2979  |
+|[Reckless](https://github.com/mattiasflodin/reckless)          |  176  |  202  |  230  |  260  |  331  |  407  |  608480978  |
+|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  167  |  172  |  182  |  1097  |  1230  |  2515  |  473816  |
+|[spdlog](https://github.com/gabime/spdlog)                     |  1676  |  1753  |  1818  |  1883  |  2980  |  3665  |  12644  |
+|[g3log](https://github.com/KjellKod/g3log)                     |  2798  |  2966  |  4270  |  4976  |  6359  |  8771  |  13862  |
 #### 4 Threads
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
 |--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill](https://github.com/odygrd/quill)  |  23  |  23  |  24  |  24  |  24  |  24  |  2208  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)  |  21  |  21  |  21  |  21  |  21  |  21  |  1725  |
-|[MS BinLog](https://github.com/Morgan-Stanley/binlog)  |  36  |  36  |  37  |  37  |  37  |  37  |  4415  |
-|[Reckless](https://github.com/mattiasflodin/reckless)           |  181  |  188  |  192  |  193  |  194  |  194  |  924498  |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  188  |  193  |  196  |  197  |  197  |  198  |  475670  |
-|[spdlog](https://github.com/gabime/spdlog)                     |  433  |  472  |  499  |  509  |  518  |  520  |  16647  |
-|[g3log](https://github.com/KjellKod/g3log)  |  1289  |  1321  |  1344  |  1353  |  1361  |  1362  |  31423  |
+|[Quill](https://github.com/odygrd/quill)   |  25  |  27  |  55  |  63  |  100  |  155  |  3828  |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)   |  25  |  27  |  38  |  55  |  93  |  167  |  2451  |
+|[MS BinLog](https://github.com/Morgan-Stanley/binlog)   |  41  |  45  |  79  |  105  |  158  |  1183  |  4392  |
+|[Reckless](https://github.com/mattiasflodin/reckless)   |  247  |  355  |  563  |  696  |  1021  |  1720  |  1281074  |
+|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)   |  259  |  320  |  1129  |  1364  |  1806  |  3648  |  53129  |
+|[spdlog](https://github.com/gabime/spdlog)                 |  1327  |  2012  |  2693  |  3538  |  6011  |  8932  |  17584  |
+|[g3log](https://github.com/KjellKod/g3log)                 |  1685  |  2456  |  3747  |  5086  |  9896  |  16366  |  46392  |
 
 
 The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1.  
