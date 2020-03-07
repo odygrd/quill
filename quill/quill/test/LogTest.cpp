@@ -5,6 +5,7 @@
 #include "misc/TestUtilities.h"
 #include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManager.h"
+#include "quill/detail/misc/FileUtilities.h"
 #include "quill/handlers/Handler.h"
 #include <cstdio>
 #include <thread>
@@ -63,7 +64,7 @@ TEST(Log, default_logger_with_filehandler)
     file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
-  quill::detail::remove(filename);
+  quill::detail::file_utilities::remove(filename);
 }
 
 void custom_default_logger_same_handler(int test_case = 0)
@@ -144,7 +145,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
 
   lm.stop_backend_worker();
-  quill::detail::remove(filename.data());
+  quill::detail::file_utilities::remove(filename.data());
 }
 
 /***/
@@ -273,8 +274,8 @@ void test_custom_default_logger_multiple_handlers(int test_case = 0)
   }
 
   lm.stop_backend_worker();
-  quill::detail::remove(filename_1);
-  quill::detail::remove(filename_2);
+  quill::detail::file_utilities::remove(filename_1);
+  quill::detail::file_utilities::remove(filename_2);
 }
 
 /***/
@@ -352,7 +353,7 @@ TEST(Log, many_loggers_multiple_threads)
   }
 
   lm.stop_backend_worker();
-  quill::detail::remove(filename);
+  quill::detail::file_utilities::remove(filename);
 }
 
 #if defined(_WIN32)
@@ -396,6 +397,6 @@ TEST(Log, default_logger_with_filehandler_wide_chars)
     file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
-  quill::detail::remove(filename);
+  quill::detail::file_utilities::remove(filename);
 }
 #endif

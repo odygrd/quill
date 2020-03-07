@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/LogLevel.h"
+#include "quill/detail/misc/Common.h"
 #include <cstdint>
 
 namespace quill
@@ -100,12 +101,6 @@ private:
   }
 
 private:
-#if defined(_WIN32)
-  static constexpr char path_delimiter = '\\';
-#else
-  static constexpr char path_delimiter = '/';
-#endif
-
   char const* _func;
   char const* _pathname;
   char const* _filename;

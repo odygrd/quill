@@ -9,6 +9,7 @@ set(HEADER_FILES
 set(SOURCE_FILES
         BoundedSPSCQueueTest.cpp
         ConfigTest.cpp
+        FileUtilitiesTest.cpp
         HandlerCollectionTest.cpp
         LoggerCollectionTest.cpp
         LoggerTest.cpp

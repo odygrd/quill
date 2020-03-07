@@ -29,7 +29,7 @@ public:
    * Emit a formatted log record to the stream
    * @param formatted_log_record
    */
-  void emit(fmt::memory_buffer const& formatted_log_record) override;
+  QUILL_ATTRIBUTE_HOT void emit(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds log_record_timestamp) override;
 
   /**
    * Flushes the stream

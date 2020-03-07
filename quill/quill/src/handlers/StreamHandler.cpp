@@ -1,5 +1,6 @@
 #include "quill/handlers/StreamHandler.h"
-#include "quill/detail/misc/Utilities.h"
+
+#include "quill/detail/misc/FileUtilities.h"
 #include <stdexcept>
 
 namespace quill
@@ -7,6 +8,7 @@ namespace quill
 /***/
 StreamHandler::StreamHandler(filename_t stream) : _filename(std::move(stream))
 {
+  // reserve stdout and stderr as filenames
 #if defined(_WIN32)
   if (_filename == std::wstring{L"stdout"})
   {
@@ -18,7 +20,7 @@ StreamHandler::StreamHandler(filename_t stream) : _filename(std::move(stream))
   }
   else
   {
-    throw std::runtime_error("Invalid StreamHandler constructor value");
+    _filename = std::move(stream);
   }
 #else
   if (_filename == std::string{"stdout"})
@@ -28,10 +30,6 @@ StreamHandler::StreamHandler(filename_t stream) : _filename(std::move(stream))
   else if (_filename == std::string{"stderr"})
   {
     _file = stderr;
-  }
-  else
-  {
-    throw std::runtime_error("Invalid StreamHandler constructor value");
   }
 #endif
 }
@@ -43,9 +41,10 @@ StreamHandler::StreamHandler(FILE* file_pointer, filename_t filename)
 }
 
 /***/
-void StreamHandler::emit(fmt::memory_buffer const& formatted_log_record)
+void StreamHandler::emit(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds)
 {
-  detail::fwrite_fully(formatted_log_record.data(), sizeof(char), formatted_log_record.size(), _file);
+  detail::file_utilities::fwrite_fully(formatted_log_record.data(), sizeof(char),
+                                       formatted_log_record.size(), _file);
 }
 
 /***/

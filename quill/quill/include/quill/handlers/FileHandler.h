@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/handlers/StreamHandler.h"
+#include <utility>
 
 namespace quill
 {
@@ -18,7 +19,21 @@ namespace quill
 class FileHandler : public StreamHandler
 {
 public:
-  explicit FileHandler(filename_t const& filename, std::string const& mode);
+  /**
+   * This constructor will always call fopen to open the given file
+   * @param filename
+   * @param mode
+   */
+  FileHandler(filename_t const& filename, std::string const& mode);
+
+  /**
+   * This constructor will not call fopen. It will just store the filename as base_filename and is
+   * used by FileHandlers that derive from this class e.g. DailyFileHandler. Those filehandlers
+   * usually do not operate directly on the base_filename but instead they usually append
+   * something to the filename and open it themselves
+   * @param filename
+   */
+  explicit FileHandler(filename_t const& filename);
 
   ~FileHandler() override;
 };

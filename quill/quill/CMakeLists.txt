@@ -27,6 +27,7 @@ set(HEADER_FILES
         include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
+        include/quill/detail/misc/FileUtilities.h
         include/quill/detail/misc/Macros.h
         include/quill/detail/misc/Os.h
         include/quill/detail/misc/RdtscClock.h
@@ -50,6 +51,7 @@ set(HEADER_FILES
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
         include/quill/detail/UnboundedSPSCQueue.h
+        include/quill/handlers/DailyFileHandler.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
         include/quill/handlers/StreamHandler.h
@@ -69,6 +71,12 @@ set(SOURCE_FILES
         src/bundled/fmt/posix.cc
 
         # quill
+        src/detail/misc/Utilities.cpp
+        src/detail/misc/Os.cpp
+        src/detail/misc/RdtscClock.cpp
+        src/detail/misc/RecursiveSpinlock.cpp
+        src/detail/misc/Spinlock.cpp
+        src/detail/misc/FileUtilities.cpp
         src/detail/BackendWorker.cpp
         src/detail/Config.cpp
         src/detail/HandlerCollection.cpp
@@ -76,13 +84,9 @@ set(SOURCE_FILES
         src/detail/LogManager.cpp
         src/detail/LogManagerSingleton.cpp
         src/detail/ThreadContextCollection.cpp
+        src/handlers/DailyFileHandler.cpp
         src/handlers/FileHandler.cpp
         src/handlers/StreamHandler.cpp
-        src/utility/Utilities.cpp
-        src/utility/Os.cpp
-        src/utility/RdtscClock.cpp
-        src/utility/RecursiveSpinlock.cpp
-        src/utility/Spinlock.cpp
         src/LogLevel.cpp
         src/PatternFormatter.cpp
         src/Quill.cpp

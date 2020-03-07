@@ -71,7 +71,7 @@ public:
     {
 #if defined(QUILL_RDTSC_CLOCK)
       // pass to our clock the stored rdtsc from the caller
-      std::chrono::nanoseconds const timestamp = rdtsc_clock->time_since_epoch(this->timestamp());
+      std::chrono::nanoseconds const log_record_timestamp = rdtsc_clock->time_since_epoch(this->timestamp());
 #else
       // Then the timestamp() will be already in epoch no need to convert it like above
       // The precision of system_clock::time-point is not portable across platforms.
@@ -81,8 +81,9 @@ public:
 
       // lambda to unpack the tuple args stored in the LogRecord (the arguments that were passed by
       // the user) We also capture all additional information we need to create the log message
-      auto forward_tuple_args_to_formatter = [this, timestamp, thread_id, handler](auto... tuple_args) {
-        handler->formatter().format(timestamp, thread_id, _logger_details->name(), *_log_line_info, tuple_args...);
+      auto forward_tuple_args_to_formatter = [this, log_record_timestamp, thread_id, handler](auto... tuple_args) {
+        handler->formatter().format(log_record_timestamp, thread_id, _logger_details->name(),
+                                    *_log_line_info, tuple_args...);
       };
 
       // formatted record by the formatter
@@ -91,8 +92,9 @@ public:
       // After calling format on the formatter we have to request the formatter record
       auto const& formatted_log_record_buffer = handler->formatter().formatted_log_record();
 
-      // log to the handler
-      handler->emit(formatted_log_record_buffer);
+      // log to the handler, also pass the log_record_timestamp this is only needed in some
+      // cases like daily file rotation
+      handler->emit(formatted_log_record_buffer, log_record_timestamp);
     }
   }
 

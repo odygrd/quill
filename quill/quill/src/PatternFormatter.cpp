@@ -50,7 +50,7 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   {
     return [this](std::chrono::nanoseconds timestamp, char const*, char const*,
                   detail::StaticLogRecordInfo const&) {
-      // TODO pass the date format string
+      // TODO pass the date format string for date formatting
       _convert_epoch_to_local_date(timestamp);
       return _formatted_date.data();
     };
@@ -140,7 +140,7 @@ void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epo
   // convert timestamp to date
   int64_t const rawtime_seconds = epoch / 1'000'000'000;
 
-  struct tm timeinfo;
+  tm timeinfo;
 
   // Convert timestamp to date based on the option
   if (_timezone_type == Timezone::GmtTime)

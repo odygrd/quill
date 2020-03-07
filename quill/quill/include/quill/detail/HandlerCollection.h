@@ -36,6 +36,10 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(filename_t const& filename,
                                                                    std::string const& mode = std::string{"a"});
 
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* daily_file_handler(filename_t const& base_filename,
+                                                                         std::chrono::hours rotation_hour,
+                                                                         std::chrono::minutes rotation_minute);
+
   /**
    * Subscribe a handler to the vector of active handlers so that the backend thread can see it
    * Called each time a new Logger instance is created. If the Handler already exists then it is not

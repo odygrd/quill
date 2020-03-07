@@ -1,5 +1,6 @@
 #include "misc/TestUtilities.h"
 #include "quill/Quill.h"
+#include "quill/detail/misc/FileUtilities.h"
 #include <cstdio>
 #include <gtest/gtest.h>
 #include <string>
@@ -71,9 +72,9 @@ void test_quil_log(char const* test_id, std::string const& filename, uint16_t nu
   }
 
 #if defined(_WIN32)
-  quill::detail::remove(quill::detail::s2ws(filename));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
 #else
-  quill::detail::remove(filename);
+  quill::detail::file_utilities::remove(filename);
 #endif
 }
 
@@ -156,11 +157,11 @@ TEST(Quill, log_from_const_function)
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
   EXPECT_EQ(file_contents.size(), 3);
-  quill::detail::remove(quill::detail::s2ws(filename));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
 #else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   EXPECT_EQ(file_contents.size(), 3);
-  quill::detail::remove(filename);
+  quill::detail::file_utilities::remove(filename);
 #endif
 }

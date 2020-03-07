@@ -48,6 +48,18 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler();
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& filename,
                                                            std::string const& mode = std::string{});
 
+/**
+ * Creates or returns an existing handler to a daily file handler
+ * The handler will rotate creating a new log file after 24 hours based on the given rotation_hour and rotation_minute
+ * @param base_filename the base filename, current date is automatically appended to this
+ * @param rotation_hour The hour to perform the rotation
+ * @param rotation_minute The minute to perform the rotation
+ * @return A handler to a daily file
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* daily_file_handler(filename_t const& base_filename,
+                                                                 std::chrono::hours rotation_hour,
+                                                                 std::chrono::minutes rotation_minute);
+
 #if defined(_WIN32)
 /**
  * On windows filename_t always defaults to std::wstring so we provide another overload for std::string
@@ -57,6 +69,10 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& fil
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::string const& filename,
                                                            std::string const& mode = std::string{});
+
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* daily_file_handler(std::string const& base_filename,
+                                                                 std::chrono::hours rotation_hour,
+                                                                 std::chrono::minutes rotation_minute);
 #endif
 
 /**

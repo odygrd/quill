@@ -49,14 +49,15 @@ public:
    * @note: Accessor for backend processing
    * @return
    */
-  PatternFormatter const& formatter() { return *(_formatter.get()); }
+  QUILL_ATTRIBUTE_HOT PatternFormatter const& formatter() { return *(_formatter.get()); }
 
   /**
    * Logs a formatted log record to the handler
    * @note: Accessor for backend processing
    * @param formatted_log_record
    */
-  virtual void emit(fmt::memory_buffer const& formatted_log_record) = 0;
+  QUILL_ATTRIBUTE_HOT virtual void emit(fmt::memory_buffer const& formatted_log_record,
+                                        std::chrono::nanoseconds log_record_timestamp) = 0;
 
   /**
    * Flush the handler synchronising the associated handler with its controlled output sequence.

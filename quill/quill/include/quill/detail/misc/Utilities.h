@@ -18,8 +18,6 @@ namespace quill
 {
 namespace detail
 {
-static constexpr size_t CACHELINE_SIZE{64u};
-
 /**
  * Check if a number is a power of 2
  * @param number the number to check against
@@ -37,15 +35,6 @@ QUILL_NODISCARD constexpr bool is_pow_of_two(uint64_t number) noexcept
  * @return
  */
 QUILL_NODISCARD constexpr size_t strlen(char const* str) { return *str ? 1 + strlen(str + 1) : 0; }
-
-/**
- * Simple wrapper around fwrite, throws on error
- * @param ptr
- * @param size
- * @param count
- * @param stream
- */
-void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream);
 
 /**
  * Convert a string to wstring

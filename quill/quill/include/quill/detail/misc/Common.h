@@ -26,11 +26,33 @@
 
 namespace quill
 {
-// Expose filename_t outside detail namespace
+
+namespace detail
+{
+/**
+ * Cache line size
+ */
+static constexpr size_t CACHELINE_SIZE{64u};
+} // namespace detail
+
+/**
+ * filename_t for windows/linux
+ */
 #if defined(_WIN32)
 using filename_t = std::wstring;
+  #define QUILL_FILENAME_STR(s) L##s
 #else
 using filename_t = std::string;
+  #define QUILL_FILENAME_STR(s) s
 #endif
 
+// Path delimiter
+/**
+ * Path delimiter windows/linux
+ */
+#if defined(_WIN32)
+static constexpr char path_delimiter = '\\';
+#else
+static constexpr char path_delimiter = '/';
+#endif
 } // namespace quill

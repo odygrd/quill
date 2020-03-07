@@ -37,10 +37,25 @@ Handler* file_handler(filename_t const& filename, std::string const& mode /* = s
 }
 
 /***/
+Handler* daily_file_handler(filename_t const& base_filename, std::chrono::hours rotation_hour, std::chrono::minutes rotation_minute)
+{
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().daily_file_handler(
+    base_filename, rotation_hour, rotation_minute);
+}
+
 #if defined(_WIN32)
+/***/
 Handler* file_handler(std::string const& filename, std::string const& mode /* = std::string{} */)
 {
   return file_handler(detail::s2ws(filename), mode);
+}
+
+/***/
+Handler* daily_file_handler(std::string const& base_filename,
+                            std::chrono::hours rotation_hour,
+                            std::chrono::minutes rotation_minute);
+{
+  return daily_file_handler(detail::s2ws(filename), rotation_hour, rotation_minute);
 }
 #endif
 
