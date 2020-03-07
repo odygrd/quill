@@ -11,13 +11,19 @@ TEST(FileUtilities, extract_stem_and_extension)
 {
   {
     // simple file
-    auto const res = extract_stem_and_extension("logfile");
-    EXPECT_EQ(res.first, filename_t{"logfile"});
+#if defined(_WIN32)
+    filename_t fname = L"logfile";
+#else
+    filename_t fname = "logfile";
+#endif
+
+    auto const res = extract_stem_and_extension(fname);
+    EXPECT_EQ(res.first, filename_t{fname});
     EXPECT_EQ(res.second, filename_t{});
   }
 
   {
-    // simple file
+    // simple directory
 #if defined(_WIN32)
     filename_t fname = L"etc\\eng\\logfile";
 #else
@@ -31,8 +37,13 @@ TEST(FileUtilities, extract_stem_and_extension)
 
   {
     // no file extension
-    auto const res = extract_stem_and_extension("logfile.");
-    EXPECT_EQ(res.first, filename_t{"logfile."});
+#if defined(_WIN32)
+    filename_t fname = L"logfile.";
+#else
+    filename_t fname = "logfile.";
+#endif
+    auto const res = extract_stem_and_extension(fname);
+    EXPECT_EQ(res.first, filename_t{fname});
     EXPECT_EQ(res.second, filename_t{});
   }
 
@@ -51,8 +62,13 @@ TEST(FileUtilities, extract_stem_and_extension)
 
   {
     // hidden file
-    auto const res = extract_stem_and_extension(".logfile");
-    EXPECT_EQ(res.first, filename_t{".logfile"});
+#if defined(_WIN32)
+    filename_t fname = L".logfile.";
+#else
+    filename_t fname = ".logfile.";
+#endif
+    auto const res = extract_stem_and_extension(fname);
+    EXPECT_EQ(res.first, filename_t{fname});
     EXPECT_EQ(res.second, filename_t{});
   }
 
@@ -71,9 +87,18 @@ TEST(FileUtilities, extract_stem_and_extension)
 
   {
     // valid stem and extension
-    auto const res = extract_stem_and_extension("logfile.log");
-    EXPECT_EQ(res.first, filename_t{"logfile"});
-    EXPECT_EQ(res.second, filename_t{".log"});
+#if defined(_WIN32)
+    filename_t fname = L"logfile.log";
+    filename_t fname_expected = L"logfile";
+    filename_t extension_expected = L".log";
+#else
+    filename_t fname = "logfile.log";
+    filename_t fname_expected = "logfile";
+    filename_t extension_expected = ".log";
+#endif
+    auto const res = extract_stem_and_extension(fname);
+    EXPECT_EQ(res.first, filename_t{fname_expected});
+    EXPECT_EQ(res.second, filename_t{extension_expected});
   }
 
   {
@@ -81,14 +106,16 @@ TEST(FileUtilities, extract_stem_and_extension)
 #if defined(_WIN32)
     filename_t fname = L"etc\\eng\\logfile.log";
     filename_t fname_expected = L"etc\\eng\\logfile";
+    filename_t extension_expected = L".log";
 #else
     filename_t fname = "etc/eng/logfile.log";
     filename_t fname_expected = "etc/eng/logfile";
+    filename_t extension_expected = ".log";
 #endif
 
     auto const res = extract_stem_and_extension(fname);
     EXPECT_EQ(res.first, filename_t{fname_expected});
-    EXPECT_EQ(res.second, filename_t{".log"});
+    EXPECT_EQ(res.second, filename_t{extension_expected});
   }
 
   {
@@ -96,14 +123,16 @@ TEST(FileUtilities, extract_stem_and_extension)
 #if defined(_WIN32)
     filename_t fname = L"\\etc\\eng\\logfile.log";
     filename_t fname_expected = L"\\etc\\eng\\logfile";
+    filename_t extension_expected = L".log";
 #else
     filename_t fname = "/etc/eng/logfile.log";
     filename_t fname_expected = "/etc/eng/logfile";
+    filename_t extension_expected = ".log";
 #endif
 
     auto const res = extract_stem_and_extension(fname);
     EXPECT_EQ(res.first, filename_t{fname_expected});
-    EXPECT_EQ(res.second, filename_t{".log"});
+    EXPECT_EQ(res.second, filename_t{extension_expected});
   }
 }
 
