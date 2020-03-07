@@ -53,9 +53,9 @@ Handler* file_handler(std::string const& filename, std::string const& mode /* = 
 /***/
 Handler* daily_file_handler(std::string const& base_filename,
                             std::chrono::hours rotation_hour,
-                            std::chrono::minutes rotation_minute);
+                            std::chrono::minutes rotation_minute)
 {
-  return daily_file_handler(detail::s2ws(filename), rotation_hour, rotation_minute);
+  return daily_file_handler(detail::s2ws(base_filename), rotation_hour, rotation_minute);
 }
 #endif
 
