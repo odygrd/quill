@@ -12,7 +12,7 @@ namespace quill
 {
 
 /**
- * Rotating file handler based on date.
+ * Daily Rotating file handler
  */
 class DailyFileHandler final : public FileHandler
 {

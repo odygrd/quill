@@ -20,6 +20,7 @@
   #include <mach/thread_policy.h>
   #include <pthread.h>
   #include <sys/mman.h>
+  #include <sys/stat.h>
   #include <sys/sysctl.h>
   #include <sys/types.h>
   #include <unistd.h>
@@ -246,6 +247,37 @@ FILE* fopen(filename_t const& filename, std::string const& mode)
   return fp;
 }
 
+/***/
+size_t fsize(FILE* file)
+{
+  if (!file)
+  {
+    throw std::runtime_error("Can not get the file size. file is nullptr");
+  }
+
+#if defined(_WIN32) && !defined(__CYGWIN__)
+  auto const fd = ::_fileno(file);
+  auto const ret = ::_filelength(fd);
+
+  if (ret >= 0)
+  {
+    return static_cast<size_t>(ret);
+  }
+#else
+  auto const fd = fileno(file);
+  struct stat st;
+
+  if (fstat(fd, &st) == 0)
+  {
+    return static_cast<size_t>(st.st_size);
+  }
+#endif
+
+  // failed to get the file size
+  throw std::system_error(errno, std::system_category());
+}
+
+/***/
 int remove(filename_t const& filename) noexcept
 {
 #if defined(_WIN32)

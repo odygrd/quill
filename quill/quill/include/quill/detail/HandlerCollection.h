@@ -40,6 +40,9 @@ public:
                                                                          std::chrono::hours rotation_hour,
                                                                          std::chrono::minutes rotation_minute);
 
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* rotating_file_handler(filename_t const& base_filename,
+                                                                            size_t max_file_size);
+
   /**
    * Subscribe a handler to the vector of active handlers so that the backend thread can see it
    * Called each time a new Logger instance is created. If the Handler already exists then it is not

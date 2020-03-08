@@ -10,7 +10,7 @@
 // this is never an issue in real logger as everything goes through the singleton, but we are not using the
 // singleton all the time during testing
 
-void test_quil_log(char const* test_id, std::string const& filename, uint16_t number_of_threads, uint32_t number_of_messages)
+void test_quill_log(char const* test_id, std::string const& filename, uint16_t number_of_threads, uint32_t number_of_messages)
 {
   // Start the logging backend thread
   quill::start();
@@ -87,10 +87,10 @@ TEST(Quill, log_from_one_thread)
 
 #if defined(_WIN32)
   static constexpr wchar_t const* filename = L"log_from_one_thread.log";
-  test_quil_log(test_id, quill::detail::ws2s(filename), number_of_threads, number_of_messages);
+  test_quill_log(test_id, quill::detail::ws2s(filename), number_of_threads, number_of_messages);
 #else
   static constexpr char const* filename = "log_from_one_thread.log";
-  test_quil_log(test_id, filename, number_of_threads, number_of_messages);
+  test_quill_log(test_id, filename, number_of_threads, number_of_messages);
 #endif
 }
 
@@ -103,10 +103,10 @@ TEST(Quill, log_from_multiple_threads)
 
 #if defined(_WIN32)
   static constexpr wchar_t const* filename = L"log_from_multiple_threads.log";
-  test_quil_log(test_id, quill::detail::ws2s(filename), number_of_threads, number_of_messages);
+  test_quill_log(test_id, quill::detail::ws2s(filename), number_of_threads, number_of_messages);
 #else
   static constexpr char const* filename = "log_from_multiple_threads.log";
-  test_quil_log(test_id, filename, number_of_threads, number_of_messages);
+  test_quill_log(test_id, filename, number_of_threads, number_of_messages);
 #endif
 }
 
@@ -142,6 +142,9 @@ TEST(Quill, log_from_const_function)
 {
   static constexpr char const* filename = "log_test_class.log";
 
+  // Start the logging backend thread
+  quill::start();
+
   // log for class a
   log_test_class log_test_class_a{filename};
   log_test_class_a.use_logger_const();
@@ -163,5 +166,48 @@ TEST(Quill, log_from_const_function)
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   EXPECT_EQ(file_contents.size(), 3);
   quill::detail::file_utilities::remove(filename);
+#endif
+}
+
+/***/
+TEST(Quill, log_using_rotating_file_handler)
+{
+  static constexpr char const* base_filename = "log_rotation.log";
+  static constexpr size_t max_file_size = 1024;
+
+  // Start the logging backend thread
+  quill::start();
+
+  quill::Handler* rotating_file_handler = quill::rotating_file_handler(base_filename, max_file_size);
+  quill::Logger* rotating_logger = quill::create_logger("rotating_logger", rotating_file_handler);
+
+  // log a few bytes so we rotate files
+  for (uint32_t i = 0; i < 20; ++i)
+  {
+    LOG_INFO(rotating_logger, "Hello rotating file log num {}", i);
+  }
+
+  quill::flush();
+
+#if defined(_WIN32)
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
+  EXPECT_EQ(file_contents.size(), 3);
+  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
+#else
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
+  EXPECT_EQ(file_contents.size(), 9);
+  quill::detail::file_utilities::remove(base_filename);
+
+  static constexpr char const* rotated_filename_1 = "log_rotation.1.log";
+  std::vector<std::string> const file_contents_1 = quill::testing::file_contents(rotated_filename_1);
+  EXPECT_EQ(file_contents_1.size(), 9);
+  quill::detail::file_utilities::remove(rotated_filename_1);
+
+  static constexpr char const* rotated_filename_2 = "log_rotation.2.log";
+  std::vector<std::string> const file_contents_2 = quill::testing::file_contents(rotated_filename_2);
+  EXPECT_EQ(file_contents_2.size(), 2);
+  quill::detail::file_utilities::remove(rotated_filename_2);
 #endif
 }

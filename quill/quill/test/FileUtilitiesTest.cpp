@@ -145,3 +145,21 @@ TEST(FileUtilities, append_date_to_filename)
   filename_t base_fname = QUILL_FILENAME_STR("logfile.log");
   EXPECT_EQ(append_date_to_filename(base_fname, ts), expected_fname);
 }
+
+/***/
+TEST(FileUtilities, append_index_to_filename)
+{
+  {
+    // index is 0
+    filename_t expected_fname = QUILL_FILENAME_STR("logfile.log");
+    filename_t base_fname = QUILL_FILENAME_STR("logfile.log");
+    EXPECT_EQ(append_index_to_filename(base_fname, 0), expected_fname);
+  }
+
+  {
+    // index is non zero
+    filename_t expected_fname = QUILL_FILENAME_STR("logfile.1.log");
+    filename_t base_fname = QUILL_FILENAME_STR("logfile.log");
+    EXPECT_EQ(append_index_to_filename(base_fname, 1), expected_fname);
+  }
+}

@@ -54,6 +54,7 @@ set(HEADER_FILES
         include/quill/handlers/DailyFileHandler.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
+        include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
         include/quill/Logger.h
         include/quill/LogLevel.h
@@ -86,6 +87,7 @@ set(SOURCE_FILES
         src/detail/ThreadContextCollection.cpp
         src/handlers/DailyFileHandler.cpp
         src/handlers/FileHandler.cpp
+        src/handlers/RotatingFileHandler.cpp
         src/handlers/StreamHandler.cpp
         src/LogLevel.cpp
         src/PatternFormatter.cpp

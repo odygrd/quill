@@ -19,7 +19,7 @@ DailyFileHandler::DailyFileHandler(filename_t const& base_filename,
     throw std::runtime_error("Invalid rotation values");
   }
 
-  // Generate the filename
+  // Generate the filename and open
   _daily_filename = detail::file_utilities::append_date_to_filename(_filename);
   _file = detail::file_utilities::open(_daily_filename, "a");
   _update_rotation_tp();

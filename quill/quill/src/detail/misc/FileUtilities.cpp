@@ -29,6 +29,9 @@ FILE* open(filename_t const& filename, std::string const& mode)
 }
 
 /***/
+size_t file_size(FILE* file) { return detail::fsize(file); }
+
+/***/
 int remove(filename_t const& filename) noexcept { return detail::remove(filename); }
 
 /***/
@@ -74,6 +77,23 @@ filename_t append_date_to_filename(filename_t const& base_filename,
   return fmt::format(QUILL_FILENAME_STR("{}_{:04d}-{:02d}-{:02d}{}"), stem_ext.first,
                      now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday, stem_ext.second);
 }
+
+/***/
+filename_t append_index_to_filename(filename_t const& base_filename, uint32_t index) noexcept
+{
+  if (index == 0u)
+  {
+    return base_filename;
+  }
+
+  // Get base file and extension
+  std::pair<filename_t, filename_t> const stem_ext =
+    detail::file_utilities::extract_stem_and_extension(base_filename);
+
+  // Construct a filename
+  return fmt::format(QUILL_FILENAME_STR("{}.{}{}"), stem_ext.first, index, stem_ext.second);
+}
+
 } // namespace file_utilities
 } // namespace detail
 } // namespace quill

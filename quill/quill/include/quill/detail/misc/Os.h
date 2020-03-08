@@ -104,6 +104,13 @@ void aligned_free(void* ptr) noexcept;
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* fopen(filename_t const& filename, std::string const& mode);
 
 /**
+ * Calculates the size of a file
+ * @param file
+ * @return
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t fsize(FILE* file);
+
+/**
  * Removes a file
  * @param filename
  */

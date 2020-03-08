@@ -36,6 +36,13 @@ QUILL_ATTRIBUTE_HOT void fwrite_fully(void const* ptr, size_t size, size_t count
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* open(filename_t const& filename, std::string const& mode);
 
 /**
+ * Get the size of a file
+ * @param file
+ * @return
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t file_size(FILE* file);
+
+/**
  * Removes a file
  * @param filename
  */
@@ -50,12 +57,21 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<filename_t, filename_t> extract_s
 /**
  * Append the date to the given filename
  * @param filename
- * @param timestamp optional, no timestamp gives current date
+ * @param timestamp optional, timestamp now, no timestamp gives current date
  * @return
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD filename_t
 append_date_to_filename(filename_t const& base_filename,
                         std::chrono::system_clock::time_point timestamp = {}) noexcept;
+
+/**
+ * Append an index to the given filename
+ * @param filename
+ * @param timestamp optional, no timestamp gives current date
+ * @return
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD filename_t append_index_to_filename(filename_t const& base_filename,
+                                                                         uint32_t index) noexcept;
 } // namespace file_utilities
 } // namespace detail
 } // namespace quill
