@@ -44,10 +44,10 @@ Handler* daily_file_handler(filename_t const& base_filename, std::chrono::hours 
 }
 
 /***/
-Handler* rotating_file_handler(filename_t const& base_filename, size_t max_file_size)
+Handler* rotating_file_handler(filename_t const& base_filename, size_t max_bytes)
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().rotating_file_handler(
-    base_filename, max_file_size);
+    base_filename, max_bytes);
 }
 
 #if defined(_WIN32)
@@ -66,9 +66,9 @@ Handler* daily_file_handler(std::string const& base_filename,
 }
 
 /***/
-Handler* rotating_file_handler(std::string const& base_filename, size_t max_file_size)
+Handler* rotating_file_handler(std::string const& base_filename, size_t max_bytes)
 {
-  return rotating_file_handler(detail::s2ws(base_filename), max_file_size);
+  return rotating_file_handler(detail::s2ws(base_filename), max_bytes);
 }
 #endif
 

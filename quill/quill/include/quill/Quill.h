@@ -62,13 +62,13 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* daily_file_handler(filename_t cons
 
 /**
  * Creates or returns an existing handler to a rotating file handler
- * The handler will rotate creating a new log file after the file has reached max_file_size
+ * The handler will rotate creating a new log file after the file has reached max_bytes
  * @param base_filename Base file name
- * @param max_file_size Maximum file size in bytes
+ * @param max_bytes Maximum file size in bytes
  * @return A handler to a rotating log file
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(filename_t const& base_filename,
-                                                                    size_t max_file_size);
+                                                                    size_t max_bytes);
 
 #if defined(_WIN32)
 /**
@@ -85,7 +85,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* daily_file_handler(std::string con
                                                                  std::chrono::minutes rotation_minute);
 
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_hander(std::string const& base_filename,
-                                                                   size_t max_file_size);
+                                                                   size_t max_bytes);
 #endif
 
 /**

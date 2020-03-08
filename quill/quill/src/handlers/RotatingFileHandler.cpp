@@ -5,8 +5,8 @@
 namespace quill
 {
 /***/
-RotatingFileHandler::RotatingFileHandler(filename_t const& base_filename, std::size_t max_file_size)
-  : FileHandler(base_filename), _max_file_size(max_file_size)
+RotatingFileHandler::RotatingFileHandler(filename_t const& base_filename, std::size_t max_bytes)
+  : FileHandler(base_filename), _max_bytes(max_bytes)
 {
   // Generate the filename and open
   _current_filename = detail::file_utilities::append_index_to_filename(base_filename, _index);
@@ -20,7 +20,7 @@ void RotatingFileHandler::emit(fmt::memory_buffer const& formatted_log_record, s
 {
   _current_size += formatted_log_record.size();
 
-  if (_current_size > _max_file_size)
+  if (_current_size > _max_bytes)
   {
     _rotate();
     _current_size = formatted_log_record.size();

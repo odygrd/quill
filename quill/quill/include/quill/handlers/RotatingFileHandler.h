@@ -12,6 +12,10 @@ namespace quill
 {
 /**
  * Rotating file handler based on file size
+ * The specified base_filename is opened with mode 'a' and used as the stream for logging.
+ * You can use the max_bytes values to allow the file to rollover at a predetermined size.
+ * When the file size reaches max_bytes, the file is closed and a new file is silently opened for output.
+ *  For example, with a base_filename of app.log you would get app.log, app.1.log, app.2.log etc..
  */
 class RotatingFileHandler final : public FileHandler
 {
@@ -19,9 +23,9 @@ public:
   /**
    * constructor
    * @param filename Base file name to be used for logs
-   * @param max_file_size max size per file in bytes
+   * @param max_bytes max size per file in bytes
    */
-  RotatingFileHandler(filename_t const& filename, size_t max_file_size);
+  RotatingFileHandler(filename_t const& filename, size_t max_bytes);
 
   /**
    * Destructor
@@ -44,7 +48,7 @@ private:
 private:
   filename_t _current_filename; /**< Includes the base filename and the index */
   size_t _current_size{0};
-  size_t _max_file_size;
+  size_t _max_bytes;
   uint32_t _index{0};
 };
 

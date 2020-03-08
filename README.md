@@ -56,8 +56,8 @@ The main goals of the library are:
  * Various log targets (Handlers)
    * Console logging 
    * File Logging
-   * Rotating log files [Work in progress]
-   * Daily log files [Work in progress]
+   * Rotating log files
+   * Daily log files
 
 ## Performance
 
