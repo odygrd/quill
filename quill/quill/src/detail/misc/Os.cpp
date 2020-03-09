@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
+#include <sys/stat.h>
 #include <system_error>
 
 #if defined(_WIN32)
