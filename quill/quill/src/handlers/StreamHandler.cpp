@@ -18,10 +18,6 @@ StreamHandler::StreamHandler(filename_t stream) : _filename(std::move(stream))
   {
     _file = stderr;
   }
-  else
-  {
-    _filename = std::move(stream);
-  }
 #else
   if (_filename == std::string{"stdout"})
   {

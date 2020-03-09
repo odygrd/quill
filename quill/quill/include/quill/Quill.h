@@ -84,8 +84,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* daily_file_handler(std::string con
                                                                  std::chrono::hours rotation_hour,
                                                                  std::chrono::minutes rotation_minute);
 
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_hander(std::string const& base_filename,
-                                                                   size_t max_bytes);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(std::string const& base_filename,
+                                                                    size_t max_bytes);
 #endif
 
 /**

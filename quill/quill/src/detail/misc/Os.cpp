@@ -13,6 +13,7 @@
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
   #include <malloc.h>
+  #include <io.h>
   #include <windows.h>
 
   #include <processthreadsapi.h>
