@@ -318,7 +318,6 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
 
   if (QUILL_UNLIKELY(bytes_needed == 0))
   {
-    auto const s = GetLastError();
     throw std::system_error(std::error_code(GetLastError(), std::system_category()));
   }
 
