@@ -299,7 +299,7 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
 {
   auto bytes_needed = static_cast<int32_t>(mem_buffer.capacity() - mem_buffer.size());
 
-  if ((w_mem_buffer.size() + 1) * 2 > bytes_needed)
+  if ((w_mem_buffer.size() + 1) * 2 > static_cast< size_t >(bytes_needed))
   {
     // if our given string is larger than the capacity, calculate how many bytes we need
     bytes_needed = ::WideCharToMultiByte(
