@@ -15,6 +15,7 @@
   #include <malloc.h>
   #include <io.h>
   #include <windows.h>
+  #include <share.h>
 
   #include <processthreadsapi.h>
 #elif defined(__APPLE__)
@@ -134,7 +135,10 @@ void set_cpu_affinity(uint16_t cpu_id)
 /***/
 void set_thread_name(char const* name)
 {
-#if defined(_WIN32)
+#if defined(__MINGW32__) || defined(__MINGW64__)
+  // Disabled on MINGW.
+  (void)name;
+#elif defined(_WIN32)
   std::wstring name_ws = s2ws(name);
   // Set the thread name
   HRESULT hr = SetThreadDescription(GetCurrentThread(), name_ws.data());
