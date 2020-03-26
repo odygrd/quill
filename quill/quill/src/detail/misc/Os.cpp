@@ -15,6 +15,7 @@
   #include <malloc.h>
   #include <io.h>
   #include <windows.h>
+  #include <share.h>
 
   #include <processthreadsapi.h>
 #elif defined(__APPLE__)
@@ -134,7 +135,10 @@ void set_cpu_affinity(uint16_t cpu_id)
 /***/
 void set_thread_name(char const* name)
 {
-#if defined(_WIN32)
+#if defined(__MINGW32__) || defined(__MINGW64__)
+  // Disabled on MINGW.
+  (void)name;
+#elif defined(_WIN32)
   std::wstring name_ws = s2ws(name);
   // Set the thread name
   HRESULT hr = SetThreadDescription(GetCurrentThread(), name_ws.data());
@@ -295,7 +299,7 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
 {
   auto bytes_needed = static_cast<int32_t>(mem_buffer.capacity() - mem_buffer.size());
 
-  if ((w_mem_buffer.size() + 1) * 2 > bytes_needed)
+  if ((w_mem_buffer.size() + 1) * 2 > static_cast< size_t >(bytes_needed))
   {
     // if our given string is larger than the capacity, calculate how many bytes we need
     bytes_needed = ::WideCharToMultiByte(
@@ -314,7 +318,6 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
 
   if (QUILL_UNLIKELY(bytes_needed == 0))
   {
-    auto const s = GetLastError();
     throw std::system_error(std::error_code(GetLastError(), std::system_category()));
   }
 
