@@ -80,7 +80,7 @@ private:
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
-  std::size_t _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
+  bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
 };
 } // namespace detail
