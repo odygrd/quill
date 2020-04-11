@@ -80,7 +80,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(filename_t c
  * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::string const& filename,
-                                                           std::string const& mode = std::string{});
+                                                           std::string const& mode = std::string{},
+                                                           FilenameAppend append_to_filename = FilenameAppend::None);
 
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* daily_file_handler(std::string const& base_filename,
                                                                  std::chrono::hours rotation_hour,

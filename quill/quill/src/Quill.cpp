@@ -55,9 +55,11 @@ Handler* rotating_file_handler(filename_t const& base_filename, size_t max_bytes
 
 #if defined(_WIN32)
 /***/
-Handler* file_handler(std::string const& filename, std::string const& mode /* = std::string{} */)
+Handler* file_handler(std::string const& filename,
+                      std::string const& mode /* = std::string{} */,
+                      FilenameAppend append_to_filename /* = FilenameAppend::None */)
 {
-  return file_handler(detail::s2ws(filename), mode);
+  return file_handler(detail::s2ws(filename), mode, append_to_filename);
 }
 
 /***/
