@@ -24,6 +24,6 @@ TEST(StaticLogRecordInfo, construct)
     EXPECT_EQ(log_line_info.level(), quill::LogLevel::Info);
     EXPECT_STREQ(log_line_info.lineno(), "20");
     EXPECT_STREQ(log_line_info.filename(), "StaticLogRecordInfoTest.cpp");
-    EXPECT_STREQ(log_line_info.level_as_str(), "LOG_INFO    ");
+    EXPECT_STREQ(log_line_info.level_as_str(), "INFO    ");
   }
 }

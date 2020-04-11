@@ -62,8 +62,9 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
 {
   // Custom pattern with part 1 and part 3
   PatternFormatter custom_pattern_formatter{
-    QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
-                 "%(message) [%(function_name)]"),
+    QUILL_STRING(
+      "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
+      "%(message) [%(function_name)]"),
     "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::NanoSeconds};
 
   std::chrono::nanoseconds ts{1579815761000023000};
@@ -92,8 +93,9 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
 TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
 {
   PatternFormatter custom_pattern_formatter{
-    QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
-                 "%(message) [%(function_name)]"),
+    QUILL_STRING(
+      "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
+      "%(message) [%(function_name)]"),
     "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::MicroSeconds};
 
   std::chrono::nanoseconds ts{1579815761020123000};
@@ -122,8 +124,9 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
 TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
 {
   PatternFormatter custom_pattern_formatter{
-    QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
-                 "%(message) [%(function_name)]"),
+    QUILL_STRING(
+      "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
+      "%(message) [%(function_name)]"),
     "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::MilliSeconds};
 
   std::chrono::nanoseconds ts{1579815761099000000};
@@ -152,8 +155,9 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
 TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
 {
   PatternFormatter custom_pattern_formatter{
-    QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
-                 "%(message) [%(function_name)]"),
+    QUILL_STRING(
+      "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
+      "%(message) [%(function_name)]"),
     "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::None};
 
   std::chrono::nanoseconds ts{1579815761099220000};

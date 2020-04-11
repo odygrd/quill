@@ -159,14 +159,15 @@ public:
   PatternFormatter()
   {
     // Set the default pattern
-    _set_pattern(QUILL_STRING(
-      "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"));
+    _set_pattern(
+      QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) "
+                   "%(logger_name) - %(message)"));
   }
 
   /**
    * Constructor for a PatterFormater with a custom format
    * @tparam TConstantString
-   * @param format_pattern format_pattern a format string. Must be passed using the macro QUIL_STRING("format string");
+   * @param format_pattern format_pattern a format string. Must be passed using the macro QUILL_STRING("format string");
    */
   template <typename TConstantString>
   PatternFormatter(TConstantString format_pattern, std::string date_format, TimestampPrecision timestamp_precision)
@@ -315,7 +316,7 @@ private:
    * %(thread)        - Thread ID
    *
    * @tparam TConstantString
-   * @param format_pattern a format string. Must be passed using the macro QUIL_STRING("format string");
+   * @param format_pattern a format string. Must be passed using the macro QUILL_STRING("format string");
    */
   template <typename TConstantString>
   void _set_pattern(TConstantString);
