@@ -97,8 +97,30 @@ void BackendWorker::_main_loop()
 
   bool const processed_record = _process_record(cached_thread_contexts);
 
-  if (QUILL_UNLIKELY(!processed_record))
+  if (processed_record)
   {
+    // we have found and processed a log record
+
+    // Since after processing a log record we never force flush and leave it up to the OS instead
+    // keep track of how unflushed messages we have
+    _has_unflushed_messages = true;
+  }
+  else
+  {
+    // None of the thread local queues had any log record to process, this means we have processed
+    // all messages in all queues We will force flush any unflushed messages and then sleep
+    if (_has_unflushed_messages)
+    {
+      // If we have buffered any messages then get all active handlers and call flush
+      std::vector<Handler*> const active_handlers = _handler_collection.active_handlers();
+      for (auto handler : active_handlers)
+      {
+        handler->flush();
+      }
+
+      _has_unflushed_messages = false;
+    }
+
     // Sleep for the specified duration as we found no records in any of the queues to process
     std::this_thread::sleep_for(_backend_thread_sleep_duration);
   }
@@ -171,7 +193,6 @@ bool BackendWorker::_process_record(ThreadContextCollection::backend_thread_cont
   desired_record_handle.data()->backend_process(desired_thread_id, obtain_active_handlers,
                                                 _rdtsc_clock.get());
 
-  // TODO:: When to flush on the handler ? Maybe only if user requested
   return true;
 }
 
