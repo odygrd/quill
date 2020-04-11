@@ -46,7 +46,6 @@ private:
   QUILL_ATTRIBUTE_COLD void _rotate();
 
 private:
-  filename_t _current_filename; /**< Includes the base filename and the index */
   size_t _current_size{0};
   size_t _max_bytes;
   uint32_t _index{0};

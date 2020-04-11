@@ -20,8 +20,8 @@ DailyFileHandler::DailyFileHandler(filename_t const& base_filename,
   }
 
   // Generate the filename and open
-  _daily_filename = detail::file_utilities::append_date_to_filename(_filename);
-  _file = detail::file_utilities::open(_daily_filename, "a");
+  _current_filename = detail::file_utilities::append_date_to_filename(_filename);
+  _file = detail::file_utilities::open(_current_filename, "a");
   _update_rotation_tp();
 }
 
@@ -45,8 +45,8 @@ void DailyFileHandler::emit(fmt::memory_buffer const& formatted_log_record, std:
     }
 
     // Generate a new filename - rotating
-    _daily_filename = detail::file_utilities::append_date_to_filename(_filename);
-    _file = detail::file_utilities::open(_daily_filename, "a");
+    _current_filename = detail::file_utilities::append_date_to_filename(_filename);
+    _file = detail::file_utilities::open(_current_filename, "a");
     _update_rotation_tp();
   }
 

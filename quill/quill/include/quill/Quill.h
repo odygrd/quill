@@ -41,12 +41,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler();
  * Creates or returns an existing handler to a file.
  * If the file is already opened the existing handler for this file is returned instead
  * @param filename the name of the file
+ * @param append_to_filename additional info to append to the name of the file. FilenameAppend::None or FilenameAppend::Date
  * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
  * If no value is specified during the file creation "a" is used as default.
  * @return A handler to a file
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& filename,
-                                                           std::string const& mode = std::string{});
+                                                           std::string const& mode = std::string{},
+                                                           FilenameAppend append_to_filename = FilenameAppend::None);
 
 /**
  * Creates or returns an existing handler to a daily file handler

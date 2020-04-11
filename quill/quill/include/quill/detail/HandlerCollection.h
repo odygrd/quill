@@ -6,7 +6,7 @@
 #pragma once
 
 #include "quill/detail/misc/Spinlock.h"
-#include "quill/handlers/StreamHandler.h"
+#include "quill/handlers/FileHandler.h"
 #include <memory>
 #include <unordered_map>
 
@@ -34,7 +34,8 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_streamhandler();
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(filename_t const& filename,
-                                                                   std::string const& mode = std::string{"a"});
+                                                                   std::string const& mode = std::string{"a"},
+                                                                   FilenameAppend append_to_filename = FilenameAppend::None);
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* daily_file_handler(filename_t const& base_filename,
                                                                          std::chrono::hours rotation_hour,

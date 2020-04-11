@@ -38,7 +38,6 @@ private:
   QUILL_ATTRIBUTE_COLD void _update_rotation_tp() noexcept;
 
 private:
-  filename_t _daily_filename; /**< Includes the base filename and the date */
   std::chrono::hours _rotation_hour;
   std::chrono::minutes _rotation_minute;
   std::chrono::system_clock::time_point _rotation_tp;

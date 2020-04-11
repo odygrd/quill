@@ -116,10 +116,10 @@ TEST(Quill, log_from_multiple_threads)
 class log_test_class
 {
 public:
-  explicit log_test_class(std::string const& filename)
+  explicit log_test_class(std::string const& filename, quill::FilenameAppend filename_append)
   {
     // create a new logger in the ctor
-    quill::Handler* filehandler = quill::file_handler(filename, "w");
+    quill::Handler* filehandler = quill::file_handler(filename, "w", filename_append);
     _logger = quill::create_logger("test_class", filehandler);
   }
 
@@ -146,12 +146,12 @@ TEST(Quill, log_from_const_function)
   quill::start();
 
   // log for class a
-  log_test_class log_test_class_a{filename};
+  log_test_class log_test_class_a{filename, quill::FilenameAppend::None};
   log_test_class_a.use_logger_const();
   log_test_class_a.use_logger();
 
   // log again for class b
-  log_test_class const log_test_class_b{filename};
+  log_test_class const log_test_class_b{filename, quill::FilenameAppend::None};
   log_test_class_b.use_logger_const();
 
   quill::flush();

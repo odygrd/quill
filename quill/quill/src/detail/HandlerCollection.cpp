@@ -28,7 +28,9 @@ StreamHandler* HandlerCollection::stderr_streamhandler()
 }
 
 /***/
-StreamHandler* HandlerCollection::file_handler(filename_t const& filename, std::string const& mode /* = std::string{"a"} */)
+StreamHandler* HandlerCollection::file_handler(filename_t const& filename,
+                                               std::string const& mode /* = std::string{"a"} */,
+                                               FilenameAppend append_to_filename /* = FilenameAppend::None */)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};
@@ -44,7 +46,7 @@ StreamHandler* HandlerCollection::file_handler(filename_t const& filename, std::
 
   // if first time add it
   auto emplace_result = _file_handler_collection.emplace(
-    filename, std::make_unique<FileHandler>(filename.data(), mode.data()));
+    filename, std::make_unique<FileHandler>(filename.data(), mode.data(), append_to_filename));
 
   return (*emplace_result.first).second.get();
 }

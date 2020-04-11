@@ -31,9 +31,12 @@ Handler* stderr_handler()
 }
 
 /***/
-Handler* file_handler(filename_t const& filename, std::string const& mode /* = std::string{} */)
+Handler* file_handler(filename_t const& filename,
+                      std::string const& mode, /* = std::string{} */
+                      FilenameAppend append_to_filename /* = FilenameAppend::None */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().file_handler(filename, mode);
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().file_handler(
+    filename, mode, append_to_filename);
 }
 
 /***/
