@@ -173,22 +173,9 @@ TEST(Quill, log_from_const_function)
 TEST(Quill, log_using_rotating_file_handler)
 {
   static char const* base_filename = "log_rotation.log";
+  static constexpr char const* rotated_filename_1 = "log_rotation.1.log";
+  static constexpr char const* rotated_filename_2 = "log_rotation.2.log";
   static constexpr size_t max_file_size = 1024;
-
-  #if defined(_WIN32)
-  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
-  static constexpr char const* rotated_filename_1 = "log_rotation.1.log";
-  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_1));
-  static constexpr char const* rotated_filename_2 = "log_rotation.2.log";
-  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2));
-
-#else
-  quill::detail::file_utilities::remove(base_filename);
-  static constexpr char const* rotated_filename_1 = "log_rotation.1.log";
-  quill::detail::file_utilities::remove(rotated_filename_1);
-  static constexpr char const* rotated_filename_2 = "log_rotation.2.log";
-  quill::detail::file_utilities::remove(rotated_filename_2);
-#endif
 
   // Start the logging backend thread
   quill::start();
@@ -206,13 +193,16 @@ TEST(Quill, log_using_rotating_file_handler)
 
 #if defined(_WIN32)
   // Read file and check
-  std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(base_filename));
+  std::vector<std::string> const file_contents =
+    quill::testing::file_contents(quill::detail::s2ws(base_filename));
   EXPECT_EQ(file_contents.size(), 9);
 
-  std::vector<std::string> const file_contents_1 = quill::testing::file_contents(quill::detail::s2ws(rotated_filename_1));
+  std::vector<std::string> const file_contents_1 =
+    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_1));
   EXPECT_EQ(file_contents_1.size(), 9);
 
-  std::vector<std::string> const file_contents_2 = quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2));
+  std::vector<std::string> const file_contents_2 =
+    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2));
   EXPECT_EQ(file_contents_2.size(), 2);
 
 #else
@@ -225,5 +215,17 @@ TEST(Quill, log_using_rotating_file_handler)
 
   std::vector<std::string> const file_contents_2 = quill::testing::file_contents(rotated_filename_2);
   EXPECT_EQ(file_contents_2.size(), 2);
+#endif
+
+#if defined(_WIN32)
+  // Remove filenames
+  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_1));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2));
+#else
+  // Remove filenames
+  quill::detail::file_utilities::remove(rotated_filename_1);
+  quill::detail::file_utilities::remove(base_filename);
+  quill::detail::file_utilities::remove(rotated_filename_2);
 #endif
 }

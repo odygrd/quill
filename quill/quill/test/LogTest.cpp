@@ -145,7 +145,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
 
   lm.stop_backend_worker();
-  quill::detail::file_utilities::remove(filename.data());
+  quill::detail::file_utilities::remove(filename);
 }
 
 /***/
