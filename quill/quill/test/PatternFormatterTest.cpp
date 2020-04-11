@@ -82,9 +82,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:72 LOG_DEBUG    test_logger - "
-    "This the "
-    "1234 formatter pattern [TestBody]\n";
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:73 LOG_DEBUG    test_logger - "
+    "This the 1234 formatter pattern [TestBody]\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
   EXPECT_EQ(formatted_string, expected_string);
@@ -113,9 +112,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:102 LOG_DEBUG    test_logger - "
-    "This the "
-    "1234 formatter pattern [TestBody]\n";
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:103 LOG_DEBUG    test_logger - "
+    "This the 1234 formatter pattern [TestBody]\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
   EXPECT_EQ(formatted_string, expected_string);
@@ -144,9 +142,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:132 LOG_DEBUG    test_logger - This "
-    "the "
-    "1234 formatter pattern [TestBody]\n";
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:133 LOG_DEBUG    test_logger - This "
+    "the 1234 formatter pattern [TestBody]\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
   EXPECT_EQ(formatted_string, expected_string);
@@ -175,7 +172,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:162 LOG_DEBUG    test_logger - This the "
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:163 LOG_DEBUG    test_logger - This the "
     "1234 formatter pattern [TestBody]\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
