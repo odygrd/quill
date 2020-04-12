@@ -26,7 +26,7 @@ DailyFileHandler::DailyFileHandler(filename_t const& base_filename,
 }
 
 /***/
-void DailyFileHandler::emit(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds log_record_timestamp)
+void DailyFileHandler::write(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds log_record_timestamp)
 {
   bool should_rotate = log_record_timestamp >= _rotation_tp.time_since_epoch();
   if (QUILL_UNLIKELY(should_rotate))
@@ -51,7 +51,7 @@ void DailyFileHandler::emit(fmt::memory_buffer const& formatted_log_record, std:
   }
 
   // write to file
-  StreamHandler::emit(formatted_log_record, log_record_timestamp);
+  StreamHandler::write(formatted_log_record, log_record_timestamp);
 }
 
 /***/

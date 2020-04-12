@@ -61,7 +61,7 @@ public:
    * @note: Accessor for backend processing
    * @param formatted_log_record
    */
-  QUILL_ATTRIBUTE_HOT virtual void emit(fmt::memory_buffer const& formatted_log_record,
+  QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_record,
                                         std::chrono::nanoseconds log_record_timestamp) = 0;
 
   /**

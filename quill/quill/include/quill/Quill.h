@@ -172,9 +172,9 @@ QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
 QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
 
 /**
- * Blocks the caller thread until all log messages until the current timestamp are flushed
+ * Blocks the caller thread until all log messages up to the current timestamp are flushed
  *
- * The backend thread will emit all loggers and all handlers up to the point (timestamp) that
+ * The backend thread will call write on all handlers for all loggers up to the point (timestamp) that
  * this function was called.
  *
  * @note This function will not do anything if called while the backend worker is not running

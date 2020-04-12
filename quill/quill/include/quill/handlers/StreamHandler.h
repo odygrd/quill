@@ -26,10 +26,10 @@ public:
   ~StreamHandler() override = default;
 
   /**
-   * Emit a formatted log record to the stream
+   * Write a formatted log record to the stream
    * @param formatted_log_record
    */
-  QUILL_ATTRIBUTE_HOT void emit(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds log_record_timestamp) override;
+  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds log_record_timestamp) override;
 
   /**
    * Flushes the stream
