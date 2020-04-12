@@ -15,4 +15,5 @@
 
 
 ## v1.0.0
-Initial release
+Initial release.
+Using `libfmt` to `6.1.2`.
