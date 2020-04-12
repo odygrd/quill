@@ -19,7 +19,7 @@ int format_float(char* buf, std::size_t size, const char* format, int precision,
         "fuzz mode - avoid large allocation inside snprintf");
 #endif
   // Suppress the warning about nonliteral format string.
-  auto snprintf_ptr = FMT_SNPRINTF;
+  int (*snprintf_ptr)(char*, size_t, const char*, ...) = FMT_SNPRINTF;
   return precision < 0 ? snprintf_ptr(buf, size, format, value)
                        : snprintf_ptr(buf, size, format, precision, value);
 }
@@ -121,7 +121,7 @@ template FMT_API char* internal::sprintf_format(long double,
                                                 internal::buffer<char>&,
                                                 sprintf_specs);
 
-template struct FMT_API internal::basic_data<void>;
+template struct FMT_INSTANTIATION_DEF_API internal::basic_data<void>;
 
 // Workaround a bug in MSVC2013 that prevents instantiation of format_float.
 int (*instantiate_format_float)(double, int, internal::float_specs,

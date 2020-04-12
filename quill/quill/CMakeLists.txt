@@ -15,6 +15,7 @@ set(HEADER_FILES
         include/quill/bundled/fmt/format.h
         include/quill/bundled/fmt/format-inl.h
         include/quill/bundled/fmt/locale.h
+        include/quill/bundled/fmt/os.h
         include/quill/bundled/fmt/ostream.h
         include/quill/bundled/fmt/posix.h
         include/quill/bundled/fmt/printf.h
@@ -69,7 +70,7 @@ set(HEADER_FILES
 set(SOURCE_FILES
         # Bundled fmt
         src/bundled/fmt/format.cc
-        src/bundled/fmt/posix.cc
+        src/bundled/fmt/os.cc
 
         # quill
         src/detail/misc/Utilities.cpp
