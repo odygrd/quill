@@ -1,5 +1,5 @@
 #include "quill/detail/misc/FileUtilities.h"
-#include "quill/bundled/fmt/format.h"
+#include "quill/Fmt.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/Os.h"
 #include <system_error>

@@ -71,3 +71,16 @@
  * QUILL_LOG_LEVEL_CRITICAL
  */
 // #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
+
+/**
+ * Uses a custom copy of the fmt library instead of quill's bundled copy.
+ * In this case quill will try to include <fmt/format.h> so make sure to set -I directories
+ * accordingly if not using CMake.
+ *
+ * This is also available as CMake option -DQUILL_FMT_EXTERNAL=ON.
+ * When -DQUILL_FMT_EXTERNAL=ON is used the below line does not need to be uncommented as CMake will
+ * define it automatically.
+ * Quill will look for a CMake Target with name `fmt`. If the target is not found it will
+ * use find_package(fmt REQUIRED) so make sure that fmt library is installed in your system
+ */
+// #define QUILL_FMT_EXTERNAL

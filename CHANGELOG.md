@@ -1,5 +1,9 @@
+- [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v1.2.0
+* Linking and including an external version of `fmt` is now supported. See TweakMe.h
 
 ## v1.1.0
 * Daily file handler. The file handler rollover every 24 hours
@@ -12,7 +16,6 @@
 * It is now possible to specify the timezone of each handler timestamp. A new parameter is added to `file_handler->set_pattern(...)`. See `PatternFormatter::Timezone`. Fixes [#7](https://github.com/odygrd/quill/issues/7).
 * Rename `emit` as it can confict with Qt macros. Fixes [#4](https://github.com/odygrd/quill/issues/4).
 * Upgraded `libfmt` to `6.2.0`.
-
 
 ## v1.0.0
 * Initial release.

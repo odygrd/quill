@@ -6,7 +6,7 @@
 #pragma once
 
 #include "quill/PatternFormatter.h"
-#include "quill/bundled/fmt/format.h"
+#include "quill/Fmt.h"
 
 namespace quill
 {

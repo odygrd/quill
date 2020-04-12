@@ -2,5 +2,12 @@
 
 find_package(Threads REQUIRED)
 
+set(QUILL_FMT_EXTERNAL @QUILL_FMT_EXTERNAL@)
+
+if(QUILL_FMT_EXTERNAL)
+    include(CMakeFindDependencyMacro)
+    find_dependency(fmt CONFIG)
+endif()
+
 include(${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake)
 check_required_components(quill)

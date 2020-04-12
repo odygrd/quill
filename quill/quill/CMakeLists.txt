@@ -7,20 +7,6 @@ set(TARGET_NAME quill)
 
 # header files
 set(HEADER_FILES
-        # Bundled fmt
-        include/quill/bundled/fmt/chrono.h
-        include/quill/bundled/fmt/color.h
-        include/quill/bundled/fmt/compile.h
-        include/quill/bundled/fmt/core.h
-        include/quill/bundled/fmt/format.h
-        include/quill/bundled/fmt/format-inl.h
-        include/quill/bundled/fmt/locale.h
-        include/quill/bundled/fmt/os.h
-        include/quill/bundled/fmt/ostream.h
-        include/quill/bundled/fmt/posix.h
-        include/quill/bundled/fmt/printf.h
-        include/quill/bundled/fmt/ranges.h
-
         # Bundled invoke
         include/quill/bundled/invoke/invoke.h
 
@@ -57,6 +43,7 @@ set(HEADER_FILES
         include/quill/handlers/Handler.h
         include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
+        include/quill/Fmt.h
         include/quill/Logger.h
         include/quill/LogLevel.h
         include/quill/PatternFormatter.h
@@ -68,11 +55,6 @@ set(HEADER_FILES
 
 # source files
 set(SOURCE_FILES
-        # Bundled fmt
-        src/bundled/fmt/format.cc
-        src/bundled/fmt/os.cc
-
-        # quill
         src/detail/misc/Utilities.cpp
         src/detail/misc/Os.cpp
         src/detail/misc/RdtscClock.cpp
@@ -96,6 +78,27 @@ set(SOURCE_FILES
         src/Utility.cpp
         )
 
+if(NOT QUILL_FMT_EXTERNAL)
+    # if not using external fmt, include the bundled version of libfmt
+    list(APPEND HEADER_FILES
+            include/quill/bundled/fmt/chrono.h
+            include/quill/bundled/fmt/color.h
+            include/quill/bundled/fmt/compile.h
+            include/quill/bundled/fmt/core.h
+            include/quill/bundled/fmt/format.h
+            include/quill/bundled/fmt/format-inl.h
+            include/quill/bundled/fmt/locale.h
+            include/quill/bundled/fmt/os.h
+            include/quill/bundled/fmt/ostream.h
+            include/quill/bundled/fmt/posix.h
+            include/quill/bundled/fmt/printf.h
+            include/quill/bundled/fmt/ranges.h)
+
+    list(APPEND SOURCE_FILES
+            src/bundled/fmt/format.cc
+            src/bundled/fmt/os.cc)
+endif()
+
 # Add as a library
 add_library(${TARGET_NAME} STATIC "")
 
@@ -104,6 +107,26 @@ add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
 # Add target sources
 target_sources(${TARGET_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
+# Check if using external fmt
+if(NOT QUILL_FMT_EXTERNAL)
+    # Link dependencies
+    target_link_libraries(${TARGET_NAME} PUBLIC Threads::Threads)
+else()
+    # if fmt is not a target in the project trying to find it system wise
+    if (NOT TARGET fmt::fmt AND NOT TARGET fmt)
+        find_package(fmt REQUIRED)
+    endif()
+
+    # define QUILL_FMT_EXTERNAL
+    target_compile_definitions(${TARGET_NAME} PUBLIC QUILL_FMT_EXTERNAL)
+
+    # Link dependencies
+    target_link_libraries(${TARGET_NAME} PUBLIC Threads::Threads fmt::fmt)
+
+    # Add dependency to pkg-config
+    set(PKG_CONFIG_REQUIRES fmt)
+endif()
+
 # Add include directories for this library
 target_include_directories(${TARGET_NAME}
         PUBLIC
@@ -111,9 +134,6 @@ target_include_directories(${TARGET_NAME}
         $<INSTALL_INTERFACE:include>
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR})
-
-# Link dependencies
-target_link_libraries(${TARGET_NAME} PUBLIC Threads::Threads)
 
 # Compiler options
 target_compile_options(${TARGET_NAME} PRIVATE

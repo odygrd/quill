@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "quill/bundled/fmt/format.h"
+#include "quill/Fmt.h"
 #include "quill/bundled/invoke/invoke.h"
 #include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
