@@ -107,7 +107,7 @@ install:
   - sudo cp -a ./lib/* /usr/local/lib
 
   # Install codecov
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo -H pip install --upgrade pip; sudo -H pip install codecov; fi
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo -H pip install --upgrade pip; sudo -H pip install codecov --ignore-installed; fi
 
 script:
   - cd ${TRAVIS_BUILD_DIR}
