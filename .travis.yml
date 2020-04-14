@@ -1,5 +1,7 @@
 language: cpp
 dist: trusty
+python:
+  - "3.8"
 
 matrix:
   include:
