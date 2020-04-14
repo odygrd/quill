@@ -98,6 +98,7 @@ before_install:
   - cmake --version
 
 install:
+  - sudo apt update -qq
   # Get latest gtest
   - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
   - sudo tar xf release-1.10.0.tar.gz
@@ -132,7 +133,7 @@ script:
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else ctest --verbose; fi
 
   # Code Coverage
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then for filename in `find . | egrep '\.cpp'`; do gcov -n -o . $filename > /dev/null; codecov; fi
 
 after_success:
   # Code Coverage
