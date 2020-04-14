@@ -132,7 +132,7 @@ script:
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else ctest --verbose; fi
 
   # Code Coverage
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then for filename in `find . | egrep '\.cpp'`; do gcov -n -o . $filename > /dev/null; codecov; fi
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
 
 after_success:
   # Code Coverage
