@@ -27,7 +27,8 @@ public:
 
   /**
    * Write a formatted log record to the stream
-   * @param formatted_log_record
+   * @param formatted_log_record input log record to write
+   * @param log_record_timestamp log record timestamp
    */
   QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds log_record_timestamp) override;
 
@@ -40,9 +41,9 @@ public:
 
 protected:
   /**
-   * Protected contructor used by the file handler
-   * @param file_pointer
-   * @param filename
+   * Protected constructor used by the file handler
+   * @param file_pointer a pointer to a FILE* used by the derived class
+   * @param filename the name of the file
    */
   StreamHandler(FILE* file_pointer, filename_t filename);
 

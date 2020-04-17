@@ -43,7 +43,7 @@ public:
 
   /**
    * Starts the backend worker thread
-   * @throws
+   * @throws std::runtime_error, std::system_error on failures
    */
   QUILL_ATTRIBUTE_COLD void run();
 

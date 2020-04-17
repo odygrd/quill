@@ -20,7 +20,7 @@ class Config
 public:
   /**
    * Sets the backend thread sleep duration
-   * @param duration
+   * @param duration sleep duration in nanoseconds
    */
   QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds duration) noexcept;
 
@@ -31,7 +31,7 @@ public:
 
   /**
    * Pins the backend thread to the given cpu
-   * @param cpu
+   * @param cpu desired cpu to pin the thread
    */
   QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
 
@@ -53,7 +53,7 @@ public:
 
   /**
    * Sets the initial queue capacity
-   * @param initial_capacity
+   * @param initial_capacity initial queue capacity
    */
   QUILL_ATTRIBUTE_COLD void set_initial_queue_capacity(std::size_t initial_capacity) noexcept;
 

@@ -54,36 +54,36 @@ public:
 
   /**
    * Create a new logger using the same handlers and formatter as the default logger
-   * @param logger_name
-   * @return
+   * @param logger_name the name of the logger to add
+   * @return a pointer to the logger
    */
   Logger* create_logger(char const* logger_name);
 
   /**
    * Creates a new logger
-   * @param logger_name logger name to be added
-   * @param handler The handler of the loggfer
-   * @return
+   * @param logger_name the name of the logger to add
+   * @param handler The handler for the logger
+   * @return a pointer to the logger
    */
   Logger* create_logger(char const* logger_name, Handler* handler);
 
   /**
    * Create a new logger with multiple handler
-   * @param logger_name
-   * @param handlers
-   * @return
+   * @param logger_name the name of the logger to add
+   * @param handlers An initializer list of pointers to handlers that will be now used as a default handler
+   * @return a pointer to the logger
    */
   Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
 
   /**
    * Set a custom default logger with a single handler
-   * @param handler
+   * @param handler A pointer to a handler that will be now used as a default handler
    */
   QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
 
   /**
-   *  Set a custom default logger with multiple handlers
-   * @param handlers
+   * Set a custom default logger with multiple handlers
+   * @param handlers A vector of pointers to handlers that will be now used as a default handler
    */
   QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
 

@@ -19,9 +19,9 @@ class DailyFileHandler final : public FileHandler
 public:
   /**
    * Constructor
-   * @param filename
-   * @param rotation_hour
-   * @param rotation_minute
+   * @param filename A base file name
+   * @param rotation_hour Hour of rotation
+   * @param rotation_minute Minute of rotation
    */
   DailyFileHandler(filename_t const& filename, std::chrono::hours rotation_hour, std::chrono::minutes rotation_minute);
 
@@ -29,7 +29,8 @@ public:
 
   /**
    * Write a formatted log record to the stream
-   * @param formatted_log_record
+   * @param formatted_log_record input log record to write
+   * @param log_record_timestamp log record timestamp
    */
   QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record,
                                 std::chrono::nanoseconds log_record_timestamp) override;

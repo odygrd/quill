@@ -28,8 +28,8 @@ class FileHandler : public StreamHandler
 public:
   /**
    * This constructor will always call fopen to open the given file
-   * @param filename
-   * @param mode
+   * @param filename string containing the name of the file to be opened.
+   * @param mode string containing a file access mode.
    */
   FileHandler(filename_t const& filename, std::string const& mode, FilenameAppend append_to_filenae);
 
@@ -41,7 +41,7 @@ protected:
    * used by FileHandlers that derive from this class e.g. DailyFileHandler. Those filehandlers
    * usually do not operate directly on the base_filename but instead they usually append
    * something to the filename and open it themselves
-   * @param filename
+   * @param filename  string containing the base name of the files
    */
   explicit FileHandler(filename_t const& filename);
 

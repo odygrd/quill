@@ -19,7 +19,6 @@ namespace detail
 /**
  * For each log statement a LogRecord is produced and pushed to the thread local spsc queue.
  * The backend thread will retrieve the LogRecords from the queue using the RecordBase class pointer.
- * @tparam FmtArgs
  */
 template <typename... FmtArgs>
 class LogRecord final : public RecordBase
@@ -37,9 +36,9 @@ public:
    * Make a new LogRecord.
    * This is created by the caller every time we want to log a new message
    * To perfectly forward the argument we have to provide a templated contructor
-   * @param log_line_info
-   * @param logger_details
-   * @param fmt_args
+   * @param log_line_info log line info constexpr object
+   * @param logger_details logger object details
+   * @param fmt_args format arguments
    */
   template <typename... UFmtArgs>
   LogRecord(StaticLogRecordInfo const* log_line_info, LoggerDetails const* logger_details, UFmtArgs&&... fmt_args)
@@ -59,9 +58,11 @@ public:
    */
   QUILL_NODISCARD size_t size() const noexcept override { return sizeof(*this); }
 
-  /**
-   * Process a LogRecord
-   */
+   /**
+    * Process a LogRecord
+    * @param thread_id thread id
+    * @param rdtsc_clock rdtsc clock
+    */
   void backend_process(char const* thread_id,
                        std::function<std::vector<Handler*>()> const&,
                        RdtscClock const* rdtsc_clock) const noexcept override

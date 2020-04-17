@@ -49,7 +49,7 @@ public:
    * Called each time a new Logger instance is created. If the Handler already exists then it is not
    * added in the collection again
    * Objects that are added to _active_handlers_collection never get removed again
-   * @param handler_to_insert
+   * @param handler_to_insert a handler to add
    */
   void subscribe_handler(Handler* handler_to_insert);
 
@@ -58,6 +58,7 @@ public:
    * The list contains each handler only once regardless the amount of Logger instances using it
    * This is not used for logging by the backend but only in special cases when
    * e.g. it needs to iterate through all handlers for e.g. to flush
+   * @return a vector containing all the active handlers
    */
   QUILL_NODISCARD std::vector<Handler*> active_handlers() const;
 

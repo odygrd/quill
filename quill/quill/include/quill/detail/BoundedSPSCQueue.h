@@ -39,8 +39,7 @@ namespace detail
  * 2) call a virtual method of the base type
  *
  * @see BoundedSPSCQueueTest.cpp for examples
- * @tparam T A base class type
- * @tparam capacity The total buffer's capacity in bytes
+ * @tparam TBaseObject A base class type
  */
 template <typename TBaseObject>
 class BoundedSPSCQueue
@@ -61,7 +60,6 @@ public:
 
     /**
      * Move constructor
-     * @param other
      */
     Handle(Handle&& other) noexcept
       : _data(other._data), _indicator(other._indicator), _indicator_value(other._indicator_value)
@@ -74,8 +72,6 @@ public:
 
     /**
      * Move assignment operator
-     * @param other
-     * @return
      */
     Handle& operator=(Handle&& other) noexcept
     {
@@ -136,8 +132,6 @@ public:
 
     /**
      * Do not run a destructor for a trivially destructible object
-     * @tparam U
-     * @return
      */
     template <typename UBaseObject = TBaseObject>
     typename std::enable_if<std::is_trivially_destructible<UBaseObject>::value>::type _destroy()
@@ -146,8 +140,6 @@ public:
 
     /**
      * Run a destructor for a trivially destructible object
-     * @tparam U
-     * @return
      */
     template <typename UBaseObject = TBaseObject>
     typename std::enable_if<!std::is_trivially_destructible<UBaseObject>::value>::type _destroy()
@@ -187,18 +179,15 @@ public:
 
   /**
    * Add a new object to the queue
-   * @tparam TInsertedObject
-   * @tparam Args
-   * @param args
-   * @return
+   * @param args constructor arguments of the object we want to insert
+   * @return true if we emplaced false otherwise
    */
   template <typename TInsertedObject, typename... Args>
   QUILL_NODISCARD_ALWAYS_INLINE_HOT bool try_emplace(Args&&... args) noexcept;
 
   /**
    * Return a handle containing the consumed data of the requested size
-   * @param size the size we requested to consume
-   * @return
+   * @return a handle to the popped object or false otherwise
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT Handle try_pop() noexcept;
 
@@ -217,9 +206,9 @@ private:
    * Returns the remaining bytes until the end of the cache line. For non trivial objects because
    * the consumer calls the destructor we align them on cache line boundaries to avoid false
    * sharing with the producer
-   * @tparam obj_size
-   * @param start_pos
-   * @return
+   * @param start_pos starting memory position
+   * @param obj_size object size
+   * @return the distance from the next cache line
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT static size_t _distance_from_next_cache_line(unsigned char* start_pos,
                                                                                  size_t obj_size) noexcept;

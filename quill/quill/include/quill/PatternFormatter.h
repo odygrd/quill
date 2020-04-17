@@ -75,10 +75,10 @@ private:
     /**
      * Appends information to memory_buffer based on the preconfigured pattern
      * @param[out] memory_buffer the memory buffer to write
-     * @param timestamp
-     * @param thread_id
-     * @param logger_name
-     * @param logline_info
+     * @param timestamp timestamp since epoch
+     * @param thread_id caller thread id
+     * @param logger_name name of logger
+     * @param logline_info pointer to the log line info object
      */
     virtual void format(fmt::memory_buffer& memory_buffer,
                         std::chrono::nanoseconds timestamp,
@@ -89,7 +89,6 @@ private:
 
   /**
    * A templated derived class to capture and type erase the generated tuple
-   * @tparam TTuple
    */
   template <typename TTuple>
   class FormatterHelper final : public FormatterHelperBase
@@ -102,11 +101,11 @@ private:
 
     /**
      * @see FormatterHelper::format
-     * @param memory_buffer
-     * @param timestamp
-     * @param thread_id
-     * @param logger_name
-     * @param logline_info
+     * @param[out] memory_buffer the memory buffer to write
+     * @param timestamp timestamp since epoch
+     * @param thread_id caller thread id
+     * @param logger_name name of logger
+     * @param logline_info pointer to the log line info object
      */
     void format(fmt::memory_buffer& memory_buffer,
                 std::chrono::nanoseconds timestamp,
@@ -166,7 +165,6 @@ public:
 
   /**
    * Constructor for a PatterFormater with a custom format
-   * @tparam TConstantString
    * @param format_pattern format_pattern a format string. Must be passed using the macro QUILL_STRING("format string");
    * @param date_format The for format of the date. Same as strftime() format.
    * @param timezone The timezone of the timestamp
@@ -201,13 +199,11 @@ public:
 #if !defined(_WIN32)
   /**
    * Formats the given LogRecord
-   * @tparam Args
-   * @param timestamp
-   * @param thread_id
-   * @param logger_name
-   * @param logline_info
-   * @param args
-   * @return a fmt::memory_buffer that contains the formatted log record
+   * @param timestamp timestamp since epoch
+   * @param thread_id caller thread id
+   * @param logger_name name of logger
+   * @param logline_info pointer to the constexpr logline_info object
+   * @param args log statement arguments
    */
   template <typename... Args>
   void format(std::chrono::nanoseconds timestamp,
@@ -219,12 +215,11 @@ public:
   /**
    * Formats the given LogRecord
    * Enabled only when there are no wide strings as arguments
-   * @tparam Args
-   * @param timestamp
-   * @param thread_id
-   * @param logger_name
-   * @param logline_info
-   * @param args
+   * @param timestamp timestamp since epoch
+   * @param thread_id caller thread id
+   * @param logger_name name of logger
+   * @param logline_info pointer to the constexpr logline_info object
+   * @param args log statement arguments
    * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
@@ -238,13 +233,12 @@ public:
   /**
    * Formats the given LogRecord after converting the wide characters to UTF-8
    * Enabled when a wide character is passed as an argument
-   * @tparam Args
-   * @param timestamp
-   * @param thread_id
-   * @param logger_name
-   * @param logline_info
-   * @param args
-   * @return
+   * @param timestamp timestamp since epoch
+   * @param thread_id caller thread id
+   * @param logger_name name of logger
+   * @param logline_info pointer to the constexpr logline_info object
+   * @param args log statement arguments
+   * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
   typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::value, void> format(
@@ -256,8 +250,8 @@ public:
 #endif
 
   /**
-   * Returned the stored formatted record, to be called after format
-   * @return
+   * Returns the stored formatted record, to be called after format(...) is called
+   * @return Returns the stored formatted record
    */
   fmt::memory_buffer const& formatted_log_record() const noexcept { return _formatted_log_record; }
 
@@ -270,10 +264,8 @@ private:
 
   /**
    * Generate a tuple of callbacks [](size i) { };
-   * @tparam T
-   * @tparam Is
-   * @param callback
-   * @return
+   * @param callback a callback to be stored inside the tuple
+   * @return a tuple of callbacks [](size i) { };
    */
   template <typename TCallback, size_t... Is>
   QUILL_NODISCARD static auto _generate_tuple_impl(TCallback callback, std::index_sequence<Is...>)
@@ -283,10 +275,8 @@ private:
 
   /**
    * Generate a tuple of callbacks [](size i) { };
-   * @tparam TCallback
-   * @tparam N
-   * @param callback
-   * @return
+   * @param callback a callback to be stored inside the tuple
+   * @return a tuple of callbacks [](size i) { };
    */
   template <size_t N, typename TCallback>
   QUILL_NODISCARD static auto _generate_tuple(TCallback callback)
@@ -318,8 +308,7 @@ private:
    * %(message)       - The logged message
    * %(thread)        - Thread ID
    *
-   * @tparam TConstantString
-   * @param format_pattern a format string. Must be passed using the macro QUILL_STRING("format string");
+   * @tparam TConstantString a format string. Must be passed using the macro QUILL_STRING("format string");
    */
   template <typename TConstantString>
   void _set_pattern(TConstantString);
@@ -333,15 +322,15 @@ private:
    * part 3 : %(function)
    * We care only about part 1 and part 3 and part 2 we can ignore
    * @note: we always expect to find %(message)
+   * @return an array with the count of %(..) for part 1 and part 3
    * */
   template <typename TConstantString>
   QUILL_NODISCARD static constexpr std::array<size_t, 2> _parse_format_pattern();
 
   /**
    * Process part of the pattern and create a helper formatter class
-   * @tparam N
-   * @param format_pattern_part
-   * @return
+   * @param format_pattern_part format pattern part
+   * @return a formater helper base
    */
   template <size_t N>
   QUILL_NODISCARD std::unique_ptr<FormatterHelperBase> _make_formatter_helper(std::string const& format_pattern_part);
@@ -349,26 +338,28 @@ private:
   /**
    * Given a message part generate a vector of callbacks in the excact same order as the format
    * specifiers in the pattern format string
+   * @param pattern pattern
    */
   QUILL_NODISCARD std::vector<argument_callback_t> _generate_vector_of_callbacks(std::string const& pattern);
 
   /**
    * Create the callback we need to use based on the format specifier
-   * @param pattern_attr
-   * @return
+   * @param pattern_attr pattern attr
+   * @return the appropriate callback
    */
   QUILL_NODISCARD argument_callback_t _select_argument_callback(std::string const& pattern_attr);
 
   /**
    * Given a part of the pattern modify it to match the expected lib fmt format
-   */
+    * @param pattern pattern
+    * @return formatted pattern to match the expected lib fmt format
+    */
   QUILL_NODISCARD std::string _generate_fmt_format_string(std::string pattern);
 
   /**
    * Formats an epoch timestamp from nanos to a local date.
    * Default is %H:%M:%S
-   * @param epoch timestamp in nanoseconds from epoch. This timestamp must be in nanoseconds
-   * @return formated date as a string
+   * @param epoch_time timestamp in nanoseconds from epoch. This timestamp must be in nanoseconds
    */
   void _convert_epoch_to_local_date(std::chrono::nanoseconds epoch_time);
 

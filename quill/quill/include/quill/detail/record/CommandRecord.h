@@ -29,7 +29,7 @@ public:
 
   /**
    * When we encounter this message we are going to call flush for all loggers on all handlers.
-   * @param obtain_active_handlers
+   * @param obtain_active_handlers a function that is passed to this method and obtains all the active handlers when called
    */
   void backend_process(char const*,
                        std::function<std::vector<Handler*>()> const& obtain_active_handlers,

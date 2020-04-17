@@ -52,8 +52,8 @@ public:
 
   /**
    * Convert tsc cycles to nanoseconds
-   * @param tsc
-   * @return
+   * @param rdtsc_value the rdtsc timestamp to conver
+   * @return the rdtsc timestamp converted to nanoseconds since epoch
    */
   std::chrono::nanoseconds time_since_epoch(uint64_t rdtsc_value) const noexcept;
 
@@ -64,8 +64,8 @@ public:
   void resync() const noexcept;
 
   /**
-   * return the ticks per nanosecond
-   * @return
+   * rdtsc ticks per nanosecond
+   * @return the ticks per nanosecond
    */
   double ticks_per_nanosecond() const noexcept { return _ticks_per_nanosecond; }
 

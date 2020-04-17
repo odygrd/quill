@@ -14,7 +14,6 @@ namespace detail
 {
 /**
  * An allocator class to allocate aligned memory
- * @tparam T
  */
 template <typename T>
 class CacheAlignedAllocator
@@ -22,7 +21,7 @@ class CacheAlignedAllocator
 public:
   using value_type = T;
 
-  CacheAlignedAllocator() noexcept {}
+  CacheAlignedAllocator() noexcept = default;
 
   template <typename U>
   CacheAlignedAllocator(CacheAlignedAllocator<U> const&) noexcept
@@ -31,8 +30,8 @@ public:
 
   /**
    * allocate
-   * @param n
-   * @return
+   * @param n allocation size in bytes
+   * @return a pointer to the allocated memory
    */
   value_type* allocate(std::size_t n)
   {
@@ -41,7 +40,7 @@ public:
 
   /**
    * free
-   * @param p
+   * @param p address to free memory
    */
   void deallocate(value_type* p, std::size_t) noexcept { detail::aligned_free(p); }
 };

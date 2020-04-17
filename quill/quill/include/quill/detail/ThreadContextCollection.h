@@ -109,7 +109,7 @@ public:
   /**
    * Register a newly created thread context.
    * Called by caller threads
-   * @param thread_context
+   * @param thread_context thread context to register
    */
   void register_thread_context(std::shared_ptr<ThreadContext> const& thread_context);
 

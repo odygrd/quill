@@ -22,13 +22,13 @@ class LogManagerSingleton
 public:
   /**
    * Access to singleton instance
-   * @return
+   * @return a reference to the singleton
    */
   static LogManagerSingleton& instance() noexcept;
 
   /**
    * Access to LogManager
-   * @return
+   * @return a reference to the log manager
    */
   detail::LogManager& log_manager() noexcept;
 

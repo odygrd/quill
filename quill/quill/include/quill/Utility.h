@@ -19,8 +19,8 @@ namespace utility
 {
 /**
  * Formats the given buffer to hex
- * @param buffer
- * @param size
+ * @param buffer input buffer
+ * @param size input buffer size
  * @return A string containing the hexadecimal representation of the givven buffer
  */
 QUILL_NODISCARD std::string to_hex(unsigned char* buffer, size_t size) noexcept;
@@ -28,8 +28,8 @@ QUILL_NODISCARD std::string to_hex(unsigned char const* buffer, size_t size) noe
 
 /**
  * Formats the given buffer to hex
- * @param buffer
- * @param size
+ * @param buffer input buffer
+ * @param size input buffer size
  * @return A string containing the hexadecimal representation of the givven buffer
  */
 QUILL_NODISCARD std::string to_hex(char* buffer, size_t size) noexcept;
@@ -44,10 +44,11 @@ QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
  * thread tries to call operator<< on the class itself but the internal reference object might have changed between the
  * time you wanted to log and when the logged thread called operator <<.
  * Therefore, we need to accept the performance penalty calling operator<< on the caller thread
+ * 3) Similar to 2) but the class contains a class that contains a shared_pointer or a raw pointer which gets modified
+ * by the caller thread immediately after the logging call before the backend thread logs
  * @requires requires the custom type to have an operator<< overload defined
- * @tparam T
- * @param obj
- * @return
+ * @param obj the given object
+ * @return output of object's operator<< as std::string
  */
 template <typename T>
 QUILL_NODISCARD std::string to_string(T const& obj) noexcept

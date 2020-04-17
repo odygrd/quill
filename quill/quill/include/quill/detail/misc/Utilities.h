@@ -31,20 +31,22 @@ QUILL_NODISCARD constexpr bool is_pow_of_two(uint64_t number) noexcept
 
 /**
  * Constexpr string length
- * @param str
- * @return
+ * @param str input string
+ * @return the length of the string
  */
 QUILL_NODISCARD constexpr size_t strlen(char const* str) { return *str ? 1 + strlen(str + 1) : 0; }
 
 /**
  * Convert a string to wstring
- * @param str
+ * @param str input string
+ * @return the value of input string as wide string
  */
 QUILL_NODISCARD std::wstring s2ws(std::string const& str) noexcept;
 
 /**
  * wstring to string
- * @param wstr
+ * @param wstr input wide string
+ * @return the value of input wide string as string
  */
 QUILL_NODISCARD std::string ws2s(std::wstring const& wstr) noexcept;
 
@@ -52,9 +54,9 @@ QUILL_NODISCARD std::string ws2s(std::wstring const& wstr) noexcept;
  * Same as strncpy.
  * Compared to normal strncpy :
  * a) It copies only the required bytes and b) always null terminates.
- * @tparam N
- * @param destination
- * @param source
+ * @tparam N max buffer size
+ * @param destination destination buffer
+ * @param source source string
  */
 template <size_t N>
 void safe_strncpy(std::array<char, N>& destination, char const* source) noexcept
@@ -67,10 +69,10 @@ void safe_strncpy(std::array<char, N>& destination, char const* source) noexcept
 
 /**
  * align a pointer to the given alignment
- * @tparam alignment
- * @tparam T
- * @param pointer
- * @return
+ * @tparam alignment desired alignment
+ * @tparam T desired return type
+ * @param pointer a pointer the object
+ * @return an aligned pointer for the given object
  */
 template <uint64_t alignment, typename T>
 QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr T* align_pointer(void* pointer) noexcept

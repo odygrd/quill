@@ -58,7 +58,7 @@ std::pair<filename_t, filename_t> extract_stem_and_extension(filename_t const& f
 }
 
 /***/
-filename_t append_date_to_filename(filename_t const& base_filename,
+filename_t append_date_to_filename(filename_t const& filename,
                                    std::chrono::system_clock::time_point timestamp /* = {} */) noexcept
 {
   // Get the time now as tm from user or default to now
@@ -71,7 +71,7 @@ filename_t append_date_to_filename(filename_t const& base_filename,
 
   // Get base file and extension
   std::pair<filename_t, filename_t> const stem_ext =
-    detail::file_utilities::extract_stem_and_extension(base_filename);
+    detail::file_utilities::extract_stem_and_extension(filename);
 
   // Construct a filename
   return fmt::format(QUILL_FILENAME_STR("{}_{:04d}-{:02d}-{:02d}{}"), stem_ext.first,
@@ -79,16 +79,16 @@ filename_t append_date_to_filename(filename_t const& base_filename,
 }
 
 /***/
-filename_t append_index_to_filename(filename_t const& base_filename, uint32_t index) noexcept
+filename_t append_index_to_filename(filename_t const& filename, uint32_t index) noexcept
 {
   if (index == 0u)
   {
-    return base_filename;
+    return filename;
   }
 
   // Get base file and extension
   std::pair<filename_t, filename_t> const stem_ext =
-    detail::file_utilities::extract_stem_and_extension(base_filename);
+    detail::file_utilities::extract_stem_and_extension(filename);
 
   // Construct a filename
   return fmt::format(QUILL_FILENAME_STR("{}.{}{}"), stem_ext.first, index, stem_ext.second);

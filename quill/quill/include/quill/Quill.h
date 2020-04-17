@@ -105,7 +105,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(std::string 
  *
  * @throws when the requested logger does not exist
  *
- * @param logger_name
+ * @param logger_name The name of the logger, or no argument for the default logger
  * @return A pointer to a thread-safe Logger object
  */
 QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr);
@@ -115,7 +115,7 @@ QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr);
  *
  * @note: If the user does not want to store the logger pointer, the same logger can be obtained later by calling get_logger(logger_name);
  *
- * @param logger_name
+ * @param logger_name The name of the logger to add
  * @return A pointer to a thread-safe Logger object
  */
 Logger* create_logger(char const* logger_name);
@@ -127,8 +127,8 @@ Logger* create_logger(char const* logger_name);
  *
  * @note: If the user does not want to store the logger pointer, the same logger can be obtained later by calling get_logger(logger_name);
  *
- * @param logger_name
- * @param handler
+ * @param logger_name The name of the logger to add
+ * @param handler A pointer the a handler for this logger
  * @return A pointer to a thread-safe Logger object
  */
 Logger* create_logger(char const* logger_name, Handler* handler);
@@ -139,9 +139,9 @@ Logger* create_logger(char const* logger_name, Handler* handler);
  * A custom formatter pattern the pattern can be specified during the handler creation for each
  * handler
  *
- * @param logger_name
- * @param handlers
- * @return
+ * @param logger_name The name of the logger to add
+ * @param handlers An initializer list of pointers to handlers for this logger
+ * @return A pointer to a thread-safe Logger object
  */
 Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
 
@@ -155,7 +155,7 @@ Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> h
  *
  * @warning Must be called before calling start()
  *
- * @param handler
+ * @param handler A pointer to a handler that will be now used as a default handler by the default logger
  */
 QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
 
@@ -167,7 +167,7 @@ QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
  *
  * @warning Must be called before calling start()
  *
- * @param handlers
+ * @param handlers An initializer list of pointers to handlers that will be now used as a default handler by the default logger
  */
 QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
 
@@ -196,6 +196,8 @@ namespace config
  * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
  *
  * @see set_backend_thread_sleep_duration
+ *
+ * @cpu the cpu core to pin the backend thread
  */
 QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
 
@@ -207,7 +209,7 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
  * @warning: The backend thread will read this value when quill::start() is called.
  * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
  *
- * @param name The desired name
+ * @param name The desired name of the backend worker thread
  */
 QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexcept;
 
@@ -222,8 +224,6 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexc
  *
  * Each time the backend thread sees that there are no remaining records left to process in the queues it will sleep.
  *
- * @param sleep_duration The sleep duration
- *
  * @note: It is recommended to pin the backend thread to a shared or a junk cpu core and use the
  * default sleep duration of 300ns.
  * If you really care about the backend thread speed you might want to pin that thread to an exclusive core
@@ -233,6 +233,8 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexc
  *
  * @warning: The backend thread will read this value when quill::start() is called.
  * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
+ *
+ * @param sleep_duration The sleep duration of the backend thread when idle
  */
 QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept;
 

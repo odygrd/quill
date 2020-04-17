@@ -38,8 +38,6 @@ public:
   /**
    * We align the logger object to it's own cache line. It shouldn't make much difference as the
    * logger object size is exactly 1 cache line
-   * @param i
-   * @return
    */
   void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHELINE_SIZE, i); }
   void operator delete(void* p) { detail::aligned_free(p); }
@@ -64,7 +62,7 @@ public:
   /**
    * Checks if the given log_statement_level can be logged by this logger
    * @param log_statement_level The log level of the log statement to be logged
-   * @return
+   * @return bool if a log record can be logged based on the current log level
    */
   QUILL_NODISCARD bool should_log(LogLevel log_statement_level) const noexcept
   {
@@ -73,8 +71,8 @@ public:
 
   /**
    * Checks if the given log_statement_level can be logged by this logger
-   * @tparam log_statement_level
-   * @return
+   * @tparam log_statement_level The log level of the log statement to be logged
+   * @return bool if a log record can be logged based on the current log level
    */
   template <LogLevel log_statement_level>
   QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log() const noexcept
@@ -87,7 +85,9 @@ public:
    * One queue per caller thread.
    * We have this enable_if to use unlikely since no if constexpr in C++14
    * @note This function is thread-safe.
-   */
+    * @param log_line_info log line info pointer
+    * @param fmt_args format arguments
+    */
   template <LogLevel log_statement_level, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT
     typename std::enable_if_t<(log_statement_level == LogLevel::TraceL3 || log_statement_level == LogLevel::TraceL2 ||
@@ -115,7 +115,9 @@ public:
    * One queue per caller thread.
    * We have this enable_if to use unlikely since no if constexpr in C++14
    * @note This function is thread-safe.
-   */
+    * @param log_line_info log line info pointer
+    * @param fmt_args format arguments
+    */
   template <LogLevel log_statement_level, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT
     typename std::enable_if_t<(log_statement_level == LogLevel::Info || log_statement_level == LogLevel::Warning ||
@@ -142,8 +144,9 @@ private:
 
   /**
    * Constructs new logger object
-   * @param logger_id A unique id per logger
-   * @param log_level The log level of the logger
+   * @param name the name of the logger
+   * @param handler handlers for this logger
+   * @param thread_context_collection thread context collection reference
    */
   Logger(char const* name, Handler* handler, detail::ThreadContextCollection& thread_context_collection)
     : _logger_details(name, handler), _thread_context_collection(thread_context_collection)
@@ -152,9 +155,6 @@ private:
 
   /**
    * Constructs a new logger object with multiple handlers
-   * @param name
-   * @param handlers
-   * @param thread_context_collection
    */
   Logger(char const* name, std::vector<Handler*> handlers, detail::ThreadContextCollection& thread_context_collection)
     : _logger_details(name, std::move(handlers)), _thread_context_collection(thread_context_collection)

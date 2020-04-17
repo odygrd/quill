@@ -33,8 +33,7 @@ public:
 
   /**
    * Set a custom formatter for this handler
-   * @tparam TConstantString
-   * @param format_pattern
+   * @param format_pattern format pattern as QUILL_STRING(...)
    * @param date_format defaults to "%H:%M:%S"
    * @param timestamp_precision defaults to PatternFormatter::TimestampPrecision::NanoSeconds
    * @param timezone defaults to PatternFormatter::Timezone::LocalTime
@@ -52,14 +51,15 @@ public:
   /**
    * Returns the owned formatter by the handler
    * @note: Accessor for backend processing
-   * @return
+   * @return reference to the pattern formatter of this handler
    */
   QUILL_ATTRIBUTE_HOT PatternFormatter const& formatter() { return *(_formatter.get()); }
 
   /**
    * Logs a formatted log record to the handler
    * @note: Accessor for backend processing
-   * @param formatted_log_record
+   * @param formatted_log_record input log record to write
+   * @param log_record_timestamp log record timestamp
    */
   QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_record,
                                         std::chrono::nanoseconds log_record_timestamp) = 0;

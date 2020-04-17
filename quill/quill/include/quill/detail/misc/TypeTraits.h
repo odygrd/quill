@@ -17,7 +17,6 @@ namespace detail
 /**
  * We use promoted to convert all char const* or char* to a std::string when the Logger is creating a LogRecord
  * This is because the record is processed later by the backend thread and the char* could be out of scope
- * @tparam T
  */
 template <typename T>
 struct Promoted
@@ -67,7 +66,6 @@ struct Promoted<wchar_t*>
 
 /**
  * Helper to unwrap reference wrapper
- * @tparam T
  */
 template <class T>
 struct UnwrapRefWrapper
