@@ -4,7 +4,9 @@
 
 ## v1.2.0
 * Linking and including an external version of `fmt` is now supported. See TweakMe.h
-* Fix compiler warnings when using clang's -Wdocumentation. Fixes [#12](https://github.com/odygrd/quill/issues/12).
+* Fixed compiler warnings when using clang's -Wdocumentation. Fixes [#12](https://github.com/odygrd/quill/issues/12).
+* Fixed a bug that wouldn't report a compile-time error for invalid format strings. Fixes [#13](https://github.com/odygrd/quill/issues/13).
+
 ## v1.1.0
 * Daily file handler. The file handler rollover every 24 hours
 * Rotating file handler. The file handler will rollover based on the size of the file
