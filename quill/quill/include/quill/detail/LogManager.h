@@ -59,6 +59,11 @@ public:
   }
 
   /**
+   * @return The current process id
+   */
+  QUILL_NODISCARD std::string const& process_id() noexcept { return _process_id; }
+
+  /**
    * Blocks the caller thread until all log messages until the current timestamp are flushed
    *
    * The backend thread will flush all loggers and all handlers up to the point (timestamp) that
@@ -82,6 +87,7 @@ private:
   ThreadContextCollection _thread_context_collection{_config};
   LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
+  std::string _process_id{fmt::format_int(get_process_id()).str()};
 };
 } // namespace detail
 } // namespace quill

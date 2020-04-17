@@ -1,4 +1,5 @@
 #include "quill/PatternFormatter.h"
+#include "quill/detail/LogManagerSingleton.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/Os.h"
 
@@ -59,6 +60,12 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   {
     return [](std::chrono::nanoseconds, char const* thread_id, char const*,
               detail::StaticLogRecordInfo const&) { return thread_id; };
+  }
+  else if (pattern_attr == "process")
+  {
+    return [](std::chrono::nanoseconds, char const*, char const*, detail::StaticLogRecordInfo const&) {
+      return detail::LogManagerSingleton::instance().log_manager().process_id().data();
+    };
   }
   else if (pattern_attr == "pathname")
   {

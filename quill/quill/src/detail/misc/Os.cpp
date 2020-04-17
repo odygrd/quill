@@ -12,10 +12,10 @@
 #if defined(_WIN32)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
-  #include <malloc.h>
   #include <io.h>
-  #include <windows.h>
+  #include <malloc.h>
   #include <share.h>
+  #include <windows.h>
 
   #include <processthreadsapi.h>
 #elif defined(__APPLE__)
@@ -177,6 +177,16 @@ uint32_t get_thread_id() noexcept
 }
 
 /***/
+uint32_t get_process_id() noexcept
+{
+#if defined(_WIN32)
+  return static_cast<uint32_t>(GetCurrentProcessId());
+#else
+  return static_cast<uint32_t>(getpid());
+#endif
+}
+
+/***/
 size_t get_page_size() noexcept
 {
   // thread local to avoid race condition when more than one threads are creating the queue at the same time
@@ -299,7 +309,7 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
 {
   auto bytes_needed = static_cast<int32_t>(mem_buffer.capacity() - mem_buffer.size());
 
-  if ((w_mem_buffer.size() + 1) * 2 > static_cast< size_t >(bytes_needed))
+  if ((w_mem_buffer.size() + 1) * 2 > static_cast<size_t>(bytes_needed))
   {
     // if our given string is larger than the capacity, calculate how many bytes we need
     bytes_needed = ::WideCharToMultiByte(

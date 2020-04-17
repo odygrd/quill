@@ -307,6 +307,7 @@ private:
    * %(logger_name)   - Name of the logger used to log the call.
    * %(message)       - The logged message
    * %(thread)        - Thread ID
+   * %(process)       - Process ID
    *
    * @tparam TConstantString a format string. Must be passed using the macro QUILL_STRING("format string");
    */
