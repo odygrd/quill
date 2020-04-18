@@ -58,15 +58,6 @@ TEST(TimestampFormatter, format_string_with_millisecond_precision)
 
   // with double formatting
   {
-    const std::chrono::nanoseconds timestamp{1587161887987654321};
-    TimestampFormatter ts_formatter{"%H:%M:%S.%Qms %z", quill::Timezone::GmtTime};
-
-    auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.987 +0000");
-  }
-
-  // with double formatting
-  {
     const std::chrono::nanoseconds timestamp{1587161887803654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms %D", quill::Timezone::GmtTime};
 
