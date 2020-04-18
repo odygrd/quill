@@ -361,7 +361,7 @@ private:
 #endif
 
   /** class responsible for formatting the timestamp */
-  detail::TimestampFormatter _timestamp_formatter{"%H:%M%:%S.%Qns", Timezone::LocalTime};
+  detail::TimestampFormatter _timestamp_formatter{"%H:%M:%S.%Qns", Timezone::LocalTime};
 };
 
 /** Inline Implementation **/
