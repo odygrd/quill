@@ -7,7 +7,7 @@
 * Fixed compiler warnings when using clang's `-Wdocumentation`. ([#12](https://github.com/odygrd/quill/issues/12))
 * Fixed a bug that wouldn't report a compile-time error for invalid format strings. ([#13](https://github.com/odygrd/quill/issues/13))
 * Added process ID to Formatter. ([#14](https://github.com/odygrd/quill/issues/14))
-* Enhanced timestamp formatting. The `timestamp_format` string passed in `handler->set_pattern(format_pattern, timestamp_format, timezone)` now accepts three additional specifiers `%Qms`, `%Qus`, `%Qus` that can be used to format the fractional seconds. See [here]() (([#15](https://github.com/odygrd/quill/issues/15)))  
+* Enhanced timestamp formatting. The `timestamp_format` string passed in `handler->set_pattern(format_pattern, timestamp_format, timezone)` now accepts three additional specifiers `%Qms`, `%Qus`, `%Qus` that can be used to format the fractional seconds. See [here](https://github.com/odygrd/quill/wiki/3.-Formatters). ([#15](https://github.com/odygrd/quill/issues/15))
 
 ## v1.1.0
 * Daily file handler. The file handler rollover every 24 hours
