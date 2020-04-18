@@ -45,15 +45,14 @@ std::vector<PatternFormatter::argument_callback_t> PatternFormatter::_generate_v
 /***/
 PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callback(std::string const& pattern_attr)
 {
-  // We do not care about all those if/else's as they are used only during init to store the correct
-  // callback to our tuple
+  // We do not care about the performance of all those if/else's as they are only used during
+  // initialisation to store the correct callback to our tuple
+
   if (pattern_attr == "ascii_time")
   {
     return [this](std::chrono::nanoseconds timestamp, char const*, char const*,
                   detail::StaticLogRecordInfo const&) {
-      // TODO pass the date format string for date formatting
-      _convert_epoch_to_local_date(timestamp);
-      return _formatted_date.data();
+      return _timestamp_formatter.format_timestamp(timestamp);
     };
   }
   else if (pattern_attr == "thread")
@@ -140,106 +139,4 @@ std::string PatternFormatter::_generate_fmt_format_string(std::string pattern)
   return pattern;
 }
 
-void PatternFormatter::_convert_epoch_to_local_date(std::chrono::nanoseconds epoch_time)
-{
-  int64_t const epoch = epoch_time.count();
-
-  // convert timestamp to date
-  int64_t const rawtime_seconds = epoch / 1'000'000'000;
-
-  tm timeinfo;
-
-  // Convert timestamp to date based on the option
-  if (_timezone_type == Timezone::GmtTime)
-  {
-    detail::gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(rawtime_seconds)), std::addressof(timeinfo));
-  }
-  else if (_timezone_type == Timezone::LocalTime)
-  {
-    detail::localtime_rs(reinterpret_cast<time_t const*>(std::addressof(rawtime_seconds)),
-                         std::addressof(timeinfo));
-  }
-  else
-  {
-    throw std::runtime_error("Unknown timezone type");
-  }
-
-  // extract the nanoseconds
-  auto const usec = static_cast<uint64_t>(epoch - (rawtime_seconds * 1'000'000'000));
-
-  _formatted_date.clear();
-
-  // add time
-  auto res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(),
-                      std::addressof(timeinfo));
-
-  while (QUILL_UNLIKELY(res == 0))
-  {
-    _formatted_date.resize(_formatted_date.capacity() * 2);
-    res = strftime(&_formatted_date[0], _formatted_date.capacity(), _date_format.data(),
-                   std::addressof(timeinfo));
-  }
-
-  // Add precision
-  if (_timestamp_precision == TimestampPrecision::NanoSeconds)
-  {
-    if (QUILL_UNLIKELY(res + 11 > _formatted_date.capacity()))
-    {
-      _formatted_date.resize(res + 11);
-    }
-
-    // add the nanoseconds using the fast integer formatter from fmt
-    _formatted_date[res] = ('.');
-    size_t usec_begin = res + 1;
-    size_t const usec_end = usec_begin + 9;
-
-    // Fill with zeros the nanosecond precision
-    memset(&_formatted_date[usec_begin], '0', 9);
-    fmt::format_int i(usec);
-
-    usec_begin = usec_end - i.size();
-    memcpy(&_formatted_date[usec_begin], i.data(), i.size());
-    _formatted_date[usec_end] = '\0';
-  }
-  else if (_timestamp_precision == TimestampPrecision::MicroSeconds)
-  {
-    if (QUILL_UNLIKELY(res + 8 > _formatted_date.capacity()))
-    {
-      _formatted_date.resize(res + 8);
-    }
-
-    // add the microseconds using the fast integer formatter from fmt
-    _formatted_date[res] = ('.');
-    size_t usec_begin = res + 1;
-    size_t const usec_end = usec_begin + 6;
-
-    // Fill with zeros the nanosecond precision
-    memset(&_formatted_date[usec_begin], '0', 6);
-    fmt::format_int i(usec / 1000);
-
-    usec_begin = usec_end - i.size();
-    memcpy(&_formatted_date[usec_begin], i.data(), i.size());
-    _formatted_date[usec_end] = '\0';
-  }
-  else if (_timestamp_precision == TimestampPrecision::MilliSeconds)
-  {
-    if (QUILL_UNLIKELY(res + 5 > _formatted_date.capacity()))
-    {
-      _formatted_date.resize(res + 5);
-    }
-
-    // add the microseconds using the fast integer formatter from fmt
-    _formatted_date[res] = ('.');
-    size_t usec_begin = res + 1;
-    size_t const usec_end = usec_begin + 3;
-
-    // Fill with zeros the nanosecond precision
-    memset(&_formatted_date[usec_begin], '0', 3);
-    fmt::format_int i(usec / 1'000'000);
-
-    usec_begin = usec_end - i.size();
-    memcpy(&_formatted_date[usec_begin], i.data(), i.size());
-    _formatted_date[usec_end] = '\0';
-  }
-}
 } // namespace quill

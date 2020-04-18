@@ -7,6 +7,7 @@
 
 #include "quill/Fmt.h"
 #include "quill/bundled/invoke/invoke.h"
+#include "quill/detail/TimestampFormatter.h"
 #include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
@@ -131,15 +132,6 @@ private:
   /** Public classes **/
 public:
   /**
-   * Stores the timezone that is used for the timestamp
-   */
-  enum class Timezone : uint8_t
-  {
-    LocalTime,
-    GmtTime
-  };
-
-  /**
    * Stores the precission of the timestamp
    */
   enum class TimestampPrecision : uint8_t
@@ -166,17 +158,14 @@ public:
   /**
    * Constructor for a PatterFormater with a custom format
    * @param format_pattern format_pattern a format string. Must be passed using the macro QUILL_STRING("format string");
-   * @param date_format The for format of the date. Same as strftime() format.
-   * @param timezone The timezone of the timestamp
+   * @param timestamp_format The for format of the date. Same as strftime() format with extra specifiers `%Qms` `%Qus` `Qns`
+   * @param timezone The timezone of the timestamp, local_time or gmt_time
    */
   template <typename TConstantString>
-  PatternFormatter(TConstantString format_pattern, std::string date_format, TimestampPrecision timestamp_precision, Timezone timezone)
+  PatternFormatter(TConstantString format_pattern, std::string timestamp_format, Timezone timezone)
+    : _timestamp_formatter(timestamp_format, timezone)
   {
     _set_pattern(format_pattern);
-
-    _date_format = std::move(date_format);
-    _timestamp_precision = timestamp_precision;
-    _timezone_type = timezone;
   }
 
   /**
@@ -357,21 +346,10 @@ private:
     */
   QUILL_NODISCARD std::string _generate_fmt_format_string(std::string pattern);
 
-  /**
-   * Formats an epoch timestamp from nanos to a local date.
-   * Default is %H:%M:%S
-   * @param epoch_time timestamp in nanoseconds from epoch. This timestamp must be in nanoseconds
-   */
-  void _convert_epoch_to_local_date(std::chrono::nanoseconds epoch_time);
-
 private:
   /** Formatters for any user's custom pattern - Important they have to be destructed last so they are defined first **/
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_1; /**< Formatter before %(message) **/
   std::unique_ptr<FormatterHelperBase> _pattern_formatter_helper_part_3; /**< Formatter after %(message) **/
-
-  /** Strings as class members to avoid re-allocating **/
-  using date_memory_buffer = fmt::basic_memory_buffer<char, 32>;
-  date_memory_buffer _formatted_date;
 
   /** The buffer where we store each formatted string, also stored as class member to avoid
    * re-allocations. This is mutable so we can have a format() const function **/
@@ -382,9 +360,8 @@ private:
   mutable fmt::wmemory_buffer _w_memory_buffer;
 #endif
 
-  std::string _date_format{"%H:%M:%S"};         /** Timestamp format **/
-  Timezone _timezone_type{Timezone::LocalTime}; /** Timezone, GMT time by default **/
-  TimestampPrecision _timestamp_precision{TimestampPrecision::NanoSeconds}; /** timestamp precision */
+  /** class responsible for formatting the timestamp */
+  detail::TimestampFormatter _timestamp_formatter{"%H:%M%:%S.%Qns", Timezone::LocalTime};
 };
 
 /** Inline Implementation **/

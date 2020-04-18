@@ -35,9 +35,7 @@ TEST(PatternFormatter, default_pattern_formatter)
 TEST(PatternFormatter, custom_pattern_message_only)
 {
   // Message only
-  PatternFormatter custom_pattern_formatter{QUILL_STRING("%(message)"), "%H:%M:%S",
-                                            PatternFormatter::TimestampPrecision::NanoSeconds,
-                                            PatternFormatter::Timezone::GmtTime};
+  PatternFormatter custom_pattern_formatter{QUILL_STRING("%(message)"), "%H:%M:%S.%Qns", Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -66,8 +64,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
     QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
       "%(message) [%(function_name)]"),
-    "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::NanoSeconds,
-    PatternFormatter::Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S.%Qns", Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -84,7 +81,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:75 LOG_DEBUG    test_logger - "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:72 LOG_DEBUG    test_logger - "
     "This the 1234 formatter pattern [TestBody]\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
@@ -97,8 +94,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
     QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
       "%(message) [%(function_name)]"),
-    "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::MicroSeconds,
-    PatternFormatter::Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S.%Qus", Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761020123000};
   char const* thread_id = "31341";
@@ -115,7 +111,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:106 LOG_DEBUG    test_logger - "
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:102 LOG_DEBUG    test_logger - "
     "This the 1234 formatter pattern [TestBody]\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
@@ -128,8 +124,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
     QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
       "%(message) [%(function_name)]"),
-    "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::MilliSeconds,
-    PatternFormatter::Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S.%Qms", Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761099000000};
   char const* thread_id = "31341";
@@ -146,7 +141,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:137 LOG_DEBUG    test_logger - This "
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:132 LOG_DEBUG    test_logger - This "
     "the 1234 formatter pattern [TestBody]\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
@@ -159,7 +154,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
     QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
       "%(message) [%(function_name)]"),
-    "%m-%d-%Y %H:%M:%S", PatternFormatter::TimestampPrecision::None, PatternFormatter::Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S", Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
@@ -176,7 +171,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:167 LOG_DEBUG    test_logger - This the "
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:162 LOG_DEBUG    test_logger - This the "
     "1234 formatter pattern [TestBody]\n";
 
   EXPECT_EQ(formatted_buffer.size(), expected_string.length());
@@ -189,6 +184,6 @@ TEST(PatternFormatter, invalid_pattern)
     PatternFormatter(
       QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
                    "[%(function_name)]"),
-      "%H:%M:%S", PatternFormatter::TimestampPrecision::NanoSeconds, PatternFormatter::Timezone::GmtTime),
+      "%H:%M:%S.%Qns", Timezone::GmtTime),
     std::runtime_error);
 }

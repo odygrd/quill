@@ -63,13 +63,13 @@ QUILL_ATTRIBUTE_COLD void set_thread_name(char const* name);
 
 /**
  * Returns the os assigned ID of the thread
- * @return the current thread ID of the calling thread
+ * @return the thread ID of the calling thread
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_thread_id() noexcept;
 
 /**
  * Returns the os assigned ID of the process
- * @return returns the process ID of the calling process
+ * @return the process ID of the calling process
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_process_id() noexcept;
 

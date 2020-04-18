@@ -55,4 +55,13 @@ static constexpr char path_delimiter = '\\';
 #else
 static constexpr char path_delimiter = '/';
 #endif
+
+/**
+ * Represents the timezone of the logger's timestamp
+ */
+enum class Timezone : uint8_t
+{
+  LocalTime,
+  GmtTime
+};
 } // namespace quill

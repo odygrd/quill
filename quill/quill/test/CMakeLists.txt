@@ -20,6 +20,7 @@ set(SOURCE_FILES
         RecordTest.cpp
         StaticLogRecordInfoTest.cpp
         ThreadContextCollectionTest.cpp
+        TimestampFormatterTest.cpp
         UtilityTest.cpp
         )
 

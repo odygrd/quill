@@ -34,18 +34,15 @@ public:
   /**
    * Set a custom formatter for this handler
    * @param format_pattern format pattern as QUILL_STRING(...)
-   * @param date_format defaults to "%H:%M:%S"
-   * @param timestamp_precision defaults to PatternFormatter::TimestampPrecision::NanoSeconds
+   * @param timestamp_format defaults to "%H:%M:%S.%Qns"
    * @param timezone defaults to PatternFormatter::Timezone::LocalTime
    */
   template <typename TConstantString>
-  QUILL_ATTRIBUTE_COLD void set_pattern(
-    TConstantString format_pattern,
-    std::string date_format = std::string{"%H:%M:%S"},
-    PatternFormatter::TimestampPrecision timestamp_precision = PatternFormatter::TimestampPrecision::NanoSeconds,
-    PatternFormatter::Timezone timezone = PatternFormatter::Timezone::LocalTime)
+  QUILL_ATTRIBUTE_COLD void set_pattern(TConstantString format_pattern,
+                                        std::string timestamp_format = std::string{"%H:%M:%S.%Qns"},
+                                        Timezone timezone = Timezone::LocalTime)
   {
-    _formatter = std::make_unique<PatternFormatter>(format_pattern, date_format, timestamp_precision, timezone);
+    _formatter = std::make_unique<PatternFormatter>(format_pattern, timestamp_format, timezone);
   }
 
   /**
