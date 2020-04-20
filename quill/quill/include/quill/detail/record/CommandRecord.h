@@ -33,7 +33,7 @@ public:
    */
   void backend_process(char const*,
                        std::function<std::vector<Handler*>()> const& obtain_active_handlers,
-                       RdtscClock const*) const noexcept override
+                       std::chrono::nanoseconds) const noexcept override
   {
     std::vector<Handler*> const active_handlers = obtain_active_handlers();
 

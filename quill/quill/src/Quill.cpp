@@ -16,9 +16,6 @@ void preallocate()
 }
 
 /***/
-void start() { detail::LogManagerSingleton::instance().log_manager().start_backend_worker(); }
-
-/***/
 Handler* stdout_handler()
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().stdout_streamhandler();

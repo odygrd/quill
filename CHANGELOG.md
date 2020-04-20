@@ -2,8 +2,11 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
+## v1.2.1
+* Improved `QUILL_RDTSC_CLOCK` tweak option. It is now possible to switch between using `rdtsc` or `std::chrono` clock without having to recompile quill as library.
+
 ## v1.2.0
-* Linking and including an external version of `fmt` is now supported. See TweakMe.h
+* Linking and including an external version of `fmt` is now supported. See `TweakMe.h`
 * Fixed compiler warnings when using clang's `-Wdocumentation`. ([#12](https://github.com/odygrd/quill/issues/12))
 * Fixed a bug that wouldn't report a compile-time error for invalid format strings. ([#13](https://github.com/odygrd/quill/issues/13))
 * Added process ID to Formatter. ([#14](https://github.com/odygrd/quill/issues/14))

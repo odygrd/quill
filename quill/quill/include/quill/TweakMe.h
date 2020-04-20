@@ -20,7 +20,7 @@
  */
 
 /**
- * If QUILL_RDTSC_CLOCK is not defined Quill will use chrono system_clock for timestamps
+ * If QUILL_RDTSC_CLOCK value is set to 0, Quill will use chrono system_clock for timestamps.
  *
  * QUILL_TSC_CLOCK mode :
  *
@@ -34,8 +34,17 @@
  *
  * When using the TSC counter the backend thread will also periodically call chrono::system_clock:now() and will
  * resync the TSC based on the system clock.
+ *
+ * @note: This should be switchable even after quill is already installed as a static or shared library.
+ *
+ * Usage:
+ * Run cmake as e.g: cmake . -DCMAKE_CXX_FLAGS="-DQUILL_RDTSC_CLOCK=0"
+ * or
+ * In the root CMake file use: `add_definitions(-DQUILL_RDTSC_CLOCK=0)`
+ *
+ * By default QUILL_RDTSC_CLOCK is set to 1
  */
-#define QUILL_RDTSC_CLOCK
+// #define QUILL_RDTSC_CLOCK 1
 
 /**
  * This option is only applicable if the RDTSC clock is enabled.
@@ -44,11 +53,14 @@
  * This value controls how frequently the backend thread will re-calculate and sync the TSC by
  * getting the system time from the system wall clock.
  * The TSC clock drifts slightly over time and is also not synchronised with the NTP server updates
- * Therefore the smaller this value is the more acquire the log timestamps will be.
+ * Therefore the smaller this value is the more accurate the log timestamps will be.
  *
- * The value is in milliseconds and the default value is 1000
+ * It is not recommended to change the default value unless there is a real reason.
+ * The value is in milliseconds and the default value is 700.
+ *
+ * @note: This should be switchable even after quill is already installed as a static or shared library.
  */
-// #define QUILL_RDTSC_RESYNC_INTERVAL 1000
+// #define QUILL_RDTSC_RESYNC_INTERVAL 700
 
 /**
  * Completely compiles out log level with zero cost.

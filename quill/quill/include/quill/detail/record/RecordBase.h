@@ -10,6 +10,7 @@
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/RdtscClock.h"
+
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -58,13 +59,27 @@ public:
    */
   virtual void backend_process(char const* thread_id,
                                std::function<std::vector<Handler*>()> const& obtain_active_handlers,
-                               RdtscClock const* rdtsc_clock) const noexcept = 0;
+                               std::chrono::nanoseconds log_record_timestamp) const noexcept = 0;
+
+#if !defined(NDEBUG)
+  QUILL_NODISCARD bool using_rdtsc() const noexcept { return _using_rdtsc; }
+#endif
 
 private:
-#if defined(QUILL_RDTSC_CLOCK)
-  uint64_t _timestamp{rdtsc()};
+#if (QUILL_RDTSC_CLOCK == 1)
+  uint64_t _timestamp{RdtscClock::rdtsc()};
+
+  #if !defined(NDEBUG)
+  bool _using_rdtsc{true};
+  #endif
+
 #else
   uint64_t _timestamp{static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())};
+
+  #if !defined(NDEBUG)
+  bool _using_rdtsc{false};
+  #endif
+
 #endif
 };
 } // namespace detail

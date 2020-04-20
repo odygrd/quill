@@ -4,11 +4,12 @@
  */
 
 #pragma once
-
+#include "quill/Logger.h"
 #include "quill/detail/LogMacros.h"
 
 #include "quill/Utility.h"
 #include "quill/detail/LogManagerSingleton.h"
+
 #include <initializer_list>
 
 namespace quill
@@ -25,7 +26,10 @@ QUILL_ATTRIBUTE_COLD void preallocate();
  * Starts the backend thread to write the logs to the handlers
  * @throws When the backend thread fails to start
  */
-QUILL_ATTRIBUTE_COLD void start();
+QUILL_ATTRIBUTE_COLD inline void start()
+{
+  detail::LogManagerSingleton::instance().log_manager().start_backend_worker();
+}
 
 /**
  * @return a handler to the standard output stream

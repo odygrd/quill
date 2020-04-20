@@ -69,12 +69,18 @@ public:
    */
   double ticks_per_nanosecond() const noexcept { return _ticks_per_nanosecond; }
 
+  /**
+   * Get the TSC counter
+   * @return rdtsc timestamp
+   */
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT static uint64_t rdtsc() noexcept { return __rdtsc(); }
+
 private:
   mutable int64_t _base_time{0}; /**< Get the initial base time in nanoseconds from epoch */
   mutable uint64_t _base_tsc{0}; /**< Get the initial base tsc time */
   mutable int64_t _resync_interval_ticks{0};
   int64_t _resync_interval_original{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
   double _ticks_per_nanosecond{0};
-}; // namespace detailclassRdtscClock
+};
 } // namespace detail
 } // namespace quill

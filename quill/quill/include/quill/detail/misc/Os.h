@@ -12,22 +12,10 @@
 #include <ctime>
 #include <utility>
 
-#if defined(_WIN32)
-  #include <intrin.h>
-#else
-  #include <x86intrin.h>
-#endif
-
 namespace quill
 {
 namespace detail
 {
-/**
- * Get the TSC counter
- * @return rdtsc timestamp
- */
-QUILL_ALWAYS_INLINE uint64_t rdtsc() noexcept { return __rdtsc(); }
-
 /**
  * Portable gmtime_r or _s per operating system
  * @param timer to a time_t object to convert

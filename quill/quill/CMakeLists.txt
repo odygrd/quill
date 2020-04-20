@@ -66,7 +66,6 @@ set(SOURCE_FILES
         src/detail/Config.cpp
         src/detail/HandlerCollection.cpp
         src/detail/LoggerCollection.cpp
-        src/detail/LogManager.cpp
         src/detail/LogManagerSingleton.cpp
         src/detail/ThreadContextCollection.cpp
         src/detail/TimestampFormatter.cpp

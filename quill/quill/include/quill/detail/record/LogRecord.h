@@ -65,21 +65,11 @@ public:
     */
   void backend_process(char const* thread_id,
                        std::function<std::vector<Handler*>()> const&,
-                       RdtscClock const* rdtsc_clock) const noexcept override
+                       std::chrono::nanoseconds log_record_timestamp) const noexcept override
   {
     // Forward the record to all of the logger handlers
     for (auto& handler : _logger_details->handlers())
     {
-#if defined(QUILL_RDTSC_CLOCK)
-      // pass to our clock the stored rdtsc from the caller
-      std::chrono::nanoseconds const log_record_timestamp = rdtsc_clock->time_since_epoch(this->timestamp());
-#else
-      // Then the timestamp() will be already in epoch no need to convert it like above
-      // The precision of system_clock::time-point is not portable across platforms.
-      std::chrono::system_clock::duration const timestamp_duration{this->timestamp()};
-      std::chrono::nanoseconds const timestamp = std::chrono::nanoseconds{timestamp_duration};
-#endif
-
       // lambda to unpack the tuple args stored in the LogRecord (the arguments that were passed by
       // the user) We also capture all additional information we need to create the log message
       auto forward_tuple_args_to_formatter = [this, log_record_timestamp, thread_id, handler](auto... tuple_args) {
