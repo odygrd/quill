@@ -10,6 +10,12 @@
 #include "quill/detail/misc/Attributes.h"
 #include <chrono>
 
+#if defined(_WIN32)
+  #include <intrin.h>
+#else
+  #include <x86intrin.h>
+#endif
+
 namespace quill
 {
 namespace detail
