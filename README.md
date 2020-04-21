@@ -123,6 +123,12 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 
 ## Integration
 
+### Package Managers
+
+* Homebrew: `brew install quill`
+* vcpkg: `vcpkg install quill`
+* conan: `quill/[>=1.2.1]`
+
 ### CMake
 
 #### External
@@ -190,12 +196,6 @@ target_link_libraries(my_project PRIVATE quill::quill)
 ```
 ##### main.cpp
 See [basic usage](#basic-usage)
-
-### Package Managers
-
-* Homebrew: `brew install quill`
-* vcpkg: `vcpkg install quill`
-* conan: `quill/[>=1.2.1]`
 
 ## Basic usage
 
