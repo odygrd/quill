@@ -26,9 +26,14 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
       asm volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(pmccntr));
 
       // The counter is set up to count every 64th cycle
-      return static_cast<int64_t>(pmccntr) * 64;
+      return (static_cast<uint64_t>(pmccntr)) * 64u;
     }
   }
+
+  // soft failover
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
 #else
