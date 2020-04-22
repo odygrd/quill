@@ -44,6 +44,8 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
  * @return rdtsc timestamp
  */
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept { return __rdtsc(); }
-}
-}
+
 #endif
+
+} // namespace detail
+} // namespace quill
