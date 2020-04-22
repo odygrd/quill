@@ -8,6 +8,8 @@ namespace detail
 {
 
 #if (__ARM_ARCH >= 6)
+  #include <sys/time.h>
+
 // V6 is the earliest arch that has a standard cyclecount
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
 {
