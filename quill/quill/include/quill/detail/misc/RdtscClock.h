@@ -10,12 +10,6 @@
 #include "quill/detail/misc/Attributes.h"
 #include <chrono>
 
-#if defined(_WIN32)
-  #include <intrin.h>
-#else
-  #include <x86intrin.h>
-#endif
-
 namespace quill
 {
 namespace detail
@@ -74,12 +68,6 @@ public:
    * @return the ticks per nanosecond
    */
   double ticks_per_nanosecond() const noexcept { return _ticks_per_nanosecond; }
-
-  /**
-   * Get the TSC counter
-   * @return rdtsc timestamp
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT static uint64_t rdtsc() noexcept { return __rdtsc(); }
 
 private:
   mutable int64_t _base_time{0}; /**< Get the initial base time in nanoseconds from epoch */

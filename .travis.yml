@@ -33,6 +33,16 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-5, cmake, cmake-data, ninja-build]
 
+    - name: 'Linux Gcc C++14 Debug ARM'
+      os: linux
+      arch: amd64
+      compiler: gcc
+      env: GCC_VERSION=5 BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: [g++-5, cmake, cmake-data, ninja-build]
+
     - name: 'Linux Gcc C++14 Release'
       os: linux
       compiler: gcc

@@ -9,7 +9,7 @@
 
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/misc/Os.h"
-#include "quill/detail/misc/RdtscClock.h"
+#include "quill/detail/misc/Rdtsc.h"
 
 #include <chrono>
 #include <cstdint>
@@ -67,7 +67,7 @@ public:
 
 private:
 #if (QUILL_RDTSC_CLOCK == 1)
-  uint64_t _timestamp{RdtscClock::rdtsc()};
+  uint64_t _timestamp{rdtsc()};
 
   #if !defined(NDEBUG)
   bool _using_rdtsc{true};

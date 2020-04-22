@@ -17,6 +17,7 @@ set(HEADER_FILES
         include/quill/detail/misc/FileUtilities.h
         include/quill/detail/misc/Macros.h
         include/quill/detail/misc/Os.h
+        include/quill/detail/misc/Rdtsc.h
         include/quill/detail/misc/RdtscClock.h
         include/quill/detail/misc/RecursiveSpinlock.h
         include/quill/detail/misc/Spinlock.h

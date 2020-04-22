@@ -8,6 +8,7 @@
 #include "quill/detail/Config.h"
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/misc/RdtscClock.h"
 #include <atomic>
 #include <mutex>
 #include <thread>
