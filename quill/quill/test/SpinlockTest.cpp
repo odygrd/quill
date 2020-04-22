@@ -90,7 +90,7 @@ void try_lock_test_thread(TryLockState* state, size_t count)
 
 TEST(Spinlock, lock)
 {
-  constexpr size_t num_threads = 10;
+  constexpr size_t num_threads = 20;
 
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
@@ -110,7 +110,7 @@ TEST(Spinlock, lock)
 
 TEST(Spinlock, try_lock)
 {
-  constexpr size_t num_threads = 10;
+  constexpr size_t num_threads = 20;
 
   std::vector<std::thread> threads;
   threads.reserve(num_threads);

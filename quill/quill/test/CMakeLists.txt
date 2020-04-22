@@ -18,12 +18,17 @@ set(SOURCE_FILES
         PatternFormatterTest.cpp
         QuillLogTest.cpp
         RecordTest.cpp
-        SpinlockTest.cpp
         StaticLogRecordInfoTest.cpp
         ThreadContextCollectionTest.cpp
         TimestampFormatterTest.cpp
         UtilityTest.cpp
         )
+
+if (NOT QUILL_USE_VALGRIND)
+    # valgrind does not like the spinlock tests and hangs for ever even with fair-sched
+    list(APPEND SOURCE_FILES
+            SpinlockTest.cpp)
+endif ()
 
 # Create a test executable
 add_executable(${TEST_NAME} "")
