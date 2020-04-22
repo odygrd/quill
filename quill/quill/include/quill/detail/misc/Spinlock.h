@@ -44,7 +44,13 @@ public:
   void unlock() noexcept;
 
 private:
-  std::atomic_flag _Spinlock_flag = ATOMIC_FLAG_INIT;
+  enum State : uint8_t
+  {
+    Free = 0,
+    Locked = 1
+  };
+
+  std::atomic<State> _spinlock_flag{State::Free};
 };
 } // namespace detail
 } // namespace quill

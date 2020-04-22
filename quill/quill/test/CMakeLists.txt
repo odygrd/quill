@@ -18,6 +18,7 @@ set(SOURCE_FILES
         PatternFormatterTest.cpp
         QuillLogTest.cpp
         RecordTest.cpp
+        SpinlockTest.cpp
         StaticLogRecordInfoTest.cpp
         ThreadContextCollectionTest.cpp
         TimestampFormatterTest.cpp
