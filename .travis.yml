@@ -37,11 +37,11 @@ matrix:
       os: linux
       arch: arm64
       compiler: gcc
-      env: GCC_VERSION=8 BUILD=Debug STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
+      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, cmake, cmake-data, ninja-build]
+          packages: [g++-9, cmake, cmake-data, ninja-build]
 
     - name: 'Linux Gcc C++14 Release'
       os: linux
