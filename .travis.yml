@@ -35,7 +35,7 @@ matrix:
 
     - name: 'Linux Gcc C++14 Debug ARM'
       os: linux
-      arch: amd64
+      arch: arm64
       compiler: gcc
       env: GCC_VERSION=5 BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       addons:
