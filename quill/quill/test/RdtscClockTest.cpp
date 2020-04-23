@@ -26,7 +26,7 @@ TEST(RdtscClock, wall_time)
 {
   quill::detail::RdtscClock tsc_clock{};
 
-  constexpr size_t num_reps{20};
+  constexpr size_t num_reps{10};
 
   for (int i = 1; i <= num_reps; ++i)
   {
