@@ -96,6 +96,8 @@ before_install:
   - cmake --version
   - lcov --version
 
+  - export CCOV=gcov-9
+  - gcov --version
 install:
   # Get latest gtest
   - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
