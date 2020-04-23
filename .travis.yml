@@ -127,7 +127,6 @@ script:
   - mkdir -p build && cd build
   - |
     cmake .. \
-      -GNinja \
       -DCMAKE_BUILD_TYPE=$BUILD \
       -DCMAKE_CXX_STANDARD=$STANDARD \
       -DQUILL_SANITIZE_ADDRESS=$ASAN \
@@ -136,6 +135,7 @@ script:
       -DQUILL_BUILD_TESTS=ON \
       -DQUILL_BUILD_EXAMPLES=ON \
       -DQUILL_VERBOSE_MAKEFILE=ON
+
   - cmake --build .
 
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
