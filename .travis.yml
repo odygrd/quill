@@ -90,15 +90,11 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CXX="clang++" CC="clang"; fi
 
   # Install gcov for coverage build
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-9 800; gcov --version; fi
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-7 800; gcov --version; fi
 
   - ${CXX} --version
   - cmake --version
-  - lcov --version
 
-  - export CCOV=gcov-9
-  - gcov --version
-  - ls -la /usr/bin/
 install:
   # Get latest gtest
   - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
