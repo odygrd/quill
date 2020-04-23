@@ -1,5 +1,9 @@
 add_executable(example_trivial example_trivial.cpp)
 target_link_libraries(example_trivial quill)
+set_target_properties(example_trivial
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}"
+        )
 
 add_executable(example_logging_to_file example_logging_to_file.cpp)
 target_link_libraries(example_logging_to_file quill)

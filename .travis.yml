@@ -24,6 +24,16 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-9, valgrind, cmake, cmake-data, ninja-build]
 
+    - name: 'Linux Gcc C++17 Release ARM64'
+      os: linux
+      arch: arm64
+      compiler: gcc
+      env: GCC_VERSION=9 BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: [g++-9, cmake, cmake-data, ninja-build]
+
     - name: 'Linux Gcc C++14 Debug'
       os: linux
       compiler: gcc
@@ -32,16 +42,6 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-5, cmake, cmake-data, ninja-build]
-
-    - name: 'Linux Gcc C++14 Debug ARM'
-      os: linux
-      arch: arm64
-      compiler: gcc
-      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, cmake, cmake-data, ninja-build]
 
     - name: 'Linux Gcc C++14 Release'
       os: linux
@@ -140,6 +140,7 @@ script:
 
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else ctest --verbose; fi
+  - ../example_trivial
 
   # Code Coverage
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
