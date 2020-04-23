@@ -9,11 +9,11 @@ matrix:
     - name: 'Linux Gcc C++17 Debug with Code Coverage'
       os: linux
       compiler: gcc
-      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=ON VALGRIND=OFF ASAN=OFF TSAN=OFF
+      env: GCC_VERSION=9 BUILD=Coverage STANDARD=17 CODE_COVERAGE=ON VALGRIND=OFF ASAN=OFF TSAN=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, cmake, cmake-data, ninja-build]
+          packages: [g++-9, cmake, cmake-data, ninja-build, lcov]
 
     - name: 'Linux Gcc C++17 Release With Valgrind'
       os: linux
@@ -106,6 +106,7 @@ before_install:
 
   - ${CXX} --version
   - cmake --version
+  - lcov --version
 
 install:
   # Get latest gtest
@@ -131,7 +132,6 @@ script:
       -DCMAKE_CXX_STANDARD=$STANDARD \
       -DQUILL_SANITIZE_ADDRESS=$ASAN \
       -DQUILL_SANITIZE_THREAD=$TSAN \
-      -DQUILL_CODE_COVERAGE=$CODE_COVERAGE \
       -DQUILL_USE_VALGRIND=$VALGRIND \
       -DQUILL_BUILD_TESTS=ON \
       -DQUILL_BUILD_EXAMPLES=ON \
@@ -139,14 +139,15 @@ script:
   - cmake --build .
 
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
-  - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else ctest --verbose; fi
+  - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else if [[ "$CODE_COVERAGE" == "ON" ]]; then make coverage; else ctest --verbose; fi fi
 
   # Code Coverage
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
 
 after_success:
   # Code Coverage
-  - if [[ "$CODE_COVERAGE" == "ON" ]]; then bash <(curl -s https://codecov.io/bash); fi
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then lcov --list coverage_out.info.cleaned; fi
+  - if [[ "$CODE_COVERAGE" == "ON" ]]; then bash <(curl -s https://codecov.io/bash) -f coverage_out.info.cleaned || echo "Codecov did not collect coverage reports"; fi
 
 branches:
   only:
