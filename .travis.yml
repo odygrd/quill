@@ -5,15 +5,14 @@ python:
 
 matrix:
   include:
-
-    - name: 'Linux Gcc C++17 Debug with Code Coverage'
+    - name: 'Linux Gcc C++17 Debug'
       os: linux
       compiler: gcc
-      env: GCC_VERSION=9 BUILD=Coverage STANDARD=17 CODE_COVERAGE=ON VALGRIND=OFF ASAN=OFF TSAN=OFF
+      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, cmake, cmake-data, ninja-build, lcov]
+          packages: [g++-9, cmake, cmake-data]
 
     - name: 'Linux Gcc C++17 Release With Valgrind'
       os: linux
@@ -22,7 +21,34 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, valgrind, cmake, cmake-data, ninja-build]
+          packages: [g++-9, valgrind, cmake, cmake-data]
+          
+    - name: 'Linux Gcc7 C++17 Debug with Code Coverage'
+      os: linux
+      compiler: gcc
+      env: GCC_VERSION=9 BUILD=Coverage STANDARD=17 CODE_COVERAGE=ON VALGRIND=OFF ASAN=OFF TSAN=OFF
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: [g++-7, cmake, cmake-data, lcov]
+
+    - name: 'Linux Gcc C++14 Debug'
+      os: linux
+      compiler: gcc
+      env: GCC_VERSION=5 BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: [g++-5, cmake, cmake-data]
+
+    - name: 'Linux Gcc C++14 Release'
+      os: linux
+      compiler: gcc
+      env: GCC_VERSION=5 BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: [g++-5, cmake, cmake-data]
 
     - name: 'Linux Gcc C++17 Release ARM64'
       os: linux
@@ -32,67 +58,29 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, cmake, cmake-data, ninja-build]
-
-    - name: 'Linux Gcc C++14 Debug'
-      os: linux
-      compiler: gcc
-      env: GCC_VERSION=5 BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, cmake, cmake-data, ninja-build]
-
-    - name: 'Linux Gcc C++14 Release'
-      os: linux
-      compiler: gcc
-      env: GCC_VERSION=5 BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, cmake, cmake-data, ninja-build]
+          packages: [g++-9, cmake, cmake-data]
 
     - name: 'MacOs Clang C++17 Release with Address Sanitiser'
       os: osx
       osx_image: xcode11.2
       env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=ON TSAN=OFF
       compiler: clang
-      addons:
-        homebrew:
-          update: true
-          packages:
-            - ninja
 
     - name: 'MacOs Clang C++17 Release with Thread Sanitiser'
       os: osx
       osx_image: xcode11.2
       env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=ON
       compiler: clang
-      addons:
-        homebrew:
-          update: true
-          packages:
-            - ninja
 
     - name: 'MacOs Clang C++14 Debug'
       os: osx
       env: BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       compiler: clang
-      addons:
-        homebrew:
-          update: true
-          packages:
-            - ninja
 
     - name: 'MacOs Clang C++14 Release'
       os: osx
       env: BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF
       compiler: clang
-      addons:
-        homebrew:
-          update: true
-          packages:
-            - ninja
 
 before_install:
   - if [ -n "$GCC_VERSION" ]; then export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}"; fi
@@ -113,7 +101,7 @@ install:
   - sudo wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz
   - sudo tar xf release-1.10.0.tar.gz
   - cd googletest-release-1.10.0
-  - sudo cmake -GNinja -DCMAKE_BUILD_TYPE=Release .
+  - sudo cmake -DCMAKE_BUILD_TYPE=Release .
   - sudo cmake --build .
   - ls -la
   - sudo cp -a ./googletest/include/gtest /usr/local/include
