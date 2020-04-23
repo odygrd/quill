@@ -27,7 +27,8 @@ set(SOURCE_FILES
 if (NOT QUILL_USE_VALGRIND)
     # valgrind does not like the spinlock tests and hangs for ever even with fair-sched
     list(APPEND SOURCE_FILES
-            SpinlockTest.cpp)
+            SpinlockTest.cpp
+            RdtscClockTest.cpp)
 endif ()
 
 # Create a test executable

@@ -140,7 +140,6 @@ script:
 
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else ctest --verbose; fi
-  - ../example_trivial
 
   # Code Coverage
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi

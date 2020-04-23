@@ -3,6 +3,9 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
+## v1.3.0
+* Support for `arm64`.
+
 ## v1.2.1
 * Improved `QUILL_RDTSC_CLOCK` tweak option. It is now possible to switch between using `rdtsc` or `std::chrono` clock without having to recompile quill as library.
 
