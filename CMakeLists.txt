@@ -18,6 +18,8 @@ option(QUILL_USE_VALGRIND "Use valgrind as the default memcheck tool in CTest (R
 
 option(QUILL_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
 
+option(QUILL_ENABLE_INSTALL "Enable CMake Install when Quill is not a master project" OFF)
+
 #-------------------------------------------------------------------------------------------------------
 # Use newer policies if possible, up to most recent tested version of CMake.
 #-------------------------------------------------------------------------------------------------------

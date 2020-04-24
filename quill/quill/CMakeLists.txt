@@ -160,7 +160,7 @@ if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
     add_subdirectory(test)
 endif ()
 
-if (QUILL_MASTER_PROJECT)
+if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
     # ---- Install ---- #
     include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
