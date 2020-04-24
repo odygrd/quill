@@ -57,4 +57,4 @@ set_target_properties(${TEST_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_B
 # Add this target to the post build unit tests
 add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} --gtest_output=xml:${TEST_NAME}_report.xml)
 
-include(${PROJECT_SOURCE_DIR}/quill/cmake/CodeCoverage.cmake)
+include(../cmake/CodeCoverage.cmake)

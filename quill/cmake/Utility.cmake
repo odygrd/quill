@@ -1,6 +1,6 @@
 # Get Quill version from include/quill/Version.h and store it as QUILL_VERSION
 function(quill_extract_version)
-    file(READ "${CMAKE_CURRENT_LIST_DIR}/quill/quill/include/quill/Version.h" file_contents)
+    file(READ "${CMAKE_CURRENT_LIST_DIR}/quill/include/quill/Version.h" file_contents)
 
     string(REGEX MATCH "QUILL_VERSION_MAJOR ([0-9]+)" _ "${file_contents}")
     if (NOT CMAKE_MATCH_COUNT EQUAL 1)

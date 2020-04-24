@@ -40,7 +40,7 @@ endif ()
 #-------------------------------------------------------------------------------------------------------
 # Custom cmake functions
 #-------------------------------------------------------------------------------------------------------
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/quill/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/quill/cmake" CACHE STRING "Modules for CMake" FORCE)
 include(Utility)
 
 #-------------------------------------------------------------------------------------------------------
