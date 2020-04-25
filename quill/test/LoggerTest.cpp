@@ -34,7 +34,12 @@ TEST(Logger, get_non_existent_logger)
 
   LoggerCollection logger_collection{tc, hc};
 
-  EXPECT_THROW((void)logger_collection.get_logger("logger_1"), std::runtime_error);
+#if defined(QUILL_NO_EXCEPTIONS)
+  ASSERT_EXIT((void)logger_collection.get_logger("logger_1"), ::testing::KilledBySignal(SIGABRT),
+              ".*");
+#else
+  EXPECT_THROW((void)logger_collection.get_logger("logger_1"), quill::QuillError);
+#endif
 }
 
 /***/

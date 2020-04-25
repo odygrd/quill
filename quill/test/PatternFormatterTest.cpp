@@ -180,10 +180,19 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
 
 TEST(PatternFormatter, invalid_pattern)
 {
+#if defined(QUILL_NO_EXCEPTIONS)
+  ASSERT_EXIT(
+    PatternFormatter(
+      QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
+                   "[%(function_name)]"),
+      "%H:%M:%S.%Qns", Timezone::GmtTime),
+    ::testing::KilledBySignal(SIGABRT), ".*");
+#else
   EXPECT_THROW(
     PatternFormatter(
       QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
                    "[%(function_name)]"),
       "%H:%M:%S.%Qns", Timezone::GmtTime),
-    std::runtime_error);
+    quill::QuillError);
+#endif
 }

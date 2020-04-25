@@ -1,5 +1,6 @@
 #include "quill/detail/misc/FileUtilities.h"
 #include "quill/Fmt.h"
+#include "quill/QuillError.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/Os.h"
 #include <system_error>
@@ -18,7 +19,10 @@ void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream)
 
   if (QUILL_UNLIKELY(written < count))
   {
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "fwrite failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 }
 

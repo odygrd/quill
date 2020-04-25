@@ -1,7 +1,6 @@
 #include "quill/detail/LoggerCollection.h"
 
 #include <sstream>
-#include <stdexcept>
 
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/misc/Macros.h"
@@ -40,7 +39,7 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
     if (QUILL_UNLIKELY(search == _logger_name_map.cend()))
     {
       // logger does not exist
-      throw std::runtime_error("logger with name " + logger_name_str + " does not exist.");
+      QUILL_THROW(QuillError{std::string{"logger does not exist. name: "} + logger_name_str});
     }
 
     return (*search).second.get();

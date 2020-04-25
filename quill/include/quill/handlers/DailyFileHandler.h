@@ -22,6 +22,7 @@ public:
    * @param filename A base file name
    * @param rotation_hour Hour of rotation
    * @param rotation_minute Minute of rotation
+   * @throws on invalid rotation values
    */
   DailyFileHandler(filename_t const& filename, std::chrono::hours rotation_hour, std::chrono::minutes rotation_minute);
 

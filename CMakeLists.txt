@@ -4,6 +4,8 @@ project(my_project)
 #-------------------------------------------------------------------------------------------------------
 # Options
 #-------------------------------------------------------------------------------------------------------
+option(QUILL_NO_EXCEPTIONS "Build without exceptions with -fno-exceptions flag" OFF)
+
 option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
 option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
@@ -110,6 +112,10 @@ endif ()
 #-------------------------------------------------------------------------------------------------------
 # Additional Compiler Options
 #-------------------------------------------------------------------------------------------------------
+if (QUILL_NO_EXCEPTIONS)
+    add_definitions(-DQUILL_NO_EXCEPTIONS)
+endif ()
+
 # address sanitizer flags
 if (QUILL_SANITIZE_ADDRESS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")

@@ -1,9 +1,15 @@
+- [v1.2.3](#v1.3.0)
 - [v1.2.3](#v1.2.3)
 - [v1.2.2](#v1.2.2)
 - [v1.2.1](#v1.2.1)
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v1.3.0
+* Added option `QUILL_NO_EXCEPTIONS` to disables exceptions, std::abort() is called instead. ([#16](https://github.com/odygrd/quill/issues/16))
+* When exceptions are enabled any exception thrown in the backend worker thread, will now call a user provided error handler callback to handle the error. ([#21](https://github.com/odygrd/quill/issues/21))
+* `QUILL_RDTSC_CLOCK` is replaced by `QUILL_CHRONO_CLOCK` which is by default OFF.
 
 ## v1.2.3
 * CMake changes to support package installation in conan.

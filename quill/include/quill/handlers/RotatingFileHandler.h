@@ -24,6 +24,7 @@ public:
    * constructor
    * @param filename Base file name to be used for logs
    * @param max_bytes max size per file in bytes
+   * @throws on invalid rotation values
    */
   RotatingFileHandler(filename_t const& filename, size_t max_bytes);
 

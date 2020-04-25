@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "TweakMe.h"
+#include "quill/TweakMe.h"
 
 /**
  * Include a bundled header-only copy of lib fmt or an external one.

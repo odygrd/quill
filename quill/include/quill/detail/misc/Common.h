@@ -11,10 +11,6 @@
 /**
  * Common type definitions etc
  */
-#if !defined(QUILL_RDTSC_CLOCK)
-  #define QUILL_RDTSC_CLOCK 1
-#endif
-
 #if !defined(QUILL_RDTSC_RESYNC_INTERVAL)
   #define QUILL_RDTSC_RESYNC_INTERVAL 700
 #endif
@@ -29,7 +25,6 @@
 
 namespace quill
 {
-
 namespace detail
 {
 /**
@@ -67,4 +62,5 @@ enum class Timezone : uint8_t
   LocalTime,
   GmtTime
 };
+
 } // namespace quill

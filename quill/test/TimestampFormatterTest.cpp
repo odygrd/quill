@@ -1,4 +1,5 @@
 #include "quill/detail/TimestampFormatter.h"
+#include "quill/QuillError.h"
 #include <gtest/gtest.h>
 
 using namespace quill::detail;
@@ -7,9 +8,18 @@ using namespace quill::detail;
 TEST(TimestampFormatter, simple_format_string)
 {
   // invalid format strings
-  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus z"}, std::runtime_error);
-  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus%Qns z"}, std::runtime_error);
-  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%S%Qus%Qns z"}, std::runtime_error);
+#if defined(QUILL_NO_EXCEPTIONS)
+  ASSERT_EXIT(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus z"},
+              ::testing::KilledBySignal(SIGABRT), ".*");
+  ASSERT_EXIT(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus%Qns z"},
+              ::testing::KilledBySignal(SIGABRT), ".*");
+  ASSERT_EXIT(TimestampFormatter ts_formatter{"%I:%M%p%S%Qus%Qns z"},
+              ::testing::KilledBySignal(SIGABRT), ".*");
+#else
+  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus z"}, quill::QuillError);
+  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus%Qns z"}, quill::QuillError);
+  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%S%Qus%Qns z"}, quill::QuillError);
+#endif
 
   // valid simple string
   EXPECT_NO_THROW(TimestampFormatter ts_formatter{"%I:%M%p%S%Qns z"});

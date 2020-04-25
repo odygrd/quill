@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <cstdio>
+#include <cstdlib>
+
 /**
  * Convert number to string
  */
@@ -21,3 +24,16 @@
   #define QUILL_LIKELY(x) (x)
   #define QUILL_UNLIKELY(x) (x)
 #endif
+
+/**
+ * Require check
+ */
+#define QUILL_REQUIRE(expression, error)                                                           \
+  do                                                                                               \
+  {                                                                                                \
+    if (QUILL_UNLIKELY(!(expression)))                                                             \
+    {                                                                                              \
+      printf("Quill fatal error: %s (%s:%d)\n", error, __FILE__, __LINE__);                        \
+      std::abort();                                                                                \
+    }                                                                                              \
+  } while (0)

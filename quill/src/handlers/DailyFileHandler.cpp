@@ -3,7 +3,6 @@
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/FileUtilities.h"
 #include "quill/detail/misc/Macros.h"
-#include <stdexcept>
 
 namespace quill
 {
@@ -16,7 +15,7 @@ DailyFileHandler::DailyFileHandler(filename_t const& base_filename,
 {
   if ((_rotation_hour > std::chrono::hours{23}) || (_rotation_minute > std::chrono::minutes{59}))
   {
-    throw std::runtime_error("Invalid rotation values");
+    QUILL_THROW(QuillError("Invalid rotation values"));
   }
 
   // Generate the filename and open
@@ -41,7 +40,10 @@ void DailyFileHandler::write(fmt::memory_buffer const& formatted_log_record, std
 
     if (QUILL_UNLIKELY(res != 0))
     {
-      throw std::system_error(errno, std::system_category());
+      std::ostringstream error_msg;
+      error_msg << "failed to close previous log file during rotation, with error message "
+                << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+      QUILL_THROW(QuillError{error_msg.str()});
     }
 
     // Generate a new filename - rotating

@@ -1,7 +1,6 @@
 #include "quill/handlers/StreamHandler.h"
 
 #include "quill/detail/misc/FileUtilities.h"
-#include <stdexcept>
 
 namespace quill
 {
@@ -44,7 +43,7 @@ void StreamHandler::write(fmt::memory_buffer const& formatted_log_record, std::c
 }
 
 /***/
-void StreamHandler::flush() { fflush(_file); }
+void StreamHandler::flush() noexcept { fflush(_file); }
 
 /***/
 filename_t const& StreamHandler::filename() const noexcept { return _filename; }

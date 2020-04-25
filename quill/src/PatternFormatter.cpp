@@ -20,7 +20,7 @@ std::vector<PatternFormatter::argument_callback_t> PatternFormatter::_generate_v
       std::size_t closed_paren_pos = pattern.find_first_of(')', open_paren_pos);
       if (closed_paren_pos == std::string::npos)
       {
-        throw std::runtime_error("Incorrect pattern. Missing ')'");
+        QUILL_THROW(QuillError{"Incorrect pattern. Missing ')'"});
       }
 
       // We have everything, get the substring
@@ -99,7 +99,7 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   }
   else
   {
-    throw std::runtime_error("Invalid attribute name for logger pattern");
+    QUILL_THROW(QuillError{"Invalid attribute name for logger pattern"});
   }
 }
 
@@ -117,7 +117,7 @@ std::string PatternFormatter::_generate_fmt_format_string(std::string pattern)
       std::size_t closed_paren_pos = pattern.find_first_of(')', open_paren_pos);
       if (closed_paren_pos == std::string::npos)
       {
-        throw std::runtime_error("Incorrect pattern. Missing ')'");
+        QUILL_THROW(QuillError{"Incorrect pattern. Missing ')'"});
       }
 
       // We have everything, get the substring, this time including '%( )'

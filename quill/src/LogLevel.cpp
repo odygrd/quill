@@ -1,11 +1,11 @@
 #include "quill/LogLevel.h"
 
+#include "quill/QuillError.h"
 #include "quill/detail/misc/Macros.h"
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <sstream>
-#include <stdexcept>
 #include <type_traits>
 #include <unordered_map>
 
@@ -25,7 +25,7 @@ char const* to_string(LogLevel log_level)
     std::ostringstream error_msg;
     error_msg << "Invalid log_level value "
               << "\"" << log_lvl << "\"";
-    throw std::runtime_error(error_msg.str());
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   return log_levels_map[log_lvl];
@@ -52,7 +52,7 @@ LogLevel from_string(std::string log_level)
     std::ostringstream error_msg;
     error_msg << "LogLevel enum value does not exist for string "
               << "\"" << log_level << "\"";
-    throw std::runtime_error(error_msg.str());
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   return search->second;

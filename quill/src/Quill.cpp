@@ -15,6 +15,12 @@ void preallocate()
                                                  .capacity();
 }
 
+void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler)
+{
+  detail::LogManagerSingleton::instance().log_manager().set_backend_worker_error_handler(
+    std::move(backend_worker_error_handler));
+}
+
 /***/
 Handler* stdout_handler()
 {

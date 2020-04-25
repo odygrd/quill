@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/Fmt.h"
+#include "quill/QuillError.h"
 #include "quill/bundled/invoke/invoke.h"
 #include "quill/detail/TimestampFormatter.h"
 #include "quill/detail/misc/Attributes.h"
@@ -14,6 +15,7 @@
 #include "quill/detail/misc/TypeTraits.h"
 #include "quill/detail/misc/Utilities.h"
 #include "quill/detail/record/StaticLogRecordInfo.h"
+
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -162,7 +164,7 @@ public:
    * @param timezone The timezone of the timestamp, local_time or gmt_time
    */
   template <typename TConstantString>
-  PatternFormatter(TConstantString format_pattern, std::string timestamp_format, Timezone timezone)
+  PatternFormatter(TConstantString format_pattern, std::string const& timestamp_format, Timezone timezone)
     : _timestamp_formatter(timestamp_format, timezone)
   {
     _set_pattern(format_pattern);
@@ -298,6 +300,8 @@ private:
    * %(thread)        - Thread ID
    * %(process)       - Process ID
    *
+   * @throws on invalid format string
+   *
    * @tparam TConstantString a format string. Must be passed using the macro QUILL_STRING("format string");
    */
   template <typename TConstantString>
@@ -320,6 +324,7 @@ private:
   /**
    * Process part of the pattern and create a helper formatter class
    * @param format_pattern_part format pattern part
+   * @throws on invalid input
    * @return a formater helper base
    */
   template <size_t N>
@@ -341,10 +346,10 @@ private:
 
   /**
    * Given a part of the pattern modify it to match the expected lib fmt format
-    * @param pattern pattern
-    * @return formatted pattern to match the expected lib fmt format
-    */
-  QUILL_NODISCARD std::string _generate_fmt_format_string(std::string pattern);
+   * @param pattern pattern
+   * @return formatted pattern to match the expected lib fmt format
+   */
+  QUILL_NODISCARD static std::string _generate_fmt_format_string(std::string pattern);
 
 private:
   /** Formatters for any user's custom pattern - Important they have to be destructed last so they are defined first **/
@@ -477,7 +482,7 @@ void PatternFormatter::_set_pattern(TConstantString)
   size_t const message_found = pattern.find("%(message)");
   if (message_found == std::string::npos)
   {
-    throw std::runtime_error("%(message) is required in the format pattern");
+    QUILL_THROW(QuillError{"%(message) is required in the format pattern"});
   }
 
   // break down the pattern to three parts, we can ignore part_2 which will be '%(message)'

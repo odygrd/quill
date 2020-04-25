@@ -5,17 +5,23 @@
 
 #pragma once
 
+#include "quill/QuillError.h"
 #include "quill/detail/Config.h"
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/misc/RdtscClock.h"
+
 #include <atomic>
+#include <functional>
 #include <mutex>
+#include <string>
 #include <thread>
 #include <vector>
 
 namespace quill
 {
+using backend_worker_error_handler_t = std::function<void(std::string const&)>;
+
 namespace detail
 {
 
@@ -39,6 +45,14 @@ public:
    * @return true when the worker is running, false otherwise
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline bool is_running() const noexcept;
+
+  /**
+   * Set up a custom error handler that will be used if the backend thread has any error.
+   * If no error handler is set, the default one will print to std::cerr
+   * @param error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
+   * @throws exception if it is called after the thread has started
+   */
+  QUILL_ATTRIBUTE_COLD void set_error_handler(backend_worker_error_handler_t error_handler);
 
   /**
    * Starts the backend worker thread
@@ -72,7 +86,8 @@ private:
   /**
    * Convert a log record timestamp to a time since epoch timestamp in nanoseconds.
    *
-   * @param log_record_timestamp The log record timestamp is just an uint64 and it can be either rdtsc time or nanoseconds since epoch based QUILL_RDTSC_CLOCK defintion
+   * @param log_record_timestamp The log record timestamp is just an uint64 and it can be either
+   * rdtsc time or nanoseconds since epoch based on #if !defined(QUILL_CHRONO_CLOCK) definition
    * @return a timestamp in nanoseconds since epoch
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::chrono::nanoseconds _get_real_timestamp(
@@ -83,9 +98,12 @@ private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
   HandlerCollection const& _handler_collection;
-  std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
+
+  std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
+  backend_worker_error_handler_t _error_handler;     /** error handler for the backend thread */
+
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
@@ -112,17 +130,24 @@ void BackendWorker::run()
     _backend_thread_sleep_duration = _config.backend_thread_sleep_duration();
 
     std::thread worker([this]() {
-      // On Start
-      if (_config.backend_thread_cpu_affinity() != std::numeric_limits<uint16_t>::max())
+      QUILL_TRY
       {
-        // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
-        set_cpu_affinity(_config.backend_thread_cpu_affinity());
+        // On Start
+        if (_config.backend_thread_cpu_affinity() != std::numeric_limits<uint16_t>::max())
+        {
+          // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
+          set_cpu_affinity(_config.backend_thread_cpu_affinity());
+        }
+
+        // Set the thread name to the desired name
+        set_thread_name(_config.backend_thread_name().data());
       }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
+      QUILL_CATCH_ALL() { _error_handler(std::string{}); }
+#endif
 
-      // Set the thread name to the desired name
-      set_thread_name(_config.backend_thread_name().data());
-
-#if (QUILL_RDTSC_CLOCK == 1)
+#if !defined(QUILL_CHRONO_CLOCK)
       // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
       // taking samples first
       _rdtsc_clock = std::make_unique<RdtscClock>(std::chrono::milliseconds{QUILL_RDTSC_RESYNC_INTERVAL});
@@ -131,11 +156,20 @@ void BackendWorker::run()
       // Running
       while (QUILL_LIKELY(is_running()))
       {
-        _main_loop();
+        // main loop
+        QUILL_TRY { _main_loop(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+        QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
+        QUILL_CATCH_ALL() { _error_handler(std::string{}); } // clang-format on
+#endif
       }
 
-      // On exit
-      _exit();
+      // exit
+      QUILL_TRY { _exit(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
+      QUILL_CATCH_ALL() { _error_handler(std::string{}); } // clang-format on
+#endif
     });
 
     // Move the worker ownership to our class
@@ -211,6 +245,7 @@ void BackendWorker::_main_loop()
 
   bool const processed_record = _process_record(cached_thread_contexts);
 
+  // clang format on
   if (processed_record)
   {
     // we have found and processed a log record
@@ -243,7 +278,7 @@ void BackendWorker::_main_loop()
 /***/
 std::chrono::nanoseconds BackendWorker::_get_real_timestamp(ThreadContext::SPSCQueueT::handle_t const& log_record_handle) const noexcept
 {
-#if (QUILL_RDTSC_CLOCK == 1)
+#if !defined(QUILL_CHRONO_CLOCK)
 
   assert(_rdtsc_clock && "rdtsc should not be nullptr");
   assert(log_record_handle.data()->using_rdtsc() &&

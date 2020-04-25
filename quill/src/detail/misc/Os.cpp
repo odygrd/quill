@@ -1,11 +1,11 @@
 #include "quill/detail/misc/Os.h"
 
+#include "quill/QuillError.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/Utilities.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <stdexcept>
 #include <sys/stat.h>
 #include <system_error>
 
@@ -64,14 +64,20 @@ tm* gmtime_rs(time_t const* timer, tm* buf)
   errno_t const res = gmtime_s(buf, timer);
   if (res)
   {
-    throw std::system_error(res, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "failed to call gmtime_rs, with error message "
+              << "\"" << strerror(res) << "\", errno \"" << res << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
   return buf;
 #else
   tm* res = gmtime_r(timer, buf);
   if (QUILL_UNLIKELY(!res))
   {
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "failed to call gmtime_rs, with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
   return res;
 #endif
@@ -84,14 +90,20 @@ tm* localtime_rs(time_t const* timer, tm* buf)
   errno_t const res = localtime_s(buf, timer);
   if (res)
   {
-    throw std::system_error(res, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "failed to call localtime_rs, with error message "
+              << "\"" << strerror(res) << "\", errno \"" << res << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
   return buf;
 #else
   tm* res = localtime_r(timer, buf);
   if (QUILL_UNLIKELY(!res))
   {
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "failed to call localtime_rs, with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
   return res;
 #endif
@@ -106,7 +118,12 @@ void set_cpu_affinity(uint16_t cpu_id)
   auto ret = SetThreadAffinityMask(GetCurrentThread(), mask);
   if (ret == 0)
   {
-    throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+    auto const last_error = std::error_code(GetLastError(), std::system_category());
+
+    std::ostringstream error_msg;
+    error_msg << "failed to call set_cpu_affinity, with error message "
+              << "\"" << last_error.message() << "\", errno \"" << last_error.value() << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 #elif defined(__APPLE__)
   // I don't think that's possible to link a thread with a specific core with Mac OS X
@@ -127,7 +144,10 @@ void set_cpu_affinity(uint16_t cpu_id)
 
   if (QUILL_UNLIKELY(err == -1))
   {
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "failed to call set_cpu_affinity, with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 #endif
 }
@@ -144,20 +164,23 @@ void set_thread_name(char const* name)
   HRESULT hr = SetThreadDescription(GetCurrentThread(), name_ws.data());
   if (FAILED(hr))
   {
-    throw std::runtime_error("Failed to set thread name");
+    QUILL_THROW(QuillError{"Failed to set thread name"});
   }
 #elif defined(__APPLE__)
   auto const res = pthread_setname_np(name);
   if (res != 0)
   {
-    throw std::runtime_error("Failed to set thread name. error: " + std::to_string(res));
+    QUILL_THROW(QuillError{"Failed to set thread name. error: " + std::to_string(res)});
   }
 #else
   auto const err = prctl(PR_SET_NAME, reinterpret_cast<unsigned long>(name), 0, 0, 0);
 
   if (QUILL_UNLIKELY(err == -1))
   {
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "failed to call set_thread_name, with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 #endif
 }
@@ -213,7 +236,10 @@ void madvice(void* addr, size_t len)
   auto const res = madvise(addr, len, MADV_SEQUENTIAL);
   if (res == -1)
   {
-    throw std::system_error(res, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "failed to call madvice, with error message "
+              << "\"" << strerror(res) << "\", errno \"" << res << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 #endif
 }
@@ -229,7 +255,10 @@ void* aligned_alloc(size_t alignment, size_t size)
   auto res = posix_memalign(&ret, alignment, size);
   if (QUILL_UNLIKELY(res == EINVAL || res == ENOMEM))
   {
-    throw std::system_error(res, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "aligned_alloc failed with error message "
+              << "\"" << strerror(res) << "\", errno \"" << res << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   return ret;
@@ -258,7 +287,10 @@ FILE* fopen(filename_t const& filename, std::string const& mode)
 #endif
   if (!fp)
   {
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "fopen failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
   return fp;
 }
@@ -268,7 +300,7 @@ size_t fsize(FILE* file)
 {
   if (!file)
   {
-    throw std::runtime_error("Can not get the file size. file is nullptr");
+    QUILL_THROW(QuillError{"fsize failed. file is nullptr"});
   }
 
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -290,7 +322,10 @@ size_t fsize(FILE* file)
 #endif
 
   // failed to get the file size
-  throw std::system_error(errno, std::system_category());
+  std::ostringstream error_msg;
+  error_msg << "fopen failed with error message "
+            << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+  QUILL_THROW(QuillError{error_msg.str()});
 }
 
 /***/
@@ -318,7 +353,11 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
 
   if (QUILL_UNLIKELY(bytes_needed == 0))
   {
-    throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+    auto const error = std::error_code(GetLastError(), std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "wstring_to_utf8 failed with error message "
+              << "\"" << error.message() << "\", errno \"" << error.value() << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   // convert
@@ -328,7 +367,11 @@ void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer
 
   if (QUILL_UNLIKELY(bytes_needed == 0))
   {
-    throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+    auto const error = std::error_code(GetLastError(), std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "wstring_to_utf8 failed with error message "
+              << "\"" << error.message() << "\", errno \"" << error.value() << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   // resize again in case we didn't calculate before how many bytes needed (1st call to WideCharToMultiByte was skipped)
@@ -341,12 +384,12 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
 {
   if (!is_pow_of_two(capacity))
   {
-    throw std::runtime_error("capacity needs to be power of two");
+    QUILL_THROW(QuillError{"capacity needs to be power of two"});
   }
 
   if (capacity % get_page_size() != 0)
   {
-    throw std::runtime_error("capacity needs to be multiple of page size");
+    QUILL_THROW(QuillError{"capacity needs to be multiple of page size"});
   }
 
 #if defined(_WIN32)
@@ -355,7 +398,11 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
 
   if (!hMapFile)
   {
-    throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+    auto const error = std::error_code(GetLastError(), std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "create_memory_mapped_files failed with error message "
+              << "\"" << error.message() << "\", errno \"" << error.value() << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   for (;;)
@@ -367,7 +414,11 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
     if (!address)
     {
       CloseHandle(hMapFile);
-      throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+      auto const error = std::error_code(GetLastError(), std::system_category());
+      std::ostringstream error_msg;
+      error_msg << "create_memory_mapped_files failed with error message "
+                << "\"" << error.message() << "\", errno \"" << error.value() << "\"";
+      QUILL_THROW(QuillError{error_msg.str()});
     }
 
     // found a big enough address space. hopefully it will remain free while we map to it. if not,
@@ -388,7 +439,11 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
       else
       {
         CloseHandle(hMapFile);
-        throw std::system_error(std::error_code(GetLastError(), std::system_category()));
+        auto const error = std::error_code(GetLastError(), std::system_category());
+        std::ostringstream error_msg;
+        error_msg << "create_memory_mapped_files failed with error message "
+                  << "\"" << error.message() << "\", errno \"" << error.value() << "\"";
+        QUILL_THROW(QuillError{error_msg.str()});
       }
     }
 
@@ -408,7 +463,11 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
       else
       {
         CloseHandle(hMapFile);
-        throw std::system_error(std::error_code(err, std::system_category()));
+        auto const error = std::error_code(GetLastError(), std::system_category());
+        std::ostringstream error_msg;
+        error_msg << "create_memory_mapped_files failed with error message "
+                  << "\"" << error.message() << "\", errno \"" << error.value() << "\"";
+        QUILL_THROW(QuillError{error_msg.str()});
       }
     }
 
@@ -430,7 +489,11 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
 
     if (fd < 0)
     {
-      throw std::system_error(errno, std::system_category());
+      // failed to get the file size
+      std::ostringstream error_msg;
+      error_msg << "create_memory_mapped_files failed with error message "
+                << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+      QUILL_THROW(QuillError{error_msg.str()});
     }
 
     chosen_path = tmp_path;
@@ -443,13 +506,19 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
   // Delete the file as we only want the fd
   if (unlink(chosen_path) == -1)
   {
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "create_memory_mapped_files failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   if (ftruncate(fd, static_cast<off_t>(capacity)) == -1)
   {
     close(fd);
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "create_memory_mapped_files failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   // ask mmap for a good address where we can put both virtual copies of the buffer
@@ -458,7 +527,10 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
   if (address == MAP_FAILED)
   {
     close(fd);
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "create_memory_mapped_files failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   // map first region
@@ -469,7 +541,10 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
   {
     munmap(address, 2 * capacity);
     close(fd);
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "create_memory_mapped_files failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   // map second region
@@ -480,14 +555,20 @@ std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity)
   {
     munmap(address, 2 * capacity);
     close(fd);
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "create_memory_mapped_files failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   // we don't need the fd any longer
   if (close(fd) == -1)
   {
     munmap(address, 2 * capacity);
-    throw std::system_error(errno, std::system_category());
+    std::ostringstream error_msg;
+    error_msg << "create_memory_mapped_files failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 
   // All okay

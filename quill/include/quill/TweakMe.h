@@ -20,9 +20,9 @@
  */
 
 /**
- * If QUILL_RDTSC_CLOCK value is set to 0, Quill will use chrono system_clock for timestamps.
+ * If QUILL_CHRONO_CLOCK value is defined, Quill will use chrono system_clock for timestamps.
  *
- * QUILL_TSC_CLOCK mode :
+ * QUILL RDTSC CLOCK mode :
  *
  * TSC clock gives better performance on the caller thread. However, the initialisation time of the application is higher as
  * we have to take multiple samples in the beginning to convert TSC to nanoseconds
@@ -38,17 +38,18 @@
  * @note: This should be switchable even after quill is already installed as a static or shared library.
  *
  * Usage:
- * Run cmake as e.g: cmake . -DCMAKE_CXX_FLAGS="-DQUILL_RDTSC_CLOCK=0"
+ * Usage:
+ * Run cmake as e.g: cmake . -DCMAKE_CXX_FLAGS="-DQUILL_CHRONO_CLOCK=1"
  * or
- * In the root CMake file use: `add_definitions(-DQUILL_RDTSC_CLOCK=0)`
+ * In the root CMake file use: `add_definitions(-DQUILL_CHRONO_CLOCK=1)`
  *
- * By default QUILL_RDTSC_CLOCK is set to 1
+ * By default RDTSC clock is enabled
  */
-// #define QUILL_RDTSC_CLOCK 1
+// #define QUILL_CHRONO_CLOCK
 
 /**
  * This option is only applicable if the RDTSC clock is enabled.
- * When QUILL_RDTSC_CLOCK is not defined this option can be ignored
+ * When QUILL_CHRONO_CLOCK is defined this option can be ignored
  *
  * This value controls how frequently the backend thread will re-calculate and sync the TSC by
  * getting the system time from the system wall clock.
@@ -84,8 +85,12 @@
  */
 // #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
+/**************************************************************************************************/
+/* Anything after this point requires the whole library to be recompiled with the desired option. */
+/**************************************************************************************************/
+
 /**
- * Uses a custom copy of the fmt library instead of quill's bundled copy.
+ * Uses an installed version of the fmt library instead of quill's bundled copy.
  * In this case quill will try to include <fmt/format.h> so make sure to set -I directories
  * accordingly if not using CMake.
  *
@@ -96,3 +101,8 @@
  * use find_package(fmt REQUIRED) so make sure that fmt library is installed in your system
  */
 // #define QUILL_FMT_EXTERNAL
+
+/**
+ * Disables all exceptions and replaces them with std::abort()
+ */
+// #define QUILL_NO_EXCEPTIONS

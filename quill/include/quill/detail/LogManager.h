@@ -110,6 +110,16 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void stop_backend_worker() { _backend_worker.stop(); }
 
+  /**
+   * Set error handler
+   * @param backend_worker_error_handler backend_worker_error_handler_t error handler
+   * @throws exception if it is called after the thread has started
+   */
+  QUILL_ATTRIBUTE_COLD void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler)
+  {
+    _backend_worker.set_error_handler(std::move(backend_worker_error_handler));
+  }
+
 private:
   Config _config;
   HandlerCollection _handler_collection;

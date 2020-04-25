@@ -35,7 +35,7 @@ public:
   /**
    * Flushes the stream
    */
-  void flush() override;
+  void flush() noexcept override;
 
   QUILL_NODISCARD virtual filename_t const& filename() const noexcept;
 

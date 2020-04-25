@@ -156,6 +156,7 @@ public:
 public:
   /**
    * Circular Buffer class Constructor
+   * @throws on system error
    */
   explicit BoundedSPSCQueue(size_t capacity);
 

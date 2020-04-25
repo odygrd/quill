@@ -23,6 +23,24 @@ namespace quill
 QUILL_ATTRIBUTE_COLD void preallocate();
 
 /**
+ * The background thread in very rare occasion might thrown an exception which can not be caught in the
+ * user threads. In that case the backend worker thread will call this callback instead.
+ *
+ * Set up a custom error handler to be used if the backend thread has any error.
+ *
+ * If no error handler is set, the default one will print to std::cerr.
+ *
+ * @note Not used when QUILL_NO_EXCEPTIONS is enabled.
+ *
+ * @note Must be called before quill::start();
+ *
+ * @param error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
+ *
+ * @throws exception if it is called after the thread has started
+ */
+QUILL_ATTRIBUTE_COLD void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler);
+
+/**
  * Starts the backend thread to write the logs to the handlers
  * @throws When the backend thread fails to start
  */

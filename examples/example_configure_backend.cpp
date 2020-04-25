@@ -1,0 +1,28 @@
+/**
+ * Using std::chrono clock instead of the default rdtsc clock
+ */
+#define QUILL_CHRONO_CLOCK
+
+#include "quill/Quill.h"
+#include <iostream>
+
+/**
+ * Test with random configuration options for the backend thread
+ * @return
+ */
+
+int main()
+{
+  // Set a custom error handler to handler exceptions
+  quill::set_backend_worker_error_handler([](std::string const& s) { std::cout << s << std::endl; });
+
+  // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
+  quill::config::set_backend_thread_cpu_affinity(static_cast<uint16_t>(321312));
+
+  quill::config::set_backend_thread_name("example_thread");
+
+  // Start the logging backend thread
+  quill::start();
+
+  LOG_INFO(quill::get_logger(), "{} {}", "Hello", "World!");
+}

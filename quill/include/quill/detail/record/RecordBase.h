@@ -66,7 +66,7 @@ public:
 #endif
 
 private:
-#if (QUILL_RDTSC_CLOCK == 1)
+#if !defined(QUILL_CHRONO_CLOCK)
   uint64_t _timestamp{rdtsc()};
 
   #if !defined(NDEBUG)

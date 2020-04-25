@@ -64,7 +64,7 @@ public:
   /**
    * Flush the handler synchronising the associated handler with its controlled output sequence.
    */
-  virtual void flush() = 0;
+  virtual void flush() noexcept = 0;
 
 private:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter

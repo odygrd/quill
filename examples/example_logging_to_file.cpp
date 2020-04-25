@@ -1,8 +1,3 @@
-/**
- * Using std::chrono clock instead of the default rdtsc clock
- */
-#define QUILL_RDTSC_CLOCK 0
-
 #include "quill/Quill.h"
 
 static char const* filename = "example_filehandler.log";

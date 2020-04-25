@@ -1,4 +1,5 @@
 #include "quill/detail/TimestampFormatter.h"
+#include "quill/QuillError.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/Os.h"
 #include <cassert>
@@ -41,7 +42,7 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
   {
     if (_additional_format_specifier != AdditionalSpecifier::None)
     {
-      throw std::runtime_error("format specifiers %Qms, %Qus and %Qns are mutually exclusive");
+      QUILL_THROW(QuillError{"format specifiers %Qms, %Qus and %Qns are mutually exclusive"});
     }
 
     _additional_format_specifier = AdditionalSpecifier::Qus;
@@ -53,7 +54,7 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
   {
     if (_additional_format_specifier != AdditionalSpecifier::None)
     {
-      throw std::runtime_error("format specifiers %Qms, %Qus and %Qns are mutually exclusive");
+      QUILL_THROW(QuillError{"format specifiers %Qms, %Qus and %Qns are mutually exclusive"});
     }
 
     _additional_format_specifier = AdditionalSpecifier::Qns;

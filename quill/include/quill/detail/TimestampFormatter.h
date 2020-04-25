@@ -44,7 +44,8 @@ public:
    * @param timezone_type local time or gmttime, defaults to local time
    * @throws on invalid format string
    */
-  TimestampFormatter(std::string const& timestamp_format_string, Timezone timezone_type = Timezone::LocalTime);
+  explicit TimestampFormatter(std::string const& timestamp_format_string,
+                              Timezone timezone_type = Timezone::LocalTime);
 
   /**
    * Formats a strings given a timestamp
