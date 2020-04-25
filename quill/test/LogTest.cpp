@@ -400,3 +400,57 @@ TEST(Log, default_logger_with_filehandler_wide_chars)
   quill::detail::file_utilities::remove(filename);
 }
 #endif
+
+/***/
+TEST(Log, backend_error_handler)
+{
+  LogManager lm;
+
+#if defined(_WIN32)
+  std::wstring const filename{L"test_default_logger_with_filehandler"};
+#else
+  std::string const filename{"test_default_logger_with_filehandler"};
+#endif
+
+  // counter to check our error handler was invoked
+  size_t error_handler_invoked{0};
+
+  std::thread frontend([&lm, &filename, &error_handler_invoked]() {
+    // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
+    lm.config().set_backend_thread_cpu_affinity(static_cast<uint16_t>(321312));
+
+    // Set invalid thread name
+    lm.config().set_backend_thread_name(
+      "Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_ut_"
+      "labore_et_dolore_magna_aliqua");
+
+    // Set a custom error handler to handler exceptions
+    lm.set_backend_worker_error_handler(
+      [&error_handler_invoked](std::string const& s) { ++error_handler_invoked; });
+
+    // Start backend worker
+    lm.start_backend_worker();
+
+    // Set a file handler as the custom logger handler and log to it
+    lm.logger_collection().set_default_logger_handler(
+      lm.handler_collection().file_handler(filename, "w"));
+
+    Logger* default_logger = lm.logger_collection().get_logger();
+
+    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+    LOG_ERROR(default_logger,
+              "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
+  ASSERT_NE(error_handler_invoked, 0);
+
+  lm.stop_backend_worker();
+
+  quill::detail::file_utilities::remove(filename);
+}

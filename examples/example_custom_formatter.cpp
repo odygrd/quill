@@ -13,7 +13,6 @@ int main()
   quill::Handler* file_handler = quill::stdout_handler();
 
   // Set a custom formatter for this handler
-  // Set a custom formatter to the handler
   file_handler->set_pattern(
     QUILL_STRING("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)"), // log recorder format
     "%D %H:%M:%S.%Qms %z",     // timestamp format
