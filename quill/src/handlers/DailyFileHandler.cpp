@@ -41,8 +41,7 @@ void DailyFileHandler::write(fmt::memory_buffer const& formatted_log_record, std
     if (QUILL_UNLIKELY(res != 0))
     {
       std::ostringstream error_msg;
-      error_msg << "failed to close previous log file during rotation, with error message "
-                << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+      error_msg << "failed to close previous log file during rotation, with error message errno: \"" << errno << "\"";
       QUILL_THROW(QuillError{error_msg.str()});
     }
 

@@ -65,8 +65,7 @@ tm* gmtime_rs(time_t const* timer, tm* buf)
   if (res)
   {
     std::ostringstream error_msg;
-    error_msg << "failed to call gmtime_rs, with error message "
-              << "\"" << strerror(res) << "\", errno \"" << res << "\"";
+    error_msg << "failed to call gmtime_rs, with error message " << "errno : \"" << res << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
   return buf;
@@ -91,8 +90,7 @@ tm* localtime_rs(time_t const* timer, tm* buf)
   if (res)
   {
     std::ostringstream error_msg;
-    error_msg << "failed to call localtime_rs, with error message "
-              << "\"" << strerror(res) << "\", errno \"" << res << "\"";
+    error_msg << "failed to call localtime_rs, with error message " << "errno: \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
   return buf;
@@ -288,8 +286,7 @@ FILE* fopen(filename_t const& filename, std::string const& mode)
   if (!fp)
   {
     std::ostringstream error_msg;
-    error_msg << "fopen failed with error message "
-              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    error_msg << "fopen failed with error message errno: \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
   return fp;
@@ -323,8 +320,7 @@ size_t fsize(FILE* file)
 
   // failed to get the file size
   std::ostringstream error_msg;
-  error_msg << "fopen failed with error message "
-            << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+  error_msg << "fopen failed with error message errno: \"" << errno << "\"";
   QUILL_THROW(QuillError{error_msg.str()});
 }
 

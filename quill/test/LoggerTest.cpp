@@ -35,8 +35,10 @@ TEST(Logger, get_non_existent_logger)
   LoggerCollection logger_collection{tc, hc};
 
 #if defined(QUILL_NO_EXCEPTIONS)
+  #if !defined(_WIN32)
   ASSERT_EXIT((void)logger_collection.get_logger("logger_1"), ::testing::KilledBySignal(SIGABRT),
               ".*");
+  #endif
 #else
   EXPECT_THROW((void)logger_collection.get_logger("logger_1"), quill::QuillError);
 #endif

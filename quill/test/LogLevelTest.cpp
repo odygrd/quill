@@ -58,8 +58,10 @@ TEST(LogLevel, to_string)
     log_level = static_cast<LogLevel>(-1);
 
 #if defined(QUILL_NO_EXCEPTIONS)
+  #if !defined(_WIN32)
     ASSERT_EXIT(QUILL_MAYBE_UNUSED auto s = to_string(log_level),
                 ::testing::KilledBySignal(SIGABRT), ".*");
+  #endif  
 #else
     EXPECT_THROW(QUILL_MAYBE_UNUSED auto s = to_string(log_level), quill::QuillError);
 #endif
@@ -117,8 +119,10 @@ TEST(LogLevel, from_string)
   {
     std::string log_level{"dummy"};
 #if defined(QUILL_NO_EXCEPTIONS)
+  #if !defined(_WIN32)
     ASSERT_EXIT(QUILL_MAYBE_UNUSED auto res = from_string(log_level),
                 ::testing::KilledBySignal(SIGABRT), ".*");
+  #endif
 #else
     EXPECT_THROW(QUILL_MAYBE_UNUSED auto res = from_string(log_level), quill::QuillError);
 #endif

@@ -144,7 +144,7 @@ void BackendWorker::run()
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
-      QUILL_CATCH_ALL() { _error_handler(std::string{}); }
+      QUILL_CATCH_ALL() { _error_handler(std::string{"Caught unhandled exception."}); }
 #endif
 
 #if !defined(QUILL_CHRONO_CLOCK)
@@ -160,7 +160,10 @@ void BackendWorker::run()
         QUILL_TRY { _main_loop(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
         QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
-        QUILL_CATCH_ALL() { _error_handler(std::string{}); } // clang-format on
+        QUILL_CATCH_ALL()
+        {
+          _error_handler(std::string{"Caught unhandled exception."});
+        } // clang-format on
 #endif
       }
 
@@ -168,7 +171,10 @@ void BackendWorker::run()
       QUILL_TRY { _exit(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
-      QUILL_CATCH_ALL() { _error_handler(std::string{}); } // clang-format on
+      QUILL_CATCH_ALL()
+      {
+        _error_handler(std::string{"Caught unhandled exception."});
+      } // clang-format on
 #endif
     });
 

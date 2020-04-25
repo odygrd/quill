@@ -20,8 +20,7 @@ void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream)
   if (QUILL_UNLIKELY(written < count))
   {
     std::ostringstream error_msg;
-    error_msg << "fwrite failed with error message "
-              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    error_msg << "fwrite failed with error message " << "errno: \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
 }
