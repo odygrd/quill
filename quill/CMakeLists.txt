@@ -14,6 +14,7 @@ set(HEADER_FILES
         include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
+        include/quill/detail/misc/TypeTraitsCopyableTest.h
         include/quill/detail/misc/FileUtilities.h
         include/quill/detail/misc/Macros.h
         include/quill/detail/misc/Os.h

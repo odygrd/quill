@@ -1,0 +1,141 @@
+#include "quill/detail/misc/TypeTraitsCopyableTest.h"
+
+#include <gtest/gtest.h>
+
+#include <array>
+#include <cstdint>
+#include <map>
+#include <string>
+#include <tuple>
+#include <vector>
+
+using namespace quill::detail;
+
+struct TaggedNonTrivial
+{
+public:
+  using copy_loggable = void;
+
+  explicit TaggedNonTrivial(std::string const& x) : x(x){};
+
+private:
+  std::string x;
+};
+
+struct NonTrivial
+{
+public:
+  explicit NonTrivial(std::string const& x) : x(x){};
+
+private:
+  std::string x;
+};
+
+enum Enum
+{
+  One,
+  Two
+};
+
+enum class EnumClass
+{
+  Three,
+  Four
+};
+
+TEST(TypeTraits, is_string)
+{
+  static_assert(is_string_v<std::string>, "_");
+  static_assert(!is_string_v<int>, "_");
+  static_assert(!is_string_v<std::vector<int>>, "_");
+}
+
+TEST(TypeTraits, is_copy_loggable)
+{
+  static_assert(!is_copy_loggable_v<std::string>, "_");
+  static_assert(!is_copy_loggable_v<int>, "_");
+  static_assert(!is_copy_loggable_v<std::vector<int>>, "_");
+  static_assert(is_copy_loggable_v<TaggedNonTrivial>, "_");
+}
+
+TEST(TypeTraits, is_pair)
+{
+  static_assert(!is_pair_v<int>, "_");
+  static_assert(!is_pair_v<std::string>, "_");
+  static_assert(is_pair_v<std::pair<int, int>>, "_");
+  static_assert(is_pair_v<std::pair<std::string, int>>, "_");
+}
+
+TEST(TypeTraits, is_copyable_pair)
+{
+  static_assert(is_copyable_pair_v<std::pair<std::string, std::string>>, "_");
+  static_assert(is_copyable_pair_v<std::pair<int, int>>, "_");
+  static_assert(is_copyable_pair_v<std::pair<std::string, const int>>, "_");
+  static_assert(is_copyable_pair_v<std::pair<std::string, std::string>>, "_");
+}
+
+TEST(TypeTraits, is_container)
+{
+  static_assert(is_container_v<std::vector<int>>, "_");
+  static_assert(is_container_v<std::vector<std::string>>, "_");
+  static_assert(is_container_v<std::map<std::string, int>>, "_");
+}
+
+TEST(TypeTraits, is_copyable_container)
+{
+  static_assert(is_copyable_container_v<std::vector<int>>, "_");
+  static_assert(is_copyable_container_v<std::vector<std::string>>, "_");
+  static_assert(is_copyable_container_v<std::vector<std::vector<std::string>>>, "_");
+  static_assert(is_copyable_container_v<std::vector<std::map<std::string, int>>>, "_");
+  static_assert(is_copyable_container_v<std::vector<std::pair<std::string, int>>>, "_");
+  static_assert(!is_copyable_container_v<std::vector<NonTrivial>>, "_");
+}
+
+TEST(TypeTraits, is_copyable)
+{
+  // built in - copyable
+  static_assert(is_copyable_v<int>, "_");
+  static_assert(is_copyable_v<int>, "_");
+  static_assert(is_copyable_v<Enum>, "_");
+  static_assert(is_copyable_v<EnumClass>, "_");
+  static_assert(is_copyable_v<std::string>, "_");
+  static_assert(is_copyable_v<void*>, "_");
+  static_assert(is_copyable_v<TaggedNonTrivial>, "_");
+
+  // built in - not copyable
+  static_assert(!is_copyable_v<NonTrivial>, "_");
+
+  // pairs - copyable
+  static_assert(is_copyable_v<std::pair<std::string, std::string>>, "_");
+  static_assert(is_copyable_v<std::pair<std::string, std::string>>, "_");
+  static_assert(is_copyable_v<std::pair<float, std::string>>, "_");
+  static_assert(is_copyable_v<std::pair<TaggedNonTrivial, std::string>>, "_");
+  static_assert(is_copyable_v<std::pair<TaggedNonTrivial, TaggedNonTrivial>>, "_");
+
+  // pairs - not copyable
+  static_assert(!is_copyable_v<std::pair<NonTrivial, std::string>>, "_");
+
+  // arrays
+  static_assert(is_copyable_v<std::array<int, 10>>, "_");
+  static_assert(is_copyable_v<std::array<TaggedNonTrivial, 10>>, "_");
+
+  // arrays - non copyable
+  static_assert(!is_copyable_v<std::array<NonTrivial, 10>>, "_");
+
+  // vectors - copyable
+  static_assert(is_copyable_v<std::vector<int>>, "_");
+  static_assert(is_copyable_v<std::vector<std::string>>, "_");
+  static_assert(is_copyable_v<std::vector<std::vector<std::string>>>, "_");
+  static_assert(is_copyable_v<std::vector<std::vector<std::vector<int>>>>, "_");
+  static_assert(is_copyable_v<std::vector<std::map<std::string, int>>>, "_");
+  static_assert(is_copyable_v<std::vector<std::pair<std::string, int>>>, "_");
+
+  // vectors - not copyable
+  static_assert(!is_copyable_v<std::vector<NonTrivial>>, "_");
+  static_assert(!is_copyable_v<std::vector<std::vector<std::vector<NonTrivial>>>>, "_");
+  static_assert(!is_copyable_v<std::vector<std::map<std::string, NonTrivial>>>, "_");
+  static_assert(!is_copyable_v<std::vector<std::map<NonTrivial, std::string>>>, "_");
+
+  // Non copyables - not copyable
+  static_assert(!is_copyable_v<std::map<std::string, NonTrivial>>, "_");
+}

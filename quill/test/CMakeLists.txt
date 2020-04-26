@@ -21,6 +21,7 @@ set(SOURCE_FILES
         StaticLogRecordInfoTest.cpp
         ThreadContextCollectionTest.cpp
         TimestampFormatterTest.cpp
+        TypeTraitsCopyableTest.cpp
         UtilityTest.cpp
         )
 
