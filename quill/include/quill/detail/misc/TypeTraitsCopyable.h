@@ -195,7 +195,7 @@ constexpr bool is_string_v = is_string<std::remove_cv_t<T>>::value;
 /**
  * Check if each element of the pair is copyable
  */
-template <typename T, typename T2 = void>
+template <typename T>
 struct is_copyable_pair : std::false_type
 {
 };
