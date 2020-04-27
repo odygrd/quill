@@ -38,7 +38,6 @@
  * @note: This should be switchable even after quill is already installed as a static or shared library.
  *
  * Usage:
- * Usage:
  * Run cmake as e.g: cmake . -DCMAKE_CXX_FLAGS="-DQUILL_CHRONO_CLOCK=1"
  * or
  * In the root CMake file use: `add_definitions(-DQUILL_CHRONO_CLOCK=1)`
@@ -84,6 +83,39 @@
  * QUILL_LOG_LEVEL_CRITICAL
  */
 // #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
+
+/**
+ * Quill refers all formatting to the backend thread. That means that the objects get copied to
+ * a queue and later on processed on the backend thread which calls operator<< to format them.
+ *
+ * In some cases when a user defined type has mutable references in the object this can be
+ * problematic as they can be modified by the caller thread while they are trying to get
+ * formatted on the backend logger thread.
+ *
+ * By default Quill checks in compile time if the object is safe to get copied. User defined
+ * types can also provide a tag :
+ *
+ * 'using copy_loggable = std::true_type` -> This will indicate that the object is copyable.
+ * 'using copy_loggable = std::false` or missing tag -> This will indicate that the object is NOT copyable.
+ *
+ * If the user defined type has shared mutable references to other objects as class members
+ * this tag should not be provided, instead the formatting should be done explictly on the caller
+ * thread side by the user.
+ *
+ * QUILL_MODE_UNSAFE is not recommended as the user should be never careful when logging user
+ * defined types.
+ * When QUILL_MODE_UNSAFE is enabled quill will copy any user defined types that are copy constructible
+ * to the queue.
+ * Tag `copy_loggable` is no longer applicable in QUILL_MODE_UNSAFE
+ *
+ * QUILL_MODE_UNSAFE needs to be defined before including Quill.h
+ *
+ * Usage:
+ * Run cmake as e.g: cmake . -DCMAKE_CXX_FLAGS="-DQUILL_MODE_UNSAFE"
+ * or
+ * In the root CMake file use: `add_definitions(-DQUILL_MODE_UNSAFE)`
+ */
+// #define QUILL_MODE_UNSAFE
 
 /**************************************************************************************************/
 /* Anything after this point requires the whole library to be recompiled with the desired option. */

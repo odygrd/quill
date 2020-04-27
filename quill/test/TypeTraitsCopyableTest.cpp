@@ -14,7 +14,7 @@ using namespace quill::detail;
 struct TaggedNonTrivial
 {
 public:
-  using copy_loggable = void;
+  using copy_loggable = std::true_type;
 
   explicit TaggedNonTrivial(std::string const& x) : x(x){};
 

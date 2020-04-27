@@ -25,6 +25,7 @@ class LogRecord final : public RecordBase
 {
 public:
   using PromotedTupleT = std::tuple<PromotedTypeT<FmtArgs>...>;
+  using RealTupleT = std::tuple<FmtArgs...>;
 
   /**
    * Deleted

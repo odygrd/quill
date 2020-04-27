@@ -115,6 +115,18 @@ using negation_t = typename negation<B>::type;
 template <typename B>
 constexpr bool negation_v = negation<B>::value;
 
+/**
+ * C++14 implementation of C++20's remove_cvref
+ */
+template< class T >
+struct remove_cvref
+{
+  typedef std::remove_cv_t<std::remove_reference_t<T>> type;
+};
+
+template< class T >
+using remove_cvref_t = typename remove_cvref<T>::type;
+
 /**************************************************************************************************/
 /* Type Traits for copyable object detection */
 /**************************************************************************************************/
@@ -143,10 +155,10 @@ struct is_copyable : std::false_type
 };
 
 template <typename T>
-using is_copyable_t = typename is_copyable<std::remove_cv_t<T>>::type;
+using is_copyable_t = typename is_copyable<remove_cvref_t<T>>::type;
 
 template <typename T>
-constexpr bool is_copyable_v = is_copyable<std::remove_cv_t<T>>::value;
+constexpr bool is_copyable_v = is_copyable<remove_cvref_t<T>>::value;
 
 /**
  * A trait to detect an object was tagged as copy_loggable
@@ -163,15 +175,15 @@ struct is_tagged_copyable : std::false_type
  * @tparam T
  */
 template <typename T>
-struct is_tagged_copyable<T, enable_if_type_t<typename T::copy_loggable>> : std::true_type
+struct is_tagged_copyable<T, enable_if_type_t<typename T::copy_loggable>> : T::copy_loggable
 {
 };
 
 template <typename T>
-using is_tagged_copyable_t = typename is_tagged_copyable<std::remove_cv_t<T>>::type;
+using is_tagged_copyable_t = typename is_tagged_copyable<remove_cvref_t<T>>::type;
 
 template <typename T>
-constexpr bool is_tagged_copyable_v = is_tagged_copyable<std::remove_cv_t<T>>::value;
+constexpr bool is_tagged_copyable_v = is_tagged_copyable<remove_cvref_t<T>>::value;
 
 /**
  * is std::string ?
@@ -187,10 +199,10 @@ struct is_string<std::basic_string<CharT, Traits, Allocator>> : std::true_type
 };
 
 template <typename T>
-using is_string_t = typename is_string<std::remove_cv_t<T>>::type;
+using is_string_t = typename is_string<remove_cvref_t<T>>::type;
 
 template <typename T>
-constexpr bool is_string_v = is_string<std::remove_cv_t<T>>::value;
+constexpr bool is_string_v = is_string<remove_cvref_t<T>>::value;
 
 /**
  * Check if each element of the pair is copyable
@@ -205,17 +217,17 @@ struct is_copyable_pair : std::false_type
  */
 template <typename T1, typename T2>
 struct is_copyable_pair<std::pair<T1, T2>>
-  : conjunction<is_copyable<std::remove_cv_t<T1>>,
-                is_copyable<std::remove_cv_t<T2>>
+  : conjunction<is_copyable<remove_cvref_t<T1>>,
+                is_copyable<remove_cvref_t<T2>>
                 >
 {
 };
 
 template <typename T>
-using is_copyable_pair_t = typename is_copyable_pair<std::remove_cv_t<T>>::type;
+using is_copyable_pair_t = typename is_copyable_pair<remove_cvref_t<T>>::type;
 
 template <typename T>
-constexpr bool is_copyable_pair_v = is_copyable_pair<std::remove_cv_t<T>>::value;
+constexpr bool is_copyable_pair_v = is_copyable_pair<remove_cvref_t<T>>::value;
 
 /**
  * is it a container ?
@@ -248,10 +260,10 @@ struct is_container<T, std::enable_if_t<negation_v<is_string<T>>>>
 };
 
 template <typename T>
-using is_container_t = typename is_container<std::remove_cv_t<T>>::type;
+using is_container_t = typename is_container<remove_cvref_t<T>>::type;
 
 template <typename T>
-constexpr bool is_container_v = is_container<std::remove_cv_t<T>>::value;
+constexpr bool is_container_v = is_container<remove_cvref_t<T>>::value;
 
 /**
  * Check if a container is copyable
@@ -267,15 +279,15 @@ struct is_copyable_container : std::false_type
  */
 template <typename T>
 struct is_copyable_container<T, std::enable_if_t<is_container_v<T>>>
-  : is_copyable<std::remove_cv_t<typename T::value_type>>
+  : is_copyable<remove_cvref_t<typename T::value_type>>
 {
 };
 
 template <typename T>
-using is_copyable_container_t = typename is_copyable_container<std::remove_cv_t<T>>::type;
+using is_copyable_container_t = typename is_copyable_container<remove_cvref_t<T>>::type;
 
 template <typename T>
-constexpr bool is_copyable_container_v = is_copyable_container<std::remove_cv_t<T>>::value;
+constexpr bool is_copyable_container_v = is_copyable_container<remove_cvref_t<T>>::value;
 
 /**
  * check for copyable elements in tuples
@@ -287,7 +299,7 @@ struct is_copyable_tuple : std::false_type
 
 template <typename... Ts>
 struct is_copyable_tuple<std::tuple<Ts...>>
-    : conjunction<is_copyable<std::remove_cv_t<Ts>>...>
+    : conjunction<is_copyable<remove_cvref_t<Ts>>...>
 {
 };
 
