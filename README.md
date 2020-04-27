@@ -48,6 +48,8 @@ The main goals of the library are:
  * Clean warning-free codebase even on high warning levels
  * Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
  * Thread and Type safe with compile time checks
+ * Formatting happens in the background thread. In the hot path most types can get copied without any formatting. With the exception of non-trivial user defined types.
+ * Compile time checks for safe-to-copy user defined types. Non trivial user defined types can be tagged as safe-to-copy to avoid formatting on the hot path.
  * Optimised. Locality and cache friendly, minimal false sharing when threads are running on different cores
  * Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
  * Configurable
