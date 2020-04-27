@@ -50,20 +50,12 @@ TEST(TypeTraits, is_string)
   static_assert(!is_string_v<std::vector<int>>, "_");
 }
 
-TEST(TypeTraits, is_copy_loggable)
+TEST(TypeTraits, is_tagged_copyable)
 {
-  static_assert(!is_copy_loggable_v<std::string>, "_");
-  static_assert(!is_copy_loggable_v<int>, "_");
-  static_assert(!is_copy_loggable_v<std::vector<int>>, "_");
-  static_assert(is_copy_loggable_v<TaggedNonTrivial>, "_");
-}
-
-TEST(TypeTraits, is_pair)
-{
-  static_assert(!is_pair_v<int>, "_");
-  static_assert(!is_pair_v<std::string>, "_");
-  static_assert(is_pair_v<std::pair<int, int>>, "_");
-  static_assert(is_pair_v<std::pair<std::string, int>>, "_");
+  static_assert(!is_tagged_copyable_v<std::string>, "_");
+  static_assert(!is_tagged_copyable_v<int>, "_");
+  static_assert(!is_tagged_copyable_v<std::vector<int>>, "_");
+  static_assert(is_tagged_copyable_v<TaggedNonTrivial>, "_");
 }
 
 TEST(TypeTraits, is_copyable_pair)
@@ -105,6 +97,12 @@ TEST(TypeTraits, is_copyable)
   // built in - not copyable
   static_assert(!is_copyable_v<NonTrivial>, "_");
 
+  // std chrono duration is copyable
+  static_assert(is_copyable_v<std::chrono::nanoseconds>, "_");
+  static_assert(is_copyable_v<std::chrono::minutes>, "_");
+  static_assert(is_copyable_v<std::chrono::hours>, "_");
+  static_assert(is_copyable_v<std::time_t>, "_");
+
   // pairs - copyable
   static_assert(is_copyable_v<std::pair<std::string, std::string>>, "_");
   static_assert(is_copyable_v<std::pair<std::string, std::string>>, "_");
@@ -138,4 +136,16 @@ TEST(TypeTraits, is_copyable)
 
   // Non copyables - not copyable
   static_assert(!is_copyable_v<std::map<std::string, NonTrivial>>, "_");
+
+  // tuples
+  static_assert(is_copyable_v<std::tuple<int, bool, std::string>>, "-");
+  static_assert(is_copyable_v<std::tuple<int, std::chrono::hours, std::string>>, "-");
+  static_assert(is_copyable_v<std::tuple<int, TaggedNonTrivial, std::string>>, "-");
+  static_assert(is_copyable_v<std::tuple<std::pair<std::string, std::string>, bool, std::string>>,
+                "-");
+
+  // tuples - not copyable
+  static_assert(!is_copyable_v<std::tuple<std::pair<NonTrivial, std::string>, bool, std::string>>,
+                "-");
+  static_assert(!is_copyable_v<std::tuple<int, NonTrivial, std::string>>, "-");
 }

@@ -7,9 +7,6 @@
 
 #include <string>
 #include <type_traits>
-
-#include <chrono>
-#include <string>
 #include <utility>
 
 #ifdef _LIBCPP_VERSION
@@ -157,20 +154,24 @@ constexpr bool is_copyable_v = is_copyable<std::remove_cv_t<T>>::value;
  * @tparam T2
  */
 template <typename T, typename T2 = void>
-struct is_copy_loggable : std::false_type
+struct is_tagged_copyable : std::false_type
+{
+};
+
+/**
+ * Enable only when we have a tag
+ * @tparam T
+ */
+template <typename T>
+struct is_tagged_copyable<T, enable_if_type_t<typename T::copy_loggable>> : std::true_type
 {
 };
 
 template <typename T>
-struct is_copy_loggable<T, enable_if_type_t<typename T::copy_loggable>> : std::true_type
-{
-};
+using is_tagged_copyable_t = typename is_tagged_copyable<std::remove_cv_t<T>>::type;
 
 template <typename T>
-using is_copy_loggable_t = typename is_copy_loggable<std::remove_cv_t<T>>::type;
-
-template <typename T>
-constexpr bool is_copy_loggable_v = is_copy_loggable<std::remove_cv_t<T>>::value;
+constexpr bool is_tagged_copyable_v = is_tagged_copyable<std::remove_cv_t<T>>::value;
 
 /**
  * is std::string ?
@@ -192,25 +193,6 @@ template <typename T>
 constexpr bool is_string_v = is_string<std::remove_cv_t<T>>::value;
 
 /**
- * is std::pair ?
- */
-template <typename T>
-struct is_pair : std::false_type
-{
-};
-
-template <typename T1, typename T2>
-struct is_pair<std::pair<T1, T2>> : std::true_type
-{
-};
-
-template <typename T>
-using is_pair_t = typename is_pair<std::remove_cv_t<T>>::type;
-
-template <typename T>
-constexpr bool is_pair_v = is_pair<std::remove_cv_t<T>>::value;
-
-/**
  * Check if each element of the pair is copyable
  */
 template <typename T, typename T2 = void>
@@ -221,10 +203,10 @@ struct is_copyable_pair : std::false_type
 /**
  * Enable only in the case of a std::pair and do the check
  */
-template <typename T>
-struct is_copyable_pair<T, std::enable_if_t<is_pair_v<T>>>
-  : conjunction<is_copyable<std::remove_cv_t<typename T::first_type>>,
-                is_copyable<std::remove_cv_t<typename T::second_type>>
+template <typename T1, typename T2>
+struct is_copyable_pair<std::pair<T1, T2>>
+  : conjunction<is_copyable<std::remove_cv_t<T1>>,
+                is_copyable<std::remove_cv_t<T2>>
                 >
 {
 };
@@ -296,12 +278,26 @@ template <typename T>
 constexpr bool is_copyable_container_v = is_copyable_container<std::remove_cv_t<T>>::value;
 
 /**
+ * check for copyable elements in tuples
+ */
+template <typename T>
+struct is_copyable_tuple : std::false_type
+{
+};
+
+template <typename... Ts>
+struct is_copyable_tuple<std::tuple<Ts...>>
+    : conjunction<is_copyable<std::remove_cv_t<Ts>>...>
+{
+};
+
+/**
  * A user defined object that was tagged by the user to be copied
  */
 template <typename T>
 struct is_user_defined_copyable : conjunction<std::is_class<T>,
                                               negation<std::is_trivial<T>>,
-                                              is_copy_loggable<T>
+                                              is_tagged_copyable<T>
                                              >
 {};
 
@@ -309,12 +305,13 @@ struct is_user_defined_copyable : conjunction<std::is_class<T>,
  * An object is copyable if it meets one of the following criteria
  */
 template <typename T>
-struct filter_copyable : disjunction<std::is_trivial<T>,
-                                     std::is_arithmetic<T>,
+struct filter_copyable : disjunction<std::is_arithmetic<T>,
                                      is_string<T>,
+                                     std::is_trivial<T>,
+                                     is_user_defined_copyable<T>,
                                      is_copyable_pair<T>,
-                                     is_copyable_container<T>,
-                                     is_user_defined_copyable<T>
+                                     is_copyable_tuple<T>,
+                                     is_copyable_container<T>
                                      >
 {};
 
@@ -325,7 +322,6 @@ template <typename T>
 struct is_copyable<T, std::enable_if_t<filter_copyable<T>::value>> : std::true_type
 {
 };
-
 // clang-format on
 
 } // namespace detail
