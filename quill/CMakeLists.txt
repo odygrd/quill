@@ -14,7 +14,6 @@ set(HEADER_FILES
         include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
-        include/quill/detail/misc/TypeTraitsCopyableTest.h
         include/quill/detail/misc/FileUtilities.h
         include/quill/detail/misc/Macros.h
         include/quill/detail/misc/Os.h
@@ -24,6 +23,7 @@ set(HEADER_FILES
         include/quill/detail/misc/Spinlock.h
         include/quill/detail/misc/Utilities.h
         include/quill/detail/misc/TypeTraits.h
+        include/quill/detail/misc/TypeTraitsCopyable.h
         include/quill/detail/record/CommandRecord.h
         include/quill/detail/record/LogRecord.h
         include/quill/detail/record/RecordBase.h

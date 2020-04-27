@@ -1,4 +1,4 @@
-#include "quill/detail/misc/TypeTraitsCopyableTest.h"
+#include "quill/detail/misc/TypeTraitsCopyable.h"
 
 #include <gtest/gtest.h>
 
