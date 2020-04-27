@@ -7,9 +7,10 @@
 - [v1.0.0](#v1.0.0)
 
 ## v1.3.0
-* Added option `QUILL_NO_EXCEPTIONS` to disables exceptions, std::abort() is called instead. ([#16](https://github.com/odygrd/quill/issues/16))
+* Added option `QUILL_NO_EXCEPTIONS` to disable exceptions, std::abort() is called instead. ([#16](https://github.com/odygrd/quill/issues/16))
 * When exceptions are enabled any exception thrown in the backend worker thread, will now call a user provided error handler callback to handle the error. ([#21](https://github.com/odygrd/quill/issues/21))
-* `QUILL_RDTSC_CLOCK` is replaced by `QUILL_CHRONO_CLOCK` which is by default OFF.
+* Quill will now check in compile time for any unsafe to copy user defined type and fail to compile. Non trivial user defined types must be explicitly tagged as safe to copy. Otherwise they have to be formatted and passed as a string to the logger by the user. The old unsafe mode is still usable by `#define QUILL_MODE_UNSAFE` ([#20](https://github.com/odygrd/quill/issues/20))
+* `QUILL_RDTSC_CLOCK` option is replaced by `QUILL_CHRONO_CLOCK` which is by OFF by default.
 
 ## v1.2.3
 * CMake changes to support package installation in conan.
