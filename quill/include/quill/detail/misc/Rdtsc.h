@@ -7,11 +7,21 @@
 
 #include "quill/detail/misc/Attributes.h"
 
+#if (__ARM_ARCH >= 6)
+  #include <sys/time.h>
+#else
+  // assume x86-64 ..
+  #if defined(_WIN32)
+    #include <intrin.h>
+  #else
+    #include <x86intrin.h>
+  #endif
+#endif
+
 namespace quill
 {
 namespace detail
 {
-
 #if defined(__aarch64__)
 // arm64
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
@@ -21,9 +31,6 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   return virtual_timer_value;
 }
 #elif (__ARM_ARCH >= 6)
-// arm
-  #include <sys/time.h>
-
 // V6 is the earliest arch that has a standard cyclecount
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
 {
@@ -48,19 +55,11 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 #else
-  // assume x86-64 ..
-  #if defined(_WIN32)
-    #include <intrin.h>
-  #else
-    #include <x86intrin.h>
-  #endif
-
 /**
  * Get the TSC counter
  * @return rdtsc timestamp
  */
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept { return __rdtsc(); }
-
 #endif
 
 } // namespace detail
