@@ -43,7 +43,7 @@ public:
    * This class is tagged as safe to copy and it does not have to be formatted on the hot path
    * anymore
    */
-  using copy_loggable = std::true_type;
+  QUILL_COPY_LOGGABLE;
 
 private:
   std::string name;

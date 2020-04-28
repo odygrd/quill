@@ -10,6 +10,7 @@
 #include "quill/Fmt.h"
 #include "quill/Logger.h"
 #include "quill/detail/misc/Macros.h"
+#include <type_traits>
 
 // Config Options
 #define QUILL_LOG_LEVEL_TRACE_L3 0
@@ -21,6 +22,11 @@
 #define QUILL_LOG_LEVEL_ERROR 6
 #define QUILL_LOG_LEVEL_CRITICAL 7
 #define QUILL_LOG_LEVEL_NONE 8
+
+/**
+ * A macro to indicate that a user define type is copy_loggable
+ */
+#define QUILL_COPY_LOGGABLE using copy_loggable = std::true_type
 
 /**
  * Check in compile time the correctness of a format string

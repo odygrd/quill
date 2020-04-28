@@ -103,6 +103,11 @@ public:
       return;
     }
 
+    static_assert(
+      detail::is_all_tuple_copy_constructible<FmtArgs...>::value,
+      "The type must be copy constructible. If the type can not be copy constructed it must"
+      "be converted to string on the caller side.");
+
     // Resolve the type of the record first
     using log_record_t = quill::detail::LogRecord<FmtArgs...>;
 
@@ -137,6 +142,11 @@ public:
     {
       return;
     }
+
+    static_assert(
+      detail::is_all_tuple_copy_constructible<FmtArgs...>::value,
+      "The type must be copy constructible. If the type can not be copy constructed it must"
+      "be converted to string on the caller side.");
 
     // Resolve the type of the record first
     using log_record_t = quill::detail::LogRecord<FmtArgs...>;

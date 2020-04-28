@@ -98,6 +98,8 @@
  * 'using copy_loggable = std::true_type` -> This will indicate that the object is copyable.
  * 'using copy_loggable = std::false` or missing tag -> This will indicate that the object is NOT copyable.
  *
+ * There is a convenience macro also `QUILL_COPY_LOGGABLE`
+ *
  * If the user defined type has shared mutable references to other objects as class members
  * this tag should not be provided, instead the formatting should be done explictly on the caller
  * thread side by the user.

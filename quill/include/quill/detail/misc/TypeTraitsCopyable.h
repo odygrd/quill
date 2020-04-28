@@ -28,7 +28,7 @@
  * a) built arithmetic types
  * b) trivial types
  * c) strings
- * d) explictly tagged by the user as copy_loggable
+ * d) explicitly tagged by the user as copy_loggable with the QUILL_COPY_LOGGABLE macro
  * e) std::duration types
  * f) containers of the above types
  * g) std::pairs of the above types

@@ -11,6 +11,7 @@
 * When exceptions are enabled any exception thrown in the backend worker thread, will now call a user provided error handler callback to handle the error. ([#21](https://github.com/odygrd/quill/issues/21))
 * Quill will now check in compile time for any unsafe to copy user defined type and fail to compile. Non trivial user defined types must be explicitly tagged as safe to copy. Otherwise they have to be formatted and passed as a string to the logger by the user. The old unsafe mode is still usable by `#define QUILL_MODE_UNSAFE` ([#20](https://github.com/odygrd/quill/issues/20))
 * `QUILL_RDTSC_CLOCK` option is replaced by `QUILL_CHRONO_CLOCK` which is by OFF by default.
+* Improve compiler error message when trying to log a non copy constructible user defined type
 
 ## v1.2.3
 * CMake changes to support package installation in conan.
