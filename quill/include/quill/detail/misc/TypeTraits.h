@@ -100,8 +100,24 @@ struct any_is_same<TSame, TFirst> : std::is_same<TSame, std::decay_t<TFirst>>
 {
 };
 
+template <typename T, typename R = void>
+struct is_all_tuple_copy_constructible_helper : std::true_type
+{
+};
+
+/**
+ * Enable only for classes
+ * @tparam T
+ */
+template <typename T>
+struct is_all_tuple_copy_constructible_helper<T, std::enable_if_t<std::is_class<T>::value>>
+  : std::is_copy_constructible<T>
+{
+};
+
 template <typename... TArgs>
-struct is_all_tuple_copy_constructible : conjunction<std::is_copy_constructible<remove_cvref_t<TArgs>>...>
+struct is_all_tuple_copy_constructible
+  : conjunction<is_all_tuple_copy_constructible_helper<remove_cvref_t<TArgs>>...>
 {
 };
 } // namespace detail
