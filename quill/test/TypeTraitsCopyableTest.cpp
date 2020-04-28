@@ -5,6 +5,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <string>
 #include <tuple>
@@ -149,4 +150,8 @@ TEST(TypeTraits, is_copyable)
   static_assert(!is_copyable_v<std::tuple<std::pair<NonTrivial, std::string>, bool, std::string>>,
                 "-");
   static_assert(!is_copyable_v<std::tuple<int, NonTrivial, std::string>>, "-");
+
+  // reference wrapper
+  static_assert(!is_copyable_v<std::reference_wrapper<int>>, "-");
+  static_assert(!is_copyable_v<std::vector<std::reference_wrapper<int>>>, "-");
 }

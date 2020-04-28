@@ -34,7 +34,10 @@ QUILL_NODISCARD constexpr bool is_pow_of_two(uint64_t number) noexcept
  * @param str input string
  * @return the length of the string
  */
-QUILL_NODISCARD constexpr size_t strlen(char const* str) { return *str ? 1 + strlen(str + 1) : 0; }
+QUILL_NODISCARD constexpr size_t strlength(char const* str)
+{
+  return *str ? 1 + strlength(str + 1) : 0;
+}
 
 /**
  * Convert a string to wstring

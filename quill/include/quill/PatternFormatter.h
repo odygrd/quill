@@ -487,7 +487,7 @@ void PatternFormatter::_set_pattern(TConstantString)
 
   // break down the pattern to three parts, we can ignore part_2 which will be '%(message)'
   std::string const pattern_part_1 = pattern.substr(0, message_found);
-  std::string const pattern_part_3 = pattern.substr(message_found + quill::detail::strlen("%(message)"));
+  std::string const pattern_part_3 = pattern.substr(message_found + quill::detail::strlength("%(message)"));
 
   // calculate the size of the format specifiers '%'
   // pos 0 = number of part_1 args, pos 1 = number of part_3 args
@@ -505,7 +505,7 @@ template <typename TConstantString>
 constexpr std::array<size_t, 2> PatternFormatter::_parse_format_pattern()
 {
   constexpr char const* pattern = TConstantString::value();
-  constexpr size_t len = quill::detail::strlen(pattern);
+  constexpr size_t len = quill::detail::strlength(pattern);
 
   size_t pos{0};
   bool part_2_found = false;
