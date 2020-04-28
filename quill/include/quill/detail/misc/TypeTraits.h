@@ -100,6 +100,9 @@ struct any_is_same<TSame, TFirst> : std::is_same<TSame, std::decay_t<TFirst>>
 {
 };
 
+/**
+ * For non class types e.g. ints we always want to default to true
+ */
 template <typename T, typename R = void>
 struct is_all_tuple_copy_constructible_helper : std::true_type
 {
@@ -107,7 +110,6 @@ struct is_all_tuple_copy_constructible_helper : std::true_type
 
 /**
  * Enable only for classes
- * @tparam T
  */
 template <typename T>
 struct is_all_tuple_copy_constructible_helper<T, std::enable_if_t<std::is_class<T>::value>>

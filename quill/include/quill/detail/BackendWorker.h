@@ -86,7 +86,7 @@ private:
   /**
    * Convert a log record timestamp to a time since epoch timestamp in nanoseconds.
    *
-   * @param log_record_timestamp The log record timestamp is just an uint64 and it can be either
+   * @param log_record_handle The log record timestamp is just an uint64 and it can be either
    * rdtsc time or nanoseconds since epoch based on #if !defined(QUILL_CHRONO_CLOCK) definition
    * @return a timestamp in nanoseconds since epoch
    */

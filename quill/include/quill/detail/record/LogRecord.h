@@ -59,11 +59,9 @@ public:
    */
   QUILL_NODISCARD size_t size() const noexcept override { return sizeof(*this); }
 
-   /**
-    * Process a LogRecord
-    * @param thread_id thread id
-    * @param rdtsc_clock rdtsc clock
-    */
+  /**
+   * Process a LogRecord
+   */
   void backend_process(char const* thread_id,
                        std::function<std::vector<Handler*>()> const&,
                        std::chrono::nanoseconds log_record_timestamp) const noexcept override

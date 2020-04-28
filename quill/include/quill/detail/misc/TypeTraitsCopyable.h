@@ -162,8 +162,6 @@ constexpr bool is_copyable_v = is_copyable<remove_cvref_t<T>>::value;
 
 /**
  * A trait to detect an object was tagged as copy_loggable
- * @tparam T
- * @tparam T2
  */
 template <typename T, typename T2 = void>
 struct is_tagged_copyable : std::false_type
@@ -172,7 +170,6 @@ struct is_tagged_copyable : std::false_type
 
 /**
  * Enable only when we have a tag
- * @tparam T
  */
 template <typename T>
 struct is_tagged_copyable<T, enable_if_type_t<typename T::copy_loggable>> : T::copy_loggable

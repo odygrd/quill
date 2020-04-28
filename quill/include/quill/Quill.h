@@ -34,7 +34,7 @@ QUILL_ATTRIBUTE_COLD void preallocate();
  *
  * @note Must be called before quill::start();
  *
- * @param error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
+ * @param backend_worker_error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
  *
  * @throws exception if it is called after the thread has started
  */
