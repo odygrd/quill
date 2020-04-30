@@ -256,7 +256,7 @@ TEST(Quill, log_using_daily_file_handler)
 #if defined(_WIN32)
   // Read file and check
   static const quill::filename_t expected_filename =
-    quill::detail::file_utilities::append_date_to_filename(base_filename);
+    quill::detail::file_utilities::append_date_to_filename(quill::detail::s2ws(base_filename));
   std::vector<std::string> const file_contents = quill::testing::file_contents(expected_filename);
   EXPECT_EQ(file_contents.size(), 20);
 
