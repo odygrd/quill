@@ -157,15 +157,24 @@ char const* TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_s
 /***/
 size_t TimestampFormatter::_strftime(tm const& timeinfo, size_t formatted_date_pos, std::string const& format_string)
 {
-  auto res = strftime(&_formatted_date[formatted_date_pos], _formatted_date.capacity(),
+  auto res = strftime(&_formatted_date[formatted_date_pos], _formatted_date.capacity() - formatted_date_pos,
                       format_string.data(), std::addressof(timeinfo));
 
-  // if strftime fails we need to resize
+  // if strftime fails we need to reserve
   while (QUILL_UNLIKELY(res == 0))
   {
-    _formatted_date.resize(
+    // _formatted_date has unknown _formatted_date.size() because we use it as an array.
+    // But  internally _formatted_date the size is needed to copy the old data
+    // when we call _formatted_date.reserve(). Therefore, we will lose old_data on reserve()
+    std::string old_data{_formatted_date.data(), formatted_date_pos};
+
+    _formatted_date.reserve(
       static_cast<size_t>(static_cast<float>(_formatted_date.capacity()) * _formatted_date_grow_factor));
-    res = strftime(&_formatted_date[formatted_date_pos], _formatted_date.capacity(),
+
+    // put old data back ..
+    _formatted_date.append(&old_data[0], &old_data[old_data.size()]);
+
+    res = strftime(&_formatted_date[formatted_date_pos], _formatted_date.capacity() - formatted_date_pos,
                    format_string.data(), std::addressof(timeinfo));
   }
 
@@ -181,8 +190,16 @@ void TimestampFormatter::_append_fractional_seconds(size_t formatted_timestamp_e
   if (QUILL_UNLIKELY((formatted_timestamp_end + extracted_fractional_seconds_length + 1) >
                      _formatted_date.capacity()))
   {
-    _formatted_date.resize(
+    // _formatted_date has unknown _formatted_date.size() because we use it as an array.
+    // But  internally _formatted_date the size is needed to copy the old data
+    // when we call _formatted_date.reserve(). Therefore, we will lose old_data on reserve()
+    std::string old_data{_formatted_date.data(), formatted_timestamp_end};
+
+    _formatted_date.reserve(
       static_cast<size_t>(static_cast<float>(_formatted_date.capacity()) * _formatted_date_grow_factor));
+
+    // put old data back ..
+    _formatted_date.append(&old_data[0], &old_data[old_data.size()]);
   }
 
   // starting position to append the value

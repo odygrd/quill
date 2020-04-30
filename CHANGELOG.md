@@ -12,6 +12,7 @@
 * Quill will now check in compile time for any unsafe to copy user defined type and fail to compile. Non trivial user defined types must be explicitly tagged as safe to copy. Otherwise they have to be formatted and passed as a string to the logger by the user. The old unsafe mode is still usable by `#define QUILL_MODE_UNSAFE` ([#20](https://github.com/odygrd/quill/issues/20))
 * `QUILL_RDTSC_CLOCK` option is replaced by `QUILL_CHRONO_CLOCK` which is by OFF by default.
 * Improve compiler error message when trying to log a non copy constructible user defined type
+* Fix buffer reallocation bug on TimestampFormatter. In previous versions any timestamp format set to 'set_pattern' expanding to a string longer than 32 bytes would cause a crash. ([#24](https://github.com/odygrd/quill/issues/24))
 
 ## v1.2.3
 * CMake changes to support package installation in conan.
