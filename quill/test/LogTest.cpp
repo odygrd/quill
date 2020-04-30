@@ -157,7 +157,7 @@ TEST(Log, custom_default_logger_same_file_from_default_logger)
   custom_default_logger_same_handler(1);
 }
 
-void test_custom_default_logger_multiple_handlers(int test_case = 0)
+void test_custom_default_logger_multiple_handlers(int test_case)
 {
   LogManager lm;
 

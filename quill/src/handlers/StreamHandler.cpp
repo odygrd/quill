@@ -30,12 +30,6 @@ StreamHandler::StreamHandler(filename_t stream) : _filename(std::move(stream))
 }
 
 /***/
-StreamHandler::StreamHandler(FILE* file_pointer, filename_t filename)
-  : _filename(std::move(filename)), _file(file_pointer)
-{
-}
-
-/***/
 void StreamHandler::write(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds)
 {
   detail::file_utilities::fwrite_fully(formatted_log_record.data(), sizeof(char),

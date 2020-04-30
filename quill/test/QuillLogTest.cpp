@@ -5,12 +5,14 @@
 #include <gtest/gtest.h>
 #include <string>
 
-// Note: This thread is flushing using the main thread. This means that no-other test should have used flush()
-// on the main thread as the main thread's thread context is not re-added
+// Note: This thread is flushing using the main() gtest test thread. This means that no-other test should have used flush()
+// on the main gtest test thread as the main thread's thread context is not re-added.
+// Other tests use flush() but within their spawned threads.
 // this is never an issue in real logger as everything goes through the singleton, but we are not using the
 // singleton all the time during testing
 
-void test_quill_log(char const* test_id, std::string const& filename, uint16_t number_of_threads, uint32_t number_of_messages)
+void test_quill_log(char const* test_id, std::string const& filename, uint16_t number_of_threads,
+                    uint32_t number_of_messages)
 {
   // Start the logging backend thread
   quill::start();
@@ -183,7 +185,7 @@ TEST(Quill, log_using_rotating_file_handler)
   quill::Handler* rotating_file_handler = quill::rotating_file_handler(base_filename, max_file_size);
   quill::Logger* rotating_logger = quill::create_logger("rotating_logger", rotating_file_handler);
 
-  // log a few bytes so we rotate files
+  // log a few messages so we rotate files
   for (uint32_t i = 0; i < 20; ++i)
   {
     LOG_INFO(rotating_logger, "Hello rotating file log num {}", i);
@@ -227,5 +229,54 @@ TEST(Quill, log_using_rotating_file_handler)
   quill::detail::file_utilities::remove(rotated_filename_1);
   quill::detail::file_utilities::remove(base_filename);
   quill::detail::file_utilities::remove(rotated_filename_2);
+#endif
+}
+
+/***/
+TEST(Quill, log_using_daily_file_handler)
+{
+  // This is not testing the daily rotation of the daily file logger
+  static char const* base_filename = "log_daily.log";
+
+  // Start the logging backend thread
+  quill::start();
+
+  quill::Handler* daily_file_handler =
+    quill::daily_file_handler(base_filename, std::chrono::hours{12}, std::chrono::minutes{0});
+  quill::Logger* daily_logger = quill::create_logger("daily_logger", daily_file_handler);
+
+  // log a few messages
+  for (uint32_t i = 0; i < 20; ++i)
+  {
+    LOG_INFO(daily_logger, "Hello daily file log num {}", i);
+  }
+
+  quill::flush();
+
+#if defined(_WIN32)
+  // Read file and check
+  static const quill::filename_t expected_filename =
+    quill::detail::file_utilities::append_date_to_filename(base_filename);
+  std::vector<std::string> const file_contents = quill::testing::file_contents(expected_filename);
+  EXPECT_EQ(file_contents.size(), 20);
+
+#else
+  // Read file and check
+  static const quill::filename_t expected_filename =
+    quill::detail::file_utilities::append_date_to_filename(base_filename);
+  std::vector<std::string> const file_contents = quill::testing::file_contents(expected_filename);
+  EXPECT_EQ(file_contents.size(), 20);
+#endif
+
+#if defined(_WIN32)
+  // Remove filenames
+  quill::detail::file_utilities::remove(expected_filename);
+  quill::detail::file_utilities::remove(expected_filename);
+  quill::detail::file_utilities::remove(expected_filename);
+#else
+  // Remove filenames
+  quill::detail::file_utilities::remove(expected_filename);
+  quill::detail::file_utilities::remove(expected_filename);
+  quill::detail::file_utilities::remove(expected_filename);
 #endif
 }

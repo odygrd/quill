@@ -40,14 +40,6 @@ public:
   QUILL_NODISCARD virtual filename_t const& filename() const noexcept;
 
 protected:
-  /**
-   * Protected constructor used by the file handler
-   * @param file_pointer a pointer to a FILE* used by the derived class
-   * @param filename the name of the file
-   */
-  StreamHandler(FILE* file_pointer, filename_t filename);
-
-protected:
   filename_t _filename;
   FILE* _file{nullptr};
 };
