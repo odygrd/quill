@@ -71,7 +71,8 @@ public:
     {
       // lambda to unpack the tuple args stored in the LogRecord (the arguments that were passed by
       // the user) We also capture all additional information we need to create the log message
-      auto forward_tuple_args_to_formatter = [this, log_record_timestamp, thread_id, handler](auto... tuple_args) {
+      auto forward_tuple_args_to_formatter = [this, log_record_timestamp, thread_id,
+                                              handler](auto const&... tuple_args) {
         handler->formatter().format(log_record_timestamp, thread_id, _logger_details->name(),
                                     *_log_line_info, tuple_args...);
       };
