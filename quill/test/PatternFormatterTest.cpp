@@ -185,7 +185,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_on_format_
     QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
       "%(message) [%(function_name)]"),
-    "%FT%T.%Qus%z%Z", Timezone::GmtTime};
+    "%FT%T.%Qus%FT%T", Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
@@ -203,7 +203,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_on_format_
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.099220+0000GMT [31341] PatternFormatterTest.cpp:193 LOG_DEBUG    test_logger - This the "
+      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:193 "
+      "LOG_DEBUG    test_logger - This the "
       "1234 formatter pattern [TestBody]\n";
 
     EXPECT_EQ(formatted_buffer.size(), expected_string.length());
@@ -218,7 +219,7 @@ TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_when_addin
     QUILL_STRING(
       "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
       "%(message) [%(function_name)]"),
-    "%FT%T.%T.%Qus%z%Z", Timezone::GmtTime};
+    "%FT%T.%T.%Qus%FT%T", Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
@@ -236,7 +237,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_when_addin
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.21:42:41.099220+0000GMT [31341] PatternFormatterTest.cpp:226 LOG_DEBUG    test_logger - This the "
+      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:227 "
+      "LOG_DEBUG    test_logger - This the "
       "1234 formatter pattern [TestBody]\n";
 
     EXPECT_EQ(formatted_buffer.size(), expected_string.length());

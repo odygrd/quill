@@ -103,9 +103,6 @@ char const* TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_s
     detail::gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp_secs)), std::addressof(timeinfo));
   }
 
-  // clear previous result to start formatting
-  _formatted_date.clear();
-
   // 1. we always format part 1 - and store how many bytes we writted
   size_t formatted_ts_length = _strftime(timeinfo, 0, _format_part_1);
 
@@ -168,6 +165,10 @@ size_t TimestampFormatter::_strftime(tm const& timeinfo, size_t formatted_date_p
     // when we call _formatted_date.reserve(). Therefore, we will lose old_data on reserve()
     std::string old_data{_formatted_date.data(), formatted_date_pos};
 
+    // this sets size to zero, we are not keeping track of the size because we append directly.
+    // Also if we reallocate twice the size can have a value because we used append
+    _formatted_date.clear();
+
     _formatted_date.reserve(
       static_cast<size_t>(static_cast<float>(_formatted_date.capacity()) * _formatted_date_grow_factor));
 
@@ -194,6 +195,9 @@ void TimestampFormatter::_append_fractional_seconds(size_t formatted_timestamp_e
     // But  internally _formatted_date the size is needed to copy the old data
     // when we call _formatted_date.reserve(). Therefore, we will lose old_data on reserve()
     std::string old_data{_formatted_date.data(), formatted_timestamp_end};
+
+    // set size to zero
+    _formatted_date.clear();
 
     _formatted_date.reserve(
       static_cast<size_t>(static_cast<float>(_formatted_date.capacity()) * _formatted_date_grow_factor));
