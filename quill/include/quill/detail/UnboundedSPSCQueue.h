@@ -211,7 +211,7 @@ private:
   /** Modified by either the producer or consumer but never both */
   alignas(CACHELINE_SIZE) node* _producer{nullptr};
   alignas(CACHELINE_SIZE) node* _consumer{nullptr};
-  char _pad0[detail::CACHELINE_SIZE - sizeof(node*)];
+  char _pad0[detail::CACHELINE_SIZE - sizeof(node*)] = "\0";
 };
 
 } // namespace detail

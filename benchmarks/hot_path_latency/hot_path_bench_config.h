@@ -17,7 +17,7 @@
 // #define PERF_ENABLED
 
 #define THREAD_LIST_COUNT                                                                          \
-  std::vector<int32_t> { 1, 4 }
+  std::vector<int32_t> { 1 }
 
 #define MESSAGES_PER_ITERATION                                                                     \
   std::size_t { 60 }

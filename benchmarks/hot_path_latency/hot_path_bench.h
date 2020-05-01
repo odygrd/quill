@@ -27,7 +27,7 @@ inline void wait(std::chrono::nanoseconds min, std::chrono::nanoseconds max)
 #else
   static std::random_device rd;
   static std::mt19937 gen(rd());
-  static std::uniform_int_distribution<> dis(min.count(), max.count());
+  static std::uniform_int_distribution<> dis(static_cast<int>(min.count()), static_cast<int>(max.count()));
 
   auto const start_time = std::chrono::steady_clock::now();
   auto const end_time = start_time.time_since_epoch() + std::chrono::nanoseconds{dis(gen)};
@@ -71,7 +71,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 /***/
 inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iteration,
                               std::function<void()> on_thread_start, std::function<void()> log_func,
-                              std::function<void()> on_thread_exit, size_t current_thread_num,
+                              std::function<void()> on_thread_exit, uint16_t current_thread_num,
                               std::vector<uint64_t>& latencies, double rdtsc_ticks_per_ns)
 {
   // running thread affinity
@@ -160,12 +160,12 @@ inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size
   std::cout << "Thread Count " << thread_count << " - Total messages "
             << latencies_combined.size() * messages_per_iteration << " - " << benchmark_name
             << "\n |  50th | 75th | 90th | 95th | 99th | 99.9th | Worst |\n"
-            << " |  " << latencies_combined[(size_t)(num_iterations * thread_count) * 0.5]
-            << "  |  " << latencies_combined[(size_t)(num_iterations * thread_count) * 0.75]
-            << "  |  " << latencies_combined[(size_t)(num_iterations * thread_count) * 0.9]
-            << "  |  " << latencies_combined[(size_t)(num_iterations * thread_count) * 0.95]
-            << "  |  " << latencies_combined[(size_t)(num_iterations * thread_count) * 0.99]
-            << "  |  " << latencies_combined[(size_t)(num_iterations * thread_count) * 0.999]
+            << " |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.5)]
+            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.75)]
+            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.9)]
+            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.95)]
+            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.99)]
+            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.999)]
             << "  |  " << latencies_combined[latencies_combined.size() - 1] << "  |\n\n";
 #endif
 }

@@ -195,7 +195,7 @@ private:
    * Incremented by any thread on thread local destruction, decremented by the backend thread
    */
   alignas(CACHELINE_SIZE) std::atomic<uint8_t> _invalid_thread_context{0};
-  char _pad0[detail::CACHELINE_SIZE - sizeof(std::atomic<uint8_t>)];
+  char _pad0[detail::CACHELINE_SIZE - sizeof(std::atomic<uint8_t>)] = "\0";
 };
 } // namespace detail
 } // namespace quill
