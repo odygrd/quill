@@ -10,6 +10,8 @@ option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
 option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
 
+option(QUILL_BUILD_BENCHMARKS "Build the benchmarks" OFF)
+
 option(QUILL_SANITIZE_ADDRESS "Enable address sanitizer in tests" OFF)
 
 option(QUILL_SANITIZE_THREAD "Enable thread sanitizer in tests (Using this option with any other compiler except clang may result to false positives)" OFF)
@@ -134,6 +136,10 @@ endif ()
 # Build Examples
 if (QUILL_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif ()
+
+if (QUILL_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif ()
 
 add_subdirectory(quill)

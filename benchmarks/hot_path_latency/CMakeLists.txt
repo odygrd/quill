@@ -1,0 +1,2 @@
+add_executable(BENCHMARK_quill_hot_path hot_path_bench_config.h hot_path_bench.h quill_hot_path.cpp)
+target_link_libraries(BENCHMARK_quill_hot_path quill)

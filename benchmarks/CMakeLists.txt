@@ -1,0 +1,1 @@
+add_subdirectory(hot_path_latency)
