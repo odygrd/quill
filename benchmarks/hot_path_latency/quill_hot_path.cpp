@@ -62,7 +62,7 @@ void quill_benchmark(std::vector<int32_t> thread_count_array, size_t num_iterati
   // Run the benchmark for n threads
   for (auto thread_count : thread_count_array)
   {
-    run_benchmark("Logger: Quill - Benchmark: Caller Thread Latency", thread_count,
+    run_benchmark("Logger: Quill - Benchmark: Hot Path Latency / Nanoseconds", thread_count,
                   num_iterations_per_thread, messages_per_iteration, on_start, log_func, on_exit);
   }
 }
