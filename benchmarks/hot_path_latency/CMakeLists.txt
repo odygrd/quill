@@ -1,2 +1,5 @@
-add_executable(BENCHMARK_quill_hot_path hot_path_bench_config.h hot_path_bench.h quill_hot_path.cpp)
-target_link_libraries(BENCHMARK_quill_hot_path quill)
+add_executable(BENCHMARK_quill_hot_path_rdtsc_clock hot_path_bench_config.h hot_path_bench.h quill_hot_path_rdtsc_clock.cpp)
+target_link_libraries(BENCHMARK_quill_hot_path_rdtsc_clock quill)
+
+add_executable(BENCHMARK_quill_hot_path_system_clock hot_path_bench_config.h hot_path_bench.h quill_hot_path_system_clock.cpp)
+target_link_libraries(BENCHMARK_quill_hot_path_system_clock quill)
