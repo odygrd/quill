@@ -137,6 +137,11 @@ else ()
     set(PKG_CONFIG_REQUIRES fmt)
 endif ()
 
+if(MINGW)
+    # strftime requires this when using MinGw to correctly format the time ..
+    target_link_libraries(${TARGET_NAME} PUBLIC ucrtbase)
+endif()
+
 # Add include directories for this library
 target_include_directories(${TARGET_NAME}
         PUBLIC

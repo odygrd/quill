@@ -1,4 +1,5 @@
 #include "TestUtilities.h"
+#include "quill/detail/misc/Utilities.h"
 
 namespace quill
 {
@@ -7,7 +8,12 @@ namespace testing
 // Convert the given file to a vector
 std::vector<std::string> file_contents(quill::filename_t const& filename)
 {
+
+#if (defined(__MINGW64__) || defined(__MINGW32__))
+  std::ifstream out_file(quill::detail::ws2s(filename));
+#else
   std::ifstream out_file(filename);
+#endif
 
   std::vector<std::string> lines;
 

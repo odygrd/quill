@@ -11,7 +11,12 @@
 
 #if defined(_WIN32)
   #define WIN32_LEAN_AND_MEAN
-  #define NOMINMAX
+
+  #if !defined(__MINGW64__) || !defined(__MINGW32__)
+    // Mingw already defines this, so no need to redefine
+    #define NOMINMAX
+  #endif
+
   #include <io.h>
   #include <malloc.h>
   #include <share.h>

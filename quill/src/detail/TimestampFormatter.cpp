@@ -157,8 +157,9 @@ size_t TimestampFormatter::_strftime(tm const& timeinfo, size_t formatted_date_p
   auto res = strftime(&_formatted_date[formatted_date_pos], _formatted_date.capacity() - formatted_date_pos,
                       format_string.data(), std::addressof(timeinfo));
 
-  // if strftime fails we need to reserve
-  while (QUILL_UNLIKELY(res == 0))
+  // if strftime fails we need to reserve. strftime can return 0 as an empty meaning not only when
+  // and we shouldn't try to reallocate for ever in this case.
+  while (QUILL_UNLIKELY((res == 0) && (_formatted_date.capacity() < 550)))
   {
     // _formatted_date has unknown _formatted_date.size() because we use it as an array.
     // But  internally _formatted_date the size is needed to copy the old data
