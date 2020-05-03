@@ -20,12 +20,13 @@ namespace detail
  * For each log statement a LogRecord is produced and pushed to the thread local spsc queue.
  * The backend thread will retrieve the LogRecords from the queue using the RecordBase class pointer.
  */
-template <typename... FmtArgs>
+template <typename TLogRecordInfo, typename... FmtArgs>
 class LogRecord final : public RecordBase
 {
 public:
   using PromotedTupleT = std::tuple<PromotedTypeT<FmtArgs>...>;
   using RealTupleT = std::tuple<FmtArgs...>;
+  using LogRecordInfoT = TLogRecordInfo;
 
   /**
    * Deleted
@@ -42,10 +43,8 @@ public:
    * @param fmt_args format arguments
    */
   template <typename... UFmtArgs>
-  LogRecord(StaticLogRecordInfo const* log_line_info, LoggerDetails const* logger_details, UFmtArgs&&... fmt_args)
-    : _log_line_info(log_line_info),
-      _logger_details(logger_details),
-      _fmt_args(std::make_tuple(std::forward<UFmtArgs>(fmt_args)...))
+  LogRecord(LoggerDetails const* logger_details, UFmtArgs&&... fmt_args)
+    : _logger_details(logger_details), _fmt_args(std::make_tuple(std::forward<UFmtArgs>(fmt_args)...))
   {
   }
 
@@ -60,10 +59,17 @@ public:
   QUILL_NODISCARD size_t size() const noexcept override { return sizeof(*this); }
 
   /**
+   * @return the log record info of this log record
+   */
+  QUILL_NODISCARD StaticLogRecordInfo static_log_record_info() const noexcept override
+  {
+    return LogRecordInfoT{}();
+  }
+
+  /**
    * Process a LogRecord
    */
-  void backend_process(char const* thread_id,
-                       std::function<std::vector<Handler*>()> const&,
+  void backend_process(char const* thread_id, std::function<std::vector<Handler*>()> const&,
                        std::chrono::nanoseconds log_record_timestamp) const noexcept override
   {
     // Forward the record to all of the logger handlers
@@ -73,8 +79,10 @@ public:
       // the user) We also capture all additional information we need to create the log message
       auto forward_tuple_args_to_formatter = [this, log_record_timestamp, thread_id,
                                               handler](auto const&... tuple_args) {
+        constexpr detail::StaticLogRecordInfo log_line_info = LogRecordInfoT{}();
+
         handler->formatter().format(log_record_timestamp, thread_id, _logger_details->name(),
-                                    *_log_line_info, tuple_args...);
+                                    log_line_info, tuple_args...);
       };
 
       // formatted record by the formatter
@@ -90,7 +98,6 @@ public:
   }
 
 private:
-  StaticLogRecordInfo const* _log_line_info;
   LoggerDetails const* _logger_details;
   PromotedTupleT _fmt_args;
 };

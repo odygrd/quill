@@ -7,14 +7,18 @@
 - [v1.0.0](#v1.0.0)
 
 ## v1.3.0
-* Added option `QUILL_NO_EXCEPTIONS` to disable exceptions, std::abort() is called instead. ([#16](https://github.com/odygrd/quill/issues/16))
-* When exceptions are enabled any exception thrown in the backend worker thread, will now call a user provided error handler callback to handle the error. ([#21](https://github.com/odygrd/quill/issues/21))
-* Quill will now check in compile time for any unsafe to copy user defined type and fail to compile. Non trivial user defined types must be explicitly tagged as safe to copy. Otherwise they have to be formatted and passed as a string to the logger by the user. The old unsafe mode is still usable by `#define QUILL_MODE_UNSAFE` ([#20](https://github.com/odygrd/quill/issues/20))
+**New Features**
+* Added option `QUILL_NO_EXCEPTIONS` to disable exceptions, std::abort() is called instead of an expection. ([#16](https://github.com/odygrd/quill/issues/16))
+* Exceptions thrown in the backend worker thread, will now call a user provided error handler callback to handle the error. ([#21](https://github.com/odygrd/quill/issues/21))
+* Compile time checks for unsafe to copy user defined types. Non trivial user defined types must be explicitly tagged as safe to copy with the use of `QUILL_COPY_LOGGABLE;`. Otherwise they have to be formatted and passed as a string to the logger by the user. The old unsafe mode is still usable by `#define QUILL_MODE_UNSAFE` ([#20](https://github.com/odygrd/quill/issues/20))
+* Added `QUILL_USE_BOUNDED_QUEUE`. In this mode no new queues get allocated but instead log messages get lost. Number of lost messages is reported to stderr.
+* Minor hot path optimisation. The pointer to the metadata for each log message is no logger copied to the queue but passed as a template argument instead.
+* Added a latency benchmark, easily extendable for any logger
+
+**Improvements/Fixes**
 * `QUILL_RDTSC_CLOCK` option is replaced by `QUILL_CHRONO_CLOCK` which is by OFF by default.
 * Improve compiler error message when trying to log a non copy constructible user defined type
 * Fix buffer reallocation bug on TimestampFormatter. In previous versions any timestamp format set to 'set_pattern' expanding to a string longer than 32 bytes would cause a crash. ([#24](https://github.com/odygrd/quill/issues/24))
-* Added a latency benchmark, easily extendable for any logger
-* Added QUILL_USE_BOUNDED_QUEUE. In this mode no new queues get allocated but instead log messages get lost. Number of lost messages is reported to stderr.
 
 ## v1.2.3
 * CMake changes to support package installation in conan.

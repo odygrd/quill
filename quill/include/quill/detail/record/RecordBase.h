@@ -45,6 +45,15 @@ public:
   QUILL_NODISCARD uint64_t timestamp() const noexcept { return _timestamp; }
 
   /**
+   * Get the log record info
+   * @return the associated log record info of this message
+   */
+  QUILL_NODISCARD virtual StaticLogRecordInfo static_log_record_info() const noexcept
+  {
+    return StaticLogRecordInfo{};
+  }
+
+  /**
    * Required by the queue to get the real record size of the derived class
    * @return The size of the derived class record
    */
