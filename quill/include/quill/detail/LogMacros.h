@@ -43,7 +43,7 @@ constexpr void check_format(const S& format_str, Args&&...)
     check_format(FMT_STRING(fmt), ##__VA_ARGS__);                                                                                                    \
     static constexpr char const* function_name = __FUNCTION__;                                                                                       \
     struct {                                                                                                                                         \
-      constexpr quill::detail::StaticLogRecordInfo operator()() {                                                                                    \
+      constexpr quill::detail::StaticLogRecordInfo operator()() const noexcept {                                                                     \
         return quill::detail::StaticLogRecordInfo{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, log_statement_level}; }                   \
       } anonymous_log_record_info;                                                                                                                   \
     logger->log<log_statement_level, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                            \
