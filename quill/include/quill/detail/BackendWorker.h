@@ -31,8 +31,7 @@ public:
   /**
    * Constructor
    */
-  BackendWorker(Config const& config,
-                ThreadContextCollection& thread_context_collection,
+  BackendWorker(Config const& config, ThreadContextCollection& thread_context_collection,
                 HandlerCollection const& handler_collection);
 
   /**
@@ -92,6 +91,11 @@ private:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::chrono::nanoseconds _get_real_timestamp(
     ThreadContext::SPSCQueueT::handle_t const& log_record_handle) const noexcept;
+
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+  QUILL_ATTRIBUTE_HOT static void _check_dropped_messages(std::chrono::seconds timestamp,
+                                                          ThreadContext* thread_context) noexcept;
+#endif
 
 private:
   /** This is exactly 1 cache line **/
@@ -190,9 +194,9 @@ bool BackendWorker::_process_record(ThreadContextCollection::backend_thread_cont
   // rdtsc to process We will log the timestamps in order
   uint64_t min_rdtsc = std::numeric_limits<uint64_t>::max();
   ThreadContext::SPSCQueueT::handle_t desired_record_handle;
-  char const* desired_thread_id{nullptr};
+  ThreadContext* desired_thread_context{nullptr};
 
-  for (auto& elem : thread_contexts)
+  for (ThreadContext* elem : thread_contexts)
   {
     // search all queues and get the first record from each queue if there is any
     auto observed_record_handle = elem->spsc_queue().try_pop();
@@ -212,8 +216,8 @@ bool BackendWorker::_process_record(ThreadContextCollection::backend_thread_cont
         // Move the current record handle to maintain it's lifetime
         desired_record_handle = std::move(observed_record_handle);
 
-        // Also store the caller thread id of this log record
-        desired_thread_id = elem->thread_id();
+        // Also store the thread context this log record
+        desired_thread_context = elem;
       }
       else
       {
@@ -237,7 +241,13 @@ bool BackendWorker::_process_record(ThreadContextCollection::backend_thread_cont
   // Get the log record timestamp and convert it to a real timestamp in nanoseconds from epoch
   std::chrono::nanoseconds const log_record_ts = _get_real_timestamp(desired_record_handle);
 
-  desired_record_handle.data()->backend_process(desired_thread_id, obtain_active_handlers, log_record_ts);
+  desired_record_handle.data()->backend_process(desired_thread_context->thread_id(),
+                                                obtain_active_handlers, log_record_ts);
+
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+  // Pass the existing ts instead of taking the time again
+  _check_dropped_messages(std::chrono::duration_cast<std::chrono::seconds>(log_record_ts), desired_thread_context);
+#endif
 
   return true;
 }
@@ -256,8 +266,8 @@ void BackendWorker::_main_loop()
   {
     // we have found and processed a log record
 
-    // Since after processing a log record we never force flush and leave it up to the OS instead
-    // keep track of how unflushed messages we have
+    // Since after processing a log record we never force flush but leave it up to the OS instead,
+    // keep track of unflushed messages we have
     _has_unflushed_messages = true;
   }
   else

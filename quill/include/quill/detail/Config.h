@@ -67,9 +67,17 @@ private:
   std::chrono::nanoseconds _backend_thread_sleep_duration{300};
 
 #if defined(_WIN32)
-  size_t _initial_queue_capacity{65536}; /**< Initial queue capacity default to 64K due to allocation granularity */
+  #if defined(QUILL_USE_BOUNDED_QUEUE)
+  size_t _initial_queue_capacity{262'144}; /**< Initial queue capacity default to 262K */
+  #else
+  size_t _initial_queue_capacity{65'536}; /**< Initial queue capacity default to 64K due to allocation granularity since the queue is unbounded */
+  #endif
 #else
-  size_t _initial_queue_capacity{16384}; /**< Initial queue capacity default to 16K */
+  #if defined(QUILL_USE_BOUNDED_QUEUE)
+  size_t _initial_queue_capacity{262'144}; /**< Initial queue capacity default to 262K */
+  #else
+  size_t _initial_queue_capacity{16'384}; /**< Initial queue capacity default to 16K since the queue is unbounded */
+  #endif
 #endif
 
   uint16_t _backend_thread_cpu_affinity{

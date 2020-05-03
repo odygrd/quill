@@ -117,9 +117,19 @@ public:
                   "loggable or explictly format to string before logging.");
 #endif
 
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+    // emplace to the spsc queue owned by the ctx
+    if (QUILL_UNLIKELY(!_thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(
+          log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...)))
+    {
+      // not enough space to push to queue message is dropped
+      _thread_context_collection.local_thread_context()->increment_dropped_message_counter();
+    }
+#else
     // emplace to the spsc queue owned by the ctx
     _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(
       log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
+#endif
   }
 
   /**
@@ -157,9 +167,19 @@ public:
                   "loggable or explictly format to string before logging.");
 #endif
 
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+    // emplace to the spsc queue owned by the ctx
+    if (QUILL_UNLIKELY(!_thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(
+          log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...)))
+    {
+      // not enough space to push to queue message is dropped
+      _thread_context_collection.local_thread_context()->increment_dropped_message_counter();
+    }
+#else
     // emplace to the spsc queue owned by the ctx
     _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(
       log_line_info, std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
+#endif
   }
 
 private:

@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "quill/detail/ThreadContext.h"
+#include "quill/detail/misc/FileUtilities.h"
 #include "quill/detail/misc/Os.h"
 
 namespace quill
@@ -68,6 +69,31 @@ void BackendWorker::_exit()
   }
 }
 
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+/***/
+void BackendWorker::_check_dropped_messages(std::chrono::seconds timestamp, ThreadContext* thread_context) noexcept
+{
+  size_t const dropped_messages_cnt = thread_context->get_and_reset_message_counter();
 
+  if (QUILL_UNLIKELY(dropped_messages_cnt > 0))
+  {
+    tm timeinfo;
+    int64_t const ts = timestamp.count();
+    detail::localtime_rs(reinterpret_cast<time_t const*>(std::addressof(ts)), std::addressof(timeinfo));
+    std::string timestamp_str{std::asctime(&timeinfo)};
+    std::string::size_type i = timestamp_str.find('\n');
+    if (i != std::string::npos)
+    {
+      timestamp_str.erase(i, timestamp_str.length());
+    }
+
+    // Write to stderr that we dropped messages
+    std::string const msg = fmt::format("{} localtime dropped {} log messages from thread {}\n",
+                                        timestamp_str, dropped_messages_cnt, thread_context->thread_id());
+
+    detail::file_utilities::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
+  }
+}
+#endif
 } // namespace detail
 } // namespace quill

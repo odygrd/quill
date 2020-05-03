@@ -90,7 +90,18 @@ public:
     };
 
     using log_record_t = detail::CommandRecord;
+
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+    // emplace to the spsc queue owned by the ctx, we never drop the flush message
+    bool emplaced{false};
+    do
+    {
+      emplaced =
+        _thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(notify_callback);
+    } while (!emplaced);
+#else
     _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(notify_callback);
+#endif
 
     // The caller thread keeps checking the flag until the backend thread flushes
     do

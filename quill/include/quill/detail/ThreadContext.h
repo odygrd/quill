@@ -30,7 +30,11 @@ namespace detail
 class ThreadContext
 {
 public:
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+  using SPSCQueueT = BoundedSPSCQueue<RecordBase>;
+#else
   using SPSCQueueT = UnboundedSPSCQueue<RecordBase>;
+#endif
 
   /**
    * Constructor
@@ -88,10 +92,39 @@ public:
    */
   QUILL_NODISCARD bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
 
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+  /**
+   * Increments the dropped message counter
+   */
+  void increment_dropped_message_counter() noexcept
+  {
+    _dropped_message_counter.fetch_add(1, std::memory_order_relaxed);
+  }
+
+  /**
+   * If the message counter is greater than zero, this will return the value and reset the counter
+   * to 0. Called by the backend worker thread
+   * @return current value of the dropped message counter
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_and_reset_message_counter() noexcept
+  {
+    if (QUILL_LIKELY(_dropped_message_counter.load(std::memory_order_relaxed) == 0))
+    {
+      return 0;
+    }
+    return _dropped_message_counter.exchange(0, std::memory_order_relaxed);
+  }
+#endif
+
 private:
   SPSCQueueT _spsc_queue;                                         /** queue for this thread */
   std::string _thread_id{fmt::format_int(get_thread_id()).str()}; /**< cache this thread pid */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
+
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+  alignas(CACHELINE_SIZE) std::atomic<size_t> _dropped_message_counter{0};
+  char _pad0[detail::CACHELINE_SIZE - sizeof(std::atomic<size_t>)] = "\0";
+#endif
 };
 } // namespace detail
 } // namespace quill
