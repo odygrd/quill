@@ -87,7 +87,7 @@ private:
    * Checks for records in all queues and processes the one with the minimum timestamp
    * @return true if one record was found and processed
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline bool _process_record();
+  QUILL_ATTRIBUTE_HOT inline void _process_record();
 
   /**
    * Force flush all active Handlers
@@ -240,7 +240,7 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
 }
 
 /***/
-bool BackendWorker::_process_record()
+void BackendWorker::_process_record()
 {
   PoppedLogRecord const& log_record = _popped_log_records.top();
 
@@ -259,8 +259,6 @@ bool BackendWorker::_process_record()
   // Since after processing a log record we never force flush but leave it up to the OS instead,
   // set this to true to keep track of unflushed messages we have
   _has_unflushed_messages = true;
-
-  return true;
 }
 
 void BackendWorker::_force_flush()
@@ -325,7 +323,7 @@ std::chrono::nanoseconds BackendWorker::_get_real_timestamp(RecordBase* log_reco
   return _rdtsc_clock->time_since_epoch(log_record->timestamp());
 #else
   assert(!_rdtsc_clock && "rdtsc should be nullptr");
-  assert(!log_record_handle.data()->using_rdtsc() &&
+  assert(!log_record->using_rdtsc() &&
          "RecordBase has a rdtsc clock timestamp, but the backend thread is using std::chrono "
          "timestamp");
 
