@@ -190,7 +190,7 @@ public:
 
   /**
    * Return a handle containing the consumed data of the requested size
-   * @return a handle to the popped object or false otherwise
+   * @return a handle to the object in the queue or an invalid handle object if the queue is empty
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT Handle try_pop() noexcept;
 

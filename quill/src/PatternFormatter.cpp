@@ -50,52 +50,50 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
 
   if (pattern_attr == "ascii_time")
   {
-    return [this](std::chrono::nanoseconds timestamp, char const*, char const*,
-                  detail::StaticLogRecordInfo const&) {
+    return [this](std::chrono::nanoseconds timestamp, char const*, char const*, detail::LogRecordMetadata const&) {
       return _timestamp_formatter.format_timestamp(timestamp);
     };
   }
   else if (pattern_attr == "thread")
   {
     return [](std::chrono::nanoseconds, char const* thread_id, char const*,
-              detail::StaticLogRecordInfo const&) { return thread_id; };
+              detail::LogRecordMetadata const&) { return thread_id; };
   }
   else if (pattern_attr == "process")
   {
-    return [](std::chrono::nanoseconds, char const*, char const*, detail::StaticLogRecordInfo const&) {
+    return [](std::chrono::nanoseconds, char const*, char const*, detail::LogRecordMetadata const&) {
       return detail::LogManagerSingleton::instance().log_manager().process_id().data();
     };
   }
   else if (pattern_attr == "pathname")
   {
     return [](std::chrono::nanoseconds, char const*, char const*,
-              detail::StaticLogRecordInfo const& logline_info) { return logline_info.pathname(); };
+              detail::LogRecordMetadata const& logline_info) { return logline_info.pathname(); };
   }
   else if (pattern_attr == "filename")
   {
     return [](std::chrono::nanoseconds, char const*, char const*,
-              detail::StaticLogRecordInfo const& logline_info) { return logline_info.filename(); };
+              detail::LogRecordMetadata const& logline_info) { return logline_info.filename(); };
   }
   else if (pattern_attr == "lineno")
   {
     return [](std::chrono::nanoseconds, char const*, char const*,
-              detail::StaticLogRecordInfo const& logline_info) { return logline_info.lineno(); };
+              detail::LogRecordMetadata const& logline_info) { return logline_info.lineno(); };
   }
   else if (pattern_attr == "level_name")
   {
-    return
-      [](std::chrono::nanoseconds, char const*, char const*,
-         detail::StaticLogRecordInfo const& logline_info) { return logline_info.level_as_str(); };
+    return [](std::chrono::nanoseconds, char const*, char const*,
+              detail::LogRecordMetadata const& logline_info) { return logline_info.level_as_str(); };
   }
   else if (pattern_attr == "logger_name")
   {
     return [](std::chrono::nanoseconds, char const*, char const* logger_name,
-              detail::StaticLogRecordInfo const&) { return logger_name; };
+              detail::LogRecordMetadata const&) { return logger_name; };
   }
   else if (pattern_attr == "function_name")
   {
     return [](std::chrono::nanoseconds, char const*, char const*,
-              detail::StaticLogRecordInfo const& logline_info) { return logline_info.func(); };
+              detail::LogRecordMetadata const& logline_info) { return logline_info.func(); };
   }
   else
   {

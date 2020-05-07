@@ -147,7 +147,7 @@ public:
 
   /**
    * Return a handle containing a handle to an object
-   * @return a handle to the object popped from the queue
+   * @return a handle to the object we read from the queue
    */
   QUILL_NODISCARD QUILL_NODISCARD_ALWAYS_INLINE_HOT handle_t try_pop() noexcept
   {

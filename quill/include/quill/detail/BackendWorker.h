@@ -111,14 +111,14 @@ private:
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts) noexcept;
 
 private:
-  struct PoppedLogRecord
+  struct TransitLogRecord
   {
-    PoppedLogRecord(ThreadContext* thread_context, std::unique_ptr<RecordBase> base_record)
+    TransitLogRecord(ThreadContext* thread_context, std::unique_ptr<RecordBase> base_record)
       : thread_context(thread_context), base_record(std::move(base_record))
     {
     }
 
-    friend bool operator>(PoppedLogRecord const& lhs, PoppedLogRecord const& rhs)
+    friend bool operator>(TransitLogRecord const& lhs, TransitLogRecord const& rhs)
     {
       return lhs.base_record->timestamp() > rhs.base_record->timestamp();
     }
@@ -142,7 +142,7 @@ private:
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
-  std::priority_queue<PoppedLogRecord, std::vector<PoppedLogRecord>, std::greater<>> _popped_log_records;
+  std::priority_queue<TransitLogRecord, std::vector<TransitLogRecord>, std::greater<>> _transit_log_records;
 };
 
 /***/
@@ -234,7 +234,7 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
       {
         break;
       }
-      _popped_log_records.emplace(thread_context, handle.data()->clone());
+      _transit_log_records.emplace(thread_context, handle.data()->clone());
     }
   }
 }
@@ -242,7 +242,7 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
 /***/
 void BackendWorker::_process_record()
 {
-  PoppedLogRecord const& log_record = _popped_log_records.top();
+  TransitLogRecord const& log_record = _transit_log_records.top();
 
   // A lambda to obtain the logger details and pass them to RecordBase, this lambda is called only
   // in case we need to flush because we are processing a CommandRecord
@@ -254,7 +254,7 @@ void BackendWorker::_process_record()
   log_record.base_record->backend_process(log_record.thread_context->thread_id(),
                                           obtain_active_handlers, log_record_ts);
 
-  _popped_log_records.pop();
+  _transit_log_records.pop();
 
   // Since after processing a log record we never force flush but leave it up to the OS instead,
   // set this to true to keep track of unflushed messages we have
@@ -285,7 +285,7 @@ void BackendWorker::_main_loop()
 
   _populate_priority_queue(cached_thread_contexts);
 
-  if (QUILL_LIKELY(!_popped_log_records.empty()))
+  if (QUILL_LIKELY(!_transit_log_records.empty()))
   {
     // the queue is not empty
     _process_record();
@@ -345,7 +345,7 @@ void BackendWorker::_exit()
   {
     _populate_priority_queue(cached_thread_contexts);
 
-    if (!_popped_log_records.empty())
+    if (!_transit_log_records.empty())
     {
       _process_record();
     }

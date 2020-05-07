@@ -8,8 +8,8 @@
 #include "quill/Fmt.h"
 #include "quill/bundled/invoke/invoke.h"
 #include "quill/detail/misc/TypeTraits.h"
+#include "quill/detail/record/LogRecordMetadata.h"
 #include "quill/detail/record/RecordBase.h"
-#include "quill/detail/record/StaticLogRecordInfo.h"
 #include <tuple>
 
 namespace quill
@@ -70,7 +70,7 @@ public:
       // the user) We also capture all additional information we need to create the log message
       auto forward_tuple_args_to_formatter = [this, log_record_timestamp, thread_id,
                                               handler](auto const&... tuple_args) {
-        constexpr detail::StaticLogRecordInfo log_line_info = LogRecordInfoT{}();
+        constexpr detail::LogRecordMetadata log_line_info = LogRecordInfoT{}();
 
         handler->formatter().format(log_record_timestamp, thread_id, _logger_details->name(),
                                     log_line_info, tuple_args...);

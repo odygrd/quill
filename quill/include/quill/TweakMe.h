@@ -67,7 +67,7 @@
  *
  * Macros like LOG_TRACE_L3(..), LOG_TRACE_L2(..) will expand to empty statements
  * This helps reducing the number of branches in your compiled code and the number of
- * StaticLogRecordInfo constexpr instances created in compile time
+ * LogRecordMetadata constexpr instances created in compile time
  *
  * The default value is QUILL_LOG_LEVEL_TRACE_L3
  *

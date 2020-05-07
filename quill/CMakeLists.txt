@@ -27,7 +27,7 @@ set(HEADER_FILES
         include/quill/detail/record/CommandRecord.h
         include/quill/detail/record/LogRecord.h
         include/quill/detail/record/RecordBase.h
-        include/quill/detail/record/StaticLogRecordInfo.h
+        include/quill/detail/record/LogRecordMetadata.h
         include/quill/detail/BackendWorker.h
         include/quill/detail/BoundedSPSCQueue.h
         include/quill/detail/Config.h

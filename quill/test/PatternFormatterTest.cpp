@@ -13,8 +13,8 @@ TEST(PatternFormatter, default_pattern_formatter)
   std::chrono::nanoseconds ts{1579815761000023021};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
-                                    "This the {} formatter {}", LogLevel::Info};
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {} formatter {}", LogLevel::Info};
 
   // Format to a buffer
   default_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
@@ -40,8 +40,8 @@ TEST(PatternFormatter, custom_pattern_message_only)
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
-                                    "This the {1} formatter {0}", LogLevel::Debug};
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {1} formatter {0}", LogLevel::Debug};
 
   // Format to a buffer
   custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 12.34);
@@ -69,8 +69,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
-                                    "This the {1} formatter {0}", LogLevel::Debug};
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {1} formatter {0}", LogLevel::Debug};
 
   // Format to a buffer
   custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
@@ -99,8 +99,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
   std::chrono::nanoseconds ts{1579815761020123000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
-                                    "This the {1} formatter {0}", LogLevel::Debug};
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {1} formatter {0}", LogLevel::Debug};
 
   // Format to a buffer
   custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
@@ -129,8 +129,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
   std::chrono::nanoseconds ts{1579815761099000000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
-                                    "This the {1} formatter {0}", LogLevel::Debug};
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {1} formatter {0}", LogLevel::Debug};
 
   // Format to a buffer
   custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
@@ -159,8 +159,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
-                                    "This the {1} formatter {0}", LogLevel::Debug};
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {1} formatter {0}", LogLevel::Debug};
 
   // Format to a buffer
   custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
@@ -190,8 +190,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_on_format_
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
-                                    "This the {1} formatter {0}", LogLevel::Debug};
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {1} formatter {0}", LogLevel::Debug};
 
   for (size_t i = 0; i < 5; ++i)
   {
@@ -224,8 +224,8 @@ TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_when_addin
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  StaticLogRecordInfo log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
-                                    "This the {1} formatter {0}", LogLevel::Debug};
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {1} formatter {0}", LogLevel::Debug};
 
   for (size_t i = 0; i < 5; ++i)
   {

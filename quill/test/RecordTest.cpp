@@ -10,7 +10,7 @@ using namespace quill;
 
 struct mock_log_record_info
 {
-  constexpr quill::detail::StaticLogRecordInfo operator()() { return StaticLogRecordInfo{}; }
+  constexpr quill::detail::LogRecordMetadata operator()() { return LogRecordMetadata{}; }
 };
 
 TEST(Record, construct)
