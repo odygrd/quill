@@ -48,17 +48,21 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
     while (threads_started.load() < num_threads)
     {
       // loop until all threads start
-      // Instead of just waitng we will just call get cached contexts many times for additional testing
+      // Instead of just waiting we will just call get cached contexts many times for additional testing
+      thread_context_collection.clear_invalid_and_empty_thread_contexts();
       QUILL_MAYBE_UNUSED auto& cached_thread_contexts =
         thread_context_collection.backend_thread_contexts_cache();
     }
 
     // Check we have exactly as many thread contexts as the amount of threads in our backend cache
+    thread_context_collection.clear_invalid_and_empty_thread_contexts();
     EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
 
     // Check all thread contexts in the backend thread contexts cache
+    thread_context_collection.clear_invalid_and_empty_thread_contexts();
     auto const backend_thread_contexts_cache_local =
       thread_context_collection.backend_thread_contexts_cache();
+
     for (auto& thread_context : backend_thread_contexts_cache_local)
     {
       EXPECT_TRUE(thread_context->is_valid());
@@ -82,6 +86,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
 
     // Check there is no thread context left by getting the updated cache via the call
     // to backend_thread_contexts_cache()
+    thread_context_collection.clear_invalid_and_empty_thread_contexts();
     EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
   }
 }
@@ -129,18 +134,22 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
     {
       // loop until all threads start
       // Instead of just waitng we will just call get cached contexts many times for additional testing
+      thread_context_collection.clear_invalid_and_empty_thread_contexts();
       QUILL_MAYBE_UNUSED auto& cached_thread_contexts =
         thread_context_collection.backend_thread_contexts_cache();
     }
 
     // Check we have exactly as many thread contexts as the amount of threads in our backend cache
+    thread_context_collection.clear_invalid_and_empty_thread_contexts();
     EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
 
     // Check all thread contexts in the backend thread contexts cache
+    thread_context_collection.clear_invalid_and_empty_thread_contexts();
     for (auto& thread_context : thread_context_collection.backend_thread_contexts_cache())
     {
       EXPECT_TRUE(thread_context->is_valid());
       EXPECT_TRUE(thread_context->spsc_queue().empty());
+      thread_context_collection.clear_invalid_and_empty_thread_contexts();
     }
 
     // terminate all threads - This will invalidate all the contracts
@@ -151,6 +160,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
     }
 
     // keep loading the cache until it is empty - it will be empty when all threads have joined
+    thread_context_collection.clear_invalid_and_empty_thread_contexts();
     while (!thread_context_collection.backend_thread_contexts_cache().empty())
     {
       // The cache is not empty yet it means that we still have joinable threads so wait for them to finish
@@ -158,10 +168,12 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
                                         [](std::thread const& th) { return th.joinable(); });
 
       EXPECT_TRUE(found_joinable);
+      thread_context_collection.clear_invalid_and_empty_thread_contexts();
     }
 
     // Check there is no thread context left by getting the updated cache via the call
     // to backend_thread_contexts_cache()
+    thread_context_collection.clear_invalid_and_empty_thread_contexts();
     EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
 
     // Finally call join on everything
@@ -189,8 +201,10 @@ TEST(ThreadContextCollection, configurable_queue_capacity)
   th.join();
 
   // First time we had nothing in our cache but the shared collection has an empty thread context
+  thread_context_collection.clear_invalid_and_empty_thread_contexts();
   EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 1);
 
   // Second time the invalid and empty thread context is removed from our cache
+  thread_context_collection.clear_invalid_and_empty_thread_contexts();
   EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
 }

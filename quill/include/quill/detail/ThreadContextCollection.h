@@ -122,6 +122,11 @@ public:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT backend_thread_contexts_cache_t const& backend_thread_contexts_cache();
 
+  /**
+   * Clears thread context cache from invalid and empty thread contexts
+   */
+  QUILL_ATTRIBUTE_HOT void clear_invalid_and_empty_thread_contexts();
+
 private:
   /**
    * Return true if _thread_contexts have changed

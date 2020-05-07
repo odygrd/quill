@@ -57,43 +57,32 @@ void BackendWorker::stop() noexcept
 }
 
 /***/
-void BackendWorker::_exit()
+void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts) noexcept
 {
-  // load all contexts locally
-  ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts =
-    _thread_context_collection.backend_thread_contexts_cache();
-
-  while (_process_record(cached_thread_contexts))
-  {
-    // loop until there are no log records left
-  }
-}
+  // silence warning when bounded queue not used
+  (void)cached_thread_contexts;
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)
-/***/
-void BackendWorker::_check_dropped_messages(std::chrono::seconds timestamp, ThreadContext* thread_context) noexcept
-{
-  size_t const dropped_messages_cnt = thread_context->get_and_reset_message_counter();
-
-  if (QUILL_UNLIKELY(dropped_messages_cnt > 0))
+  for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    tm timeinfo;
-    int64_t const ts = timestamp.count();
-    detail::localtime_rs(reinterpret_cast<time_t const*>(std::addressof(ts)), std::addressof(timeinfo));
-    std::string timestamp_str{std::asctime(&timeinfo)};
-    std::string::size_type i = timestamp_str.find('\n');
-    if (i != std::string::npos)
+    size_t const dropped_messages_cnt = thread_context->get_and_reset_message_counter();
+
+    if (QUILL_UNLIKELY(dropped_messages_cnt > 0))
     {
-      timestamp_str.erase(i, timestamp_str.length());
+      char ts[24];
+      time_t t = time(nullptr);
+      struct tm* p = localtime(&t);
+      strftime(ts, 24, "%X", p);
+
+      // Write to stderr that we dropped messages
+      std::string const msg = fmt::format("~ {} localtime dropped {} log messages from thread {}\n",
+                                          ts, dropped_messages_cnt, thread_context->thread_id());
+
+      detail::file_utilities::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
     }
-
-    // Write to stderr that we dropped messages
-    std::string const msg = fmt::format("{} localtime dropped {} log messages from thread {}\n",
-                                        timestamp_str, dropped_messages_cnt, thread_context->thread_id());
-
-    detail::file_utilities::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
   }
-}
 #endif
+}
+
 } // namespace detail
 } // namespace quill

@@ -34,24 +34,19 @@ class RecordBase
 {
 public:
   RecordBase() = default;
-  RecordBase(RecordBase const&) = delete;
-  RecordBase& operator=(RecordBase const&) = delete;
   virtual ~RecordBase() = default;
+
+  /**
+   * Virtual clone
+   * @return
+   */
+  virtual std::unique_ptr<RecordBase> clone() const = 0;
 
   /**
    * Get the stored rdtsc timestamp
    * @note Called on the logger thread
    */
   QUILL_NODISCARD uint64_t timestamp() const noexcept { return _timestamp; }
-
-  /**
-   * Get the log record info
-   * @return the associated log record info of this message
-   */
-  QUILL_NODISCARD virtual StaticLogRecordInfo static_log_record_info() const noexcept
-  {
-    return StaticLogRecordInfo{};
-  }
 
   /**
    * Required by the queue to get the real record size of the derived class

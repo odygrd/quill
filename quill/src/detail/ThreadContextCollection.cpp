@@ -49,12 +49,6 @@ void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadCont
 /***/
 ThreadContextCollection::backend_thread_contexts_cache_t const& ThreadContextCollection::backend_thread_contexts_cache()
 {
-  if (QUILL_UNLIKELY(_has_invalid_thread_context()))
-  {
-    // Remove any invalidated contexts, this can happen only when a thread is terminating
-    _find_and_remove_invalidated_thread_contexts();
-  }
-
   // Check if _thread_contexts has changed. This can happen only when a new thread context is added by any Logger
   if (QUILL_UNLIKELY(_has_new_thread_context()))
   {
@@ -72,6 +66,16 @@ ThreadContextCollection::backend_thread_contexts_cache_t const& ThreadContextCol
   }
 
   return _thread_context_cache;
+}
+
+/***/
+void ThreadContextCollection::clear_invalid_and_empty_thread_contexts()
+{
+  if (QUILL_UNLIKELY(_has_invalid_thread_context()))
+  {
+    // Remove any invalidated contexts, this can happen only when a thread is terminating
+    _find_and_remove_invalidated_thread_contexts();
+  }
 }
 
 /***/

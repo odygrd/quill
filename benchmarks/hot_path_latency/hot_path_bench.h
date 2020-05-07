@@ -70,8 +70,8 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 #else
 /***/
 inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iteration,
-                              std::function<void()> on_thread_start, std::function<void()> log_func,
-                              std::function<void()> on_thread_exit, uint16_t current_thread_num,
+                              std::function<void()> const& on_thread_start, std::function<void()> const& log_func,
+                              std::function<void()> const& on_thread_exit, uint16_t current_thread_num,
                               std::vector<uint64_t>& latencies, double rdtsc_ticks_per_ns)
 {
   // running thread affinity
@@ -103,8 +103,8 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 
 /***/
 inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size_t num_iterations,
-                          size_t messages_per_iteration, std::function<void()> on_thread_start,
-                          std::function<void()> log_func, std::function<void()> on_thread_exit)
+                          size_t messages_per_iteration, std::function<void()> const& on_thread_start,
+                          std::function<void()> const& log_func, std::function<void()> const& on_thread_exit)
 {
   // main thread affinity
   quill::detail::set_cpu_affinity(0);
@@ -134,8 +134,8 @@ inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size
 #else
     // Spawn num threads
     threads.emplace_back(run_log_benchmark, num_iterations, (messages_per_iteration / thread_count),
-                         on_thread_start, log_func, on_thread_exit, thread_num + 1,
-                         std::ref(latencies[thread_num]), rdtsc_clock.ticks_per_nanosecond());
+                         std::ref(on_thread_start), std::ref(log_func), std::ref(on_thread_exit),
+                         thread_num + 1, std::ref(latencies[thread_num]), rdtsc_clock.ticks_per_nanosecond());
 #endif
   }
 

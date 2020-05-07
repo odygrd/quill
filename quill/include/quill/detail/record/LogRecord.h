@@ -29,12 +29,6 @@ public:
   using LogRecordInfoT = TLogRecordInfo;
 
   /**
-   * Deleted
-   */
-  LogRecord(LogRecord const&) = delete;
-  LogRecord& operator=(LogRecord const&) = delete;
-
-  /**
    * Make a new LogRecord.
    * This is created by the caller every time we want to log a new message
    * To perfectly forward the argument we have to provide a templated contructor
@@ -53,18 +47,15 @@ public:
    */
   ~LogRecord() override = default;
 
+  QUILL_NODISCARD std::unique_ptr<RecordBase> clone() const override
+  {
+    return std::make_unique<LogRecord>(*this);
+  }
+
   /**
    * @return the size of the object
    */
   QUILL_NODISCARD size_t size() const noexcept override { return sizeof(*this); }
-
-  /**
-   * @return the log record info of this log record
-   */
-  QUILL_NODISCARD StaticLogRecordInfo static_log_record_info() const noexcept override
-  {
-    return LogRecordInfoT{}();
-  }
 
   /**
    * Process a LogRecord

@@ -52,10 +52,10 @@ void quill_benchmark(std::vector<int32_t> thread_count_array, size_t num_iterati
     // MESSAGES_PER_ITERATION will get averaged to a single number
 
     // don't capture by reference as it will be accessed by all threads
-    std::string str{};
+    int j;
     int i;
     double d;
-    LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d);
+    LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", j, i, d);
   };
 
   /** ALWAYS REQUIRED **/
