@@ -142,12 +142,6 @@ void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) 
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_sleep_duration(sleep_duration);
 }
 
-/***/
-void set_initial_queue_capacity(size_t initial_capacity) noexcept
-{
-  detail::LogManagerSingleton::instance().log_manager().config().set_initial_queue_capacity(initial_capacity);
-}
-
 } // namespace config
 
 } // namespace quill

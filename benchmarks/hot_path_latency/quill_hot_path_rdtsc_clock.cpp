@@ -3,6 +3,8 @@
  * this file.
  */
 
+#define QUILL_QUEUE_CAPACITY 262'144
+
 #include "hot_path_bench.h"
 #include "quill/Quill.h"
 
@@ -16,9 +18,6 @@ void quill_benchmark(std::vector<int32_t> thread_count_array, size_t num_iterati
   /** - Setup Quill **/
   quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
   quill::config::set_backend_thread_cpu_affinity(0);
-
-  // Using a big queue for the benchmark to avoid re-allocations
-  quill::config::set_initial_queue_capacity(524'288);
 
   // Start the logging backend thread
   quill::start();

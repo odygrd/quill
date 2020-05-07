@@ -37,14 +37,5 @@ void Config::set_backend_thread_name(std::string const& name) noexcept
 /***/
 std::string Config::backend_thread_name() const noexcept { return _backend_thread_name; }
 
-/***/
-void Config::set_initial_queue_capacity(std::size_t initial_capacity) noexcept
-{
-  _initial_queue_capacity = initial_capacity;
-}
-
-/***/
-size_t Config::initial_queue_capacity() const noexcept { return _initial_queue_capacity; }
-
 } // namespace detail
 } // namespace quill

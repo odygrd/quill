@@ -158,3 +158,24 @@
  * QUILL_USE_BOUNDED_QUEUE mode seems to be faster in `quill_hot_path_rdtsc_clock` benchmark by a few nanoseconds.
  */
 // #define QUILL_USE_BOUNDED_QUEUE
+
+/**
+ * Quill uses a unbounded SPSC queue per spawned thread to forward the LogRecords to the backend thread.
+ *
+ * During very high logging activity the backend thread won't be able to consume fast enough
+ * and the queue will become full. In this scenario the caller thread will not block but instead
+ * it will allocate a new queue of the same capacity.
+ *
+ * The smallest the queue the better the locality aas the queue will be small enough to stay in the
+ * cache and get reused. Increasing the size of the queue leads to more cache misses but less
+ * re-allocations if the application is logging a lot. If the backend thread is falling behind
+ * also consider reducing the sleep duration.
+ *
+ * The queue size can be increased or decreased based on the user needs. This queue will be shared
+ * between two threads and it should not exceed the size of LLC cache.
+ *
+ * @warning The configured queue size needs to be in bytes, it MUST be a power of two and a multiple
+ * of the page size (4096).
+ * Look for an online Mebibyte to Byte converted to easily find a correct value
+ */
+// #define QUILL_QUEUE_CAPACITY 262'144

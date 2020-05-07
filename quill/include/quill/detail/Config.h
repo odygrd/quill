@@ -51,34 +51,9 @@ public:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::string backend_thread_name() const noexcept;
 
-  /**
-   * Sets the initial queue capacity
-   * @param initial_capacity initial queue capacity
-   */
-  QUILL_ATTRIBUTE_COLD void set_initial_queue_capacity(std::size_t initial_capacity) noexcept;
-
-  /**
-   * @return get the initial queue capacity
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t initial_queue_capacity() const noexcept;
-
 private:
   std::string _backend_thread_name{"Quill_Backend"}; /** Custom name for the backend thread */
   std::chrono::nanoseconds _backend_thread_sleep_duration{300};
-
-#if defined(_WIN32)
-  #if defined(QUILL_USE_BOUNDED_QUEUE)
-  size_t _initial_queue_capacity{262'144}; /**< Initial queue capacity default to 262K */
-  #else
-  size_t _initial_queue_capacity{65'536}; /**< Initial queue capacity default to 64K due to allocation granularity since the queue is unbounded */
-  #endif
-#else
-  #if defined(QUILL_USE_BOUNDED_QUEUE)
-  size_t _initial_queue_capacity{262'144}; /**< Initial queue capacity default to 262K */
-  #else
-  size_t _initial_queue_capacity{16'384}; /**< Initial queue capacity default to 16K since the queue is unbounded */
-  #endif
-#endif
 
   uint16_t _backend_thread_cpu_affinity{
     (std::numeric_limits<uint16_t>::max)()}; /** max() as undefined value, cpu affinity will not be set */

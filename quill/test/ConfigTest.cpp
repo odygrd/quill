@@ -27,11 +27,3 @@ TEST(Config, backend_thread_name)
   cfg.set_backend_thread_name("backend_thread");
   EXPECT_EQ(cfg.backend_thread_name(), std::string{"backend_thread"});
 }
-
-/***/
-TEST(Config, initial_queue_capacity)
-{
-  Config cfg;
-  cfg.set_initial_queue_capacity(262144);
-  EXPECT_EQ(cfg.initial_queue_capacity(), 262144);
-}

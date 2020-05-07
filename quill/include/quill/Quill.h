@@ -260,32 +260,6 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexc
  */
 QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept;
 
-/**
- * Quill uses a unbounded SPSC queue per spawned thread to forward the LogRecords to the backend thread.
- *
- * During very high logging activity (e.g. logging in a loop every 10 nanoseconds) the backend thread won't be
- * able to consume fast enough and the queue will become full. In this scenario the caller thread
- * will not block but instead it will allocate a new queue.
- *
- * This function sets the initial capacity of the first queue. By default Quill starts with a 16K queue size on linux or 65k on windows
- *
- * The smallest the queue the better the locality aas the queue will be small enough to stay in the
- * cache and get reused. Increasing the size of the queue leads to more cache misses but less
- * re-allocations if the application is logging a lot. If the backend thread is falling behind
- * also consider reducing the sleep duration
- *
- * The queue size can be increased or decreased based on the user needs.
- *
- * @see set_backend_thread_sleep_duration
- *
- * @warning The configured queue size needs to be in bytes, it MUST be a power of two and a multiple
- * of the page size (4096).
- * Look for an online Mebibyte to Byte converted to easily find a correct value
- *
- * @param initial_capacity the initial capacity of the queue
- */
-QUILL_ATTRIBUTE_COLD void set_initial_queue_capacity(size_t initial_capacity) noexcept;
-
 } // namespace config
 
 } // namespace quill

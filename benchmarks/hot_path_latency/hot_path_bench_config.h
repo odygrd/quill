@@ -20,7 +20,7 @@
   std::vector<int32_t> { 1, 4 }
 
 #define MESSAGES_PER_ITERATION                                                                     \
-  std::size_t { 60 }
+  std::size_t { 20 }
 
 #define ITERATIONS                                                                                 \
   std::size_t { 100000 }
@@ -33,7 +33,7 @@
  * This benchmark is measuring latency not high throughput
  * **/
 #define MIN_WAIT_DURATION                                                                          \
-  std::chrono::microseconds { 200 }
+  std::chrono::microseconds { 2000 }
 
 #define MAX_WAIT_DURATION                                                                          \
-  std::chrono::microseconds { 300 }
+  std::chrono::microseconds { 2200 }

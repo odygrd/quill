@@ -31,7 +31,7 @@ class ThreadContext
 {
 public:
 #if defined(QUILL_USE_BOUNDED_QUEUE)
-  using SPSCQueueT = BoundedSPSCQueue<RecordBase>;
+  using SPSCQueueT = BoundedSPSCQueue<RecordBase, QUILL_QUEUE_CAPACITY>;
 #else
   using SPSCQueueT = UnboundedSPSCQueue<RecordBase>;
 #endif
@@ -39,7 +39,7 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContext(Config const& config) : _spsc_queue(config.initial_queue_capacity()){};
+  explicit ThreadContext() = default;
 
   /**
    * Deleted

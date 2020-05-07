@@ -44,7 +44,7 @@ private:
      * Creates a new context and then registers it to the context collection sharing ownership
      * of the ThreadContext
      */
-    explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection, Config const& config);
+    explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection);
 
     /**
      * Destructor
@@ -102,7 +102,7 @@ public:
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
-    static thread_local ThreadContextWrapper thread_context_wrapper{*this, _config};
+    static thread_local ThreadContextWrapper thread_context_wrapper{*this};
     return thread_context_wrapper.thread_context();
   }
 

@@ -41,7 +41,7 @@ namespace detail
  * @see BoundedSPSCQueueTest.cpp for examples
  * @tparam TBaseObject A base class type
  */
-template <typename TBaseObject>
+template <typename TBaseObject, size_t Capacity>
 class BoundedSPSCQueue
 {
 public:
@@ -160,7 +160,7 @@ public:
    * Circular Buffer class Constructor
    * @throws on system error
    */
-  explicit BoundedSPSCQueue(size_t capacity);
+  explicit BoundedSPSCQueue();
 
   /**
    * Destructor
@@ -197,7 +197,7 @@ public:
   /**
    * @return total capacity of the queue in bytes
    */
-  QUILL_NODISCARD size_t capacity() const noexcept { return _immutable_data.capacity; }
+  QUILL_NODISCARD constexpr size_t capacity() const noexcept { return _immutable_data.capacity; }
 
   /**
    * @return True when the queue is empty, false if there is still data to read
@@ -221,8 +221,8 @@ private:
   struct immutable_data
   {
     unsigned char* buffer{nullptr}; /**< The whole buffer */
-    size_t capacity{0};
-    size_t mask{0}; /** capacity - 1 mask for quick mod with &. Only for pow of 2 capacity */
+    static constexpr size_t capacity{Capacity};
+    static constexpr size_t mask{Capacity - 1}; /** capacity - 1 mask for quick mod with &. Only for pow of 2 capacity */
 
 #if defined(_WIN32)
     /**
@@ -246,18 +246,16 @@ private:
 };
 
 /***/
-template <typename TBaseObject>
-BoundedSPSCQueue<TBaseObject>::BoundedSPSCQueue(size_t capacity)
+template <typename TBaseObject, size_t Capacity>
+BoundedSPSCQueue<TBaseObject, Capacity>::BoundedSPSCQueue()
 {
-  std::pair<unsigned char*, void*> res = create_memory_mapped_files(capacity);
+  std::pair<unsigned char*, void*> res = create_memory_mapped_files(_immutable_data.capacity);
 
   assert((reinterpret_cast<uintptr_t>(res.first) % CACHELINE_SIZE) == 0 &&
          "We must start with a cache aligned address");
 
   // Save the returned address
   _immutable_data.buffer = res.first;
-  _immutable_data.capacity = capacity;
-  _immutable_data.mask = capacity - 1;
 
 #if defined(_WIN32)
   // On windows we have to store the extra pointer, for linux and macos it is just nullptr
@@ -268,8 +266,8 @@ BoundedSPSCQueue<TBaseObject>::BoundedSPSCQueue(size_t capacity)
 }
 
 /***/
-template <typename TBaseObject>
-BoundedSPSCQueue<TBaseObject>::~BoundedSPSCQueue()
+template <typename TBaseObject, size_t Capacity>
+BoundedSPSCQueue<TBaseObject, Capacity>::~BoundedSPSCQueue()
 {
 #if defined(_WIN32)
   destroy_memory_mapped_files(
@@ -282,18 +280,20 @@ BoundedSPSCQueue<TBaseObject>::~BoundedSPSCQueue()
 }
 
 /***/
-template <typename TBaseObject>
-void BoundedSPSCQueue<TBaseObject>::madvice() const
+template <typename TBaseObject, size_t Capacity>
+void BoundedSPSCQueue<TBaseObject, Capacity>::madvice() const
 {
   detail::madvice(_immutable_data.buffer, 2 * _immutable_data.capacity);
 }
 
 /***/
-template <typename TBaseObject>
+template <typename TBaseObject, size_t Capacity>
 template <typename TInsertedObject, typename... Args>
-bool BoundedSPSCQueue<TBaseObject>::try_emplace(Args&&... args) noexcept
+bool BoundedSPSCQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) noexcept
 {
-  // Try to produce the required Bytes
+  static_assert(sizeof(TInsertedObject) < QUILL_QUEUE_CAPACITY,
+                "The size of the object is greater than the queue capacity. Increase "
+                "QUILL_QUEUE_CAPACITY to the next power of two.");
 
   // load the existing head address into the new_head address
   uint64_t const head_loaded = _shared_head.load(std::memory_order_relaxed);
@@ -333,8 +333,8 @@ bool BoundedSPSCQueue<TBaseObject>::try_emplace(Args&&... args) noexcept
 }
 
 /***/
-template <typename TBaseObject>
-typename BoundedSPSCQueue<TBaseObject>::Handle BoundedSPSCQueue<TBaseObject>::try_pop() noexcept
+template <typename TBaseObject, size_t Capacity>
+typename BoundedSPSCQueue<TBaseObject, Capacity>::Handle BoundedSPSCQueue<TBaseObject, Capacity>::try_pop() noexcept
 {
   // we have been asked to consume but we don't know yet how much to consume
   // e.g object T might be a base class
@@ -375,15 +375,16 @@ typename BoundedSPSCQueue<TBaseObject>::Handle BoundedSPSCQueue<TBaseObject>::tr
 }
 
 /***/
-template <typename TBaseObject>
-bool BoundedSPSCQueue<TBaseObject>::empty() const noexcept
+template <typename TBaseObject, size_t Capacity>
+bool BoundedSPSCQueue<TBaseObject, Capacity>::empty() const noexcept
 {
   return _shared_head.load(std::memory_order_relaxed) == _shared_tail.load(std::memory_order_relaxed);
 }
 
 /***/
-template <typename TBaseObject>
-size_t BoundedSPSCQueue<TBaseObject>::_distance_from_next_cache_line(unsigned char* start_pos, size_t obj_size) noexcept
+template <typename TBaseObject, size_t Capacity>
+size_t BoundedSPSCQueue<TBaseObject, Capacity>::_distance_from_next_cache_line(unsigned char* start_pos,
+                                                                               size_t obj_size) noexcept
 {
   // increment the pointer to obj size
   start_pos += obj_size;

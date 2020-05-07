@@ -43,7 +43,7 @@ class UnboundedSPSCQueue
 {
 public:
   using value_type = TBaseObject;
-  using bounded_spsc_queue_t = BoundedSPSCQueue<value_type>;
+  using bounded_spsc_queue_t = BoundedSPSCQueue<value_type, QUILL_QUEUE_CAPACITY>;
   using handle_t = typename bounded_spsc_queue_t::Handle;
 
 private:
@@ -58,10 +58,10 @@ private:
      * Constructor
      * @param capacity the capacity of the fixed buffer
      */
-    explicit node(size_t capacity) : bounded_spsc_queue(capacity) {}
+    explicit node() = default;
 
     /**
-     * Alignement requirement as we have bounded_spsc_queue as member
+     * Alignment requirement as we have bounded_spsc_queue as member
      * @param i
      * @return
      */
@@ -79,11 +79,7 @@ public:
    * Constructor
    * @param capacity The starting capacity
    */
-  explicit UnboundedSPSCQueue(size_t initial_capacity)
-    : _producer(new node(initial_capacity)), _consumer(_producer)
-  {
-    assert(initial_capacity > 0 && "Capacity can not be zero");
-  }
+  explicit UnboundedSPSCQueue() : _producer(new node()), _consumer(_producer) {}
 
   /**
    * Deleted
@@ -121,17 +117,8 @@ public:
     if (QUILL_UNLIKELY(!_producer->bounded_spsc_queue.template try_emplace<TInsertedObject>(
           std::forward<Args>(args)...)))
     {
-      // We failed to emplace because the queue was full
-      std::size_t new_capacity = _producer->bounded_spsc_queue.capacity() * _grow_factor;
-
-      // Make sure the new buffer is large enough
-      while (new_capacity < sizeof(TInsertedObject))
-      {
-        new_capacity = new_capacity * _grow_factor;
-      }
-
-      // create a new node with the new capacity
-      auto next_node = new node{new_capacity};
+      // We failed to emplace because the queue was full, create a new node with the a new queue
+      auto next_node = new node{};
 
       // store the new node pointer as next in the current node
       _producer->next.store(next_node, std::memory_order_release);
@@ -206,8 +193,6 @@ public:
   }
 
 private:
-  static constexpr uint8_t _grow_factor{2};
-
   /** Modified by either the producer or consumer but never both */
   alignas(CACHELINE_SIZE) node* _producer{nullptr};
   alignas(CACHELINE_SIZE) node* _consumer{nullptr};

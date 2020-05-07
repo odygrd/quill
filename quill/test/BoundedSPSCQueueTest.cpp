@@ -22,9 +22,9 @@ struct test_struct_ints_2
 
 TEST(BoundedSPSCQueue, produce_consume_many_same_type)
 {
-  BoundedSPSCQueue<test_struct_ints> buffer{2097152};
+  BoundedSPSCQueue<test_struct_ints, 2'097'152> buffer;
 
-  EXPECT_EQ(buffer.capacity(), 2097152);
+  EXPECT_EQ(buffer.capacity(), 2'097'152);
   EXPECT_EQ(buffer.empty(), true);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
@@ -140,8 +140,8 @@ private:
 
 TEST(BoundedSPSCQueue, produce_consume_many_different_types)
 {
-  BoundedSPSCQueue<TestBase> buffer{2097152};
-  EXPECT_EQ(buffer.capacity(), 2097152);
+  BoundedSPSCQueue<TestBase, 2'097'152> buffer;
+  EXPECT_EQ(buffer.capacity(), 2'097'152);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
   {
@@ -213,9 +213,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
 
 TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
 {
-  BoundedSPSCQueue<TestBase> buffer{2097152};
+  BoundedSPSCQueue<TestBase, 2'097'152> buffer;
 
-  EXPECT_EQ(buffer.capacity(), 2097152);
+  EXPECT_EQ(buffer.capacity(), 2'097'152);
 
   std::thread producer_thread([&buffer]() {
     for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
