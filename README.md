@@ -13,8 +13,8 @@
 -  [Performance](#performance)
 -  [Supported Platforms And Compilers](#supported-platforms-and-compilers)
 -  [Integration](#integration)
-  -  [CMake](#cmake)
-  -  [Package Managers](#package-managers)
+   -  [CMake](#cmake)
+   -  [Package Managers](#package-managers)
 -  [Basic Usage](#basic-usage)
 -  [Documentation](#documentation)
 -  [License](#license)
@@ -29,22 +29,22 @@ The main goals of the library are:
 -  **Convenience** While keeping low latency on the fast-path, the library aims to assist the developer in debugging the application by providing a nicely formatted direct textual output with all log statements ordered by timestamp
 
 ## Features
- - Clean warning-free codebase even on high warning levels
- - Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
- - Thread and Type safe with compile time checks
- - Compile time checks for safe-to-copy user defined types. Non trivial user defined types can be tagged as safe-to-copy to avoid formatting on the hot path.
- - Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
- - Configurable
- - Custom log patterns. Log statements can be formatted by providing a simple pattern
- - Log levels can be stripped out at compile time in release builds
- - Log records are written in timestamp order even if they were created by different threads
- - Guaranteed logging. Log messages are never dropped. If in any case the internal queue gets full a new queue is created. Therefore, the caller will suffer aa very small performance penanalty instead of blocking.
- - Support for wide character logging and wide character filenames (Windows only)
- - Various log targets (Handlers)
-   - Console logging 
-   - File Logging
-   - Rotating log files
-   - Daily log files
+ -  Clean warning-free codebase even on high warning levels
+ -  Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
+ -  Thread and Type safe with compile time checks
+ -  Compile time checks for safe-to-copy user defined types. Non trivial user defined types can be tagged as safe-to-copy to avoid formatting on the hot path.
+ -  Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
+ -  Configurable
+ -  Custom log patterns. Log statements can be formatted by providing a simple pattern
+ -  Log levels can be stripped out at compile time in release builds
+ -  Log records are written in timestamp order even if they were created by different threads
+ -  Guaranteed logging. Log messages are never dropped. If in any case the internal queue gets full a new queue is created. Therefore, the caller will suffer aa very small performance penanalty instead of blocking.
+ -  Support for wide character logging and wide character filenames (Windows only)
+ -  Various log targets (Handlers)
+    -  Console logging 
+    -  File Logging
+    -  Rotating log files
+    -  Daily log files
 
 ## Performance
 

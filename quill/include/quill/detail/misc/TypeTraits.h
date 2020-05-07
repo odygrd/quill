@@ -7,6 +7,24 @@
 
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 
+#include "quill/detail/misc/Attributes.h"
+
+#if (QUILL_HAS_INCLUDE(<string_view>) && (__cplusplus > 201402L || defined(_LIBCPP_VERSION))) ||   \
+  (defined(_MSVC_LANG) && (_MSVC_LANG > 201402L) && (_MSC_VER >= 1910))
+
+  #define QUILL_USE_STRING_VIEW
+  #include <string_view>
+template <typename Char>
+using std_string_view = std::basic_string_view<Char>;
+
+#elif QUILL_HAS_INCLUDE("experimental/string_view") && (__cplusplus >= 201402L)
+  #define QUILL_USE_STRING_VIEW
+  #include <experimental/string_view>
+
+template <typename Char>
+using std_string_view = std::experimental::basic_string_view<Char>;
+#endif
+
 namespace quill
 {
 namespace detail
@@ -61,6 +79,14 @@ struct Promoted<wchar_t*>
   using type = std::wstring;
 };
 
+#if defined(QUILL_USE_STRING_VIEW)
+template <typename Char>
+struct Promoted<std_string_view<Char>>
+{
+  using type = std::basic_string<Char>;
+};
+#endif
+
 /**
  * Helper to unwrap reference wrapper
  */
@@ -80,7 +106,8 @@ struct UnwrapRefWrapper<std::reference_wrapper<T>>
  * @see promoted
  */
 template <typename T>
-using PromotedTypeT = typename UnwrapRefWrapper<typename Promoted<std::decay_t<T>>::type>::type;
+using PromotedTypeT =
+  typename UnwrapRefWrapper<typename Promoted<remove_cvref_t<std::decay_t<T>>>::type>::type;
 
 /**
  * any_is_same

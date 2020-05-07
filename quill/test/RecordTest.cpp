@@ -46,4 +46,20 @@ TEST(Record, construct)
     static_assert(std::is_same<decltype(msg)::PromotedTupleT, std::tuple<int, double, std::string>>::value,
                   "tuple is not promoted");
   }
+
+#if defined(QUILL_USE_STRING_VIEW)
+  {
+    // test with std::string_view the tuple get's promoted
+    using record_t = LogRecord<mock_log_record_info, int, std::string_view, char const*>;
+    static_assert(std::is_same<record_t::PromotedTupleT, std::tuple<int, std::string, std::string>>::value,
+                  "tuple is not promoted");
+
+    // Try to contruct one using the same args
+    record_t msg{&logger_details, 1337, std::string_view{"13.5"}, "test"};
+
+    // Check that the constructed msg has a promoted underlying tuple
+    static_assert(std::is_same<decltype(msg)::PromotedTupleT, std::tuple<int, std::string, std::string>>::value,
+                  "tuple is not promoted");
+  }
+#endif
 }
