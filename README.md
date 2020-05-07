@@ -8,61 +8,43 @@
 [![license][badge.license]][license]
 [![project_status: The project has reached a stable, usable state and is being actively developed.][badge.project_status]][project_status]
 
-[badge.travis]: https://img.shields.io/travis/odygrd/quill/master.svg?logo=travis
-[badge.appveyor]: https://img.shields.io/appveyor/ci/odygrd/quill/master.svg?logo=appveyor
-[badge.codedocs]: https://codedocs.xyz/odygrd/quill.svg
-[badge.codecov]: https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov 
-[badge.language]: https://img.shields.io/badge/language-C%2B%2B14-red.svg
-[badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
-[badge.project_status]: https://www.repostatus.org/badges/latest/active.svg
- 
-[travis]: https://travis-ci.org/odygrd/quill
-[appveyor]: https://ci.appveyor.com/project/odygrd/quill
-[codedocs]: https://codedocs.xyz/odygrd/quill
-[codecov]: https://codecov.io/gh/odygrd/quill
-[language]: https://en.wikipedia.org/wiki/C%2B%2B14
-[license]: http://opensource.org/licenses/MIT
-[project_status]: https://www.repostatus.org/#active
-
-- [Design Rationale](#design-rationale)
-- [Features](#features)
-- [Performance](#performance)
-- [Supported Platforms And Compilers](#supported-platforms-and-compilers)
-- [Integration](#integration)
-  - [CMake](#cmake)
-  - [Package Managers](#package-managers)
-- [Basic Usage](#basic-usage)
-- [Documentation](#documentation)
-- [License](#license)
+-  [Design Rationale](#design-rationale)
+-  [Features](#features)
+-  [Performance](#performance)
+-  [Supported Platforms And Compilers](#supported-platforms-and-compilers)
+-  [Integration](#integration)
+  -  [CMake](#cmake)
+  -  [Package Managers](#package-managers)
+-  [Basic Usage](#basic-usage)
+-  [Documentation](#documentation)
+-  [License](#license)
 
 ## Design Rationale
 The library aims to make logging significantly easier for the application developer while at the same time reduce the overhead of logging in the critical path as much as possible.
 
 The main goals of the library are:
 
-- **Simplicity** A small example code snippet should be enough to get started and use most of features.
-- **Performance** Ultra low latency for the caller threads, no string formatting on the fast-path, no heap allocations after initialisation, asynchronous only mode.
-- **Convenience** While keeping low latency on the fast-path, the library aims to assist the developer in debugging the application by providing a nicely formatted direct textual output with all log statements ordered by timestamp
+-  **Simplicity** A small example code snippet should be enough to get started and use most of features.
+-  **Performance** Ultra low latency for the caller threads, no string formatting on the fast-path, no heap allocations after initialisation, asynchronous only mode.
+-  **Convenience** While keeping low latency on the fast-path, the library aims to assist the developer in debugging the application by providing a nicely formatted direct textual output with all log statements ordered by timestamp
 
 ## Features
- * Clean warning-free codebase even on high warning levels
- * Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
- * Thread and Type safe with compile time checks
- * Formatting happens in the background thread. In the hot path most types can get copied without any formatting. With the exception of non-trivial user defined types.
- * Compile time checks for safe-to-copy user defined types. Non trivial user defined types can be tagged as safe-to-copy to avoid formatting on the hot path.
- * Optimised. Locality and cache friendly, minimal false sharing when threads are running on different cores
- * Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
- * Configurable
- * Custom log patterns. Log statements can be formatted by providing a simple pattern
- * Log levels can be stripped out at compile time in release builds
- * Log records are written in timestamp order even if they were created by different threads
- * Guaranteed logging. Log messages are never dropped. If in any case the internal queue gets full a new queue is created. Therefore, the caller will suffer aa very small performance penanalty instead of blocking.
- * Support for wide character logging and wide character filenames (Windows only)
- * Various log targets (Handlers)
-   * Console logging 
-   * File Logging
-   * Rotating log files
-   * Daily log files
+ - Clean warning-free codebase even on high warning levels
+ - Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
+ - Thread and Type safe with compile time checks
+ - Compile time checks for safe-to-copy user defined types. Non trivial user defined types can be tagged as safe-to-copy to avoid formatting on the hot path.
+ - Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
+ - Configurable
+ - Custom log patterns. Log statements can be formatted by providing a simple pattern
+ - Log levels can be stripped out at compile time in release builds
+ - Log records are written in timestamp order even if they were created by different threads
+ - Guaranteed logging. Log messages are never dropped. If in any case the internal queue gets full a new queue is created. Therefore, the caller will suffer aa very small performance penanalty instead of blocking.
+ - Support for wide character logging and wide character filenames (Windows only)
+ - Various log targets (Handlers)
+   - Console logging 
+   - File Logging
+   - Rotating log files
+   - Daily log files
 
 ## Performance
 
@@ -130,9 +112,9 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 
 ### Package Managers
 
-* Homebrew: `brew install quill`.
-* vcpkg: `vcpkg install quill`.
-* conan: `quill/[>=1.2.3]`.
+- Homebrew: `brew install quill`.
+- vcpkg: `vcpkg install quill`.
+- conan: `quill/[>=1.2.3]`.
 
 ### CMake
 
@@ -260,5 +242,22 @@ Quill is licensed under the [MIT License](http://opensource.org/licenses/MIT)
 Quill depends on third party libraries with separate copyright notices and license terms. 
 Your use of the source code for these subcomponents is subject to the terms and conditions of the following licenses.
 
-   * ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
-   * ([MIT License](http://opensource.org/licenses/MIT)) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
+   - ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
+   - ([MIT License](http://opensource.org/licenses/MIT)) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
+
+
+[badge.travis]: https://img.shields.io/travis/odygrd/quill/master.svg?logo=travis
+[badge.appveyor]: https://img.shields.io/appveyor/ci/odygrd/quill/master.svg?logo=appveyor
+[badge.codedocs]: https://codedocs.xyz/odygrd/quill.svg
+[badge.codecov]: https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov 
+[badge.language]: https://img.shields.io/badge/language-C%2B%2B14-red.svg
+[badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
+[badge.project_status]: https://www.repostatus.org/badges/latest/active.svg
+ 
+[travis]: https://travis-ci.org/odygrd/quill
+[appveyor]: https://ci.appveyor.com/project/odygrd/quill
+[codedocs]: https://codedocs.xyz/odygrd/quill
+[codecov]: https://codecov.io/gh/odygrd/quill
+[language]: https://en.wikipedia.org/wiki/C%2B%2B14
+[license]: http://opensource.org/licenses/MIT
+[project_status]: https://www.repostatus.org/#active
