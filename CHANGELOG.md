@@ -19,6 +19,7 @@
 * `QUILL_RDTSC_CLOCK` option is replaced by `QUILL_CHRONO_CLOCK` which is by OFF by default.
 * Improve compiler error message when trying to log a non copy constructible user defined type
 * Fix buffer reallocation bug on TimestampFormatter. In previous versions any timestamp format set to 'set_pattern' expanding to a string longer than 32 bytes would cause a crash. ([#24](https://github.com/odygrd/quill/issues/24))
+* The backend logging thread will now copy all messages from the SPSC queue to a local priority queue. This keeps the SPSC less empty avoiding a potential allocation on the hot path.
 
 ## v1.2.3
 * CMake changes to support package installation in conan.
