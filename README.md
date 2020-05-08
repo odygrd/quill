@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img width="100" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
+  <img width="150" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
   <h1>Quill</h1>
 
   <div>
@@ -27,6 +27,12 @@
   <p><h3>Asynchronous Low Latency Logging Library</h3></p>
 </div>
 
+| Package Manager    |      | 
+|--------------------|:--------:|
+| Homebrew  |  `brew install quill`  |
+| vcpkg  |  `vcpkg install quill`  |
+| conan  |  `quill/[>=1.2.3]`  |
+
 -  [Introduction](#introduction)
 -  [Features](#features)
 -  [Performance](#performance)
@@ -35,12 +41,6 @@
 -  [CMake Integration](#cmake-integration)
 -  [Documentation](#documentation)
 -  [License](#license)
-
-| Package Manager    |      | 
-|--------------------|:--------:|
-| Homebrew  |  `brew install quill`  |
-| vcpkg  |  `vcpkg install quill`  |
-| conan  |  `quill/[>=1.2.3]`  |
 
 ## Introduction
 Quill is a cross-platform low latency logging library based on C++14.
