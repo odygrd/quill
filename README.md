@@ -28,15 +28,7 @@
 
   <p><h3>Asynchronous Low Latency Logging Library</h3></p>
 </div>
-
-<center>
   
-|  homebrew             |  vcpkg                 |  conan            |
-|:---------------------:|:----------------------:|:-----------------:|
-|  `brew install quill` |  `vcpkg install quill` | `quill/[>=1.2.3]` |
-
-</center>
-
 -  [Introduction](#introduction)
 -  [Features](#features)
 -  [Performance](#performance)
@@ -45,6 +37,12 @@
 -  [CMake Integration](#cmake-integration)
 -  [Documentation](#documentation)
 -  [License](#license)
+
+
+|  homebrew             |  vcpkg                 |  conan            |
+|:---------------------:|:----------------------:|:-----------------:|
+|  `brew install quill` |  `vcpkg install quill` | `quill/[>=1.2.3]` |
+
 
 ## Introduction
 Quill is a cross-platform low latency logging library based on C++14.
