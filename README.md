@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img width="150" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
+  <img width="125" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
   <h1>Quill</h1>
 
   <div>
