@@ -27,11 +27,10 @@
   <p><h3>Asynchronous Low Latency Logging Library</h3></p>
 </div>
 
-| Package Manager    |      | 
-|--------------------|:--------:|
-| Homebrew  |  `brew install quill`  |
-| vcpkg  |  `vcpkg install quill`  |
-| conan  |  `quill/[>=1.2.3]`  |
+|  homebrew             |  vcpkg                 |  conan            |
+|-----------------------|:----------------------:|:-----------------:|
+|  `brew install quill` |  `vcpkg install quill` | `quill/[>=1.2.3]` |
+
 
 -  [Introduction](#introduction)
 -  [Features](#features)
