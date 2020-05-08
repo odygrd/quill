@@ -29,7 +29,7 @@
     </a>
   </div>
 
-  <p><h3>Asynchronous Low Latency Logging Library</h3></p>
+  <p><b>Asynchronous Low Latency Logging Library</b></p>
 </div>
   
 -  [Introduction](#introduction)
