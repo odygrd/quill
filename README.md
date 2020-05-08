@@ -29,7 +29,7 @@
     </a>
   </div>
 
-  <p><b>An asynchronous low latency logging library</b></p>
+  <p>Asynchronous low latency logging library</p>
 </div>
 
 <br>
