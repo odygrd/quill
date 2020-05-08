@@ -1,11 +1,12 @@
 #include "quill/detail/LoggerCollection.h"
-
-#include <sstream>
-
-#include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/misc/Macros.h"
-#include "quill/detail/misc/Utilities.h"
-#include "quill/handlers/StreamHandler.h"
+#include "quill/QuillError.h"               // for QUILL_THROW, QuillError
+#include "quill/detail/HandlerCollection.h" // for HandlerCollection
+#include "quill/detail/LoggerDetails.h"     // for LoggerDetails
+#include "quill/detail/misc/Macros.h"       // for QUILL_UNLIKELY
+#include "quill/handlers/StreamHandler.h"   // for StreamHandler
+#include <mutex>                            // for lock_guard
+#include <utility>                          // for move, pair
+#include <vector>                           // for vector
 
 namespace quill
 {

@@ -6,7 +6,6 @@
 #pragma once
 
 #include "quill/detail/misc/TypeTraitsCopyable.h"
-
 #include "quill/detail/misc/Attributes.h"
 
 #if (QUILL_HAS_INCLUDE(<string_view>) && (__cplusplus > 201402L || defined(_LIBCPP_VERSION))) ||   \

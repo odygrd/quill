@@ -5,12 +5,16 @@
 
 #pragma once
 
-#include "quill/Fmt.h"
-#include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"
-#include <array>
-#include <chrono>
-#include <string>
+#include "quill/Fmt.h"                    // for memory_buffer
+#include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
+#include "quill/detail/misc/Common.h"     // for Timezone, Timezone::LocalTime
+#include <chrono>                         // for nanoseconds
+#include <cstddef>                        // for size_t
+#include <cstdint>                        // for uint32_t, uint8_t
+#include <string>                         // for string
+
+/** forward declarations **/
+struct tm;
 
 namespace quill
 {

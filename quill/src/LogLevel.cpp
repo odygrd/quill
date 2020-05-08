@@ -1,13 +1,13 @@
 #include "quill/LogLevel.h"
-
-#include "quill/QuillError.h"
-#include "quill/detail/misc/Macros.h"
-#include <algorithm>
-#include <array>
-#include <cctype>
-#include <sstream>
-#include <type_traits>
-#include <unordered_map>
+#include "quill/QuillError.h"         // for QUILL_THROW, QuillError
+#include "quill/detail/misc/Macros.h" // for QUILL_UNLIKELY
+#include <algorithm>                  // for transform, max
+#include <array>                      // for array
+#include <cctype>                     // for tolower
+#include <sstream>                    // for operator<<, basic_ostream, ost...
+#include <type_traits>                // for __underlying_type_impl<>::type
+#include <unordered_map>              // for operator==, unordered_map, _No...
+#include <utility>                    // for pair
 
 namespace quill
 {

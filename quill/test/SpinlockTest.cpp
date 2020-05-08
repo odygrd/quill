@@ -2,6 +2,7 @@
 
 #include <array>
 #include <gtest/gtest.h>
+#include <mutex>
 #include <random>
 #include <thread>
 

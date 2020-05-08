@@ -5,12 +5,20 @@
 
 #pragma once
 
+#include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
+#include "quill/detail/misc/Common.h"     // for filename_t
+#include <cstdint>                        // for uint32_t, uint16_t
+#include <cstdio>                         // for FILE
+#include <ctime>                          // for size_t, time_t
+#include <string>                         // for string
+#include <utility>                        // for pair
+
+#if defined(_WIN32)
 #include "quill/Fmt.h"
-#include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"
-#include <cstdint>
-#include <ctime>
-#include <utility>
+#endif
+
+/** forward declarations **/
+struct tm;
 
 namespace quill
 {

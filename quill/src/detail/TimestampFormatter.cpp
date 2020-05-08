@@ -1,9 +1,13 @@
 #include "quill/detail/TimestampFormatter.h"
-#include "quill/QuillError.h"
-#include "quill/detail/misc/Macros.h"
-#include "quill/detail/misc/Os.h"
-#include <cassert>
-#include <ctime>
+#include "quill/Fmt.h"                // for buffer
+#include "quill/QuillError.h"         // for QUILL_THROW, QuillError
+#include "quill/detail/misc/Macros.h" // for QUILL_UNLIKELY
+#include "quill/detail/misc/Os.h"     // for gmtime_rs, localtime_rs
+#include <array>                      // for array
+#include <cassert>                    // for assert
+#include <cstring>                    // for memcpy, memset
+#include <ctime>                      // for size_t, strftime, time_t
+#include <utility>                    // for addressof
 
 namespace
 {

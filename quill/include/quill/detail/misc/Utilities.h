@@ -5,14 +5,14 @@
 
 #pragma once
 
-#include "quill/detail/misc/Attributes.h"
-#include <array>
-#include <cassert>
-#include <cerrno>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <string>
+#include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD, QUILL_NOD...
+#include <algorithm>                      // for min
+#include <array>                          // for array
+#include <cassert>                        // for assert
+#include <cstdint>                        // for uint64_t, uintptr_t
+#include <cstdio>                         // for size_t
+#include <cstring>                        // for memcpy, strlen
+#include <string>                         // for string, wstring
 
 namespace quill
 {

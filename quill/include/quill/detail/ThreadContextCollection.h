@@ -5,20 +5,25 @@
 
 #pragma once
 
-#include "quill/detail/Config.h"
-#include "quill/detail/ThreadContext.h"
-#include "quill/detail/misc/AlignedAllocator.h"
-#include "quill/detail/misc/Spinlock.h"
-#include <atomic>
-#include <cassert>
-#include <cstdint>
-#include <memory>
-#include <vector>
+#include "quill/detail/misc/AlignedAllocator.h" // for CacheAlignedAllocator
+#include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_HOT
+#include "quill/detail/misc/Common.h"           // for CACHELINE_SIZE
+#include "quill/detail/misc/Spinlock.h"         // for Spinlock
+#include <atomic>                               // for atomic
+#include <cassert>                              // for assert
+#include <cstdint>                              // for uint8_t
+#include <memory>                               // for shared_ptr
+#include <vector>                               // for vector
 
 namespace quill
 {
 namespace detail
 {
+
+/** forward declarations **/
+class Config;
+class ThreadContext;
+
 /**
  * ThreadContextCollection class
  * a) Creates or returns the existing thread local ThreadContext instance to the thread that called Logger.log()

@@ -1,6 +1,7 @@
 #include "quill/handlers/StreamHandler.h"
-
-#include "quill/detail/misc/FileUtilities.h"
+#include "quill/detail/misc/FileUtilities.h" // for fwrite_fully
+#include <string>                            // for allocator, operator==
+#include <utility>                           // for move
 
 namespace quill
 {

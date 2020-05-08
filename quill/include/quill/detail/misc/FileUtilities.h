@@ -5,10 +5,13 @@
 
 #pragma once
 
-#include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"
-#include <chrono>
-#include <string>
+#include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
+#include "quill/detail/misc/Common.h"     // for filename_t
+#include <chrono>                         // for system_clock, system_clock...
+#include <cstdint>                        // for uint32_t
+#include <cstdio>                         // for FILE, size_t
+#include <string>                         // for string
+#include <utility>                        // for pair
 
 namespace quill
 {

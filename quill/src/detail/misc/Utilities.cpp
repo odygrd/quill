@@ -1,9 +1,7 @@
 #include "quill/detail/misc/Utilities.h"
 
-#include "quill/detail/misc/Macros.h"
-#include <codecvt>
-#include <locale>
-#include <system_error>
+#include <codecvt> // for codecvt_utf8
+#include <locale>  // for wstring_convert
 
 namespace quill
 {

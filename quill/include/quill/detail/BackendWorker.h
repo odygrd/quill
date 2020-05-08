@@ -5,19 +5,33 @@
 
 #pragma once
 
-#include "quill/QuillError.h"
-#include "quill/detail/Config.h"
-#include "quill/detail/HandlerCollection.h"
-#include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/misc/RdtscClock.h"
-
-#include <atomic>
-#include <functional>
-#include <mutex>
-#include <queue>
-#include <string>
-#include <thread>
-#include <vector>
+#include "quill/QuillError.h"                     // for QUILL_CATCH, QUILL...
+#include "quill/detail/BoundedSPSCQueue.h"        // for BoundedSPSCQueue<>...
+#include "quill/detail/Config.h"                  // for Config
+#include "quill/detail/HandlerCollection.h"       // for HandlerCollection
+#include "quill/detail/ThreadContext.h"           // for ThreadContext, Thr...
+#include "quill/detail/ThreadContextCollection.h" // for ThreadContextColle...
+#include "quill/detail/misc/Attributes.h"         // for QUILL_ATTRIBUTE_HOT
+#include "quill/detail/misc/Common.h"             // for QUILL_RDTSC_RESYNC...
+#include "quill/detail/misc/Macros.h"             // for QUILL_LIKELY
+#include "quill/detail/misc/Os.h"                 // for set_cpu_affinity
+#include "quill/detail/misc/RdtscClock.h"         // for RdtscClock
+#include "quill/detail/record/RecordBase.h"       // for RecordBase
+#include "quill/handlers/Handler.h"               // for Handler
+#include <atomic>                                 // for atomic, memory_ord...
+#include <cassert>                                // for assert
+#include <chrono>                                 // for nanoseconds, milli...
+#include <cstdint>                                // for uint16_t
+#include <exception>                              // for exception
+#include <functional>                             // for greater, function
+#include <limits>                                 // for numeric_limits
+#include <memory>                                 // for unique_ptr, make_u...
+#include <mutex>                                  // for call_once, once_flag
+#include <queue>                                  // for priority_queue
+#include <string>                                 // for allocator, string
+#include <thread>                                 // for sleep_for, thread
+#include <utility>                                // for move
+#include <vector>                                 // for vector
 
 namespace quill
 {

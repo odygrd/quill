@@ -1,4 +1,6 @@
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/Config.h"
+#include "quill/detail/ThreadContext.h"
 #include <array>
 #include <gtest/gtest.h>
 #include <thread>

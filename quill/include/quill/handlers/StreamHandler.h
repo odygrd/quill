@@ -5,10 +5,12 @@
 
 #pragma once
 
-#include "quill/detail/misc/Common.h"
-#include "quill/handlers/Handler.h"
-#include <cstdio>
-#include <string>
+#include "quill/Fmt.h"                    // for memory_buffer
+#include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_HOT, QUILL...
+#include "quill/detail/misc/Common.h"     // for filename_t
+#include "quill/handlers/Handler.h"       // for Handler
+#include <chrono>                         // for nanoseconds
+#include <cstdio>                         // for FILE
 
 namespace quill
 {

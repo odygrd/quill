@@ -1,13 +1,13 @@
 #include "quill/detail/misc/Os.h"
-
 #include "quill/QuillError.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/Utilities.h"
+#include <cerrno> // for errno, EINVAL, ENOMEM
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <sys/stat.h>
-#include <system_error>
+#include <cstring> // for strerror
+#include <sstream>
 
 #if defined(_WIN32)
   #define WIN32_LEAN_AND_MEAN
@@ -33,10 +33,12 @@
   #include <sys/types.h>
   #include <unistd.h>
 #elif defined(__linux__)
+  #include <bits/mman-map-flags-generic.h> // for MAP_POPULATE
   #include <sched.h>
   #include <sys/mman.h>
   #include <sys/prctl.h>
-  #include <sys/syscall.h>
+  #include <sys/stat.h>
+  #include <syscall.h>
   #include <unistd.h>
 
   /**

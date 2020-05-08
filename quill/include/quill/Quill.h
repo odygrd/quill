@@ -4,16 +4,25 @@
  */
 
 #pragma once
-#include "quill/Logger.h"
-#include "quill/detail/LogMacros.h"
 
-#include "quill/Utility.h"
-#include "quill/detail/LogManagerSingleton.h"
-
-#include <initializer_list>
+#include "quill/detail/BackendWorker.h"       // for backend_worker_error_h...
+#include "quill/detail/LogMacros.h"           // for filename_t
+#include "quill/detail/LogManager.h"          // for LogManager
+#include "quill/detail/LogManagerSingleton.h" // for LogManagerSingleton
+#include "quill/detail/misc/Attributes.h"     // for QUILL_ATTRIBUTE_COLD
+#include "quill/handlers/FileHandler.h"       // for FilenameAppend, Filena...
+#include <chrono>                             // for hours, minutes, nanose...
+#include <cstddef>                            // for size_t
+#include <cstdint>                            // for uint16_t
+#include <initializer_list>                   // for initializer_list
+#include <string>                             // for string
 
 namespace quill
 {
+
+/** forward declarations **/
+class Handler;
+class Logger;
 
 /**
  * Pre-allocates the thread-local data structures needed for the current thread.

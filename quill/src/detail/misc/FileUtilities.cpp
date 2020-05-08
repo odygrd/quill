@@ -1,9 +1,11 @@
 #include "quill/detail/misc/FileUtilities.h"
-#include "quill/Fmt.h"
-#include "quill/QuillError.h"
-#include "quill/detail/misc/Macros.h"
-#include "quill/detail/misc/Os.h"
-#include <system_error>
+#include "quill/Fmt.h"                // for format
+#include "quill/QuillError.h"         // for QUILL_THROW, QuillError
+#include "quill/detail/misc/Macros.h" // for QUILL_UNLIKELY
+#include "quill/detail/misc/Os.h"     // for fsize, localtime_rs, remove
+#include <cerrno>                     // for errno
+#include <ctime>                      // for time_t
+#include <sstream>                    // for operator<<, basic_ostream, bas...
 
 namespace quill
 {

@@ -1,7 +1,6 @@
 #include "quill/handlers/FileHandler.h"
-
-#include "quill/detail/misc/FileUtilities.h"
-#include "quill/detail/misc/Os.h"
+#include "quill/detail/misc/FileUtilities.h" // for append_date_to_filename
+#include <cstdio>                            // for fclose
 
 namespace quill
 {

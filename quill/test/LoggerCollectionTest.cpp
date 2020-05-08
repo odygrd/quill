@@ -1,4 +1,5 @@
 #include "quill/detail/LoggerCollection.h"
+#include "quill/detail/Config.h"
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/handlers/StreamHandler.h"

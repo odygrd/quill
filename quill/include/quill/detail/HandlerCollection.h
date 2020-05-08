@@ -5,13 +5,24 @@
 
 #pragma once
 
-#include "quill/detail/misc/Spinlock.h"
-#include "quill/handlers/FileHandler.h"
-#include <memory>
-#include <unordered_map>
+#include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD, QUILL_ATT...
+#include "quill/detail/misc/Common.h"     // for filename_t
+#include "quill/detail/misc/Spinlock.h"   // for Spinlock
+#include "quill/handlers/FileHandler.h"   // for FilenameAppend, FilenameAp...
+#include "quill/handlers/StreamHandler.h" // for StreamHandler
+#include <chrono>                         // for hours, minutes
+#include <cstddef>                        // for size_t
+#include <memory>                         // for allocator, unique_ptr
+#include <string>                         // for string, hash
+#include <unordered_map>                  // for unordered_map
+#include <vector>                         // for vector
 
 namespace quill
 {
+
+/** forward declarations **/
+class Handler;
+
 namespace detail
 {
 /**

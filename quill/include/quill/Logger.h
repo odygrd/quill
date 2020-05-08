@@ -7,12 +7,12 @@
 
 #include "quill/LogLevel.h"
 #include "quill/detail/LoggerDetails.h"
+#include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 #include "quill/detail/misc/Utilities.h"
 #include "quill/detail/record/LogRecord.h"
-
 #include <atomic>
 #include <cstdint>
 #include <vector>

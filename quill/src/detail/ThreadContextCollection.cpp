@@ -1,5 +1,9 @@
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/misc/Macros.h"
+#include "quill/detail/ThreadContext.h" // for ThreadContext, ThreadContext...
+#include "quill/detail/misc/Macros.h"   // for QUILL_UNLIKELY
+#include <algorithm>                    // for find_if
+#include <mutex>                        // for lock_guard
+#include <type_traits>                  // for remove_extent<>::type
 
 namespace quill
 {

@@ -6,11 +6,9 @@
 #pragma once
 
 #include "quill/detail/misc/Common.h"
-
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/Rdtsc.h"
-
 #include <chrono>
 #include <cstdint>
 #include <functional>

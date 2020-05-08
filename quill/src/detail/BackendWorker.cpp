@@ -1,18 +1,13 @@
 #include "quill/detail/BackendWorker.h"
-
-#include <vector>
-
-#include "quill/detail/ThreadContext.h"
-#include "quill/detail/misc/FileUtilities.h"
-#include "quill/detail/misc/Os.h"
+#include <iostream> // for endl, basic_ostream, cerr, ostream
+#include <vector>   // for vector
 
 namespace quill
 {
 namespace detail
 {
 /***/
-BackendWorker::BackendWorker(Config const& config,
-                             ThreadContextCollection& thread_context_collection,
+BackendWorker::BackendWorker(Config const& config, ThreadContextCollection& thread_context_collection,
                              HandlerCollection const& handler_collection)
   : _config(config), _thread_context_collection(thread_context_collection), _handler_collection(handler_collection)
 {

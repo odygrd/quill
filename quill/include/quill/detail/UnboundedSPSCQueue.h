@@ -6,7 +6,6 @@
 #pragma once
 
 #include "BoundedSPSCQueue.h"
-
 #include <atomic>
 #include <cassert>
 #include <cstddef>

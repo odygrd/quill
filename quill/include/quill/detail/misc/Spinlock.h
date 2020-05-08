@@ -5,9 +5,8 @@
 
 #pragma once
 
-#include "quill/detail/misc/Attributes.h"
-#include <atomic>
-#include <mutex> // for std::lock_guard
+#include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
+#include <atomic>                         // for atomic
 
 namespace quill
 {

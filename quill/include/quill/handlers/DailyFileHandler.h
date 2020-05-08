@@ -5,8 +5,11 @@
 
 #pragma once
 
-#include "quill/handlers/FileHandler.h"
-#include <chrono>
+#include "quill/Fmt.h"                    // for memory_buffer
+#include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
+#include "quill/detail/misc/Common.h"     // for filename_t
+#include "quill/handlers/FileHandler.h"   // for FileHandler
+#include <chrono>                         // for hours, minutes, nanoseconds
 
 namespace quill
 {

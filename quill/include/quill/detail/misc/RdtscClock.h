@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "quill/detail/misc/Common.h"
-
-#include "quill/detail/misc/Attributes.h"
-#include <chrono>
+#include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
+#include "quill/detail/misc/Common.h"     // for QUILL_RDTSC_RESYNC_INTERVAL
+#include <chrono>                         // for nanoseconds, milliseconds
+#include <cstdint>                        // for int64_t, uint64_t
 
 namespace quill
 {

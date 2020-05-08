@@ -1,6 +1,12 @@
 #include "quill/Quill.h"
-
-#include "quill/detail/LogManagerSingleton.h"
+#include "quill/detail/Config.h"                  // for Config
+#include "quill/detail/HandlerCollection.h"       // for HandlerCollection
+#include "quill/detail/LogManagerSingleton.h"     // for LogManagerSingleton
+#include "quill/detail/LoggerCollection.h"        // for LoggerCollection
+#include "quill/detail/ThreadContext.h"           // for ThreadContext, Thr...
+#include "quill/detail/ThreadContextCollection.h" // for ThreadContextColle...
+#include "quill/handlers/StreamHandler.h"         // for StreamHandler
+#include <utility>                                // for move
 
 namespace quill
 {

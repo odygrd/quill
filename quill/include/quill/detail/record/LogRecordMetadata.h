@@ -7,6 +7,7 @@
 
 #include "quill/LogLevel.h"
 #include "quill/detail/misc/Common.h"
+#include <array>
 #include <cstdint>
 
 namespace quill

@@ -1,7 +1,7 @@
 #include "quill/PatternFormatter.h"
-#include "quill/detail/LogManagerSingleton.h"
-#include "quill/detail/misc/Macros.h"
-#include "quill/detail/misc/Os.h"
+#include "quill/detail/LogManager.h"          // for LogManager
+#include "quill/detail/LogManagerSingleton.h" // for LogManagerSingleton
+#include <algorithm>                          // for max
 
 namespace quill
 {

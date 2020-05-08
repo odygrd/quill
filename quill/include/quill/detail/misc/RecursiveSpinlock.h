@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "quill/detail/misc/Spinlock.h"
+#include "quill/detail/misc/Spinlock.h" // for Spinlock
+#include <cstdint>                      // for uint16_t
 
 namespace quill
 {

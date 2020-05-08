@@ -1,6 +1,11 @@
 #include "quill/handlers/RotatingFileHandler.h"
-#include "quill/detail/misc/FileUtilities.h"
-#include "quill/detail/misc/Macros.h"
+#include "quill/QuillError.h"                // for QUILL_THROW, QuillError
+#include "quill/detail/misc/FileUtilities.h" // for append_index_to_filename
+#include "quill/detail/misc/Macros.h"        // for QUILL_UNLIKELY
+#include "quill/handlers/StreamHandler.h"    // for StreamHandler
+#include <cerrno>                            // for errno
+#include <cstdio>                            // for fclose
+#include <ostream>                           // for operator<<, basic_ostre...
 
 namespace quill
 {

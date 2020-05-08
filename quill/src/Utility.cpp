@@ -1,4 +1,5 @@
 #include "quill/Utility.h"
+#include <cstdint> // for uint8_t
 
 // unnamed namespace
 namespace

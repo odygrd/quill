@@ -1,7 +1,10 @@
 #include "quill/detail/HandlerCollection.h"
-#include "quill/handlers/DailyFileHandler.h"
-#include "quill/handlers/FileHandler.h"
-#include "quill/handlers/RotatingFileHandler.h"
+#include "quill/handlers/DailyFileHandler.h"    // for DailyFileHandler
+#include "quill/handlers/FileHandler.h"         // for FileHandler, Filenam...
+#include "quill/handlers/RotatingFileHandler.h" // for RotatingFileHandler
+#include <algorithm>                            // for find_if
+#include <mutex>                                // for lock_guard
+#include <utility>                              // for pair
 
 namespace quill
 {

@@ -1,15 +1,20 @@
 #include "quill/handlers/DailyFileHandler.h"
-
-#include "quill/detail/misc/Common.h"
-#include "quill/detail/misc/FileUtilities.h"
-#include "quill/detail/misc/Macros.h"
+#include "quill/QuillError.h"                // for QuillError, QUILL_THROW
+#include "quill/detail/misc/Common.h"        // for filename_t
+#include "quill/detail/misc/FileUtilities.h" // for append_date_to_filename
+#include "quill/detail/misc/Macros.h"        // for QUILL_UNLIKELY
+#include "quill/detail/misc/Os.h"            // for localtime_rs
+#include "quill/handlers/StreamHandler.h"    // for StreamHandler
+#include <cerrno>                            // for errno
+#include <cstdio>                            // for fclose
+#include <ctime>                             // for mktime, time_t
+#include <ostream>                           // for operator<<, basic_ostre...
 
 namespace quill
 {
 
 /***/
-DailyFileHandler::DailyFileHandler(filename_t const& base_filename,
-                                   std::chrono::hours rotation_hour,
+DailyFileHandler::DailyFileHandler(filename_t const& base_filename, std::chrono::hours rotation_hour,
                                    std::chrono::minutes rotation_minute)
   : FileHandler(base_filename), _rotation_hour(rotation_hour), _rotation_minute(rotation_minute)
 {

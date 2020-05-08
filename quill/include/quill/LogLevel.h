@@ -5,11 +5,8 @@
 
 #pragma once
 
-#include "quill/detail/misc/Attributes.h"
-#include <array>
-#include <cstdint>
-#include <string>
-#include <type_traits>
+#include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
+#include <string>                         // for string
 
 namespace quill
 {

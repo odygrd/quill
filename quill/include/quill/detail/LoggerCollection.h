@@ -5,21 +5,25 @@
 
 #pragma once
 
-#include "quill/Logger.h"
-#include "quill/detail/HandlerCollection.h"
-#include "quill/detail/misc/RecursiveSpinlock.h"
-#include <initializer_list>
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "quill/Logger.h"                        // for Logger
+#include "quill/detail/misc/Attributes.h"        // for QUILL_ATTRIBUTE_COLD
+#include "quill/detail/misc/Common.h"            // for CACHELINE_SIZE
+#include "quill/detail/misc/RecursiveSpinlock.h" // for RecursiveSpinlock
+#include <initializer_list>                      // for initializer_list
+#include <memory>                                // for unique_ptr
+#include <string>                                // for string, hash
+#include <unordered_map>                         // for unordered_map
 
 namespace quill
 {
+/** forward declarations **/
+class Handler;
+
 namespace detail
 {
 /** forward declarations **/
 class ThreadContextCollection;
+class HandlerCollection;
 
 /**
  * Contains all created loggers
