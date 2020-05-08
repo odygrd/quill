@@ -29,9 +29,11 @@
     </a>
   </div>
 
-  <p><b>Asynchronous Low Latency Logging Library</b></p>
+  <p><b>An asynchronous low latency logging library</b></p>
 </div>
-  
+
+<br>
+
 -  [Introduction](#introduction)
 -  [Features](#features)
 -  [Performance](#performance)
