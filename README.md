@@ -28,9 +28,11 @@
       <img src="https://img.shields.io/badge/language-C%2B%2B14-red.svg?style=flat-square" alt="language" />
     </a>
   </div>
+  
+  <p><b>Asynchronous Low Latency Logging Library</b></p>
+  
 </div>
 
-  <p><b>Asynchronous Low Latency Logging Library</b></p>
   
 <br>
 
