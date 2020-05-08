@@ -25,12 +25,13 @@
   </div>
 
   <p><h3>Asynchronous Low Latency Logging Library</h3></p>
-</div>
+
 
 |  homebrew             |  vcpkg                 |  conan            |
 |-----------------------|:----------------------:|:-----------------:|
 |  `brew install quill` |  `vcpkg install quill` | `quill/[>=1.2.3]` |
 
+</div>
 
 -  [Introduction](#introduction)
 -  [Features](#features)
