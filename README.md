@@ -1,51 +1,73 @@
-<h2> <img src="https://i.postimg.cc/FssWB25k/quill-logo.png" alt="Quill logo" width="140"><br>Asynchronous Low Latency Logging Library</h2>
+<div align="center">
 
-[![travis][badge.travis]][travis]
-[![appveyor][badge.appveyor]][appveyor]
-[![codedocs][badge.codedocs]][codedocs]
-[![codecov][badge.codecov]][codecov]
-[![language][badge.language]][language]
-[![license][badge.license]][license]
-[![project_status: The project has reached a stable, usable state and is being actively developed.][badge.project_status]][project_status]
+  <img width="100" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
+  <h1>Quill</h1>
 
--  [Design Rationale](#design-rationale)
+  <div>
+    <a href="https://travis-ci.org/odygrd/quill">
+      <img src="https://img.shields.io/travis/odygrd/quill?logo=travis&style=flat-square" alt="travis-ci" />
+    </a>
+    <a href="https://ci.appveyor.com/project/odygrd/quill/branch/master">
+      <img src="https://img.shields.io/appveyor/ci/odygrd/quill?logo=appveyor&style=flat-square" alt="appveyor-ci" />
+    </a>
+    <a href="https://codecov.io/gh/odygrd/quill">
+      <img src="https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov&style=flat-square" alt="codecov" />
+    </a>
+    <a href="https://www.codacy.com/manual/odygrd/quill?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=odygrd/quill&amp;utm_campaign=Badge_Grade">
+      <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-square" alt="codacy" />
+    </a>    
+    <a href="http://opensource.org/licenses/MIT">
+      <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="license" />
+    </a>
+    <a href="https://en.wikipedia.org/wiki/C%2B%2B14">
+      <img src="https://img.shields.io/badge/language-C%2B%2B14-red.svg?style=flat-square" alt="language" />
+    </a>
+  </div>
+
+  <p><h3>Asynchronous Low Latency Logging Library</h3></p>
+</div>
+
+-  [Introduction](#introduction)
 -  [Features](#features)
 -  [Performance](#performance)
 -  [Supported Platforms And Compilers](#supported-platforms-and-compilers)
--  [Integration](#integration)
-   -  [CMake](#cmake)
-   -  [Package Managers](#package-managers)
 -  [Basic Usage](#basic-usage)
+-  [CMake Integration](#cmake-integration)
 -  [Documentation](#documentation)
 -  [License](#license)
 
-## Design Rationale
-The library aims to make logging significantly easier for the application developer while at the same time reduce the overhead of logging in the critical path as much as possible.
+| Package Manager    |      | 
+|--------------------|:--------:|
+| Homebrew  |  `brew install quill`  |
+| vcpkg  |  `vcpkg install quill`  |
+| conan  |  `quill/[>=1.2.3]`  |
+
+## Introduction
+Quill is a cross-platform low latency logging library based on C++14.
 
 The main goals of the library are:
 
 -  **Simplicity** A small example code snippet should be enough to get started and use most of features.
--  **Performance** Ultra low latency for the caller threads, no string formatting on the fast-path, no heap allocations after initialisation, asynchronous only mode.
--  **Convenience** While keeping low latency on the fast-path, the library aims to assist the developer in debugging the application by providing a nicely formatted direct textual output with all log statements ordered by timestamp
+-  **Performance** Ultra low latency for the caller threads, no formatting on the hot-path, asynchronous only mode.
+-  **Convenience** Ease application monitoring/debugging. Latency is equal to latencies of binary loggers, but the produced log is in human readable form.
 
 ## Features
- -  Clean warning-free codebase even on high warning levels
- -  Safety. Extensive set of unit tests. Tested with Adress Sanitizer, Thread Sanitizer, Valgrind
- -  Thread and Type safe with compile time checks
- -  Compile time checks for safe-to-copy user defined types. Non trivial user defined types can be tagged as safe-to-copy to avoid formatting on the hot path.
- -  Python style formatting with build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library
- -  Configurable
- -  Custom log patterns. Log statements can be formatted by providing a simple pattern
- -  Log levels can be stripped out at compile time in release builds
- -  Log records are written in timestamp order even if they were created by different threads
- -  Guaranteed logging. Log messages are never dropped. If in any case the internal queue gets full a new queue is created. Therefore, the caller will suffer aa very small performance penanalty instead of blocking.
+ -  Blazing fast. 
+ -  Type safe python style formatting with compile type checks and build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
+ -  Object formatting outside of the hot path with compile time checks for unsafe to copy and format later types. Non trivial user defined types can be tagged as safe-to-copy to avoid formatting on the hot path. Compile time checks for safe-to-copy user defined types.
+ -  Log statements of different levels can be completely stripped out at compile time.
+ -  Highly configurable log pattern. The log statements can be formatted to any format based on a user specified pattern.
+ -  Log statements in timestamp order even when produced by different threads.
+ -  Guaranteed non-blocking or non-guaranteed dropping logging. In guaranteed logging more memory is allocated but the caller never get's blocked and the log messages are never dropped. In non-guaranteed mode there is no heap allocation but the log messages are dropped instead.
  -  Support for wide character logging and wide character filenames (Windows only)
  -  Various log targets (Handlers)
     -  Console logging 
     -  File Logging
     -  Rotating log files
     -  Daily log files
-
+ -  Thread safe.
+ -  Clean warning-free codebase even on high warning levels.
+ 
 ## Performance
 
 #### 1 Thread
@@ -108,15 +130,54 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 | Windows   | Windows 10 - version 1607, Windows Server 2016 |
 | macOS     | Tested with Xcode 9.4                          |
 
-## Integration
+## Basic usage
 
-### Package Managers
+```c++
+#include "quill/Quill.h"
 
-- Homebrew: `brew install quill`.
-- vcpkg: `vcpkg install quill`.
-- conan: `quill/[>=1.2.3]`.
+int main()
+{
+  // Start the logging backend thread
+  quill::start();
+  
+  // Get a pointer to the default logger
+  quill::Logger* dl = quill::get_logger();
 
-### CMake
+  LOG_INFO(dl, "Welcome to Quill!");
+  LOG_ERROR(dl, "An error message with error code {}, error message {}", 123, "system_error");
+
+  LOG_WARNING(dl, "Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}", 42);
+  LOG_CRITICAL(dl, "Easy padding in numbers like {:08d}", 12);
+
+  LOG_DEBUG(dl, "This message and any message below this log level will not be displayed..");
+
+  // Enable additional log levels on this logger
+  dl->set_log_level(quill::LogLevel::TraceL3);
+
+  LOG_DEBUG(dl, "The answer is {}", 1337);
+  LOG_TRACE_L1(dl, "{:>30}", "right aligned");
+  LOG_TRACE_L2(dl, "Positional arguments are {1} {0} ", "too", "supported");
+  LOG_TRACE_L3(dl, "Support for floats {:03.2f}", 1.23456);
+}
+```
+
+### Output
+By default Quill outputs to stdout using the default formatting pattern:
+
+`ascii_time [thread_id] filename:line log_level logger_name - message`
+
+```
+01:29:06.190725386 [1783860] example_01.cpp:11 LOG_INFO     root - Welcome to Quill!
+01:29:06.190727584 [1783860] example_01.cpp:12 LOG_ERROR    root - An error message with error code 123, error message system_error
+01:29:06.190731526 [1783860] example_01.cpp:14 LOG_WARNING  root - Support for int: 42;  hex: 2a;  oct: 52; bin: 101010
+01:29:06.190732157 [1783860] example_01.cpp:15 LOG_CRITICAL root - Easy padding in numbers like 00000012
+01:29:06.190732723 [1783860] example_01.cpp:22 LOG_DEBUG    root - The answer is 1337
+01:29:06.190733093 [1783860] example_01.cpp:23 LOG_TRACE_L1 root -                  right aligned
+01:29:06.190735322 [1783860] example_01.cpp:24 LOG_TRACE_L2 root - Positional arguments are supported too 
+01:29:06.190736334 [1783860] example_01.cpp:25 LOG_TRACE_L3 root - Support for floats 1.23
+```
+
+## CMake-Integration
 
 #### External
 
@@ -184,53 +245,6 @@ target_link_libraries(my_project PRIVATE quill::quill)
 ##### main.cpp
 See [basic usage](#basic-usage)
 
-## Basic usage
-
-```c++
-#include "quill/Quill.h"
-
-int main()
-{
-  // Start the logging backend thread
-  quill::start();
-  
-  // Get a pointer to the default logger
-  quill::Logger* dl = quill::get_logger();
-
-  LOG_INFO(dl, "Welcome to Quill!");
-  LOG_ERROR(dl, "An error message with error code {}, error message {}", 123, "system_error");
-
-  LOG_WARNING(dl, "Support for int: {0:d};  hex: {0:x};  oct: {0:o}; bin: {0:b}", 42);
-  LOG_CRITICAL(dl, "Easy padding in numbers like {:08d}", 12);
-
-  LOG_DEBUG(dl, "This message and any message below this log level will not be displayed..");
-
-  // Enable additional log levels on this logger
-  dl->set_log_level(quill::LogLevel::TraceL3);
-
-  LOG_DEBUG(dl, "The answer is {}", 1337);
-  LOG_TRACE_L1(dl, "{:>30}", "right aligned");
-  LOG_TRACE_L2(dl, "Positional arguments are {1} {0} ", "too", "supported");
-  LOG_TRACE_L3(dl, "Support for floats {:03.2f}", 1.23456);
-}
-```
-
-### Output
-By default Quill outputs to stdout using the default formatting pattern:
-
-`ascii_time [thread_id] filename:line log_level logger_name - message`
-
-```
-01:29:06.190725386 [1783860] example_01.cpp:11 LOG_INFO     root - Welcome to Quill!
-01:29:06.190727584 [1783860] example_01.cpp:12 LOG_ERROR    root - An error message with error code 123, error message system_error
-01:29:06.190731526 [1783860] example_01.cpp:14 LOG_WARNING  root - Support for int: 42;  hex: 2a;  oct: 52; bin: 101010
-01:29:06.190732157 [1783860] example_01.cpp:15 LOG_CRITICAL root - Easy padding in numbers like 00000012
-01:29:06.190732723 [1783860] example_01.cpp:22 LOG_DEBUG    root - The answer is 1337
-01:29:06.190733093 [1783860] example_01.cpp:23 LOG_TRACE_L1 root -                  right aligned
-01:29:06.190735322 [1783860] example_01.cpp:24 LOG_TRACE_L2 root - Positional arguments are supported too 
-01:29:06.190736334 [1783860] example_01.cpp:25 LOG_TRACE_L3 root - Support for floats 1.23
-```
-
 ## Documentation
 Advanced usage and additional documentation can be found in the [wiki](https://github.com/odygrd/quill/wiki) pages.
 
@@ -244,20 +258,3 @@ Your use of the source code for these subcomponents is subject to the terms and 
 
    - ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
    - ([MIT License](http://opensource.org/licenses/MIT)) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
-
-
-[badge.travis]: https://img.shields.io/travis/odygrd/quill/master.svg?logo=travis
-[badge.appveyor]: https://img.shields.io/appveyor/ci/odygrd/quill/master.svg?logo=appveyor
-[badge.codedocs]: https://codedocs.xyz/odygrd/quill.svg
-[badge.codecov]: https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov 
-[badge.language]: https://img.shields.io/badge/language-C%2B%2B14-red.svg
-[badge.license]: https://img.shields.io/badge/license-MIT-blue.svg
-[badge.project_status]: https://www.repostatus.org/badges/latest/active.svg
- 
-[travis]: https://travis-ci.org/odygrd/quill
-[appveyor]: https://ci.appveyor.com/project/odygrd/quill
-[codedocs]: https://codedocs.xyz/odygrd/quill
-[codecov]: https://codecov.io/gh/odygrd/quill
-[language]: https://en.wikipedia.org/wiki/C%2B%2B14
-[license]: http://opensource.org/licenses/MIT
-[project_status]: https://www.repostatus.org/#active
