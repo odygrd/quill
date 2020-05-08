@@ -17,7 +17,10 @@
     </a>
     <a href="https://www.codacy.com/manual/odygrd/quill?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=odygrd/quill&amp;utm_campaign=Badge_Grade">
       <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-square" alt="codacy" />
-    </a>    
+    </a>
+  </div>
+ 
+  <div>
     <a href="http://opensource.org/licenses/MIT">
       <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="license" />
     </a>
