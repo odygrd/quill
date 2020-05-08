@@ -1,6 +1,8 @@
 <div align="center">
 
-  <img width="125" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
+  <a href="https://github.com/odygrd/quill">
+    <img width="125" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
+  </a>
   <h1>Quill</h1>
 
   <div>
