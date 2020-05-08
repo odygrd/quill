@@ -4,8 +4,7 @@
     <img width="125" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
   </a>
   <h1>Quill</h1>
-  <p><b>Asynchronous Low Latency Logging Library</b></p>
-  
+
   <div>
     <a href="https://travis-ci.org/odygrd/quill">
       <img src="https://img.shields.io/travis/odygrd/quill?logo=travis&style=flat-square" alt="travis-ci" />
@@ -31,6 +30,8 @@
   </div>
 </div>
 
+  <p><b>Asynchronous Low Latency Logging Library</b></p>
+  
 <br>
 
 -  [Introduction](#introduction)
