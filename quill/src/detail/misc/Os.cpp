@@ -33,7 +33,6 @@
   #include <sys/types.h>
   #include <unistd.h>
 #elif defined(__linux__)
-  #include <bits/mman-map-flags-generic.h> // for MAP_POPULATE
   #include <sched.h>
   #include <sys/mman.h>
   #include <sys/prctl.h>
