@@ -24,16 +24,16 @@ RdtscClock::RdtscTicks::RdtscTicks()
 
   for (size_t i = 0; i < trials; ++i)
   {
-    std::chrono::nanoseconds beg_ts, end_ts;
-    uint64_t beg_tsc, end_tsc;
-
-    beg_ts = std::chrono::nanoseconds{std::chrono::steady_clock::now().time_since_epoch().count()};
-    beg_tsc = rdtsc();
+    auto const beg_ts =
+      std::chrono::nanoseconds{std::chrono::steady_clock::now().time_since_epoch().count()};
+    uint64_t const beg_tsc = rdtsc();
 
     std::chrono::nanoseconds elapsed_ns;
+    uint64_t end_tsc;
     do
     {
-      end_ts = std::chrono::nanoseconds{std::chrono::steady_clock::now().time_since_epoch().count()};
+      auto const end_ts =
+        std::chrono::nanoseconds{std::chrono::steady_clock::now().time_since_epoch().count()};
       end_tsc = rdtsc();
 
       elapsed_ns = end_ts - beg_ts;       // calculates ns between two timespecs

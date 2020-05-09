@@ -266,3 +266,34 @@ TEST(PatternFormatter, invalid_pattern)
     quill::QuillError);
 #endif
 }
+
+TEST(PatternFormatter, custom_pattern)
+{
+  // Custom pattern with part 1 and part 2
+  PatternFormatter custom_pattern_formatter{
+    QUILL_STRING(
+      "%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) %(logger_name) - "
+      "%(message)"),
+    "%m-%d-%Y %H:%M:%S.%Qns", Timezone::GmtTime};
+
+  std::chrono::nanoseconds ts{1579815761000023000};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  LogRecordMetadata log_line_info{QUILL_STRINGIFY(__LINE__), __FILE__, __func__,
+                                  "This the {1} formatter {0}", LogLevel::Debug};
+
+  // Format to a buffer
+  custom_pattern_formatter.format(ts, thread_id, logger_name.data(), log_line_info, "pattern", 1234);
+
+  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+
+  // Convert the buffer to a string
+  std::string const formatted_string = fmt::to_string(formatted_buffer);
+
+  std::string const expected_string =
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:282 LOG_DEBUG    test_logger - "
+    "This the 1234 formatter pattern\n";
+
+  EXPECT_EQ(formatted_buffer.size(), expected_string.length());
+  EXPECT_EQ(formatted_string, expected_string);
+}

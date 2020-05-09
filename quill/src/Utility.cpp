@@ -18,7 +18,7 @@ static std::string _to_hex(T* buffer, size_t size) noexcept
     static constexpr uint8_t mask = 0x0Fu;
 
     // add the first four bits
-    hex_string += hex_chars[((buffer[i] >> 4u) & mask)];
+    hex_string += hex_chars[(buffer[i] >> 4u) & mask];
 
     // add the remaining bits
     hex_string += hex_chars[buffer[i] & mask];

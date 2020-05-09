@@ -109,7 +109,7 @@ void HandlerCollection::subscribe_handler(Handler* handler_to_insert)
   // Check if we already have this object
   auto const search = std::find_if(
     _active_handlers_collection.cbegin(), _active_handlers_collection.cend(),
-    [&handler_to_insert](Handler* handler_elem) { return handler_elem == handler_to_insert; });
+    [&handler_to_insert](Handler const* handler_elem) { return handler_elem == handler_to_insert; });
 
   if (search == _active_handlers_collection.cend())
   {

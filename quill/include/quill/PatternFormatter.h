@@ -499,21 +499,38 @@ constexpr std::array<size_t, 2> PatternFormatter::_parse_format_pattern()
     if (pattern[pos] == '%')
     {
       // if we haven't found message yet and we always expect it
-      if (!part_2_found && pattern[++pos] == '(' && pattern[++pos] == 'm' && pattern[++pos] == 'e' &&
-          pattern[++pos] == 's' && pattern[++pos] == 's' && pattern[++pos] == 'a' &&
-          pattern[++pos] == 'g' && pattern[++pos] == 'e' && pattern[++pos] == ')')
+      if (!part_2_found)
       {
-        // do not increment the style counter
-        part_2_found = true;
+        // we haven't found part_2 yet so we are still in part_1, first look if next we find message
+        if ((len - pos) > 9)
+        {
+          char attr[10] = {pattern[pos + 1], pattern[pos + 2],
+                           pattern[pos + 3], pattern[pos + 4],
+                           pattern[pos + 5], pattern[pos + 6],
+                           pattern[pos + 7], pattern[pos + 8],
+                           pattern[pos + 9], '\0'};
+
+          if (quill::detail::strequal(attr, "(message)"))
+          {
+            // do not increment the style counter
+            part_2_found = true;
+            pos += 9;
+          }
+          else
+          {
+            // we haven't found part_2 yet so we are still in part_1
+            part_1_style_counter += 1;
+          }
+        }
+        else
+        {
+          // we haven't found part_2 yet so we are still in part_1
+          part_1_style_counter += 1;
+        }
       }
-      else if (!part_2_found)
+      else
       {
-        // we haven't found part_2 yet so we are still in part_1
-        part_1_style_counter += 1;
-      }
-      else if (part_2_found)
-      {
-        // we found part_2 so now anything else is part 3
+        // we have found part_2 so now anything else is part 3
         part_3_style_counter += 1;
       }
     }

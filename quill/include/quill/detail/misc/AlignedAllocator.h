@@ -24,7 +24,7 @@ public:
   CacheAlignedAllocator() noexcept = default;
 
   template <typename U>
-  CacheAlignedAllocator(CacheAlignedAllocator<U> const&) noexcept
+  explicit CacheAlignedAllocator(CacheAlignedAllocator<U> const&) noexcept
   {
   }
 

@@ -84,14 +84,18 @@ private:
     return *str == path_delimiter ? true : (*str ? _str_slant(str + 1) : false);
   }
 
-  QUILL_NODISCARD static constexpr char const* _r_slant(char const* str) noexcept
+  QUILL_NODISCARD static constexpr char const* _r_slant(char const* const str_begin, char const* str) noexcept
   {
-    return *str == path_delimiter ? (str + 1) : _r_slant(str - 1);
+    // clang-format off
+    return str != str_begin ? (*str == path_delimiter ? (str + 1)
+                                                      : _r_slant( str_begin, str -1))
+                            : str;
+    // clang-format on
   }
 
   QUILL_NODISCARD static constexpr char const* _extract_source_file_name(char const* str) noexcept
   {
-    return _str_slant(str) ? _r_slant(_str_end(str)) : str;
+    return _str_slant(str) ? _r_slant(str, _str_end(str)) : str;
   }
 
   QUILL_NODISCARD static constexpr char const* _log_level_to_string(LogLevel log_level)

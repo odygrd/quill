@@ -40,6 +40,17 @@ QUILL_NODISCARD constexpr size_t strlength(char const* str)
 }
 
 /**
+ * Constexpr string comparison
+ * @param lhs string 1
+ * @param rhs string 2
+ * @return true if they are equal
+ */
+QUILL_NODISCARD constexpr bool strequal(char const* lhs, char const* rhs)
+{
+  return (*lhs && *rhs) ? (*lhs == *rhs && strequal(lhs + 1, rhs + 1)) : (!*lhs && !*rhs);
+}
+
+/**
  * Convert a string to wstring
  * @param str input string
  * @return the value of input string as wide string
