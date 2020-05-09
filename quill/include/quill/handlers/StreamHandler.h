@@ -23,7 +23,7 @@ public:
    * @param stream only stdout or stderr
    * @throws on invalid param
    */
-  explicit StreamHandler(filename_t stream);
+  explicit StreamHandler(filename_t stream, FILE* file = nullptr);
 
   ~StreamHandler() override = default;
 

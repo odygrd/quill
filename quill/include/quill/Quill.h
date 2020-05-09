@@ -59,14 +59,18 @@ QUILL_ATTRIBUTE_COLD inline void start()
 }
 
 /**
+ * @param stdout_handler_name a custom name for stdout_handler. This is only useful if you want to
+ * have multiple formats in the stdout. See example_stdout_multiple_formatters.cpp example
  * @return a handler to the standard output stream
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stdout_handler();
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stdout_handler(std::string const& stdout_handler_name = std::string{"stdout"});
 
 /**
+ * @param stdout_handler_name a custom name for stdout_handler. This is only useful if you want to
+ * have multiple formats in the stdout. See example_stdout_multiple_formatters.cpp example
  * @return a handler to the standard error stream
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler();
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler(std::string const& stdout_handler_name = std::string{"stderr"});
 
 /**
  * Creates or returns an existing handler to a file.

@@ -23,7 +23,7 @@ LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_colle
   _logger_name_map.reserve(16);
 
   // Add the default std streamhandler to the default logger
-  Handler* stdout_stream_handler = _handler_collection.stdout_streamhandler();
+  Handler* stdout_stream_handler = _handler_collection.stdout_streamhandler("stdout");
   _default_logger = create_logger(_default_logger_name, stdout_stream_handler);
 }
 

@@ -28,15 +28,17 @@ void set_backend_worker_error_handler(backend_worker_error_handler_t backend_wor
 }
 
 /***/
-Handler* stdout_handler()
+Handler* stdout_handler(std::string const& stdout_handler_name /* = "stdout" */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stdout_streamhandler();
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stdout_streamhandler(
+    stdout_handler_name);
 }
 
 /***/
-Handler* stderr_handler()
+Handler* stderr_handler(std::string const& stderr_handler_name /* = "stdout" */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stderr_streamhandler();
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stderr_streamhandler(
+    stderr_handler_name);
 }
 
 /***/

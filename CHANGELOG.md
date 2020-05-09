@@ -22,7 +22,7 @@
 -  The backend logging thread will now copy all messages from the SPSC queue to a local priority queue. This keeps the SPSC less empty avoiding a potential allocation on the hot path.
 -  `std::string_view` is now promoted to `std::string` to take a deep copy
 -  The queue capacity has been moved from `config` to `Tweakme.h`.
-
+-  Multiple formats patterns support for `stdout` and `stderr` handlers. See [example_stdout_multiple_formatters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_formatter.cpp)
 ## v1.2.3
 -  CMake changes to support package installation in conan.
 

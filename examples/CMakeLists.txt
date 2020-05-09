@@ -7,6 +7,9 @@ target_link_libraries(example_trivial quill)
 add_executable(example_logging_to_file example_logging_to_file.cpp)
 target_link_libraries(example_logging_to_file quill)
 
+add_executable(example_stdout_multiple_formatters example_stdout_multiple_formatters.cpp)
+target_link_libraries(example_stdout_multiple_formatters quill)
+
 add_executable(example_custom_formatter example_custom_formatter.cpp)
 target_link_libraries(example_custom_formatter quill)
 

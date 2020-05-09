@@ -1,8 +1,10 @@
 #include "quill/detail/HandlerCollection.h"
+#include "quill/detail/misc/Utilities.h"        // for s2ws
 #include "quill/handlers/DailyFileHandler.h"    // for DailyFileHandler
 #include "quill/handlers/FileHandler.h"         // for FileHandler, Filenam...
 #include "quill/handlers/RotatingFileHandler.h" // for RotatingFileHandler
 #include <algorithm>                            // for find_if
+#include <cstdio>                               // for stdout,stderr
 #include <mutex>                                // for lock_guard
 #include <utility>                              // for pair
 
@@ -11,22 +13,22 @@ namespace quill
 namespace detail
 {
 /***/
-StreamHandler* HandlerCollection::stdout_streamhandler()
+StreamHandler* HandlerCollection::stdout_streamhandler(std::string const& stdout_handler_name /* = std::string{"stdout"} */)
 {
 #if defined(_WIN32)
-  return _create_streamhandler(std::wstring{L"stdout"});
+  return _create_streamhandler(s2ws(stdout_handler_name), stdout);
 #else
-  return _create_streamhandler(std::string{"stdout"});
+  return _create_streamhandler(stdout_handler_name, stdout);
 #endif
 }
 
 /***/
-StreamHandler* HandlerCollection::stderr_streamhandler()
+StreamHandler* HandlerCollection::stderr_streamhandler(std::string const& stderr_handler_name /* = std::string{"stderr"} */)
 {
 #if defined(_WIN32)
-  return _create_streamhandler(std::wstring{L"stderr"});
+  return _create_streamhandler(s2ws(stderr_handler_name), stderr);
 #else
-  return _create_streamhandler(std::string{"stderr"});
+  return _create_streamhandler(stderr_handler_name, stderr);
 #endif
 }
 
@@ -132,7 +134,7 @@ std::vector<Handler*> HandlerCollection::active_handlers() const
 }
 
 /***/
-StreamHandler* HandlerCollection::_create_streamhandler(filename_t const& stream)
+StreamHandler* HandlerCollection::_create_streamhandler(filename_t const& stream, FILE* file)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};
@@ -147,7 +149,8 @@ StreamHandler* HandlerCollection::_create_streamhandler(filename_t const& stream
   }
 
   // if first time add it
-  auto emplace_result = _file_handler_collection.emplace(stream, std::make_unique<StreamHandler>(stream));
+  auto emplace_result =
+    _file_handler_collection.emplace(stream, std::make_unique<StreamHandler>(stream, file));
 
   return (*emplace_result.first).second.get();
 }

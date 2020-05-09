@@ -40,13 +40,15 @@ public:
   HandlerCollection(HandlerCollection const&) = delete;
   HandlerCollection& operator=(HandlerCollection const&) = delete;
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stdout_streamhandler();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stdout_streamhandler(
+    std::string const& stdout_handler_name = std::string{"stdout"});
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_streamhandler();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_streamhandler(
+    std::string const& stderr_handler_name = std::string{"stderr"});
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(filename_t const& filename,
-                                                                   std::string const& mode = std::string{"a"},
-                                                                   FilenameAppend append_to_filename = FilenameAppend::None);
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(
+    filename_t const& filename, std::string const& mode = std::string{"a"},
+    FilenameAppend append_to_filename = FilenameAppend::None);
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* daily_file_handler(filename_t const& base_filename,
                                                                          std::chrono::hours rotation_hour,
@@ -77,7 +79,7 @@ public:
   // list Check if no other logger is using it first
 
 private:
-  QUILL_NODISCARD StreamHandler* _create_streamhandler(filename_t const& stream);
+  QUILL_NODISCARD StreamHandler* _create_streamhandler(filename_t const& stream, FILE* file);
 
 private:
   /**

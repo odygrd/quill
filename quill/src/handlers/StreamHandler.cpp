@@ -6,7 +6,8 @@
 namespace quill
 {
 /***/
-StreamHandler::StreamHandler(filename_t stream) : _filename(std::move(stream))
+StreamHandler::StreamHandler(filename_t stream, FILE* file /* = nullptr */)
+  : _filename(std::move(stream)), _file(file)
 {
   // reserve stdout and stderr as filenames
 #if defined(_WIN32)
