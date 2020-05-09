@@ -39,69 +39,74 @@ constexpr void check_format(const S& format_str, Args&&...)
 
 // Main Log Macros
 // clang-format off
-#define QUILL_LOGGER_CALL(logger, log_statement_level, fmt, ...) do {                                                                                \
+#define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ...) do {                                                                    \
     check_format(FMT_STRING(fmt), ##__VA_ARGS__);                                                                                                    \
+                                                                                                                                                     \
     static constexpr char const* function_name = __FUNCTION__;                                                                                       \
     struct {                                                                                                                                         \
-      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                                                                     \
-        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, log_statement_level}; }                   \
+      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                                                                       \
+        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, log_statement_level}; }                     \
       } anonymous_log_record_info;                                                                                                                   \
-    logger->log<log_statement_level, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                            \
+                                                                                                                                                     \
+    if (likelyhood(logger->should_log<log_statement_level>()))                                                                                       \
+    {                                                                                                                                                \
+      logger->log<decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                                                 \
+    }                                                                                                                                                \
   } while (0)
 // clang-format on
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L3
   #define LOG_TRACE_L3(logger, fmt, ...)                                                           \
-    QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 #else
   #define LOG_TRACE_L3(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L2
   #define LOG_TRACE_L2(logger, fmt, ...)                                                           \
-    QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 #else
   #define LOG_TRACE_L2(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L1
   #define LOG_TRACE_L1(logger, fmt, ...)                                                           \
-    QUILL_LOGGER_CALL(logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 #else
   #define LOG_TRACE_L1(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_DEBUG
   #define LOG_DEBUG(logger, fmt, ...)                                                              \
-    QUILL_LOGGER_CALL(logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
 #else
   #define LOG_DEBUG(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_INFO
   #define LOG_INFO(logger, fmt, ...)                                                               \
-    QUILL_LOGGER_CALL(logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
 #else
   #define LOG_INFO(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_WARNING
   #define LOG_WARNING(logger, fmt, ...)                                                            \
-    QUILL_LOGGER_CALL(logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
 #else
   #define LOG_WARNING(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_ERROR
   #define LOG_ERROR(logger, fmt, ...)                                                              \
-    QUILL_LOGGER_CALL(logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
 #else
   #define LOG_ERROR(logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_CRITICAL
   #define LOG_CRITICAL(logger, fmt, ...)                                                           \
-    QUILL_LOGGER_CALL(logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
 #else
   #define LOG_CRITICAL(logger, fmt, ...) (void)0
 #endif

@@ -90,81 +90,21 @@ public:
    * @param log_line_info log line info pointer
    * @param fmt_args format arguments
    */
-  template <LogLevel log_statement_level, typename TLogRecordInfo, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT
-    typename std::enable_if_t<(log_statement_level == LogLevel::TraceL3 || log_statement_level == LogLevel::TraceL2 ||
-                               log_statement_level == LogLevel::TraceL1 || log_statement_level == LogLevel::Debug),
-                              void>
-    log(FmtArgs&&... fmt_args)
+  template <typename TLogRecordMetadata, typename... FmtArgs>
+  QUILL_ALWAYS_INLINE_HOT void log(FmtArgs&&... fmt_args)
   {
-    // it is usually likely we will not log those levels
-    if (QUILL_LIKELY(!should_log<log_statement_level>()))
-    {
-      return;
-    }
-
     static_assert(
       detail::is_all_tuple_copy_constructible<FmtArgs...>::value,
       "The type must be copy constructible. If the type can not be copy constructed it must"
       "be converted to string on the caller side.");
 
     // Resolve the type of the record first
-    using log_record_t = quill::detail::LogRecord<TLogRecordInfo, FmtArgs...>;
+    using log_record_t = quill::detail::LogRecord<TLogRecordMetadata, FmtArgs...>;
 
 #if !defined(QUILL_MODE_UNSAFE)
     static_assert(detail::is_copyable_v<typename log_record_t::RealTupleT>,
                   "Trying to copy an unsafe to copy type. Either tag the object with as copy "
-                  "loggable or explictly format to string before logging.");
-#endif
-
-#if defined(QUILL_USE_BOUNDED_QUEUE)
-    // emplace to the spsc queue owned by the ctx
-    if (QUILL_UNLIKELY(!_thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(
-          std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...)))
-    {
-      // not enough space to push to queue message is dropped
-      _thread_context_collection.local_thread_context()->increment_dropped_message_counter();
-    }
-#else
-    // emplace to the spsc queue owned by the ctx
-    _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(
-      std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
-#endif
-  }
-
-  /**
-   * Push a log record to the spsc queue to be logged by the backend thread.
-   * One queue per caller thread.
-   * We have this enable_if to use unlikely since no if constexpr in C++14
-   * @note This function is thread-safe.
-   * @param log_line_info log line info pointer
-   * @param fmt_args format arguments
-   */
-  template <LogLevel log_statement_level, typename TLogRecordInfo, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT
-    typename std::enable_if_t<(log_statement_level == LogLevel::Info || log_statement_level == LogLevel::Warning ||
-                               log_statement_level == LogLevel::Error || log_statement_level == LogLevel::Critical),
-                              void>
-    log(FmtArgs&&... fmt_args)
-  {
-    // it is usually unlikely we will not log those levels
-    if (QUILL_UNLIKELY(!should_log<log_statement_level>()))
-    {
-      return;
-    }
-
-    static_assert(
-      detail::is_all_tuple_copy_constructible<FmtArgs...>::value,
-      "The type must be copy constructible. If the type can not be copy constructed it must"
-      "be converted to string on the caller side.");
-
-    // Resolve the type of the record first
-    using log_record_t = quill::detail::LogRecord<TLogRecordInfo, FmtArgs...>;
-
-#if !defined(QUILL_MODE_UNSAFE)
-    static_assert(detail::is_copyable_v<typename log_record_t::RealTupleT>,
-                  "Trying to copy an unsafe to copy type. Either tag the object with as copy "
-                  "loggable or explictly format to string before logging.");
+                  "loggable or explicitly format to string before logging.");
 #endif
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)
