@@ -2,10 +2,6 @@ language: cpp
 dist: trusty
 python:
   - "3.8"
-
-addons:
-  sonarcloud:
-    organization: "odygrd"
     
 matrix:
   include:
@@ -17,7 +13,9 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-9, cmake, cmake-data]
-
+        sonarcloud:
+          organization: "odygrd"
+    
     - name: 'Linux Gcc C++17 Release With Valgrind'
       os: linux
       compiler: gcc
