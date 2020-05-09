@@ -114,7 +114,7 @@ public:
   std::int32_t get_y() const override { return 0; }
   double get_z() const override { return z; }
   std::vector<int> get_vec() const override { return v; }
-  virtual size_t size() const noexcept override { return sizeof(*this); }
+  size_t size() const noexcept override { return sizeof(*this); }
 
 private:
   double z;
@@ -130,7 +130,7 @@ public:
   std::int32_t get_x() const override { return x; }
   std::int32_t get_y() const override { return y; }
   double get_z() const override { return z; }
-  virtual size_t size() const noexcept override { return sizeof(*this); }
+  size_t size() const noexcept override { return sizeof(*this); }
 
 private:
   uint32_t x;

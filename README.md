@@ -7,17 +7,20 @@
 
   <div>
     <a href="https://travis-ci.org/odygrd/quill">
-      <img src="https://img.shields.io/travis/odygrd/quill?logo=travis&style=flat-square" alt="travis-ci" />
+      <img src="https://img.shields.io/travis/odygrd/quill?logo=travis&style=flat-square" alt="Travis-ci" />
     </a>
     <a href="https://ci.appveyor.com/project/odygrd/quill/branch/master">
-      <img src="https://img.shields.io/appveyor/ci/odygrd/quill?logo=appveyor&style=flat-square" alt="appveyor-ci" />
+      <img src="https://img.shields.io/appveyor/ci/odygrd/quill?logo=appveyor&style=flat-square" alt="Appveyor-ci" />
     </a>
     <a href="https://codecov.io/gh/odygrd/quill">
-      <img src="https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov&style=flat-square" alt="codecov" />
+      <img src="https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov&style=flat-square" alt="Codecov" />
     </a>
     <a href="https://www.codacy.com/manual/odygrd/quill?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=odygrd/quill&amp;utm_campaign=Badge_Grade">
-      <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-square" alt="codacy" />
+      <img src="https://img.shields.io/codacy/grade/cd387bc34658475d98bff84db3ad5287?logo=codacy&style=flat-square" alt="Codacy" />
     </a>
+    <a href="https://www.codefactor.io/repository/github/odygrd/quill">
+      <img src="https://img.shields.io/codefactor/grade/github/odygrd/quill?logo=codefactor&style=flat-square" alt="CodeFactor" />
+     </a>
   </div>
  
   <div>
