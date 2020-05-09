@@ -33,23 +33,7 @@ public:
   explicit QuillError(std::string s) : _error(std::move(s)) {}
   explicit QuillError(char const* s) : _error(s) {}
 
-  QuillError(QuillError const& other) noexcept : _error(other._error) {}
-
-  QuillError& operator=(const QuillError& other) noexcept
-  {
-    // check for self-assignment
-    if (&other == this)
-    {
-      return *this;
-    }
-    _error = other._error;
-    return *this;
-  }
-
-  ~QuillError() override = default;
-
   char const* what() const noexcept override { return _error.data(); }
-
 private:
   std::string _error;
 };

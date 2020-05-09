@@ -52,6 +52,12 @@ private:
     explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection);
 
     /**
+     * Deleted
+     */
+    ThreadContextWrapper(ThreadContextWrapper const&) = delete;
+    ThreadContextWrapper& operator=(ThreadContextWrapper const&) = delete;
+
+    /**
      * Destructor
      * Invalidates the thread context on the thread destruction but the ThreadContext is not
      * destroyed yet as ownership is shared

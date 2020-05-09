@@ -50,6 +50,12 @@ public:
                 HandlerCollection const& handler_collection);
 
   /**
+   * Deleted
+   */
+  BackendWorker(BackendWorker const&) = delete;
+  BackendWorker& operator=(BackendWorker const&) = delete;
+
+  /**
    * Destructor
    */
   ~BackendWorker();
@@ -115,7 +121,7 @@ private:
    * rdtsc time or nanoseconds since epoch based on #if !defined(QUILL_CHRONO_CLOCK) definition
    * @return a timestamp in nanoseconds since epoch
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::chrono::nanoseconds _get_real_timestamp(RecordBase* log_record) const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::chrono::nanoseconds _get_real_timestamp(RecordBase const* log_record) const noexcept;
 
   /**
    * Check for dropped messages - only when bounded queue is used
@@ -325,7 +331,7 @@ void BackendWorker::_main_loop()
 }
 
 /***/
-std::chrono::nanoseconds BackendWorker::_get_real_timestamp(RecordBase* log_record) const noexcept
+std::chrono::nanoseconds BackendWorker::_get_real_timestamp(RecordBase const* log_record) const noexcept
 {
 #if !defined(QUILL_CHRONO_CLOCK)
 
