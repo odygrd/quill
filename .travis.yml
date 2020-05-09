@@ -127,7 +127,7 @@ script:
       -DQUILL_BUILD_EXAMPLES=ON \
       -DQUILL_VERBOSE_MAKEFILE=ON
 
-  - if [[ "$SONAR" == "OFF" ]]; then cmake --build . ; else - build-wrapper-linux-x86-64 --out-dir bw-output cmake --build . ; fi
+  - if [[ "$SONAR" == "OFF" ]]; then cmake --build . ; else build-wrapper-linux-x86-64 --out-dir bw-output cmake --build . ; fi
   - if [[ "$SONAR" == "ON" ]]; then sonar-scanner -Dsonar.cfamily.build-wrapper-output=bw-output; fi
 
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
