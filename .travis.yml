@@ -128,7 +128,9 @@ script:
   
   - if [[ "$SONAR" == "OFF" ]]; then cmake --build build/ ; else build-wrapper-linux-x86-64 --out-dir bw-output cmake --build build/ ; fi
   - if [[ "$SONAR" == "ON" ]]; then sonar-scanner -Dsonar.cfamily.build-wrapper-output=bw-output; fi
-
+  
+  - cd build
+  
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else if [[ "$CODE_COVERAGE" == "ON" ]]; then make coverage; else ctest --verbose; fi fi
 
