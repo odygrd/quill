@@ -42,7 +42,8 @@ inline void wait(std::chrono::nanoseconds min, std::chrono::nanoseconds max)
 #ifdef PERF_ENABLED
 /***/
 inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iteration,
-                              std::function<void()> on_thread_start, std::function<void()> log_func,
+                              std::function<void()> on_thread_start,
+                              std::function<void(uint64_t, uint64_t, double)> log_func,
                               std::function<void()> on_thread_exit, size_t current_thread_num)
 {
   // running thread affinity
@@ -54,10 +55,12 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
   // Main Benchmark
   for (size_t iteration = 0; iteration < num_iterations; ++iteration)
   {
+    double const d = iteration + (0.1 * iteration);
+
     auto const start = __rdtscp(&aux);
     for (size_t i = 0; i < messages_per_iteration; ++i)
     {
-      log_func();
+      log_func(iteration, i, d);
     }
     auto const end = __rdtscp(&aux);
 
@@ -70,7 +73,8 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 #else
 /***/
 inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iteration,
-                              std::function<void()> const& on_thread_start, std::function<void()> const& log_func,
+                              std::function<void()> const& on_thread_start,
+                              std::function<void(uint64_t, uint64_t, double)> const& log_func,
                               std::function<void()> const& on_thread_exit, uint16_t current_thread_num,
                               std::vector<uint64_t>& latencies, double rdtsc_ticks_per_ns)
 {
@@ -83,10 +87,12 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
   // Main Benchmark
   for (size_t iteration = 0; iteration < num_iterations; ++iteration)
   {
+    double const d = iteration + (0.1 * iteration);
+
     auto const start = __rdtscp(&aux);
     for (size_t i = 0; i < messages_per_iteration; ++i)
     {
-      log_func();
+      log_func(iteration, i, d);
     }
     auto const end = __rdtscp(&aux);
 
@@ -104,7 +110,8 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 /***/
 inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size_t num_iterations,
                           size_t messages_per_iteration, std::function<void()> const& on_thread_start,
-                          std::function<void()> const& log_func, std::function<void()> const& on_thread_exit)
+                          std::function<void(uint64_t, uint64_t, double)> const& log_func,
+                          std::function<void()> const& on_thread_exit)
 {
   // main thread affinity
   quill::detail::set_cpu_affinity(0);

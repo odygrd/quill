@@ -10,7 +10,8 @@
 #include "quill/Quill.h"
 
 /***/
-void quill_benchmark(std::vector<int32_t> thread_count_array, size_t num_iterations_per_thread, size_t messages_per_iteration)
+void quill_benchmark(std::vector<int32_t> const& thread_count_array,
+                     size_t num_iterations_per_thread, size_t messages_per_iteration)
 {
   std::remove("quill_call_site_latency_percentile_linux_benchmark.log");
 
@@ -27,8 +28,7 @@ void quill_benchmark(std::vector<int32_t> thread_count_array, size_t num_iterati
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
   // Create a file handler to write to a file
-  quill::Handler* file_handler =
-    quill::file_handler("quill_call_site_latency_percentile_linux_benchmark.log", "w");
+  quill::Handler* file_handler = quill::file_handler("quill_hot_path_system_clock.log", "w");
 
   quill::Logger* logger = quill::create_logger("bench_logger", file_handler);
 
@@ -46,16 +46,12 @@ void quill_benchmark(std::vector<int32_t> thread_count_array, size_t num_iterati
   };
 
   // on main
-  auto log_func = [logger]() {
+  auto log_func = [logger](uint64_t k, uint64_t i, double d) {
     // Main logging function
     // This will get called MESSAGES_PER_ITERATION * ITERATIONS for each caller thread.
     // MESSAGES_PER_ITERATION will get averaged to a single number
 
-    // don't capture by reference as it will be accessed by all threads
-    int j;
-    int i;
-    double d;
-    LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", j, i, d);
+    LOG_INFO(logger, "Logging iteration: {}, message: {}, double: {}", k, i, d);
   };
 
   /** ALWAYS REQUIRED **/
