@@ -39,4 +39,10 @@ int main()
   LOG_INFO(logger_bar, "The logger is using stdout_handler_2");
   LOG_INFO(logger_bar, "Logging from {}", "logger_bar");
   LOG_INFO(logger_foo, "Logging from {}", "logger_foo");
+
+  // Retrieve existing pattern to create a new logger
+  quill::Handler* stdout_handler_3 = quill::stdout_handler("stdout_1");
+  quill::Logger* logger_foo_2 = quill::create_logger("logger_foo_2", stdout_handler_3);
+  LOG_INFO(logger_foo_2, "The logger is using stdout_handler_1");
+  LOG_INFO(logger_foo_2, "Logging from {}", "logger_foo_2");
 }
