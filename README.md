@@ -135,7 +135,7 @@ However :
 2) Need to specify the type we are logging for each call to the logger.
 3) To log any user defined type or a something like ```std::vector``` via `NanoLog` you would first have to convert it to a string in the hot path.  Instead, Quill copies the object and covertion to string is performed by the backend thread.
 
-`Quill` Quill backend is not as high throughput as `NanoLog` as it doesn't log binary. In terms of latency it is almost as fast as `Nanolog`. It is much more feature rich with custom formatting, several logger objects, human readable log files and a superior format API that also supports user-defined types.
+`Quill` backend is not as high throughput as `NanoLog` as it doesn't log binary. In terms of latency it is almost as fast as `Nanolog`. `Quill` is much more feature rich offering custom formatting, several logger objects, human readable log files and a superior format API that also supports user-defined types.
 
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
