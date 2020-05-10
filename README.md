@@ -86,46 +86,56 @@ The main goals of the library are:
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
 |--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill](https://github.com/odygrd/quill)   |  25  |  26  |  52  |  57  |  66  |  117  |  1600  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)   |  25  |  27  |  29  |  55  |  70  |  108  |  1702  |
-|[MS BinLog](https://github.com/Morgan-Stanley/binlog)   |  41  |  43  |  49  |  86  |  129  |  1156  |  2979  |
-|[Reckless](https://github.com/mattiasflodin/reckless)          |  176  |  202  |  230  |  260  |  331  |  407  |  608480978  |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  167  |  172  |  182  |  1097  |  1230  |  2515  |  473816  |
-|[spdlog](https://github.com/gabime/spdlog)                     |  1676  |  1753  |  1818  |  1883  |  2980  |  3665  |  12644  |
-|[g3log](https://github.com/KjellKod/g3log)                     |  2798  |  2966  |  4270  |  4976  |  6359  |  8771  |  13862  |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)   |  13  |  15  |  16  |  17  |  18  |  21  |  93  |
+|[Quill v1.3.0 Bounded Queue](https://github.com/odygrd/quill)    |  14  |  17  |  20  |  22  |  27  |  39  |  211  |
+|[Quill v1.3.0 Unbounded Queue](https://github.com/odygrd/quill)   |  16  |  18  |  21  |  23  |  28  |  41  |  185  |
+|[MS BinLog](https://github.com/Morgan-Stanley/binlog)   |  30  |  33  |  34  |  34  |  39  |  92  |  227  |
+|[Reckless](https://github.com/mattiasflodin/reckless)          |  70  |  76  |  81  |  84  |  91  |  135  |  5649209  |
+|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)       |  72  |  75  |  79  |  123  |  173  |  264  |  34295  |
+|[spdlog](https://github.com/gabime/spdlog)                     |  522  |  589  |  656  |  698  |  783  |  907  |  1595  |
+|[g3log](https://github.com/KjellKod/g3log)                     |  2705  |  2850  |  2991  |  3085  |  3279  |  3530  |  3949  |
 #### 4 Threads
 
 | Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
 |--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill](https://github.com/odygrd/quill)   |  25  |  27  |  55  |  63  |  100  |  155  |  3828  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)   |  25  |  27  |  38  |  55  |  93  |  167  |  2451  |
-|[MS BinLog](https://github.com/Morgan-Stanley/binlog)   |  41  |  45  |  79  |  105  |  158  |  1183  |  4392  |
-|[Reckless](https://github.com/mattiasflodin/reckless)   |  247  |  355  |  563  |  696  |  1021  |  1720  |  1281074  |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)   |  259  |  320  |  1129  |  1364  |  1806  |  3648  |  53129  |
-|[spdlog](https://github.com/gabime/spdlog)                 |  1327  |  2012  |  2693  |  3538  |  6011  |  8932  |  17584  |
-|[g3log](https://github.com/KjellKod/g3log)                 |  1685  |  2456  |  3747  |  5086  |  9896  |  16366  |  46392  |
+|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)   |  13  |  15  |  16  |  17  |  18  |  21  |  150  |
+|[Quill v.1.30 Bounded Queue](https://github.com/odygrd/quill)   |  13  |  16  |  19  |  21  |  27  |  50  |  214  |
+|[Quill v.1.30 Unbounded Queue](https://github.com/odygrd/quill)   |  14  |  18  |  21  |  23  |  31  |  87  |  1377  |
+|[MS BinLog](https://github.com/Morgan-Stanley/binlog)    |  30  |  33  |  34  |  35  |  42  |  90  |  203  |
+|[Reckless](https://github.com/mattiasflodin/reckless)   |  99  |  103  |  106  |  109  |  134  |  343  |  31535706  |
+|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)   |  72  |  125  |  159  |  176  |  219  |  321  |  11402  |
+|[spdlog](https://github.com/gabime/spdlog)                 |  538  |  616  |  700  |  757  |  912  |  1116  |  1592  |
+|[g3log](https://github.com/KjellKod/g3log)                 |  2637  |  2792  |  2932  |  3021  |  3214  |  3485  |  4025  |
 
 
-The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1.  
-The following message is logged 100'000 times per thread  
-```LOG_INFO(logger, "Logging str: {}, int: {}, double: {}", str, i, d)```  
+The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1.
+
+Each thread is pinned on a different cpu. Note that running the backend logger thread in the same CPU as the caller threads, slows down the log message processing and will cause Quill's queue to fill faster performing a new allocation. Therefore, you will see bigger worst latencies.
+
+The following message is logged 2'000'000 times per thread  
+```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```  
 all reported latencies are in nanoseconds.  
 
-Each thread is pinned on a different cpu. Note that running the backend logger thread in the same CPU as the caller threads, slows down the log messaage processing and will cause Quill's queue to fill faster performing a new allocation. Therefore, you will see bigger worst latencies.
+Continuously Logging messages in a loop makes the consumer (hackend logging thread) unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog.
+Therefore, a different approach was followed that suits more to a real time application:
+1. 20 messages are logged in a loop.
+2. calculate/store the average latency for those messages.
+3. wait between 1-2 ms.
+4. repeat for n iterations.
 
-Logging messages in a loop will make the consumer unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog. 
-Therefore, a different approach was followed that suits more to a real time application - a log message per caller thread is logged between 1 to 3 microseconds.
-
-I ran each logger benchmark three times and the above latencies are the second best result.
-
-### Verdict
-PlatformLab NanoLog is a very fast logger with very low latency and high throughput. However, this comes at the cost of having to decompress a binary file and the use of a non-type safe printf API where only primitive times can be passed. 
-e.g. To log a custom type or a ```std::vector``` via NanoLog you would first have to convert it to a string in the caller thread suffering a performance loss. Instead, Quill copies the object and any string formatting is performed by the backend thread
-
-Quill is not as high throughput as NanoLog but in terms of latency it is faster than NanoLog in almost every case. It is much more feature rich with custom formatting, several logger objects, human readable log files and a most importantly a superior format API with custom types support.
+I run each logger benchmark four times and the above latencies are the second best result.
 
 The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).  
-More benchmarks can be found [here](https://github.com/odygrd/logger_benchmarks/blob/master/results_thread_affinity_set.txt).
+More benchmarks results (bench_results_*.txt) can be found [here](https://github.com/odygrd/logger_benchmarks).
+
+### Verdict
+If you want to use a `printf` API and only log primitive types, `PlatformLab NanoLog` is the fastest logger with the lowest latencies and high throughput. 
+However :
+1) Need to decompress a binary log file to read log each time.
+2) Need to specify the type we are logging for each call to the logger.
+3) To log any user defined type or a something like ```std::vector``` via `NanoLog` you would first have to convert it to a string in the hot path.  Instead, Quill copies the object and covertion to string is performed by the backend thread.
+
+`Quill` Quill backend is not as high throughput as `NanoLog` as it doesn't log binary. In terms of latency it is almost as fast as `Nanolog`. It is much more feature rich with custom formatting, several logger objects, human readable log files and a superior format API that also supports user-defined types.
 
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
