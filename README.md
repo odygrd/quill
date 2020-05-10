@@ -129,7 +129,7 @@ The benchmark code can be found [here](https://github.com/odygrd/logger_benchmar
 More benchmarks results (bench_results_*.txt) can be found [here](https://github.com/odygrd/logger_benchmarks).
 
 ### Verdict
-If you want to use a `printf` API and only log primitive types, `PlatformLab NanoLog` is the fastest logger with the lowest latencies and high throughput. 
+If you want to use a `printf` API and only log primitive types, `PlatformLab NanoLog` is the fastest logger with the lowest latencies and high throughput when we look at 99th percentile. 
 However :
 1) Need to decompress a binary log file to read log each time.
 2) Need to specify the type we are logging for each call to the logger.
