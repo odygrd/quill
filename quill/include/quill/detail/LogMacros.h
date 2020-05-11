@@ -37,12 +37,23 @@ constexpr void check_format(const S& format_str, Args&&...)
   fmt::internal::check_format_string<std::remove_reference_t<Args>...>(format_str);
 }
 
+#if defined(__GNUC__)
+  /**
+   * versions of gcc < 9 don't not always have constexpr __FUNCTION__ (e.g. in nested lambdas)
+   */
+  #define QUILL_FUNCTION_NAME_DECLARATION()                                                        \
+    static constexpr char const* function_name = __builtin_constant_p(__FUNCTION__) ? __FUNCTION__ : "n/a";
+#else
+  #define QUILL_FUNCTION_NAME_DECLARATION()                                                        \
+    static constexpr char const* function_name = __FUNCTION__;
+#endif
+
 // Main Log Macros
 // clang-format off
 #define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ...) do {                                                                    \
     check_format(FMT_STRING(fmt), ##__VA_ARGS__);                                                                                                    \
                                                                                                                                                      \
-    static constexpr char const* function_name = __FUNCTION__;                                                                                       \
+    QUILL_FUNCTION_NAME_DECLARATION() /* declares function_name */                                                                                   \
     struct {                                                                                                                                         \
       constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                                                                       \
         return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, log_statement_level}; }                     \
