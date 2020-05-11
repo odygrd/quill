@@ -336,7 +336,14 @@ TEST(Quill, log_using_default_logger_multiple_stdout_formats)
     }
     else
     {
+
+#if defined(_WIN32)
+      std::string expected_string = "custom - Hello log num " + std::to_string(i) +
+        " (Quill_log_using_default_logger_multiple_stdout_formats_Test::TestBody)";
+#else
       std::string expected_string = "custom - Hello log num " + std::to_string(i) + " (TestBody)";
+#endif
+
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
         FAIL() << fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data();
@@ -363,9 +370,16 @@ TEST(Quill, log_using_stderr)
   quill::flush();
 
   std::string results = testing::internal::GetCapturedStderr();
+
+#if defined(_WIN32)
+  EXPECT_EQ(results,
+            "log_using_stderr - Hello log stderr (TestBody)\nlog_using_stderr - Hello log stderr "
+            "again (Quill_log_using_stderr_Test::TestBody)\n");
+#else
   EXPECT_EQ(results,
             "log_using_stderr - Hello log stderr (TestBody)\nlog_using_stderr - Hello log stderr "
             "again (TestBody)\n");
+#endif
 }
 
 /***/
@@ -393,8 +407,18 @@ TEST(Quill, log_to_multiple_handlers_from_same_logger)
   std::string results_handler_1 = testing::internal::GetCapturedStderr();
   std::string results_handler_2 = testing::internal::GetCapturedStdout();
 
+#if defined(_WIN32)
+  EXPECT_EQ(results_handler_1,
+            "log_multi_handlers - Hello log multiple handlers "
+            "(Quill_log_to_multiple_handlers_from_same_logger_Test::TestBody)\n");
+  EXPECT_EQ(results_handler_2,
+            "log_multi_handlers - Hello log multiple handlers "
+            "(Quill_log_to_multiple_handlers_from_same_logger_Test::TestBody)\n");
+#else
   EXPECT_EQ(results_handler_1, "log_multi_handlers - Hello log multiple handlers (TestBody)\n");
   EXPECT_EQ(results_handler_2, "log_multi_handlers - Hello log multiple handlers (TestBody)\n");
+
+#endif
 }
 
 /***/
