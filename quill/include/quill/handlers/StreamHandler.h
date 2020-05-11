@@ -17,6 +17,13 @@ namespace quill
 class StreamHandler : public Handler
 {
 public:
+  enum class StreamHandlerType
+  {
+    Stdout,
+    Stderr,
+    File
+  };
+
   /**
    * Constructor
    * Uses the default pattern formatter
@@ -32,7 +39,8 @@ public:
    * @param formatted_log_record input log record to write
    * @param log_record_timestamp log record timestamp
    */
-  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds log_record_timestamp) override;
+  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record,
+                                 std::chrono::nanoseconds log_record_timestamp) override;
 
   /**
    * Flushes the stream
@@ -40,6 +48,11 @@ public:
   void flush() noexcept override;
 
   QUILL_NODISCARD virtual filename_t const& filename() const noexcept;
+
+  /**
+   * @return stdout, stderr or file based on FILE*
+   */
+  QUILL_NODISCARD StreamHandlerType stream_handler_type() const noexcept;
 
 protected:
   filename_t _filename;

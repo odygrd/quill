@@ -43,4 +43,21 @@ void StreamHandler::flush() noexcept { fflush(_file); }
 
 /***/
 filename_t const& StreamHandler::filename() const noexcept { return _filename; }
+
+/***/
+StreamHandler::StreamHandlerType StreamHandler::stream_handler_type() const noexcept
+{
+  if (_file == stdout)
+  {
+    return StreamHandler::StreamHandlerType::Stdout;
+  }
+  else if (_file == stderr)
+  {
+    return StreamHandler::StreamHandlerType::Stderr;
+  }
+  else
+  {
+    return StreamHandler::StreamHandlerType::File;
+  }
+}
 } // namespace quill

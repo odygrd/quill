@@ -16,6 +16,9 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 {
   // Start the logging backend thread
   quill::start();
+  quill::config::set_backend_thread_cpu_affinity(0);
+  quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{200});
+  quill::config::set_backend_thread_name("backend");
 
   std::vector<std::thread> threads;
 
@@ -278,5 +281,144 @@ TEST(Quill, log_using_daily_file_handler)
   quill::detail::file_utilities::remove(expected_filename);
   quill::detail::file_utilities::remove(expected_filename);
   quill::detail::file_utilities::remove(expected_filename);
+#endif
+}
+
+/***/
+TEST(Quill, log_using_default_logger_multiple_stdout_formats)
+{
+  // Tests the logging in stdcout and also multiple stdcout formats
+  quill::start();
+
+  testing::internal::CaptureStdout();
+
+  quill::Handler* stdout_custom_handler = quill::stdout_handler("stdout_custom_1");
+  stdout_custom_handler->set_pattern(
+    QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
+  quill::Logger* custom_logger = quill::create_logger("custom", stdout_custom_handler);
+
+  // log a few messages so we rotate files
+  for (uint32_t i = 0; i < 20; ++i)
+  {
+    if (i % 2 == 0)
+    {
+      LOG_INFO(quill::get_logger(), "Hello log num {}", i);
+    }
+    else
+    {
+      LOG_INFO(custom_logger, "Hello log num {}", i);
+    }
+  }
+
+  quill::flush();
+
+  // convert result to vector
+  std::string results = testing::internal::GetCapturedStdout();
+  std::stringstream data(results);
+
+  std::string line;
+  std::vector<std::string> result_arr;
+  while (std::getline(data, line, '\n'))
+  {
+    result_arr.push_back(line);
+  }
+
+  for (uint32_t i = 0; i < 20; ++i)
+  {
+    if (i % 2 == 0)
+    {
+      std::string expected_string =
+        "QuillLogTest.cpp:305 LOG_INFO     root - Hello log num " + std::to_string(i);
+      if (!quill::testing::file_contains(result_arr, expected_string))
+      {
+        FAIL() << fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data();
+      }
+    }
+    else
+    {
+      std::string expected_string = "custom - Hello log num " + std::to_string(i) + " (TestBody)";
+      if (!quill::testing::file_contains(result_arr, expected_string))
+      {
+        FAIL() << fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data();
+      }
+    }
+  }
+}
+
+/***/
+TEST(Quill, log_using_stderr)
+{
+  // Tests the logging in stdcout and also multiple stdcout formats. Also tests changing the default logger
+  quill::start();
+
+  testing::internal::CaptureStderr();
+
+  quill::Handler* stderr_handler = quill::stderr_handler("stderr_custom_1");
+  stderr_handler->set_pattern(QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
+  quill::Logger* custom_logger = quill::create_logger("log_using_stderr", stderr_handler);
+
+  LOG_INFO(custom_logger, "Hello log stderr");
+  LOG_INFO(custom_logger, "Hello log stderr again");
+
+  quill::flush();
+
+  std::string results = testing::internal::GetCapturedStderr();
+  EXPECT_EQ(results,
+            "log_using_stderr - Hello log stderr (TestBody)\nlog_using_stderr - Hello log stderr "
+            "again (TestBody)\n");
+}
+
+/***/
+TEST(Quill, log_to_multiple_handlers_from_same_logger)
+{
+  // test logging to two or more handlers from the same logger
+  quill::start();
+
+  testing::internal::CaptureStderr();
+  testing::internal::CaptureStdout();
+
+  quill::Handler* stderr_handler = quill::stderr_handler();
+  stderr_handler->set_pattern(QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
+
+  quill::Handler* stdout_handler = quill::stdout_handler();
+  stdout_handler->set_pattern(QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
+
+  // Create the new logger with multiple handlers
+  quill::Logger* custom_logger = quill::create_logger("log_multi_handlers", {stdout_handler, stderr_handler});
+
+  LOG_INFO(custom_logger, "Hello log multiple handlers");
+
+  quill::flush();
+
+  std::string results_handler_1 = testing::internal::GetCapturedStderr();
+  std::string results_handler_2 = testing::internal::GetCapturedStdout();
+
+  EXPECT_EQ(results_handler_1, "log_multi_handlers - Hello log multiple handlers (TestBody)\n");
+  EXPECT_EQ(results_handler_2, "log_multi_handlers - Hello log multiple handlers (TestBody)\n");
+}
+
+/***/
+TEST(Quill, invalid_handlers)
+{
+  quill::Handler* stderr_handler = quill::stderr_handler("stderr_handler");
+
+  // using the same name again ast stdouthandler
+  EXPECT_THROW(auto x1 = quill::stdout_handler("stderr_handler"), quill::QuillError);
+
+  quill::Handler* stdout_handler = quill::stdout_handler("stdout_handler");
+  // using the same name again ast stdouthandler
+  EXPECT_THROW(auto x2 = quill::stderr_handler("stdout_handler"), quill::QuillError);
+
+  static constexpr char const* filename = "invalid_handlers.log";
+  quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
+  // using the same handler again
+  EXPECT_THROW(auto x3 = quill::stderr_handler("invalid_handlers.log"), quill::QuillError);
+  EXPECT_THROW(auto x4 = quill::stdout_handler("invalid_handlers.log"), quill::QuillError);
+
+  // remove file
+#if defined(_WIN32)
+  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
+#else
+  quill::detail::file_utilities::remove(filename);
 #endif
 }

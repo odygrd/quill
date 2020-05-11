@@ -1,4 +1,5 @@
 #include "quill/detail/HandlerCollection.h"
+#include "quill/QuillError.h"                   // for QuillError
 #include "quill/detail/misc/Utilities.h"        // for s2ws
 #include "quill/handlers/DailyFileHandler.h"    // for DailyFileHandler
 #include "quill/handlers/FileHandler.h"         // for FileHandler, Filenam...
@@ -57,8 +58,7 @@ StreamHandler* HandlerCollection::file_handler(filename_t const& filename,
 }
 
 /***/
-StreamHandler* HandlerCollection::daily_file_handler(filename_t const& base_filename,
-                                                     std::chrono::hours rotation_hour,
+StreamHandler* HandlerCollection::daily_file_handler(filename_t const& base_filename, std::chrono::hours rotation_hour,
                                                      std::chrono::minutes rotation_minute)
 {
   // Protect shared access
@@ -145,6 +145,27 @@ StreamHandler* HandlerCollection::_create_streamhandler(filename_t const& stream
   // First search if we have it and don't call make_unique yet as this will call fopen
   if (search != _file_handler_collection.cend())
   {
+    // if the handler with that name was already created check that the user didn't try to create it
+    // again passing a different file
+    if (file == stdout && (search->second->stream_handler_type() != StreamHandler::StreamHandlerType::Stdout))
+    {
+      throw QuillError(
+        "Trying to insert an stdout handler again, but the handler already exists as a different "
+        "file. Use an unique stream_handler name");
+    }
+    else if (file == stderr && (search->second->stream_handler_type() != StreamHandler::StreamHandlerType::Stderr))
+    {
+      throw QuillError(
+        "Trying to insert an stderr handler again, but the handler already exists as a different "
+        "file. Use an unique stream_handler name");
+    }
+    else if (search->second->stream_handler_type() == StreamHandler::StreamHandlerType::File)
+    {
+      throw QuillError(
+        "Trying to insert an stdout/stderr handler, but the handler already exists. Use an unique "
+        "stream_handler name");
+    }
+
     return (*search).second.get();
   }
 
