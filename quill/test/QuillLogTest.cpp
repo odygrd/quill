@@ -282,7 +282,7 @@ TEST(Quill, log_using_daily_file_handler)
 }
 
 /***/
-TEST(Quill, log_using_default_logger_multiple_stdout_formats)
+TEST(Quill, log_using_multiple_stdout_formats)
 {
   // Tests the logging in stdcout and also multiple stdcout formats
   quill::start();
@@ -325,7 +325,7 @@ TEST(Quill, log_using_default_logger_multiple_stdout_formats)
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:305 LOG_INFO     root - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:302 LOG_INFO     root - Hello log num " + std::to_string(i);
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
         FAIL() << fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data();
@@ -336,7 +336,7 @@ TEST(Quill, log_using_default_logger_multiple_stdout_formats)
 
 #if defined(_WIN32)
       std::string expected_string = "custom - Hello log num " + std::to_string(i) +
-        " (Quill_log_using_default_logger_multiple_stdout_formats_Test::TestBody)";
+        " (Quill_log_using_multiple_stdout_formats_Test::TestBody)";
 #else
       std::string expected_string = "custom - Hello log num " + std::to_string(i) + " (TestBody)";
 #endif
