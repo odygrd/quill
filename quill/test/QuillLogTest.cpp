@@ -16,9 +16,6 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 {
   // Start the logging backend thread
   quill::start();
-  quill::config::set_backend_thread_cpu_affinity(0);
-  quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{200});
-  quill::config::set_backend_thread_name("backend");
 
   std::vector<std::thread> threads;
 
