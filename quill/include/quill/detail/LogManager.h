@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "quill/TweakMe.h"
+
 #include "quill/detail/BackendWorker.h"
 #include "quill/detail/Config.h"
 #include "quill/detail/HandlerCollection.h"

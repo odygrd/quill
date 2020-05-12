@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "quill/TweakMe.h"
+
 #include "quill/QuillError.h"                     // for QUILL_CATCH, QUILL...
 #include "quill/detail/BoundedSPSCQueue.h"        // for BoundedSPSCQueue<>...
 #include "quill/detail/Config.h"                  // for Config

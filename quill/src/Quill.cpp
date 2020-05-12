@@ -121,6 +121,15 @@ void set_default_logger_handler(std::initializer_list<Handler*> handlers)
 /***/
 void flush() { detail::LogManagerSingleton::instance().log_manager().flush(); }
 
+/***/
+#if !defined(QUILL_NO_EXCEPTIONS)
+void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler)
+{
+  detail::LogManagerSingleton::instance().log_manager().set_backend_worker_error_handler(
+    std::move(backend_worker_error_handler));
+}
+#endif
+
 // ** Config ** //
 namespace config
 {
@@ -141,15 +150,6 @@ void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) 
 {
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_sleep_duration(sleep_duration);
 }
-
-/***/
-#if !defined(QUILL_NO_EXCEPTIONS)
-void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler)
-{
-  detail::LogManagerSingleton::instance().log_manager().set_backend_worker_error_handler(
-    std::move(backend_worker_error_handler));
-}
-#endif
 
 } // namespace config
 

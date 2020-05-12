@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "quill/TweakMe.h"
+
 #include "quill/detail/BackendWorker.h"       // for backend_worker_error_h...
 #include "quill/detail/LogMacros.h"           // for filename_t
 #include "quill/detail/LogManager.h"          // for LogManager

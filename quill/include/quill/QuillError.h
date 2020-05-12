@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/TweakMe.h"
+
 #include "quill/detail/misc/Macros.h"
 #include <exception>
 #include <string>
