@@ -32,7 +32,6 @@ public:
    * Make a new LogRecord.
    * This is created by the caller every time we want to log a new message
    * To perfectly forward the argument we have to provide a templated contructor
-   * @param log_line_info log line info constexpr object
    * @param logger_details logger object details
    * @param fmt_args format arguments
    */

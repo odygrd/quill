@@ -87,7 +87,6 @@ public:
    * One queue per caller thread.
    * We have this enable_if to use unlikely since no if constexpr in C++14
    * @note This function is thread-safe.
-   * @param log_line_info log line info pointer
    * @param fmt_args format arguments
    */
   template <typename TLogRecordMetadata, typename... FmtArgs>

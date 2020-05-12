@@ -70,7 +70,7 @@ public:
 
   /**
    * Get the backend worker's thread id
-   * @return
+   * @return the backend worker's thread id
    */
   QUILL_NODISCARD uint32_t thread_id() const noexcept;
 
@@ -115,7 +115,6 @@ private:
 
   /**
    * Checks for records in all queues and processes the one with the minimum timestamp
-   * @return true if one record was found and processed
    */
   QUILL_ATTRIBUTE_HOT inline void _process_record();
 
@@ -127,7 +126,7 @@ private:
   /**
    * Convert a log record timestamp to a time since epoch timestamp in nanoseconds.
    *
-   * @param log_record_handle The log record timestamp is just an uint64 and it can be either
+   * @param log_record The log record timestamp is just an uint64 and it can be either
    * rdtsc time or nanoseconds since epoch based on #if !defined(QUILL_CHRONO_CLOCK) definition
    * @return a timestamp in nanoseconds since epoch
    */

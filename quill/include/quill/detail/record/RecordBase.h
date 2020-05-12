@@ -36,7 +36,7 @@ public:
 
   /**
    * Virtual clone
-   * @return
+   * @return a copy of record base
    */
   virtual std::unique_ptr<RecordBase> clone() const = 0;
 
