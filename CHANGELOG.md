@@ -23,6 +23,8 @@
 -  `std::string_view` is now promoted to `std::string` to take a deep copy
 -  The queue capacity has been moved from `config` to `Tweakme.h`.
 -  Multiple formats patterns support for `stdout` and `stderr` handlers. See [example_stdout_multiple_formatters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_formatter.cpp)
+-  Upgraded bundled libfmt to `6.2.1`
+
 ## v1.2.3
 -  CMake changes to support package installation in conan.
 
