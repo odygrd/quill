@@ -164,7 +164,7 @@ private:
   HandlerCollection const& _handler_collection;
 
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
-  std::atomic<uint32_t> _backend_worker_thread_id; /** cached backend worker thread id */
+  uint32_t _backend_worker_thread_id; /** cached backend worker thread id */
 
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
@@ -220,13 +220,13 @@ void BackendWorker::run()
 #endif
 
       // Cache this thread's id
-      _backend_worker_thread_id.store(get_thread_id(), std::memory_order_relaxed);
+      _backend_worker_thread_id = get_thread_id();
 
-      // All okay, set the backend worker thread status
-      _is_running.store(true, std::memory_order_relaxed);
+      // All okay, set the backend worker thread running flag
+      _is_running.store(true, std::memory_order_seq_cst);
 
       // Running
-      while (QUILL_LIKELY(is_running()))
+      while (QUILL_LIKELY(_is_running.load(std::memory_order_relaxed)))
       {
         // main loop
         QUILL_TRY { _main_loop(); }
@@ -253,7 +253,7 @@ void BackendWorker::run()
     // Move the worker ownership to our class
     _backend_worker_thread.swap(worker);
 
-    while (!is_running())
+    while (!_is_running.load(std::memory_order_seq_cst))
     {
       // wait for the thread to start
       std::this_thread::sleep_for(std::chrono::microseconds{100});
