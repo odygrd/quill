@@ -324,8 +324,15 @@ TEST(Quill, log_using_multiple_stdout_formats)
   {
     if (i % 2 == 0)
     {
+
+#if defined(_WIN32)
+      std::string expected_string = "QuillLogTest.cpp:302 LOG_INFO     root - Hello log num " +
+        std::to_string(i) + " (Quill_log_using_multiple_stdout_formats_Test::TestBody)";
+#else
       std::string expected_string =
         "QuillLogTest.cpp:302 LOG_INFO     root - Hello log num " + std::to_string(i);
+#endif
+
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
         FAIL() << fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data();
@@ -370,8 +377,8 @@ TEST(Quill, log_using_stderr)
 
 #if defined(_WIN32)
   EXPECT_EQ(results,
-            "log_using_stderr - Hello log stderr (TestBody)\nlog_using_stderr - Hello log stderr "
-            "again (Quill_log_using_stderr_Test::TestBody)\n");
+            "log_using_stderr - Hello log stderr (Quill_log_using_stderr_Test::TestBody)\n"
+            "log_using_stderr - Hello log stderr again (Quill_log_using_stderr_Test::TestBody)\n");
 #else
   EXPECT_EQ(results,
             "log_using_stderr - Hello log stderr (TestBody)\nlog_using_stderr - Hello log stderr "
