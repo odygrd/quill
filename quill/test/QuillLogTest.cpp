@@ -324,14 +324,8 @@ TEST(Quill, log_using_multiple_stdout_formats)
   {
     if (i % 2 == 0)
     {
-
-#if defined(_WIN32)
-      std::string expected_string = "QuillLogTest.cpp:302 LOG_INFO     root - Hello log num " +
-        std::to_string(i) + " (Quill_log_using_multiple_stdout_formats_Test::TestBody)";
-#else
       std::string expected_string =
         "QuillLogTest.cpp:302 LOG_INFO     root - Hello log num " + std::to_string(i);
-#endif
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
