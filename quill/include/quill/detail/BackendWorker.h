@@ -67,14 +67,6 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline bool is_running() const noexcept;
 
   /**
-   * Set up a custom error handler that will be used if the backend thread has any error.
-   * If no error handler is set, the default one will print to std::cerr
-   * @param error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
-   * @throws exception if it is called after the thread has started
-   */
-  QUILL_ATTRIBUTE_COLD void set_error_handler(backend_worker_error_handler_t error_handler);
-
-  /**
    * Starts the backend worker thread
    * @throws std::runtime_error, std::system_error on failures
    */
@@ -84,6 +76,16 @@ public:
    * Stops the backend worker thread
    */
   QUILL_ATTRIBUTE_COLD void stop() noexcept;
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+  /**
+   * Set up a custom error handler that will be used if the backend thread has any error.
+   * If no error handler is set, the default one will print to std::cerr
+   * @param error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
+   * @throws exception if it is called after the thread has started
+   */
+  QUILL_ATTRIBUTE_COLD void set_error_handler(backend_worker_error_handler_t error_handler);
+#endif
 
 private:
   /**
@@ -156,13 +158,16 @@ private:
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
 
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
-  backend_worker_error_handler_t _error_handler;     /** error handler for the backend thread */
 
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
   std::priority_queue<TransitLogRecord, std::vector<TransitLogRecord>, std::greater<>> _transit_log_records;
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+  backend_worker_error_handler_t _error_handler; /** error handler for the backend thread */
+#endif
 };
 
 /***/

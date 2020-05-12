@@ -21,12 +21,6 @@ void preallocate()
                                                  .capacity();
 }
 
-void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler)
-{
-  detail::LogManagerSingleton::instance().log_manager().set_backend_worker_error_handler(
-    std::move(backend_worker_error_handler));
-}
-
 /***/
 Handler* stdout_handler(std::string const& stdout_handler_name /* = "stdout" */)
 {
@@ -42,8 +36,7 @@ Handler* stderr_handler(std::string const& stderr_handler_name /* = "stdout" */)
 }
 
 /***/
-Handler* file_handler(filename_t const& filename,
-                      std::string const& mode, /* = std::string{} */
+Handler* file_handler(filename_t const& filename, std::string const& mode, /* = std::string{} */
                       FilenameAppend append_to_filename /* = FilenameAppend::None */)
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().file_handler(
@@ -51,7 +44,8 @@ Handler* file_handler(filename_t const& filename,
 }
 
 /***/
-Handler* daily_file_handler(filename_t const& base_filename, std::chrono::hours rotation_hour, std::chrono::minutes rotation_minute)
+Handler* daily_file_handler(filename_t const& base_filename, std::chrono::hours rotation_hour,
+                            std::chrono::minutes rotation_minute)
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().daily_file_handler(
     base_filename, rotation_hour, rotation_minute);
@@ -66,16 +60,14 @@ Handler* rotating_file_handler(filename_t const& base_filename, size_t max_bytes
 
 #if defined(_WIN32)
 /***/
-Handler* file_handler(std::string const& filename,
-                      std::string const& mode /* = std::string{} */,
+Handler* file_handler(std::string const& filename, std::string const& mode /* = std::string{} */,
                       FilenameAppend append_to_filename /* = FilenameAppend::None */)
 {
   return file_handler(detail::s2ws(filename), mode, append_to_filename);
 }
 
 /***/
-Handler* daily_file_handler(std::string const& base_filename,
-                            std::chrono::hours rotation_hour,
+Handler* daily_file_handler(std::string const& base_filename, std::chrono::hours rotation_hour,
                             std::chrono::minutes rotation_minute)
 {
   return daily_file_handler(detail::s2ws(base_filename), rotation_hour, rotation_minute);
@@ -149,6 +141,15 @@ void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) 
 {
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_sleep_duration(sleep_duration);
 }
+
+/***/
+#if !defined(QUILL_NO_EXCEPTIONS)
+void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler)
+{
+  detail::LogManagerSingleton::instance().log_manager().set_backend_worker_error_handler(
+    std::move(backend_worker_error_handler));
+}
+#endif
 
 } // namespace config
 

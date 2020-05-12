@@ -121,6 +121,7 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void stop_backend_worker() { _backend_worker.stop(); }
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   /**
    * Set error handler
    * @param backend_worker_error_handler backend_worker_error_handler_t error handler
@@ -130,6 +131,7 @@ public:
   {
     _backend_worker.set_error_handler(std::move(backend_worker_error_handler));
   }
+#endif
 
 private:
   Config _config;

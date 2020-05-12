@@ -12,24 +12,13 @@ BackendWorker::BackendWorker(Config const& config, ThreadContextCollection& thre
                              HandlerCollection const& handler_collection)
   : _config(config), _thread_context_collection(thread_context_collection), _handler_collection(handler_collection)
 {
+#if !defined(QUILL_NO_EXCEPTIONS)
   if (!_error_handler)
   {
     // set up the default error handler
     _error_handler = [](std::string const& s) { std::cerr << s << std::endl; };
   }
-}
-
-/***/
-void BackendWorker::set_error_handler(backend_worker_error_handler_t error_handler)
-{
-  if (is_running())
-  {
-    QUILL_THROW(
-      QuillError{"The backend thread has already started. The error handler must be set before the "
-                 "thread starts."});
-  }
-
-  _error_handler = std::move(error_handler);
+#endif
 }
 
 /***/
@@ -51,6 +40,21 @@ void BackendWorker::stop() noexcept
     _backend_worker_thread.join();
   }
 }
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+/***/
+void BackendWorker::set_error_handler(backend_worker_error_handler_t error_handler)
+{
+  if (is_running())
+  {
+    QUILL_THROW(
+      QuillError{"The backend thread has already started. The error handler must be set before the "
+                 "thread starts."});
+  }
+
+  _error_handler = std::move(error_handler);
+}
+#endif
 
 /***/
 void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts) noexcept
