@@ -14,7 +14,7 @@
 #include "quill/detail/misc/Attributes.h"         // for QUILL_ATTRIBUTE_HOT
 #include "quill/detail/misc/Common.h"             // for QUILL_RDTSC_RESYNC...
 #include "quill/detail/misc/Macros.h"             // for QUILL_LIKELY
-#include "quill/detail/misc/Os.h"                 // for set_cpu_affinity
+#include "quill/detail/misc/Os.h"                 // for set_cpu_affinity, get_thread_id
 #include "quill/detail/misc/RdtscClock.h"         // for RdtscClock
 #include "quill/detail/record/RecordBase.h"       // for RecordBase
 #include "quill/handlers/Handler.h"               // for Handler
@@ -65,6 +65,12 @@ public:
    * @return true when the worker is running, false otherwise
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline bool is_running() const noexcept;
+
+  /**
+   * Get the backend worker's thread id
+   * @return
+   */
+  QUILL_NODISCARD uint32_t thread_id() const noexcept;
 
   /**
    * Starts the backend worker thread
@@ -156,6 +162,7 @@ private:
   HandlerCollection const& _handler_collection;
 
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
+  std::atomic<uint32_t> _backend_worker_thread_id; /** cached backend worker thread id */
 
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
@@ -181,9 +188,6 @@ void BackendWorker::run()
 {
   // protect init to be called only once
   std::call_once(_start_init_once_flag, [this]() {
-    // Set the backend worker thread status
-    _is_running.store(true, std::memory_order_relaxed);
-
     // We store the configuration here on our local variable since the config flag is not atomic
     // and we don't want it to change after we have started - This is just for safety and to
     // enforce the user to configure a variable before the thread has started
@@ -213,6 +217,12 @@ void BackendWorker::run()
       _rdtsc_clock = std::make_unique<RdtscClock>(std::chrono::milliseconds{QUILL_RDTSC_RESYNC_INTERVAL});
 #endif
 
+      // Cache this thread's id
+      _backend_worker_thread_id.store(get_thread_id(), std::memory_order_relaxed);
+
+      // All okay, set the backend worker thread status
+      _is_running.store(true, std::memory_order_relaxed);
+
       // Running
       while (QUILL_LIKELY(is_running()))
       {
@@ -240,6 +250,12 @@ void BackendWorker::run()
 
     // Move the worker ownership to our class
     _backend_worker_thread.swap(worker);
+
+    while (!is_running())
+    {
+      // wait for the thread to start
+      std::this_thread::sleep_for(std::chrono::microseconds{100});
+    }
   });
 }
 

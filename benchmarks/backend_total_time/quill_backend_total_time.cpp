@@ -25,9 +25,6 @@ int main()
   // Start the logging backend thread
   quill::start();
 
-  // wait for the backend thread to start
-  std::this_thread::sleep_for(std::chrono::seconds(1));
-
   // Create a file handler to write to a file
   quill::Handler* file_handler = quill::file_handler("quill_backend_total_time.log", "w");
 

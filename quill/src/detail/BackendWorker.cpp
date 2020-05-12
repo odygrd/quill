@@ -41,6 +41,12 @@ void BackendWorker::stop() noexcept
   }
 }
 
+/***/
+uint32_t BackendWorker::thread_id() const noexcept
+{
+  return _backend_worker_thread_id.load(std::memory_order_relaxed);
+}
+
 #if !defined(QUILL_NO_EXCEPTIONS)
 /***/
 void BackendWorker::set_error_handler(backend_worker_error_handler_t error_handler)

@@ -74,9 +74,10 @@ public:
    */
   void flush()
   {
-    if (!_backend_worker.is_running())
+    if ((!_backend_worker.is_running()) || (get_thread_id() == _backend_worker.thread_id()))
     {
-      // Backend worker needs to be running, otherwise we are stuck for ever waiting
+      // 1. Backend worker needs to be running, otherwise we are stuck for ever waiting
+      // 2. self-protection, backend_worker is not able to call this.
       return;
     }
 
@@ -112,7 +113,7 @@ public:
   }
 
   /**
-   * Starts the backend worker thread
+   * Starts the backend worker thread.
    */
   QUILL_ATTRIBUTE_COLD void inline start_backend_worker() { _backend_worker.run(); }
 

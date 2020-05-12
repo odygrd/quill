@@ -32,7 +32,9 @@ class Logger;
 QUILL_ATTRIBUTE_COLD void preallocate();
 
 /**
- * Starts the backend thread to write the logs to the handlers
+ * Starts the backend thread to write the logs to the handlers.
+ * This function is protected with a std::call_once flag, it can only be called once.
+ * Blocks the caller thread until the backend worker thread starts spinning.
  * @throws When the backend thread fails to start
  */
 QUILL_ATTRIBUTE_COLD inline void start()
@@ -213,8 +215,7 @@ void flush();
  *
  * @param backend_worker_error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
  *
- * @warning backend_worker_error_handler will be executed by the backend worker thread. Please do not call `quill::flush();` inside
- * as this will make the backend worker thread hang forever.
+ * @warning backend_worker_error_handler will be executed by the backend worker thread.
  *
  * @throws exception if it is called after the thread has started
  */

@@ -486,8 +486,9 @@ TEST(Log, backend_error_handler_log_from_backend_thread)
     Logger* default_logger = lm.logger_collection().get_logger();
 
     // Set a custom error handler to handler exceptions
-    lm.set_backend_worker_error_handler([&error_handler_invoked, default_logger](std::string const& s) {
+    lm.set_backend_worker_error_handler([&error_handler_invoked, default_logger, &lm](std::string const& s) {
       LOG_WARNING(default_logger, "error handler invoked");
+      lm.flush(); // this will be called by the backend but do nothing
     });
 
     // Start backend worker
