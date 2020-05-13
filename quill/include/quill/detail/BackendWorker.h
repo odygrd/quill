@@ -142,8 +142,8 @@ private:
 private:
   struct TransitLogRecord
   {
-    TransitLogRecord(ThreadContext* thread_context, std::unique_ptr<RecordBase> base_record)
-      : thread_context(thread_context), base_record(std::move(base_record))
+    TransitLogRecord(ThreadContext* in_thread_context, std::unique_ptr<RecordBase> in_base_record)
+      : thread_context(in_thread_context), base_record(std::move(in_base_record))
     {
     }
 
