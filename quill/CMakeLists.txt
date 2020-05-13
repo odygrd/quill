@@ -228,7 +228,11 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
             NAMESPACE quill::)
 
     # Copy the headers
-    install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR})
+    if (QUILL_FMT_EXTERNAL)
+        install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR} PATTERN "bundled/fmt" EXCLUDE)
+    else ()
+        install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR})
+    endif ()
 
     # Copy pkgconfig
     install(FILES "${pkgconfig}" DESTINATION "${QUILL_PKGCONFIG_DIR}")

@@ -1,3 +1,4 @@
+-  [v1.3.1](#v1.3.1)
 -  [v1.3.0](#v1.3.0)
 -  [v1.2.3](#v1.2.3)
 -  [v1.2.2](#v1.2.2)
@@ -5,6 +6,9 @@
 -  [v1.2.0](#v1.2.0)
 -  [v1.1.0](#v1.1.0)
 -  [v1.0.0](#v1.0.0)
+
+## v1.3.1
+-  Minor CMake fixes when `QUILL_FMT_EXTERNAL` option is used.
 
 ## v1.3.0
 **New Features**
