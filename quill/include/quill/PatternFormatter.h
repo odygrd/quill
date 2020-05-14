@@ -24,6 +24,7 @@
 #include <vector>                                  // for vector
 
 #if defined(_WIN32)
+  #include "quill/detail/misc/Os.h"
   #include "quill/detail/misc/TypeTraits.h"
 #endif
 
