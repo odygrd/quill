@@ -30,7 +30,7 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   asm volatile("mrs %0, cntvct_el0" : "=r"(virtual_timer_value));
   return virtual_timer_value;
 }
-#elif (__ARM_ARCH >= 6)
+#elif ((__ARM_ARCH >= 6) || defined(_M_ARM64))
 // V6 is the earliest arch that has a standard cyclecount
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
 {
