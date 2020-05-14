@@ -11,6 +11,7 @@
 ## v1.3.2
 -  Add a CMake option `QUILL_USE_BOUNDED_QUEUE` for bounded queue.
 -  Fixed a clang 10 warning
+-  Fixed MinGw build
 
 ## v1.3.1
 -  Minor CMake fixes when `QUILL_FMT_EXTERNAL` option is used.
