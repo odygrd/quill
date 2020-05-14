@@ -129,6 +129,10 @@ if (QUILL_FMT_EXTERNAL)
     add_definitions(-DQUILL_FMT_EXTERNAL)
 endif ()
 
+message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
+message(STATUS "QUILL_USE_BOUNDED_QUEUE: " ${QUILL_USE_BOUNDED_QUEUE})
+message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
+
 # address sanitizer flags
 if (QUILL_SANITIZE_ADDRESS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
