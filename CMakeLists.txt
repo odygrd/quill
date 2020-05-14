@@ -4,7 +4,12 @@ project(my_project)
 #-------------------------------------------------------------------------------------------------------
 # Options
 #-------------------------------------------------------------------------------------------------------
+
+option(QUILL_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
+
 option(QUILL_NO_EXCEPTIONS "Build without exceptions with -fno-exceptions flag" OFF)
+
+option(QUILL_USE_BOUNDED_QUEUE "Build with bounded queue instead of unbounded" OFF)
 
 option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
@@ -19,8 +24,6 @@ option(QUILL_SANITIZE_THREAD "Enable thread sanitizer in tests (Using this optio
 option(QUILL_CODE_COVERAGE "Enable code coverage" OFF)
 
 option(QUILL_USE_VALGRIND "Use valgrind as the default memcheck tool in CTest (Requires Valgrind)" OFF)
-
-option(QUILL_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
 
 option(QUILL_ENABLE_INSTALL "Enable CMake Install when Quill is not a master project" OFF)
 
@@ -116,6 +119,10 @@ endif ()
 #-------------------------------------------------------------------------------------------------------
 if (QUILL_NO_EXCEPTIONS)
     add_definitions(-DQUILL_NO_EXCEPTIONS)
+endif ()
+
+if (QUILL_USE_BOUNDED_QUEUE)
+    add_definitions(-DQUILL_USE_BOUNDED_QUEUE)
 endif ()
 
 if (QUILL_FMT_EXTERNAL)
