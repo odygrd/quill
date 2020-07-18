@@ -139,6 +139,7 @@ However :
 
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
+Cygwin is not supported at the moment.
 
 | Compiler  | Notes            |
 |-----------|------------------|
