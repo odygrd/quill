@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(my_project)
 
-# set(CMAKE_VERBOSE_MAKEFILE TRUE CACHE BOOL "Verbose output" FORCE)
-
 #-------------------------------------------------------------------------------------------------------
 # Options
 #-------------------------------------------------------------------------------------------------------
@@ -103,8 +101,17 @@ endif ()
 # Log Info
 #-------------------------------------------------------------------------------------------------------
 if (QUILL_MASTER_PROJECT)
+    option(QUILL_VERBOSE_MAKEFILE "Verbose make output" OFF)
+
     message(STATUS "Build Type: " ${CMAKE_BUILD_TYPE})
     message(STATUS "Quill Version: ${QUILL_VERSION}")
+endif ()
+
+#---------------------------------------------------------------------------------------
+# Verbose make file option
+#---------------------------------------------------------------------------------------
+if (QUILL_VERBOSE_MAKEFILE)
+    set(CMAKE_VERBOSE_MAKEFILE TRUE CACHE BOOL "Verbose output" FORCE)
 endif ()
 
 #-------------------------------------------------------------------------------------------------------
