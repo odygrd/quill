@@ -34,7 +34,11 @@
 template <typename S, typename... Args, typename Char = fmt::char_t<S>>
 constexpr void check_format(const S& format_str, Args&&...)
 {
+#if FMT_VERSION >= 70000
+  fmt::detail::check_format_string<std::remove_reference_t<Args>...>(format_str);
+#else
   fmt::internal::check_format_string<std::remove_reference_t<Args>...>(format_str);
+#endif
 }
 
 // Main Log Macros

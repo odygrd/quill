@@ -24,12 +24,12 @@ TEST(PatternFormatter, default_pattern_formatter)
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
+  // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
   std::string const expected_string =
-    "21:42:41.000023021 [31341] PatternFormatterTest.cpp:16 LOG_INFO     test_logger - This the "
-    "pattern formatter 1234\n";
-
-  EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-  EXPECT_EQ(formatted_string, expected_string);
+    "[31341] PatternFormatterTest.cpp:16 LOG_INFO     test_logger - This the pattern formatter "
+    "1234\n";
+  auto const found_expected = formatted_string.find(expected_string);
+  EXPECT_TRUE(found_expected != std::string::npos);
 }
 
 TEST(PatternFormatter, custom_pattern_message_only)

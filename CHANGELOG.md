@@ -1,3 +1,4 @@
+-  [v1.3.3](#v1.3.3)
 -  [v1.3.2](#v1.3.2)
 -  [v1.3.1](#v1.3.1)
 -  [v1.3.0](#v1.3.0)
@@ -7,6 +8,10 @@
 -  [v1.2.0](#v1.2.0)
 -  [v1.1.0](#v1.1.0)
 -  [v1.0.0](#v1.0.0)
+
+## v1.3.3
+- Upgraded bundled libfmt to `7.0.2`
+- Fixed compile error with libfmt versions > '7.0.0'
 
 ## v1.3.2
 -  Add a CMake option `QUILL_USE_BOUNDED_QUEUE` for bounded queue.
