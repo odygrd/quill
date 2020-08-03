@@ -145,6 +145,7 @@ after_success:
 branches:
   only:
     - master
+    - /.*/
 
 notifications:
   email: false
