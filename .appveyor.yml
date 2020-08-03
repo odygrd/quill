@@ -5,12 +5,6 @@ configuration:
   - Debug
   - Release
 
-install:
-  # Install gtest
-  - cd c:\tools\vcpkg
-  - vcpkg install gtest:x64-windows
-  - vcpkg integrate install
-
 for:
   # Visual Studio 2019 Build
   - matrix:

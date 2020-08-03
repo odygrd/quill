@@ -1,8 +1,11 @@
+#include "doctest/doctest.h"
+
 #include "quill/detail/misc/RdtscClock.h"
 #include "quill/detail/misc/Rdtsc.h"
 #include <chrono>
-#include <gtest/gtest.h>
 #include <thread>
+
+TEST_SUITE_BEGIN("RdtscClock");
 
 void check_wall_time_now(quill::detail::RdtscClock const& tsc_clock)
 {
@@ -17,12 +20,12 @@ void check_wall_time_now(quill::detail::RdtscClock const& tsc_clock)
   if (!((wall_time_tsc > lower_bound) && (wall_time_tsc < upper_bound)))
   {
     // wall_time_tsc is not between wall_time_chrono - 1 and wall_time_chrono + 1
-    FAIL() << " wall_time_tsc: " << wall_time_tsc.count() << " lower_bound: " << lower_bound.count()
-           << " upper_bound: " << upper_bound.count() << "\n";
+    FAIL("wall_time_tsc: " << wall_time_tsc.count() << " lower_bound: " << lower_bound.count()
+           << " upper_bound: " << upper_bound.count() << "\n");
   }
 }
 
-TEST(RdtscClock, wall_time)
+TEST_CASE("wall_time")
 {
   quill::detail::RdtscClock tsc_clock{};
 
@@ -34,3 +37,5 @@ TEST(RdtscClock, wall_time)
     std::this_thread::sleep_for(std::chrono::milliseconds{i * 100});
   }
 }
+
+TEST_SUITE_END();

@@ -1,15 +1,18 @@
+#include "doctest/doctest.h"
+
 #include "quill/detail//HandlerCollection.h"
 #include "quill/detail/Config.h"
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/handlers/Handler.h"
-#include <gtest/gtest.h>
+
+TEST_SUITE_BEGIN("Logger");
 
 using namespace quill;
 using namespace quill::detail;
 
 /***/
-TEST(Logger, log_level)
+TEST_CASE("log_level")
 {
   Config cfg;
   ThreadContextCollection tc{cfg};
@@ -20,15 +23,16 @@ TEST(Logger, log_level)
   Logger* logger = logger_collection.create_logger("logger_1");
 
   // Check default log level
-  EXPECT_EQ(logger->log_level(), LogLevel::Info);
+  REQUIRE_EQ(logger->log_level(), LogLevel::Info);
 
   // Change the log level
   logger->set_log_level(LogLevel::TraceL2);
-  EXPECT_EQ(logger->log_level(), LogLevel::TraceL2);
+  REQUIRE_EQ(logger->log_level(), LogLevel::TraceL2);
 }
 
+#ifndef QUILL_NO_EXCEPTIONS
 /***/
-TEST(Logger, get_non_existent_logger)
+TEST_CASE("get_non_existent_logger")
 {
   Config cfg;
   ThreadContextCollection tc{cfg};
@@ -36,18 +40,12 @@ TEST(Logger, get_non_existent_logger)
 
   LoggerCollection logger_collection{tc, hc};
 
-#if defined(QUILL_NO_EXCEPTIONS)
-  #if !defined(_WIN32)
-  ASSERT_EXIT((void)logger_collection.get_logger("logger_1"), ::testing::KilledBySignal(SIGABRT),
-              ".*");
-  #endif
-#else
-  EXPECT_THROW((void)logger_collection.get_logger("logger_1"), quill::QuillError);
-#endif
+  REQUIRE_THROWS_AS((void)logger_collection.get_logger("logger_1"), quill::QuillError);
 }
+#endif
 
 /***/
-TEST(Logger, logger_should_log)
+TEST_CASE("logger_should_log")
 {
   Config cfg;
   ThreadContextCollection tc{cfg};
@@ -59,17 +57,17 @@ TEST(Logger, logger_should_log)
 
   {
     LogLevel log_statement_level{LogLevel::Debug};
-    EXPECT_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
+    REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {
     LogLevel log_statement_level{LogLevel::Info};
-    EXPECT_TRUE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
+      REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {
     LogLevel log_statement_level{LogLevel::Error};
-    EXPECT_TRUE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
+      REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   // change log level
@@ -77,12 +75,12 @@ TEST(Logger, logger_should_log)
 
   {
     LogLevel log_statement_level{LogLevel::TraceL3};
-    EXPECT_TRUE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
+      REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {
     LogLevel log_statement_level{LogLevel::Critical};
-    EXPECT_TRUE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
+      REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   // change log level
@@ -90,11 +88,13 @@ TEST(Logger, logger_should_log)
 
   {
     LogLevel log_statement_level{LogLevel::TraceL3};
-    EXPECT_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
+      REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {
     LogLevel log_statement_level{LogLevel::Critical};
-    EXPECT_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
+      REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 }
+
+TEST_SUITE_END();

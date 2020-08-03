@@ -79,8 +79,6 @@ find_package(Threads REQUIRED)
 
 if (QUILL_BUILD_TESTS)
     enable_testing()
-    find_package(GTest REQUIRED)
-    include_directories(${GTEST_INCLUDE_DIRS})
 
     if (QUILL_USE_VALGRIND)
         # find valgrind

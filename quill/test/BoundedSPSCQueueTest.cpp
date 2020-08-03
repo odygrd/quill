@@ -1,8 +1,11 @@
+#include "doctest/doctest.h"
+
 #include "quill/detail/BoundedSPSCQueue.h"
 #include <cstring>
-#include <gtest/gtest.h>
 #include <thread>
 #include <vector>
+
+TEST_SUITE_BEGIN("BoundedSPSCQueue");
 
 using namespace quill::detail;
 
@@ -20,12 +23,12 @@ struct test_struct_ints_2
   uint64_t y;
 };
 
-TEST(BoundedSPSCQueue, produce_consume_many_same_type)
+TEST_CASE("produce_consume_many_same_type")
 {
   BoundedSPSCQueue<test_struct_ints, 2'097'152> buffer;
 
-  EXPECT_EQ(buffer.capacity(), 2'097'152);
-  EXPECT_EQ(buffer.empty(), true);
+  REQUIRE_EQ(buffer.capacity(), 2'097'152);
+  REQUIRE_EQ(buffer.empty(), true);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
   {
@@ -34,15 +37,15 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
       QUILL_MAYBE_UNUSED auto res = buffer.try_emplace<test_struct_ints>(i, i);
     }
 
-    EXPECT_EQ(buffer.empty(), false);
+    REQUIRE_EQ(buffer.empty(), false);
 
     // first observe the first value without removing
     for (uint32_t i = 0; i < 10; ++i)
     {
       auto handl = buffer.try_pop();
 
-      EXPECT_EQ(handl.data()->x, 0);
-      EXPECT_EQ(handl.data()->y, 0);
+      REQUIRE_EQ(handl.data()->x, 0);
+      REQUIRE_EQ(handl.data()->y, 0);
       handl.release();
     }
 
@@ -51,11 +54,11 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
     {
       auto handl = buffer.try_pop();
 
-      EXPECT_EQ(handl.data()->x, i);
-      EXPECT_EQ(handl.data()->y, i);
+      REQUIRE_EQ(handl.data()->x, i);
+      REQUIRE_EQ(handl.data()->y, i);
     }
 
-    EXPECT_EQ(buffer.empty(), true);
+    REQUIRE_EQ(buffer.empty(), true);
   }
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
@@ -65,14 +68,14 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
       QUILL_MAYBE_UNUSED auto res = buffer.try_emplace<test_struct_ints>(i + 100, i + 100);
     }
 
-    EXPECT_EQ(buffer.empty(), false);
+    REQUIRE_EQ(buffer.empty(), false);
 
     // first observe the first value without removing
     for (uint32_t i = 0; i < 10; ++i)
     {
       auto handl = buffer.try_pop();
-      EXPECT_EQ(handl.data()->x, 0 + 100);
-      EXPECT_EQ(handl.data()->y, 0 + 100);
+      REQUIRE_EQ(handl.data()->x, 0 + 100);
+      REQUIRE_EQ(handl.data()->y, 0 + 100);
       handl.release();
     }
 
@@ -80,13 +83,14 @@ TEST(BoundedSPSCQueue, produce_consume_many_same_type)
     for (uint32_t i = 0; i < 85; ++i)
     {
       auto handl = buffer.try_pop();
-      EXPECT_EQ(handl.data()->x, i + 100);
-      EXPECT_EQ(handl.data()->y, i + 100);
+      REQUIRE_EQ(handl.data()->x, i + 100);
+      REQUIRE_EQ(handl.data()->y, i + 100);
     }
 
-    EXPECT_EQ(buffer.empty(), true);
+    REQUIRE_EQ(buffer.empty(), true);
   }
 }
+
 
 class TestBase
 {
@@ -138,10 +142,10 @@ private:
   double z;
 };
 
-TEST(BoundedSPSCQueue, produce_consume_many_different_types)
+TEST_CASE("produce_consume_many_different_types")
 {
   BoundedSPSCQueue<TestBase, 2'097'152> buffer;
-  EXPECT_EQ(buffer.capacity(), 2'097'152);
+  REQUIRE_EQ(buffer.capacity(), 2'097'152);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
   {
@@ -153,10 +157,10 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
     for (uint32_t i = 0; i < 43; ++i)
     {
       auto handl = buffer.try_pop();
-      EXPECT_EQ(handl.data()->get_x(), 0);
-      EXPECT_EQ(handl.data()->get_y(), 0);
-      EXPECT_EQ(handl.data()->get_z(), i);
-      EXPECT_EQ(handl.data()->get_vec().size(), 12);
+      REQUIRE_EQ(handl.data()->get_x(), 0);
+      REQUIRE_EQ(handl.data()->get_y(), 0);
+      REQUIRE_EQ(handl.data()->get_z(), i);
+      REQUIRE_EQ(handl.data()->get_vec().size(), 12);
     }
   }
 
@@ -171,9 +175,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
     for (uint32_t i = 0; i < 92; ++i)
     {
       auto handl = buffer.try_pop();
-      EXPECT_EQ(handl.data()->get_x(), i + 10);
-      EXPECT_EQ(handl.data()->get_y(), i + 20);
-      EXPECT_EQ(handl.data()->get_z(), i);
+      REQUIRE_EQ(handl.data()->get_x(), i + 10);
+      REQUIRE_EQ(handl.data()->get_y(), i + 20);
+      REQUIRE_EQ(handl.data()->get_z(), i);
     }
   }
 
@@ -187,9 +191,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
     for (uint32_t i = 0; i < 43; ++i)
     {
       auto handl = buffer.try_pop();
-      EXPECT_EQ(handl.data()->get_x(), 0);
-      EXPECT_EQ(handl.data()->get_y(), 0);
-      EXPECT_EQ(handl.data()->get_z(), i);
+      REQUIRE_EQ(handl.data()->get_x(), 0);
+      REQUIRE_EQ(handl.data()->get_y(), 0);
+      REQUIRE_EQ(handl.data()->get_z(), i);
     }
   }
 
@@ -204,18 +208,18 @@ TEST(BoundedSPSCQueue, produce_consume_many_different_types)
     for (uint32_t i = 0; i < 92; ++i)
     {
       auto handl = buffer.try_pop();
-      EXPECT_EQ(handl.data()->get_x(), i + 10);
-      EXPECT_EQ(handl.data()->get_y(), i + 20);
-      EXPECT_EQ(handl.data()->get_z(), i);
+      REQUIRE_EQ(handl.data()->get_x(), i + 10);
+      REQUIRE_EQ(handl.data()->get_y(), i + 20);
+      REQUIRE_EQ(handl.data()->get_z(), i);
     }
   }
 }
 
-TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
+TEST_CASE("produce_consume_many_multithreaded")
 {
   BoundedSPSCQueue<TestBase, 2'097'152> buffer;
 
-  EXPECT_EQ(buffer.capacity(), 2'097'152);
+  REQUIRE_EQ(buffer.capacity(), 2'097'152);
 
   std::thread producer_thread([&buffer]() {
     for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
@@ -286,9 +290,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
           handl = buffer.try_pop();
         }
 
-        EXPECT_EQ(handl.data()->get_x(), 0);
-        EXPECT_EQ(handl.data()->get_y(), 0);
-        EXPECT_EQ(handl.data()->get_z(), i);
+        REQUIRE_EQ(handl.data()->get_x(), 0);
+        REQUIRE_EQ(handl.data()->get_y(), 0);
+        REQUIRE_EQ(handl.data()->get_z(), i);
       }
     }
 
@@ -304,9 +308,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
           handl = buffer.try_pop();
         }
 
-        EXPECT_EQ(handl.data()->get_x(), i + 10);
-        EXPECT_EQ(handl.data()->get_y(), i + 20);
-        EXPECT_EQ(handl.data()->get_z(), i);
+        REQUIRE_EQ(handl.data()->get_x(), i + 10);
+        REQUIRE_EQ(handl.data()->get_y(), i + 20);
+        REQUIRE_EQ(handl.data()->get_z(), i);
       }
     }
 
@@ -322,9 +326,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
           handl = buffer.try_pop();
         }
 
-        EXPECT_EQ(handl.data()->get_x(), 0);
-        EXPECT_EQ(handl.data()->get_y(), 0);
-        EXPECT_EQ(handl.data()->get_z(), i);
+        REQUIRE_EQ(handl.data()->get_x(), 0);
+        REQUIRE_EQ(handl.data()->get_y(), 0);
+        REQUIRE_EQ(handl.data()->get_z(), i);
       }
     }
 
@@ -340,9 +344,9 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
           handl = buffer.try_pop();
         }
 
-        EXPECT_EQ(handl.data()->get_x(), i + 10);
-        EXPECT_EQ(handl.data()->get_y(), i + 20);
-        EXPECT_EQ(handl.data()->get_z(), i);
+        REQUIRE_EQ(handl.data()->get_x(), i + 10);
+        REQUIRE_EQ(handl.data()->get_y(), i + 20);
+        REQUIRE_EQ(handl.data()->get_z(), i);
       }
     }
   });
@@ -350,3 +354,5 @@ TEST(BoundedSPSCQueue, produce_consume_many_multithreaded)
   producer_thread.join();
   consumer_thread.join();
 }
+
+TEST_SUITE_END();

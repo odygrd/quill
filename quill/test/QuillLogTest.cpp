@@ -1,9 +1,12 @@
+#include "doctest/doctest.h"
+
 #include "misc/TestUtilities.h"
 #include "quill/Quill.h"
 #include "quill/detail/misc/FileUtilities.h"
 #include <cstdio>
-#include <gtest/gtest.h>
 #include <string>
+
+TEST_SUITE_BEGIN("QuillLog");
 
 // Note: This thread is flushing using the main() gtest test thread. This means that no-other test should have used flush()
 // on the main gtest test thread as the main thread's thread context is not re-added.
@@ -34,7 +37,7 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
       // Change the LogLevel to print everything
       logger->set_log_level(quill::LogLevel::TraceL3);
 
-      for (int j = 0; j < number_of_messages; ++j)
+      for (uint32_t j = 0; j < number_of_messages; ++j)
       {
         LOG_INFO(logger, "Hello from thread {} this is message {}", i, j);
       }
@@ -57,19 +60,19 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 #endif
 
-  EXPECT_EQ(file_contents.size(), number_of_messages * number_of_threads);
+  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads);
 
   for (int i = 0; i < number_of_threads; ++i)
   {
     // for each thread
     std::string expected_logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
 
-    for (int j = 0; j < number_of_messages; ++j)
+    for (uint32_t j = 0; j < number_of_messages; ++j)
     {
       std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
         std::to_string(i) + " this is message " + std::to_string(j);
 
-      EXPECT_TRUE(quill::testing::file_contains(file_contents, expected_string));
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
     }
   }
 
@@ -81,7 +84,7 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 }
 
 /***/
-TEST(Quill, log_from_one_thread)
+TEST_CASE("log_from_one_thread")
 {
   static constexpr size_t number_of_messages = 10000u;
   static constexpr size_t number_of_threads = 1;
@@ -97,7 +100,7 @@ TEST(Quill, log_from_one_thread)
 }
 
 /***/
-TEST(Quill, log_from_multiple_threads)
+TEST_CASE("log_from_multiple_threads")
 {
   static constexpr size_t number_of_messages = 500u;
   static constexpr size_t number_of_threads = 10;
@@ -140,7 +143,7 @@ private:
 };
 
 /***/
-TEST(Quill, log_from_const_function)
+TEST_CASE("log_from_const_function")
 {
   static constexpr char const* filename = "log_test_class.log";
 
@@ -161,18 +164,18 @@ TEST(Quill, log_from_const_function)
 #if defined(_WIN32)
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
-  EXPECT_EQ(file_contents.size(), 3);
+  REQUIRE_EQ(file_contents.size(), 3);
   quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
 #else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  EXPECT_EQ(file_contents.size(), 3);
+  REQUIRE_EQ(file_contents.size(), 3);
   quill::detail::file_utilities::remove(filename);
 #endif
 }
 
 /***/
-TEST(Quill, log_using_rotating_file_handler)
+TEST_CASE("log_using_rotating_file_handler")
 {
   static char const* base_filename = "log_rotation.log";
   static constexpr char const* rotated_filename_1 = "log_rotation.1.log";
@@ -197,26 +200,26 @@ TEST(Quill, log_using_rotating_file_handler)
   // Read file and check
   std::vector<std::string> const file_contents =
     quill::testing::file_contents(quill::detail::s2ws(base_filename));
-  EXPECT_EQ(file_contents.size(), 9);
+  REQUIRE_EQ(file_contents.size(), 9);
 
   std::vector<std::string> const file_contents_1 =
     quill::testing::file_contents(quill::detail::s2ws(rotated_filename_1));
-  EXPECT_EQ(file_contents_1.size(), 9);
+  REQUIRE_EQ(file_contents_1.size(), 9);
 
   std::vector<std::string> const file_contents_2 =
     quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2));
-  EXPECT_EQ(file_contents_2.size(), 2);
+  REQUIRE_EQ(file_contents_2.size(), 2);
 
 #else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
-  EXPECT_EQ(file_contents.size(), 9);
+  REQUIRE_EQ(file_contents.size(), 9);
 
   std::vector<std::string> const file_contents_1 = quill::testing::file_contents(rotated_filename_1);
-  EXPECT_EQ(file_contents_1.size(), 9);
+  REQUIRE_EQ(file_contents_1.size(), 9);
 
   std::vector<std::string> const file_contents_2 = quill::testing::file_contents(rotated_filename_2);
-  EXPECT_EQ(file_contents_2.size(), 2);
+  REQUIRE_EQ(file_contents_2.size(), 2);
 #endif
 
 #if defined(_WIN32)
@@ -233,7 +236,7 @@ TEST(Quill, log_using_rotating_file_handler)
 }
 
 /***/
-TEST(Quill, log_using_daily_file_handler)
+TEST_CASE("log_using_daily_file_handler")
 {
   // This is not testing the daily rotation of the daily file logger
   static char const* base_filename = "log_daily.log";
@@ -258,14 +261,13 @@ TEST(Quill, log_using_daily_file_handler)
   static const quill::filename_t expected_filename =
     quill::detail::file_utilities::append_date_to_filename(quill::detail::s2ws(base_filename));
   std::vector<std::string> const file_contents = quill::testing::file_contents(expected_filename);
-  EXPECT_EQ(file_contents.size(), 20);
-
+  REQUIRE_EQ(file_contents.size(), 20);
 #else
   // Read file and check
   static const quill::filename_t expected_filename =
     quill::detail::file_utilities::append_date_to_filename(base_filename);
   std::vector<std::string> const file_contents = quill::testing::file_contents(expected_filename);
-  EXPECT_EQ(file_contents.size(), 20);
+  REQUIRE_EQ(file_contents.size(), 20);
 #endif
 
 #if defined(_WIN32)
@@ -282,12 +284,12 @@ TEST(Quill, log_using_daily_file_handler)
 }
 
 /***/
-TEST(Quill, log_using_multiple_stdout_formats)
+TEST_CASE("log_using_multiple_stdout_formats")
 {
   // Tests the logging in stdcout and also multiple stdcout formats
   quill::start();
 
-  testing::internal::CaptureStdout();
+  quill::testing::CaptureStdout();
 
   quill::Handler* stdout_custom_handler = quill::stdout_handler("stdout_custom_1");
   stdout_custom_handler->set_pattern(
@@ -310,7 +312,7 @@ TEST(Quill, log_using_multiple_stdout_formats)
   quill::flush();
 
   // convert result to vector
-  std::string results = testing::internal::GetCapturedStdout();
+  std::string results = quill::testing::GetCapturedStdout();
   std::stringstream data(results);
 
   std::string line;
@@ -325,38 +327,33 @@ TEST(Quill, log_using_multiple_stdout_formats)
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:302 LOG_INFO     root - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:304 LOG_INFO     root - Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
-        FAIL() << fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data();
+        FAIL(fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data());
       }
     }
     else
     {
 
-#if defined(_WIN32)
-      std::string expected_string = "custom - Hello log num " + std::to_string(i) +
-        " (Quill_log_using_multiple_stdout_formats_Test::TestBody)";
-#else
-      std::string expected_string = "custom - Hello log num " + std::to_string(i) + " (TestBody)";
-#endif
+      std::string expected_string = "custom - Hello log num " + std::to_string(i) + " (_DOCTEST_ANON_FUNC_14)";
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
-        FAIL() << fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data();
+        FAIL(fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data());
       }
     }
   }
 }
 
 /***/
-TEST(Quill, log_using_stderr)
+TEST_CASE("log_using_stderr")
 {
   // Tests the logging in stdcout and also multiple stdcout formats. Also tests changing the default logger
   quill::start();
 
-  testing::internal::CaptureStderr();
+  quill::testing::CaptureStderr();
 
   quill::Handler* stderr_handler = quill::stderr_handler("stderr_custom_1");
   stderr_handler->set_pattern(QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
@@ -367,27 +364,21 @@ TEST(Quill, log_using_stderr)
 
   quill::flush();
 
-  std::string results = testing::internal::GetCapturedStderr();
+  std::string results = quill::testing::GetCapturedStderr();
 
-#if defined(_WIN32)
-  EXPECT_EQ(results,
-            "log_using_stderr - Hello log stderr (Quill_log_using_stderr_Test::TestBody)\n"
-            "log_using_stderr - Hello log stderr again (Quill_log_using_stderr_Test::TestBody)\n");
-#else
-  EXPECT_EQ(results,
-            "log_using_stderr - Hello log stderr (TestBody)\nlog_using_stderr - Hello log stderr "
-            "again (TestBody)\n");
-#endif
+  REQUIRE_EQ(results,
+            "log_using_stderr - Hello log stderr (_DOCTEST_ANON_FUNC_18)\n"
+            "log_using_stderr - Hello log stderr again (_DOCTEST_ANON_FUNC_18)\n");
 }
 
 /***/
-TEST(Quill, log_to_multiple_handlers_from_same_logger)
+TEST_CASE("log_to_multiple_handlers_from_same_logger")
 {
   // test logging to two or more handlers from the same logger
   quill::start();
 
-  testing::internal::CaptureStderr();
-  testing::internal::CaptureStdout();
+  quill::testing::CaptureStderr();
+  quill::testing::CaptureStdout();
 
   quill::Handler* stderr_handler = quill::stderr_handler();
   stderr_handler->set_pattern(QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
@@ -402,40 +393,32 @@ TEST(Quill, log_to_multiple_handlers_from_same_logger)
 
   quill::flush();
 
-  std::string results_handler_1 = testing::internal::GetCapturedStderr();
-  std::string results_handler_2 = testing::internal::GetCapturedStdout();
+  std::string results_handler_1 = quill::testing::GetCapturedStderr();
+  std::string results_handler_2 = quill::testing::GetCapturedStdout();
 
-#if defined(_WIN32)
-  EXPECT_EQ(results_handler_1,
-            "log_multi_handlers - Hello log multiple handlers "
-            "(Quill_log_to_multiple_handlers_from_same_logger_Test::TestBody)\n");
-  EXPECT_EQ(results_handler_2,
-            "log_multi_handlers - Hello log multiple handlers "
-            "(Quill_log_to_multiple_handlers_from_same_logger_Test::TestBody)\n");
-#else
-  EXPECT_EQ(results_handler_1, "log_multi_handlers - Hello log multiple handlers (TestBody)\n");
-  EXPECT_EQ(results_handler_2, "log_multi_handlers - Hello log multiple handlers (TestBody)\n");
-
-#endif
+  REQUIRE_EQ(results_handler_1,
+             "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_20)\n");
+  REQUIRE_EQ(results_handler_2,
+             "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_20)\n");
 }
 
 /***/
-TEST(Quill, invalid_handlers)
+TEST_CASE("invalid_handlers")
 {
   quill::Handler* stderr_handler = quill::stderr_handler("stderr_handler");
 
   // using the same name again ast stdouthandler
-  EXPECT_THROW(auto x1 = quill::stdout_handler("stderr_handler"), quill::QuillError);
+  REQUIRE_THROWS_AS(auto x1 = quill::stdout_handler("stderr_handler"), quill::QuillError);
 
   quill::Handler* stdout_handler = quill::stdout_handler("stdout_handler");
   // using the same name again ast stdouthandler
-  EXPECT_THROW(auto x2 = quill::stderr_handler("stdout_handler"), quill::QuillError);
+    REQUIRE_THROWS_AS(auto x2 = quill::stderr_handler("stdout_handler"), quill::QuillError);
 
   static constexpr char const* filename = "invalid_handlers.log";
   quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
   // using the same handler again
-  EXPECT_THROW(auto x3 = quill::stderr_handler("invalid_handlers.log"), quill::QuillError);
-  EXPECT_THROW(auto x4 = quill::stdout_handler("invalid_handlers.log"), quill::QuillError);
+    REQUIRE_THROWS_AS(auto x3 = quill::stderr_handler("invalid_handlers.log"), quill::QuillError);
+    REQUIRE_THROWS_AS(auto x4 = quill::stdout_handler("invalid_handlers.log"), quill::QuillError);
 
   // remove file
 #if defined(_WIN32)
@@ -444,3 +427,5 @@ TEST(Quill, invalid_handlers)
   quill::detail::file_utilities::remove(filename);
 #endif
 }
+
+TEST_SUITE_END();
