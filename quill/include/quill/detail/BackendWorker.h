@@ -198,7 +198,7 @@ void BackendWorker::run()
       QUILL_TRY
       {
         // On Start
-        if (_config.backend_thread_cpu_affinity() != std::numeric_limits<uint16_t>::max())
+        if (_config.backend_thread_cpu_affinity() != (std::numeric_limits<uint16_t>::max()))
         {
           // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
           set_cpu_affinity(_config.backend_thread_cpu_affinity());

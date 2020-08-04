@@ -1,9 +1,13 @@
 #pragma once
 
+#include "doctest/doctest.h"
+
+#include "DocTestExtensions.h"
 #include "quill/detail/misc/Common.h"
 #include <algorithm>
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <system_error>
 #include <vector>
 

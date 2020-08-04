@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include "doctest/doctest.h"
 
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
@@ -9,6 +9,8 @@
 #include "quill/handlers/Handler.h"
 #include <cstdio>
 #include <thread>
+
+TEST_SUITE_BEGIN("Log");
 
 /**
  * Contains tests that include frontend and backend thread testing
@@ -26,7 +28,7 @@ using namespace quill::detail;
 // For the tests we will use threads so that the thread local is also destructed with the LogManager
 
 /***/
-TEST(Log, default_logger_with_filehandler)
+TEST_CASE("default_logger_with_filehandler")
 {
   LogManager lm;
 
@@ -57,10 +59,10 @@ TEST(Log, default_logger_with_filehandler)
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  EXPECT_EQ(file_contents.size(), 2);
-  EXPECT_TRUE(quill::testing::file_contains(
+  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO     root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
-  EXPECT_TRUE(quill::testing::file_contains(
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
@@ -124,7 +126,7 @@ void custom_default_logger_same_handler(int test_case = 0)
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  EXPECT_EQ(file_contents.size(), 4);
+  REQUIRE_EQ(file_contents.size(), 4);
 
   std::string const first_log_line_default =
     "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
@@ -139,20 +141,20 @@ void custom_default_logger_same_handler(int test_case = 0)
     "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
     "[custom_logger]";
 
-  EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_default));
-  EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_default));
-  EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_custom));
-  EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
+  REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+  REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+  REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+  REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
 }
 
 /***/
-TEST(Log, custom_default_logger_same_file) { custom_default_logger_same_handler(0); }
+TEST_CASE("custom_default_logger_same_file") { custom_default_logger_same_handler(0); }
 
 /***/
-TEST(Log, custom_default_logger_same_file_from_default_logger)
+TEST_CASE("custom_default_logger_same_file_from_default_logger")
 {
   custom_default_logger_same_handler(1);
 }
@@ -229,7 +231,7 @@ void test_custom_default_logger_multiple_handlers(int test_case)
     // Validate handler 1
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename_1);
 
-    EXPECT_EQ(file_contents.size(), 4);
+    REQUIRE_EQ(file_contents.size(), 4);
 
     std::string const first_log_line_default =
       "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit [root]";
@@ -244,17 +246,17 @@ void test_custom_default_logger_multiple_handlers(int test_case)
       "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
       "ante [custom_logger]";
 
-    EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_default));
-    EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_default));
-    EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_custom));
-    EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
   }
 
   {
     // Validate handler 2
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename_2);
 
-    EXPECT_EQ(file_contents.size(), 4);
+    REQUIRE_EQ(file_contents.size(), 4);
 
     std::string const first_log_line_default =
       "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
@@ -267,10 +269,10 @@ void test_custom_default_logger_multiple_handlers(int test_case)
       "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
       "ante";
 
-    EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_default));
-    EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_default));
-    EXPECT_TRUE(quill::testing::file_contains(file_contents, first_log_line_custom));
-    EXPECT_TRUE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
   }
 
   lm.stop_backend_worker();
@@ -279,19 +281,19 @@ void test_custom_default_logger_multiple_handlers(int test_case)
 }
 
 /***/
-TEST(Log, custom_default_logger_multiple_handlers)
+TEST_CASE("custom_default_logger_multiple_handlers")
 {
   test_custom_default_logger_multiple_handlers(0);
 }
 
 /***/
-TEST(Log, custom_default_logger_multiple_handlers_from_default_logger)
+TEST_CASE("custom_default_logger_multiple_handlers_from_default_logger")
 {
   test_custom_default_logger_multiple_handlers(1);
 }
 
 /***/
-TEST(Log, many_loggers_multiple_threads)
+TEST_CASE("many_loggers_multiple_threads")
 {
   LogManager lm;
 
@@ -312,14 +314,14 @@ TEST(Log, many_loggers_multiple_threads)
   static constexpr size_t thread_count = 100;
   static constexpr size_t message_count = 120;
 
-  for (int i = 0; i < thread_count; ++i)
+  for (size_t i = 0; i < thread_count; ++i)
   {
     threads.emplace_back([&lm, i]() {
       // Create a logger in this thread
       std::string logger_name = "logger_" + std::to_string(i);
       Logger* logger = lm.logger_collection().create_logger(logger_name.data());
 
-      for (int j = 0; j < message_count; ++j)
+      for (size_t j = 0; j < message_count; ++j)
       {
         LOG_INFO(logger, "Hello from thread {} this is message {}", i, j);
       }
@@ -336,19 +338,19 @@ TEST(Log, many_loggers_multiple_threads)
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  EXPECT_EQ(file_contents.size(), thread_count * message_count);
+  REQUIRE_EQ(file_contents.size(), thread_count * message_count);
 
-  for (int i = 0; i < thread_count; ++i)
+  for (size_t i = 0; i < thread_count; ++i)
   {
     // for each thread
     std::string expected_logger_name = "logger_" + std::to_string(i);
 
-    for (int j = 0; j < message_count; ++j)
+    for (size_t j = 0; j < message_count; ++j)
     {
       std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
         std::to_string(i) + " this is message " + std::to_string(j);
 
-      EXPECT_TRUE(quill::testing::file_contains(file_contents, expected_string));
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
     }
   }
 
@@ -358,7 +360,7 @@ TEST(Log, many_loggers_multiple_threads)
 
 #if defined(_WIN32)
 /***/
-TEST(Log, default_logger_with_filehandler_wide_chars)
+TEST_CASE("default_logger_with_filehandler_wide_chars")
 {
   LogManager lm;
 
@@ -390,10 +392,10 @@ TEST(Log, default_logger_with_filehandler_wide_chars)
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  EXPECT_EQ(file_contents.size(), 2);
-  EXPECT_TRUE(quill::testing::file_contains(
+  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO     root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
-  EXPECT_TRUE(quill::testing::file_contains(
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
@@ -401,8 +403,9 @@ TEST(Log, default_logger_with_filehandler_wide_chars)
 }
 #endif
 
+#if !defined(QUILL_NO_EXCEPTIONS)
 /***/
-TEST(Log, backend_error_handler)
+TEST_CASE("backend_error_handler")
 {
   LogManager lm;
 
@@ -449,7 +452,7 @@ TEST(Log, backend_error_handler)
   frontend.join();
 
   // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
-  ASSERT_NE(error_handler_invoked, 0);
+  REQUIRE(error_handler_invoked != 0);
 
   lm.stop_backend_worker();
 
@@ -457,7 +460,7 @@ TEST(Log, backend_error_handler)
 }
 
 /***/
-TEST(Log, backend_error_handler_log_from_backend_thread)
+TEST_CASE("backend_error_handler_log_from_backend_thread")
 {
   LogManager lm;
 
@@ -506,11 +509,14 @@ TEST(Log, backend_error_handler_log_from_backend_thread)
   frontend.join();
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  EXPECT_TRUE(
+  REQUIRE(
     quill::testing::file_contains(file_contents, "LOG_WARNING  root - error handler invoked"));
-  EXPECT_EQ(file_contents.size(), 3);
+  REQUIRE_EQ(file_contents.size(), 3);
 
   lm.stop_backend_worker();
 
   quill::detail::file_utilities::remove(filename);
 }
+#endif
+
+TEST_SUITE_END();

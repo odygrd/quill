@@ -1,9 +1,12 @@
+#include "doctest/doctest.h"
+
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/record/CommandRecord.h"
 #include "quill/detail/record/LogRecord.h"
-#include <gtest/gtest.h>
 #include <string>
+
+TEST_SUITE_BEGIN("Record");
 
 using namespace quill::detail;
 using namespace quill;
@@ -13,7 +16,7 @@ struct mock_log_record_info
   constexpr quill::detail::LogRecordMetadata operator()() { return LogRecordMetadata{}; }
 };
 
-TEST(Record, construct)
+TEST_CASE("construct")
 {
   HandlerCollection hc;
 
@@ -47,3 +50,5 @@ TEST(Record, construct)
                   "tuple is not promoted");
   }
 }
+
+TEST_SUITE_END();

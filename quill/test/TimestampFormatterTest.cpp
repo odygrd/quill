@@ -1,11 +1,15 @@
+#include "doctest/doctest.h"
+
 #include "quill/detail/TimestampFormatter.h"
 #include "quill/QuillError.h"
-#include <gtest/gtest.h>
+#include "misc/DocTestExtensions.h"
+
+TEST_SUITE_BEGIN("ThreadContextCollection");
 
 using namespace quill::detail;
 
 /***/
-TEST(TimestampFormatter, simple_format_string)
+TEST_CASE("simple_format_string")
 {
   // invalid format strings
 #if defined(QUILL_NO_EXCEPTIONS)
@@ -18,17 +22,17 @@ TEST(TimestampFormatter, simple_format_string)
               ::testing::KilledBySignal(SIGABRT), ".*");
   #endif
 #else
-  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus z"}, quill::QuillError);
-  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus%Qns z"}, quill::QuillError);
-  EXPECT_THROW(TimestampFormatter ts_formatter{"%I:%M%p%S%Qus%Qns z"}, quill::QuillError);
+  REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus z"}, quill::QuillError);
+  REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus%Qns z"}, quill::QuillError);
+  REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%S%Qus%Qns z"}, quill::QuillError);
 #endif
 
   // valid simple string
-  EXPECT_NO_THROW(TimestampFormatter ts_formatter{"%I:%M%p%S%Qns z"});
+  REQUIRE_NOTHROW(TimestampFormatter ts_formatter{"%I:%M%p%S%Qns z"});
 }
 
 /***/
-TEST(TimestampFormatter, format_string_no_additional_specifier)
+TEST_CASE("format_string_no_additional_specifier")
 {
   const std::chrono::nanoseconds timestamp{1587161887987654321};
 
@@ -37,14 +41,14 @@ TEST(TimestampFormatter, format_string_no_additional_specifier)
     TimestampFormatter ts_formatter{"%H:%M:%S", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07");
+    REQUIRE_STREQ(result, "22:18:07");
   }
 
   {
     TimestampFormatter ts_formatter{"%F %H:%M:%S", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "2020-04-17 22:18:07");
+    REQUIRE_STREQ(result, "2020-04-17 22:18:07");
   }
 
   // large simple string to cause reallocation
@@ -52,12 +56,12 @@ TEST(TimestampFormatter, format_string_no_additional_specifier)
     TimestampFormatter ts_formatter{"%A %B %d %T %Y %F", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "Friday April 17 22:18:07 2020 2020-04-17");
+    REQUIRE_STREQ(result, "Friday April 17 22:18:07 2020 2020-04-17");
   }
 }
 
 /***/
-TEST(TimestampFormatter, format_string_with_millisecond_precision)
+TEST_CASE("format_string_with_millisecond_precision")
 {
   // simple
   {
@@ -65,7 +69,7 @@ TEST(TimestampFormatter, format_string_with_millisecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.987");
+    REQUIRE_STREQ(result, "22:18:07.987");
   }
 
   // with double formatting
@@ -74,7 +78,7 @@ TEST(TimestampFormatter, format_string_with_millisecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms %D", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.803 04/17/20");
+    REQUIRE_STREQ(result, "22:18:07.803 04/17/20");
   }
 
   // with double formatting 2
@@ -83,7 +87,7 @@ TEST(TimestampFormatter, format_string_with_millisecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms-%G", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.023-2020");
+    REQUIRE_STREQ(result, "22:18:07.023-2020");
   }
 
   // with zeros
@@ -92,12 +96,12 @@ TEST(TimestampFormatter, format_string_with_millisecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.009");
+    REQUIRE_STREQ(result, "22:18:07.009");
   }
 }
 
 /***/
-TEST(TimestampFormatter, format_string_with_microsecond_precision)
+TEST_CASE("format_string_with_microsecond_precision")
 {
   // simple
   {
@@ -105,7 +109,7 @@ TEST(TimestampFormatter, format_string_with_microsecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qus", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.987654");
+    REQUIRE_STREQ(result, "22:18:07.987654");
   }
 
   // with double formatting
@@ -114,7 +118,7 @@ TEST(TimestampFormatter, format_string_with_microsecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qus %D", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.803654 04/17/20");
+    REQUIRE_STREQ(result, "22:18:07.803654 04/17/20");
   }
 
   // with double formatting 2
@@ -123,7 +127,7 @@ TEST(TimestampFormatter, format_string_with_microsecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qus-%G", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.010654-2020");
+    REQUIRE_STREQ(result, "22:18:07.010654-2020");
   }
 
   // with zeros
@@ -132,12 +136,12 @@ TEST(TimestampFormatter, format_string_with_microsecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qus", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.000004");
+    REQUIRE_STREQ(result, "22:18:07.000004");
   }
 }
 
 /***/
-TEST(TimestampFormatter, format_string_with_nanosecond_precision)
+TEST_CASE("format_string_with_nanosecond_precision")
 {
   // simple
   {
@@ -145,7 +149,7 @@ TEST(TimestampFormatter, format_string_with_nanosecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.987654321");
+    REQUIRE_STREQ(result, "22:18:07.987654321");
   }
 
   // with double formatting
@@ -154,7 +158,7 @@ TEST(TimestampFormatter, format_string_with_nanosecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns %D", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.803654320 04/17/20");
+    REQUIRE_STREQ(result, "22:18:07.803654320 04/17/20");
   }
 
   // with double formatting 2
@@ -163,7 +167,7 @@ TEST(TimestampFormatter, format_string_with_nanosecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns-%G", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.000654321-2020");
+    REQUIRE_STREQ(result, "22:18:07.000654321-2020");
   }
 
   // with zeros
@@ -172,7 +176,7 @@ TEST(TimestampFormatter, format_string_with_nanosecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.000000009");
+    REQUIRE_STREQ(result, "22:18:07.000000009");
   }
 
   // with max
@@ -181,6 +185,8 @@ TEST(TimestampFormatter, format_string_with_nanosecond_precision)
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
-    EXPECT_STREQ(result, "22:18:07.999999999");
+    REQUIRE_STREQ(result, "22:18:07.999999999");
   }
 }
+
+TEST_SUITE_END();

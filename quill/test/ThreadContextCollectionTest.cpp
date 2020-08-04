@@ -1,14 +1,17 @@
+#include "doctest/doctest.h"
+
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/Config.h"
 #include "quill/detail/ThreadContext.h"
 #include <array>
-#include <gtest/gtest.h>
 #include <thread>
+
+TEST_SUITE_BEGIN("ThreadContextCollection");
 
 using namespace quill::detail;
 
 /***/
-TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_threads_to_join)
+TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
 {
   // 1) Test that every time a new thread context is added to the thread context shared collection
   // and to the thread context cache when a new thread spawns and we load the cache
@@ -25,7 +28,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
   {
     constexpr size_t num_threads{25};
     std::array<std::thread, num_threads> threads;
-    std::array<std::atomic<bool>, num_threads> terminate_flag;
+    std::array<std::atomic<bool>, num_threads> terminate_flag{};
     std::fill(terminate_flag.begin(), terminate_flag.end(), false);
 
     std::atomic<uint32_t> threads_started{0};
@@ -58,7 +61,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
 
     // Check we have exactly as many thread contexts as the amount of threads in our backend cache
     thread_context_collection.clear_invalid_and_empty_thread_contexts();
-    EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
+    REQUIRE_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
 
     // Check all thread contexts in the backend thread contexts cache
     thread_context_collection.clear_invalid_and_empty_thread_contexts();
@@ -67,8 +70,8 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
 
     for (auto& thread_context : backend_thread_contexts_cache_local)
     {
-      EXPECT_TRUE(thread_context->is_valid());
-      EXPECT_TRUE(thread_context->spsc_queue().empty());
+      REQUIRE(thread_context->is_valid());
+      REQUIRE(thread_context->spsc_queue().empty());
     }
 
     // terminate all threads - This will invalidate all the contracts
@@ -82,19 +85,19 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_wait_for_t
     // For this we use the old cache avoiding to update it - This never happens in the real logger
     for (auto* thread_context : backend_thread_contexts_cache_local)
     {
-      EXPECT_FALSE(thread_context->is_valid());
-      EXPECT_TRUE(thread_context->spsc_queue().empty());
+      REQUIRE_FALSE(thread_context->is_valid());
+      REQUIRE(thread_context->spsc_queue().empty());
     }
 
     // Check there is no thread context left by getting the updated cache via the call
     // to backend_thread_contexts_cache()
     thread_context_collection.clear_invalid_and_empty_thread_contexts();
-    EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
+    REQUIRE_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
   }
 }
 
 /***/
-TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join)
+TEST_CASE("add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join")
 {
   // 1) Test that every time a new thread context is added to the thread context shared collection
   // and to the thread context cache when a new thread spawns and we load the cache
@@ -111,7 +114,7 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
   {
     constexpr size_t num_threads{25};
     std::array<std::thread, num_threads> threads;
-    std::array<std::atomic<bool>, num_threads> terminate_flag;
+    std::array<std::atomic<bool>, num_threads> terminate_flag{};
     std::fill(terminate_flag.begin(), terminate_flag.end(), false);
     std::atomic<uint32_t> threads_started{0};
 
@@ -143,14 +146,14 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
 
     // Check we have exactly as many thread contexts as the amount of threads in our backend cache
     thread_context_collection.clear_invalid_and_empty_thread_contexts();
-    EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
+    REQUIRE_EQ(thread_context_collection.backend_thread_contexts_cache().size(), num_threads);
 
     // Check all thread contexts in the backend thread contexts cache
     thread_context_collection.clear_invalid_and_empty_thread_contexts();
     for (auto& thread_context : thread_context_collection.backend_thread_contexts_cache())
     {
-      EXPECT_TRUE(thread_context->is_valid());
-      EXPECT_TRUE(thread_context->spsc_queue().empty());
+      REQUIRE(thread_context->is_valid());
+      REQUIRE(thread_context->spsc_queue().empty());
       thread_context_collection.clear_invalid_and_empty_thread_contexts();
     }
 
@@ -169,14 +172,14 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
       auto found_joinable = std::any_of(threads.begin(), threads.end(),
                                         [](std::thread const& th) { return th.joinable(); });
 
-      EXPECT_TRUE(found_joinable);
+      REQUIRE(found_joinable);
       thread_context_collection.clear_invalid_and_empty_thread_contexts();
     }
 
     // Check there is no thread context left by getting the updated cache via the call
     // to backend_thread_contexts_cache()
     thread_context_collection.clear_invalid_and_empty_thread_contexts();
-    EXPECT_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
+    REQUIRE_EQ(thread_context_collection.backend_thread_contexts_cache().size(), 0);
 
     // Finally call join on everything
     for (size_t j = 0; j < threads.size(); ++j)
@@ -185,3 +188,5 @@ TEST(ThreadContextCollection, add_remove_thread_context_multithreaded_dont_wait_
     }
   }
 }
+
+TEST_SUITE_END();

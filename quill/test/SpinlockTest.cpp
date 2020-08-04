@@ -1,10 +1,12 @@
-#include "quill/detail/misc/Spinlock.h"
+#include "doctest/doctest.h"
 
+#include "quill/detail/misc/Spinlock.h"
 #include <array>
-#include <gtest/gtest.h>
 #include <mutex>
 #include <random>
 #include <thread>
+
+TEST_SUITE_BEGIN("Spinlock");
 
 namespace
 {
@@ -31,7 +33,11 @@ void spinlock_test_thread(LockedVal* v)
     uint32_t const first = v->ar[0];
     for (auto const elem : v->ar)
     {
-      EXPECT_EQ(first, elem);
+      // Do not use REQUIRE because in doctest it is thread safe and makes the test very slow
+      if (first != elem)
+      {
+          FAIL("first should not be equal to elem. first: " << first << " elem: " << elem);
+      }
     }
 
     // Set whole array to new value ( will be checked by the next thread )
@@ -59,8 +65,12 @@ void try_lock_test_thread(TryLockState* state, size_t count)
       break;
     }
 
-    bool ret = state->lock2.try_lock();
-    EXPECT_NE(state->locked, ret);
+    bool const ret = state->lock2.try_lock();
+    // Do not use REQUIRE because in doctest it is thread safe and makes the test very slow
+    if (state->locked == ret)
+    {
+      FAIL("state->locked should not be equal to ret. state->locked: " << state->locked << " ret: " << ret);
+    }
 
     if (ret)
     {
@@ -89,7 +99,7 @@ void try_lock_test_thread(TryLockState* state, size_t count)
 
 } // namespace
 
-TEST(Spinlock, lock)
+TEST_CASE("lock")
 {
   constexpr size_t num_threads = 20;
 
@@ -109,7 +119,7 @@ TEST(Spinlock, lock)
   }
 }
 
-TEST(Spinlock, try_lock)
+TEST_CASE("try_lock")
 {
   constexpr size_t num_threads = 20;
 
@@ -129,10 +139,12 @@ TEST(Spinlock, try_lock)
     t.join();
   }
 
-  EXPECT_EQ(count, state.obtained);
+  REQUIRE_EQ(count, state.obtained);
 
   // Each time the code obtains lock2 it waits for another thread to fail
   // to acquire it.
   // The only time this might not happen is on the very last loop when no other threads are left.
-  EXPECT_GE(state.failed + 1, state.obtained);
+  REQUIRE_GE(state.failed + 1, state.obtained);
 }
+
+TEST_SUITE_END();

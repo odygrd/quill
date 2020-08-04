@@ -1,15 +1,18 @@
+#include "doctest/doctest.h"
+
 #include "quill/detail/misc/TypeTraitsCopyable.h"
-
-#include <gtest/gtest.h>
-
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <ctime>
 #include <functional>
 #include <map>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
+
+TEST_SUITE_BEGIN("TypeTraitsCopyable");
 
 using namespace quill::detail;
 
@@ -18,7 +21,7 @@ struct TaggedNonTrivial
 public:
   using copy_loggable = std::true_type;
 
-  explicit TaggedNonTrivial(std::string const& x) : x(x){};
+  explicit TaggedNonTrivial(std::string  x) : x(std::move(x)){};
 
 private:
   std::string x;
@@ -27,7 +30,7 @@ private:
 struct NonTrivial
 {
 public:
-  explicit NonTrivial(std::string const& x) : x(x){};
+  explicit NonTrivial(std::string  x) : x(std::move(x)){};
 
 private:
   std::string x;
@@ -45,14 +48,14 @@ enum class EnumClass
   Four
 };
 
-TEST(TypeTraits, is_string)
+TEST_CASE("is_string")
 {
   static_assert(is_string_v<std::string>, "_");
   static_assert(!is_string_v<int>, "_");
   static_assert(!is_string_v<std::vector<int>>, "_");
 }
 
-TEST(TypeTraits, is_tagged_copyable)
+TEST_CASE("is_tagged_copyable")
 {
   static_assert(!is_tagged_copyable_v<std::string>, "_");
   static_assert(!is_tagged_copyable_v<int>, "_");
@@ -60,7 +63,7 @@ TEST(TypeTraits, is_tagged_copyable)
   static_assert(is_tagged_copyable_v<TaggedNonTrivial>, "_");
 }
 
-TEST(TypeTraits, is_copyable_pair)
+TEST_CASE("is_copyable_pair")
 {
   static_assert(is_copyable_pair_v<std::pair<std::string, std::string>>, "_");
   static_assert(is_copyable_pair_v<std::pair<int, int>>, "_");
@@ -68,14 +71,14 @@ TEST(TypeTraits, is_copyable_pair)
   static_assert(is_copyable_pair_v<std::pair<std::string, std::string>>, "_");
 }
 
-TEST(TypeTraits, is_container)
+TEST_CASE("is_container")
 {
   static_assert(is_container_v<std::vector<int>>, "_");
   static_assert(is_container_v<std::vector<std::string>>, "_");
   static_assert(is_container_v<std::map<std::string, int>>, "_");
 }
 
-TEST(TypeTraits, is_copyable_container)
+TEST_CASE("is_copyable_container")
 {
   static_assert(is_copyable_container_v<std::vector<int>>, "_");
   static_assert(is_copyable_container_v<std::vector<std::string>>, "_");
@@ -85,7 +88,7 @@ TEST(TypeTraits, is_copyable_container)
   static_assert(!is_copyable_container_v<std::vector<NonTrivial>>, "_");
 }
 
-TEST(TypeTraits, is_copyable)
+TEST_CASE("is_copyable")
 {
   // built in - copyable
   static_assert(is_copyable_v<int>, "_");
@@ -155,3 +158,5 @@ TEST(TypeTraits, is_copyable)
   static_assert(!is_copyable_v<std::reference_wrapper<int>>, "-");
   static_assert(!is_copyable_v<std::vector<std::reference_wrapper<int>>>, "-");
 }
+
+TEST_SUITE_END();

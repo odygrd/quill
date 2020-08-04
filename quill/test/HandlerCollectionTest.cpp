@@ -1,12 +1,15 @@
+#include "doctest/doctest.h"
+
 #include "quill/detail/HandlerCollection.h"
 #include <cstdio>
-#include <gtest/gtest.h>
+
+TEST_SUITE_BEGIN("HandlerCollection");
 
 using namespace quill;
 using namespace quill::detail;
 
 /***/
-TEST(HandlerCollection, stdout_stderr_handlers)
+TEST_CASE("stdout_stderr_handlers")
 {
   HandlerCollection hc;
 
@@ -14,9 +17,9 @@ TEST(HandlerCollection, stdout_stderr_handlers)
   StreamHandler* stdout_handler = hc.stdout_streamhandler();
 
 #if defined(_WIN32)
-  EXPECT_EQ(stdout_handler->filename(), std::wstring{L"stdout"});
+  REQUIRE_EQ(stdout_handler->filename(), std::wstring{L"stdout"});
 #else
-  EXPECT_EQ(stdout_handler->filename(), std::string{"stdout"});
+  REQUIRE_EQ(stdout_handler->filename(), std::string{"stdout"});
 #endif
 
   // Attempt to create a file handler with stdout as name and check that it is the same as the default
@@ -25,14 +28,14 @@ TEST(HandlerCollection, stdout_stderr_handlers)
 #else
   StreamHandler* filehandler_1 = hc.file_handler("stdout");
 #endif
-  EXPECT_EQ(filehandler_1, stdout_handler);
+  REQUIRE_EQ(filehandler_1, stdout_handler);
 
   // Get the default stderr stream handler
   StreamHandler* stderr_handler = hc.stderr_streamhandler();
 #if defined(_WIN32)
-  EXPECT_EQ(stderr_handler->filename(), std::wstring{L"stderr"});
+  REQUIRE_EQ(stderr_handler->filename(), std::wstring{L"stderr"});
 #else
-  EXPECT_EQ(stderr_handler->filename(), std::string{"stderr"});
+  REQUIRE_EQ(stderr_handler->filename(), std::string{"stderr"});
 #endif
 
   // Attempt to create a file handler with stderr as name and check that it is the same as the default
@@ -41,11 +44,11 @@ TEST(HandlerCollection, stdout_stderr_handlers)
 #else
   StreamHandler* filehandler_2 = hc.file_handler("stderr");
 #endif
-  EXPECT_EQ(filehandler_2, stderr_handler);
+  REQUIRE_EQ(filehandler_2, stderr_handler);
 }
 
 /***/
-TEST(HandlerCollection, create_get)
+TEST_CASE("create_get")
 {
   HandlerCollection hc;
 
@@ -64,12 +67,12 @@ TEST(HandlerCollection, create_get)
 #endif
 
   // Compare the pointers
-  EXPECT_EQ(filehandler, filehandler_2);
+  REQUIRE_EQ(filehandler, filehandler_2);
   std::remove("create_get_file_handler");
 }
 
 /***/
-TEST(HandlerCollection, subscribe_get_active_same_handler)
+TEST_CASE("subscribe_get_active_same_handler")
 {
   HandlerCollection hc;
 
@@ -88,31 +91,31 @@ TEST(HandlerCollection, subscribe_get_active_same_handler)
 #endif
 
   // Compare the pointers
-  EXPECT_EQ(filehandler, filehandler_2);
+  REQUIRE_EQ(filehandler, filehandler_2);
 
   // Check for active file handlers
   std::vector<Handler*> active_handlers = hc.active_handlers();
-  EXPECT_EQ(active_handlers.size(), 0);
+  REQUIRE_EQ(active_handlers.size(), 0);
 
   // Subscribe the handler once
   hc.subscribe_handler(filehandler);
   active_handlers = hc.active_handlers();
-  EXPECT_EQ(active_handlers.size(), 1);
+  REQUIRE_EQ(active_handlers.size(), 1);
 
   // Subscribe the new handler - no effect as it is the same as before
   hc.subscribe_handler(filehandler_2);
   active_handlers = hc.active_handlers();
-  EXPECT_EQ(active_handlers.size(), 1);
+  REQUIRE_EQ(active_handlers.size(), 1);
 
   // Subscribe the same handler again - check no effect
   hc.subscribe_handler(filehandler);
   active_handlers = hc.active_handlers();
-  EXPECT_EQ(active_handlers.size(), 1);
+  REQUIRE_EQ(active_handlers.size(), 1);
   std::remove("create_get_file_handler");
 }
 
 /***/
-TEST(HandlerCollection, subscribe_get_active_different_handlers)
+TEST_CASE("subscribe_get_active_different_handlers")
 {
   HandlerCollection hc;
 
@@ -131,27 +134,29 @@ TEST(HandlerCollection, subscribe_get_active_different_handlers)
 #endif
 
   // Compare the pointers
-  EXPECT_NE(filehandler, filehandler_2);
+  REQUIRE_NE(filehandler, filehandler_2);
 
   // Check for active file handlers
   std::vector<Handler*> active_handlers = hc.active_handlers();
-  EXPECT_EQ(active_handlers.size(), 0);
+  REQUIRE_EQ(active_handlers.size(), 0);
 
   // Subscribe the handler once
   hc.subscribe_handler(filehandler);
   active_handlers = hc.active_handlers();
-  EXPECT_EQ(active_handlers.size(), 1);
+  REQUIRE_EQ(active_handlers.size(), 1);
 
   // Subscribe the new handler - no effect as it is the same as before
   hc.subscribe_handler(filehandler_2);
   active_handlers = hc.active_handlers();
-  EXPECT_EQ(active_handlers.size(), 2);
+  REQUIRE_EQ(active_handlers.size(), 2);
 
   // Subscribe the same handler again - check no effect
   hc.subscribe_handler(filehandler);
   active_handlers = hc.active_handlers();
-  EXPECT_EQ(active_handlers.size(), 2);
+  REQUIRE_EQ(active_handlers.size(), 2);
 
   std::remove("create_get_file_handler_1");
   std::remove("create_get_file_handler_2");
 }
+
+TEST_SUITE_END();

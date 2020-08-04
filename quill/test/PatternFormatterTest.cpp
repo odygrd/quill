@@ -1,12 +1,15 @@
+#include "doctest/doctest.h"
+
 #include "quill/PatternFormatter.h"
 #include "quill/detail/misc/Macros.h"
 #include <chrono>
-#include <gtest/gtest.h>
+
+TEST_SUITE_BEGIN("PatternFormatter");
 
 using namespace quill::detail;
 using namespace quill;
 
-TEST(PatternFormatter, default_pattern_formatter)
+TEST_CASE("default_pattern_formatter")
 {
   PatternFormatter default_pattern_formatter;
 
@@ -26,13 +29,13 @@ TEST(PatternFormatter, default_pattern_formatter)
 
   // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
   std::string const expected_string =
-    "[31341] PatternFormatterTest.cpp:16 LOG_INFO     test_logger - This the pattern formatter "
+    "[31341] PatternFormatterTest.cpp:19 LOG_INFO     test_logger - This the pattern formatter "
     "1234\n";
   auto const found_expected = formatted_string.find(expected_string);
-  EXPECT_TRUE(found_expected != std::string::npos);
+  REQUIRE(found_expected != std::string::npos);
 }
 
-TEST(PatternFormatter, custom_pattern_message_only)
+TEST_CASE("custom_pattern_message_only")
 {
   // Message only
   PatternFormatter custom_pattern_formatter{QUILL_STRING("%(message)"), "%H:%M:%S.%Qns", Timezone::GmtTime};
@@ -53,11 +56,11 @@ TEST(PatternFormatter, custom_pattern_message_only)
 
   std::string const expected_string = "This the 12.34 formatter pattern\n";
 
-  EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-  EXPECT_EQ(formatted_string, expected_string);
+  REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
+  REQUIRE_EQ(formatted_string, expected_string);
 }
 
-TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
+TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
 {
   // Custom pattern with part 1 and part 3
   PatternFormatter custom_pattern_formatter{
@@ -81,14 +84,14 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_nanoseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:72 LOG_DEBUG    test_logger - "
-    "This the 1234 formatter pattern [TestBody]\n";
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:75 LOG_DEBUG    test_logger - "
+    "This the 1234 formatter pattern [_DOCTEST_ANON_FUNC_8]\n";
 
-  EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-  EXPECT_EQ(formatted_string, expected_string);
+  REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
+  REQUIRE_EQ(formatted_string, expected_string);
 }
 
-TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
+TEST_CASE("custom_pattern_timestamp_precision_microseconds")
 {
   PatternFormatter custom_pattern_formatter{
     QUILL_STRING(
@@ -111,14 +114,14 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_microseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:102 LOG_DEBUG    test_logger - "
-    "This the 1234 formatter pattern [TestBody]\n";
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:105 LOG_DEBUG    test_logger - "
+    "This the 1234 formatter pattern [_DOCTEST_ANON_FUNC_10]\n";
 
-  EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-  EXPECT_EQ(formatted_string, expected_string);
+  REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
+  REQUIRE_EQ(formatted_string, expected_string);
 }
 
-TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
+TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
 {
   PatternFormatter custom_pattern_formatter{
     QUILL_STRING(
@@ -141,14 +144,14 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_milliseconds)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:132 LOG_DEBUG    test_logger - This "
-    "the 1234 formatter pattern [TestBody]\n";
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:135 LOG_DEBUG    test_logger - This "
+    "the 1234 formatter pattern [_DOCTEST_ANON_FUNC_12]\n";
 
-  EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-  EXPECT_EQ(formatted_string, expected_string);
+  REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
+  REQUIRE_EQ(formatted_string, expected_string);
 }
 
-TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
+TEST_CASE("custom_pattern_timestamp_precision_none")
 {
   PatternFormatter custom_pattern_formatter{
     QUILL_STRING(
@@ -171,14 +174,14 @@ TEST(PatternFormatter, custom_pattern_timestamp_precision_none)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:162 LOG_DEBUG    test_logger - This the "
-    "1234 formatter pattern [TestBody]\n";
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:165 LOG_DEBUG    test_logger - This the "
+    "1234 formatter pattern [_DOCTEST_ANON_FUNC_14]\n";
 
-  EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-  EXPECT_EQ(formatted_string, expected_string);
+  REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
+  REQUIRE_EQ(formatted_string, expected_string);
 }
 
-TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_on_format_string_2)
+TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
 {
   // set a timestamp_format that will cause timestamp _formatted_date to re-allocate.
   PatternFormatter custom_pattern_formatter{
@@ -203,16 +206,15 @@ TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_on_format_
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:193 "
-      "LOG_DEBUG    test_logger - This the "
-      "1234 formatter pattern [TestBody]\n";
+      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:196 "
+      "LOG_DEBUG    test_logger - This the 1234 formatter pattern [_DOCTEST_ANON_FUNC_16]\n";
 
-    EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-    EXPECT_EQ(formatted_string, expected_string);
+    REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
+    REQUIRE_EQ(formatted_string, expected_string);
   }
 }
 
-TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_when_adding_fractional_seconds)
+TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional_seconds")
 {
   // set a timestamp_format that will cause timestamp _formatted_date to re-allocate.
   PatternFormatter custom_pattern_formatter{
@@ -237,37 +239,27 @@ TEST(PatternFormatter, custom_pattern_timestamp_strftime_reallocation_when_addin
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:227 "
-      "LOG_DEBUG    test_logger - This the "
-      "1234 formatter pattern [TestBody]\n";
+      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:229 "
+      "LOG_DEBUG    test_logger - This the 1234 formatter pattern [_DOCTEST_ANON_FUNC_18]\n";
 
-    EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-    EXPECT_EQ(formatted_string, expected_string);
+    REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
+    REQUIRE_EQ(formatted_string, expected_string);
   }
 }
 
-TEST(PatternFormatter, invalid_pattern)
+#ifndef QUILL_NO_EXCEPTIONS
+TEST_CASE("invalid_pattern")
 {
-#if defined(QUILL_NO_EXCEPTIONS)
-  #if !defined(_WIN32)
-  ASSERT_EXIT(
-    PatternFormatter(
-      QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
-                   "[%(function_name)]"),
-      "%H:%M:%S.%Qns", Timezone::GmtTime),
-    ::testing::KilledBySignal(SIGABRT), ".*");
-  #endif
-#else
-  EXPECT_THROW(
+  REQUIRE_THROWS_AS(
     PatternFormatter(
       QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
                    "[%(function_name)]"),
       "%H:%M:%S.%Qns", Timezone::GmtTime),
     quill::QuillError);
-#endif
 }
+#endif
 
-TEST(PatternFormatter, custom_pattern)
+TEST_CASE("custom_pattern")
 {
   // Custom pattern with part 1 and part 2
   PatternFormatter custom_pattern_formatter{
@@ -291,9 +283,11 @@ TEST(PatternFormatter, custom_pattern)
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:282 LOG_DEBUG    test_logger - "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:274 LOG_DEBUG    test_logger - "
     "This the 1234 formatter pattern\n";
 
-  EXPECT_EQ(formatted_buffer.size(), expected_string.length());
-  EXPECT_EQ(formatted_string, expected_string);
+  REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
+  REQUIRE_EQ(formatted_string, expected_string);
 }
+
+TEST_SUITE_END();
