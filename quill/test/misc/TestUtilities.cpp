@@ -1,5 +1,6 @@
 #include "TestUtilities.h"
 #include "quill/detail/misc/Utilities.h"
+#include <iostream>
 
 namespace quill
 {
@@ -32,7 +33,19 @@ bool file_contains(std::vector<std::string> const& file_vector, std::string sear
       return elem.find(search_string) != std::string::npos;
     });
 
-  return search != file_vector.cend();
+  bool const success = search != file_vector.cend();
+
+  if (!success)
+  {
+    // We failed to find and we will log for diagnostic reasons
+    std::cout << "Failed to find '" << search_string << "' in:\n";
+    for (auto const& line : file_vector)
+    {
+      std::cout << "'" << line << "'\n";
+    }
+  }
+
+  return success;
 }
 } // namespace testing
 } // namespace quill

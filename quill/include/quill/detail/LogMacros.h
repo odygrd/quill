@@ -10,6 +10,8 @@
 #include "quill/Fmt.h"
 #include "quill/Logger.h"
 #include "quill/detail/misc/Macros.h"
+#include "quill/detail/record/BacktraceRecord.h"
+#include "quill/detail/record/LogRecord.h"
 #include <type_traits>
 
 // Config Options
@@ -62,7 +64,8 @@ constexpr void check_format(const S& format_str, Args&&...)
 #endif
 
 // clang-format off
-#define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ...) do {                                                                    \
+#define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ...) \
+  do {                                                                       \
     check_format(FMT_STRING(fmt), ##__VA_ARGS__);                                                                                                    \
                                                                                                                                                      \
     static constexpr char const* function_name = __FUNCTION__;                                                                                       \
@@ -73,7 +76,23 @@ constexpr void check_format(const S& format_str, Args&&...)
                                                                                                                                                      \
     if (likelyhood(logger->should_log<log_statement_level>()))                                                                                       \
     {                                                                                                                                                \
-      logger->log<decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                                                 \
+      logger->log<quill::detail::LogRecord, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                       \
+    }                                                                                                                                                \
+  } while (0)
+
+#define QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ...) \
+  do {                                                                       \
+    check_format(FMT_STRING(fmt), ##__VA_ARGS__);                                                                                                    \
+                                                                                                                                                     \
+    static constexpr char const* function_name = __FUNCTION__;                                                                                       \
+    struct {                                                                                                                                         \
+      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                                                                       \
+        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, quill::LogLevel::Backtrace}; }                     \
+      } anonymous_log_record_info;                                                                                                                   \
+                                                                                                                                                     \
+    if (QUILL_LIKELY(logger->should_log<quill::LogLevel::Backtrace>()))                                                                                       \
+    {                                                                                                                                                \
+      logger->log<quill::detail::BacktraceRecord, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                                                 \
     }                                                                                                                                                \
   } while (0)
 // clang-format on
@@ -205,3 +224,5 @@ constexpr void check_format(const S& format_str, Args&&...)
     #define LOG_CRITICAL_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
+
+#define LOG_BACKTRACE(logger, fmt, ...) QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ##__VA_ARGS__)

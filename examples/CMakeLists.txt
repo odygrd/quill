@@ -1,3 +1,6 @@
+add_executable(example_backtrace example_backtrace.cpp)
+target_link_libraries(example_backtrace quill)
+
 add_executable(example_configure_backend example_configure_backend.cpp)
 target_link_libraries(example_configure_backend quill)
 

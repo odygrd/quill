@@ -7,6 +7,7 @@
 
 #include "quill/detail/misc/Utilities.h"
 #include "quill/handlers/Handler.h"
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -66,8 +67,28 @@ public:
    */
   QUILL_NODISCARD std::vector<Handler*> const& handlers() const noexcept { return _handlers; }
 
+  /**
+   * Set the backtrace_flush_log_level.
+   * @param backtrace_flush_level Any log messages with equal or higher severity that this
+   * will also flush the backtrace logs of this logger
+   */
+  void set_backtrace_flush_level(LogLevel backtrace_flush_level) noexcept
+  {
+    _backtrace_flush_level.store(backtrace_flush_level, std::memory_order_relaxed);
+  }
+
+  /**
+   * @return The current backtrace_flush_level
+   */
+  QUILL_NODISCARD LogLevel backtrace_flush_level() const noexcept
+  {
+    return _backtrace_flush_level.load(std::memory_order_relaxed);
+  }
+
 private:
-  std::array<char, 24> _name; /** Because size of string in gcc is 32 we use an array here as we need the Logger object to fit all in a single cache line */
+  std::array<char, 22> _name; /** Because size of string in gcc is 32 we use an array here as we need the Logger object to fit all in a single cache line */
+  std::atomic<LogLevel> _backtrace_flush_level{
+    LogLevel::None}; /** Updated by the caller thread and read by the backedn worker thread */
   std::vector<Handler*> _handlers;
 };
 } // namespace detail

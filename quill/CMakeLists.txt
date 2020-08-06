@@ -24,11 +24,14 @@ set(HEADER_FILES
         include/quill/detail/misc/Utilities.h
         include/quill/detail/misc/TypeTraits.h
         include/quill/detail/misc/TypeTraitsCopyable.h
+        include/quill/detail/record/BacktraceCommand.h
+        include/quill/detail/record/BacktraceRecord.h
         include/quill/detail/record/CommandRecord.h
         include/quill/detail/record/LogRecord.h
         include/quill/detail/record/RecordBase.h
         include/quill/detail/record/LogRecordMetadata.h
         include/quill/detail/BackendWorker.h
+        include/quill/detail/BacktraceRecordStorage.h
         include/quill/detail/BoundedSPSCQueue.h
         include/quill/detail/Config.h
         include/quill/detail/HandlerCollection.h
@@ -66,6 +69,7 @@ set(SOURCE_FILES
         src/detail/misc/Spinlock.cpp
         src/detail/misc/FileUtilities.cpp
         src/detail/BackendWorker.cpp
+        src/detail/BacktraceRecordStorage.cpp
         src/detail/Config.cpp
         src/detail/HandlerCollection.cpp
         src/detail/LoggerCollection.cpp

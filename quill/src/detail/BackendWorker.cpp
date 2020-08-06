@@ -42,8 +42,7 @@ void BackendWorker::stop() noexcept
 }
 
 /***/
-uint32_t BackendWorker::thread_id() const noexcept
-{ return _backend_worker_thread_id; }
+uint32_t BackendWorker::thread_id() const noexcept { return _backend_worker_thread_id; }
 
 #if !defined(QUILL_NO_EXCEPTIONS)
 /***/

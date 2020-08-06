@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
-#include "quill/detail/record/LogRecordMetadata.h"
-#include "quill/detail/misc/Macros.h"
 #include "misc/TestUtilities.h"
+#include "quill/detail/misc/Macros.h"
+#include "quill/detail/record/LogRecordMetadata.h"
 
 TEST_SUITE_BEGIN("LogRecordMetadata");
 
@@ -28,7 +28,7 @@ TEST_CASE("construct")
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Info);
     REQUIRE_STREQ(log_line_info.lineno(), "24");
     REQUIRE_STREQ(log_line_info.filename(), "LogRecordMetadataTest.cpp");
-    REQUIRE_STREQ(log_line_info.level_as_str(), "INFO    ");
+    REQUIRE_STREQ(log_line_info.level_as_str(), "INFO     ");
   }
 }
 

@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
+#include "misc/TestUtilities.h"
 #include "quill/LogLevel.h"
 #include "quill/QuillError.h"
-#include "misc/TestUtilities.h"
 
 TEST_SUITE_BEGIN("LogLevel");
 
@@ -15,6 +15,11 @@ TEST_CASE("to_string")
   {
     LogLevel log_level{LogLevel::None};
     REQUIRE_STREQ(to_string(log_level), "None");
+  }
+
+  {
+    LogLevel log_level{LogLevel::Backtrace};
+    REQUIRE_STREQ(to_string(log_level), "Backtrace");
   }
 
   {
@@ -72,6 +77,11 @@ TEST_CASE("from_string")
   {
     std::string log_level{"None"};
     REQUIRE_EQ(from_string(log_level), LogLevel::None);
+  }
+
+  {
+    std::string log_level{"Backtrace"};
+    REQUIRE_EQ(from_string(log_level), LogLevel::Backtrace);
   }
 
   {
