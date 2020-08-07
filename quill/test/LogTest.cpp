@@ -7,6 +7,7 @@
 #include "quill/detail/LogManager.h"
 #include "quill/detail/misc/FileUtilities.h"
 #include "quill/handlers/Handler.h"
+#include <chrono>
 #include <cstdio>
 #include <thread>
 
@@ -61,9 +62,9 @@ TEST_CASE("default_logger_with_filehandler")
 
   REQUIRE_EQ(file_contents.size(), 2);
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO     root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    file_contents, std::string{"LOG_INFO      root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    file_contents, std::string{"LOG_ERROR     root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
@@ -96,7 +97,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   }
   else if (test_case == 1)
   {
-    // Add the other logger by using the default logger params
+    // Add the other logger by using the default logger params - which is the same as obtaining the file handler above
     QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger");
   }
   // Thread for default pattern
@@ -394,9 +395,9 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
 
   REQUIRE_EQ(file_contents.size(), 2);
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO     root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    file_contents, std::string{"LOG_INFO      root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR    root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    file_contents, std::string{"LOG_ERROR     root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
@@ -409,14 +410,15 @@ TEST_CASE("backend_error_handler")
 {
   LogManager lm;
 
-#if defined(_WIN32)
+  #if defined(_WIN32)
   std::wstring const filename{L"test_backend_error_handler"};
-#else
+  #else
   std::string const filename{"test_backend_error_handler"};
-#endif
+  #endif
 
   // counter to check our error handler was invoked
-  size_t error_handler_invoked{0};
+  // atomic because we check this value on this thread, but the backend worker thread updates it
+  std::atomic<size_t> error_handler_invoked{0};
 
   std::thread frontend([&lm, &filename, &error_handler_invoked]() {
     // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
@@ -452,7 +454,7 @@ TEST_CASE("backend_error_handler")
   frontend.join();
 
   // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
-  REQUIRE(error_handler_invoked != 0);
+  REQUIRE(error_handler_invoked.load() != 0);
 
   lm.stop_backend_worker();
 
@@ -464,16 +466,13 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
 {
   LogManager lm;
 
-#if defined(_WIN32)
+  #if defined(_WIN32)
   std::wstring const filename{L"test_backend_error_handler_log_from_backend_thread"};
-#else
+  #else
   std::string const filename{"test_backend_error_handler_log_from_backend_thread"};
-#endif
+  #endif
 
-  // counter to check our error handler was invoked
-  size_t error_handler_invoked{0};
-
-  std::thread frontend([&lm, &filename, &error_handler_invoked]() {
+  std::thread frontend([&lm, &filename]() {
     // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
     lm.config().set_backend_thread_cpu_affinity(static_cast<uint16_t>(321312));
 
@@ -489,7 +488,7 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
     Logger* default_logger = lm.logger_collection().get_logger();
 
     // Set a custom error handler to handler exceptions
-    lm.set_backend_worker_error_handler([&error_handler_invoked, default_logger, &lm](std::string const& s) {
+    lm.set_backend_worker_error_handler([default_logger, &lm](std::string const& s) {
       LOG_WARNING(default_logger, "error handler invoked");
       lm.flush(); // this will be called by the backend but do nothing
     });
@@ -510,13 +509,257 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   REQUIRE(
-    quill::testing::file_contains(file_contents, "LOG_WARNING  root - error handler invoked"));
+    quill::testing::file_contains(file_contents, "LOG_WARNING   root - error handler invoked"));
   REQUIRE_EQ(file_contents.size(), 3);
 
   lm.stop_backend_worker();
 
   quill::detail::file_utilities::remove(filename);
 }
+
+/***/
+TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
+{
+  LogManager lm;
+
+  #if defined(_WIN32)
+  std::wstring const filename{L"test_backend_error_handler_error_throw_while_in_backend_process"};
+  #else
+  std::string const filename{"test_backend_error_handler_error_throw_while_in_backend_process"};
+  #endif
+
+  // counter to check our error handler was invoked
+  // atomic because we check this value on this thread, but the backend worker thread updates it
+  std::atomic<size_t> error_handler_invoked{0};
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().file_handler(filename, "w"));
+
+  // Set a custom error handler to handler exceptions
+  lm.set_backend_worker_error_handler(
+    [&error_handler_invoked](std::string const& s) { ++error_handler_invoked; });
+
+  lm.start_backend_worker();
+
+  std::thread frontend([&lm]() {
+    Logger* logger = lm.logger_collection().get_logger();
+
+    // Here we will call LOG_BACKTRACE(...) without calling enable_backtrace(...) first
+    // We expect an error to be thrown and reported to our error handler backend_worker_error_handler
+
+    LOG_INFO(logger, "Before backtrace.");
+    for (uint32_t i = 0; i < 4; ++i)
+    {
+  #if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
+      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // when in this loop and make the test unstable
+      std::this_thread::sleep_for(std::chrono::microseconds{200});
+  #endif
+      LOG_BACKTRACE(logger, "Backtrace message {}.", i);
+    }
+    LOG_ERROR(logger, "After Error.");
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  // Check that the backend worker thread called our error handler 4 times - the number of LOG_BACKTRACE calls
+  REQUIRE_EQ(error_handler_invoked.load(), 4);
+}
 #endif
+
+/***/
+TEST_CASE("log_backtrace_and_flush_on_error")
+{
+  LogManager lm;
+
+#if defined(_WIN32)
+  std::wstring const filename{L"test_log_backtrace_and_flush_on_error"};
+#else
+  std::string const filename{"test_log_backtrace_and_flush_on_error"};
+#endif
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().file_handler(filename, "w"));
+
+  lm.start_backend_worker();
+
+  std::thread frontend([&lm]() {
+    // Get a logger and enable backtrace
+    Logger* logger = lm.logger_collection().get_logger();
+
+    // Enable backtrace for 2 messages
+    logger->enable_backtrace(2, LogLevel::Error);
+
+    LOG_INFO(logger, "Before backtrace.");
+    for (uint32_t i = 0; i < 12; ++i)
+    {
+#if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
+      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // when in this loop and make the test unstable
+      std::this_thread::sleep_for(std::chrono::microseconds{200});
+#endif
+      LOG_BACKTRACE(logger, "Backtrace message {}.", i);
+    }
+    LOG_ERROR(logger, "After Error.");
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 4);
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_INFO      root - Before backtrace."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root - After Error."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_BACKTRACE root - Backtrace message 10."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_BACKTRACE root - Backtrace message 11."}));
+
+  lm.stop_backend_worker();
+  quill::detail::file_utilities::remove(filename);
+}
+
+/***/
+TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
+{
+  // In this test we store in backtrace from one thread that terminates
+  // and then we log that backtrace from a different thread
+  LogManager lm;
+
+#if defined(_WIN32)
+  std::wstring const filename{L"test_log_backtrace_terminate_thread_then_and_flush_on_error"};
+#else
+  std::string const filename{"test_log_backtrace_terminate_thread_then_and_flush_on_error"};
+#endif
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().file_handler(filename, "w"));
+
+  lm.start_backend_worker();
+
+  std::thread frontend([&lm]() {
+    // Get a logger and enable backtrace
+    Logger* logger = lm.logger_collection().get_logger();
+
+    // Enable backtrace for 2 messages
+    logger->enable_backtrace(2, LogLevel::Error);
+
+    for (uint32_t i = 0; i < 12; ++i)
+    {
+#if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
+      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // when in this loop and make the test unstable
+      std::this_thread::sleep_for(std::chrono::microseconds{200});
+#endif
+      LOG_BACKTRACE(logger, "Backtrace message {}.", i);
+    }
+  });
+
+  frontend.join();
+
+  // The first thread logged something in backtrace and finished.
+  // Now we spawn a different thread and LOG_ERROR and we expect to see the backtrace from the previous thread
+  std::thread frontend_1([&lm]() {
+    // Get the same logger
+    Logger* logger = lm.logger_collection().get_logger();
+    LOG_ERROR(logger, "After Error.");
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend_1.join();
+
+  // Now check file
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 3);
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root - After Error."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_BACKTRACE root - Backtrace message 10."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_BACKTRACE root - Backtrace message 11."}));
+
+  lm.stop_backend_worker();
+  quill::detail::file_utilities::remove(filename);
+}
+
+/***/
+TEST_CASE("log_backtrace_manual_flush")
+{
+  LogManager lm;
+
+#if defined(_WIN32)
+  std::wstring const filename{L"test_log_backtrace_manual_flush"};
+#else
+  std::string const filename{"test_log_backtrace_manual_flush"};
+#endif
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().file_handler(filename, "w"));
+
+  lm.start_backend_worker();
+
+  std::thread frontend([&lm]() {
+    // Get a logger and enable backtrace
+    Logger* logger = lm.logger_collection().get_logger();
+
+    // Enable backtrace for 2 messages but without flushing
+    logger->enable_backtrace(2);
+
+    LOG_INFO(logger, "Before backtrace.");
+    for (uint32_t i = 0; i < 12; ++i)
+    {
+#if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
+      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // when in this loop and make the test unstable
+      std::this_thread::sleep_for(std::chrono::microseconds{200});
+#endif
+      LOG_BACKTRACE(logger, "Backtrace message {}.", i);
+    }
+    LOG_ERROR(logger, "After Error.");
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_INFO      root - Before backtrace."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root - After Error."}));
+
+  // The backtrace didn't flush we will force flush it now from a new thread
+  std::thread frontend_1([&lm]() {
+    // Get a logger and enable backtrace
+    Logger* logger = lm.logger_collection().get_logger();
+
+    logger->flush_backtrace();
+
+    lm.flush();
+  });
+
+  frontend_1.join();
+
+  std::vector<std::string> const file_contents_2 = quill::testing::file_contents(filename);
+
+  // Now we also have the backtrace
+  REQUIRE_EQ(file_contents_2.size(), 4);
+  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_INFO      root - Before backtrace."}));
+  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_ERROR     root - After Error."}));
+  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_BACKTRACE root - Backtrace message 10."}));
+  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_BACKTRACE root - Backtrace message 11."}));
+
+  lm.stop_backend_worker();
+  quill::detail::file_utilities::remove(filename);
+}
 
 TEST_SUITE_END();

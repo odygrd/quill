@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include "quill/detail/misc/Common.h"
+#include "quill/detail/BacktraceRecordStorage.h"
 #include "quill/detail/LoggerDetails.h"
+#include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/Rdtsc.h"
 #include <chrono>
@@ -35,6 +36,16 @@ public:
   virtual ~RecordBase() = default;
 
   /**
+   * A lambda to obtain all active handlers when processing the log record
+   */
+  using GetHandlersCallbackT = std::function<std::vector<Handler*>()>;
+
+  /**
+   * A lambda to obtain the real timestamp
+   */
+  using GetRealTsCallbackT = std::function<std::chrono::nanoseconds(RecordBase const*)>;
+
+  /**
    * Virtual clone
    * @return a copy of record base
    */
@@ -56,12 +67,28 @@ public:
    * Process a record. Called on the backend worker thread
    * We pass some additional information to this function that are gathered by the backend worker
    * thread
+   * @param backtrace_record_storage for backtrace messages
    * @param thread_id the thread_id of the caller thread
    * @param obtain_active_handlers This is a callback to obtain all loggers for use in CommandRecord only
+   * @param timestamp_callback the ts of the record callback
    */
-  virtual void backend_process(char const* thread_id,
-                               std::function<std::vector<Handler*>()> const& obtain_active_handlers,
-                               std::chrono::nanoseconds log_record_timestamp) const noexcept = 0;
+  virtual void backend_process(BacktraceRecordStorage& backtrace_record_storage, char const* thread_id,
+                               GetHandlersCallbackT const& obtain_active_handlers,
+                               GetRealTsCallbackT const& timestamp_callback) const = 0;
+
+  /**
+   * Process a backtrace record. Called on the backend worker thread
+   * We pass some additional information to this function that are gathered by the backend worker
+   * thread
+   * @param thread_id the thread_id of the caller thread
+   * @param obtain_active_handlers This is a callback to obtain all loggers for use in CommandRecord only
+   * @param timestamp_callback the ts of the record callback
+   */
+  virtual void backend_process_backtrace_record(char const*, GetHandlersCallbackT const&,
+                                                GetRealTsCallbackT const&) const
+  {
+    // this is only used for BacktraceRecord and not other record
+  }
 
 #if !defined(NDEBUG)
   QUILL_NODISCARD bool using_rdtsc() const noexcept { return _using_rdtsc; }

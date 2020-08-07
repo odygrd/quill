@@ -71,4 +71,9 @@ int main()
   LOG_TRACE_L1(default_logger, "{:>30}", "right aligned");
   LOG_TRACE_L2(default_logger, "Positional arguments are {1} {0} ", "too", "supported");
   LOG_TRACE_L3(default_logger, "Support for floats {:03.2f}", 1.23456);
+
+  // Log Nothing
+  quill::Logger* logger_1 = quill::create_logger("my_logger");
+  logger_1->set_log_level(quill::LogLevel::None);
+  LOG_CRITICAL(logger_1, "This is never logged");
 }

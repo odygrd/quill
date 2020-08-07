@@ -6,13 +6,15 @@
 #pragma once
 
 #include "quill/LogLevel.h"
+#include "quill/QuillError.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/TypeTraits.h"
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 #include "quill/detail/misc/Utilities.h"
-#include "quill/detail/record/LogRecord.h"
+#include "quill/detail/record/BacktraceCommand.h"
 #include <atomic>
 #include <cstdint>
 #include <vector>
@@ -56,8 +58,13 @@ public:
    * Set the log level of the logger
    * @param log_level The new log level
    */
-  void set_log_level(LogLevel log_level) noexcept
+  void set_log_level(LogLevel log_level)
   {
+    if (QUILL_UNLIKELY(log_level == LogLevel::Backtrace))
+    {
+      QUILL_THROW(QuillError{"LogLevel::Backtrace is only used internally. Please don't use it."});
+    }
+
     _log_level.store(log_level, std::memory_order_relaxed);
   }
 
@@ -86,10 +93,11 @@ public:
    * Push a log record to the spsc queue to be logged by the backend thread.
    * One queue per caller thread.
    * We have this enable_if to use unlikely since no if constexpr in C++14
+   * Here we pass TLogRecord as template template parameters. TLogRecord can be a LogRecord or a BacktraceRecord
    * @note This function is thread-safe.
    * @param fmt_args format arguments
    */
-  template <typename TLogRecordMetadata, typename... FmtArgs>
+  template <template <typename TLogRecordMetadata, typename... FmtArgs> class TLogRecord, typename TLogRecordMetadata, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT void log(FmtArgs&&... fmt_args)
   {
     static_assert(
@@ -98,7 +106,7 @@ public:
       "be converted to string on the caller side.");
 
     // Resolve the type of the record first
-    using log_record_t = quill::detail::LogRecord<TLogRecordMetadata, FmtArgs...>;
+    using log_record_t = TLogRecord<TLogRecordMetadata, FmtArgs...>;
 
 #if !defined(QUILL_MODE_UNSAFE)
     static_assert(detail::is_copyable_v<typename log_record_t::RealTupleT>,
@@ -118,6 +126,55 @@ public:
     // emplace to the spsc queue owned by the ctx
     _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(
       std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
+#endif
+  }
+
+  /**
+   * Enable a backtrace for this logger.
+   * Stores messages logged with LOG_BACKTRACE in a ring buffer messages and displays them later on demand.
+   * @param capacity The max number of messages to store in the backtrace
+   * @param backtrace_flush_level If this loggers logs any message higher or equal to this severity level the backtrace will also get flushed.
+   * Default level is None meaning the user has to call flush_backtrace explicitly
+   */
+  void enable_backtrace(uint32_t capacity, LogLevel backtrace_flush_level = LogLevel::None)
+  {
+    // Set the backtrace capacity by sending a command event to the queue
+    using log_record_t = detail::BacktraceCommand;
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+    // emplace to the spsc queue owned by the ctx, we never drop the dump backtrace message
+    bool emplaced{false};
+    do
+    {
+      emplaced = _thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(
+        std::addressof(_logger_details), capacity);
+    } while (!emplaced);
+#else
+    _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(
+      std::addressof(_logger_details), capacity);
+#endif
+
+    // Also store the desired flush log level
+    _logger_details.set_backtrace_flush_level(backtrace_flush_level);
+  }
+
+  /**
+   * Dump any stored backtrace messages
+   */
+  void flush_backtrace()
+  {
+    using log_record_t = detail::BacktraceCommand;
+
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+    // emplace to the spsc queue owned by the ctx, we never drop the dump backtrace message
+    bool emplaced{false};
+    do
+    {
+      emplaced = _thread_context_collection.local_thread_context()->spsc_queue().try_emplace<log_record_t>(
+        std::addressof(_logger_details));
+    } while (!emplaced);
+#else
+    _thread_context_collection.local_thread_context()->spsc_queue().emplace<log_record_t>(
+      std::addressof(_logger_details));
 #endif
   }
 

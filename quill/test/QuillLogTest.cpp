@@ -327,7 +327,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:304 LOG_INFO     root - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:304 LOG_INFO      root - Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -337,7 +337,8 @@ TEST_CASE("log_using_multiple_stdout_formats")
     else
     {
 
-      std::string expected_string = "custom - Hello log num " + std::to_string(i) + " (_DOCTEST_ANON_FUNC_14)";
+      std::string expected_string =
+        "custom - Hello log num " + std::to_string(i) + " (_DOCTEST_ANON_FUNC_14)";
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -367,8 +368,8 @@ TEST_CASE("log_using_stderr")
   std::string results = quill::testing::GetCapturedStderr();
 
   REQUIRE_EQ(results,
-            "log_using_stderr - Hello log stderr (_DOCTEST_ANON_FUNC_18)\n"
-            "log_using_stderr - Hello log stderr again (_DOCTEST_ANON_FUNC_18)\n");
+             "log_using_stderr - Hello log stderr (_DOCTEST_ANON_FUNC_18)\n"
+             "log_using_stderr - Hello log stderr again (_DOCTEST_ANON_FUNC_18)\n");
 }
 
 /***/
@@ -412,13 +413,13 @@ TEST_CASE("invalid_handlers")
 
   quill::Handler* stdout_handler = quill::stdout_handler("stdout_handler");
   // using the same name again ast stdouthandler
-    REQUIRE_THROWS_AS(auto x2 = quill::stderr_handler("stdout_handler"), quill::QuillError);
+  REQUIRE_THROWS_AS(auto x2 = quill::stderr_handler("stdout_handler"), quill::QuillError);
 
   static constexpr char const* filename = "invalid_handlers.log";
   quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
   // using the same handler again
-    REQUIRE_THROWS_AS(auto x3 = quill::stderr_handler("invalid_handlers.log"), quill::QuillError);
-    REQUIRE_THROWS_AS(auto x4 = quill::stdout_handler("invalid_handlers.log"), quill::QuillError);
+  REQUIRE_THROWS_AS(auto x3 = quill::stderr_handler("invalid_handlers.log"), quill::QuillError);
+  REQUIRE_THROWS_AS(auto x4 = quill::stdout_handler("invalid_handlers.log"), quill::QuillError);
 
   // remove file
 #if defined(_WIN32)

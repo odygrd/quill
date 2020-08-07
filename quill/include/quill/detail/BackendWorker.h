@@ -7,8 +7,9 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/QuillError.h"                     // for QUILL_CATCH, QUILL...
-#include "quill/detail/BoundedSPSCQueue.h"        // for BoundedSPSCQueue<>...
+#include "quill/QuillError.h"                    // for QUILL_CATCH, QUILL...
+#include "quill/detail/BacktraceRecordStorage.h" // for BacktraceRecordStorage
+#include "quill/detail/BoundedSPSCQueue.h"       // for BoundedSPSCQueue<>...
 #include "quill/detail/Config.h"                  // for Config
 #include "quill/detail/HandlerCollection.h"       // for HandlerCollection
 #include "quill/detail/ThreadContext.h"           // for ThreadContext, Thr...
@@ -152,12 +153,11 @@ private:
       return lhs.base_record->timestamp() > rhs.base_record->timestamp();
     }
 
-    ThreadContext* thread_context;
+    ThreadContext* thread_context; /** We clean any invalidated thread_context after the queue is empty */
     std::unique_ptr<RecordBase> base_record;
   };
 
 private:
-  /** This is exactly 1 cache line **/
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
   HandlerCollection const& _handler_collection;
@@ -172,6 +172,8 @@ private:
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
   std::priority_queue<TransitLogRecord, std::vector<TransitLogRecord>, std::greater<>> _transit_log_records;
+
+  BacktraceRecordStorage _backtrace_record_storage; /** Stores a vector of backtrace log records per logger name */
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   backend_worker_error_handler_t _error_handler; /** error handler for the backend thread */
@@ -290,17 +292,39 @@ void BackendWorker::_process_record()
   // in case we need to flush because we are processing a CommandRecord
   auto obtain_active_handlers = [this]() { return _handler_collection.active_handlers(); };
 
-  // Get the log record timestamp and convert it to a real timestamp in nanoseconds from epoch
-  std::chrono::nanoseconds const log_record_ts = _get_real_timestamp(log_record.base_record.get());
+  // This lambda will call our member function _get_real_timestamp
+  auto get_real_ts = [this](RecordBase const* record) { return _get_real_timestamp(record); };
 
-  log_record.base_record->backend_process(log_record.thread_context->thread_id(),
-                                          obtain_active_handlers, log_record_ts);
+  // If backend_process throws we want to skip this record and move to the next so we catch the
+  // error here instead of catching it in the parent try/catch block of main_loop
+  QUILL_TRY
+  {
+    log_record.base_record->backend_process(
+      _backtrace_record_storage, log_record.thread_context->thread_id(), obtain_active_handlers, get_real_ts);
 
-  _transit_log_records.pop();
+    // Remove this record and move to the next
+    _transit_log_records.pop();
 
-  // Since after processing a log record we never force flush but leave it up to the OS instead,
-  // set this to true to keep track of unflushed messages we have
-  _has_unflushed_messages = true;
+    // Since after processing a log record we never force flush but leave it up to the OS instead,
+    // set this to true to keep track of unflushed messages we have
+    _has_unflushed_messages = true;
+  }
+#if !defined(QUILL_NO_EXCEPTIONS)
+  QUILL_CATCH(std::exception const& e)
+  {
+    _error_handler(e.what());
+
+    // Remove this record and move to the next
+    _transit_log_records.pop();
+  }
+  QUILL_CATCH_ALL()
+  {
+    _error_handler(std::string{"Caught unhandled exception."});
+
+    // Remove this record and move to the next
+    _transit_log_records.pop();
+  } // clang-format on
+#endif
 }
 
 void BackendWorker::_force_flush()
@@ -335,7 +359,6 @@ void BackendWorker::_main_loop()
   else
   {
     // there was nothing to process
-    // std::cout << "Nothing " << std::endl;
 
     // None of the thread local queues had any log record to process, this means we have processed
     // all messages in all queues We will force flush any unflushed messages and then sleep

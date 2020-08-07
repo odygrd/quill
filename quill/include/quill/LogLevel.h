@@ -13,7 +13,7 @@ namespace quill
 /**
  * Log level enum
  */
-enum class LogLevel : uint32_t
+enum class LogLevel : uint8_t
 {
   TraceL3,
   TraceL2,
@@ -23,6 +23,7 @@ enum class LogLevel : uint32_t
   Warning,
   Error,
   Critical,
+  Backtrace, /**< This is only used for backtrace logging. Should not be set by the user. */
   None
 };
 

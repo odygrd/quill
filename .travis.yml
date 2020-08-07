@@ -8,7 +8,7 @@ matrix:
     - name: 'Linux Gcc C++17 Debug'
       os: linux
       compiler: gcc
-      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=ON
+      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']

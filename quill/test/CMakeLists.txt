@@ -9,6 +9,7 @@ set(SOURCE_FILES
         misc/TestMain.cpp
         misc/TestUtilities.cpp
         misc/DocTestExtensions.cpp
+        BacktraceRecordStorageTest.cpp
         BoundedSPSCQueueTest.cpp
         ConfigTest.cpp
         FileUtilitiesTest.cpp

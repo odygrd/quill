@@ -42,6 +42,20 @@ TEST_CASE("get_non_existent_logger")
 
   REQUIRE_THROWS_AS((void)logger_collection.get_logger("logger_1"), quill::QuillError);
 }
+
+/***/
+TEST_CASE("throw_if_backtrace_log_level_is_used")
+{
+  Config cfg;
+  ThreadContextCollection tc{cfg};
+  HandlerCollection hc;
+
+  LoggerCollection logger_collection{tc, hc};
+
+  Logger* logger_1 = logger_collection.create_logger("logger_1");
+
+  REQUIRE_THROWS_AS(logger_1->set_log_level(LogLevel::Backtrace), quill::QuillError);
+}
 #endif
 
 /***/
