@@ -80,9 +80,6 @@ public:
    * Process a backtrace record. Called on the backend worker thread
    * We pass some additional information to this function that are gathered by the backend worker
    * thread
-   * @param thread_id the thread_id of the caller thread
-   * @param obtain_active_handlers This is a callback to obtain all loggers for use in CommandRecord only
-   * @param timestamp_callback the ts of the record callback
    */
   virtual void backend_process_backtrace_record(char const*, GetHandlersCallbackT const&,
                                                 GetRealTsCallbackT const&) const

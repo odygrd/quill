@@ -73,8 +73,8 @@ public:
 
   /**
    * Process the backtrace record
-   * @param thread_id
-   * @param log_record_timestamp
+   * @param thread_id The thread id that initialised the original record. This is stored and provided seperately.
+   * @param log_record_timestamp A callback to obtain the timestamp
    */
   void backend_process_backtrace_record(char const* thread_id, GetHandlersCallbackT const&,
                                         GetRealTsCallbackT const& timestamp_callback) const override

@@ -35,8 +35,9 @@ public:
 
   /**
    * Stores an object to a vector that maps to logger_name
-   * @param logger_name The name of the logger
-   * @param stored_object The object to store
+   * @param logger_name the logger name to store the record
+   * @param thread_id the thread id of this record
+   * @param record the record to store
    */
   void store(std::string const& logger_name, std::string thread_id, std::unique_ptr<RecordBase> record);
 
@@ -52,8 +53,8 @@ public:
   /**
    * Insert a new StoredObject with the given capacity
    * @note This has to be called to set a capacity, before a call to store
-   * @param logger_name
-   * @param capacity
+   * @param logger_name The logger name to set this capacity
+   * @param capacity capacity value
    */
   void set_capacity(std::string const& logger_name, uint32_t capacity);
 

@@ -21,11 +21,10 @@ class BacktraceCommand final : public RecordBase
 {
 public:
   /**
-   * In this constructor if we want to pass _backtrace_capacity we Setup the backtrace
+   * In this constructor if we want to pass _backtrace_capacity we setup the backtrace
    * If we leave _backtrace_capacity as default then we flush the backtrace
-   * @param command
-   * @param logger_details
-   * @param backtrace_capacity
+   * @param logger_details the logger sending this command
+   * @param backtrace_capacity provide backtrace_capacity only if we want to setup the backtrace
    */
   BacktraceCommand(LoggerDetails const* logger_details,
                    uint32_t backtrace_capacity = (std::numeric_limits<uint32_t>::max()))
