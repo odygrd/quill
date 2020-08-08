@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "quill/detail/misc/Common.h"
 #include "quill/detail/UnboundedSPSCQueue.h"
+#include "quill/detail/events/BaseEvent.h"
+#include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
-#include "quill/detail/record/RecordBase.h"
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
@@ -21,10 +21,10 @@ namespace detail
  * Each thread has it's own instance of a ThreadContext class
  *
  * The ThreadContext class stores important information local to each thread and also mainly used by
- * the Logger to push LogRecords to the SPSC queue.
+ * the Logger (caller thread) to push events to a thread local SPSC queue.
  *
- * The backend thread will read all existing ThreadContext class instances and pop the LogRecords
- * from each queue and flush to all the appropriate handlers
+ * The backend thread reads all existing ThreadContext class instances and pop the events
+ * from each thread queue
  */
 class ThreadContext
 {
@@ -32,7 +32,7 @@ public:
 #if defined(QUILL_USE_BOUNDED_QUEUE)
   using SPSCQueueT = BoundedSPSCQueue<RecordBase, QUILL_QUEUE_CAPACITY>;
 #else
-  using SPSCQueueT = UnboundedSPSCQueue<RecordBase>;
+  using SPSCQueueT = UnboundedSPSCQueue<BaseEvent>;
 #endif
 
   /**
@@ -50,15 +50,15 @@ public:
    * Operator new to align this object to a cache line boundary as we always create it on the heap
    * This object should always be aligned to a cache line as it contains the SPSC queue as a member
    * which has cache line alignment requirements
-   * @param i
-   * @return
+   * @param i size of object
+   * @return a pointer to the allcoated object
    */
   void* operator new(size_t i) { return aligned_alloc(CACHELINE_SIZE, i); }
 
   /**
    * Operator delete
    * @see operator new
-   * @param p
+   * @param p pointer to object
    */
   void operator delete(void* p) { aligned_free(p); }
 

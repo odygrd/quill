@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "quill/detail/record/RecordBase.h"
+#include "quill/detail/events/BaseEvent.h"
 #include <functional>
 #include <limits>
 
@@ -14,10 +14,10 @@ namespace quill
 namespace detail
 {
 /**
- * Special type of command record.
- * We use this class to control the backtrace from the caller threads
+ * Special type of event used to enable or flush a backtrace
+ * We use this type of event to control the backtrace from the caller threads
  */
-class BacktraceCommand final : public RecordBase
+class BacktraceEvent final : public BaseEvent
 {
 public:
   /**
@@ -26,15 +26,15 @@ public:
    * @param logger_details the logger sending this command
    * @param backtrace_capacity provide backtrace_capacity only if we want to setup the backtrace
    */
-  BacktraceCommand(LoggerDetails const* logger_details,
-                   uint32_t backtrace_capacity = (std::numeric_limits<uint32_t>::max()))
+  BacktraceEvent(LoggerDetails const* logger_details,
+                 uint32_t backtrace_capacity = (std::numeric_limits<uint32_t>::max()))
     : _logger_details(logger_details), _backtrace_capacity(backtrace_capacity)
   {
   }
 
-  QUILL_NODISCARD std::unique_ptr<RecordBase> clone() const override
+  QUILL_NODISCARD std::unique_ptr<BaseEvent> clone() const override
   {
-    return std::make_unique<BacktraceCommand>(*this);
+    return std::make_unique<BacktraceEvent>(*this);
   }
 
   QUILL_NODISCARD size_t size() const noexcept override { return sizeof(*this); }
@@ -42,9 +42,9 @@ public:
   /**
    * When we encounter this message we are going to either insert a new backtrace for a logger or print an existing backtrace
    * @param obtain_active_handlers a function that is passed to this method and obtains all the active handlers when called
-   * @timestamp_callback a callback to obtain the timestamp
+   * @param timestamp_callback a callback to obtain the timestamp
    */
-  void backend_process(BacktraceRecordStorage& backtrace_record_storage, char const*,
+  void backend_process(BacktraceLogRecordStorage& backtrace_log_record_storage, char const*,
                        GetHandlersCallbackT const& obtain_active_handlers,
                        GetRealTsCallbackT const& timestamp_callback) const noexcept override
   {
@@ -52,16 +52,16 @@ public:
     {
       // If the _backtrace_capacity is set it means we are seting up the backtrace
       // We setup the backtrace like this with an event to the backend thread - that way we avoid any overcomplications
-      backtrace_record_storage.set_capacity(_logger_details->name(), _backtrace_capacity);
+      backtrace_log_record_storage.set_capacity(_logger_details->name(), _backtrace_capacity);
     }
     else
     {
-      // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_record
-      backtrace_record_storage.process(
+      // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_record
+      backtrace_log_record_storage.process(
         _logger_details->name(),
-        [&obtain_active_handlers, &timestamp_callback](std::string const& stored_thread_id,
-                                                       RecordBase const* stored_backtrace_record) {
-          stored_backtrace_record->backend_process_backtrace_record(
+        [&obtain_active_handlers, &timestamp_callback](
+          std::string const& stored_thread_id, BaseEvent const* stored_backtrace_log_record) {
+          stored_backtrace_log_record->backend_process_backtrace_log_record(
             stored_thread_id.data(), obtain_active_handlers, timestamp_callback);
         });
     }
@@ -70,7 +70,7 @@ public:
   /**
    * Destructor
    */
-  ~BacktraceCommand() override = default;
+  ~BacktraceEvent() override = default;
 
 private:
   LoggerDetails const* _logger_details{nullptr};

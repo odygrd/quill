@@ -1,7 +1,7 @@
-#include "quill/detail/BacktraceRecordStorage.h"
+#include "quill/detail/BacktraceLogRecordStorage.h"
 #include "quill/QuillError.h" // for QUILL_THROW, Quil...
+#include "quill/detail/events//BaseEvent.h"
 #include "quill/detail/misc/Macros.h"
-#include "quill/detail/record/RecordBase.h"
 
 namespace quill
 {
@@ -9,8 +9,8 @@ namespace detail
 {
 
 /***/
-void BacktraceRecordStorage::store(std::string const& logger_name, std::string thread_id,
-                                   std::unique_ptr<RecordBase> record)
+void BacktraceLogRecordStorage::store(std::string const& logger_name, std::string thread_id,
+                                      std::unique_ptr<BaseEvent> record)
 {
   auto stored_records_it = _stored_records_map.find(logger_name);
 
@@ -18,7 +18,7 @@ void BacktraceRecordStorage::store(std::string const& logger_name, std::string t
   {
     // We have never used backtrace this logger name before, need to call set capacity first
     QUILL_THROW(QuillError{
-      "logger->enable_backtrace(...) needs to be called first before using LOG_BACKTRACE(...)."});
+      "logger->init_backtrace(...) needs to be called first before using LOG_BACKTRACE(...)."});
   }
 
   // we found a stored vector for this logger name and we have to update it
@@ -48,8 +48,8 @@ void BacktraceRecordStorage::store(std::string const& logger_name, std::string t
 }
 
 /***/
-void BacktraceRecordStorage::process(std::string const& logger_name,
-                                     std::function<void(std::string const&, RecordBase const*)> const& callback)
+void BacktraceLogRecordStorage::process(std::string const& logger_name,
+                                        std::function<void(std::string const&, BaseEvent const*)> const& callback)
 {
   auto stored_records_it = _stored_records_map.find(logger_name);
 
@@ -84,7 +84,7 @@ void BacktraceRecordStorage::process(std::string const& logger_name,
 }
 
 /***/
-void BacktraceRecordStorage::set_capacity(std::string const& logger_name, uint32_t capacity)
+void BacktraceLogRecordStorage::set_capacity(std::string const& logger_name, uint32_t capacity)
 {
   auto inserted_it =
     _stored_records_map.insert(std::make_pair(std::string{logger_name}, StoredRecordInfo{capacity}));
@@ -105,7 +105,7 @@ void BacktraceRecordStorage::set_capacity(std::string const& logger_name, uint32
 }
 
 /***/
-void BacktraceRecordStorage::clear(std::string const& logger_name)
+void BacktraceLogRecordStorage::clear(std::string const& logger_name)
 {
   auto stored_records_it = _stored_records_map.find(logger_name);
 

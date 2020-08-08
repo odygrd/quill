@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
 #include "misc/TestUtilities.h"
+#include "quill/detail/events/LogRecordMetadata.h"
 #include "quill/detail/misc/Macros.h"
-#include "quill/detail/record/LogRecordMetadata.h"
 
 TEST_SUITE_BEGIN("LogRecordMetadata");
 
