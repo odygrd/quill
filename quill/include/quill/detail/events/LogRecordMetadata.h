@@ -17,7 +17,7 @@ namespace detail
 
 /**
  * Captures and stores information about a logging event in compile time
- * This information is later passed to the LogRecord runtime class
+ * This information is later passed to the LogRecordEvent runtime class
  */
 class LogRecordMetadata
 {

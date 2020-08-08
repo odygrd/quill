@@ -20,18 +20,18 @@ namespace detail
 /**
  * Forward Declaration
  */
-class RecordBase;
+class BaseEvent;
 
 /**
  * Stores N max messages per logger name in a vector.
  * For simplicity this class is used ONLY by the backend worker thread.
  * We push to the queue a BacktraceCommand event to communicate this from the frontend caller threads
  */
-class BacktraceRecordStorage
+class BacktraceLogRecordStorage
 {
 public:
-  BacktraceRecordStorage() = default;
-  ~BacktraceRecordStorage() = default;
+  BacktraceLogRecordStorage() = default;
+  ~BacktraceLogRecordStorage() = default;
 
   /**
    * Stores an object to a vector that maps to logger_name
@@ -39,7 +39,7 @@ public:
    * @param thread_id the thread id of this record
    * @param record the record to store
    */
-  void store(std::string const& logger_name, std::string thread_id, std::unique_ptr<RecordBase> record);
+  void store(std::string const& logger_name, std::string thread_id, std::unique_ptr<BaseEvent> record);
 
   /**
    * Calls the provided callback on all stored objects. The stored objects are provided
@@ -48,7 +48,7 @@ public:
    * @param callback A user provided lambda [](std::string const& thread_id, RecordBase const* record) { ... }
    */
   void process(std::string const& logger_name,
-               std::function<void(std::string const&, RecordBase const*)> const& callback);
+               std::function<void(std::string const&, BaseEvent const*)> const& callback);
 
   /**
    * Insert a new StoredObject with the given capacity
@@ -71,13 +71,13 @@ private:
    */
   struct BacktraceLogRecord
   {
-    BacktraceLogRecord(std::string thread_id, std::unique_ptr<RecordBase> base_record)
+    BacktraceLogRecord(std::string thread_id, std::unique_ptr<BaseEvent> base_record)
       : thread_id(std::move(thread_id)), base_record(std::move(base_record))
     {
     }
 
     std::string thread_id;
-    std::unique_ptr<RecordBase> base_record;
+    std::unique_ptr<BaseEvent> base_record;
   };
 
   using StoredRecordsCollection = std::vector<BacktraceLogRecord>;

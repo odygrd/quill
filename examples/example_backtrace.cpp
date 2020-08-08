@@ -15,22 +15,41 @@ int main()
     // a LOG_ERROR message was logged from this logger
 
     quill::Logger* logger = quill::create_logger("example_1");
-    LOG_INFO(logger, "BEFORE backtrace Example {}", 1);
 
-    uint32_t backtrace_capacity = 2;
-    quill::LogLevel flush_backtrace = quill::LogLevel::Error;
-    logger->enable_backtrace(backtrace_capacity, flush_backtrace);
+    // Enable the backtrace with a ring buffer capacity of 2 messages to get flushed when
+    // a LOG_ERROR(...) or higher severity log message occurs via this logger.
+    // Backtrace has to be enabled only once in the beginning before calling LOG_BACKTRACE(...) for the first time.
+    logger->init_backtrace(2, quill::LogLevel::Error);
+
+    LOG_INFO(logger, "BEFORE backtrace Example {}", 1);
 
     LOG_BACKTRACE(logger, "Backtrace log {}", 1);
     LOG_BACKTRACE(logger, "Backtrace log {}", 2);
     LOG_BACKTRACE(logger, "Backtrace log {}", 3);
     LOG_BACKTRACE(logger, "Backtrace log {}", 4);
 
+    // Backtrace is not flushed yet as we requested to flush on errors
     LOG_INFO(logger, "AFTER backtrace Example {}", 1);
 
-    // log message with severity error - This will also flush the backtrace
+    // log message with severity error - This will also flush the backtrace which has 2 messages
     LOG_ERROR(logger, "An error has happened, Backtrace is also flushed.");
+
+    // The backtrace is flushed again after LOG_ERROR but in this case it is empty
     LOG_ERROR(logger, "An second error has happened, but backtrace is now empty.");
+
+    // Log more backtrace messages
+    LOG_BACKTRACE(logger, "Another Backtrace log {}", 1);
+    LOG_BACKTRACE(logger, "Another Backtrace log {}", 2);
+
+    // Nothing is logged at the moment
+    LOG_INFO(logger, "Another log info");
+
+    // Still nothing logged - the error message is on a different logger object
+    quill::Logger* logger_2 = quill::create_logger("example_1_1");
+    LOG_CRITICAL(logger_2, "A critical error from different logger.");
+
+    // The new backtrace is flushed again due to LOG_CRITICAL
+    LOG_CRITICAL(logger, "A critical error from the logger we had a backtrace.");
   }
 
   {
@@ -41,7 +60,7 @@ int main()
     LOG_INFO(logger, "BEFORE backtrace Example {}", 2);
 
     uint32_t backtrace_capacity = 2;
-    logger->enable_backtrace(backtrace_capacity);
+    logger->init_backtrace(backtrace_capacity);
 
     LOG_BACKTRACE(logger, "Backtrace log {}", 100);
     LOG_BACKTRACE(logger, "Backtrace log {}", 200);
@@ -64,7 +83,7 @@ int main()
 
     uint32_t backtrace_capacity = 2;
     quill::LogLevel flush_backtrace = quill::LogLevel::Error;
-    logger->enable_backtrace(backtrace_capacity, flush_backtrace);
+    logger->init_backtrace(backtrace_capacity, flush_backtrace);
 
     LOG_BACKTRACE(logger, "Backtrace log {}", 1);
     LOG_BACKTRACE(logger, "Backtrace log {}", 2);
@@ -84,7 +103,7 @@ int main()
     LOG_INFO(logger, "BEFORE backtrace Example {}", 4);
 
     uint32_t backtrace_capacity = 2;
-    logger->enable_backtrace(backtrace_capacity);
+    logger->init_backtrace(backtrace_capacity);
 
     LOG_BACKTRACE(logger, "Backtrace log {}", 100);
     LOG_BACKTRACE(logger, "Backtrace log {}", 200);

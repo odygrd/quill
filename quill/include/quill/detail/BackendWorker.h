@@ -7,19 +7,19 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/QuillError.h"                    // for QUILL_CATCH, QUILL...
-#include "quill/detail/BacktraceRecordStorage.h" // for BacktraceRecordStorage
-#include "quill/detail/BoundedSPSCQueue.h"       // for BoundedSPSCQueue<>...
-#include "quill/detail/Config.h"                  // for Config
-#include "quill/detail/HandlerCollection.h"       // for HandlerCollection
-#include "quill/detail/ThreadContext.h"           // for ThreadContext, Thr...
-#include "quill/detail/ThreadContextCollection.h" // for ThreadContextColle...
-#include "quill/detail/misc/Attributes.h"         // for QUILL_ATTRIBUTE_HOT
-#include "quill/detail/misc/Common.h"             // for QUILL_RDTSC_RESYNC...
-#include "quill/detail/misc/Macros.h"             // for QUILL_LIKELY
-#include "quill/detail/misc/Os.h"                 // for set_cpu_affinity, get_thread_id
-#include "quill/detail/misc/RdtscClock.h"         // for RdtscClock
-#include "quill/detail/record/RecordBase.h"       // for RecordBase
+#include "quill/QuillError.h"                       // for QUILL_CATCH, QUILL...
+#include "quill/detail/BacktraceLogRecordStorage.h" // for BacktraceLogRecordStorage
+#include "quill/detail/BoundedSPSCQueue.h"          // for BoundedSPSCQueue<>...
+#include "quill/detail/Config.h"                    // for Config
+#include "quill/detail/HandlerCollection.h"         // for HandlerCollection
+#include "quill/detail/ThreadContext.h"             // for ThreadContext, Thr...
+#include "quill/detail/ThreadContextCollection.h"   // for ThreadContextColle...
+#include "quill/detail/events/BaseEvent.h"          // for RecordBase
+#include "quill/detail/misc/Attributes.h"           // for QUILL_ATTRIBUTE_HOT
+#include "quill/detail/misc/Common.h"               // for QUILL_RDTSC_RESYNC...
+#include "quill/detail/misc/Macros.h"               // for QUILL_LIKELY
+#include "quill/detail/misc/Os.h"                   // for set_cpu_affinity, get_thread_id
+#include "quill/detail/misc/RdtscClock.h"           // for RdtscClock
 #include "quill/handlers/Handler.h"               // for Handler
 #include <atomic>                                 // for atomic, memory_ord...
 #include <cassert>                                // for assert
@@ -115,9 +115,9 @@ private:
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   /**
-   * Checks for records in all queues and processes the one with the minimum timestamp
+   * Checks for events in all queues and processes the one with the minimum timestamp
    */
-  QUILL_ATTRIBUTE_HOT inline void _process_record();
+  QUILL_ATTRIBUTE_HOT inline void _process_event();
 
   /**
    * Force flush all active Handlers
@@ -125,13 +125,13 @@ private:
   QUILL_ATTRIBUTE_HOT inline void _force_flush();
 
   /**
-   * Convert a log record timestamp to a time since epoch timestamp in nanoseconds.
+   * Convert a timestamp from BaseEvent to a time since epoch timestamp in nanoseconds.
    *
-   * @param log_record The log record timestamp is just an uint64 and it can be either
+   * @param base_event The base event timestamp is just an uint64 and it can be either
    * rdtsc time or nanoseconds since epoch based on #if !defined(QUILL_CHRONO_CLOCK) definition
    * @return a timestamp in nanoseconds since epoch
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::chrono::nanoseconds _get_real_timestamp(RecordBase const* log_record) const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::chrono::nanoseconds _get_real_timestamp(BaseEvent const* base_event) const noexcept;
 
   /**
    * Check for dropped messages - only when bounded queue is used
@@ -141,20 +141,20 @@ private:
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts) noexcept;
 
 private:
-  struct TransitLogRecord
+  struct TransitEvent
   {
-    TransitLogRecord(ThreadContext* in_thread_context, std::unique_ptr<RecordBase> in_base_record)
-      : thread_context(in_thread_context), base_record(std::move(in_base_record))
+    TransitEvent(ThreadContext* in_thread_context, std::unique_ptr<BaseEvent> base_event)
+      : thread_context(in_thread_context), base_event(std::move(base_event))
     {
     }
 
-    friend bool operator>(TransitLogRecord const& lhs, TransitLogRecord const& rhs)
+    friend bool operator>(TransitEvent const& lhs, TransitEvent const& rhs)
     {
-      return lhs.base_record->timestamp() > rhs.base_record->timestamp();
+      return lhs.base_event->timestamp() > rhs.base_event->timestamp();
     }
 
-    ThreadContext* thread_context; /** We clean any invalidated thread_context after the queue is empty */
-    std::unique_ptr<RecordBase> base_record;
+    ThreadContext* thread_context; /** We clean any invalidated thread_context after the priority queue is empty, so this can not be invalid */
+    std::unique_ptr<BaseEvent> base_event;
   };
 
 private:
@@ -171,9 +171,9 @@ private:
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
-  std::priority_queue<TransitLogRecord, std::vector<TransitLogRecord>, std::greater<>> _transit_log_records;
+  std::priority_queue<TransitEvent, std::vector<TransitEvent>, std::greater<>> _transit_events;
 
-  BacktraceRecordStorage _backtrace_record_storage; /** Stores a vector of backtrace log records per logger name */
+  BacktraceLogRecordStorage _backtrace_log_record_storage; /** Stores a vector of backtrace log records per logger name */
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   backend_worker_error_handler_t _error_handler; /** error handler for the backend thread */
@@ -278,34 +278,35 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
       {
         break;
       }
-      _transit_log_records.emplace(thread_context, handle.data()->clone());
+      _transit_events.emplace(thread_context, handle.data()->clone());
     }
   }
 }
 
 /***/
-void BackendWorker::_process_record()
+void BackendWorker::_process_event()
 {
-  TransitLogRecord const& log_record = _transit_log_records.top();
+  TransitEvent const& transit_event = _transit_events.top();
 
-  // A lambda to obtain the logger details and pass them to RecordBase, this lambda is called only
-  // in case we need to flush because we are processing a CommandRecord
+  // A lambda to obtain the logger details and pass them to backend_process(...), this lambda is
+  // called only in case we need to flush because we are processing a FlushEvent
   auto obtain_active_handlers = [this]() { return _handler_collection.active_handlers(); };
 
   // This lambda will call our member function _get_real_timestamp
-  auto get_real_ts = [this](RecordBase const* record) { return _get_real_timestamp(record); };
+  auto get_real_ts = [this](BaseEvent const* base_event) { return _get_real_timestamp(base_event); };
 
-  // If backend_process throws we want to skip this record and move to the next so we catch the
+  // If backend_process(...) throws we want to skip this event and move to the next so we catch the
   // error here instead of catching it in the parent try/catch block of main_loop
   QUILL_TRY
   {
-    log_record.base_record->backend_process(
-      _backtrace_record_storage, log_record.thread_context->thread_id(), obtain_active_handlers, get_real_ts);
+    transit_event.base_event->backend_process(_backtrace_log_record_storage,
+                                              transit_event.thread_context->thread_id(),
+                                              obtain_active_handlers, get_real_ts);
 
-    // Remove this record and move to the next
-    _transit_log_records.pop();
+    // Remove this event and move to the next
+    _transit_events.pop();
 
-    // Since after processing a log record we never force flush but leave it up to the OS instead,
+    // Since after processing an event we never force flush but leave it up to the OS instead,
     // set this to true to keep track of unflushed messages we have
     _has_unflushed_messages = true;
   }
@@ -314,15 +315,15 @@ void BackendWorker::_process_record()
   {
     _error_handler(e.what());
 
-    // Remove this record and move to the next
-    _transit_log_records.pop();
+    // Remove this event and move to the next
+    _transit_events.pop();
   }
   QUILL_CATCH_ALL()
   {
     _error_handler(std::string{"Caught unhandled exception."});
 
-    // Remove this record and move to the next
-    _transit_log_records.pop();
+    // Remove this event and move to the next
+    _transit_events.pop();
   } // clang-format on
 #endif
 }
@@ -351,16 +352,16 @@ void BackendWorker::_main_loop()
 
   _populate_priority_queue(cached_thread_contexts);
 
-  if (QUILL_LIKELY(!_transit_log_records.empty()))
+  if (QUILL_LIKELY(!_transit_events.empty()))
   {
     // the queue is not empty
-    _process_record();
+    _process_event();
   }
   else
   {
     // there was nothing to process
 
-    // None of the thread local queues had any log record to process, this means we have processed
+    // None of the thread local queues had any events to process, this means we have processed
     // all messages in all queues We will force flush any unflushed messages and then sleep
     _force_flush();
 
@@ -370,31 +371,31 @@ void BackendWorker::_main_loop()
     // We can also clear any invalidated or empty thread contexts now that our priority queue was empty
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
 
-    // Sleep for the specified duration as we found no records in any of the queues to process
+    // Sleep for the specified duration as we found no events in any of the queues to process
     std::this_thread::sleep_for(_backend_thread_sleep_duration);
   }
 }
 
 /***/
-std::chrono::nanoseconds BackendWorker::_get_real_timestamp(RecordBase const* log_record) const noexcept
+std::chrono::nanoseconds BackendWorker::_get_real_timestamp(BaseEvent const* base_event) const noexcept
 {
 #if !defined(QUILL_CHRONO_CLOCK)
 
   assert(_rdtsc_clock && "rdtsc should not be nullptr");
-  assert(log_record->using_rdtsc() &&
-         "RecordBase has a std::chrono timestamp, but the backend thread is using rdtsc timestamp");
+  assert(base_event->using_rdtsc() &&
+         "BaseEvent has a std::chrono timestamp, but the backend thread is using rdtsc timestamp");
 
   // pass to our clock the stored rdtsc from the caller thread
-  return _rdtsc_clock->time_since_epoch(log_record->timestamp());
+  return _rdtsc_clock->time_since_epoch(base_event->timestamp());
 #else
   assert(!_rdtsc_clock && "rdtsc should be nullptr");
-  assert(!log_record->using_rdtsc() &&
-         "RecordBase has a rdtsc clock timestamp, but the backend thread is using std::chrono "
+  assert(!base_event->using_rdtsc() &&
+         "BaseEvent has a rdtsc clock timestamp, but the backend thread is using std::chrono "
          "timestamp");
 
   // Then the timestamp() will be already in epoch no need to convert it like above
   // The precision of system_clock::time-point is not portable across platforms.
-  std::chrono::system_clock::duration const timestamp_duration{log_record->timestamp()};
+  std::chrono::system_clock::duration const timestamp_duration{base_event->timestamp()};
   return std::chrono::nanoseconds{timestamp_duration};
 #endif
 }
@@ -410,15 +411,15 @@ void BackendWorker::_exit()
   {
     _populate_priority_queue(cached_thread_contexts);
 
-    if (!_transit_log_records.empty())
+    if (!_transit_events.empty())
     {
-      _process_record();
+      _process_event();
     }
     else
     {
       _check_dropped_messages(cached_thread_contexts);
 
-      // keep going until there are no log records are found
+      // keep going until there are no events are found
       break;
     }
   }

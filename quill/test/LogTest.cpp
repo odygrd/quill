@@ -545,7 +545,7 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
   std::thread frontend([&lm]() {
     Logger* logger = lm.logger_collection().get_logger();
 
-    // Here we will call LOG_BACKTRACE(...) without calling enable_backtrace(...) first
+    // Here we will call LOG_BACKTRACE(...) without calling init_backtrace(...) first
     // We expect an error to be thrown and reported to our error handler backend_worker_error_handler
 
     LOG_INFO(logger, "Before backtrace.");
@@ -593,7 +593,7 @@ TEST_CASE("log_backtrace_and_flush_on_error")
     Logger* logger = lm.logger_collection().get_logger();
 
     // Enable backtrace for 2 messages
-    logger->enable_backtrace(2, LogLevel::Error);
+    logger->init_backtrace(2, LogLevel::Error);
 
     LOG_INFO(logger, "Before backtrace.");
     for (uint32_t i = 0; i < 12; ++i)
@@ -649,7 +649,7 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
     Logger* logger = lm.logger_collection().get_logger();
 
     // Enable backtrace for 2 messages
-    logger->enable_backtrace(2, LogLevel::Error);
+    logger->init_backtrace(2, LogLevel::Error);
 
     for (uint32_t i = 0; i < 12; ++i)
     {
@@ -711,7 +711,7 @@ TEST_CASE("log_backtrace_manual_flush")
     Logger* logger = lm.logger_collection().get_logger();
 
     // Enable backtrace for 2 messages but without flushing
-    logger->enable_backtrace(2);
+    logger->init_backtrace(2);
 
     LOG_INFO(logger, "Before backtrace.");
     for (uint32_t i = 0; i < 12; ++i)

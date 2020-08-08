@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "quill/detail/BacktraceRecordStorage.h"
+#include "quill/detail/BacktraceLogRecordStorage.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
@@ -20,20 +20,15 @@ namespace quill
 namespace detail
 {
 /**
- * Record instances are created automatically by the Logger every time something is logged.
- *
- * They consist of two types:
- * LogRecord - Consisting of a log message to log to the handlers
- * CommandRecord - Consisting of a command to the backend thread. e.g we want to wait until our log is flushed
- *
- * The base record class is used to retrieve and process the correct record types from the queue via the use
- * of virtual functions
+ * Events are pushed to a thread local SPSC queue from the caller threads to the backend thread
+ * The base event class is used to retrieve and process the correct event types from the queue via
+ * the use of virtual functions
  */
-class RecordBase
+class BaseEvent
 {
 public:
-  RecordBase() = default;
-  virtual ~RecordBase() = default;
+  BaseEvent() = default;
+  virtual ~BaseEvent() = default;
 
   /**
    * A lambda to obtain all active handlers when processing the log record
@@ -43,13 +38,13 @@ public:
   /**
    * A lambda to obtain the real timestamp
    */
-  using GetRealTsCallbackT = std::function<std::chrono::nanoseconds(RecordBase const*)>;
+  using GetRealTsCallbackT = std::function<std::chrono::nanoseconds(BaseEvent const*)>;
 
   /**
    * Virtual clone
    * @return a copy of record base
    */
-  virtual std::unique_ptr<RecordBase> clone() const = 0;
+  virtual std::unique_ptr<BaseEvent> clone() const = 0;
 
   /**
    * Get the stored rdtsc timestamp
@@ -64,27 +59,29 @@ public:
   QUILL_NODISCARD virtual size_t size() const noexcept = 0;
 
   /**
-   * Process a record. Called on the backend worker thread
+   * Process an event. Called on the backend worker thread
    * We pass some additional information to this function that are gathered by the backend worker
    * thread
-   * @param backtrace_record_storage for backtrace messages
+   * @param backtrace_log_record_storage for backtrace messages
    * @param thread_id the thread_id of the caller thread
-   * @param obtain_active_handlers This is a callback to obtain all loggers for use in CommandRecord only
-   * @param timestamp_callback the ts of the record callback
+   * @param obtain_active_handlers This is a callback to obtain all loggers for use in FlushEvent only
+   * @param timestamp_callback a callback to obtain the real timestamp of this event
    */
-  virtual void backend_process(BacktraceRecordStorage& backtrace_record_storage, char const* thread_id,
-                               GetHandlersCallbackT const& obtain_active_handlers,
+  virtual void backend_process(BacktraceLogRecordStorage& backtrace_log_record_storage,
+                               char const* thread_id, GetHandlersCallbackT const& obtain_active_handlers,
                                GetRealTsCallbackT const& timestamp_callback) const = 0;
 
   /**
-   * Process a backtrace record. Called on the backend worker thread
+   * Process a backtrace log record. Called on the backend worker thread
    * We pass some additional information to this function that are gathered by the backend worker
    * thread
    */
-  virtual void backend_process_backtrace_record(char const*, GetHandlersCallbackT const&,
-                                                GetRealTsCallbackT const&) const
+  virtual void backend_process_backtrace_log_record(char const*, GetHandlersCallbackT const&,
+                                                    GetRealTsCallbackT const&) const
   {
-    // this is only used for BacktraceRecord and not other record
+    // this is only used for the BacktraceLogRecordEvent and not any other record.
+    // We can only store the backtrace LogRecordEvents as BaseEvent* as we need to type erase them
+    // and then when we want to process them we call this virtual method.
   }
 
 #if !defined(NDEBUG)

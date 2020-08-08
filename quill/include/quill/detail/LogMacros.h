@@ -10,8 +10,6 @@
 #include "quill/Fmt.h"
 #include "quill/Logger.h"
 #include "quill/detail/misc/Macros.h"
-#include "quill/detail/record/BacktraceRecord.h"
-#include "quill/detail/record/LogRecord.h"
 #include <type_traits>
 
 // Config Options
@@ -76,7 +74,8 @@ constexpr void check_format(const S& format_str, Args&&...)
                                                                                                                                                      \
     if (likelyhood(logger->should_log<log_statement_level>()))                                                                                       \
     {                                                                                                                                                \
-      logger->log<quill::detail::LogRecord, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                       \
+      constexpr bool is_backtrace_log_record {false};                                                                                                    \
+      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                            \
     }                                                                                                                                                \
   } while (0)
 
@@ -87,12 +86,13 @@ constexpr void check_format(const S& format_str, Args&&...)
     static constexpr char const* function_name = __FUNCTION__;                                                                                       \
     struct {                                                                                                                                         \
       constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                                                                       \
-        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, quill::LogLevel::Backtrace}; }                     \
+        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, quill::LogLevel::Backtrace}; }              \
       } anonymous_log_record_info;                                                                                                                   \
                                                                                                                                                      \
-    if (QUILL_LIKELY(logger->should_log<quill::LogLevel::Backtrace>()))                                                                                       \
+    if (QUILL_LIKELY(logger->should_log<quill::LogLevel::Backtrace>()))                                                                              \
     {                                                                                                                                                \
-      logger->log<quill::detail::BacktraceRecord, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                                                 \
+      constexpr bool is_backtrace_log_record {true};                                                                                                    \
+      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                 \
     }                                                                                                                                                \
   } while (0)
 // clang-format on

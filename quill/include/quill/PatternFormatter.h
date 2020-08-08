@@ -5,23 +5,23 @@
 
 #pragma once
 
-#include "quill/Fmt.h"                             // for memory_buffer
-#include "quill/QuillError.h"                      // for QUILL_THROW, Quil...
-#include "quill/bundled/invoke/invoke.h"           // for apply
-#include "quill/detail/TimestampFormatter.h"       // for TimestampFormatter
-#include "quill/detail/misc/Attributes.h"          // for QUILL_NODISCARD
-#include "quill/detail/misc/Common.h"              // for Timezone, Timezon...
-#include "quill/detail/misc/Utilities.h"           // for strlength
-#include "quill/detail/record/LogRecordMetadata.h" // for LogRecordMetadata
-#include <array>                                   // for array
-#include <chrono>                                  // for nanoseconds
-#include <cstddef>                                 // for size_t
-#include <functional>                              // for function
-#include <memory>                                  // for unique_ptr, make_...
-#include <string>                                  // for string
-#include <tuple>                                   // for make_tuple
-#include <utility>                                 // for move, index_sequence
-#include <vector>                                  // for vector
+#include "quill/Fmt.h"                              // for memory_buffer
+#include "quill/QuillError.h"                       // for QUILL_THROW, Quil...
+#include "quill/bundled/invoke/invoke.h"            // for apply
+#include "quill/detail/TimestampFormatter.h"        // for TimestampFormatter
+#include "quill/detail/events//LogRecordMetadata.h" // for LogRecordMetadata
+#include "quill/detail/misc/Attributes.h"           // for QUILL_NODISCARD
+#include "quill/detail/misc/Common.h"               // for Timezone, Timezon...
+#include "quill/detail/misc/Utilities.h"            // for strlength
+#include <array>                                    // for array
+#include <chrono>                                   // for nanoseconds
+#include <cstddef>                                  // for size_t
+#include <functional>                               // for function
+#include <memory>                                   // for unique_ptr, make_...
+#include <string>                                   // for string
+#include <tuple>                                    // for make_tuple
+#include <utility>                                  // for move, index_sequence
+#include <vector>                                   // for vector
 
 #if defined(_WIN32)
   #include "quill/detail/misc/Os.h"

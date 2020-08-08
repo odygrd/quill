@@ -180,8 +180,8 @@ private:
   void _remove_shared_invalidated_thread_context(ThreadContext const* thread_context);
 
   /**
-   * Looks into the _thread_context_cache and removes all thread contexts that are invalidated
-   * and have an empty queue of LogRecords
+   * Looks into the _thread_context_cache and removes all thread contexts that are 1) invalidated
+   * and 2) have an empty queue of no events to process
    *
    * @note Only called by the backend thread
    */
@@ -196,7 +196,7 @@ private:
   /**<
    * A reference to the owned thread contexts that we update when there is any change. We do
    * this so the backend thread does not hold the mutex lock all the time while it is trying to
-   * process LogRecords as it is iterating through the thread contexts all the time
+   * process events as it is iterating through the thread contexts all the time
    *
    * @note Accessed only by the backend thread
    * */
