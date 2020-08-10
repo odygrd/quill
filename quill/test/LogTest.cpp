@@ -568,6 +568,8 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 
   // Check that the backend worker thread called our error handler 4 times - the number of LOG_BACKTRACE calls
   REQUIRE_EQ(error_handler_invoked.load(), 4);
+
+  quill::detail::file_utilities::remove(filename);
 }
 #endif
 

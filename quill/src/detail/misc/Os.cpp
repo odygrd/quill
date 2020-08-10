@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring> // for strerror
+#include <ctime>
 #include <sstream>
 
 #if defined(_WIN32)
@@ -337,6 +338,48 @@ int remove(filename_t const& filename) noexcept
   return ::_wremove(filename.c_str());
 #else
   return std::remove(filename.c_str());
+#endif
+}
+
+/***/
+void rename(filename_t const& previous_file, filename_t const& new_file)
+{
+#if defined(_WIN32)
+  int const res = ::_wrename(previous_file.c_str(), new_file.c_str());
+#else
+  int const res = std::rename(previous_file.c_str(), new_file.c_str());
+#endif
+
+  if (QUILL_UNLIKELY(res != 0))
+  {
+    std::ostringstream error_msg;
+    error_msg << "failed to rename previous log file during rotation, with error message errno: \""
+              << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+}
+
+/***/
+time_t timegm(tm* tm)
+{
+#if defined(_WIN32)
+  time_t const ret_val = ::_mkgmtime(tm);
+
+  if (QUILL_UNLIKELY(ret_val == -1))
+  {
+    QUILL_THROW(QuillError{"_mkgmtime failed."});
+  }
+
+  return ret_val;
+#else
+  time_t const ret_val = ::timegm(tm);
+
+  if (QUILL_UNLIKELY(ret_val == (time_t) -1))
+  {
+    QUILL_THROW(QuillError{"timegm failed."});
+  }
+
+  return ret_val;
 #endif
 }
 

@@ -29,7 +29,7 @@ Handler* stdout_handler(std::string const& stdout_handler_name /* = "stdout" */)
 }
 
 /***/
-Handler* stderr_handler(std::string const& stderr_handler_name /* = "stdout" */)
+Handler* stderr_handler(std::string const& stderr_handler_name /* = "stderr" */)
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().stderr_streamhandler(
     stderr_handler_name);
@@ -44,18 +44,24 @@ Handler* file_handler(filename_t const& filename, std::string const& mode, /* = 
 }
 
 /***/
-Handler* daily_file_handler(filename_t const& base_filename, std::chrono::hours rotation_hour,
-                            std::chrono::minutes rotation_minute)
+Handler* time_rotating_file_handler(filename_t const& base_filename,
+                                    std::string const& mode /* = std::string{"a"} */,
+                                    std::string const& when /* = std::string{"H"} */, uint32_t interval /* = 1 */,
+                                    uint32_t backup_count /* = 0 */, bool utc /* = false */,
+                                    std::string const& at_time /* = std::string{} */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().daily_file_handler(
-    base_filename, rotation_hour, rotation_minute);
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().time_rotating_file_handler(
+    base_filename, mode, when, interval, backup_count, utc, at_time);
 }
 
 /***/
-Handler* rotating_file_handler(filename_t const& base_filename, size_t max_bytes)
+Handler* rotating_file_handler(filename_t const& base_filename,
+                               std::string const& mode /* = std::string {"a"} */,
+                               size_t max_bytes /* = 0 */,
+                               uint32_t backup_count /* = 0 */)
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().rotating_file_handler(
-    base_filename, max_bytes);
+    base_filename, mode, max_bytes, backup_count);
 }
 
 #if defined(_WIN32)
@@ -67,16 +73,25 @@ Handler* file_handler(std::string const& filename, std::string const& mode /* = 
 }
 
 /***/
-Handler* daily_file_handler(std::string const& base_filename, std::chrono::hours rotation_hour,
-                            std::chrono::minutes rotation_minute)
+Handler* time_rotating_file_handler(std::string const& base_filename,
+                                    std::string const& mode /* = std::string{"a"} */,
+                                    std::string const& when /* = std::string{"H"} */,
+                                    uint32_t interval /* = 1 */,
+                                    uint32_t backup_count /* = 0 */,
+                                    bool utc /* = false */,
+                                    std::string const& at_time /* = std::string{} */)
 {
-  return daily_file_handler(detail::s2ws(base_filename), rotation_hour, rotation_minute);
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().time_rotating_file_handler(
+    detail::s2ws(base_filename), mode, when, interval, backup_count, utc, at_time);
 }
 
 /***/
-Handler* rotating_file_handler(std::string const& base_filename, size_t max_bytes)
+Handler* rotating_file_handler(std::string const& base_filename,
+                               std::string const& mode /* = std::string {"a"} */,
+                               size_t max_bytes /* = 0 */,
+                               uint32_t backup_count /* = 0 */)
 {
-  return rotating_file_handler(detail::s2ws(base_filename), max_bytes);
+  return rotating_file_handler(detail::s2ws(base_filename), mode, max_bytes, backup_count);
 }
 #endif
 

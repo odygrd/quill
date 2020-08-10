@@ -1,13 +1,13 @@
 #include "quill/detail/HandlerCollection.h"
-#include "quill/QuillError.h"                   // for QuillError
-#include "quill/detail/misc/Utilities.h"        // for s2ws
-#include "quill/handlers/DailyFileHandler.h"    // for DailyFileHandler
-#include "quill/handlers/FileHandler.h"         // for FileHandler, Filenam...
-#include "quill/handlers/RotatingFileHandler.h" // for RotatingFileHandler
-#include <algorithm>                            // for find_if
-#include <cstdio>                               // for stdout,stderr
-#include <mutex>                                // for lock_guard
-#include <utility>                              // for pair
+#include "quill/QuillError.h"                       // for QuillError
+#include "quill/detail/misc/Utilities.h"            // for s2ws
+#include "quill/handlers/FileHandler.h"             // for FileHandler, Filenam...
+#include "quill/handlers/RotatingFileHandler.h"     // for RotatingFileHandler
+#include "quill/handlers/TimeRotatingFileHandler.h" // for TimeRotatingFileHandler
+#include <algorithm>                                // for find_if
+#include <cstdio>                                   // for stdout,stderr
+#include <mutex>                                    // for lock_guard
+#include <utility>                                  // for pair
 
 namespace quill
 {
@@ -58,8 +58,10 @@ StreamHandler* HandlerCollection::file_handler(filename_t const& filename,
 }
 
 /***/
-StreamHandler* HandlerCollection::daily_file_handler(filename_t const& base_filename, std::chrono::hours rotation_hour,
-                                                     std::chrono::minutes rotation_minute)
+StreamHandler* HandlerCollection::time_rotating_file_handler(filename_t const& base_filename,
+                                                             std::string const& mode, std::string const& when,
+                                                             uint32_t interval, uint32_t backup_count,
+                                                             bool utc, std::string const& at_time)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};
@@ -75,13 +77,16 @@ StreamHandler* HandlerCollection::daily_file_handler(filename_t const& base_file
 
   // if first time add it
   auto emplace_result = _file_handler_collection.emplace(
-    base_filename, std::make_unique<DailyFileHandler>(base_filename.data(), rotation_hour, rotation_minute));
+    base_filename,
+    std::make_unique<TimeRotatingFileHandler>(base_filename.data(), mode, when, interval,
+                                              backup_count, utc, at_time));
 
   return (*emplace_result.first).second.get();
 }
 
 /***/
-StreamHandler* HandlerCollection::rotating_file_handler(filename_t const& base_filename, size_t max_file_size)
+StreamHandler* HandlerCollection::rotating_file_handler(filename_t const& base_filename, std::string const& mode,
+                                                        size_t max_file_size, uint32_t backup_count)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};
@@ -97,7 +102,7 @@ StreamHandler* HandlerCollection::rotating_file_handler(filename_t const& base_f
 
   // if first time add it
   auto emplace_result = _file_handler_collection.emplace(
-    base_filename, std::make_unique<RotatingFileHandler>(base_filename.data(), max_file_size));
+    base_filename, std::make_unique<RotatingFileHandler>(base_filename.data(), mode, max_file_size, backup_count));
 
   return (*emplace_result.first).second.get();
 }

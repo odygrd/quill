@@ -31,8 +31,9 @@ public:
    * This constructor will always call fopen to open the given file
    * @param filename string containing the name of the file to be opened.
    * @param mode string containing a file access mode.
+   * @param append_to_filename append extra info to filename
    */
-  FileHandler(filename_t const& filename, std::string const& mode, FilenameAppend append_to_filenae);
+  FileHandler(filename_t const& filename, std::string const& mode, FilenameAppend append_to_filename);
 
   ~FileHandler() override;
 

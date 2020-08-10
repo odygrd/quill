@@ -43,11 +43,11 @@ set(HEADER_FILES
         include/quill/detail/ThreadContextCollection.h
         include/quill/detail/TimestampFormatter.h
         include/quill/detail/UnboundedSPSCQueue.h
-        include/quill/handlers/DailyFileHandler.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
         include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
+        include/quill/handlers/TimeRotatingFileHandler.h
         include/quill/Fmt.h
         include/quill/Logger.h
         include/quill/LogLevel.h
@@ -75,10 +75,10 @@ set(SOURCE_FILES
         src/detail/LogManagerSingleton.cpp
         src/detail/ThreadContextCollection.cpp
         src/detail/TimestampFormatter.cpp
-        src/handlers/DailyFileHandler.cpp
         src/handlers/FileHandler.cpp
         src/handlers/RotatingFileHandler.cpp
         src/handlers/StreamHandler.cpp
+        src/handlers/TimeRotatingFileHandler.cpp
         src/LogLevel.cpp
         src/PatternFormatter.cpp
         src/Quill.cpp
