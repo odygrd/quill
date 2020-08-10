@@ -50,12 +50,14 @@ public:
     filename_t const& filename, std::string const& mode = std::string{"a"},
     FilenameAppend append_to_filename = FilenameAppend::None);
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* daily_file_handler(filename_t const& base_filename,
-                                                                         std::chrono::hours rotation_hour,
-                                                                         std::chrono::minutes rotation_minute);
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* time_rotating_file_handler(
+    filename_t const& base_filename, std::string const& mode, std::string const& when,
+    uint32_t interval, uint32_t backup_count, bool utc, std::string const& at_time);
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* rotating_file_handler(filename_t const& base_filename,
-                                                                            size_t max_file_size);
+                                                                            std::string const& mode,
+                                                                            size_t max_file_size,
+                                                                            uint32_t backup_count);
 
   /**
    * Subscribe a handler to the vector of active handlers so that the backend thread can see it

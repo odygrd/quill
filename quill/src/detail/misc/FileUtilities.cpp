@@ -22,7 +22,8 @@ void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream)
   if (QUILL_UNLIKELY(written < count))
   {
     std::ostringstream error_msg;
-    error_msg << "fwrite failed with error message " << "errno: \"" << errno << "\"";
+    error_msg << "fwrite failed with error message "
+              << "errno: \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
 }
@@ -64,7 +65,9 @@ std::pair<filename_t, filename_t> extract_stem_and_extension(filename_t const& f
 
 /***/
 filename_t append_date_to_filename(filename_t const& filename,
-                                   std::chrono::system_clock::time_point timestamp /* = {} */) noexcept
+                                   std::chrono::system_clock::time_point timestamp, /* = {} */
+                                   bool append_time,                                /* = false */
+                                   bool utc /* = false */) noexcept
 {
   // Get the time now as tm from user or default to now
   std::chrono::system_clock::time_point const ts_now =
@@ -72,15 +75,27 @@ filename_t append_date_to_filename(filename_t const& filename,
 
   time_t time_now = std::chrono::system_clock::to_time_t(ts_now);
   tm now_tm;
-  detail::localtime_rs(&time_now, &now_tm);
+
+  if (utc)
+  {
+    detail::gmtime_rs(&time_now, &now_tm);
+  }
+  else
+  {
+    detail::localtime_rs(&time_now, &now_tm);
+  }
 
   // Get base file and extension
   std::pair<filename_t, filename_t> const stem_ext =
     detail::file_utilities::extract_stem_and_extension(filename);
 
   // Construct a filename
-  return fmt::format(QUILL_FILENAME_STR("{}_{:04d}-{:02d}-{:02d}{}"), stem_ext.first,
-                     now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday, stem_ext.second);
+  return append_time
+    ? fmt::format(QUILL_FILENAME_STR("{}_{:04d}-{:02d}-{:02d}_{:02d}-{:02d}-{:02d}{}"),
+                  stem_ext.first, now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
+                  now_tm.tm_hour, now_tm.tm_min, now_tm.tm_sec, stem_ext.second)
+    : fmt::format(QUILL_FILENAME_STR("{}_{:04d}-{:02d}-{:02d}{}"), stem_ext.first,
+                  now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday, stem_ext.second);
 }
 
 /***/

@@ -52,11 +52,11 @@ QUILL_ATTRIBUTE_COLD inline void start()
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stdout_handler(std::string const& stdout_handler_name = std::string{"stdout"});
 
 /**
- * @param stdout_handler_name a custom name for stdout_handler. This is only useful if you want to
- * have multiple formats in the stdout. See example_stdout_multiple_formatters.cpp example
+ * @param stderr_handler_name a custom name for stdout_handler. This is only useful if you want to
+ * have multiple formats in the stderr. See example_stdout_multiple_formatters.cpp example
  * @return a handler to the standard error stream
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler(std::string const& stdout_handler_name = std::string{"stderr"});
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler(std::string const& stderr_handler_name = std::string{"stderr"});
 
 /**
  * Creates or returns an existing handler to a file.
@@ -68,48 +68,95 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler(std::string const& 
  * @return A handler to a file
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& filename,
-                                                           std::string const& mode = std::string{},
+                                                           std::string const& mode = std::string{"a"},
                                                            FilenameAppend append_to_filename = FilenameAppend::None);
 
 /**
- * Creates or returns an existing handler to a daily file handler
- * The handler will rotate creating a new log file after 24 hours based on the given rotation_hour and rotation_minute
- * @param base_filename the base filename, current date is automatically appended to this
- * @param rotation_hour The hour to perform the rotation
- * @param rotation_minute The minute to perform the rotation
- * @return A handler to a daily file
+ * Creates a new instance of the TimeRotatingFileHandler class or looks up an existing instance.
+ *
+ * The specified file is opened and used as the stream for logging. Rotating happens based on
+ * the product of when and interval. You can use the when to specify the type of interval.
+ * When 'daily' is passed, the value passed for interval isn’t used.
+ *
+ * The system will save old log files by appending extensions to the filename. The extensions are
+ * date-and-time based in the format of '%Y-%m-%d_%H-%M-%S'.
+ *
+ * If the utc argument is true, times in UTC will be used; otherwise local time is used
+ *
+ * At most backup_count files will be kept, and if more would be created when rollover occurs, the oldest one is deleted.
+ *
+ * at_time specifies the time of day when rollover occurs and only used when 'daily' is passed. It must be in the format HH:MM
+ *
+ * @param base_filename the filename
+ * @param mode mode to open the file 'a' or 'w'
+ * @param when 'M' for minutes, 'H' for hours or 'daily'
+ * @param interval The interval used for rotation.
+ * @param backup_count maximum backup files to keep
+ * @param utc if true times in UTC will be used; otherwise local time is used
+ * @param at_time specifies the time of day when rollover occurs if 'daily' is passed
+ * @return a pointer to a time rotating file handler
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* daily_file_handler(filename_t const& base_filename,
-                                                                 std::chrono::hours rotation_hour,
-                                                                 std::chrono::minutes rotation_minute);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
+  filename_t const& base_filename, std::string const& mode = std::string{"a"},
+  std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
+  bool utc = false, std::string const& at_time = std::string{"00:00"});
 
 /**
- * Creates or returns an existing handler to a rotating file handler
- * The handler will rotate creating a new log file after the file has reached max_bytes
- * @param base_filename Base file name
- * @param max_bytes Maximum file size in bytes
- * @return A handler to a rotating log file
+ * Creates a new instance of the RotatingFileHandler class or looks up an existing instance.
+ *
+ * If a rotating file handler with base_filename exists then the existing instance is returned.
+ *
+ * If a rotating file handler does not exist then the specified file is opened and used as the stream for logging.
+ * By default, the file grows indefinitely. You can use the max_bytes and backup_count values to allow
+ * the file to rollover at a predetermined size.
+ * When the size is about to be exceeded, the file is closed and a new file is silently opened for output.
+ *
+ * Rollover occurs whenever the current log file is nearly max_bytes in length;
+ * but if either of max_bytes or backup_count is zero, rollover never occurs,
+ * so you generally want to set backup_count to at least 1, and have a non-zero maxBytes.
+ *
+ * When backup_count is non-zero, the system will save old log files by appending the
+ * extensions ‘.1’, ‘.2’ etc., to the filename.
+ *
+ * For example, with a backup_count of 5 and a base file name of app.log,
+ * you would get app.log, app.1.log, app.2.log, up to app.5.log
+ * The file being written to is always app.log.
+ * When this file is filled, it is closed and renamed to app.1.log, and if files
+ * app.1.log, app.2.log, etc. exist, then they are renamed to app.2.log, app.3.log etc. respectively.
+ *
+ * @param base_filename the base file name
+ * @param mode file mode to open file
+ * @param max_bytes The max_bytes of the file, when the size is exceeded the file witll rollover
+ * @param backup_count The maxinum number of times we want to rollover
+ * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(filename_t const& base_filename,
-                                                                    size_t max_bytes);
+                                                                    std::string const& mode = std::string{"a"},
+                                                                    size_t max_bytes = 0,
+                                                                    uint32_t backup_count = 0);
 
 #if defined(_WIN32)
 /**
- * On windows filename_t always defaults to std::wstring so we provide another overload for std::string
- * Converts a std::string to std::wstring. All filesnames on windows are opened as wide strings
- * @param filename the name of the file
- * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
+ * @see file_handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::string const& filename,
-                                                           std::string const& mode = std::string{},
+                                                           std::string const& mode = std::string{"a"},
                                                            FilenameAppend append_to_filename = FilenameAppend::None);
+/**
+ * @see time_rotating_file_handler
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
+  std::string const& base_filename, std::string const& mode = std::string{"a"},
+  std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
+  bool utc = false, std::string const& at_time = std::string{"00:00"});
 
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* daily_file_handler(std::string const& base_filename,
-                                                                 std::chrono::hours rotation_hour,
-                                                                 std::chrono::minutes rotation_minute);
-
+/**
+ * @see rotating_file_handler
+ */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(std::string const& base_filename,
-                                                                    size_t max_bytes);
+                                                                    std::string const& mode = std::string{"a"},
+                                                                    size_t max_bytes = 0,
+                                                                    uint32_t backup_count = 0);
 #endif
 
 /**

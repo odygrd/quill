@@ -11,7 +11,9 @@
 -  [v1.0.0](#v1.0.0)
 
 ## v1.4.0
-- Added backtrace logging. Log messages can be stored in a buffer and flushed later on demand.
+- RotatingFileHandler improvements and minor change in API. See [RotatingFileHandler](https://github.com/odygrd/quill/wiki/2.-Handlers#rotatingfilehandler)
+- DailyFileHandler is removed and replaced by TimeRotatingFileHandler. See [TimeRotatingFileHandler](https://github.com/odygrd/quill/wiki/2.-Handlers#timerotatingfilehandler)
+- Added backtrace logging. Log messages can be stored in a buffer and flushed later on demand. See [Backtrace Logging](https://github.com/odygrd/quill/wiki/6.-Backtrace-Logging)
 - Added bundled `doctest` `2.4.0`
 - Migrated all tests from `gtest` to `doctest`.
 

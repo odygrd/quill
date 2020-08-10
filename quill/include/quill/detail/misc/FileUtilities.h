@@ -64,11 +64,12 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<filename_t, filename_t> extract_s
  * Append the date to the given filename
  * @param filename the name of the file
  * @param timestamp optional, timestamp now, no timestamp gives current date
+ * @param append_time also appends the time
  * @return a string as filename_t with the date appended
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD filename_t
-append_date_to_filename(filename_t const& filename,
-                        std::chrono::system_clock::time_point timestamp = {}) noexcept;
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD filename_t append_date_to_filename(
+  filename_t const& filename, std::chrono::system_clock::time_point timestamp = {},
+  bool append_time = false, bool utc = false) noexcept;
 
 /**
  * Append an index to the given filename

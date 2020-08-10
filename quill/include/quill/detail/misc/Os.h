@@ -123,6 +123,20 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t fsize(FILE* file);
  */
 QUILL_ATTRIBUTE_COLD int remove(filename_t const& filename) noexcept;
 
+/**
+ * Rename a file
+ * @param previous_file previous file name
+ * @param new_file new file name
+ */
+QUILL_ATTRIBUTE_COLD void rename(filename_t const& previous_file, filename_t const& new_file);
+
+/**
+ * inverses of gmtime
+ * @param tm struct tm to convert
+ * @throws on invalid input
+ */
+QUILL_ATTRIBUTE_COLD time_t timegm(struct tm* tm);
+
 #if defined(_WIN32)
 /**
  * Given a wide character fmt memory buffer convert it to a memory buffer

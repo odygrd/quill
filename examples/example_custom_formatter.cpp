@@ -17,6 +17,7 @@ int main()
     QUILL_STRING("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)"), // log recorder format
     "%D %H:%M:%S.%Qms %z",     // timestamp format
     quill::Timezone::GmtTime); // timestamp's timezone
+
   // This line sets the default logger's handler to be the new handler with the custom format string
   quill::set_default_logger_handler(file_handler);
 

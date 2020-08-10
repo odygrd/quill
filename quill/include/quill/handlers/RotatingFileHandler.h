@@ -17,21 +17,20 @@ namespace quill
 {
 /**
  * Rotating file handler based on file size
- * The specified base_filename is opened with mode 'a' and used as the stream for logging.
- * You can use the max_bytes values to allow the file to rollover at a predetermined size.
- * When the file size reaches max_bytes, the file is closed and a new file is silently opened for output.
- *  For example, with a base_filename of app.log you would get app.log, app.1.log, app.2.log etc..
  */
 class RotatingFileHandler final : public FileHandler
 {
 public:
   /**
    * constructor
-   * @param filename Base file name to be used for logs
+   * @param base_filename Base file name to be used for logs
+   * @param mode the mode to open the file
    * @param max_bytes max size per file in bytes
+   * @param backup_count maximum log files
    * @throws on invalid rotation values
    */
-  RotatingFileHandler(filename_t const& filename, size_t max_bytes);
+  RotatingFileHandler(filename_t const& base_filename, std::string const& mode, size_t max_bytes,
+                      uint32_t backup_count);
 
   /**
    * Destructor
@@ -44,7 +43,7 @@ public:
    * @param log_record_timestamp log record timestamp
    */
   QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record,
-                                std::chrono::nanoseconds log_record_timestamp) override;
+                                 std::chrono::nanoseconds log_record_timestamp) override;
 
 private:
   /**
@@ -54,8 +53,9 @@ private:
 
 private:
   size_t _current_size{0};
-  size_t _max_bytes;
-  uint32_t _index{0};
+  size_t _max_bytes{0};
+  uint32_t _backup_count{0};
+  uint32_t _current_index{0};
 };
 
 } // namespace quill

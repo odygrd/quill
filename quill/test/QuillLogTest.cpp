@@ -177,21 +177,38 @@ TEST_CASE("log_from_const_function")
 /***/
 TEST_CASE("log_using_rotating_file_handler")
 {
-  static char const* base_filename = "log_rotation.log";
-  static constexpr char const* rotated_filename_1 = "log_rotation.1.log";
-  static constexpr char const* rotated_filename_2 = "log_rotation.2.log";
+  // This test has 2 loggers that they logged to different rotating file handlers
+
+  static char const* base_filename = "rot_logger.log";
+  static constexpr char const* rotated_filename_1 = "rot_logger.1.log";
+  static constexpr char const* rotated_filename_2 = "rot_logger.2.log";
   static constexpr size_t max_file_size = 1024;
 
   // Start the logging backend thread
   quill::start();
 
-  quill::Handler* rotating_file_handler = quill::rotating_file_handler(base_filename, max_file_size);
-  quill::Logger* rotating_logger = quill::create_logger("rotating_logger", rotating_file_handler);
+  // Create a rotating file handler
+  QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler =
+    quill::rotating_file_handler(base_filename, "w", max_file_size, 2);
+
+  // Get the same instance back - we search it again (for testing only)
+  quill::Handler* looked_up_rotating_file_handler = quill::rotating_file_handler(base_filename);
+  quill::Logger* rotating_logger = quill::create_logger("rot_logger", looked_up_rotating_file_handler);
+
+  // Another rotating logger to another file with max backup count 1 this time. Here we rotate only once
+  static char const* base_filename_2 = "rot_2nd_logger.log";
+  static constexpr char const* rotated_filename_2nd_1 = "rot_2nd_logger.1.log";
+
+  QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler_2 =
+    quill::rotating_file_handler(base_filename_2, "w", max_file_size, 1);
+
+  quill::Logger* rotating_logger_2 = quill::create_logger("rot_2nd_logger", rotating_file_handler_2);
 
   // log a few messages so we rotate files
   for (uint32_t i = 0; i < 20; ++i)
   {
     LOG_INFO(rotating_logger, "Hello rotating file log num {}", i);
+    LOG_INFO(rotating_logger_2, "Hello rotating file log num {}", i);
   }
 
   quill::flush();
@@ -200,7 +217,7 @@ TEST_CASE("log_using_rotating_file_handler")
   // Read file and check
   std::vector<std::string> const file_contents =
     quill::testing::file_contents(quill::detail::s2ws(base_filename));
-  REQUIRE_EQ(file_contents.size(), 9);
+  REQUIRE_EQ(file_contents.size(), 2);
 
   std::vector<std::string> const file_contents_1 =
     quill::testing::file_contents(quill::detail::s2ws(rotated_filename_1));
@@ -208,18 +225,32 @@ TEST_CASE("log_using_rotating_file_handler")
 
   std::vector<std::string> const file_contents_2 =
     quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2));
-  REQUIRE_EQ(file_contents_2.size(), 2);
+  REQUIRE_EQ(file_contents_2.size(), 9);
 
+  std::vector<std::string> const file_contents_3 =
+    quill::testing::file_contents(quill::detail::s2ws(base_filename_2));
+  REQUIRE_EQ(file_contents_3.size(), 11);
+
+  std::vector<std::string> const file_contents_4 =
+    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2nd_1));
+  REQUIRE_EQ(file_contents_4.size(), 9);
 #else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
-  REQUIRE_EQ(file_contents.size(), 9);
+  REQUIRE_EQ(file_contents.size(), 2);
 
   std::vector<std::string> const file_contents_1 = quill::testing::file_contents(rotated_filename_1);
   REQUIRE_EQ(file_contents_1.size(), 9);
 
   std::vector<std::string> const file_contents_2 = quill::testing::file_contents(rotated_filename_2);
-  REQUIRE_EQ(file_contents_2.size(), 2);
+  REQUIRE_EQ(file_contents_2.size(), 9);
+
+  // File from 2nd logger
+  std::vector<std::string> const file_contents_3 = quill::testing::file_contents(base_filename_2);
+  REQUIRE_EQ(file_contents_3.size(), 11);
+
+  std::vector<std::string> const file_contents_4 = quill::testing::file_contents(rotated_filename_2nd_1);
+  REQUIRE_EQ(file_contents_4.size(), 9);
 #endif
 
 #if defined(_WIN32)
@@ -227,11 +258,15 @@ TEST_CASE("log_using_rotating_file_handler")
   quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
   quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_1));
   quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename_2));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2nd_1));
 #else
   // Remove filenames
-  quill::detail::file_utilities::remove(rotated_filename_1);
   quill::detail::file_utilities::remove(base_filename);
+  quill::detail::file_utilities::remove(rotated_filename_1);
   quill::detail::file_utilities::remove(rotated_filename_2);
+  quill::detail::file_utilities::remove(base_filename_2);
+  quill::detail::file_utilities::remove(rotated_filename_2nd_1);
 #endif
 }
 
@@ -244,9 +279,14 @@ TEST_CASE("log_using_daily_file_handler")
   // Start the logging backend thread
   quill::start();
 
-  quill::Handler* daily_file_handler =
-    quill::daily_file_handler(base_filename, std::chrono::hours{12}, std::chrono::minutes{0});
-  quill::Logger* daily_logger = quill::create_logger("daily_logger", daily_file_handler);
+  // Create the handler
+  QUILL_MAYBE_UNUSED quill::Handler* time_rotating_file_handler_create =
+    quill::time_rotating_file_handler(base_filename, "w", "daily", 1, 0, false, "02:00");
+
+  // Get the same handler
+  quill::Handler* time_rotating_file_handler = quill::time_rotating_file_handler(base_filename);
+
+  quill::Logger* daily_logger = quill::create_logger("daily_logger", time_rotating_file_handler);
 
   // log a few messages
   for (uint32_t i = 0; i < 20; ++i)
@@ -257,29 +297,25 @@ TEST_CASE("log_using_daily_file_handler")
   quill::flush();
 
 #if defined(_WIN32)
-  // Read file and check
-  static const quill::filename_t expected_filename =
-    quill::detail::file_utilities::append_date_to_filename(quill::detail::s2ws(base_filename));
-  std::vector<std::string> const file_contents = quill::testing::file_contents(expected_filename);
+  std::vector<std::string> const file_contents =
+    quill::testing::file_contents(quill::detail::s2ws(base_filename));
   REQUIRE_EQ(file_contents.size(), 20);
 #else
   // Read file and check
-  static const quill::filename_t expected_filename =
-    quill::detail::file_utilities::append_date_to_filename(base_filename);
-  std::vector<std::string> const file_contents = quill::testing::file_contents(expected_filename);
+  std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
   REQUIRE_EQ(file_contents.size(), 20);
 #endif
 
 #if defined(_WIN32)
   // Remove filenames
-  quill::detail::file_utilities::remove(expected_filename);
-  quill::detail::file_utilities::remove(expected_filename);
-  quill::detail::file_utilities::remove(expected_filename);
+  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
 #else
   // Remove filenames
-  quill::detail::file_utilities::remove(expected_filename);
-  quill::detail::file_utilities::remove(expected_filename);
-  quill::detail::file_utilities::remove(expected_filename);
+  quill::detail::file_utilities::remove(base_filename);
+  quill::detail::file_utilities::remove(base_filename);
+  quill::detail::file_utilities::remove(base_filename);
 #endif
 }
 
@@ -327,7 +363,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:304 LOG_INFO      root - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:340 LOG_INFO      root - Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
