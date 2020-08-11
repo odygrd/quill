@@ -117,7 +117,7 @@ The following message is logged 2'000'000 times per thread
 ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```  
 all reported latencies are in nanoseconds.  
 
-Continuously Logging messages in a loop makes the consumer (hackend logging thread) unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog.
+Continuously Logging messages in a loop makes the consumer (backend logging thread) unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog.
 Therefore, a different approach was followed that suits more to a real time application:
 1. 20 messages are logged in a loop.
 2. calculate/store the average latency for those messages.
