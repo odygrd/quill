@@ -60,6 +60,6 @@ private:
   std::chrono::system_clock::time_point _next_rotation_time; /**< The next rotation time point */
   uint32_t _interval;     /**< Interval when 'M' or 'H' is used */
   uint32_t _backup_count; /**< Maximum files to keep after rotation */
-  Timezone _timezone;     /**< The timezone used */
+  Timezone _using_timezone;     /**< The timezone used */
 };
 } // namespace quill

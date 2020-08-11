@@ -22,7 +22,7 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(filename_t const& base_filename
     _when(std::move(when)),
     _interval(interval),
     _backup_count(backup_count),
-    _timezone(timezone)
+    _using_timezone(timezone)
 {
   if ((_when != std::string{"M"}) && _when != std::string{"H"} && _when != std::string{"daily"})
   {
@@ -93,7 +93,7 @@ void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_reco
     filename_t const previous_file = _filename;
     bool const append_time_to_filename = true;
     filename_t const new_file = detail::file_utilities::append_date_to_filename(
-      _filename, _file_creation_time, append_time_to_filename, _timezone);
+      _filename, _file_creation_time, append_time_to_filename, _using_timezone);
 
     quill::detail::rename(previous_file, new_file);
 
