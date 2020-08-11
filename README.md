@@ -64,21 +64,20 @@ The main goals of the library are:
 -  **Convenience** Ease application monitoring/debugging. Latency is equal to latencies of binary loggers, but the produced log is in human readable form.
 
 ## Features
- -  Blazing fast. 
- -  Type safe python style formatting with compile type checks and build in support for logging STL containers, std::pair, std::tuple, std::chrono, user defined types and much more by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
- -  Object formatting outside of the hot path with compile time checks for unsafe to copy and format later types. Non trivial user defined types can be tagged as safe-to-copy to avoid formatting on the hot path. Compile time checks for safe-to-copy user defined types.
- -  Log statements of different levels can be completely stripped out at compile time.
- -  Highly configurable log pattern. The log statements can be formatted to any format based on a user specified pattern.
- -  Log statements in timestamp order even when produced by different threads.
- -  Backtrace logging. Store log messages in a ring buffer and display later when a higher severity log statement occurs or on demand.
- -  Guaranteed non-blocking or non-guaranteed dropping logging. In guaranteed logging more memory is allocated but the caller never get's blocked and the log messages are never dropped. In non-guaranteed mode there is no heap allocation but the log messages are dropped instead.
- -  Support for wide character logging and wide character filenames (Windows only)
- -  Various log targets (Handlers)
+ -  Type safe python style API with compile type checks and build-in support for logging STL types/containers by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
+ -  Blazing fast. See [Benchmarks](https://github.com/odygrd/quill#performance).
+ -  Formatting is performed outside of the hot-path in a backend worker thread. Compile time checks in place for `non-trivial` user defined types that might be unsafe to copy. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/5.-User-Defined-Types).
+ -  Log levels can be completely stripped out at compile time reducing `if` branches.
+ -  Custom logs formatting. Logs can be formatted based on a user specified pattern. See [Formatters] (https://github.com/odygrd/quill/wiki/3.-Formatters).
+ -  Log statements always appear in timestamp order even if produced by different threads. This makes debugging easier on multi-threaded applications.
+ -  Backtrace logging. Store log messages in a ring buffer and display later when a higher severity log statement occurs or on demand. See [Backtrace Logging](https://github.com/odygrd/quill/wiki/6.-Backtrace-Logging).
+ -  `guaranteed non-blocking` or `non-guaranteed` logging. In `guaranteed non-blocking` logging more memory is allocated so the caller doesn't get blocked, log messages are never dropped. In `non-guaranteed` mode there is no heap allocation log messages can be dropped.
+ -  Support for wide character logging and wide character filenames (Windows only).
+ -  Various log targets (Handlers). See [Handlers](https://github.com/odygrd/quill/wiki/2.-Handlers).
     -  Console logging 
     -  File Logging
     -  Rotating log files
-    -  Daily log files
- -  Thread safe.
+    -  Time rotating log files
  -  Clean warning-free codebase even on high warning levels.
  
 ## Performance
