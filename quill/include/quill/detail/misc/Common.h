@@ -55,7 +55,7 @@ static constexpr char path_delimiter = '/';
 #endif
 
 /**
- * Represents the timezone of the logger's timestamp
+ * Enum to select a timezone
  */
 enum class Timezone : uint8_t
 {

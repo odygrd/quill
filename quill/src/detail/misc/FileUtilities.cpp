@@ -67,7 +67,7 @@ std::pair<filename_t, filename_t> extract_stem_and_extension(filename_t const& f
 filename_t append_date_to_filename(filename_t const& filename,
                                    std::chrono::system_clock::time_point timestamp, /* = {} */
                                    bool append_time,                                /* = false */
-                                   bool utc /* = false */) noexcept
+                                   Timezone timezone /* = Timezone::LocalTime */) noexcept
 {
   // Get the time now as tm from user or default to now
   std::chrono::system_clock::time_point const ts_now =
@@ -76,7 +76,7 @@ filename_t append_date_to_filename(filename_t const& filename,
   time_t time_now = std::chrono::system_clock::to_time_t(ts_now);
   tm now_tm;
 
-  if (utc)
+  if (timezone == Timezone::GmtTime)
   {
     detail::gmtime_rs(&time_now, &now_tm);
   }

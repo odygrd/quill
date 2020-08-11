@@ -12,6 +12,7 @@
 #include "quill/detail/LogManager.h"          // for LogManager
 #include "quill/detail/LogManagerSingleton.h" // for LogManagerSingleton
 #include "quill/detail/misc/Attributes.h"     // for QUILL_ATTRIBUTE_COLD
+#include "quill/detail/misc/Common.h"         // for Timezone
 #include "quill/handlers/FileHandler.h"       // for FilenameAppend, Filena...
 #include <chrono>                             // for hours, minutes, nanose...
 #include <cstddef>                            // for size_t
@@ -81,7 +82,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& fil
  * The system will save old log files by appending extensions to the filename. The extensions are
  * date-and-time based in the format of '%Y-%m-%d_%H-%M-%S'.
  *
- * If the utc argument is true, times in UTC will be used; otherwise local time is used
+ * If the timezone argument is gmt time, times in UTC will be used; otherwise local time is used
  *
  * At most backup_count files will be kept, and if more would be created when rollover occurs, the oldest one is deleted.
  *
@@ -92,14 +93,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& fil
  * @param when 'M' for minutes, 'H' for hours or 'daily'
  * @param interval The interval used for rotation.
  * @param backup_count maximum backup files to keep
- * @param utc if true times in UTC will be used; otherwise local time is used
+ * @param timezone if true times in UTC will be used; otherwise local time is used
  * @param at_time specifies the time of day when rollover occurs if 'daily' is passed
  * @return a pointer to a time rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
   filename_t const& base_filename, std::string const& mode = std::string{"a"},
   std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
-  bool utc = false, std::string const& at_time = std::string{"00:00"});
+  Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"});
 
 /**
  * Creates a new instance of the RotatingFileHandler class or looks up an existing instance.
@@ -148,7 +149,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::string const& fi
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
   std::string const& base_filename, std::string const& mode = std::string{"a"},
   std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
-  bool utc = false, std::string const& at_time = std::string{"00:00"});
+  Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"});
 
 /**
  * @see rotating_file_handler

@@ -46,12 +46,13 @@ Handler* file_handler(filename_t const& filename, std::string const& mode, /* = 
 /***/
 Handler* time_rotating_file_handler(filename_t const& base_filename,
                                     std::string const& mode /* = std::string{"a"} */,
-                                    std::string const& when /* = std::string{"H"} */, uint32_t interval /* = 1 */,
-                                    uint32_t backup_count /* = 0 */, bool utc /* = false */,
+                                    std::string const& when /* = std::string{"H"} */,
+                                    uint32_t interval /* = 1 */, uint32_t backup_count /* = 0 */,
+                                    Timezone timezone /* = Timezone::LocalTime */,
                                     std::string const& at_time /* = std::string{} */)
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().time_rotating_file_handler(
-    base_filename, mode, when, interval, backup_count, utc, at_time);
+    base_filename, mode, when, interval, backup_count, timezone, at_time);
 }
 
 /***/
@@ -76,20 +77,18 @@ Handler* file_handler(std::string const& filename, std::string const& mode /* = 
 Handler* time_rotating_file_handler(std::string const& base_filename,
                                     std::string const& mode /* = std::string{"a"} */,
                                     std::string const& when /* = std::string{"H"} */,
-                                    uint32_t interval /* = 1 */,
-                                    uint32_t backup_count /* = 0 */,
-                                    bool utc /* = false */,
+                                    uint32_t interval /* = 1 */, uint32_t backup_count /* = 0 */,
+                                    Timezone timezone /* = Timezone::LocalTime */,
                                     std::string const& at_time /* = std::string{} */)
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().time_rotating_file_handler(
-    detail::s2ws(base_filename), mode, when, interval, backup_count, utc, at_time);
+    detail::s2ws(base_filename), mode, when, interval, backup_count, timezone, at_time);
 }
 
 /***/
 Handler* rotating_file_handler(std::string const& base_filename,
                                std::string const& mode /* = std::string {"a"} */,
-                               size_t max_bytes /* = 0 */,
-                               uint32_t backup_count /* = 0 */)
+                               size_t max_bytes /* = 0 */, uint32_t backup_count /* = 0 */)
 {
   return rotating_file_handler(detail::s2ws(base_filename), mode, max_bytes, backup_count);
 }

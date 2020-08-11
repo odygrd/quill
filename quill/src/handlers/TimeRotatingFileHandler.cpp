@@ -17,8 +17,12 @@ namespace quill
 /***/
 TimeRotatingFileHandler::TimeRotatingFileHandler(filename_t const& base_filename, std::string const& mode,
                                                  std::string when, uint32_t interval, uint32_t backup_count,
-                                                 bool utc, std::string const& at_time)
-  : FileHandler(base_filename), _when(std::move(when)), _interval(interval), _backup_count(backup_count), _utc(utc)
+                                                 Timezone timezone, std::string const& at_time)
+  : FileHandler(base_filename),
+    _when(std::move(when)),
+    _interval(interval),
+    _backup_count(backup_count),
+    _timezone(timezone)
 {
   if ((_when != std::string{"M"}) && _when != std::string{"H"} && _when != std::string{"daily"})
   {
@@ -57,7 +61,7 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(filename_t const& base_filename
   // Calculate next rotation time
   _file_creation_time = std::chrono::system_clock::now();
   _next_rotation_time =
-    _calculate_initial_rotation_tp(_file_creation_time, _when, utc, at_time_hours, at_time_minutes);
+    _calculate_initial_rotation_tp(_file_creation_time, _when, timezone, at_time_hours, at_time_minutes);
 
   // Open file for logging
   _file = detail::file_utilities::open(_filename, mode);
@@ -89,7 +93,7 @@ void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_reco
     filename_t const previous_file = _filename;
     bool const append_time_to_filename = true;
     filename_t const new_file = detail::file_utilities::append_date_to_filename(
-      _filename, _file_creation_time, append_time_to_filename, _utc);
+      _filename, _file_creation_time, append_time_to_filename, _timezone);
 
     quill::detail::rename(previous_file, new_file);
 
@@ -118,14 +122,14 @@ void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_reco
 
 /***/
 std::chrono::system_clock::time_point TimeRotatingFileHandler::_calculate_initial_rotation_tp(
-  std::chrono::system_clock::time_point time_now, std::string const& when, bool utc,
+  std::chrono::system_clock::time_point time_now, std::string const& when, Timezone timezone,
   std::chrono::hours at_time_hours, std::chrono::minutes at_time_minutes) noexcept
 {
   time_t tnow = std::chrono::system_clock::to_time_t(time_now);
   tm date;
 
-  // utc is used because of at_time that might specify the time in UTC
-  if (utc)
+  // here we do this because of `at_time` that might have specified the time in UTC
+  if (timezone == Timezone::GmtTime)
   {
     detail::gmtime_rs(&tnow, &date);
   }
@@ -154,7 +158,7 @@ std::chrono::system_clock::time_point TimeRotatingFileHandler::_calculate_initia
   }
 
   // convert back to timestamp
-  std::chrono::system_clock::time_point const rotation_time = utc
+  std::chrono::system_clock::time_point const rotation_time = (timezone == Timezone::GmtTime)
     ? std::chrono::system_clock::from_time_t(quill::detail::timegm(&date))
     : std::chrono::system_clock::from_time_t(std::mktime(&date));
 

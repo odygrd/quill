@@ -61,7 +61,7 @@ StreamHandler* HandlerCollection::file_handler(filename_t const& filename,
 StreamHandler* HandlerCollection::time_rotating_file_handler(filename_t const& base_filename,
                                                              std::string const& mode, std::string const& when,
                                                              uint32_t interval, uint32_t backup_count,
-                                                             bool utc, std::string const& at_time)
+                                                             Timezone timezone, std::string const& at_time)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};
@@ -79,7 +79,7 @@ StreamHandler* HandlerCollection::time_rotating_file_handler(filename_t const& b
   auto emplace_result = _file_handler_collection.emplace(
     base_filename,
     std::make_unique<TimeRotatingFileHandler>(base_filename.data(), mode, when, interval,
-                                              backup_count, utc, at_time));
+                                              backup_count, timezone, at_time));
 
   return (*emplace_result.first).second.get();
 }

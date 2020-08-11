@@ -28,11 +28,12 @@ public:
    * @param when 'M', 'H' or 'daily'
    * @param interval Used when 'M' is 'H' is specified
    * @param backup_count Maximum files to keep
-   * @param utc if true UTC time is used instead
+   * @param timezone if true gmt time then UTC times are used instead
    * @param at_time used when 'daily' is specified
    */
-  TimeRotatingFileHandler(filename_t const& base_filename, std::string const& mode, std::string when,
-                          uint32_t interval, uint32_t backup_count, bool utc, std::string const& at_time);
+  TimeRotatingFileHandler(filename_t const& base_filename, std::string const& mode,
+                          std::string when, uint32_t interval, uint32_t backup_count,
+                          Timezone timezone, std::string const& at_time);
 
   ~TimeRotatingFileHandler() override = default;
 
@@ -46,7 +47,7 @@ public:
 
 private:
   static QUILL_ATTRIBUTE_COLD std::chrono::system_clock::time_point _calculate_initial_rotation_tp(
-    std::chrono::system_clock::time_point time_now, std::string const& when, bool utc,
+    std::chrono::system_clock::time_point time_now, std::string const& when, Timezone timezone,
     std::chrono::hours at_time_hours, std::chrono::minutes at_time_minutes) noexcept;
 
   static QUILL_ATTRIBUTE_COLD std::chrono::system_clock::time_point _calculate_rotation_tp(
@@ -59,6 +60,6 @@ private:
   std::chrono::system_clock::time_point _next_rotation_time; /**< The next rotation time point */
   uint32_t _interval;     /**< Interval when 'M' or 'H' is used */
   uint32_t _backup_count; /**< Maximum files to keep after rotation */
-  bool _utc;              /**< When true utc time is used */
+  Timezone _timezone;     /**< The timezone used */
 };
 } // namespace quill

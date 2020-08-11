@@ -281,7 +281,7 @@ TEST_CASE("log_using_daily_file_handler")
 
   // Create the handler
   QUILL_MAYBE_UNUSED quill::Handler* time_rotating_file_handler_create =
-    quill::time_rotating_file_handler(base_filename, "w", "daily", 1, 0, false, "02:00");
+    quill::time_rotating_file_handler(base_filename, "w", "daily", 1, 0);
 
   // Get the same handler
   quill::Handler* time_rotating_file_handler = quill::time_rotating_file_handler(base_filename);

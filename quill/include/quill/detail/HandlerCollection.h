@@ -52,7 +52,7 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* time_rotating_file_handler(
     filename_t const& base_filename, std::string const& mode, std::string const& when,
-    uint32_t interval, uint32_t backup_count, bool utc, std::string const& at_time);
+    uint32_t interval, uint32_t backup_count, Timezone timezone, std::string const& at_time);
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* rotating_file_handler(filename_t const& base_filename,
                                                                             std::string const& mode,
