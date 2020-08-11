@@ -108,9 +108,10 @@ The main goals of the library are:
 |[g3log](https://github.com/KjellKod/g3log)                 |  2637  |  2792  |  2932  |  3021  |  3214  |  3485  |  4025  |
 
 
-The benchmarks are done on Linux (Ubuntu/RHEL) with GCC 9.1.
+The benchmarks are done on `Linux (Ubuntu/RHEL)` with GCC 9.1.
 
-Each thread is pinned on a different cpu. Note that running the backend logger thread in the same CPU as the caller threads, slows down the log message processing and will cause Quill's queue to fill faster performing a new allocation. Therefore, you will see bigger worst latencies.
+Each thread is pinned on a different cpu.  
+Running the backend logger thread in the same CPU as the caller hot-path threads, slows down the log message processing on the backend logging thread and will cause the SPSC queue to fill faster and re-allocate.
 
 The following message is logged 2'000'000 times per thread  
 ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```  
