@@ -66,7 +66,7 @@ The main goals of the library are:
 ## Features
  -  Type safe python style API with compile type checks and build-in support for logging STL types/containers by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
  -  Blazing fast. See [Benchmarks](https://github.com/odygrd/quill#performance).
- -  Formatting is performed outside of the hot-path in a backend worker thread. Compile time checks in place for `non-trivial` user defined types that might be unsafe to copy. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/5.-User-Defined-Types).
+ -  When not logging `built-in` types, formatting is performed outside of the hot-path in a backend worker thread by calling `ostream::operator<<()` on a copy of the object. Compile time checks are in place for `non-trivial` user defined types that might be unsafe to copy. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/5.-User-Defined-Types).
  -  Log levels can be completely stripped out at compile time reducing `if` branches.
  -  Custom logs formatting. Logs can be formatted based on a user specified pattern. See [Formatters] (https://github.com/odygrd/quill/wiki/3.-Formatters).
  -  Log statements always appear in timestamp order even if produced by different threads. This makes debugging easier on multi-threaded applications.
