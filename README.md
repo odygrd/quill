@@ -81,6 +81,8 @@ The main goals of the library are:
  -  Clean warning-free codebase even on high warning levels.
  
 ## Performance
+The following message is logged 2'000'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.  
+Results are in `nanoseconds`.  
 
 #### 1 Thread
 
@@ -112,10 +114,6 @@ The benchmarks are done on `Linux (Ubuntu/RHEL)` with GCC 9.1.
 
 Each thread is pinned on a different cpu.  
 Running the backend logger thread in the same CPU as the caller hot-path threads, slows down the log message processing on the backend logging thread and will cause the SPSC queue to fill faster and re-allocate.
-
-The following message is logged 2'000'000 times per thread  
-```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```  
-all reported latencies are in nanoseconds.  
 
 Continuously Logging messages in a loop makes the consumer (backend logging thread) unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog.
 Therefore, a different approach was followed that suits more to a real time application:
