@@ -183,8 +183,6 @@ int main()
 ```
 
 ### Output
-By default Quill outputs to stdout using the default formatting pattern:
-
 [![Screenshot-2020-08-14-at-01-09-43.png](https://i.postimg.cc/02Vbt8LH/Screenshot-2020-08-14-at-01-09-43.png)](https://postimg.cc/LnZ95M4z)
 
 ## CMake-Integration
