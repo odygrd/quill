@@ -103,7 +103,7 @@ The main goals of the library are:
   LOG_CRITICAL(logger, "This is a log critical example {}", 8);
 ```
 
-[![console-example.jpg](https://i.postimg.cc/wjksYXyF/console-example.jpg)](https://postimg.cc/G4Hpksjs)
+[![console_example.jpg](https://i.postimg.cc/9fJXJ1R5/image.jpg)](https://postimg.cc/yJ3zNmyv)
 
 ## Performance
 The following message is logged 2'000'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.  
