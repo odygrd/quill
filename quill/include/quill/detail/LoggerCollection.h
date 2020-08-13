@@ -91,6 +91,14 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
 
+  /**
+   * Used internally only to enable console colours on "stdout" default console handler
+   * which is created by default in this object constructor.
+   * This is meant to called before quill:start() and that is checked internally before calling
+   * this function.
+   */
+  QUILL_ATTRIBUTE_COLD void enable_console_colours() noexcept;
+
 private:
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */
   HandlerCollection& _handler_collection;              /** Collection of al handlers **/

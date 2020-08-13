@@ -69,7 +69,7 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(filename_t const& base_filename
 
 /***/
 void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_record,
-                                    std::chrono::nanoseconds log_record_timestamp)
+                                    std::chrono::nanoseconds log_record_timestamp, LogLevel log_message_severity)
 {
   bool const should_rotate = (log_record_timestamp >= _next_rotation_time.time_since_epoch());
 
@@ -117,7 +117,7 @@ void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_reco
   }
 
   // write to file
-  StreamHandler::write(formatted_log_record, log_record_timestamp);
+  StreamHandler::write(formatted_log_record, log_record_timestamp, log_message_severity);
 }
 
 /***/

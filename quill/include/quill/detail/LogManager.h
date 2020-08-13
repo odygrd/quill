@@ -121,7 +121,15 @@ public:
   /**
    * Stops the backend worker thread
    */
-  QUILL_ATTRIBUTE_COLD void stop_backend_worker() { _backend_worker.stop(); }
+  QUILL_ATTRIBUTE_COLD void stop_backend_worker() noexcept { _backend_worker.stop(); }
+
+  /**
+   * @return true if backend worker has started
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool backend_worker_is_running() noexcept
+  {
+    return _backend_worker.is_running();
+  }
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   /**

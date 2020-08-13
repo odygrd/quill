@@ -137,6 +137,19 @@ QUILL_ATTRIBUTE_COLD void rename(filename_t const& previous_file, filename_t con
  */
 QUILL_ATTRIBUTE_COLD time_t timegm(struct tm* tm);
 
+/**
+ * Check if the terminal supports colours
+ * @return true if the terminate supports colours
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_colour_terminal() noexcept;
+
+/**
+ * Check if file descriptor is attached to terminal
+ * @param file the file handler
+ * @return true if the file is attached to terminal
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_in_terminal(FILE* file) noexcept;
+
 #if defined(_WIN32)
 /**
  * Given a wide character fmt memory buffer convert it to a memory buffer
