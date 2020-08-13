@@ -41,6 +41,7 @@
 
 -  [Introduction](#introduction)
 -  [Features](#features)
+-  [Example](#example)
 -  [Performance](#performance)
 -  [Supported Platforms And Compilers](#supported-platforms-and-compilers)
 -  [Basic Usage](#basic-usage)
