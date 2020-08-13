@@ -1,4 +1,5 @@
 #include "quill/Quill.h"
+#include "quill/QuillError.h"
 #include "quill/detail/Config.h"                  // for Config
 #include "quill/detail/HandlerCollection.h"       // for HandlerCollection
 #include "quill/detail/LogManagerSingleton.h"     // for LogManagerSingleton
@@ -22,16 +23,27 @@ void preallocate()
 }
 
 /***/
-Handler* stdout_handler(std::string const& stdout_handler_name /* = "stdout" */)
+Handler* stdout_handler(std::string const& stdout_handler_name /* = "stdout" */,
+                        ConsoleColours const& console_colours /* = ConsoleColours {} */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stdout_streamhandler(
-    stdout_handler_name);
+  if (console_colours.using_colours())
+  {
+    // if we are using colours then expect a different name from the default "stdout"
+    if (stdout_handler_name == std::string{"stdout"})
+    {
+      QUILL_THROW(
+        QuillError{"When using colours a different handler name than 'stdout' needs to be used"});
+    }
+  }
+
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stdout_console_handler(
+    stdout_handler_name, console_colours);
 }
 
 /***/
 Handler* stderr_handler(std::string const& stderr_handler_name /* = "stderr" */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stderr_streamhandler(
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().stderr_console_handler(
     stderr_handler_name);
 }
 
@@ -123,13 +135,34 @@ Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> h
 /***/
 void set_default_logger_handler(Handler* handler)
 {
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+  }
+
   detail::LogManagerSingleton::instance().log_manager().logger_collection().set_default_logger_handler(handler);
 }
 
 /***/
 void set_default_logger_handler(std::initializer_list<Handler*> handlers)
 {
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+  }
+
   detail::LogManagerSingleton::instance().log_manager().logger_collection().set_default_logger_handler(handlers);
+}
+
+/***/
+void enable_console_colours()
+{
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{"enable_console_colours needs to be called before quill::start()"});
+  }
+
+  detail::LogManagerSingleton::instance().log_manager().logger_collection().enable_console_colours();
 }
 
 /***/
@@ -139,6 +172,11 @@ void flush() { detail::LogManagerSingleton::instance().log_manager().flush(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
 void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler)
 {
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+  }
+
   detail::LogManagerSingleton::instance().log_manager().set_backend_worker_error_handler(
     std::move(backend_worker_error_handler));
 }
@@ -148,20 +186,35 @@ void set_backend_worker_error_handler(backend_worker_error_handler_t backend_wor
 namespace config
 {
 /***/
-void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
+void set_backend_thread_cpu_affinity(uint16_t cpu)
 {
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+  }
+
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_cpu_affinity(cpu);
 }
 
 /***/
-void set_backend_thread_name(std::string const& name) noexcept
+void set_backend_thread_name(std::string const& name)
 {
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+  }
+
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_name(name);
 }
 
 /***/
-void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept
+void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration)
 {
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+  }
+
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_sleep_duration(sleep_duration);
 }
 

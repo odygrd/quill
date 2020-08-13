@@ -20,7 +20,8 @@ RotatingFileHandler::RotatingFileHandler(filename_t const& base_filename, std::s
 }
 
 /***/
-void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds log_record_timestamp)
+void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_record,
+                                std::chrono::nanoseconds log_record_timestamp, LogLevel log_message_severity)
 {
   _current_size += formatted_log_record.size();
 
@@ -31,7 +32,7 @@ void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_record, 
   }
 
   // write to file
-  StreamHandler::write(formatted_log_record, log_record_timestamp);
+  StreamHandler::write(formatted_log_record, log_record_timestamp, log_message_severity);
 }
 
 /***/

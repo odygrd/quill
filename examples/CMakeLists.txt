@@ -4,6 +4,12 @@ target_link_libraries(example_backtrace quill)
 add_executable(example_configure_backend example_configure_backend.cpp)
 target_link_libraries(example_configure_backend quill)
 
+add_executable(example_console_colours example_console_colours.cpp)
+target_link_libraries(example_console_colours quill)
+
+add_executable(example_custom_console_colours example_custom_console_colours.cpp)
+target_link_libraries(example_custom_console_colours quill)
+
 add_executable(example_trivial example_trivial.cpp)
 target_link_libraries(example_trivial quill)
 

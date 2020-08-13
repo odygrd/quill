@@ -40,13 +40,17 @@ public:
    * @param log_record_timestamp log record timestamp
    */
   QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record,
-                                 std::chrono::nanoseconds log_record_timestamp) override;
+                                 std::chrono::nanoseconds log_record_timestamp,
+                                 LogLevel log_message_severity) override;
 
   /**
    * Flushes the stream
    */
-  void flush() noexcept override;
+  QUILL_ATTRIBUTE_HOT void flush() noexcept override;
 
+  /**
+   * @return return the name of the file
+   */
   QUILL_NODISCARD virtual filename_t const& filename() const noexcept;
 
   /**

@@ -5,17 +5,18 @@
 
 #pragma once
 
-#include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD, QUILL_ATT...
-#include "quill/detail/misc/Common.h"     // for filename_t
-#include "quill/detail/misc/Spinlock.h"   // for Spinlock
-#include "quill/handlers/FileHandler.h"   // for FilenameAppend, FilenameAp...
-#include "quill/handlers/StreamHandler.h" // for StreamHandler
-#include <chrono>                         // for hours, minutes
-#include <cstddef>                        // for size_t
-#include <memory>                         // for allocator, unique_ptr
-#include <string>                         // for string, hash
-#include <unordered_map>                  // for unordered_map
-#include <vector>                         // for vector
+#include "quill/detail/misc/Attributes.h"  // for QUILL_NODISCARD, QUILL_ATT...
+#include "quill/detail/misc/Common.h"      // for filename_t
+#include "quill/detail/misc/Spinlock.h"    // for Spinlock
+#include "quill/handlers/ConsoleHandler.h" // for ConsoleColours
+#include "quill/handlers/FileHandler.h"    // for FilenameAppend
+#include "quill/handlers/StreamHandler.h"  // for StreamHandler
+#include <chrono>                          // for hours, minutes
+#include <cstddef>                         // for size_t
+#include <memory>                          // for allocator, unique_ptr
+#include <string>                          // for string, hash
+#include <unordered_map>                   // for unordered_map
+#include <vector>                          // for vector
 
 namespace quill
 {
@@ -40,10 +41,19 @@ public:
   HandlerCollection(HandlerCollection const&) = delete;
   HandlerCollection& operator=(HandlerCollection const&) = delete;
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stdout_streamhandler(
-    std::string const& stdout_handler_name = std::string{"stdout"});
+  /**
+   * The handlers are used by the backend thread, so after their creation we want to avoid
+   * mutating their member variables. So here the API returns pointers to the base class
+   * to somehow restrict the user from creating a handler and calling a `set()` function
+   * on the handler after it's creation.
+   * Currently no built-in handlers have setters function.
+   */
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_streamhandler(
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stdout_console_handler(
+    std::string const& stdout_handler_name = std::string{"stdout"},
+    ConsoleColours const& console_colours = ConsoleColours{});
+
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_console_handler(
     std::string const& stderr_handler_name = std::string{"stderr"});
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(
@@ -81,7 +91,8 @@ public:
   // list Check if no other logger is using it first
 
 private:
-  QUILL_NODISCARD StreamHandler* _create_streamhandler(filename_t const& stream, FILE* file);
+  QUILL_NODISCARD StreamHandler* _create_console_handler(filename_t const& stream, FILE* file,
+                                                         ConsoleColours const& console_colours);
 
 private:
   /**

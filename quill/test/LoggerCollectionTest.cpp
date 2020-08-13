@@ -20,7 +20,7 @@ TEST_CASE("create_get_same_logger")
   ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
-  Handler* stream_handler = hc.stdout_streamhandler();
+  Handler* stream_handler = hc.stdout_console_handler();
   Logger* logger_1 = logger_collection.create_logger("logger_1", stream_handler);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
 
@@ -41,7 +41,7 @@ TEST_CASE("create_get_different_loggers")
   ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
-  Handler* stream_handler = hc.stdout_streamhandler();
+  Handler* stream_handler = hc.stdout_console_handler();
   Logger* logger_1 = logger_collection.create_logger("logger_1", stream_handler);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
 
@@ -49,7 +49,7 @@ TEST_CASE("create_get_different_loggers")
   logger_1->set_log_level(LogLevel::TraceL2);
 
   // try to get a new logger with a default log level
-  Handler* stream_handler_2 = hc.stdout_streamhandler();
+  Handler* stream_handler_2 = hc.stdout_console_handler();
   QUILL_MAYBE_UNUSED Logger* logger_2 = logger_collection.create_logger("logger_2", stream_handler_2);
   Logger* logger_3 = logger_collection.get_logger("logger_2");
   REQUIRE_EQ(logger_3->log_level(), LogLevel::Info);
@@ -122,7 +122,7 @@ TEST_CASE("set_default_logger_handler")
   ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
-  Handler* stream_handler = hc.stdout_streamhandler();
+  Handler* stream_handler = hc.stdout_console_handler();
   logger_collection.set_default_logger_handler(stream_handler);
 }
 
@@ -135,7 +135,7 @@ TEST_CASE("set_default_logger_pattern")
   ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
-  Handler* stream_handler = hc.stdout_streamhandler();
+  Handler* stream_handler = hc.stdout_console_handler();
   stream_handler->set_pattern(QUILL_STRING("%(message)"));
 
   logger_collection.set_default_logger_handler(stream_handler);
@@ -150,7 +150,7 @@ TEST_CASE("set_default_logger_multiple_handlers")
   ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{tc, hc};
 
-  logger_collection.set_default_logger_handler({hc.stdout_streamhandler(), hc.stderr_streamhandler()});
+  logger_collection.set_default_logger_handler({hc.stdout_console_handler(), hc.stderr_console_handler()});
 }
 
 TEST_SUITE_END();

@@ -50,21 +50,23 @@ public:
    * @note: Accessor for backend processing
    * @return reference to the pattern formatter of this handler
    */
-  QUILL_ATTRIBUTE_HOT PatternFormatter const& formatter() { return *(_formatter.get()); }
+  QUILL_ATTRIBUTE_HOT PatternFormatter const& formatter() { return *_formatter; }
 
   /**
    * Logs a formatted log record to the handler
    * @note: Accessor for backend processing
    * @param formatted_log_record input log record to write
    * @param log_record_timestamp log record timestamp
+   * @param log_message_severity the severity of the log message
    */
   QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_record,
-                                        std::chrono::nanoseconds log_record_timestamp) = 0;
+                                         std::chrono::nanoseconds log_record_timestamp,
+                                         LogLevel log_message_severity) = 0;
 
   /**
    * Flush the handler synchronising the associated handler with its controlled output sequence.
    */
-  virtual void flush() noexcept = 0;
+  QUILL_ATTRIBUTE_HOT virtual void flush() noexcept = 0;
 
 private:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter

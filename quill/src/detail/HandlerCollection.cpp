@@ -1,6 +1,7 @@
 #include "quill/detail/HandlerCollection.h"
 #include "quill/QuillError.h"                       // for QuillError
 #include "quill/detail/misc/Utilities.h"            // for s2ws
+#include "quill/handlers/ConsoleHandler.h"          // for ConsoleHandler
 #include "quill/handlers/FileHandler.h"             // for FileHandler, Filenam...
 #include "quill/handlers/RotatingFileHandler.h"     // for RotatingFileHandler
 #include "quill/handlers/TimeRotatingFileHandler.h" // for TimeRotatingFileHandler
@@ -14,22 +15,24 @@ namespace quill
 namespace detail
 {
 /***/
-StreamHandler* HandlerCollection::stdout_streamhandler(std::string const& stdout_handler_name /* = std::string{"stdout"} */)
+StreamHandler* HandlerCollection::stdout_console_handler(std::string const& stdout_handler_name /* = std::string{"stdout"} */,
+                                                         ConsoleColours const& console_colours /* = ConsoleColours{} */)
 {
 #if defined(_WIN32)
-  return _create_streamhandler(s2ws(stdout_handler_name), stdout);
+  return _create_console_handler(s2ws(stdout_handler_name), stdout, console_colours);
 #else
-  return _create_streamhandler(stdout_handler_name, stdout);
+  return _create_console_handler(stdout_handler_name, stdout, console_colours);
 #endif
 }
 
 /***/
-StreamHandler* HandlerCollection::stderr_streamhandler(std::string const& stderr_handler_name /* = std::string{"stderr"} */)
+StreamHandler* HandlerCollection::stderr_console_handler(std::string const& stderr_handler_name /* = std::string{"stderr"} */)
 {
+  // we just pass an empty ConsoleColours class, as we don't use colours for stderr.
 #if defined(_WIN32)
-  return _create_streamhandler(s2ws(stderr_handler_name), stderr);
+  return _create_console_handler(s2ws(stderr_handler_name), stderr, quill::ConsoleColours{});
 #else
-  return _create_streamhandler(stderr_handler_name, stderr);
+  return _create_console_handler(stderr_handler_name, stderr, quill::ConsoleColours{});
 #endif
 }
 
@@ -139,7 +142,8 @@ std::vector<Handler*> HandlerCollection::active_handlers() const
 }
 
 /***/
-StreamHandler* HandlerCollection::_create_streamhandler(filename_t const& stream, FILE* file)
+StreamHandler* HandlerCollection::_create_console_handler(filename_t const& stream, FILE* file,
+                                                          ConsoleColours const& console_colours)
 {
   // Protect shared access
   std::lock_guard<Spinlock> const lock{_spinlock};
@@ -175,8 +179,8 @@ StreamHandler* HandlerCollection::_create_streamhandler(filename_t const& stream
   }
 
   // if first time add it
-  auto emplace_result =
-    _file_handler_collection.emplace(stream, std::make_unique<StreamHandler>(stream, file));
+  auto emplace_result = _file_handler_collection.emplace(
+    stream, std::make_unique<ConsoleHandler>(stream, file, console_colours));
 
   return (*emplace_result.first).second.get();
 }

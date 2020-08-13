@@ -48,9 +48,12 @@ QUILL_ATTRIBUTE_COLD inline void start()
 /**
  * @param stdout_handler_name a custom name for stdout_handler. This is only useful if you want to
  * have multiple formats in the stdout. See example_stdout_multiple_formatters.cpp example
+ *  @param console_colours a console colours configuration class
  * @return a handler to the standard output stream
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stdout_handler(std::string const& stdout_handler_name = std::string{"stdout"});
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stdout_handler(
+  std::string const& stdout_handler_name = std::string{"stdout"},
+  ConsoleColours const& console_colours = ConsoleColours{});
 
 /**
  * @param stderr_handler_name a custom name for stdout_handler. This is only useful if you want to
@@ -241,6 +244,11 @@ QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
 QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
 
 /**
+ * If called then by default we are printing colour codes when console/terminal is used
+ */
+QUILL_ATTRIBUTE_COLD void enable_console_colours();
+
+/**
  * Blocks the caller thread until all log messages up to the current timestamp are flushed
  *
  * The backend thread will call write on all handlers for all loggers up to the point (timestamp)
@@ -291,7 +299,7 @@ namespace config
  *
  * @cpu the cpu core to pin the backend thread
  */
-QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
+QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu);
 
 /**
  * Names the backend thread
@@ -303,7 +311,7 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
  *
  * @param name The desired name of the backend worker thread
  */
-QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexcept;
+QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name);
 
 /**
  * The backend thread will always "busy wait" spinning around every caller thread's local spsc queue.
@@ -328,8 +336,7 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexc
  *
  * @param sleep_duration The sleep duration of the backend thread when idle
  */
-QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration) noexcept;
-
+QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration);
 } // namespace config
 
 } // namespace quill

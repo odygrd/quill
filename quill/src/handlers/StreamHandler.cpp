@@ -32,7 +32,7 @@ StreamHandler::StreamHandler(filename_t stream, FILE* file /* = nullptr */)
 }
 
 /***/
-void StreamHandler::write(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds)
+void StreamHandler::write(fmt::memory_buffer const& formatted_log_record, std::chrono::nanoseconds, LogLevel)
 {
   detail::file_utilities::fwrite_fully(formatted_log_record.data(), sizeof(char),
                                        formatted_log_record.size(), _file);

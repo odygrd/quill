@@ -181,7 +181,7 @@ private:
 
       // log to the handler, also pass the log_record_timestamp this is only needed in some
       // cases like daily file rotation
-      handler->write(formatted_log_record_buffer, log_record_timestamp);
+      handler->write(formatted_log_record_buffer, log_record_timestamp, log_record_metadata.level());
     }
   }
 

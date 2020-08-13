@@ -22,7 +22,7 @@ TEST_CASE("construct")
 {
   HandlerCollection hc;
 
-  LoggerDetails logger_details{"default", hc.stdout_streamhandler()};
+  LoggerDetails logger_details{"default", hc.stdout_console_handler()};
   {
     // test with char const the tuple get's promoted
     using record_t = LogRecordEvent<is_backtrace_log_record, mock_log_record_info, int, double, char const*>;

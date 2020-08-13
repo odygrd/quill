@@ -2,6 +2,7 @@
 #include "quill/QuillError.h"
 #include "quill/detail/misc/Macros.h"
 #include "quill/detail/misc/Utilities.h"
+#include <array>
 #include <cerrno> // for errno, EINVAL, ENOMEM
 #include <cstdint>
 #include <cstdio>
@@ -72,7 +73,8 @@ tm* gmtime_rs(time_t const* timer, tm* buf)
   if (res)
   {
     std::ostringstream error_msg;
-    error_msg << "failed to call gmtime_rs, with error message " << "errno : \"" << res << "\"";
+    error_msg << "failed to call gmtime_rs, with error message "
+              << "errno : \"" << res << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
   return buf;
@@ -97,7 +99,8 @@ tm* localtime_rs(time_t const* timer, tm* buf)
   if (res)
   {
     std::ostringstream error_msg;
-    error_msg << "failed to call localtime_rs, with error message " << "errno: \"" << errno << "\"";
+    error_msg << "failed to call localtime_rs, with error message "
+              << "errno: \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
   return buf;
@@ -374,12 +377,52 @@ time_t timegm(tm* tm)
 #else
   time_t const ret_val = ::timegm(tm);
 
-  if (QUILL_UNLIKELY(ret_val == (time_t) -1))
+  if (QUILL_UNLIKELY(ret_val == (time_t)-1))
   {
     QUILL_THROW(QuillError{"timegm failed."});
   }
 
   return ret_val;
+#endif
+}
+
+/***/
+bool is_colour_terminal() noexcept
+{
+#if defined(_WIN32)
+  return true;
+#else
+  // Get term from env
+  auto* env_p = std::getenv("TERM");
+
+  if (env_p == nullptr)
+  {
+    return false;
+  }
+
+  static constexpr std::array<char const*, 14> terms = {
+    {"ansi", "color", "console", "cygwin", "gnome", "konsole", "kterm", "linux", "msys", "putty",
+     "rxvt", "screen", "vt100", "xterm"}};
+
+  return std::any_of(terms.begin(), terms.end(),
+                     [&](char const* term) { return std::strstr(env_p, term) != nullptr; });
+#endif
+}
+
+/***/
+bool is_in_terminal(FILE* file) noexcept
+{
+#if defined(_WIN32)
+  bool const is_atty = ::_isatty(_fileno(file)) != 0;
+
+  // ::GetConsoleMode() should return 0 if file is redirected or does not point to the actual console
+  DWORD console_mode;
+  bool const is_console =
+    ::GetConsoleMode(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(file))), &console_mode) != 0;
+
+  return is_atty && is_console;
+#else
+  return ::isatty(fileno(file)) != 0;
 #endif
 }
 

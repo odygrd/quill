@@ -14,7 +14,7 @@ TEST_CASE("stdout_stderr_handlers")
   HandlerCollection hc;
 
   // Get the default stdout stream handler
-  StreamHandler* stdout_handler = hc.stdout_streamhandler();
+  StreamHandler* stdout_handler = hc.stdout_console_handler();
 
 #if defined(_WIN32)
   REQUIRE_EQ(stdout_handler->filename(), std::wstring{L"stdout"});
@@ -31,7 +31,7 @@ TEST_CASE("stdout_stderr_handlers")
   REQUIRE_EQ(filehandler_1, stdout_handler);
 
   // Get the default stderr stream handler
-  StreamHandler* stderr_handler = hc.stderr_streamhandler();
+  StreamHandler* stderr_handler = hc.stderr_console_handler();
 #if defined(_WIN32)
   REQUIRE_EQ(stderr_handler->filename(), std::wstring{L"stderr"});
 #else

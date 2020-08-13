@@ -22,8 +22,8 @@ LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_colle
   // Pre-allocate early to a reasonable size
   _logger_name_map.reserve(16);
 
-  // Add the default std streamhandler to the default logger
-  Handler* stdout_stream_handler = _handler_collection.stdout_streamhandler("stdout");
+  // Add the default console handler to the default logger
+  Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
   _default_logger = create_logger(_default_logger_name, stdout_stream_handler);
 }
 
@@ -136,5 +136,15 @@ void LoggerCollection::set_default_logger_handler(std::initializer_list<Handler*
   _default_logger = create_logger(_default_logger_name, std::move(handlers));
 }
 
+/***/
+void LoggerCollection::enable_console_colours() noexcept
+{
+  // Get the previous created default stdout handler
+  Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
+  assert(stdout_stream_handler && "stdout_stream_handler can not be nullptr");
+
+  auto console_handler = reinterpret_cast<ConsoleHandler*>(stdout_stream_handler);
+  console_handler->enable_console_colours();
+}
 } // namespace detail
 } // namespace quill
