@@ -83,6 +83,10 @@ The main goals of the library are:
 
 ## Example
 ```c++
+#include "quill/Quill.h"
+
+int main()
+{
   quill::enable_console_colours();
   quill::start();
 
@@ -102,6 +106,7 @@ The main goals of the library are:
   LOG_WARNING(logger, "This is a log warning example {}", 6);
   LOG_ERROR(logger, "This is a log error example {}", 7);
   LOG_CRITICAL(logger, "This is a log critical example {}", 8);
+}
 ```
 
 [![console_example.jpg](https://i.postimg.cc/9fJXJ1R5/image.jpg)](https://postimg.cc/yJ3zNmyv)
