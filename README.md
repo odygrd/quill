@@ -79,7 +79,32 @@ The main goals of the library are:
     -  Rotating log files
     -  Time rotating log files
  -  Clean warning-free codebase even on high warning levels.
- 
+
+## Example
+```c++
+  quill::enable_console_colours();
+  quill::start();
+
+  quill::Logger* logger = quill::get_logger();
+  logger->set_log_level(quill::LogLevel::TraceL3);
+
+  // Set a backtrace that will be flushed on LOG_CRITICAL
+  logger->init_backtrace(2, quill::LogLevel::Critical);
+  
+  LOG_BACKTRACE(logger, "Backtrace log {}", 1);
+  LOG_BACKTRACE(logger, "Backtrace log {}", 2);
+  LOG_TRACE_L3(logger, "This is a log trace l3 example {}", 1);
+  LOG_TRACE_L2(logger, "This is a log trace l2 example {} {}", 2, 2.3);
+  LOG_TRACE_L1(logger, "This is a log trace l1 example {}", 3);
+  LOG_DEBUG(logger, "This is a log debug example {}", 4);
+  LOG_INFO(logger, "This is a log info example {}", 5);
+  LOG_WARNING(logger, "This is a log warning example {}", 6);
+  LOG_ERROR(logger, "This is a log error example {}", 7);
+  LOG_CRITICAL(logger, "This is a log critical example {}", 8);
+```
+
+[![console-example.jpg](https://i.postimg.cc/wjksYXyF/console-example.jpg)](https://postimg.cc/G4Hpksjs)
+
 ## Performance
 The following message is logged 2'000'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.  
 Results are in `nanoseconds`.  
