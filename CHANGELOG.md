@@ -17,6 +17,7 @@
 - Added backtrace logging. Log messages can be stored in a buffer and flushed later on demand. See [Backtrace Logging](https://github.com/odygrd/quill/wiki/6.-Backtrace-Logging)
 - Added bundled `doctest` `2.4.0`
 - Migrated all tests from `gtest` to `doctest`.
+- Upgraded bundled libfmt to `7.0.3`
 
 ## v1.3.3
 - Upgraded bundled libfmt to `7.0.2`
