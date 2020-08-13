@@ -73,8 +73,8 @@ The main goals of the library are:
  -  Backtrace logging. Store log messages in a ring buffer and display later when a higher severity log statement occurs or on demand. See [Backtrace Logging](https://github.com/odygrd/quill/wiki/6.-Backtrace-Logging).
  -  `guaranteed non-blocking` or `non-guaranteed` logging. In `guaranteed non-blocking` logging more memory is allocated so the caller doesn't get blocked, log messages are never dropped. In `non-guaranteed` mode there is no heap allocation log messages can be dropped. See [FAQ](https://github.com/odygrd/quill/wiki/7.-FAQ#guaranteed-logging-mode).
  -  Support for wide character logging and wide character filenames (Windows only).
- -  Various log targets (Handlers). See [Handlers](https://github.com/odygrd/quill/wiki/2.-Handlers).
-    -  Console logging 
+ -  Various logging targets. See [Handlers](https://github.com/odygrd/quill/wiki/2.-Handlers).
+    -  Console logging with coloured log support.
     -  File Logging
     -  Rotating log files
     -  Time rotating log files
