@@ -63,7 +63,10 @@ void ConsoleColours::set_colour(LogLevel log_level, WORD colour) noexcept
 }
 
 /***/
-bool ConsoleColours::using_colours() const noexcept { return _can_use_colours && _using_colours; }
+bool ConsoleColours::can_use_colours() const noexcept { return _can_use_colours && _using_colours; }
+
+/***/
+bool ConsoleColours::using_colours() const noexcept { return _using_colours; }
 
 /***/
 WORD ConsoleColours::colour_code(LogLevel log_level) const noexcept
