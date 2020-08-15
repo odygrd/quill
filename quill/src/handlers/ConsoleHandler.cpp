@@ -140,7 +140,10 @@ void ConsoleColours::set_colour(LogLevel log_level, std::string const& colour) n
 }
 
 /***/
-bool ConsoleColours::using_colours() const noexcept { return _can_use_colours && _using_colours; }
+bool ConsoleColours::can_use_colours() const noexcept { return _can_use_colours && _using_colours; }
+
+/***/
+bool ConsoleColours::using_colours() const noexcept { return _using_colours; }
 
 /***/
 std::string const& ConsoleColours::colour_code(LogLevel log_level) const noexcept
@@ -210,7 +213,7 @@ void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_record,
     StreamHandler::write(formatted_log_record, log_record_timestamp, log_message_severity);
   }
 #else
-  if (_console_colours.using_colours())
+  if (_console_colours.can_use_colours())
   {
     // Write colour code
     std::string const& colour_code = _console_colours.colour_code(log_message_severity);
@@ -221,7 +224,7 @@ void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_record,
   // Write record to file
   StreamHandler::write(formatted_log_record, log_record_timestamp, log_message_severity);
 
-  if (_console_colours.using_colours())
+  if (_console_colours.can_use_colours())
   {
     detail::file_utilities::fwrite_fully(ConsoleColours::reset.data(), sizeof(char),
                                          ConsoleColours::reset.size(), _file);

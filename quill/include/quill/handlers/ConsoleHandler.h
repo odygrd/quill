@@ -110,7 +110,12 @@ public:
   void set_colour(LogLevel log_level, std::string const& colour) noexcept;
 
   /**
-   * @return True if we have enabled colours
+   * @return true if we are in terminal and have also enabled colours
+   */
+  QUILL_NODISCARD bool can_use_colours() const noexcept;
+
+  /**
+   * @return true if we have setup colours
    */
   QUILL_NODISCARD bool using_colours() const noexcept;
 

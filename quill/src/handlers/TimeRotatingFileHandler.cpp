@@ -27,7 +27,7 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(filename_t const& base_filename
   if ((_when != std::string{"M"}) && _when != std::string{"H"} && _when != std::string{"daily"})
   {
     QUILL_THROW(
-      QuillError{"Invalid when value for TimeRotatingFileHandler. Valid values are 'S', 'M', 'H' "
+      QuillError{"Invalid when value for TimeRotatingFileHandler. Valid values are 'M', 'H' "
                  "or 'daily'"});
   }
 
@@ -47,7 +47,18 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(filename_t const& base_filename
 
   if (tokens.size() != 2)
   {
-    QUILL_THROW(QuillError{"Invalid at_time value."});
+    QUILL_THROW(QuillError{"Invalid at_time value format. Needs to be in format `hh:mm`."});
+  }
+  else
+  {
+    // check token string has a size of 2. eg. "05"
+    for (auto const& parsed_token : tokens)
+    {
+      if (parsed_token.size() != 2)
+      {
+        QUILL_THROW(QuillError{"Invalid at_time value format. Needs to be in format `hh:mm`."});
+      }
+    }
   }
 
   at_time_hours = std::chrono::hours(std::stoi(tokens[0]));

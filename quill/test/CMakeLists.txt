@@ -23,6 +23,7 @@ set(SOURCE_FILES
         QuillLogTest.cpp
         RecordTest.cpp
         ThreadContextCollectionTest.cpp
+        TimeRotatingFileHandlerTest.cpp
         TimestampFormatterTest.cpp
         TypeTraitsCopyableTest.cpp
         UtilityTest.cpp

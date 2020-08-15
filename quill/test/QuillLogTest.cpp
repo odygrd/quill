@@ -439,6 +439,7 @@ TEST_CASE("log_to_multiple_handlers_from_same_logger")
              "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_20)\n");
 }
 
+#ifndef QUILL_NO_EXCEPTIONS
 /***/
 TEST_CASE("invalid_handlers")
 {
@@ -457,12 +458,18 @@ TEST_CASE("invalid_handlers")
   REQUIRE_THROWS_AS(auto x3 = quill::stderr_handler("invalid_handlers.log"), quill::QuillError);
   REQUIRE_THROWS_AS(auto x4 = quill::stdout_handler("invalid_handlers.log"), quill::QuillError);
 
+  // try to use console colours with stdout handler as name
+  quill::ConsoleColours terminal_colours;
+  terminal_colours.set_default_colours();
+  REQUIRE_THROWS_AS(quill::stdout_handler("stdout", terminal_colours), quill::QuillError);
+
   // remove file
-#if defined(_WIN32)
+  #if defined(_WIN32)
   quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
-#else
+  #else
   quill::detail::file_utilities::remove(filename);
-#endif
+  #endif
 }
+#endif
 
 TEST_SUITE_END();

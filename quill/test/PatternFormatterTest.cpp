@@ -250,10 +250,27 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
 #ifndef QUILL_NO_EXCEPTIONS
 TEST_CASE("invalid_pattern")
 {
+  // missing %(message)
   REQUIRE_THROWS_AS(
     PatternFormatter(
       QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
                    "[%(function_name)]"),
+      "%H:%M:%S.%Qns", Timezone::GmtTime),
+    quill::QuillError);
+
+  // missing %)
+  REQUIRE_THROWS_AS(
+    PatternFormatter(
+      QUILL_STRING("%(ascii_time [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
+                   "%(message) [%(function_name)]"),
+      "%H:%M:%S.%Qns", Timezone::GmtTime),
+    quill::QuillError);
+
+  // invalid attribute %(invalid)
+  REQUIRE_THROWS_AS(
+    PatternFormatter(
+      QUILL_STRING("%(invalid) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
+                   "%(message) [%(function_name)]"),
       "%H:%M:%S.%Qns", Timezone::GmtTime),
     quill::QuillError);
 }
@@ -283,7 +300,7 @@ TEST_CASE("custom_pattern")
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:274 LOG_DEBUG     test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:291 LOG_DEBUG     test_logger "
     "- This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
