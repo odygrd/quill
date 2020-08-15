@@ -461,7 +461,7 @@ TEST_CASE("invalid_handlers")
   // try to use console colours with stdout handler as name
   quill::ConsoleColours terminal_colours;
   terminal_colours.set_default_colours();
-  REQUIRE_THROWS_AS(quill::stdout_handler("stdout", terminal_colours), quill::QuillError);
+  REQUIRE_THROWS_AS(auto x5 = quill::stdout_handler("stdout", terminal_colours), quill::QuillError);
 
   // remove file
   #if defined(_WIN32)
