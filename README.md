@@ -1,4 +1,3 @@
-<meta name="google-site-verification" content="YXm_0rDjGt5GpJoJk8Rz2Yh6a9zSierKWoBfv6DPmjc"/>
 <div align="center">
   <a href="https://github.com/odygrd/quill">
     <img width="125" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
