@@ -1,3 +1,4 @@
+-  [v1.4.1](#v1.4.1)
 -  [v1.4.0](#v1.4.0)
 -  [v1.3.3](#v1.3.3)
 -  [v1.3.2](#v1.3.2)
@@ -9,6 +10,9 @@
 -  [v1.2.0](#v1.2.0)
 -  [v1.1.0](#v1.1.0)
 -  [v1.0.0](#v1.0.0)
+
+## v1.4.1
+- Do not force `quill` to always build as `static` library in cmake.
 
 ## v1.4.0
 - Added support for printing colour codes in the terminal. See [ConsoleHandler](https://github.com/odygrd/quill/wiki/2.-Handlers#consolehandler)
