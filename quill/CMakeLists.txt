@@ -108,6 +108,11 @@ if (NOT QUILL_FMT_EXTERNAL)
             src/bundled/fmt/os.cc)
 endif ()
 
+if (BUILD_SHARED_LIBS)
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif ()
+
 # Add as a library
 add_library(${TARGET_NAME} "")
 
