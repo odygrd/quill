@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD, QUILL_NOD...
+#include "quill/detail/misc/Common.h"     // for Timezone
 #include <algorithm>                      // for min
 #include <array>                          // for array
 #include <cassert>                        // for assert
@@ -13,6 +14,7 @@
 #include <cstdio>                         // for size_t
 #include <cstring>                        // for memcpy, strlen
 #include <string>                         // for string, wstring
+#include <vector>
 
 namespace quill
 {
@@ -49,6 +51,13 @@ QUILL_NODISCARD constexpr bool strequal(char const* lhs, char const* rhs)
 {
   return (*lhs && *rhs) ? (*lhs == *rhs && strequal(lhs + 1, rhs + 1)) : (!*lhs && !*rhs);
 }
+/**
+ * Finds and replaces all occurrences of the old value in the given string
+ * @param str The string we want to search and replace
+ * @param old_value the old value to be replaced
+ * @param new_value the new value
+ */
+void replace_all(std::string& str, std::string const& old_value, std::string const& new_value) noexcept;
 
 /**
  * Convert a string to wstring
@@ -94,5 +103,37 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr T* align_pointer(void* pointer) no
   static_assert(is_pow_of_two(alignment), "alignment must be a power of two");
   return reinterpret_cast<T*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) & ~(alignment - 1ul));
 }
+
+/**
+ * Calculates the time from epoch of the nearest hour
+ * @param timestamp timestamp
+ * @return the time from epoch of the nearest hour
+ */
+QUILL_NODISCARD time_t nearest_hour_timestamp(time_t timestamp) noexcept;
+
+/**
+ * Calculates the time from epoch till the next hour
+ * @param timestamp timestamp
+ * @return the time from epoch until the next hour
+ */
+QUILL_NODISCARD time_t next_hour_timestamp(time_t timestamp) noexcept;
+
+/**
+ * Calculates the time from epoch till next noon or midnight
+ * @param timezone gmt or local time
+ * @param timestamp timestamp
+ * @return the time from epoch until next noon or midnight
+ */
+QUILL_NODISCARD time_t next_noon_or_midnight_timestamp(time_t timestamp, Timezone timezone) noexcept;
+
+/**
+ * Calls strftime and returns a null terminated vector of chars
+ * @param format_string The format string to pass to strftime
+ * @param timestamp The timestamp
+ * @param timezone local time or gmtime
+ * @return the formated string as vector of characters
+ */
+QUILL_NODISCARD std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone timezone);
+
 } // namespace detail
 } // namespace quill

@@ -16,8 +16,6 @@ std::array<char const*, 4> specifier_name{"", "%Qms", "%Qus", "%Qns"};
 
 // All special specifiers have same length at the moment
 constexpr size_t specifier_length = 4;
-
-constexpr float _formatted_date_grow_factor = 1.5f;
 } // namespace
 
 namespace quill
@@ -30,6 +28,9 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
                                        Timezone timezone_type /* = Timezone::LocalTime */)
   : _timezone_type(timezone_type)
 {
+  assert((_timezone_type == Timezone::LocalTime || _timezone_type == Timezone::GmtTime) &&
+         "Invalid timezone type");
+
   // store the beginning of the found specifier
   size_t specifier_begin{std::string::npos};
 
@@ -81,6 +82,10 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
     _format_part_2 =
       timestamp_format_string.substr(specifier_end, timestamp_format_string.length() - specifier_end);
   }
+
+  // Now init two custom string from time classes with pre-formatted strings
+  _strftime_part_1.init(_format_part_1, _timezone_type);
+  _strftime_part_2.init(_format_part_2, _timezone_type);
 }
 
 /***/
@@ -91,140 +96,58 @@ char const* TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_s
   // convert timestamp to seconds
   int64_t const timestamp_secs = timestamp_ns / 1'000'000'000;
 
-  // a timeinfo to hold the timestamp info
-  tm timeinfo;
+  // First always clear our cached string
+  _formatted_date.clear();
 
-  assert((_timezone_type == Timezone::LocalTime || _timezone_type == Timezone::GmtTime) &&
-         "Invalid timezone type");
-
-  if (_timezone_type == Timezone::LocalTime)
-  {
-    detail::localtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp_secs)),
-                         std::addressof(timeinfo));
-  }
-  else if (_timezone_type == Timezone::GmtTime)
-  {
-    detail::gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp_secs)), std::addressof(timeinfo));
-  }
-
-  // 1. we always format part 1 - and store how many bytes we writted
-  size_t formatted_ts_length = _strftime(timeinfo, 0, _format_part_1);
+  // 1. we always format part 1
+  _formatted_date += _strftime_part_1.format_timestamp(timestamp_secs);
 
   // 2. We add any special ms/us/ns specifier if any
-  auto get_extracted_ns = [timestamp_ns, timestamp_secs]() {
-    return static_cast<uint32_t>(timestamp_ns - (timestamp_secs * 1'000'000'000));
-  };
+  auto const extracted_ns = static_cast<uint32_t>(timestamp_ns - (timestamp_secs * 1'000'000'000));
 
   if (_additional_format_specifier == AdditionalSpecifier::Qms)
   {
-    auto const extracted_ms = get_extracted_ns() / 1'000'000;
+    uint32_t const extracted_ms = extracted_ns / 1'000'000;
     uint8_t constexpr fractional_seconds_size = 3;
 
-    _append_fractional_seconds(formatted_ts_length, extracted_ms, fractional_seconds_size);
-
-    // also append to length to know where to append part 2 if any
-    formatted_ts_length += fractional_seconds_size;
+    _append_fractional_seconds(extracted_ms, fractional_seconds_size);
   }
   else if (_additional_format_specifier == AdditionalSpecifier::Qus)
   {
-    auto const extracted_us = get_extracted_ns() / 1'000;
+    uint32_t const extracted_us = extracted_ns / 1'000;
     uint8_t constexpr fractional_seconds_size = 6;
 
-    _append_fractional_seconds(formatted_ts_length, extracted_us, fractional_seconds_size);
-
-    // also append to length to know where to append part 2 if any
-    formatted_ts_length += fractional_seconds_size;
+    _append_fractional_seconds(extracted_us, fractional_seconds_size);
   }
   else if (_additional_format_specifier == AdditionalSpecifier::Qns)
   {
-    auto const extracted_ns = get_extracted_ns();
     uint8_t constexpr fractional_seconds_size = 9;
 
-    _append_fractional_seconds(formatted_ts_length, extracted_ns, fractional_seconds_size);
-
-    // also append to length to know where to append part 2 if any
-    formatted_ts_length += fractional_seconds_size;
+    _append_fractional_seconds(extracted_ns, fractional_seconds_size);
   }
 
   // 3. format part 2 after fractional seconds - if any
   if (!_format_part_2.empty())
   {
-    _strftime(timeinfo, formatted_ts_length, _format_part_2);
+    _formatted_date += _strftime_part_2.format_timestamp(timestamp_secs);
   }
 
   return _formatted_date.data();
 }
 
 /***/
-size_t TimestampFormatter::_strftime(tm const& timeinfo, size_t formatted_date_pos, std::string const& format_string)
-{
-  auto res = strftime(&_formatted_date[formatted_date_pos], _formatted_date.capacity() - formatted_date_pos,
-                      format_string.data(), std::addressof(timeinfo));
-
-  // if strftime fails we need to reserve. strftime can return 0 as an empty meaning not only when
-  // and we shouldn't try to reallocate for ever in this case.
-  while (QUILL_UNLIKELY((res == 0) && (_formatted_date.capacity() < 550)))
-  {
-    // _formatted_date has unknown _formatted_date.size() because we use it as an array.
-    // But  internally _formatted_date the size is needed to copy the old data
-    // when we call _formatted_date.reserve(). Therefore, we will lose old_data on reserve()
-    std::string old_data{_formatted_date.data(), formatted_date_pos};
-
-    // this sets size to zero, we are not keeping track of the size because we append directly.
-    // Also if we reallocate twice the size can have a value because we used append
-    _formatted_date.clear();
-
-    _formatted_date.reserve(
-      static_cast<size_t>(static_cast<float>(_formatted_date.capacity()) * _formatted_date_grow_factor));
-
-    // put old data back ..
-    _formatted_date.append(&old_data[0], &old_data[old_data.size()]);
-
-    res = strftime(&_formatted_date[formatted_date_pos], _formatted_date.capacity() - formatted_date_pos,
-                   format_string.data(), std::addressof(timeinfo));
-  }
-
-  return res;
-}
-
-/***/
-void TimestampFormatter::_append_fractional_seconds(size_t formatted_timestamp_end,
-                                                    uint32_t extracted_fractional_seconds,
+void TimestampFormatter::_append_fractional_seconds(uint32_t extracted_fractional_seconds,
                                                     uint8_t extracted_fractional_seconds_length)
 {
-  // check that we have enough size. We reserve an extra space for null terminator
-  if (QUILL_UNLIKELY((formatted_timestamp_end + extracted_fractional_seconds_length + 1) >
-                     _formatted_date.capacity()))
-  {
-    // _formatted_date has unknown _formatted_date.size() because we use it as an array.
-    // But  internally _formatted_date the size is needed to copy the old data
-    // when we call _formatted_date.reserve(). Therefore, we will lose old_data on reserve()
-    std::string old_data{_formatted_date.data(), formatted_timestamp_end};
+  // Add as many zeros as the extracted_fractional_seconds_length
+  _formatted_date += std::string(extracted_fractional_seconds_length, '0');
 
-    // set size to zero
-    _formatted_date.clear();
-
-    _formatted_date.reserve(
-      static_cast<size_t>(static_cast<float>(_formatted_date.capacity()) * _formatted_date_grow_factor));
-
-    // put old data back ..
-    _formatted_date.append(&old_data[0], &old_data[old_data.size()]);
-  }
-
-  // starting position to append the value
-  size_t fractional_seconds_begin = formatted_timestamp_end;
-  size_t const fractional_seconds_end = fractional_seconds_begin + extracted_fractional_seconds_length;
-
-  // Fill with zeros the fractional seconds slots
-  memset(&_formatted_date[fractional_seconds_begin], '0', extracted_fractional_seconds_length);
+  // Format the seconds and add them
   fmt::format_int extracted_ms_string{extracted_fractional_seconds};
 
-  // Get the real size we need to add based on extracted ms string
-  fractional_seconds_begin = fractional_seconds_end - extracted_ms_string.size();
-  memcpy(&_formatted_date[fractional_seconds_begin], extracted_ms_string.data(), extracted_ms_string.size());
-
-  // Append a null terminator here, but we might overwrite it if there is a another call to strftime for the second part
-  _formatted_date[fractional_seconds_end] = '\0';
+  // _formatted_date.size() - extracted_ms_string.size() is where we want to begin placing the fractional seconds
+  memcpy(&_formatted_date[_formatted_date.size() - extracted_ms_string.size()],
+         extracted_ms_string.data(), extracted_ms_string.size());
 }
 
 } // namespace detail
