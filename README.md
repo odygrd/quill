@@ -31,7 +31,7 @@
     </a>
   </div>
   
-  <p><b>Asynchronous Low Latency Logging Library</b></p>
+  <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
   
 </div>
 
