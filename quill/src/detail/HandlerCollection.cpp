@@ -158,21 +158,21 @@ StreamHandler* HandlerCollection::_create_console_handler(filename_t const& stre
     // again passing a different file
     if (file == stdout && (search->second->stream_handler_type() != StreamHandler::StreamHandlerType::Stdout))
     {
-      throw QuillError(
+      QUILL_THROW(QuillError(
         "Trying to insert an stdout handler again, but the handler already exists as a different "
-        "file. Use an unique stream_handler name");
+        "file. Use an unique stream_handler name"));
     }
     else if (file == stderr && (search->second->stream_handler_type() != StreamHandler::StreamHandlerType::Stderr))
     {
-      throw QuillError(
+      QUILL_THROW(QuillError(
         "Trying to insert an stderr handler again, but the handler already exists as a different "
-        "file. Use an unique stream_handler name");
+        "file. Use an unique stream_handler name"));
     }
     else if (search->second->stream_handler_type() == StreamHandler::StreamHandlerType::File)
     {
-      throw QuillError(
+      QUILL_THROW(QuillError(
         "Trying to insert an stdout/stderr handler, but the handler already exists. Use an unique "
-        "stream_handler name");
+        "stream_handler name"));
     }
 
     return (*search).second.get();
