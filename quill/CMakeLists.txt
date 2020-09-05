@@ -21,6 +21,7 @@ set(HEADER_FILES
         include/quill/detail/misc/RdtscClock.h
         include/quill/detail/misc/RecursiveSpinlock.h
         include/quill/detail/misc/Spinlock.h
+        include/quill/detail/misc/StringFromTime.h
         include/quill/detail/misc/Utilities.h
         include/quill/detail/misc/TypeTraits.h
         include/quill/detail/misc/TypeTraitsCopyable.h
@@ -67,6 +68,7 @@ set(SOURCE_FILES
         src/detail/misc/RdtscClock.cpp
         src/detail/misc/RecursiveSpinlock.cpp
         src/detail/misc/Spinlock.cpp
+        src/detail/misc/StringFromTime.cpp
         src/detail/misc/FileUtilities.cpp
         src/detail/BackendWorker.cpp
         src/detail/BacktraceLogRecordStorage.cpp

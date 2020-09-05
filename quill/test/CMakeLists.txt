@@ -22,10 +22,12 @@ set(SOURCE_FILES
         PatternFormatterTest.cpp
         QuillLogTest.cpp
         RecordTest.cpp
+        StringFromTimeTest.cpp
         ThreadContextCollectionTest.cpp
         TimeRotatingFileHandlerTest.cpp
         TimestampFormatterTest.cpp
         TypeTraitsCopyableTest.cpp
+        UtilitiesTest.cpp
         UtilityTest.cpp
         )
 
