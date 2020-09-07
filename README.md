@@ -6,10 +6,10 @@
 
   <div>
     <a href="https://travis-ci.org/odygrd/quill">
-      <img src="https://img.shields.io/travis/odygrd/quill?logo=travis&style=flat-square" alt="Travis-ci" />
+      <img src="https://img.shields.io/travis/odygrd/quill/master?logo=travis&style=flat-square" alt="Travis-ci" />
     </a>
     <a href="https://ci.appveyor.com/project/odygrd/quill/branch/master">
-      <img src="https://img.shields.io/appveyor/ci/odygrd/quill?logo=appveyor&style=flat-square" alt="Appveyor-ci" />
+      <img src="https://img.shields.io/appveyor/ci/odygrd/quill/master?logo=appveyor&style=flat-square" alt="Appveyor-ci" />
     </a>
     <a href="https://codecov.io/gh/odygrd/quill">
       <img src="https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov&style=flat-square" alt="Codecov" />
