@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "quill/Fmt.h"                    // for memory_buffer
 #include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
 #include "quill/detail/misc/Common.h"     // for Timezone, Timezone::LocalTime
 #include "quill/detail/misc/StringFromTime.h"
@@ -57,20 +56,17 @@ public:
    * @param time_since_epoch the timestamp from epoch
    * @return formatted string
    */
-  QUILL_NODISCARD char const* format_timestamp(std::chrono::nanoseconds time_since_epoch);
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT char const* format_timestamp(std::chrono::nanoseconds time_since_epoch);
 
 private:
   /**
    * Append fractional seconds to the formatted strings
-   * @param formatted_timestamp_end  end position of formatted_timestamp, we will start writing there
    * @param extracted_fractional_seconds the fractional seconds extracted e.g 123 or 654332 etc
    * @param extracted_fractional_seconds_length the legth of the fractional seconds
    */
   void _append_fractional_seconds(uint32_t extracted_fractional_seconds, uint8_t extracted_fractional_seconds_length);
 
 private:
-  using date_memory_buffer = fmt::basic_memory_buffer<char, 32>;
-
   /** As class member to avoid re-allocating **/
   std::string _formatted_date;
 
