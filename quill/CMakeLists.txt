@@ -165,7 +165,7 @@ target_include_directories(${TARGET_NAME}
 # Compiler options
 target_compile_options(${TARGET_NAME} PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field -Wdocumentation>
+        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field>
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324>)
 
 if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015
