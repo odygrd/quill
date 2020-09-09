@@ -152,6 +152,12 @@
  */
 // #define QUILL_NOFN_MACROS
 
+/**
+ * When QUILL_DISABLE_NON_PREFIXED_MACROS is removes LOG_INFO macros and only QUILL_LOG_INFO is available.
+ * This is only required in case the original macro names collide with another third party library
+ */
+// #define QUILL_DISABLE_NON_PREFIXED_MACROS
+
 /**************************************************************************************************/
 /* Anything after this point requires the whole library to be recompiled with the desired option. */
 /**************************************************************************************************/

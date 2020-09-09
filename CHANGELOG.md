@@ -13,6 +13,8 @@
 
 ## v1.4.1
 - Do not force `quill` to always build as `static` library in cmake.
+- Minor fix when `quill` is compiled with no exceptions.
+- Add the option to disable the non prefixed macro definitions if `QUILL_DISABLE_NON_PREFIXED_MACROS` is defined. ([#40](https://github.com/odygrd/quill/issues/40)) 
 
 ## v1.4.0
 - Added support for printing colour codes in the terminal. See [ConsoleHandler](https://github.com/odygrd/quill/wiki/2.-Handlers#consolehandler)

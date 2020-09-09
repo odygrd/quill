@@ -98,131 +98,155 @@ constexpr void check_format(const S& format_str, Args&&...)
 // clang-format on
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L3
-  #define LOG_TRACE_L3(logger, fmt, ...)                                                           \
+  #define QUILL_LOG_TRACE_L3(logger, fmt, ...)                                                     \
     QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_TRACE_L3_NOFN(logger, fmt, ...)                                                    \
+    #define QUILL_LOG_TRACE_L3_NOFN(logger, fmt, ...)                                              \
       QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
   #endif
 #else
-  #define LOG_TRACE_L3(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L3(logger, fmt, ...) (void)0
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_TRACE_L3_NOFN(logger, fmt, ...) (void)0
+    #define QUILL_LOG_TRACE_L3_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L2
-  #define LOG_TRACE_L2(logger, fmt, ...)                                                           \
+  #define QUILL_LOG_TRACE_L2(logger, fmt, ...)                                                     \
     QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_TRACE_L2_NOFN(logger, fmt, ...)                                                    \
+    #define QUILL_LOG_TRACE_L2_NOFN(logger, fmt, ...)                                              \
       QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
   #endif
 #else
-  #define LOG_TRACE_L2(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L2(logger, fmt, ...) (void)0
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_TRACE_L2_NOFN(logger, fmt, ...) (void)0
+    #define QUILL_LOG_TRACE_L2_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L1
-  #define LOG_TRACE_L1(logger, fmt, ...)                                                           \
+  #define QUILL_LOG_TRACE_L1(logger, fmt, ...)                                                     \
     QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_TRACE_L1_NOFN(logger, fmt, ...)                                                    \
+    #define QUILL_LOG_TRACE_L1_NOFN(logger, fmt, ...)                                              \
       QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
   #endif
 #else
-  #define LOG_TRACE_L1(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L1(logger, fmt, ...) (void)0
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_TRACE_L1_NOFN(logger, fmt, ...) (void)0
+    #define QUILL_LOG_TRACE_L1_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_DEBUG
-  #define LOG_DEBUG(logger, fmt, ...)                                                              \
+  #define QUILL_LOG_DEBUG(logger, fmt, ...)                                                        \
     QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_DEBUG_NOFN(logger, fmt, ...)                                                       \
+    #define QUILL_LOG_DEBUG_NOFN(logger, fmt, ...)                                                 \
       QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
   #endif
 #else
-  #define LOG_DEBUG(logger, fmt, ...) (void)0
+  #define QUILL_LOG_DEBUG(logger, fmt, ...) (void)0
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_DEBUG_NOFN(logger, fmt, ...) (void)0
+    #define QUILL_LOG_DEBUG_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_INFO
-  #define LOG_INFO(logger, fmt, ...)                                                               \
+  #define QUILL_LOG_INFO(logger, fmt, ...)                                                         \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_INFO_NOFN(logger, fmt, ...)                                                        \
+    #define QUILL_LOG_INFO_NOFN(logger, fmt, ...)                                                  \
       QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
   #endif
 #else
-  #define LOG_INFO(logger, fmt, ...) (void)0
+  #define QUILL_LOG_INFO(logger, fmt, ...) (void)0
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_INFO_NOFN(logger, fmt, ...) (void)0
+    #define QUILL_LOG_INFO_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_WARNING
-  #define LOG_WARNING(logger, fmt, ...)                                                            \
+  #define QUILL_LOG_WARNING(logger, fmt, ...)                                                      \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_WARNING_NOFN(logger, fmt, ...)                                                     \
+    #define QUILL_LOG_WARNING_NOFN(logger, fmt, ...)                                               \
       QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
   #endif
 #else
-  #define LOG_WARNING(logger, fmt, ...) (void)0
+  #define QUILL_LOG_WARNING(logger, fmt, ...) (void)0
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_WARNING_NOFN(logger, fmt, ...) (void)0
+    #define QUILL_LOG_WARNING_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_ERROR
-  #define LOG_ERROR(logger, fmt, ...)                                                              \
+  #define QUILL_LOG_ERROR(logger, fmt, ...)                                                        \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_ERROR_NOFN(logger, fmt, ...)                                                       \
+    #define QUILL_LOG_ERROR_NOFN(logger, fmt, ...)                                                 \
       QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
   #endif
 #else
-  #define LOG_ERROR(logger, fmt, ...) (void)0
+  #define QUILL_LOG_ERROR(logger, fmt, ...) (void)0
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_ERROR_NOFN(logger, fmt, ...) (void)0
+    #define QUILL_LOG_ERROR_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_CRITICAL
-  #define LOG_CRITICAL(logger, fmt, ...)                                                           \
+  #define QUILL_LOG_CRITICAL(logger, fmt, ...)                                                     \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_CRITICAL_NOFN(logger, fmt, ...)                                                    \
+    #define QUILL_LOG_CRITICAL_NOFN(logger, fmt, ...)                                              \
       QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
   #endif
 #else
-  #define LOG_CRITICAL(logger, fmt, ...) (void)0
+  #define QUILL_LOG_CRITICAL(logger, fmt, ...) (void)0
 
   #if defined(QUILL_NOFN_MACROS)
-    #define LOG_CRITICAL_NOFN(logger, fmt, ...) (void)0
+    #define QUILL_LOG_CRITICAL_NOFN(logger, fmt, ...) (void)0
   #endif
 #endif
 
-#define LOG_BACKTRACE(logger, fmt, ...) QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ##__VA_ARGS__)
+#define QUILL_LOG_BACKTRACE(logger, fmt, ...)                                                      \
+  QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ##__VA_ARGS__)
+
+#if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS)
+  #define LOG_TRACE_L3(logger, fmt, ...) QUILL_LOG_TRACE_L3(logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2(logger, fmt, ...) QUILL_LOG_TRACE_L2(logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1(logger, fmt, ...) QUILL_LOG_TRACE_L1(logger, fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG(logger, fmt, ...) QUILL_LOG_DEBUG(logger, fmt, ##__VA_ARGS__)
+  #define LOG_INFO(logger, fmt, ...) QUILL_LOG_INFO(logger, fmt, ##__VA_ARGS__)
+  #define LOG_WARNING(logger, fmt, ...) QUILL_LOG_WARNING(logger, fmt, ##__VA_ARGS__)
+  #define LOG_ERROR(logger, fmt, ...) QUILL_LOG_ERROR(logger, fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL(logger, fmt, ...) QUILL_LOG_CRITICAL(logger, fmt, ##__VA_ARGS__)
+  #define LOG_BACKTRACE(logger, fmt, ...) QUILL_LOG_BACKTRACE(logger, fmt, ##__VA_ARGS__)
+
+  #if defined(QUILL_NOFN_MACROS)
+    #define LOG_TRACE_L3_NOFN(logger, fmt, ...) QUILL_LOG_TRACE_L3_NOFN(logger, fmt, ##__VA_ARGS__)
+    #define LOG_TRACE_L2_NOFN(logger, fmt, ...) QUILL_LOG_TRACE_L2_NOFN(logger, fmt, ##__VA_ARGS__)
+    #define LOG_TRACE_L1_NOFN(logger, fmt, ...) QUILL_LOG_TRACE_L1_NOFN(logger, fmt, ##__VA_ARGS__)
+    #define LOG_DEBUG_NOFN(logger, fmt, ...) QUILL_LOG_DEBUG_NOFN(logger, fmt, ##__VA_ARGS__)
+    #define LOG_INFO_NOFN(logger, fmt, ...) QUILL_LOG_INFO_NOFN(logger, fmt, ##__VA_ARGS__)
+    #define LOG_WARNING_NOFN(logger, fmt, ...) QUILL_LOG_WARNING_NOFN(logger, fmt, ##__VA_ARGS__)
+    #define LOG_ERROR_NOFN(logger, fmt, ...) QUILL_LOG_ERROR_NOFN(logger, fmt, ##__VA_ARGS__)
+    #define LOG_CRITICAL_NOFN(logger, fmt, ...) QUILL_LOG_CRITICAL_NOFN(logger, fmt, ##__VA_ARGS__)
+  #endif
+#endif
