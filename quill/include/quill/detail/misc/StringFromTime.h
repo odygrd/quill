@@ -51,7 +51,7 @@ public:
    * @param timezone the timezone, gmtime or localtime
    * @throws %X as format modifier not supported
    */
-  void init(std::string timestamp_format, Timezone timezone);
+  QUILL_ATTRIBUTE_COLD void init(std::string timestamp_format, Timezone timezone);
 
   /**
    * Format a given timestamp using a cached string
@@ -73,20 +73,10 @@ private:
   };
 
   /**
-   * Splits the given timestamp format into three parts on the first modifier
-   * Part 1 is the string before the modifier
-   * Part 2 is the modifier itself
-   * Part 3 is the timestamp_format after the modifier
-   * @param timestamp_format the given timestamp format to split. The string is modified
-   * @return A pair consisting of part 1 and part 2 if modifier is found. If no modifier found then part 1 and part 2 are empty
-   */
-  static std::pair<std::string, std::string> _split_timestamp_format_once(std::string& timestamp_format) noexcept;
-
-  /**
    * Given a timestamp format string will split it into parts and store them in _initial_parts
    * @param timestamp_format the timestamp format string
    */
-  void _populate_initial_parts(std::string timestamp_format);
+  QUILL_ATTRIBUTE_COLD void _populate_initial_parts(std::string timestamp_format);
 
   /**
    * Calls strftime on each part of _initial_parts and populates a pre_formatted string

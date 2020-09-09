@@ -174,6 +174,39 @@ TEST_CASE("string_from_time_gmtime_main_format")
   }
 }
 
+/***/
+TEST_CASE("string_from_time_localtime_empty_cached_indexes")
+{
+  // try with a format that doesn't have hours, minutes, seconds
+  std::string fmt2 = "%Y-%m-%d";
+  StringFromTime string_from_time;
+
+  string_from_time.init(fmt2, Timezone::LocalTime);
+
+  // Get the timestamp now
+  time_t raw_ts;
+  std::time(&raw_ts);
+
+  // Try for a few timestamps
+  for (uint32_t i = 0; i <= 500'000; ++i)
+  {
+    // Get the time from string from time
+    auto const& time_s1 = string_from_time.format_timestamp(raw_ts);
+
+    // Get the time from strftime
+    std::tm* time_info;
+    time_info = std::localtime(&raw_ts);
+    char buffer[256];
+    std::strftime(buffer, 256, fmt2.data(), time_info);
+    auto const time_s2 = std::string{buffer};
+
+    REQUIRE_STREQ(time_s1.data(), time_s2.data());
+
+    // Increment the timestamp for the next loop
+    raw_ts += 1;
+  }
+}
+
 #if !defined(_WIN32)
 // The following tests don't run on windows because the format identifiers are not supported.
 
@@ -254,7 +287,7 @@ TEST_CASE("string_from_time_localtime_format_s")
   std::time(&raw_ts);
 
   // Try for a few timestamps
-  for (uint32_t i = 0; i <= 1; ++i)
+  for (uint32_t i = 0; i <= 100'000; ++i)
   {
     // Get the time from string from time
     auto const& time_s1 = string_from_time.format_timestamp(raw_ts);

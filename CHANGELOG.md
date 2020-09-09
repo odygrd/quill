@@ -1,3 +1,4 @@
+-  [v1.5.0](#v1.5.0)
 -  [v1.4.1](#v1.4.1)
 -  [v1.4.0](#v1.4.0)
 -  [v1.3.3](#v1.3.3)
@@ -10,6 +11,9 @@
 -  [v1.2.0](#v1.2.0)
 -  [v1.1.0](#v1.1.0)
 -  [v1.0.0](#v1.0.0)
+
+## v1.5.0
+- Timestamp formatting optimisation. The backend worked thread is about 25% faster.
 
 ## v1.4.1
 - Do not force `quill` to always build as `static` library in cmake.

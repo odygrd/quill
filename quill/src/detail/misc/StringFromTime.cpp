@@ -6,6 +6,64 @@
 #include <chrono>
 #include <map>
 
+namespace
+{
+
+/**
+ * Splits the given timestamp format into three parts on the first modifier
+ * Part 1 is the string before the modifier
+ * Part 2 is the modifier itself
+ * Part 3 is the timestamp_format after the modifier
+ * @param timestamp_format the given timestamp format to split. The string is modified
+ * @return A pair consisting of part 1 and part 2 if modifier is found. If no modifier found then part 1 and part 2 are empty
+ */
+std::pair<std::string, std::string> _split_timestamp_format_once(std::string& timestamp_format) noexcept
+{
+  static std::array<std::string, 7> const modifiers{"%H", "%M", "%S", "%I", "%k", "%l", "%s"};
+
+  // if we find any modifier in the timestamp format we store the index where we
+  // found it.
+  // We use a map to find the first modifier (with the lowest index) in the given string
+  // Maps found_index -> modifier value
+  std::map<size_t, std::string> found_format_modifiers;
+
+  for (auto const& modifier : modifiers)
+  {
+    auto const search = timestamp_format.find(modifier);
+    if (search != std::string::npos)
+    {
+      // Add the index and the modifier string to our map
+      found_format_modifiers.insert(std::make_pair(search, modifier));
+    }
+  }
+
+  if (found_format_modifiers.empty())
+  {
+    // We didn't find any modifiers in the given string, therefore we return
+    // both parts as empty
+    return std::make_pair(std::string{}, std::string{});
+  }
+
+  // we will split the formatted timestamp on the first modifier we found
+
+  // Part 1 is the part before the modifier
+  // Here we check that there is actually a part of before and the format doesn't start with the
+  // modifier, otherwise we use an empty string
+  std::string const part_1 = found_format_modifiers.begin()->first > 0
+    ? std::string{timestamp_format.data(), found_format_modifiers.begin()->first}
+    : "";
+
+  // The actual value of the modifier string
+  std::string const part_2 = found_format_modifiers.begin()->second;
+
+  // We modify the given timestamp string to exclude part_1 and part_2.
+  // part_2 length as the modifier value will always be 2
+  timestamp_format = std::string{timestamp_format.data() + found_format_modifiers.begin()->first + 2};
+
+  return std::make_pair(part_1, part_2);
+}
+} // namespace
+
 namespace quill
 {
 namespace detail
@@ -60,53 +118,6 @@ void StringFromTime::init(std::string timestamp_format, Timezone timezone)
 }
 
 /***/
-std::pair<std::string, std::string> StringFromTime::_split_timestamp_format_once(std::string& timestamp_format) noexcept
-{
-  static std::array<std::string, 7> const modifiers{"%H", "%M", "%S", "%I", "%k", "%l", "%s"};
-
-  // if we find any modifier in the timestamp format we store the index where we
-  // found it.
-  // We use a map to find the first modifier (with the lowest index) in the given string
-  // Maps found_index -> modifier value
-  std::map<size_t, std::string> found_format_modifiers;
-
-  for (auto const& modifier : modifiers)
-  {
-    auto const search = timestamp_format.find(modifier);
-    if (search != std::string::npos)
-    {
-      // Add the index and the modifier string to our map
-      found_format_modifiers.insert(std::make_pair(search, modifier));
-    }
-  }
-
-  if (found_format_modifiers.empty())
-  {
-    // We didn't find any modifiers in the given string, therefore we return
-    // both parts as empty
-    return std::make_pair(std::string{}, std::string{});
-  }
-
-  // we will split the formatted timestamp on the first modifier we found
-
-  // Part 1 is the part before the modifier
-  // Here we check that there is actually a part of before and the format doesn't start with the
-  // modifier, otherwise we use an empty string
-  std::string const part_1 = found_format_modifiers.begin()->first > 0
-    ? std::string{timestamp_format.data(), found_format_modifiers.begin()->first}
-    : "";
-
-  // The actual value of the modifier string
-  std::string const part_2 = found_format_modifiers.begin()->second;
-
-  // We modify the given timestamp string to exclude part_1 and part_2.
-  // part_2 length as the modifier value will always be 2
-  timestamp_format = std::string{timestamp_format.data() + found_format_modifiers.begin()->first + 2};
-
-  return std::make_pair(part_1, part_2);
-}
-
-/***/
 std::string const& StringFromTime::format_timestamp(time_t timestamp)
 {
   // First we check for the edge case where the given timestamp is back in time. This is when
@@ -140,6 +151,12 @@ std::string const& StringFromTime::format_timestamp(time_t timestamp)
       _next_recalculation_timestamp =
         next_noon_or_midnight_timestamp(_next_recalculation_timestamp + 1, _time_zone);
     }
+  }
+
+  if (_cached_indexes.empty())
+  {
+    // if we don't have to format any hours minutes or seconds we can just return here
+    return _pre_formatted_ts;
   }
 
   if (_cached_timestamp == timestamp)
