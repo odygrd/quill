@@ -62,9 +62,8 @@ private:
   /**
    * Append fractional seconds to the formatted strings
    * @param extracted_fractional_seconds the fractional seconds extracted e.g 123 or 654332 etc
-   * @param extracted_fractional_seconds_length the legth of the fractional seconds
    */
-  void _append_fractional_seconds(uint32_t extracted_fractional_seconds, uint8_t extracted_fractional_seconds_length);
+  void _append_fractional_seconds(uint32_t extracted_fractional_seconds);
 
 private:
   /** As class member to avoid re-allocating **/
