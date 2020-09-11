@@ -108,22 +108,31 @@ char const* TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_s
   if (_additional_format_specifier == AdditionalSpecifier::Qms)
   {
     uint32_t const extracted_ms = extracted_ns / 1'000'000;
-    uint8_t constexpr fractional_seconds_size = 3;
+    constexpr char const* zeros = "000";
 
-    _append_fractional_seconds(extracted_ms, fractional_seconds_size);
+    // Add as many zeros as the extracted_fractional_seconds_length
+    _formatted_date += zeros;
+
+    _append_fractional_seconds(extracted_ms);
   }
   else if (_additional_format_specifier == AdditionalSpecifier::Qus)
   {
     uint32_t const extracted_us = extracted_ns / 1'000;
-    uint8_t constexpr fractional_seconds_size = 6;
+    constexpr char const* zeros = "000000";
 
-    _append_fractional_seconds(extracted_us, fractional_seconds_size);
+    // Add as many zeros as the extracted_fractional_seconds_length
+    _formatted_date += zeros;
+
+    _append_fractional_seconds(extracted_us);
   }
   else if (_additional_format_specifier == AdditionalSpecifier::Qns)
   {
-    uint8_t constexpr fractional_seconds_size = 9;
+    constexpr char const* zeros = "000000000";
 
-    _append_fractional_seconds(extracted_ns, fractional_seconds_size);
+    // Add as many zeros as the extracted_fractional_seconds_length
+    _formatted_date += zeros;
+
+    _append_fractional_seconds(extracted_ns);
   }
 
   // 3. format part 2 after fractional seconds - if any
@@ -136,12 +145,8 @@ char const* TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_s
 }
 
 /***/
-void TimestampFormatter::_append_fractional_seconds(uint32_t extracted_fractional_seconds,
-                                                    uint8_t extracted_fractional_seconds_length)
+void TimestampFormatter::_append_fractional_seconds(uint32_t extracted_fractional_seconds)
 {
-  // Add as many zeros as the extracted_fractional_seconds_length
-  _formatted_date += std::string(extracted_fractional_seconds_length, '0');
-
   // Format the seconds and add them
   fmt::format_int extracted_ms_string{extracted_fractional_seconds};
 
