@@ -3,6 +3,7 @@
 #include "misc/DocTestExtensions.h"
 #include "quill/detail/BacktraceLogRecordStorage.h"
 #include "quill/detail/events/BaseEvent.h"
+#include "quill/detail/misc/FreeListAllocator.h"
 #include <iostream>
 
 TEST_SUITE_BEGIN("BacktraceLogRecordStorage");
@@ -15,7 +16,16 @@ class TestRecord final : public BaseEvent
 public:
   explicit TestRecord(uint32_t x, uint32_t y) : x(x), y(y) {}
 
-  std::unique_ptr<BaseEvent> clone() const override { return std::make_unique<TestRecord>(*this); }
+  std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> clone(FreeListAllocator& fla) const override
+  {
+    // allocate memory using the memory manager
+    void* buffer = fla.allocate(sizeof(TestRecord));
+
+    // create emplace a new object inside the buffer using the copy constructor of LogRecordEvent
+    // and store this in a unique ptr with the custom deleter
+    return std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>>{
+      new (buffer) TestRecord(*this), FreeListAllocatorDeleter<BaseEvent>{&fla}};
+  }
 
   size_t size() const noexcept override { return sizeof(*this); }
 
@@ -72,7 +82,7 @@ TEST_CASE("store_clear_records")
   for (uint32_t i = 0; i < 2; ++i)
   {
     TestRecord test_record{i, i * 10};
-    backtrace_log_record_storage.store(logger_name, thread_id, test_record.clone());
+    backtrace_log_record_storage.store(logger_name, thread_id, &test_record);
   }
 
   // Clear them
@@ -98,7 +108,7 @@ TEST_CASE("store_then_change_capacity")
   for (uint32_t i = 0; i < 2; ++i)
   {
     TestRecord test_record{i, i * 10};
-    backtrace_log_record_storage.store(logger_name, thread_id, test_record.clone());
+    backtrace_log_record_storage.store(logger_name, thread_id, &test_record);
   }
 
   // Set a different capacity
@@ -124,7 +134,7 @@ TEST_CASE("store_then_set_same_capacity")
   for (uint32_t i = 0; i < 2; ++i)
   {
     TestRecord test_record{i, i * 10};
-    backtrace_log_record_storage.store(logger_name, thread_id, test_record.clone());
+    backtrace_log_record_storage.store(logger_name, thread_id, &test_record);
   }
 
   // Set a different capacity
@@ -150,7 +160,7 @@ TEST_CASE("store_then_process_no_wrap_around")
   for (uint32_t i = 0; i < 2; ++i)
   {
     TestRecord test_record{i, i * 10};
-    backtrace_log_record_storage.store(logger_name, thread_id, test_record.clone());
+    backtrace_log_record_storage.store(logger_name, thread_id, &test_record);
   }
 
   // Check retrieved records
@@ -184,7 +194,7 @@ TEST_CASE("store_then_process_wrap_around")
   for (uint32_t i = 0; i < 12; ++i)
   {
     TestRecord test_record{i, i * 10};
-    backtrace_log_record_storage.store(logger_name, thread_id, test_record.clone());
+    backtrace_log_record_storage.store(logger_name, thread_id, &test_record);
   }
 
   // Check retrieved records

@@ -13,7 +13,8 @@
 -  [v1.0.0](#v1.0.0)
 
 ## v1.5.0
-- Timestamp formatting optimisation. The backend worked thread is about 25% faster.
+- Timestamp formatting optimisation for the backend worker thread.
+- Free list allocator optimisation for the backend worker thread.
 
 ## v1.4.1
 - Do not force `quill` to always build as `static` library in cmake.

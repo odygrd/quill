@@ -8,6 +8,7 @@
 #include "quill/detail/BacktraceLogRecordStorage.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/misc/Common.h"
+#include "quill/detail/misc/FreeListAllocator.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/Rdtsc.h"
 #include <chrono>
@@ -41,10 +42,12 @@ public:
   using GetRealTsCallbackT = std::function<std::chrono::nanoseconds(BaseEvent const*)>;
 
   /**
-   * Virtual clone
-   * @return a copy of record base
+   * Virtual clone using a custom memory manager
+   * @param fla a reference to the free list allocator
+   * @return a copy of this object
    */
-  virtual std::unique_ptr<BaseEvent> clone() const = 0;
+  QUILL_NODISCARD virtual std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> clone(
+    FreeListAllocator& fla) const = 0;
 
   /**
    * Get the stored rdtsc timestamp

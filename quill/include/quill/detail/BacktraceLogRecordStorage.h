@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/detail/misc/FreeListAllocator.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -30,7 +31,7 @@ class BaseEvent;
 class BacktraceLogRecordStorage
 {
 public:
-  BacktraceLogRecordStorage() = default;
+  BacktraceLogRecordStorage();
   ~BacktraceLogRecordStorage() = default;
 
   /**
@@ -39,7 +40,7 @@ public:
    * @param thread_id the thread id of this record
    * @param record the record to store
    */
-  void store(std::string const& logger_name, std::string thread_id, std::unique_ptr<BaseEvent> record);
+  void store(std::string const& logger_name, std::string thread_id, BaseEvent const* record);
 
   /**
    * Calls the provided callback on all stored objects. The stored objects are provided
@@ -71,13 +72,14 @@ private:
    */
   struct BacktraceLogRecord
   {
-    BacktraceLogRecord(std::string thread_id, std::unique_ptr<BaseEvent> base_record)
+    BacktraceLogRecord(std::string thread_id,
+                       std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> base_record)
       : thread_id(std::move(thread_id)), base_record(std::move(base_record))
     {
     }
 
     std::string thread_id;
-    std::unique_ptr<BaseEvent> base_record;
+    std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> base_record;
   };
 
   using StoredRecordsCollection = std::vector<BacktraceLogRecord>;
@@ -101,6 +103,8 @@ private:
 private:
   /** A map where we store a vector of stored records for each logger name. We use the vectors like a ring buffer and loop around */
   std::unordered_map<std::string, StoredRecordInfo> _stored_records_map;
+
+  FreeListAllocator _free_list_allocator; /** The backstore records are stored here */
 };
 } // namespace detail
 } // namespace quill

@@ -101,6 +101,9 @@ install:
   # Install codecov
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo -H pip install --upgrade pip; sudo -H pip install codecov --ignore-installed; fi
 
+before_script:
+  - ulimit -c unlimited -S       # enable core dumps
+
 script:
   - cd ${TRAVIS_BUILD_DIR}
   - mkdir -p build && cd build
