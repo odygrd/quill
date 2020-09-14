@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring> // for strerror
+#include <cstring>
 #include <ctime>
 #include <sstream>
 
@@ -256,7 +257,17 @@ void madvice(void* addr, size_t len)
 void* aligned_alloc(size_t alignment, size_t size)
 {
 #if defined(_WIN32)
-  return _aligned_malloc(size, alignment);
+  void* p = _aligned_malloc(size, alignment);
+
+  if (!p)
+  {
+    std::ostringstream error_msg;
+    error_msg << "create_memory_mapped_files failed with error message "
+              << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+
+  return p;
 #else
   void* ret = nullptr;
 

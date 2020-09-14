@@ -13,6 +13,7 @@ set(SOURCE_FILES
         BoundedSPSCQueueTest.cpp
         ConfigTest.cpp
         FileUtilitiesTest.cpp
+        FreeListAllocatorTest.cpp
         HandlerCollectionTest.cpp
         LoggerCollectionTest.cpp
         LoggerTest.cpp

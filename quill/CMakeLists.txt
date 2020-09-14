@@ -15,6 +15,7 @@ set(HEADER_FILES
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
         include/quill/detail/misc/FileUtilities.h
+        include/quill/detail/misc/FreeListAllocator.h
         include/quill/detail/misc/Macros.h
         include/quill/detail/misc/Os.h
         include/quill/detail/misc/Rdtsc.h
@@ -70,6 +71,7 @@ set(SOURCE_FILES
         src/detail/misc/Spinlock.cpp
         src/detail/misc/StringFromTime.cpp
         src/detail/misc/FileUtilities.cpp
+        src/detail/misc/FreeListAllocator.cpp
         src/detail/BackendWorker.cpp
         src/detail/BacktraceLogRecordStorage.cpp
         src/detail/Config.cpp

@@ -7,10 +7,18 @@ namespace quill
 {
 namespace detail
 {
+/***/
+BacktraceLogRecordStorage::BacktraceLogRecordStorage()
+{
+  // Initialise memory for our free list allocator
+  _free_list_allocator.reserve(4 * get_page_size());
+
+  // Also configure our allocator to request bigger chunks from os
+  _free_list_allocator.set_minimum_allocation(get_page_size());
+}
 
 /***/
-void BacktraceLogRecordStorage::store(std::string const& logger_name, std::string thread_id,
-                                      std::unique_ptr<BaseEvent> record)
+void BacktraceLogRecordStorage::store(std::string const& logger_name, std::string thread_id, BaseEvent const* record)
 {
   auto stored_records_it = _stored_records_map.find(logger_name);
 
@@ -27,13 +35,14 @@ void BacktraceLogRecordStorage::store(std::string const& logger_name, std::strin
   if (stored_object_info.stored_records_collection.size() < stored_object_info.capacity)
   {
     // We are still growing the vector to max capacity
-    stored_object_info.stored_records_collection.emplace_back(std::move(thread_id), std::move(record));
+    stored_object_info.stored_records_collection.emplace_back(std::move(thread_id),
+                                                              record->clone(_free_list_allocator));
   }
   else
   {
     // Store the object in the vector
     stored_object_info.stored_records_collection[stored_object_info.index] =
-      BacktraceLogRecord{std::move(thread_id), std::move(record)};
+      BacktraceLogRecord{std::move(thread_id), record->clone(_free_list_allocator)};
 
     // Update the index wrapping around the vector capacity
     if (stored_object_info.index < stored_object_info.capacity - 1)
