@@ -1,7 +1,7 @@
+#include "quill/detail/misc/StringFromTime.h"
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
-
-#include "quill/detail/misc/StringFromTime.h"
+#include "quill/detail/misc/Os.h"
 #include <ctime>
 
 TEST_SUITE_BEGIN("StringFromTime");
@@ -28,10 +28,11 @@ TEST_CASE("string_from_time_localtime_format_time")
     auto const& time_s1 = string_from_time.format_timestamp(raw_ts);
 
     // Get the time from strftime
-    std::tm* time_info;
-    time_info = std::localtime(&raw_ts);
+    std::tm time_info{};
+    quill::detail::localtime_rs(&raw_ts, &time_info);
+
     char buffer[256];
-    std::strftime(buffer, 256, fmt2.data(), time_info);
+    std::strftime(buffer, 256, fmt2.data(), &time_info);
     auto const time_s2 = std::string{buffer};
 
     REQUIRE_STREQ(time_s1.data(), time_s2.data());
@@ -60,10 +61,10 @@ TEST_CASE("string_from_time_localtime_format_I")
     auto const& time_s1 = string_from_time.format_timestamp(raw_ts);
 
     // Get the time from strftime
-    std::tm* time_info;
-    time_info = std::localtime(&raw_ts);
+    std::tm time_info{};
+    quill::detail::localtime_rs(&raw_ts, &time_info);
     char buffer[256];
-    std::strftime(buffer, 256, fmt2.data(), time_info);
+    std::strftime(buffer, 256, fmt2.data(), &time_info);
     auto const time_s2 = std::string{buffer};
 
     REQUIRE_STREQ(time_s1.data(), time_s2.data());
@@ -97,10 +98,10 @@ TEST_CASE("string_from_time_localtime_fallback_to_strftime")
     auto const& time_s1 = string_from_time.format_timestamp(raw_ts);
 
     // Get the time from strftime
-    std::tm* time_info;
-    time_info = std::gmtime(&raw_ts);
+    std::tm time_info{};
+    quill::detail::gmtime_rs(&raw_ts, &time_info);
     char buffer[256];
-    std::strftime(buffer, 256, fmt2.data(), time_info);
+    std::strftime(buffer, 256, fmt2.data(), &time_info);
     auto const time_s2 = std::string{buffer};
 
     REQUIRE_STREQ(time_s1.data(), time_s2.data());
@@ -129,10 +130,10 @@ TEST_CASE("string_from_time_localtime_main_format")
     auto const& time_s1 = string_from_time.format_timestamp(raw_ts);
 
     // Get the time from strftime
-    std::tm* time_info;
-    time_info = std::localtime(&raw_ts);
+    std::tm time_info{};
+    quill::detail::localtime_rs(&raw_ts, &time_info);
     char buffer[256];
-    std::strftime(buffer, 256, fmt2.data(), time_info);
+    std::strftime(buffer, 256, fmt2.data(), &time_info);
     auto const time_s2 = std::string{buffer};
 
     REQUIRE_STREQ(time_s1.data(), time_s2.data());
@@ -161,10 +162,10 @@ TEST_CASE("string_from_time_gmtime_main_format")
     auto const& time_s1 = string_from_time.format_timestamp(raw_ts);
 
     // Get the time from strftime
-    std::tm* time_info;
-    time_info = std::gmtime(&raw_ts);
+    std::tm time_info{};
+    quill::detail::gmtime_rs(&raw_ts, &time_info);
     char buffer[256];
-    std::strftime(buffer, 256, fmt2.data(), time_info);
+    std::strftime(buffer, 256, fmt2.data(), &time_info);
     auto const time_s2 = std::string{buffer};
 
     REQUIRE_STREQ(time_s1.data(), time_s2.data());
@@ -194,10 +195,10 @@ TEST_CASE("string_from_time_localtime_empty_cached_indexes")
     auto const& time_s1 = string_from_time.format_timestamp(raw_ts);
 
     // Get the time from strftime
-    std::tm* time_info;
-    time_info = std::localtime(&raw_ts);
+    std::tm time_info{};
+    quill::detail::localtime_rs(&raw_ts, &time_info);
     char buffer[256];
-    std::strftime(buffer, 256, fmt2.data(), time_info);
+    std::strftime(buffer, 256, fmt2.data(), &time_info);
     auto const time_s2 = std::string{buffer};
 
     REQUIRE_STREQ(time_s1.data(), time_s2.data());

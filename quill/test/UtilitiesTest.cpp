@@ -1,6 +1,7 @@
 #include "doctest/doctest.h"
 
 #include "DocTestExtensions.h"
+#include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/Utilities.h"
 #include <chrono>
 #include <ctime>
@@ -59,12 +60,12 @@ TEST_CASE("safe_strftime_resize")
   time_t raw_ts;
   std::time(&raw_ts);
 
-  std::tm* time_info;
-  time_info = std::localtime(&raw_ts);
+  std::tm time_info{};
+  quill::detail::localtime_rs(&raw_ts, &time_info);
 
   // we will format a string greater than 32
   char expected_result[256];
-  std::strftime(expected_result, 256, format_string, time_info);
+  std::strftime(expected_result, 256, format_string, &time_info);
 
   // Also try our version
   std::string const safe_strftime_result =
@@ -81,12 +82,12 @@ TEST_CASE("safe_strftime_empty")
   time_t raw_ts;
   std::time(&raw_ts);
 
-  std::tm* time_info;
-  time_info = std::localtime(&raw_ts);
+  std::tm time_info{};
+  quill::detail::localtime_rs(&raw_ts, &time_info);
 
   // we will format a string greater than 32
   char expected_result[256];
-  std::strftime(expected_result, 256, format_string, time_info);
+  std::strftime(expected_result, 256, format_string, &time_info);
 
   // Also try our version
   std::string const safe_strftime_result =
