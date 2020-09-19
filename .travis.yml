@@ -102,7 +102,7 @@ install:
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then sudo -H pip install --upgrade pip; sudo -H pip install codecov --ignore-installed; fi
 
 before_script:
-  - ulimit -c unlimited -S       # enable core dumps
+  - ulimit -c unlimited -S
 
 script:
   - cd ${TRAVIS_BUILD_DIR}
@@ -127,7 +127,7 @@ script:
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else if [[ "$CODE_COVERAGE" == "ON" ]]; then make coverage; else ctest --verbose; fi fi
   - if [[ "$VALGRIND" == "ON" ]]; then cat /home/travis/build/odygrd/quill/build/Testing/Temporary/MemoryChecker.*.log; fi
-  
+
   # Code Coverage
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
 

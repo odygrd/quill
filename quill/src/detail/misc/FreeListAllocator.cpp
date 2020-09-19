@@ -373,10 +373,15 @@ FreeListAllocator::Block* FreeListAllocator::_request_from_os(size_t size)
       previous_allocated_segment_current = previous_allocated_segment_current->header.next;
     }
 
-    // now we can link the last block of the previous allocated segment
-    assert(!previous_allocated_segment_current->header.next &&
+    // This means that we hit break in the loop before previous_allocated_segment_current became
+    // nullptr. We always expect to find a next_block pointing to nullptr
+    assert(previous_allocated_segment_current &&
+           "previous_allocated_segment_current can not be nullptr");
+    // pretty much the same assertion ..
+    assert((previous_allocated_segment_current && !previous_allocated_segment_current->header.next) &&
            "previous_allocated_segment_current->header.next needs to be nullptr");
 
+    // now we can link the last block of the previous allocated segment
     // the previous block will now point to our new block
     previous_allocated_segment_current->header.next = block;
 
