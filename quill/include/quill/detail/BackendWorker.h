@@ -227,11 +227,12 @@ void BackendWorker::run()
       // Cache this thread's id
       _backend_worker_thread_id = get_thread_id();
 
-      // Initialise memory for our free list allocator
-      _free_list_allocator.reserve(4 * get_page_size());
+      // Initialise memory for our free list allocator. We reserve the same size as a full
+      // size of 1 caller thread queue
+      _free_list_allocator.reserve(QUILL_QUEUE_CAPACITY);
 
       // Also configure our allocator to request bigger chunks from os
-      _free_list_allocator.set_minimum_allocation(get_page_size());
+      _free_list_allocator.set_minimum_allocation(2 * get_page_size());
 
       // All okay, set the backend worker thread running flag
       _is_running.store(true, std::memory_order_seq_cst);

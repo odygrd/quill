@@ -8325,11 +8325,135 @@ TEST_CASE("allocate_slice_then_allocate_more_with_minimum_allocation")
     REQUIRE_EQ(block_used_reversed6, 1);
   }
 
+  // Do one more allocation for 1024 and expect to fill the empty block
+  const size_t free_memory_from_initial_block = TOTAL_CAPACITY - 3 * (CHUNK_SIZE + fla.size_of_header()); // 0
+  void* p6 = fla.allocate(free_memory_from_initial_block);
+
+  {
+    // Check freelist blocks
+    auto const freelist_res = fla.get_freelist();
+    REQUIRE_EQ(freelist_res.size(), 2);
+
+    // Check freelist blocks
+    size_t const block_size_fl1 = freelist_res[0].first;
+    size_t const block_used_fl1 = freelist_res[0].second;
+    REQUIRE_EQ(block_size_fl1, 2016);
+    REQUIRE_EQ(block_used_fl1, 0);
+
+    size_t const block_size_fl2 = freelist_res[1].first;
+    size_t const block_used_fl2 = freelist_res[1].second;
+    REQUIRE_EQ(block_size_fl2, 2016);
+    REQUIRE_EQ(block_used_fl2, 0);
+
+    auto const results = fla.get_all_blocks();
+    size_t const total_allocated_blocks = results.second;
+    auto const& blocks = results.first;
+
+    // we only expect 1 allocation
+    REQUIRE_EQ(total_allocated_blocks, 3);
+
+    REQUIRE_EQ(blocks.size(), 8);
+
+    // Check block
+    size_t const block_size = blocks[0].first;
+    size_t const block_used = blocks[0].second;
+    REQUIRE_EQ(block_size, CHUNK_SIZE);
+    REQUIRE_EQ(block_used, 1);
+
+    size_t const block_size2 = blocks[1].first;
+    size_t const block_used2 = blocks[1].second;
+    REQUIRE_EQ(block_size2, CHUNK_SIZE);
+    REQUIRE_EQ(block_used2, 1);
+
+    size_t const block_size3 = blocks[2].first;
+    size_t const block_used3 = blocks[2].second;
+    REQUIRE_EQ(block_size3, CHUNK_SIZE);
+    REQUIRE_EQ(block_used3, 1);
+
+    // Check block
+    size_t const block_size4 = blocks[3].first;
+    size_t const block_used4 = blocks[3].second;
+    REQUIRE_EQ(block_size4, free_memory_from_initial_block);
+    REQUIRE_EQ(block_used4, 1);
+
+    size_t const block_size5 = blocks[4].first;
+    size_t const block_used5 = blocks[4].second;
+    REQUIRE_EQ(block_size5, NEW_CAPACITY);
+    REQUIRE_EQ(block_used5, 1);
+
+    size_t const block_size6 = blocks[5].first;
+    size_t const block_used6 = blocks[5].second;
+    REQUIRE_EQ(block_size6, 2016);
+    REQUIRE_EQ(block_used6, 0);
+
+    size_t const block_size7 = blocks[6].first;
+    size_t const block_used7 = blocks[6].second;
+    REQUIRE_EQ(block_size7, NEW_CAPACITY);
+    REQUIRE_EQ(block_used7, 1);
+
+    size_t const block_size8 = blocks[7].first;
+    size_t const block_used8 = blocks[7].second;
+    REQUIRE_EQ(block_size8, 2016);
+    REQUIRE_EQ(block_used8, 0);
+
+    // check blocks in reverse order
+    auto const results_reversed = fla.get_all_blocks_reverse();
+    size_t const total_allocated_blocks_reversed = results_reversed.second;
+    auto const& blocks_reversed = results_reversed.first;
+
+    // we only expect 1 allocation
+    REQUIRE_EQ(total_allocated_blocks_reversed, 3);
+
+    REQUIRE_EQ(blocks_reversed.size(), 8);
+
+    // Check block
+    size_t const block_size_reversed00 = blocks_reversed[0].first;
+    size_t const block_used_reversed00 = blocks_reversed[0].second;
+    REQUIRE_EQ(block_size_reversed00, 2016);
+    REQUIRE_EQ(block_used_reversed00, 0);
+
+    size_t const block_size_reversed0 = blocks_reversed[1].first;
+    size_t const block_used_reversed0 = blocks_reversed[1].second;
+    REQUIRE_EQ(block_size_reversed0, NEW_CAPACITY);
+    REQUIRE_EQ(block_used_reversed0, 1);
+
+    size_t const block_size_reversed2 = blocks_reversed[2].first;
+    size_t const block_used_reversed2 = blocks_reversed[2].second;
+    REQUIRE_EQ(block_size_reversed2, 2016);
+    REQUIRE_EQ(block_used_reversed2, 0);
+
+    size_t const block_size_reversed21 = blocks_reversed[3].first;
+    size_t const block_used_reversed21 = blocks_reversed[3].second;
+    REQUIRE_EQ(block_size_reversed21, NEW_CAPACITY);
+    REQUIRE_EQ(block_used_reversed21, 1);
+
+    size_t const block_size_reversed3 = blocks_reversed[4].first;
+    size_t const block_used_reversed3 = blocks_reversed[4].second;
+    REQUIRE_EQ(block_size_reversed3, free_memory_from_initial_block);
+    REQUIRE_EQ(block_used_reversed3, 1);
+
+    size_t const block_size_reversed4 = blocks_reversed[5].first;
+    size_t const block_used_reversed4 = blocks_reversed[5].second;
+    REQUIRE_EQ(block_size_reversed4, CHUNK_SIZE);
+    REQUIRE_EQ(block_used_reversed4, 1);
+
+    size_t const block_size_reversed5 = blocks_reversed[6].first;
+    size_t const block_used_reversed5 = blocks_reversed[6].second;
+    REQUIRE_EQ(block_size_reversed5, CHUNK_SIZE);
+    REQUIRE_EQ(block_used_reversed5, 1);
+
+    size_t const block_size_reversed6 = blocks_reversed[7].first;
+    size_t const block_used_reversed6 = blocks_reversed[7].second;
+    REQUIRE_EQ(block_size_reversed6, CHUNK_SIZE);
+    REQUIRE_EQ(block_used_reversed6, 1);
+  }
+
   fla.deallocate(p1);
   fla.deallocate(p2);
   fla.deallocate(p3);
   fla.deallocate(p4);
   fla.deallocate(p5);
+  fla.deallocate(p6);
 
   {
     // Check freelist blocks
