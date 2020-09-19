@@ -79,7 +79,7 @@ public:
 
     for (auto const& size_block : _free_list)
     {
-      std::vector<Block*> const& block_col = size_block.second;
+      std::vector<Block*> const& block_col = *(size_block.second);
 
       for (auto* b : block_col)
       {

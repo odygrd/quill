@@ -5,14 +5,13 @@
 
 #pragma once
 
+#include "quill/detail/misc/Attributes.h"
 #include <cstddef>
 #include <cstdint>
-#include <map>
+#include <memory>
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include "quill/detail/misc/Attributes.h"
 
 namespace quill
 {
@@ -52,7 +51,7 @@ public:
   /**
    * Default Constructor the free list allocator has zero capacity
    */
-  FreeListAllocator() = default;
+  FreeListAllocator();
 
   /**
    * Creates a free list allocator with default capacity.
@@ -184,6 +183,18 @@ private:
   QUILL_NODISCARD Block* _request_from_os(size_t size);
 
   /**
+   * Request a free vector from the empty vector cache.
+   * @return a pointer to an empty vector
+   */
+  QUILL_NODISCARD std::unique_ptr<std::vector<Block*>> _get_cached_vector();
+
+  /**
+   * Store an empty vector back to our empty vector cache
+   * @param vec an empty vector
+   */
+  void _store_cached_vector(std::unique_ptr<std::vector<Block*>> vec);
+
+  /**
    * We always round up the size to the max align value.
    * The BlockHeader is already 2 * sizeof(max_align_t).
    * Here we add a multiple of max_align_t for the actual size.
@@ -203,17 +214,33 @@ private:
 
 protected:
   /**
+   * Cached free vectors to return to the free list below.
+   * When a vector is empty we want to remove it from the _free_list but we don't
+   * want to lose we memory we allocated for this vector.
+   */
+  std::vector<std::unique_ptr<std::vector<Block*>>> _vector_cache;
+
+  /**
+   * Maps a size to a vector of free blocks
+   */
+  using size_blocks_pair_t = std::pair<size_t, std::unique_ptr<std::vector<Block*>>>;
+
+  /**
    * Free list structure. Blocks are added to the free list on the `free` operation.
    * Consequent allocations of the appropriate size reuse the freed blocks.
-   * We the available size of the free block to its Block*
+   * If a std::map or std::multimap is used they call operator::new everytime
+   * an insertion happens to allocate a free node, so a std::vector is used instead.
    */
-  std::map<size_t, std::vector<Block*>> _free_list;
+  std::vector<size_blocks_pair_t> _free_list;
 
   /**
    * We store all memory we have allocated here to free it later
    */
   std::vector<Block*> _requested_from_os;
 
+  /**
+   * Minimum requested allocation on allocate
+   */
   size_t _minimum_allocation{0};
 };
 
