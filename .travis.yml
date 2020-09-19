@@ -126,7 +126,8 @@ script:
   
   # If we enabled valgrind then call ctest with memcheck, otherwise just call it normal
   - if [[ "$VALGRIND" == "ON" ]]; then ctest -T memcheck --verbose; else if [[ "$CODE_COVERAGE" == "ON" ]]; then make coverage; else ctest --verbose; fi fi
-
+  - if [[ "$VALGRIND" == "ON" ]]; then cat /home/travis/build/odygrd/quill/build/Testing/Temporary/MemoryChecker.*.log; fi
+  
   # Code Coverage
   - if [[ "$CODE_COVERAGE" == "ON" ]]; then codecov; fi
 
