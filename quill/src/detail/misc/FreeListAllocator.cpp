@@ -9,8 +9,34 @@ namespace quill
 {
 namespace detail
 {
+namespace
+{
+/**
+ * Finds an element in the vector using binary search
+ */
+template <class ForwardIt, class T, class Compare = std::less<>>
+ForwardIt binary_find(ForwardIt begin, ForwardIt end, T const& value, Compare comp = {})
+{
+  ForwardIt it = std::lower_bound(begin, end, value, comp);
+  return (it != end && !(value < it->first)) ? it : end;
+}
+
+} // namespace
+
 /***/
-FreeListAllocator::FreeListAllocator(size_t initial_capacity) { reserve(initial_capacity); }
+FreeListAllocator::FreeListAllocator()
+{
+  _free_list.reserve(8);
+  _vector_cache.reserve(8);
+}
+
+/***/
+FreeListAllocator::FreeListAllocator(size_t initial_capacity)
+{
+  _free_list.reserve(16);
+  _vector_cache.reserve(16);
+  reserve(initial_capacity);
+}
 
 /***/
 FreeListAllocator::~FreeListAllocator()
@@ -31,8 +57,27 @@ void FreeListAllocator::reserve(size_t new_capacity)
   Block* block = _request_from_os(size_inc_padding);
 
   // Finally add this block to our free list
-  auto insert_it = _free_list.emplace(block->header.size, std::vector<Block*>{});
-  insert_it.first->second.emplace_back(block);
+  auto search_size =
+    binary_find(_free_list.begin(), _free_list.end(), block->header.size,
+                [](size_blocks_pair_t const& elem, size_t s) { return elem.first < s; });
+
+  if (search_size != _free_list.end())
+  {
+    // we found the size so we just emplace back in the vector
+    // std::unique_ptr<std::vector<Block*>> is in search_size->second
+    search_size->second->emplace_back(block);
+  }
+  else
+  {
+    // we need to add a new vector and we add to the sorted vector
+    auto inserted_it = _free_list.insert(
+      std::upper_bound(_free_list.begin(), _free_list.end(), block->header.size,
+                       [](size_t s, size_blocks_pair_t const& elem) { return s < elem.first; }),
+      std::make_pair(block->header.size, _get_cached_vector()));
+
+    // Add the block to the vector we added
+    inserted_it->second->emplace_back(block);
+  }
 }
 
 /***/
@@ -100,50 +145,65 @@ void FreeListAllocator::deallocate(void* p)
   block->header.used = false;
 
   // Finally add this block to our free list
-  auto insert_it = _free_list.emplace(block->header.size, std::vector<Block*>{});
+  auto search_size =
+    binary_find(_free_list.begin(), _free_list.end(), block->header.size,
+                [](size_blocks_pair_t const& elem, size_t s) { return elem.first < s; });
 
-  if (insert_it.second)
+  if (search_size != _free_list.end())
   {
-    // if we are inserting for the first time reserve some space in the vector
-    insert_it.first->second.reserve(32);
+    // we found the size so we just emplace back in the vector
+    // std::unique_ptr<std::vector<Block*>> is in search_size->second
+    search_size->second->emplace_back(block);
   }
+  else
+  {
+    // we need to add a new vector and we add to the sorted vector
+    auto inserted_it = _free_list.insert(
+      std::upper_bound(_free_list.begin(), _free_list.end(), block->header.size,
+                       [](size_t s, size_blocks_pair_t const& elem) { return s < elem.first; }),
+      std::make_pair(block->header.size, _get_cached_vector()));
 
-  // If we failed to insert, we append to a new vector
-  // If we inserted, we append to existing vector
-  insert_it.first->second.emplace_back(block);
+    // Add the block to the vector we added
+    inserted_it->second->emplace_back(block);
+  }
 }
 
 /***/
 FreeListAllocator::Block* FreeListAllocator::_find_free_block(size_t size)
 {
   // look for a free block that is greater or equal to the requested size
-  auto search_block_it = _free_list.lower_bound(size);
+  auto search_block_it =
+    std::lower_bound(_free_list.begin(), _free_list.end(), size,
+                     [](size_blocks_pair_t const& lhs, size_t s) { return lhs.first < s; });
 
   if (search_block_it != _free_list.end())
   {
     // we found a block in our free list, and we will use the last one from the vector
+    assert(!search_block_it->second->empty() &&
+           "Vector can never be empty if it exists in the map.");
 
-    assert(!search_block_it->second.empty() && "Vector can never be empty if it exists in the map.");
-
-    Block* block = search_block_it->second.back();
+    Block* block = search_block_it->second->back();
 
     // a paranoid check that the key in the map and the header size are in sync ..
     assert((search_block_it->first == block->header.size) && "Header size and key must match");
+    assert(!search_block_it->second->empty() && "vector of Block* can not be empty");
 
+    // remove this block from the free list as we are going to be allocating it
+    search_block_it->second->pop_back();
+
+    // if the whole vector is empty we need to remove the whole entry
+    if (search_block_it->second->empty())
+    {
+      _store_cached_vector(std::move(search_block_it->second));
+      _free_list.erase(search_block_it);
+    }
+
+    // Here we want to slice last as we don't want search_block_it to be invalidated
     // Slice the block if it is too large, to reuse the free part.
     block = _slice(block, size);
 
     // Mark the block as used
     block->header.used = true;
-
-    // remove this block from the free list as we are going to be allocating it
-    search_block_it->second.pop_back();
-
-    // if the whole vector is empty we need to remove the whole entry
-    if (search_block_it->second.empty())
-    {
-      _free_list.erase(search_block_it);
-    }
 
     return block;
   }
@@ -195,17 +255,28 @@ FreeListAllocator::Block* FreeListAllocator::_slice(Block* block, size_t request
 
   // Add this free block to the free list
   // Finally add this block to our free list
-  auto insert_it = _free_list.emplace(free_block->header.size, std::vector<Block*>{});
+  // Finally add this block to our free list
+  auto search_size =
+    binary_find(_free_list.begin(), _free_list.end(), free_block->header.size,
+                [](size_blocks_pair_t const& elem, size_t s) { return elem.first < s; });
 
-  if (insert_it.second)
+  if (search_size != _free_list.end())
   {
-    // if we are inserting for the first time reserve some space in the vector
-    insert_it.first->second.reserve(32);
+    // we found the size so we just emplace back in the vector
+    // std::unique_ptr<std::vector<Block*>> is in search_size->second
+    search_size->second->emplace_back(free_block);
   }
+  else
+  {
+    // we need to add a new vector and we add to the sorted vector
+    auto inserted_it = _free_list.insert(
+      std::upper_bound(_free_list.begin(), _free_list.end(), free_block->header.size,
+                       [](size_t s, size_blocks_pair_t const& elem) { return s < elem.first; }),
+      std::make_pair(free_block->header.size, _get_cached_vector()));
 
-  // If we failed to insert, we append to a new vector
-  // If we inserted, we append to existing vector
-  insert_it.first->second.emplace_back(free_block);
+    // Add the block to the vector we added
+    inserted_it->second->emplace_back(free_block);
+  }
 
   // Now the existing block that we split
   block->header.size = requested_size;
@@ -241,17 +312,22 @@ FreeListAllocator::Block* FreeListAllocator::_coalesce_with_next(Block* block)
 
   // Also remove the next block from the freelist as we are coalescing it.
   // To remove, we need to find the value of the free block in the free list to remove
-  auto search_block_it = _free_list.find(next_block->header.size);
-  assert(search_block_it != _free_list.end() && "The block must exist in the map.");
+  auto search_block_it =
+    binary_find(_free_list.begin(), _free_list.end(), next_block->header.size,
+                [](size_blocks_pair_t const& elem, size_t s) { return elem.first < s; });
 
-  std::vector<Block*>& blocks_vec = search_block_it->second;
+  assert(search_block_it != _free_list.end() && "The block must exist in the map.");
+  assert(!search_block_it->second->empty() && "vector of Block* can not be empty");
+
+  std::vector<Block*>& blocks_vec = *(search_block_it->second);
   blocks_vec.erase(std::remove_if(blocks_vec.begin(), blocks_vec.end(),
-                                  [next_block](Block* b) -> bool { return b == next_block; }),
+                                  [next_block](Block* b) { return b == next_block; }),
                    blocks_vec.end());
 
   // if now the vector is empty we need to remove it from the map collection
   if (blocks_vec.empty())
   {
+    _store_cached_vector(std::move(search_block_it->second));
     _free_list.erase(search_block_it);
   }
 
@@ -303,17 +379,22 @@ FreeListAllocator::Block* FreeListAllocator::_coalesce_with_previous(Block* bloc
 
   // Here we remove the block from our order collection because and we can not avoid it
   // because the size of the block will also change
-  auto search_block_it = _free_list.find(previous_block->header.size);
-  assert(search_block_it != _free_list.end() && "The block must exist in the map.");
+  auto search_block_it =
+    binary_find(_free_list.begin(), _free_list.end(), previous_block->header.size,
+                [](size_blocks_pair_t const& elem, size_t s) { return elem.first < s; });
 
-  std::vector<Block*>& blocks_vec = search_block_it->second;
+  assert(search_block_it != _free_list.end() && "The block must exist in the map.");
+  assert(!search_block_it->second->empty() && "vector of Block* can not be empty");
+
+  std::vector<Block*>& blocks_vec = *(search_block_it->second);
   blocks_vec.erase(std::remove_if(blocks_vec.begin(), blocks_vec.end(),
-                                  [previous_block](Block* b) -> bool { return b == previous_block; }),
+                                  [previous_block](Block* b) { return b == previous_block; }),
                    blocks_vec.end());
 
   // if now the vector is empty we need to remove it from the map collection
   if (blocks_vec.empty())
   {
+    _store_cached_vector(std::move(search_block_it->second));
     _free_list.erase(search_block_it);
   }
 
@@ -393,6 +474,31 @@ FreeListAllocator::Block* FreeListAllocator::_request_from_os(size_t size)
   _requested_from_os.emplace_back(block);
 
   return block;
+}
+
+QUILL_NODISCARD std::unique_ptr<std::vector<FreeListAllocator::Block*>> FreeListAllocator::_get_cached_vector()
+{
+  std::unique_ptr<std::vector<Block*>> ret_val;
+
+  if (_vector_cache.empty())
+  {
+    ret_val = std::make_unique<std::vector<Block*>>();
+    ret_val->reserve(16);
+    return ret_val;
+  }
+
+  ret_val = std::move(_vector_cache.back());
+  _vector_cache.pop_back();
+
+  assert(ret_val->empty() && "Returned vector must be empty");
+
+  return ret_val;
+}
+
+void FreeListAllocator::_store_cached_vector(std::unique_ptr<std::vector<Block*>> vec)
+{
+  assert(vec->empty() && "Stored vector must be empty");
+  _vector_cache.emplace_back(std::move(vec));
 }
 
 /**

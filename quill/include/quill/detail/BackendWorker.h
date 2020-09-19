@@ -232,7 +232,7 @@ void BackendWorker::run()
       _free_list_allocator.reserve(QUILL_QUEUE_CAPACITY);
 
       // Also configure our allocator to request bigger chunks from os
-      _free_list_allocator.set_minimum_allocation(2 * get_page_size());
+      _free_list_allocator.set_minimum_allocation(QUILL_QUEUE_CAPACITY);
 
       // All okay, set the backend worker thread running flag
       _is_running.store(true, std::memory_order_seq_cst);
