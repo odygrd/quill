@@ -32,9 +32,19 @@ public:
   {
   }
 
-  QUILL_NODISCARD std::unique_ptr<BaseEvent> clone() const override
+  /**
+   * Virtual clone using a custom memory manager
+   * @return a copy of this object
+   */
+  QUILL_NODISCARD std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> clone(FreeListAllocator& fla) const override
   {
-    return std::make_unique<BacktraceEvent>(*this);
+    // allocate memory using the memory manager
+    void* buffer = fla.allocate(sizeof(BacktraceEvent));
+
+    // create emplace a new object inside the buffer using the copy constructor of LogRecordEvent
+    // and store this in a unique ptr with the custom deleter
+    return std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>>{
+      new (buffer) BacktraceEvent(*this), FreeListAllocatorDeleter<BaseEvent>{&fla}};
   }
 
   QUILL_NODISCARD size_t size() const noexcept override { return sizeof(*this); }

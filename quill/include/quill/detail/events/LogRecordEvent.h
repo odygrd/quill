@@ -51,12 +51,18 @@ public:
   ~LogRecordEvent() override = default;
 
   /**
-   * Virtual clone
+   * Virtual clone using a custom memory manager
    * @return a copy of this object
    */
-  QUILL_NODISCARD std::unique_ptr<BaseEvent> clone() const override
+  QUILL_NODISCARD std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> clone(FreeListAllocator& fla) const override
   {
-    return std::make_unique<LogRecordEvent>(*this);
+    // allocate memory using the memory manager
+    void* buffer = fla.allocate(sizeof(LogRecordEvent));
+
+    // create emplace a new object inside the buffer using the copy constructor of LogRecordEvent
+    // and store this in a unique ptr with the custom deleter
+    return std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>>{
+      new (buffer) LogRecordEvent(*this), FreeListAllocatorDeleter<BaseEvent>{&fla}};
   }
 
   /**
@@ -150,7 +156,7 @@ private:
                                                               GetRealTsCallbackT const&) const
   {
     // Backtrace record we just store it in the queue
-    backtrace_log_record_storage.store(_logger_details->name(), thread_id, this->clone());
+    backtrace_log_record_storage.store(_logger_details->name(), thread_id, this);
   }
 
   /**

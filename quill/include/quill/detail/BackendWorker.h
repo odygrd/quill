@@ -17,24 +17,25 @@
 #include "quill/detail/events/BaseEvent.h"          // for RecordBase
 #include "quill/detail/misc/Attributes.h"           // for QUILL_ATTRIBUTE_HOT
 #include "quill/detail/misc/Common.h"               // for QUILL_RDTSC_RESYNC...
+#include "quill/detail/misc/FreeListAllocator.h"    // for FreeListAllocator..
 #include "quill/detail/misc/Macros.h"               // for QUILL_LIKELY
 #include "quill/detail/misc/Os.h"                   // for set_cpu_affinity, get_thread_id
 #include "quill/detail/misc/RdtscClock.h"           // for RdtscClock
-#include "quill/handlers/Handler.h"               // for Handler
-#include <atomic>                                 // for atomic, memory_ord...
-#include <cassert>                                // for assert
-#include <chrono>                                 // for nanoseconds, milli...
-#include <cstdint>                                // for uint16_t
-#include <exception>                              // for exception
-#include <functional>                             // for greater, function
-#include <limits>                                 // for numeric_limits
-#include <memory>                                 // for unique_ptr, make_u...
-#include <mutex>                                  // for call_once, once_flag
-#include <queue>                                  // for priority_queue
-#include <string>                                 // for allocator, string
-#include <thread>                                 // for sleep_for, thread
-#include <utility>                                // for move
-#include <vector>                                 // for vector
+#include "quill/handlers/Handler.h"                 // for Handler
+#include <atomic>                                   // for atomic, memory_ord...
+#include <cassert>                                  // for assert
+#include <chrono>                                   // for nanoseconds, milli...
+#include <cstdint>                                  // for uint16_t
+#include <exception>                                // for exception
+#include <functional>                               // for greater, function
+#include <limits>                                   // for numeric_limits
+#include <memory>                                   // for unique_ptr, make_u...
+#include <mutex>                                    // for call_once, once_flag
+#include <queue>                                    // for priority_queue
+#include <string>                                   // for allocator, string
+#include <thread>                                   // for sleep_for, thread
+#include <utility>                                  // for move
+#include <vector>                                   // for vector
 
 namespace quill
 {
@@ -143,7 +144,8 @@ private:
 private:
   struct TransitEvent
   {
-    TransitEvent(ThreadContext* in_thread_context, std::unique_ptr<BaseEvent> base_event)
+    TransitEvent(ThreadContext* in_thread_context,
+                 std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> base_event)
       : thread_context(in_thread_context), base_event(std::move(base_event))
     {
     }
@@ -154,7 +156,7 @@ private:
     }
 
     ThreadContext* thread_context; /** We clean any invalidated thread_context after the priority queue is empty, so this can not be invalid */
-    std::unique_ptr<BaseEvent> base_event;
+    std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> base_event;
   };
 
 private:
@@ -174,6 +176,8 @@ private:
   std::priority_queue<TransitEvent, std::vector<TransitEvent>, std::greater<>> _transit_events;
 
   BacktraceLogRecordStorage _backtrace_log_record_storage; /** Stores a vector of backtrace log records per logger name */
+
+  FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   backend_worker_error_handler_t _error_handler; /** error handler for the backend thread */
@@ -222,6 +226,13 @@ void BackendWorker::run()
 
       // Cache this thread's id
       _backend_worker_thread_id = get_thread_id();
+
+      // Initialise memory for our free list allocator. We reserve the same size as a full
+      // size of 1 caller thread queue
+      _free_list_allocator.reserve(QUILL_QUEUE_CAPACITY);
+
+      // Also configure our allocator to request bigger chunks from os
+      _free_list_allocator.set_minimum_allocation(2 * get_page_size());
 
       // All okay, set the backend worker thread running flag
       _is_running.store(true, std::memory_order_seq_cst);
@@ -278,7 +289,7 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
       {
         break;
       }
-      _transit_events.emplace(thread_context, handle.data()->clone());
+      _transit_events.emplace(thread_context, handle.data()->clone(_free_list_allocator));
     }
   }
 }
