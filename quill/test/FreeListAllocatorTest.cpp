@@ -7930,7 +7930,7 @@ TEST_CASE("allocate_slice_then_allocate_more_with_minimum_allocation")
   constexpr size_t TOTAL_CAPACITY{4'096};
   FreeListAllocatorMock fla{TOTAL_CAPACITY};
 
-  fla.set_minimum_allocation(4'096);
+  fla.set_minimum_allocation(TOTAL_CAPACITY);
 
   {
     // Check freelist blocks
@@ -7959,7 +7959,7 @@ TEST_CASE("allocate_slice_then_allocate_more_with_minimum_allocation")
 
   // Allocate 1024, slicing the block
   constexpr size_t CHUNK_SIZE{1'024};
-  fla.allocate(CHUNK_SIZE);
+  void* p1 = fla.allocate(CHUNK_SIZE);
 
   {
     const size_t free_memory = TOTAL_CAPACITY - (CHUNK_SIZE + fla.size_of_header());
@@ -7997,7 +7997,7 @@ TEST_CASE("allocate_slice_then_allocate_more_with_minimum_allocation")
   }
 
   // Allocate 1024, slicing the block
-  fla.allocate(CHUNK_SIZE);
+  void* p2 = fla.allocate(CHUNK_SIZE);
 
   {
     const size_t free_memory = TOTAL_CAPACITY - 2 * (CHUNK_SIZE + fla.size_of_header());
@@ -8040,7 +8040,7 @@ TEST_CASE("allocate_slice_then_allocate_more_with_minimum_allocation")
   }
 
   // Allocate 1024, slicing the block
-  fla.allocate(CHUNK_SIZE);
+  void* p3 = fla.allocate(CHUNK_SIZE);
 
   {
     const size_t free_memory = TOTAL_CAPACITY - 3 * (CHUNK_SIZE + fla.size_of_header());
@@ -8090,7 +8090,7 @@ TEST_CASE("allocate_slice_then_allocate_more_with_minimum_allocation")
   // Now that we have 4 slices - 3 taken and 1 free we will request more
   // memory from the allcoate forcing to to malloc and add a new block
   constexpr size_t NEW_CAPACITY{2'048};
-  fla.allocate(NEW_CAPACITY);
+  void* p4 = fla.allocate(NEW_CAPACITY);
 
   {
     const size_t free_memory = TOTAL_CAPACITY - 3 * (CHUNK_SIZE + fla.size_of_header());
@@ -8197,7 +8197,7 @@ TEST_CASE("allocate_slice_then_allocate_more_with_minimum_allocation")
   // Add one more allocation to request from OS
   // Now that we have 4 slices - 3 taken and 1 free we will request more
   // memory from the allcoate forcing to to malloc and add a new block
-  fla.allocate(NEW_CAPACITY);
+  void* p5 = fla.allocate(NEW_CAPACITY);
 
   {
     const size_t free_memory = TOTAL_CAPACITY - 3 * (CHUNK_SIZE + fla.size_of_header());
@@ -8323,6 +8323,47 @@ TEST_CASE("allocate_slice_then_allocate_more_with_minimum_allocation")
     size_t const block_used_reversed6 = blocks_reversed[7].second;
     REQUIRE_EQ(block_size_reversed6, CHUNK_SIZE);
     REQUIRE_EQ(block_used_reversed6, 1);
+  }
+
+  fla.deallocate(p1);
+  fla.deallocate(p2);
+  fla.deallocate(p3);
+  fla.deallocate(p4);
+  fla.deallocate(p5);
+
+  {
+    // Check freelist blocks
+    auto const freelist_res = fla.get_freelist();
+    REQUIRE_EQ(freelist_res.size(), 3);
+
+    // Check freelist blocks
+    size_t const block_size_fl = freelist_res[0].first;
+    size_t const block_used_fl = freelist_res[0].second;
+    REQUIRE_EQ(block_size_fl, TOTAL_CAPACITY);
+    REQUIRE_EQ(block_used_fl, 0);
+
+    auto const results = fla.get_all_blocks();
+    size_t const total_allocated_blocks = results.second;
+    auto const& blocks = results.first;
+
+    // we only expect 1 allocation
+    REQUIRE_EQ(total_allocated_blocks, 3);
+
+    // Check block
+    size_t const block_size = blocks[0].first;
+    size_t const block_used = blocks[0].second;
+    REQUIRE_EQ(block_size, TOTAL_CAPACITY);
+    REQUIRE_EQ(block_used, 0);
+
+    size_t const block_size2 = blocks[1].first;
+    size_t const block_used2 = blocks[1].second;
+    REQUIRE_EQ(block_size2, TOTAL_CAPACITY);
+    REQUIRE_EQ(block_used2, 0);
+
+    size_t const block_size3 = blocks[2].first;
+    size_t const block_used3 = blocks[2].second;
+    REQUIRE_EQ(block_size3, TOTAL_CAPACITY);
+    REQUIRE_EQ(block_used3, 0);
   }
 }
 
