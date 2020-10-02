@@ -15,6 +15,13 @@
 ## v1.5.0
 - Timestamp formatting optimisation for the backend worker thread.
 - Free list allocator optimisation for the backend worker thread.
+- PatternFormatter enhancement. It is now possible to pass [{fmt} string syntax](https://fmt.dev/latest/syntax.html) to `QUILL_STRING`. The default PatternFormatter string has been changed to: `"%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) %(logger_name:<12) - %(message)"`. This results to the following log being properly aligned despite the different lengths of each filename and logger name.
+```
+22:31:07.995438465 [2666041] file1.h:11                   LOG_INFO      logger1      - Log from file.
+22:31:07.995445699 [2666041] long_file2.h:11              LOG_INFO      logger_fl2   - Log from other file.
+22:31:07.995457144 [2666041] a_longer_file_3.hpp:11       LOG_INFO      logger_fl2_l - Log from other file.
+22:31:07.995462471 [2666041] example_trivial.cpp:30       LOG_TRACE_L3  root         - This is a log trace l3 example 1
+```
 
 ## v1.4.1
 - Do not force `quill` to always build as `static` library in cmake.

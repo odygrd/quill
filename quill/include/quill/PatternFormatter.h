@@ -64,7 +64,8 @@ namespace quill
  * fmt.format(log_record)
  * fmt.format(part_3);
  *
- * @note: Default pattern is "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"
+ * @note: Default pattern is:
+ *     "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) %(logger_name:<12) - %(message)"
  */
 class PatternFormatter
 {
@@ -152,12 +153,12 @@ public:
   {
     // Set the default pattern
     _set_pattern(
-      QUILL_STRING("%(ascii_time) [%(thread)] %(filename):%(lineno) LOG_%(level_name) "
-                   "%(logger_name) - %(message)"));
+      QUILL_STRING("%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) "
+                   "%(logger_name:<12) - %(message)"));
   }
 
   /**
-   * Constructor for a PatterFormater with a custom format
+   * Constructor for a PatterFormatter with a custom format
    * @param format_pattern format_pattern a format string. Must be passed using the macro QUILL_STRING("format string");
    * @param timestamp_format The for format of the date. Same as strftime() format with extra specifiers `%Qms` `%Qus` `Qns`
    * @param timezone The timezone of the timestamp, local_time or gmt_time
@@ -357,6 +358,9 @@ private:
 
   /** class responsible for formatting the timestamp */
   detail::TimestampFormatter _timestamp_formatter{"%H:%M:%S.%Qns", Timezone::LocalTime};
+
+  /** Only used if %(fileline) is used */
+  std::string _fileline;
 };
 
 /** Inline Implementation **/
