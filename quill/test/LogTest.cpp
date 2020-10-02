@@ -397,9 +397,9 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
 
   REQUIRE_EQ(file_contents.size(), 2);
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR     root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
