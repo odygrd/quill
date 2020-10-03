@@ -62,9 +62,9 @@ TEST_CASE("default_logger_with_filehandler")
 
   REQUIRE_EQ(file_contents.size(), 2);
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR     root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
@@ -348,8 +348,10 @@ TEST_CASE("many_loggers_multiple_threads")
 
     for (size_t j = 0; j < message_count; ++j)
     {
-      std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
-        std::to_string(i) + " this is message " + std::to_string(j);
+      size_t num = 13 - expected_logger_name.length();
+      std::string const white_spaces(num, ' ');
+      std::string expected_string = expected_logger_name + white_spaces + "- " +
+        "Hello from thread " + std::to_string(i) + " this is message " + std::to_string(j);
 
       REQUIRE(quill::testing::file_contains(file_contents, expected_string));
     }
@@ -395,9 +397,9 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
 
   REQUIRE_EQ(file_contents.size(), 2);
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      root - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR     root - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
@@ -508,8 +510,8 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
   frontend.join();
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE(
-    quill::testing::file_contains(file_contents, "LOG_WARNING   root - error handler invoked"));
+  REQUIRE(quill::testing::file_contains(file_contents,
+                                        "LOG_WARNING   root         - error handler invoked"));
   REQUIRE_EQ(file_contents.size(), 3);
 
   lm.stop_backend_worker();
@@ -618,10 +620,13 @@ TEST_CASE("log_backtrace_and_flush_on_error")
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
   REQUIRE_EQ(file_contents.size(), 4);
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_INFO      root - Before backtrace."}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root - After Error."}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_BACKTRACE root - Backtrace message 10."}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_BACKTRACE root - Backtrace message 11."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      root         - Before backtrace."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root         - After Error."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 10."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 11."}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
@@ -683,9 +688,11 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
   REQUIRE_EQ(file_contents.size(), 3);
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root - After Error."}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_BACKTRACE root - Backtrace message 10."}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_BACKTRACE root - Backtrace message 11."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root         - After Error."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 10."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 11."}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
@@ -736,8 +743,9 @@ TEST_CASE("log_backtrace_manual_flush")
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
   REQUIRE_EQ(file_contents.size(), 2);
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_INFO      root - Before backtrace."}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root - After Error."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      root         - Before backtrace."}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root         - After Error."}));
 
   // The backtrace didn't flush we will force flush it now from a new thread
   std::thread frontend_1([&lm]() {
@@ -755,10 +763,13 @@ TEST_CASE("log_backtrace_manual_flush")
 
   // Now we also have the backtrace
   REQUIRE_EQ(file_contents_2.size(), 4);
-  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_INFO      root - Before backtrace."}));
-  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_ERROR     root - After Error."}));
-  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_BACKTRACE root - Backtrace message 10."}));
-  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_BACKTRACE root - Backtrace message 11."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents_2, std::string{"LOG_INFO      root         - Before backtrace."}));
+  REQUIRE(quill::testing::file_contains(file_contents_2, std::string{"LOG_ERROR     root         - After Error."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents_2, std::string{"LOG_BACKTRACE root         - Backtrace message 10."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents_2, std::string{"LOG_BACKTRACE root         - Backtrace message 11."}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);

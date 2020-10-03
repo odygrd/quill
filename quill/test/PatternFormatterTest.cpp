@@ -29,7 +29,7 @@ TEST_CASE("default_pattern_formatter")
 
   // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
   std::string const expected_string =
-    "[31341] PatternFormatterTest.cpp:19 LOG_INFO      test_logger - This the pattern formatter "
+    "[31341] PatternFormatterTest.cpp:19  LOG_INFO      test_logger  - This the pattern formatter "
     "1234\n";
   auto const found_expected = formatted_string.find(expected_string);
   REQUIRE(found_expected != std::string::npos);
