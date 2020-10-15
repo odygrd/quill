@@ -51,6 +51,7 @@ set(HEADER_FILES
         include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
         include/quill/handlers/TimeRotatingFileHandler.h
+        include/quill/FilterBase.h
         include/quill/Fmt.h
         include/quill/Logger.h
         include/quill/LogLevel.h

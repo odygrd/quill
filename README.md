@@ -77,6 +77,7 @@ The main goals of the library are:
     -  File Logging
     -  Rotating log files
     -  Time rotating log files
+ -  Filters for filtering log messages. See [Filters](https://github.com/odygrd/quill/wiki/3.-Filters). 
  -  Clean warning-free codebase even on high warning levels.
 
 ## Performance

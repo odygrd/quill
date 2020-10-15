@@ -28,5 +28,8 @@ target_link_libraries(example_daily_file_rotation quill)
 add_executable(example_file_rotation example_file_rotation.cpp)
 target_link_libraries(example_file_rotation quill)
 
+add_executable(example_filters example_filters.cpp)
+target_link_libraries(example_filters quill)
+
 add_executable(example_user_defined_types example_user_defined_types.cpp)
 target_link_libraries(example_user_defined_types quill)
