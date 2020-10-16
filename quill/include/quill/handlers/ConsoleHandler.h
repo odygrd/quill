@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/LogLevel.h"
+#include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"     // for filename_t
 #include "quill/handlers/StreamHandler.h" // for StreamHandler
 #include <array>

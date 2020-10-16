@@ -5,8 +5,13 @@
 
 #pragma once
 
-#include "quill/PatternFormatter.h"
+#include "quill/FilterBase.h"
 #include "quill/Fmt.h"
+#include "quill/PatternFormatter.h"
+#include "quill/detail/events/LogRecordMetadata.h"
+#include <algorithm>
+#include <memory>
+#include <vector>
 
 namespace quill
 {
@@ -68,10 +73,37 @@ public:
    */
   QUILL_ATTRIBUTE_HOT virtual void flush() noexcept = 0;
 
+  /**
+   * Adds a new filter for this handler
+   * @param filter instance of a filter class as unique ptr
+   */
+  void add_filter(std::unique_ptr<FilterBase> filter) noexcept
+  {
+    _filters.push_back(std::move(filter));
+  }
+
+  /**
+   * Apply all registered filters
+   * @return result of all filters
+   */
+  QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+                                     detail::LogRecordMetadata const& metadata,
+                                     fmt::memory_buffer const& formatted_record) noexcept
+  {
+    return std::all_of(
+      _filters.begin(), _filters.end(),
+      [thread_id, log_record_timestamp, &metadata, &formatted_record](std::unique_ptr<FilterBase>& filter_elem) {
+        return filter_elem->filter(thread_id, log_record_timestamp, metadata, formatted_record);
+      });
+  }
+
 private:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter
    * must not be moved or copied. We create the default pattern formatter always on init */
   std::unique_ptr<PatternFormatter> _formatter{std::make_unique<PatternFormatter>()};
+
+  /** Filters for this handler **/
+  std::vector<std::unique_ptr<FilterBase>> _filters;
 };
 
 } // namespace quill

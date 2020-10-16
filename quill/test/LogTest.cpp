@@ -3,6 +3,7 @@
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
 #include "misc/TestUtilities.h"
+#include "quill/FilterBase.h"
 #include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManager.h"
 #include "quill/detail/misc/FileUtilities.h"
@@ -773,6 +774,100 @@ TEST_CASE("log_backtrace_manual_flush")
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
+}
+
+/**
+ * Filter class for our file handler
+ */
+class FileFilter1 : public quill::FilterBase
+{
+public:
+  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+                              quill::detail::LogRecordMetadata const& metadata,
+                              fmt::memory_buffer const& formatted_record) noexcept override
+  {
+    if (metadata.level() < quill::LogLevel::Warning)
+    {
+      return true;
+    }
+    return false;
+  }
+};
+
+/**
+ * Filter for the stdout handler
+ */
+class FileFilter2 : public quill::FilterBase
+{
+public:
+  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+                              quill::detail::LogRecordMetadata const& metadata,
+                              fmt::memory_buffer const& formatted_record) noexcept override
+  {
+    if (metadata.level() >= quill::LogLevel::Warning)
+    {
+      return true;
+    }
+    return false;
+  }
+};
+
+/***/
+TEST_CASE("logger_with_two_files_filters")
+{
+  LogManager lm;
+
+#if defined(_WIN32)
+  std::wstring const filename1{L"logger_with_two_files_filters1"};
+  std::wstring const filename2{L"logger_with_two_files_filters2"};
+#else
+  std::string const filename1{"logger_with_two_files_filters1"};
+  std::string const filename2{"logger_with_two_files_filters2"};
+#endif
+
+  // Set file 1
+  quill::Handler* file_handler1 = lm.handler_collection().file_handler(filename1, "w");
+
+  // Create and add the filter to our handler
+  file_handler1->add_filter(std::make_unique<FileFilter1>());
+
+  // Set file 2
+  quill::Handler* file_handler2 = lm.handler_collection().file_handler(filename2, "w");
+
+  // Create and add the filter to our handler
+  file_handler2->add_filter(std::make_unique<FileFilter2>());
+
+  lm.start_backend_worker();
+
+  Logger* default_logger = lm.logger_collection().create_logger("logger", {file_handler1, file_handler2});
+
+  std::thread frontend([&lm, default_logger]() {
+    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+    LOG_ERROR(default_logger,
+              "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  // File 1 only log info
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename1);
+  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      logger       - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+
+  // file 2 only log error
+  std::vector<std::string> const file_contents2 = quill::testing::file_contents(filename2);
+  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE(quill::testing::file_contains(
+    file_contents2, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+
+  lm.stop_backend_worker();
+
+  quill::detail::file_utilities::remove(filename1);
+  quill::detail::file_utilities::remove(filename2);
 }
 
 TEST_SUITE_END();

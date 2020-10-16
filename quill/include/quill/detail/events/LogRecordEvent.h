@@ -185,9 +185,13 @@ private:
       // After calling format on the formatter we have to request the formatter record
       auto const& formatted_log_record_buffer = handler->formatter().formatted_log_record();
 
-      // log to the handler, also pass the log_record_timestamp this is only needed in some
-      // cases like daily file rotation
-      handler->write(formatted_log_record_buffer, log_record_timestamp, log_record_metadata.level());
+      // If all filters are okay we write this log record to the file
+      if (handler->apply_filters(thread_id, log_record_timestamp, log_record_metadata, formatted_log_record_buffer))
+      {
+        // log to the handler, also pass the log_record_timestamp this is only needed in some
+        // cases like daily file rotation
+        handler->write(formatted_log_record_buffer, log_record_timestamp, log_record_metadata.level());
+      }
     }
   }
 
