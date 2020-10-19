@@ -1,5 +1,5 @@
-#include "quill/FilterBase.h"
 #include "quill/Quill.h"
+#include "quill/filters/FilterBase.h"
 
 /**
  * Logging to stdout and to a file using filters
@@ -12,6 +12,8 @@
 class FileFilter : public quill::FilterBase
 {
 public:
+  FileFilter() : quill::FilterBase("FileFilter"){};
+
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
                               quill::detail::LogRecordMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
@@ -30,6 +32,8 @@ public:
 class StdoutFilter : public quill::FilterBase
 {
 public:
+  StdoutFilter() : quill::FilterBase("StdoutFilter"){};
+
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
                               quill::detail::LogRecordMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override

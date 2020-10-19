@@ -3,10 +3,10 @@
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
 #include "misc/TestUtilities.h"
-#include "quill/FilterBase.h"
 #include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManager.h"
 #include "quill/detail/misc/FileUtilities.h"
+#include "quill/filters/FilterBase.h"
 #include "quill/handlers/Handler.h"
 #include <chrono>
 #include <cstdio>
@@ -782,6 +782,8 @@ TEST_CASE("log_backtrace_manual_flush")
 class FileFilter1 : public quill::FilterBase
 {
 public:
+  FileFilter1() : quill::FilterBase("FileFilter1"){};
+
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
                               quill::detail::LogRecordMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
@@ -800,6 +802,8 @@ public:
 class FileFilter2 : public quill::FilterBase
 {
 public:
+  FileFilter2() : quill::FilterBase("FileFilter2"){};
+
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
                               quill::detail::LogRecordMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
@@ -860,7 +864,7 @@ TEST_CASE("logger_with_two_files_filters")
 
   // file 2 only log error
   std::vector<std::string> const file_contents2 = quill::testing::file_contents(filename2);
-  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE_EQ(file_contents2.size(), 1);
   REQUIRE(quill::testing::file_contains(
     file_contents2, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
@@ -870,4 +874,69 @@ TEST_CASE("logger_with_two_files_filters")
   quill::detail::file_utilities::remove(filename2);
 }
 
+/***/
+TEST_CASE("logger_with_two_files_set_log_level_on_handler")
+{
+  LogManager lm;
+
+#if defined(_WIN32)
+  std::wstring const filename1{L"logger_with_two_files_set_log_level_on_handler1"};
+  std::wstring const filename2{L"logger_with_two_files_set_log_level_on_handler2"};
+#else
+  std::string const filename1{"logger_with_two_files_set_log_level_on_handler1"};
+  std::string const filename2{"logger_with_two_files_set_log_level_on_handler2"};
+#endif
+
+  // Set file 1
+  quill::Handler* file_handler1 = lm.handler_collection().file_handler(filename1, "w");
+
+  // Set file 2
+  quill::Handler* file_handler2 = lm.handler_collection().file_handler(filename2, "w");
+
+  lm.start_backend_worker();
+
+  Logger* default_logger = lm.logger_collection().create_logger("logger", {file_handler1, file_handler2});
+
+  // Check log levels on the handlers
+  REQUIRE_EQ(file_handler1->get_log_level(), LogLevel::TraceL3);
+  REQUIRE_EQ(file_handler2->get_log_level(), LogLevel::TraceL3);
+
+  // Set filters to our handlers
+  file_handler1->set_log_level(LogLevel::Info);
+  file_handler2->set_log_level(LogLevel::Error);
+
+  std::thread frontend([&lm, default_logger]() {
+    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+    LOG_ERROR(default_logger,
+              "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  // Check log levels on the handlers - this is after apply fitler has run at least once from above
+  REQUIRE_EQ(file_handler1->get_log_level(), LogLevel::Info);
+  REQUIRE_EQ(file_handler2->get_log_level(), LogLevel::Error);
+
+  // File 1 has everything
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename1);
+  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      logger       - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+
+  // file 2 only log error
+  std::vector<std::string> const file_contents2 = quill::testing::file_contents(filename2);
+  REQUIRE_EQ(file_contents2.size(), 1);
+  REQUIRE(quill::testing::file_contains(
+    file_contents2, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+
+  lm.stop_backend_worker();
+
+  quill::detail::file_utilities::remove(filename1);
+  quill::detail::file_utilities::remove(filename2);
+}
 TEST_SUITE_END();

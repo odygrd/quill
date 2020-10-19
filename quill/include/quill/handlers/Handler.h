@@ -5,11 +5,12 @@
 
 #pragma once
 
-#include "quill/FilterBase.h"
 #include "quill/Fmt.h"
 #include "quill/PatternFormatter.h"
 #include "quill/detail/events/LogRecordMetadata.h"
-#include <algorithm>
+#include "quill/detail/misc/Common.h"
+#include "quill/detail/misc/RecursiveSpinlock.h"
+#include "quill/filters/FilterBase.h"
 #include <memory>
 #include <vector>
 
@@ -74,13 +75,24 @@ public:
   QUILL_ATTRIBUTE_HOT virtual void flush() noexcept = 0;
 
   /**
+   * Sets a log level filter on the handler. Log statements with higher or equal severity only will be loged
+   * @param log_level the log level severity
+   */
+  void set_log_level(LogLevel log_level);
+
+  /**
+   * Looks up the existing log level filter that was set by set_log_level and returns the current log level
+   * @return the current log level of the log level filter - if any
+   */
+  QUILL_NODISCARD LogLevel get_log_level() noexcept;
+
+  /** Filters **/
+
+  /**
    * Adds a new filter for this handler
    * @param filter instance of a filter class as unique ptr
    */
-  void add_filter(std::unique_ptr<FilterBase> filter) noexcept
-  {
-    _filters.push_back(std::move(filter));
-  }
+  void add_filter(std::unique_ptr<FilterBase> filter);
 
   /**
    * Apply all registered filters
@@ -88,22 +100,22 @@ public:
    */
   QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
                                      detail::LogRecordMetadata const& metadata,
-                                     fmt::memory_buffer const& formatted_record) noexcept
-  {
-    return std::all_of(
-      _filters.begin(), _filters.end(),
-      [thread_id, log_record_timestamp, &metadata, &formatted_record](std::unique_ptr<FilterBase>& filter_elem) {
-        return filter_elem->filter(thread_id, log_record_timestamp, metadata, formatted_record);
-      });
-  }
+                                     fmt::memory_buffer const& formatted_record);
 
 private:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter
    * must not be moved or copied. We create the default pattern formatter always on init */
   std::unique_ptr<PatternFormatter> _formatter{std::make_unique<PatternFormatter>()};
 
-  /** Filters for this handler **/
-  std::vector<std::unique_ptr<FilterBase>> _filters;
+  /** Local Filters for this handler **/
+  std::vector<FilterBase*> _local_filters;
+
+  /** Global filter for this handler - protected by a spinlock **/
+  std::vector<std::unique_ptr<FilterBase>> _global_filters;
+  quill::detail::RecursiveSpinlock _global_filters_lock;
+
+  /** Indicator that a new filter was added **/
+  alignas(detail::CACHELINE_SIZE) std::atomic<bool> _new_filter{false};
 };
 
 } // namespace quill

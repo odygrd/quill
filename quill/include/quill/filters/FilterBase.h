@@ -8,6 +8,7 @@
 #include "quill/Fmt.h"
 #include "quill/detail/events/LogRecordMetadata.h"
 #include "quill/detail/misc/Attributes.h"
+#include <string>
 
 namespace quill
 {
@@ -21,8 +22,9 @@ class FilterBase
 public:
   /**
    * Constructor
+   * @param filter_name unique filter name
    */
-  FilterBase() = default;
+  explicit FilterBase(std::string filter_name) : _filter_name(std::move(filter_name)){};
 
   /**
    * Destructor
@@ -38,5 +40,17 @@ public:
   QUILL_NODISCARD virtual bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
                                       detail::LogRecordMetadata const& metadata,
                                       fmt::memory_buffer const& formatted_record) noexcept = 0;
+
+  /**
+   * Gets the name of the filter. Only useful if an existing filter is needed to be looked up
+   * @return the name of the filter
+   */
+  QUILL_NODISCARD virtual std::string const& get_filter_name() const noexcept
+  {
+    return _filter_name;
+  }
+
+private:
+  std::string _filter_name;
 };
 } // namespace quill
