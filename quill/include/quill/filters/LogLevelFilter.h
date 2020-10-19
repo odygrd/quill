@@ -35,15 +35,12 @@ public:
 
   /**
    * Filters the log messages
-   * @param thread_id the thread id of the log message origin
-   * @param log_record_timestamp the log statement timestamp
    * @param metadata log statement metadata
-   * @param formatted_record the log statement record formatted
    * @return true if we want to log this statement, false otherwise
    */
-  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+  QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
                               quill::detail::LogRecordMetadata const& metadata,
-                              fmt::memory_buffer const& formatted_record) noexcept override
+                              fmt::memory_buffer const&) noexcept override
   {
     if (metadata.level() >= _log_level.load(std::memory_order_relaxed))
     {
