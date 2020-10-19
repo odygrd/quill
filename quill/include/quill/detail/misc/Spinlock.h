@@ -6,7 +6,8 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
-#include <atomic>                         // for atomic
+#include "quill/detail/misc/Common.h"
+#include <atomic> // for atomic
 
 namespace quill
 {
@@ -49,7 +50,7 @@ private:
     Locked = 1
   };
 
-  std::atomic<State> _spinlock_flag{State::Free};
+  alignas(detail::CACHELINE_SIZE) std::atomic<State> _spinlock_flag{State::Free};
 };
 } // namespace detail
 } // namespace quill

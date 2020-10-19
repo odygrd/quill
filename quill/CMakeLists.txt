@@ -84,6 +84,7 @@ set(SOURCE_FILES
         src/detail/TimestampFormatter.cpp
         src/handlers/ConsoleHandler.cpp
         src/handlers/FileHandler.cpp
+        src/handlers/Handler.cpp
         src/handlers/RotatingFileHandler.cpp
         src/handlers/StreamHandler.cpp
         src/handlers/TimeRotatingFileHandler.cpp
