@@ -13,6 +13,7 @@
 #include "quill/filters/LogLevelFilter.h"
 #include <algorithm>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace quill
