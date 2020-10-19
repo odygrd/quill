@@ -31,5 +31,8 @@ target_link_libraries(example_file_rotation quill)
 add_executable(example_filters example_filters.cpp)
 target_link_libraries(example_filters quill)
 
+add_executable(example_handler_log_levels example_handler_log_levels.cpp)
+target_link_libraries(example_handler_log_levels quill)
+
 add_executable(example_user_defined_types example_user_defined_types.cpp)
 target_link_libraries(example_user_defined_types quill)
