@@ -41,4 +41,14 @@ int main()
   LOG_WARNING(logger, "This is a log warning example {}", 6);
   LOG_ERROR(logger, "This is a log error example {}", 7);
   LOG_CRITICAL(logger, "This is a log critical example {}", 8);
+
+  // log everything up to this point before changing the handler log level
+  quill::flush();
+  
+  // Change log level on the console handler to log only Critical
+  stdout_handler->set_log_level(quill::LogLevel::Critical);
+
+  LOG_WARNING(logger, "This is a log warning example {}", 9);
+  LOG_ERROR(logger, "This is a log error example {}", 10);
+  LOG_CRITICAL(logger, "This is a log critical example {}", 11);
 }
