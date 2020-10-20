@@ -375,19 +375,13 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, const char* th
   _formatted_log_record.clear();
 
   // Format part 1 of the pattern first
-  if (_pattern_formatter_helper_part_1)
-  {
-    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Format the user requested string
   fmt::format_to(_formatted_log_record, logline_info.message_format(), args...);
 
   // Format part 3 of the pattern
-  if (_pattern_formatter_helper_part_3)
-  {
-    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Append a new line
   _formatted_log_record.push_back('\n');
@@ -403,19 +397,13 @@ typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::val
   _formatted_log_record.clear();
 
   // Format part 1 of the pattern first
-  if (_pattern_formatter_helper_part_1)
-  {
-    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Format the user requested string
   fmt::format_to(_formatted_log_record, logline_info.message_format(), args...);
 
   // Format part 3 of the pattern
-  if (_pattern_formatter_helper_part_3)
-  {
-    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Append a new line
   _formatted_log_record.push_back('\n');
@@ -431,10 +419,7 @@ typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::valu
   _formatted_log_record.clear();
 
   // Format part 1 of the pattern first
-  if (_pattern_formatter_helper_part_1)
-  {
-    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Format the user message format string to a wide char buffer
   std::wstring const w_message_format = detail::s2ws(logline_info.message_format());
@@ -447,10 +432,7 @@ typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::valu
   detail::wstring_to_utf8(_w_memory_buffer, _formatted_log_record);
 
   // Format part 3 of the pattern
-  if (_pattern_formatter_helper_part_3)
-  {
-    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Append a new line
   _formatted_log_record.push_back('\n');
@@ -565,7 +547,7 @@ std::unique_ptr<PatternFormatter::FormatterHelperBase> PatternFormatter::_make_f
     // Store the tuple in a class for part 1
     return std::make_unique<FormatterHelper<decltype(callbacks_tuple)>>(callbacks_tuple, fmt_format);
   }
-  return nullptr;
+  return std::make_unique<FormatterHelper<std::tuple<>>>(std::tuple<>{}, format_pattern_part);
 }
 
 } // namespace quill
