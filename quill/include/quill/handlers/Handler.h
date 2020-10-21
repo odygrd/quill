@@ -116,6 +116,8 @@ private:
 
   /** Indicator that a new filter was added **/
   alignas(detail::CACHELINE_SIZE) std::atomic<bool> _new_filter{false};
+
+  quill::LogLevel _log_level;
 };
 
 } // namespace quill

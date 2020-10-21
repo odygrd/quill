@@ -10,46 +10,13 @@ namespace quill
 /***/
 void Handler::set_log_level(LogLevel log_level)
 {
-  std::lock_guard<detail::RecursiveSpinlock> const lock(_global_filters_lock);
-  auto search_log_level_filter_it =
-    std::find_if(_global_filters.begin(), _global_filters.end(), [](std::unique_ptr<FilterBase>& filter) {
-      return filter->get_filter_name() == LogLevelFilter::filter_name;
-    });
-
-  if (search_log_level_filter_it != _global_filters.end())
-  {
-    // Just update the existing
-    auto* log_level_filter = reinterpret_cast<LogLevelFilter*>(search_log_level_filter_it->get());
-    log_level_filter->set_log_level(log_level);
-  }
-  else
-  {
-    // construct a new filter and add it to global
-    auto log_level_filter = std::make_unique<LogLevelFilter>(log_level);
-    add_filter(std::move(log_level_filter));
-  }
+    _log_level = log_level;
 }
 
 /***/
 QUILL_NODISCARD LogLevel Handler::get_log_level() noexcept
 {
-  // When set_log_level is called for the first time, it won't exist in _local_filters
-  // until apply_filters has run at least once
-
-  auto const search_log_level_filter_it =
-    std::find_if(_local_filters.cbegin(), _local_filters.cend(), [](FilterBase const* filter) {
-      return filter->get_filter_name() == LogLevelFilter::filter_name;
-    });
-
-  if (search_log_level_filter_it != _local_filters.cend())
-  {
-    return reinterpret_cast<LogLevelFilter*>(*search_log_level_filter_it)->get_log_level();
-  }
-  else
-  {
-    // No filter found
-    return LogLevel::TraceL3;
-  }
+    return _log_level;
 }
 
 /***/
@@ -80,6 +47,10 @@ QUILL_NODISCARD bool Handler::apply_filters(char const* thread_id, std::chrono::
                                             detail::LogRecordMetadata const& metadata,
                                             fmt::memory_buffer const& formatted_record)
 {
+  if (_log_level < metadata.level()) {
+    return false;
+  }
+
   // Update our local collection of the filters
   if (QUILL_UNLIKELY(_new_filter.load(std::memory_order_relaxed)))
   {
