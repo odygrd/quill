@@ -313,7 +313,7 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
   //   Part 1 - "|{}|{}|"
   //   Part 3 - "|EOM|"
   PatternFormatter custom_pattern_formatter{
-    QUILL_STRING("|LOG_%(level_name)|%(logger_name)|%(message)|EOM|"), "%H:%M:%s", Timezone::GmtTime};
+    QUILL_STRING("|LOG_%(level_name)|%(logger_name)|%(message)|EOM|"), "%H:%M:%S", Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";

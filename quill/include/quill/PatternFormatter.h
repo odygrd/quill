@@ -536,18 +536,20 @@ std::unique_ptr<PatternFormatter::FormatterHelperBase> PatternFormatter::_make_f
   std::vector<argument_callback_t> const args_callback_collection =
     _generate_vector_of_callbacks(format_pattern_part);
 
-  if (!args_callback_collection.empty())
+  if (args_callback_collection.empty())
   {
-    // Wrap the vector of functions to a tuple for part 1
-    auto const callbacks_tuple =
-      _generate_tuple<N>([args_callback_collection](size_t i) { return args_callback_collection[i]; });
-
-    std::string const fmt_format = _generate_fmt_format_string(format_pattern_part);
-
-    // Store the tuple in a class for part 1
-    return std::make_unique<FormatterHelper<decltype(callbacks_tuple)>>(callbacks_tuple, fmt_format);
+    // create a FormatterHelper but without any callbacks
+    return std::make_unique<FormatterHelper<std::tuple<>>>(std::tuple<>{}, format_pattern_part);
   }
-  return std::make_unique<FormatterHelper<std::tuple<>>>(std::tuple<>{}, format_pattern_part);
+
+  // Wrap the vector of functions to a tuple for part 1
+  auto const callbacks_tuple =
+    _generate_tuple<N>([args_callback_collection](size_t i) { return args_callback_collection[i]; });
+
+  std::string const fmt_format = _generate_fmt_format_string(format_pattern_part);
+
+  // Store the tuple in a class for part 1
+  return std::make_unique<FormatterHelper<decltype(callbacks_tuple)>>(callbacks_tuple, fmt_format);
 }
 
 } // namespace quill
