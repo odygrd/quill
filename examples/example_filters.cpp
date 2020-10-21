@@ -18,11 +18,7 @@ public:
                               quill::detail::LogRecordMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
   {
-    if (metadata.level() < quill::LogLevel::Warning)
-    {
-      return true;
-    }
-    return false;
+    return metadata.level() < quill::LogLevel::Warning;
   }
 };
 
@@ -38,11 +34,7 @@ public:
                               quill::detail::LogRecordMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
   {
-    if (metadata.level() >= quill::LogLevel::Warning)
-    {
-      return true;
-    }
-    return false;
+    return metadata.level() >= quill::LogLevel::Warning;
   }
 };
 
