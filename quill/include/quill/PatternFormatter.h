@@ -375,19 +375,13 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, const char* th
   _formatted_log_record.clear();
 
   // Format part 1 of the pattern first
-  if (_pattern_formatter_helper_part_1)
-  {
-    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Format the user requested string
   fmt::format_to(_formatted_log_record, logline_info.message_format(), args...);
 
   // Format part 3 of the pattern
-  if (_pattern_formatter_helper_part_3)
-  {
-    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Append a new line
   _formatted_log_record.push_back('\n');
@@ -403,19 +397,13 @@ typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::val
   _formatted_log_record.clear();
 
   // Format part 1 of the pattern first
-  if (_pattern_formatter_helper_part_1)
-  {
-    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Format the user requested string
   fmt::format_to(_formatted_log_record, logline_info.message_format(), args...);
 
   // Format part 3 of the pattern
-  if (_pattern_formatter_helper_part_3)
-  {
-    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Append a new line
   _formatted_log_record.push_back('\n');
@@ -431,10 +419,7 @@ typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::valu
   _formatted_log_record.clear();
 
   // Format part 1 of the pattern first
-  if (_pattern_formatter_helper_part_1)
-  {
-    _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Format the user message format string to a wide char buffer
   std::wstring const w_message_format = detail::s2ws(logline_info.message_format());
@@ -447,10 +432,7 @@ typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::valu
   detail::wstring_to_utf8(_w_memory_buffer, _formatted_log_record);
 
   // Format part 3 of the pattern
-  if (_pattern_formatter_helper_part_3)
-  {
-    _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-  }
+  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
 
   // Append a new line
   _formatted_log_record.push_back('\n');
@@ -554,18 +536,20 @@ std::unique_ptr<PatternFormatter::FormatterHelperBase> PatternFormatter::_make_f
   std::vector<argument_callback_t> const args_callback_collection =
     _generate_vector_of_callbacks(format_pattern_part);
 
-  if (!args_callback_collection.empty())
+  if (args_callback_collection.empty())
   {
-    // Wrap the vector of functions to a tuple for part 1
-    auto const callbacks_tuple =
-      _generate_tuple<N>([args_callback_collection](size_t i) { return args_callback_collection[i]; });
-
-    std::string const fmt_format = _generate_fmt_format_string(format_pattern_part);
-
-    // Store the tuple in a class for part 1
-    return std::make_unique<FormatterHelper<decltype(callbacks_tuple)>>(callbacks_tuple, fmt_format);
+    // create a FormatterHelper but without any callbacks
+    return std::make_unique<FormatterHelper<std::tuple<>>>(std::tuple<>{}, format_pattern_part);
   }
-  return nullptr;
+
+  // Wrap the vector of functions to a tuple for part 1
+  auto const callbacks_tuple =
+    _generate_tuple<N>([args_callback_collection](size_t i) { return args_callback_collection[i]; });
+
+  std::string const fmt_format = _generate_fmt_format_string(format_pattern_part);
+
+  // Store the tuple in a class for part 1
+  return std::make_unique<FormatterHelper<decltype(callbacks_tuple)>>(callbacks_tuple, fmt_format);
 }
 
 } // namespace quill

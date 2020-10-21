@@ -9,6 +9,7 @@
 #include "quill/PatternFormatter.h"
 #include "quill/detail/events/LogRecordMetadata.h"
 #include "quill/detail/misc/Common.h"
+#include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/RecursiveSpinlock.h"
 #include "quill/filters/FilterBase.h"
 #include <memory>
@@ -36,6 +37,12 @@ public:
 
   Handler(Handler const&) = delete;
   Handler& operator=(Handler const&) = delete;
+
+  /**
+   * Operator new to align this object to a cache line boundary as we always create it on the heap
+   */
+  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHELINE_SIZE, i); }
+  void operator delete(void* p) { detail::aligned_free(p); }
 
   /**
    * Set a custom formatter for this handler
