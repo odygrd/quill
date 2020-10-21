@@ -916,7 +916,7 @@ TEST_CASE("logger_with_two_files_set_log_level_on_handler")
 
   frontend.join();
 
-  // Check log levels on the handlers - this is after apply fitler has run at least once from above
+  // Check log levels on the handlers
   REQUIRE_EQ(file_handler1->get_log_level(), LogLevel::Info);
   REQUIRE_EQ(file_handler2->get_log_level(), LogLevel::Error);
 

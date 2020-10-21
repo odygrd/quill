@@ -13,7 +13,8 @@
 -  [v1.0.0](#v1.0.0)
 
 ## v1.5.0
-- Added `Filters`. The filter class can be used for filtering log records. Filters can be added to handler instances. See [example_filters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_filters.cpp) ([#49](https://github.com/odygrd/quill/issues/49))
+- Added `Filters`. The filter class can be used for filtering log records. Filters can be added to handler instances. See [example_filters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_filters.cpp)
+- It is now possible to set the log level severity on the handler objects. See [example_filters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_handler_log_levels.cpp) ([#49](https://github.com/odygrd/quill/issues/49))
 - Timestamp formatting optimisation for the backend worker thread.
 - Free list allocator optimisation for the backend worker thread.
 - PatternFormatter enhancement. It is now possible to pass [{fmt} string syntax](https://fmt.dev/latest/syntax.html) to `QUILL_STRING`. The default PatternFormatter string has been changed to: `"%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) %(logger_name:<12) - %(message)"`. This results to the following log being properly aligned despite the different lengths of each filename and logger name.

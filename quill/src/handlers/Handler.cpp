@@ -1,23 +1,10 @@
 #include "quill/handlers/Handler.h"
 
-#include "quill/filters/LogLevelFilter.h"
 #include <algorithm>
 #include <mutex>
 
 namespace quill
 {
-
-/***/
-void Handler::set_log_level(LogLevel log_level)
-{
-    _log_level = log_level;
-}
-
-/***/
-QUILL_NODISCARD LogLevel Handler::get_log_level() noexcept
-{
-    return _log_level;
-}
 
 /***/
 void Handler::add_filter(std::unique_ptr<FilterBase> filter)
@@ -47,7 +34,8 @@ QUILL_NODISCARD bool Handler::apply_filters(char const* thread_id, std::chrono::
                                             detail::LogRecordMetadata const& metadata,
                                             fmt::memory_buffer const& formatted_record)
 {
-  if (_log_level < metadata.level()) {
+  if (metadata.level() < _log_level.load(std::memory_order_relaxed))
+  {
     return false;
   }
 
