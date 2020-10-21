@@ -46,7 +46,6 @@ set(HEADER_FILES
         include/quill/detail/TimestampFormatter.h
         include/quill/detail/UnboundedSPSCQueue.h
         include/quill/filters/FilterBase.h
-        include/quill/filters/LogLevelFilter.h
         include/quill/handlers/ConsoleHandler.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
