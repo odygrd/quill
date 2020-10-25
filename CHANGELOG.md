@@ -18,6 +18,7 @@
 - Timestamp formatting optimisation for the backend worker thread.
 - Free list allocator optimisation for the backend worker thread.
 - Fixed PatternFormatter ignoring a portion of the pattern was ignored, when no format specifiers were present. ([#56](https://github.com/odygrd/quill/issues/56))
+- When `%(function_name)` is used in PatternFormatter the namespace delimiter is replaced from `::` to `.` (Windows only). ([#61](https://github.com/odygrd/quill/issues/61))
 - PatternFormatter enhancement. It is now possible to pass [{fmt} string syntax](https://fmt.dev/latest/syntax.html) to `QUILL_STRING`. The default PatternFormatter string has been changed to: `"%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) %(logger_name:<12) - %(message)"`. This results to the following log being properly aligned despite the different lengths of each filename and logger name.
 ```
 22:31:07.995438465 [2666041] file1.h:11                   LOG_INFO      logger1      - Log from file.
