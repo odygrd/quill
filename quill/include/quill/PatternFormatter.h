@@ -354,6 +354,9 @@ private:
 #if defined(_WIN32)
   /** Windows support for wide characters, we need to store extra buffers to convert wide strings to utf8 before passing them to fmt format as narrow characters**/
   mutable fmt::wmemory_buffer _w_memory_buffer;
+
+  /** On windows, __FUNCTION__ also contains the namespace name. We replace "::" with "." */
+  std::string _win_func;
 #endif
 
   /** class responsible for formatting the timestamp */

@@ -110,8 +110,25 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   }
   else if (pattern_attr == "function_name")
   {
+#if defined(_WIN32)
+    return [this](std::chrono::nanoseconds, char const*, char const*, detail::LogRecordMetadata const& logline_info) {
+      // On windows, __FUNCTION__ also contains the namespace name e.g. a::b::my_function().
+      _win_func = logline_info.func();
+
+      // replace all "::" with '.'
+      size_t index = _win_func.find("::");
+      while (index != std::string::npos)
+      {
+        _win_func.replace(index, 2, ".");
+        index = _win_func.find("::");
+      }
+
+      return _win_func.data();
+    };
+#else
     return [](std::chrono::nanoseconds, char const*, char const*,
               detail::LogRecordMetadata const& logline_info) { return logline_info.func(); };
+#endif
   }
   else
   {
