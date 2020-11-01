@@ -13,6 +13,7 @@
 -  [v1.0.0](#v1.0.0)
 
 ## v1.5.0
+- Upgraded bundled libfmt to `7.1.0`
 - Added `Filters`. The filter class can be used for filtering log records. Filters can be added to handler instances. See [example_filters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_filters.cpp)
 - It is now possible to set the log level severity on the handler objects. See [example_filters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_handler_log_levels.cpp) ([#49](https://github.com/odygrd/quill/issues/49))
 - Timestamp formatting optimisation for the backend worker thread.
