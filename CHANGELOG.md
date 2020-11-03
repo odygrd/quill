@@ -13,7 +13,7 @@
 -  [v1.0.0](#v1.0.0)
 
 ## v1.5.0
-- Upgraded bundled libfmt to `7.1.0`
+- Upgraded bundled libfmt to `7.1.1`
 - Added `Filters`. The filter class can be used for filtering log records. Filters can be added to handler instances. See [example_filters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_filters.cpp)
 - It is now possible to set the log level severity on the handler objects. See [example_filters.cpp](https://github.com/odygrd/quill/blob/master/examples/example_handler_log_levels.cpp) ([#49](https://github.com/odygrd/quill/issues/49))
 - Timestamp formatting optimisation for the backend worker thread.
@@ -31,7 +31,7 @@
 ## v1.4.1
 - Do not force `quill` to always build as `static` library in cmake.
 - Minor fix when `quill` is compiled with no exceptions.
-- Add the option to disable the non prefixed macro definitions if `QUILL_DISABLE_NON_PREFIXED_MACROS` is defined. ([#40](https://github.com/odygrd/quill/issues/40)) 
+- Add the option to disable the non prefixed macro definitions if `QUILL_DISABLE_NON_PREFIXED_MACROS` is defined. ([#40](https://github.com/odygrd/quill/issues/40))
 
 ## v1.4.0
 - Added support for printing colour codes in the terminal. See [ConsoleHandler](https://github.com/odygrd/quill/wiki/2.-Handlers#consolehandler)
