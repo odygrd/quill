@@ -391,9 +391,8 @@ void BackendWorker::_main_loop()
 std::chrono::nanoseconds BackendWorker::_get_real_timestamp(BaseEvent const* base_event) const noexcept
 {
 #if !defined(QUILL_CHRONO_CLOCK)
-
   assert(_rdtsc_clock && "rdtsc should not be nullptr");
-  assert(base_event->using_rdtsc() &&
+  assert(base_event->using_rdtsc() == false &&
          "BaseEvent has a std::chrono timestamp, but the backend thread is using rdtsc timestamp");
 
   // pass to our clock the stored rdtsc from the caller thread
