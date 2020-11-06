@@ -21,21 +21,21 @@
       <img src="https://img.shields.io/codefactor/grade/github/odygrd/quill?logo=codefactor&style=flat-square" alt="CodeFactor" />
      </a>
   </div>
- 
+
   <div>
-    <a href="http://opensource.org/licenses/MIT">
+    <a href="https://opensource.org/licenses/MIT">
       <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="license" />
     </a>
     <a href="https://en.wikipedia.org/wiki/C%2B%2B14">
       <img src="https://img.shields.io/badge/language-C%2B%2B14-red.svg?style=flat-square" alt="language" />
     </a>
   </div>
-  
+
   <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
-  
+
 </div>
 
-  
+
 <br>
 
 -  [Introduction](#introduction)
@@ -65,9 +65,9 @@ The main goals of the library are:
 ## Features
  -  Type safe python style API with compile type checks and built-in support for logging STL types/containers by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
  -  Blazing fast. See [Benchmarks](https://github.com/odygrd/quill#performance).
- -  Formatting is performed outside of the hot-path in a backend logging thread. For `non-built-in` types `ostream::operator<<()` is called on a copy of the object by the backend logging thread. Unsafe to copy `non-trivial user defined` are detected in compile time. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/5.-User-Defined-Types).
+ -  Formatting is performed outside of the hot-path in a backend logging thread. For `non-built-in` types `ostream::operator<<()` is called on a copy of the object by the backend logging thread. Unsafe to copy `non-trivial user defined` are detected in compile time. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/8.-User-Defined-Types).
  -  Log levels can be completely stripped out at compile time reducing `if` branches.
- -  Custom logs formatting. Logs can be formatted based on a user specified pattern. See [Formatters](https://github.com/odygrd/quill/wiki/3.-Formatters).
+ -  Custom logs formatting. Logs can be formatted based on a user specified pattern. See [Formatters](https://github.com/odygrd/quill/wiki/4.-Formatters).
  -  Log statements always appear in timestamp order even if produced by different threads. This makes debugging easier in multi-threaded applications.
  -  Backtrace logging. Store log messages in a ring buffer and display later when a higher severity log statement occurs or on demand. See [Backtrace Logging](https://github.com/odygrd/quill/wiki/6.-Backtrace-Logging).
  -  `guaranteed non-blocking` or `non-guaranteed` logging. In `guaranteed non-blocking` logging more memory is allocated so the caller doesn't get blocked, log messages are never dropped. In `non-guaranteed` mode there is no heap allocation log messages can be dropped. See [FAQ](https://github.com/odygrd/quill/wiki/7.-FAQ#guaranteed-logging-mode).
@@ -77,12 +77,12 @@ The main goals of the library are:
     -  File Logging
     -  Rotating log files
     -  Time rotating log files
- -  Filters for filtering log messages. See [Filters](https://github.com/odygrd/quill/wiki/3.-Filters). 
+ -  Filters for filtering log messages. See [Filters](https://github.com/odygrd/quill/wiki/3.-Filters).
  -  Clean warning-free codebase even on high warning levels.
 
 ## Performance
-The following message is logged 2'000'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.  
-Results are in `nanoseconds`.  
+The following message is logged 2'000'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.
+Results are in `nanoseconds`.
 
 #### 1 Thread
 
@@ -112,7 +112,7 @@ Results are in `nanoseconds`.
 
 The benchmarks are done on `Linux (Ubuntu/RHEL)` with GCC 9.1.
 
-Each thread is pinned on a different cpu.  
+Each thread is pinned on a different cpu.
 Running the backend logger thread in the same CPU as the caller hot-path threads, slows down the log message processing on the backend logging thread and will cause the SPSC queue to fill faster and re-allocate.
 
 Continuously Logging messages in a loop makes the consumer (backend logging thread) unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog.
@@ -124,15 +124,15 @@ Therefore, a different approach was followed that suits more to a real time appl
 
 I run each logger benchmark four times and the above latencies are the second best result.
 
-The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).  
-More benchmarks results (bench_results_*.txt) can be found [here](https://github.com/odygrd/logger_benchmarks).
+The benchmark code can be found [here](https://github.com/odygrd/logger_benchmarks).
+More benchmarks results (`bench_results_*.txt`) can be found [here](https://github.com/odygrd/logger_benchmarks).
 
 ### Verdict
-If you want to use a `printf` API and only log primitive types, `PlatformLab NanoLog` is the fastest logger with the lowest latencies and high throughput when we look at 99th percentile. 
+If you want to use a `printf` API and only log primitive types, `PlatformLab NanoLog` is the fastest logger with the lowest latencies and high throughput when we look at 99th percentile.
 However :
 1) Need to decompress a binary log file to read log each time.
 2) Need to specify the type we are logging for each call to the logger.
-3) To log any user defined type or a something like ```std::vector``` via `NanoLog` you would first have to convert it to a string in the hot path.  Instead, Quill copies the object and covertion to string is performed by the backend thread.
+3) To log any user defined type or a something like `std::vector` via `NanoLog` you would first have to convert it to a string in the hot path.  Instead, Quill copies the object and covertion to string is performed by the backend thread.
 
 `Quill` backend is not as high throughput as `NanoLog` as it doesn't log binary. In terms of latency it is almost as fast as `Nanolog`. `Quill` is much more feature rich offering custom formatting, several logger objects, human readable log files and a superior format API that also supports user-defined types.
 
@@ -143,12 +143,12 @@ Cygwin is not supported at the moment.
 | Compiler  | Notes            |
 |-----------|------------------|
 | GCC       | version >= 5.0   |
-| Clang     | version >= 5.0   |      
+| Clang     | version >= 5.0   |
 | MSVC++    | version >= 14.3  |
 
-| Platform  | Notes                                                   |
-|-----------|---------------------------------------------------------|
-| Linux     | Ubuntu, RHEL, Centos, Fedora                   |                                                    |
+| Platform  | Notes                                          |
+|-----------|------------------------------------------------|
+| Linux     | Ubuntu, RHEL, Centos, Fedora                   |
 | Windows   | Windows 10 - version 1607, Windows Server 2016 |
 | macOS     | Tested with Xcode 9.4                          |
 
@@ -243,7 +243,7 @@ my_project/
 cmake_minimum_required(VERSION 3.1.0)
 project(my_project)
 
-set(CMAKE_CXX_STANDARD 14) 
+set(CMAKE_CXX_STANDARD 14)
 
 add_subdirectory(quill)
 
@@ -259,11 +259,11 @@ Advanced usage and additional documentation can be found in the [wiki](https://g
 The [examples](https://github.com/odygrd/quill/tree/master/examples) folder is also a good source of documentation.
 
 ## License
-Quill is licensed under the [MIT License](http://opensource.org/licenses/MIT)
+Quill is licensed under the [MIT License](https://opensource.org/licenses/MIT)
 
-Quill depends on third party libraries with separate copyright notices and license terms. 
+Quill depends on third party libraries with separate copyright notices and license terms.
 Your use of the source code for these subcomponents is subject to the terms and conditions of the following licenses.
 
-   - ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
-   - ([MIT License](http://opensource.org/licenses/MIT)) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
-   - ([MIT License](http://opensource.org/licenses/MIT)) doctest (https://github.com/onqtam/doctest/blob/master/LICENSE.txt)
+   - ([MIT License](https://opensource.org/licenses/MIT)) {fmt} (https://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
+   - ([MIT License](https://opensource.org/licenses/MIT)) invoke.hpp (https://github.com/BlackMATov/invoke.hpp/blob/master/LICENSE.md)
+   - ([MIT License](https://opensource.org/licenses/MIT)) doctest (https://github.com/onqtam/doctest/blob/master/LICENSE.txt)
