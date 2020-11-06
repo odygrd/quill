@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/Fmt.h"
 #include "quill/LogLevel.h"
 #include "quill/QuillError.h"
 #include "quill/detail/LoggerDetails.h"
@@ -22,9 +23,23 @@
 
 namespace quill
 {
+
 namespace detail
 {
-class LoggerCollection;
+  class LoggerCollection;
+}
+
+/**
+ * Check in compile time the correctness of a format string
+ */
+template <typename S, typename... Args, typename Char = fmt::char_t<S>>
+constexpr void check_format(S const& format_str, Args&&...)
+{
+#if FMT_VERSION >= 70000
+  fmt::detail::check_format_string<std::remove_reference_t<Args>...>(format_str);
+#else
+  fmt::internal::check_format_string<std::remove_reference_t<Args>...>(format_str);
+#endif
 }
 
 /**
@@ -96,9 +111,10 @@ public:
    * @note This function is thread-safe.
    * @param fmt_args format arguments
    */
-  template <bool IsBackTraceLogRecord, typename TLogRecordMetadata, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT void log(FmtArgs&&... fmt_args)
+  template <bool IsBackTraceLogRecord, typename TLogRecordMetadata, typename TFormatString, typename... FmtArgs>
+  QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
   {
+    check_format(format_string, std::forward<FmtArgs>(fmt_args)...);
     static_assert(
       detail::is_all_tuple_copy_constructible<FmtArgs...>::value,
       "The type must be copy constructible. If the type can not be copy constructed it must"

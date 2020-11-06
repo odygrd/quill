@@ -439,6 +439,48 @@ TEST_CASE("log_to_multiple_handlers_from_same_logger")
              "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_20)\n");
 }
 
+/***/
+TEST_CASE("check_log_arguments_evaluation")
+{
+  size_t cnt{0};
+  auto arg_str = [&cnt](){
+    ++cnt;
+    return "expensive_calculation";
+  };
+
+  static constexpr char const* filename = "check_log_arguments_evaluation.log";
+
+  // create a new logger in the ctor
+  quill::Handler* filehandler = quill::file_handler(filename, "w");
+  auto logger = quill::create_logger("logger", filehandler);
+
+  // Start the logging backend thread
+  quill::start();
+
+  // 1. checks that log arguments are not evaluated when we don't log
+  logger->set_log_level(quill::LogLevel::Info);
+  LOG_DEBUG(logger, "Test log arguments {}", arg_str());
+  LOG_TRACE_L1(logger, "Test log arguments {}", arg_str());
+  REQUIRE_EQ(cnt, 0);
+
+  // 2. checks that log arguments are evaluated only once per log statement
+  LOG_INFO(logger, "Test log arguments {}", arg_str());
+  REQUIRE_EQ(cnt, 1);
+
+  quill::flush();
+
+#if defined(_WIN32)
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
+  REQUIRE_EQ(file_contents.size(), 1);
+  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
+#else
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 1);
+  quill::detail::file_utilities::remove(filename);
+#endif
+}
 #ifndef QUILL_NO_EXCEPTIONS
 /***/
 TEST_CASE("invalid_handlers")

@@ -7,7 +7,6 @@
 
 #include "quill/detail/misc/Common.h"
 
-#include "quill/Fmt.h"
 #include "quill/Logger.h"
 #include "quill/detail/misc/Macros.h"
 #include <type_traits>
@@ -28,72 +27,61 @@
  */
 #define QUILL_COPY_LOGGABLE using copy_loggable = std::true_type
 
-/**
- * Check in compile time the correctness of a format string
- */
-template <typename S, typename... Args, typename Char = fmt::char_t<S>>
-constexpr void check_format(const S& format_str, Args&&...)
-{
-#if FMT_VERSION >= 70000
-  fmt::detail::check_format_string<std::remove_reference_t<Args>...>(format_str);
-#else
-  fmt::internal::check_format_string<std::remove_reference_t<Args>...>(format_str);
-#endif
-}
-
 // Main Log Macros
 
 #if defined(QUILL_NOFN_MACROS)
 // clang-format off
-#define QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ...) do {                                                                    \
-    check_format(FMT_STRING(fmt), ##__VA_ARGS__);                                                                                                    \
-                                                                                                                                                     \
-    struct {                                                                                                                                         \
-      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                                                                       \
-        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, "n/a", fmt, log_statement_level}; }                     \
-      } anonymous_log_record_info;                                                                                                                   \
-                                                                                                                                                     \
-    if (likelyhood(logger->should_log<log_statement_level>()))                                                                                       \
-    {                                                                                                                                                \
-      logger->log<decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                                                 \
-    }                                                                                                                                                \
+#define QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ...)                  \
+  do {                                                                                             \
+    struct {                                                                                       \
+      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                     \
+        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,               \
+                                                "n/a", fmt, log_statement_level}; }                \
+      } anonymous_log_record_info;                                                                 \
+                                                                                                   \
+    if (likelyhood(logger->should_log<log_statement_level>()))                                     \
+    {                                                                                              \
+      constexpr bool is_backtrace_log_record {false};                                              \
+      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(FMT_STRING(fmt),   \
+                                                                                ##__VA_ARGS__);    \
+    }                                                                                              \
   } while (0)
 // clang-format on
 #endif
 
 // clang-format off
-#define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ...) \
-  do {                                                                       \
-    check_format(FMT_STRING(fmt), ##__VA_ARGS__);                                                                                                    \
-                                                                                                                                                     \
-    static constexpr char const* function_name = __FUNCTION__;                                                                                       \
-    struct {                                                                                                                                         \
-      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                                                                       \
-        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, log_statement_level}; }                     \
-      } anonymous_log_record_info;                                                                                                                   \
-                                                                                                                                                     \
-    if (likelyhood(logger->should_log<log_statement_level>()))                                                                                       \
-    {                                                                                                                                                \
-      constexpr bool is_backtrace_log_record {false};                                                                                                    \
-      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                            \
-    }                                                                                                                                                \
+#define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ...)                       \
+  do {                                                                                             \
+    static constexpr char const* function_name = __FUNCTION__;                                     \
+    struct {                                                                                       \
+      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                     \
+        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,               \
+                                                function_name, fmt, log_statement_level}; }        \
+      } anonymous_log_record_info;                                                                 \
+                                                                                                   \
+    if (likelyhood(logger->should_log<log_statement_level>()))                                     \
+    {                                                                                              \
+      constexpr bool is_backtrace_log_record {false};                                              \
+      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(FMT_STRING(fmt),   \
+                                                                                ##__VA_ARGS__);    \
+    }                                                                                              \
   } while (0)
 
-#define QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ...) \
-  do {                                                                       \
-    check_format(FMT_STRING(fmt), ##__VA_ARGS__);                                                                                                    \
-                                                                                                                                                     \
-    static constexpr char const* function_name = __FUNCTION__;                                                                                       \
-    struct {                                                                                                                                         \
-      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                                                                       \
-        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__, function_name, fmt, quill::LogLevel::Backtrace}; }              \
-      } anonymous_log_record_info;                                                                                                                   \
-                                                                                                                                                     \
-    if (QUILL_LIKELY(logger->should_log<quill::LogLevel::Backtrace>()))                                                                              \
-    {                                                                                                                                                \
-      constexpr bool is_backtrace_log_record {true};                                                                                                    \
-      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(__VA_ARGS__);                                                 \
-    }                                                                                                                                                \
+#define QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ...)                                              \
+  do {                                                                                             \
+    static constexpr char const* function_name = __FUNCTION__;                                     \
+    struct {                                                                                       \
+      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                     \
+        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,               \
+                                                function_name, fmt, quill::LogLevel::Backtrace}; } \
+      } anonymous_log_record_info;                                                                 \
+                                                                                                   \
+    if (QUILL_LIKELY(logger->should_log<quill::LogLevel::Backtrace>()))                            \
+    {                                                                                              \
+      constexpr bool is_backtrace_log_record {true};                                               \
+      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(FMT_STRING(fmt),   \
+                                                                                ##__VA_ARGS__);    \
+    }                                                                                              \
   } while (0)
 // clang-format on
 
