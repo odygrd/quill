@@ -21,7 +21,7 @@ namespace utility
  * Formats the given buffer to hex
  * @param buffer input buffer
  * @param size input buffer size
- * @return A string containing the hexadecimal representation of the givven buffer
+ * @return A string containing the hexadecimal representation of the given buffer
  */
 QUILL_NODISCARD std::string to_hex(unsigned char* buffer, size_t size) noexcept;
 QUILL_NODISCARD std::string to_hex(unsigned char const* buffer, size_t size) noexcept;
@@ -30,7 +30,7 @@ QUILL_NODISCARD std::string to_hex(unsigned char const* buffer, size_t size) noe
  * Formats the given buffer to hex
  * @param buffer input buffer
  * @param size input buffer size
- * @return A string containing the hexadecimal representation of the givven buffer
+ * @return A string containing the hexadecimal representation of the given buffer
  */
 QUILL_NODISCARD std::string to_hex(char* buffer, size_t size) noexcept;
 QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
@@ -38,7 +38,7 @@ QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
 /**
  * By default the logger will take a copy of the passed object and then will call the operator<< in the background thread
  * Use this function when :
- * 1) [to print a non copiable] It is not possible to take a copy of an object when the object is not copyable
+ * 1) [to print a non copyable] It is not possible to take a copy of an object when the object is not copyable
  * 2) [to avoid race condition] You want to log a class that contains a reference or a pointer to another object as a class member, that
  * can be updated before the logger thread calls operator<<. In that case when the logger
  * thread tries to call operator<< on the class itself but the internal reference object might have changed between the

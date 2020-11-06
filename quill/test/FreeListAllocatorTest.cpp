@@ -685,7 +685,7 @@ TEST_CASE("allocate_deallocate_many_from_os")
   allocated_ptrs.clear();
 
   // We will allocate again but this time MEMORY_S / 2
-  // This can fit and split the MEMORY_S blokcs we had allocated initialy
+  // This can fit and split the MEMORY_S blocks we had allocated initially
   for (size_t i = 0; i < ITERATIONS; ++i)
   {
     // request num blocks of memory of size memory_s

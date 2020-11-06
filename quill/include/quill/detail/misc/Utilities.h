@@ -131,7 +131,7 @@ QUILL_NODISCARD time_t next_noon_or_midnight_timestamp(time_t timestamp, Timezon
  * @param format_string The format string to pass to strftime
  * @param timestamp The timestamp
  * @param timezone local time or gmtime
- * @return the formated string as vector of characters
+ * @return the formatted string as vector of characters
  */
 QUILL_NODISCARD std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone timezone);
 

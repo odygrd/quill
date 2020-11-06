@@ -78,7 +78,7 @@ TEST_CASE("get_non_existing_logger")
 /***/
 TEST_CASE("default_logger")
 {
-  // Get the default logger and change the log level, then get the default logger again ans check
+  // Get the default logger and change the log level, then get the default logger again and check
   // the values we set are cached
   Config cfg;
   HandlerCollection hc;

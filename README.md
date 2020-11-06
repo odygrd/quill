@@ -63,7 +63,7 @@ The main goals of the library are:
 -  **Convenience** Ease application monitoring/debugging. Latency is equal to latencies of binary loggers, but the produced log is in human readable form.
 
 ## Features
- -  Type safe python style API with compile type checks and build-in support for logging STL types/containers by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
+ -  Type safe python style API with compile type checks and built-in support for logging STL types/containers by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
  -  Blazing fast. See [Benchmarks](https://github.com/odygrd/quill#performance).
  -  Formatting is performed outside of the hot-path in a backend logging thread. For `non-built-in` types `ostream::operator<<()` is called on a copy of the object by the backend logging thread. Unsafe to copy `non-trivial user defined` are detected in compile time. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/5.-User-Defined-Types).
  -  Log levels can be completely stripped out at compile time reducing `if` branches.
