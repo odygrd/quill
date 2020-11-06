@@ -131,7 +131,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  * @param base_filename the base file name
  * @param mode file mode to open file
  * @param max_bytes The max_bytes of the file, when the size is exceeded the file witll rollover
- * @param backup_count The maxinum number of times we want to rollover
+ * @param backup_count The maximum number of times we want to rollover
  * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(filename_t const& base_filename,
@@ -317,7 +317,7 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name);
  * The backend thread will always "busy wait" spinning around every caller thread's local spsc queue.
  *
  * The reason for this is to reduce latency on the caller thread as notifying the
- * backend thread even by a fast backed by atomics semaphone would add additional latency
+ * backend thread even by a fast backed by atomics semaphore would add additional latency
  * to the caller thread.
  * The alternative to this is letting the backend thread "busy wait" and at the same time reduce the backend thread's
  * OS scheduler priority by a periodic call to sleep().

@@ -70,7 +70,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_thread_id() noexcept;
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_process_id() noexcept;
 
 /**
- * Get's the page size
+ * Gets the page size
  * @return the size of the page
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t get_page_size() noexcept;

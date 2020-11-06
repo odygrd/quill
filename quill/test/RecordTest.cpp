@@ -24,12 +24,12 @@ TEST_CASE("construct")
 
   LoggerDetails logger_details{"default", hc.stdout_console_handler()};
   {
-    // test with char const the tuple get's promoted
+    // test with char const the tuple gets promoted
     using record_t = LogRecordEvent<is_backtrace_log_record, mock_log_record_info, int, double, char const*>;
     static_assert(std::is_same<record_t::PromotedTupleT, std::tuple<int, double, std::string>>::value,
                   "tuple is not promoted");
 
-    // Try to contruct one using the same args
+    // Try to construct one using the same args
     record_t msg{&logger_details, 1337, 13.5, "test"};
 
     // Check that the constructed msg has a promoted underlying tuple
@@ -44,7 +44,7 @@ TEST_CASE("construct")
     static_assert(std::is_same<record_t::PromotedTupleT, std::tuple<int, double, std::string>>::value,
                   "tuple is not promoted");
 
-    // Try to contruct one using the same args
+    // Try to construct one using the same args
     record_t msg(&logger_details, 1337, 13.5, test_char);
 
     // Check that the constructed msg has a promoted underlying tuple

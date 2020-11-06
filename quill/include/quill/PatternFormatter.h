@@ -134,7 +134,7 @@ private:
   /** Public classes **/
 public:
   /**
-   * Stores the precission of the timestamp
+   * Stores the precision of the timestamp
    */
   enum class TimestampPrecision : uint8_t
   {
@@ -316,13 +316,13 @@ private:
    * Process part of the pattern and create a helper formatter class
    * @param format_pattern_part format pattern part
    * @throws on invalid input
-   * @return a formater helper base
+   * @return a formatter helper base
    */
   template <size_t N>
   QUILL_NODISCARD std::unique_ptr<FormatterHelperBase> _make_formatter_helper(std::string const& format_pattern_part);
 
   /**
-   * Given a message part generate a vector of callbacks in the excact same order as the format
+   * Given a message part generate a vector of callbacks in the exact same order as the format
    * specifiers in the pattern format string
    * @param pattern pattern
    */

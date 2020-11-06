@@ -61,7 +61,7 @@ int main()
   // The following fails to compile
   // LOG_INFO(quill::get_logger(), "The user is {}", usr);
 
-  // The user has to explictly format on the hot path, or instead tag the object (see User2)
+  // The user has to explicitly format on the hot path, or instead tag the object (see User2)
   LOG_INFO(quill::get_logger(), "The user is {}", quill::utility::to_string(usr));
 
   // The following compiles and logs, because the object is tagged by the user as safe

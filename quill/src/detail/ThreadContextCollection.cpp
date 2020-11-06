@@ -17,7 +17,7 @@ ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContex
   // We can not use std::make_shared above.
   // Explanation :
   // ThreadContext has the SPSC queue as a class member which requires a 64 cache byte alignment,
-  // since we are creating this object on the heap this is not guaranted.
+  // since we are creating this object on the heap this is not guaranteed.
   // Visual Studio is the only compiler that gives a warning that ThreadContext might not be aligned to 64 bytes,
   // as it is allocated on the heap and we should use aligned alloc instead.
   // The solution to solve this would be to define a custom operator new and operator delete for ThreadContext.

@@ -51,7 +51,7 @@ public:
    * This object should always be aligned to a cache line as it contains the SPSC queue as a member
    * which has cache line alignment requirements
    * @param i size of object
-   * @return a pointer to the allcoated object
+   * @return a pointer to the allocated object
    */
   void* operator new(size_t i) { return aligned_alloc(CACHELINE_SIZE, i); }
 

@@ -52,7 +52,7 @@ public:
 
   /**
    * Convert tsc cycles to nanoseconds
-   * @param rdtsc_value the rdtsc timestamp to conver
+   * @param rdtsc_value the rdtsc timestamp to convert
    * @return the rdtsc timestamp converted to nanoseconds since epoch
    */
   std::chrono::nanoseconds time_since_epoch(uint64_t rdtsc_value) const noexcept;

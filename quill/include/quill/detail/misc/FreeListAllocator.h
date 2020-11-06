@@ -228,7 +228,7 @@ protected:
   /**
    * Free list structure. Blocks are added to the free list on the `free` operation.
    * Consequent allocations of the appropriate size reuse the freed blocks.
-   * If a std::map or std::multimap is used they call operator::new everytime
+   * If a std::map or std::multimap is used they call operator::new every time
    * an insertion happens to allocate a free node, so a std::vector is used instead.
    */
   std::vector<size_blocks_pair_t> _free_list;

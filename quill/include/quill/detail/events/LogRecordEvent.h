@@ -88,7 +88,7 @@ public:
 
   /**
    * Process a backtrace record and forward it to all handlers
-   * @param thread_id The thread id that initialised the original record. This is stored and provided seperately.
+   * @param thread_id The thread id that initialised the original record. This is stored and provided separately.
    * @param timestamp_callback A callback to obtain the real timestamp of the record
    */
   void backend_process_backtrace_log_record(char const* thread_id, GetHandlersCallbackT const&,

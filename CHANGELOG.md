@@ -56,7 +56,7 @@
 
 ## v1.3.0
 **New Features**
--  Added option `QUILL_NO_EXCEPTIONS` to disable exceptions, std::abort() is called instead of an expection. ([#16](https://github.com/odygrd/quill/issues/16))
+-  Added option `QUILL_NO_EXCEPTIONS` to disable exceptions, std::abort() is called instead of an exception. ([#16](https://github.com/odygrd/quill/issues/16))
 -  Exceptions thrown in the backend worker thread, will now call a user provided error handler callback to handle the error. ([#21](https://github.com/odygrd/quill/issues/21))
 -  Compile time checks for unsafe to copy user defined types. Non trivial user defined types must be explicitly tagged as safe to copy with the use of `QUILL_COPY_LOGGABLE;`. Otherwise they have to be formatted and passed as a string to the logger by the user. The old unsafe mode is still usable by `#define QUILL_MODE_UNSAFE` ([#20](https://github.com/odygrd/quill/issues/20))
 -  Added `QUILL_USE_BOUNDED_QUEUE`. In this mode no new queues get allocated but instead log messages get lost. Number of lost messages is reported to stderr.
@@ -100,7 +100,7 @@
 -  The log level names have been changed from `"LOG_INFO"`, `"LOG_DEBUG"`, etc to `"INFO"`, `"DEBUG"`, etc .. The default formatter string is now using `"LOG_"%(level_name)` instead of `%(level_name)` therefore there is now change in the behaviour. This change gives a lot of more flexibility to users who prefer to see e.g. `INFO` instead of `LOG_INFO` in the logs. ([#7](https://github.com/odygrd/quill/issues/7))
 -  An option has been added to append the date to the filename when using a FileHandler `quill::file_handler(filename, mode, FilenameAppend);`. ([#7](https://github.com/odygrd/quill/issues/7))
 -  It is now possible to specify the timezone of each handler timestamp. A new parameter is added to `file_handler->set_pattern(...)`. See `PatternFormatter::Timezone`. ([#7](https://github.com/odygrd/quill/issues/7))
--  Rename `emit` as it can confict with Qt macros. ([#4](https://github.com/odygrd/quill/issues/4))
+-  Rename `emit` as it can conflict with Qt macros. ([#4](https://github.com/odygrd/quill/issues/4))
 -  Upgraded `libfmt` to `6.2.0`.
 
 ## v1.0.0

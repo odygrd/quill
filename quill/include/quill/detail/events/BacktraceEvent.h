@@ -60,7 +60,7 @@ public:
   {
     if (_backtrace_capacity != std::numeric_limits<uint32_t>::max())
     {
-      // If the _backtrace_capacity is set it means we are seting up the backtrace
+      // If the _backtrace_capacity is set it means we are setting up the backtrace
       // We setup the backtrace like this with an event to the backend thread - that way we avoid any overcomplications
       backtrace_log_record_storage.set_capacity(_logger_details->name(), _backtrace_capacity);
     }

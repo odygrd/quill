@@ -101,7 +101,7 @@
  * There is a convenience macro also `QUILL_COPY_LOGGABLE`
  *
  * If the user defined type has shared mutable references to other objects as class members
- * this tag should not be provided, instead the formatting should be done explictly on the caller
+ * this tag should not be provided, instead the formatting should be done explicitly on the caller
  * thread side by the user.
  *
  * QUILL_MODE_UNSAFE is not recommended as the user should be never careful when logging user
