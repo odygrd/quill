@@ -246,7 +246,6 @@ protected:
 
 /**
  * A free list allocator custom deleter, that can be used with unique_ptrs
- * @tparam T
  */
 template <typename T>
 struct FreeListAllocatorDeleter
