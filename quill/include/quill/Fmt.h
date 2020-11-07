@@ -12,6 +12,7 @@
  * By default Quill includes it's bundled copy.
  */
 #if defined(QUILL_FMT_EXTERNAL)
+  #define FMT_HEADER_ONLY
   #include <fmt/chrono.h>
   #include <fmt/format.h>
   #include <fmt/ostream.h>
