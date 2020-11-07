@@ -188,7 +188,7 @@ std::string const& StringFromTime::format_timestamp(time_t timestamp)
 
   std::string to_replace;
 
-  for (auto const index : _cached_indexes)
+  for (auto const& index : _cached_indexes)
   {
     // for each cached index we have, replace it when the new value
     switch (index.second)
