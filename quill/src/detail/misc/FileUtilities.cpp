@@ -1,11 +1,11 @@
 #include "quill/detail/misc/FileUtilities.h"
-#include "quill/Fmt.h"                // for format
 #include "quill/QuillError.h"         // for QUILL_THROW, QuillError
 #include "quill/detail/misc/Macros.h" // for QUILL_UNLIKELY
 #include "quill/detail/misc/Os.h"     // for fsize, localtime_rs, remove
 #include <cerrno>                     // for errno
 #include <ctime>                      // for time_t
-#include <sstream>                    // for operator<<, basic_ostream, bas...
+#include <iomanip>
+#include <sstream> // for operator<<, basic_ostream, bas...
 
 namespace quill
 {
@@ -90,12 +90,23 @@ filename_t append_date_to_filename(filename_t const& filename,
     detail::file_utilities::extract_stem_and_extension(filename);
 
   // Construct a filename
-  return append_time
-    ? fmt::format(QUILL_FILENAME_STR("{}_{:04d}-{:02d}-{:02d}_{:02d}-{:02d}-{:02d}{}"),
-                  stem_ext.first, now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
-                  now_tm.tm_hour, now_tm.tm_min, now_tm.tm_sec, stem_ext.second)
-    : fmt::format(QUILL_FILENAME_STR("{}_{:04d}-{:02d}-{:02d}{}"), stem_ext.first,
-                  now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday, stem_ext.second);
+  filename_ss_t ss;
+  if (append_time)
+  {
+    ss << std::setfill(QUILL_FILENAME_STR('0')) << stem_ext.first << QUILL_FILENAME_STR("_")
+       << std::setw(4) << now_tm.tm_year + 1900 << QUILL_FILENAME_STR("-") << std::setw(2) << now_tm.tm_mon + 1
+       << QUILL_FILENAME_STR("-") << std::setw(2) << now_tm.tm_mday << QUILL_FILENAME_STR("_")
+       << std::setw(2) << now_tm.tm_hour << QUILL_FILENAME_STR("-") << std::setw(2) << now_tm.tm_min
+       << QUILL_FILENAME_STR("-") << std::setw(2) << now_tm.tm_sec << stem_ext.second;
+  }
+  else
+  {
+    ss << std::setfill(QUILL_FILENAME_STR('0')) << stem_ext.first << QUILL_FILENAME_STR("_")
+       << std::setw(4) << now_tm.tm_year + 1900 << QUILL_FILENAME_STR("-") << std::setw(2) << now_tm.tm_mon + 1
+       << QUILL_FILENAME_STR("-") << std::setw(2) << now_tm.tm_mday << stem_ext.second;
+  }
+
+  return ss.str();
 }
 
 /***/
@@ -111,7 +122,9 @@ filename_t append_index_to_filename(filename_t const& filename, uint32_t index) 
     detail::file_utilities::extract_stem_and_extension(filename);
 
   // Construct a filename
-  return fmt::format(QUILL_FILENAME_STR("{}.{}{}"), stem_ext.first, index, stem_ext.second);
+  filename_ss_t ss;
+  ss << stem_ext.first << QUILL_FILENAME_STR(".") << index << stem_ext.second;
+  return ss.str();
 }
 
 } // namespace file_utilities

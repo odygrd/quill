@@ -7,6 +7,7 @@
 
 #include "quill/TweakMe.h"
 #include <string>
+#include <sstream>
 
 /**
  * Common type definitions etc
@@ -38,9 +39,11 @@ static constexpr size_t CACHELINE_SIZE{64u};
  */
 #if defined(_WIN32)
 using filename_t = std::wstring;
+using filename_ss_t = std::wstringstream;
   #define QUILL_FILENAME_STR(s) L##s
 #else
 using filename_t = std::string;
+using filename_ss_t = std::stringstream;
   #define QUILL_FILENAME_STR(s) s
 #endif
 
