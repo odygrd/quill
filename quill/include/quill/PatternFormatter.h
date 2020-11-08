@@ -34,11 +34,11 @@
  */
 #define QUILL_STRING(str)                                                                          \
   [] {                                                                                             \
-    using R = union X                                                                              \
+    union X                                                                                        \
     {                                                                                              \
       static constexpr auto value() { return str; }                                                \
     };                                                                                             \
-    return R{};                                                                                    \
+    return X{};                                                                                    \
   }()
 
 namespace quill
