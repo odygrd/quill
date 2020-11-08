@@ -1,3 +1,4 @@
+-  [v1.5.3](#v1.5.3)
 -  [v1.5.2](#v1.5.2)
 -  [v1.5.1](#v1.5.1)
 -  [v1.5.0](#v1.5.0)
@@ -13,6 +14,9 @@
 -  [v1.2.0](#v1.2.0)
 -  [v1.1.0](#v1.1.0)
 -  [v1.0.0](#v1.0.0)
+
+## v1.5.3
+- Fix compiler error when `CMAKE_CXX_STANDARD 20` is set.
 
 ## v1.5.2
 - Removed the use of `fmt::format()` in `FileUtilities.cpp` as a workaround to the link errors in fmt v7. Use the header only version of libfmt when external libfmt is defiend is no longer required.
