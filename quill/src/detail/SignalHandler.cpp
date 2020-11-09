@@ -196,7 +196,7 @@ void on_signal(int32_t signal_number)
 {
   // This handler can be entered by multiple threads. We only allow the first thread to enter
   // the signal handler
-  ++lock;
+  lock = lock + 1;
   while (lock != 1)
   {
     // sleep until a signal is delivered that either terminates the process or causes the
