@@ -391,18 +391,13 @@ void BackendWorker::_main_loop()
 std::chrono::nanoseconds BackendWorker::_get_real_timestamp(BaseEvent const* base_event) const noexcept
 {
 #if !defined(QUILL_CHRONO_CLOCK)
-
-  assert(_rdtsc_clock && "rdtsc should not be nullptr");
-  assert(base_event->using_rdtsc() &&
-         "BaseEvent has a std::chrono timestamp, but the backend thread is using rdtsc timestamp");
-
+  static_assert(std::is_same<BaseEvent::using_rdtsc, std::true_type>::value,
+                "BaseEvent has a std::chrono timestamp, but the backend thread is using rdtsc timestamp");
   // pass to our clock the stored rdtsc from the caller thread
   return _rdtsc_clock->time_since_epoch(base_event->timestamp());
 #else
-  assert(!_rdtsc_clock && "rdtsc should be nullptr");
-  assert(!base_event->using_rdtsc() &&
-         "BaseEvent has a rdtsc clock timestamp, but the backend thread is using std::chrono "
-         "timestamp");
+  static_assert(std::is_same<BaseEvent::using_rdtsc, std::false_type>::value,
+                "BaseEvent has an rdtsc timestamp, but the backend thread is using std::chrono timestamp");
 
   // Then the timestamp() will be already in epoch no need to convert it like above
   // The precision of system_clock::time-point is not portable across platforms.

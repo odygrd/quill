@@ -87,25 +87,17 @@ public:
     // and then when we want to process them we call this virtual method.
   }
 
-#if !defined(NDEBUG)
-  QUILL_NODISCARD bool using_rdtsc() const noexcept { return _using_rdtsc; }
+#if !defined(QUILL_CHRONO_CLOCK)
+  using using_rdtsc = std::true_type;
+#else
+  using using_rdtsc = std::false_type;
 #endif
 
 private:
 #if !defined(QUILL_CHRONO_CLOCK)
   uint64_t _timestamp{rdtsc()};
-
-  #if !defined(NDEBUG)
-  bool _using_rdtsc{true};
-  #endif
-
 #else
   uint64_t _timestamp{static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())};
-
-  #if !defined(NDEBUG)
-  bool _using_rdtsc{false};
-  #endif
-
 #endif
 };
 } // namespace detail
