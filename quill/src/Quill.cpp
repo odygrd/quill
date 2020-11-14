@@ -1,13 +1,17 @@
 #include "quill/Quill.h"
 #include "quill/QuillError.h"
-#include "quill/detail/Config.h"                  // for Config
-#include "quill/detail/HandlerCollection.h"       // for HandlerCollection
-#include "quill/detail/LogManagerSingleton.h"     // for LogManagerSingleton
-#include "quill/detail/LoggerCollection.h"        // for LoggerCollection
-#include "quill/detail/ThreadContext.h"           // for ThreadContext, Thr...
-#include "quill/detail/ThreadContextCollection.h" // for ThreadContextColle...
-#include "quill/handlers/StreamHandler.h"         // for StreamHandler
-#include <utility>                                // for move
+#include "quill/detail/Config.h"                    // for Config
+#include "quill/detail/HandlerCollection.h"         // for HandlerCollection
+#include "quill/detail/LogManagerSingleton.h"       // for LogManagerSingleton
+#include "quill/detail/LoggerCollection.h"          // for LoggerCollection
+#include "quill/detail/ThreadContext.h"             // for ThreadContext, Thr...
+#include "quill/detail/ThreadContextCollection.h"   // for ThreadContextColle...
+#include "quill/handlers/ConsoleHandler.h"          // for ConsoleHandler
+#include "quill/handlers/FileHandler.h"             // for FileHandler, Filenam...
+#include "quill/handlers/RotatingFileHandler.h"     // for RotatingFileHandler
+#include "quill/handlers/StreamHandler.h"           // for StreamHandler
+#include "quill/handlers/TimeRotatingFileHandler.h" // for TimeRotatingFileHandler
+#include <utility>                                  // for move
 
 namespace quill
 {
@@ -51,8 +55,7 @@ Handler* stderr_handler(std::string const& stderr_handler_name /* = "stderr" */)
 Handler* file_handler(filename_t const& filename, std::string const& mode, /* = std::string{} */
                       FilenameAppend append_to_filename /* = FilenameAppend::None */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().file_handler(
-    filename, mode, append_to_filename);
+  return create_handler<FileHandler>(filename, mode, append_to_filename);
 }
 
 /***/
@@ -63,8 +66,8 @@ Handler* time_rotating_file_handler(filename_t const& base_filename,
                                     Timezone timezone /* = Timezone::LocalTime */,
                                     std::string const& at_time /* = std::string{} */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().time_rotating_file_handler(
-    base_filename, mode, when, interval, backup_count, timezone, at_time);
+  return create_handler<TimeRotatingFileHandler>(base_filename, mode, when, interval, backup_count,
+                                                 timezone, at_time);
 }
 
 /***/
@@ -73,8 +76,7 @@ Handler* rotating_file_handler(filename_t const& base_filename,
                                size_t max_bytes /* = 0 */,
                                uint32_t backup_count /* = 0 */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().rotating_file_handler(
-    base_filename, mode, max_bytes, backup_count);
+  return create_handler<RotatingFileHandler>(base_filename, mode, max_bytes, backup_count);
 }
 
 #if defined(_WIN32)
@@ -93,8 +95,8 @@ Handler* time_rotating_file_handler(std::string const& base_filename,
                                     Timezone timezone /* = Timezone::LocalTime */,
                                     std::string const& at_time /* = std::string{} */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().handler_collection().time_rotating_file_handler(
-    detail::s2ws(base_filename), mode, when, interval, backup_count, timezone, at_time);
+  return time_rotating_file_handler(detail::s2ws(base_filename), mode, when, interval, backup_count,
+                                    timezone, at_time);
 }
 
 /***/

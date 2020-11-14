@@ -24,9 +24,9 @@ TEST_CASE("stdout_stderr_handlers")
 
   // Attempt to create a file handler with stdout as name and check that it is the same as the default
 #if defined(_WIN32)
-  StreamHandler* filehandler_1 = hc.file_handler(L"stdout");
+  StreamHandler* filehandler_1 = hc.create_handler<FileHandler>(L"stdout", "a", FilenameAppend::None);
 #else
-  StreamHandler* filehandler_1 = hc.file_handler("stdout");
+  StreamHandler* filehandler_1 = hc.create_handler<FileHandler>("stdout", "a", FilenameAppend::None);
 #endif
   REQUIRE_EQ(filehandler_1, stdout_handler);
 
@@ -40,9 +40,9 @@ TEST_CASE("stdout_stderr_handlers")
 
   // Attempt to create a file handler with stderr as name and check that it is the same as the default
 #if defined(_WIN32)
-  StreamHandler* filehandler_2 = hc.file_handler(L"stderr");
+  StreamHandler* filehandler_2 = hc.create_handler<FileHandler>(L"stderr", "a", FilenameAppend::None);
 #else
-  StreamHandler* filehandler_2 = hc.file_handler("stderr");
+  StreamHandler* filehandler_2 = hc.create_handler<FileHandler>("stderr", "a", FilenameAppend::None);
 #endif
   REQUIRE_EQ(filehandler_2, stderr_handler);
 }
@@ -54,16 +54,20 @@ TEST_CASE("create_get")
 
 #if defined(_WIN32)
   // Create a file handler
-  StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler", "w");
+  StreamHandler* filehandler =
+    hc.create_handler<FileHandler>(L"create_get_file_handler", "w", FilenameAppend::None);
 
   // Request the same file handler
-  StreamHandler* filehandler_2 = hc.file_handler(L"create_get_file_handler");
+  StreamHandler* filehandler_2 =
+    hc.create_handler<FileHandler>(L"create_get_file_handler", "a", FilenameAppend::None);
 #else
   // Create a file handler
-  StreamHandler* filehandler = hc.file_handler("create_get_file_handler", "w");
+  StreamHandler* filehandler =
+    hc.create_handler<FileHandler>("create_get_file_handler", "w", FilenameAppend::None);
 
   // Request the same file handler
-  StreamHandler* filehandler_2 = hc.file_handler("create_get_file_handler");
+  StreamHandler* filehandler_2 =
+    hc.create_handler<FileHandler>("create_get_file_handler", "a", FilenameAppend::None);
 #endif
 
   // Compare the pointers
@@ -78,16 +82,20 @@ TEST_CASE("subscribe_get_active_same_handler")
 
 #if defined(_WIN32)
   // Create a file handler
-  StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler", "w");
+  StreamHandler* filehandler =
+    hc.create_handler<FileHandler>(L"create_get_file_handler", "w", FilenameAppend::None);
 
   // Request the same file handler
-  StreamHandler* filehandler_2 = hc.file_handler(L"create_get_file_handler");
+  StreamHandler* filehandler_2 =
+    hc.create_handler<FileHandler>(L"create_get_file_handler", "a", FilenameAppend::None);
 #else
   // Create a file handler
-  StreamHandler* filehandler = hc.file_handler("create_get_file_handler", "w");
+  StreamHandler* filehandler =
+    hc.create_handler<FileHandler>("create_get_file_handler", "w", FilenameAppend::None);
 
   // Request the same file handler
-  StreamHandler* filehandler_2 = hc.file_handler("create_get_file_handler");
+  StreamHandler* filehandler_2 =
+    hc.create_handler<FileHandler>("create_get_file_handler", "a", FilenameAppend::None);
 #endif
 
   // Compare the pointers
@@ -121,16 +129,20 @@ TEST_CASE("subscribe_get_active_different_handlers")
 
 #if defined(_WIN32)
   // Create a file handler
-  StreamHandler* filehandler = hc.file_handler(L"create_get_file_handler_1", "w");
+  StreamHandler* filehandler =
+    hc.create_handler<FileHandler>(L"create_get_file_handler_1", "w", FilenameAppend::None);
 
   // Request the same file handler
-  StreamHandler* filehandler_2 = hc.file_handler(L"create_get_file_handler_2");
+  StreamHandler* filehandler_2 =
+    hc.create_handler<FileHandler>(L"create_get_file_handler_2", "a", FilenameAppend::None);
 #else
   // Create a file handler
-  StreamHandler* filehandler = hc.file_handler("create_get_file_handler_1", "w");
+  StreamHandler* filehandler =
+    hc.create_handler<FileHandler>("create_get_file_handler_1", "w", FilenameAppend::None);
 
   // Request the same file handler
-  StreamHandler* filehandler_2 = hc.file_handler("create_get_file_handler_2");
+  StreamHandler* filehandler_2 =
+    hc.create_handler<FileHandler>("create_get_file_handler_2", "a", FilenameAppend::None);
 #endif
 
   // Compare the pointers

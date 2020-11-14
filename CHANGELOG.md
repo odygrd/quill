@@ -17,6 +17,8 @@
 
 ## v1.5.3
 - Fix compiler error when `CMAKE_CXX_STANDARD 20` is set.
+- Replaced an assertion check that could trigger incorrectly. ([#68](https://github.com/odygrd/quill/issues/68))
+- Added support for custom handlers. ([#75](https://github.com/odygrd/quill/issues/75))
 
 ## v1.5.2
 - Removed the use of `fmt::format()` in `FileUtilities.cpp` as a workaround to the link errors in fmt v7. Use the header only version of libfmt when external libfmt is defiend is no longer required.
