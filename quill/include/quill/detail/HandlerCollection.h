@@ -14,9 +14,11 @@
 #include <chrono>                          // for hours, minutes
 #include <cstddef>                         // for size_t
 #include <memory>                          // for allocator, unique_ptr
+#include <mutex>                           // for lock_guard
 #include <string>                          // for string, hash
-#include <unordered_map>                   // for unordered_map
-#include <vector>                          // for vector
+#include <type_traits>
+#include <unordered_map> // for unordered_map
+#include <vector>        // for vector
 
 namespace quill
 {
@@ -56,18 +58,59 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* stderr_console_handler(
     std::string const& stderr_handler_name = std::string{"stderr"});
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* file_handler(
-    filename_t const& filename, std::string const& mode = std::string{"a"},
-    FilenameAppend append_to_filename = FilenameAppend::None);
+  /**
+   * Create a handler. This overload is used for any handlers deriving from StreamHandler.
+   * For StreamHandler we pass the handler_name as the filename of the handler
+   */
+  template <typename THandler, typename... Args>
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::enable_if_t<std::is_base_of<StreamHandler, THandler>::value, StreamHandler*> create_handler(
+    filename_t const& handler_name, Args&&... args)
+  {
+    // Protect shared access
+    std::lock_guard<Spinlock> const lock{_spinlock};
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* time_rotating_file_handler(
-    filename_t const& base_filename, std::string const& mode, std::string const& when,
-    uint32_t interval, uint32_t backup_count, Timezone timezone, std::string const& at_time);
+    // Try to insert it unless we failed it means we already had it
+    auto const search = _handler_collection.find(handler_name);
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD StreamHandler* rotating_file_handler(filename_t const& base_filename,
-                                                                            std::string const& mode,
-                                                                            size_t max_file_size,
-                                                                            uint32_t backup_count);
+    // First search if we have it and don't call make_unique yet as this will call fopen
+    if (search != _handler_collection.cend())
+    {
+      return reinterpret_cast<StreamHandler*>((*search).second.get());
+    }
+
+    // if first time add it
+    auto emplace_result = _handler_collection.emplace(
+      handler_name, std::make_unique<THandler>(handler_name.data(), std::forward<Args>(args)...));
+
+    // we know that THandler derives from StreamHandler
+    return reinterpret_cast<StreamHandler*>((*emplace_result.first).second.get());
+  }
+
+  /**
+   * Create a handler. Any handler that is not based on StreamHandler
+   */
+  template <typename THandler, typename... Args>
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::enable_if_t<!std::is_base_of<StreamHandler, THandler>::value, Handler*> create_handler(
+    filename_t const& handler_name, Args&&... args)
+  {
+    // Protect shared access
+    std::lock_guard<Spinlock> const lock{_spinlock};
+
+    // Try to insert it unless we failed it means we already had it
+    auto const search = _handler_collection.find(handler_name);
+
+    // First search if we have it and don't call make_unique yet as this will call fopen
+    if (search != _handler_collection.cend())
+    {
+      return (*search).second.get();
+    }
+
+    // if first time add it
+    auto emplace_result =
+      _handler_collection.emplace(handler_name, std::make_unique<THandler>(std::forward<Args>(args)...));
+
+    return (*emplace_result.first).second.get();
+  }
 
   /**
    * Subscribe a handler to the vector of active handlers so that the backend thread can see it
@@ -103,9 +146,11 @@ private:
   std::vector<Handler*> _active_handlers_collection;
 
   /**
-   * All related to files Streamhandlers, stored per unique filename so that we don't open the same file twice
+   * Owns all created handlers. Each handler is identified by name
+   * For Streamhandlers the name is the filename, they are stored per unique filename so
+   * that we don't open the same file twice
    */
-  std::unordered_map<filename_t, std::unique_ptr<StreamHandler>> _file_handler_collection;
+  std::unordered_map<filename_t, std::unique_ptr<Handler>> _handler_collection;
 
   /** Use to lock both _active_handlers_collection and _file_handler_collection, mutable to have an active_handlers() const function */
   mutable Spinlock _spinlock;

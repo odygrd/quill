@@ -42,7 +42,7 @@ TEST_CASE("default_logger_with_filehandler")
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().file_handler(filename, "w"));
+    lm.handler_collection().create_handler<FileHandler>(filename, "w", FilenameAppend::None));
 
   lm.start_backend_worker();
 
@@ -82,7 +82,8 @@ void custom_default_logger_same_handler(int test_case = 0)
 #endif
 
   // Set a file handler the custom logger handler and log to it
-  Handler* file_handler = lm.handler_collection().file_handler(filename, "w");
+  Handler* file_handler =
+    lm.handler_collection().create_handler<FileHandler>(filename, "w", FilenameAppend::None);
   file_handler->set_pattern(
     QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(logger_name)]"));
   lm.logger_collection().set_default_logger_handler(file_handler);
@@ -93,7 +94,8 @@ void custom_default_logger_same_handler(int test_case = 0)
   if (test_case == 0)
   {
     // Add a second logger using the same file handler
-    Handler* file_handler_2 = lm.handler_collection().file_handler(filename);
+    Handler* file_handler_2 =
+      lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None);
     QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger", file_handler_2);
   }
   else if (test_case == 1)
@@ -176,12 +178,14 @@ void test_custom_default_logger_multiple_handlers(int test_case)
   // Set a file handler the custom logger handler and log to it
 
   // First handler
-  Handler* file_handler_1 = lm.handler_collection().file_handler(filename_1, "w");
+  Handler* file_handler_1 =
+    lm.handler_collection().create_handler<FileHandler>(filename_1, "w", FilenameAppend::None);
   file_handler_1->set_pattern(
     QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(logger_name)]"));
 
   // Second handler with different pattern
-  Handler* file_handler_2 = lm.handler_collection().file_handler(filename_2, "w");
+  Handler* file_handler_2 =
+    lm.handler_collection().create_handler<FileHandler>(filename_2, "w", FilenameAppend::None);
   file_handler_2->set_pattern(QUILL_STRING("%(ascii_time) %(logger_name) - %(message)"),
                               "%D %H:%M:%S.%Qms");
 
@@ -193,8 +197,10 @@ void test_custom_default_logger_multiple_handlers(int test_case)
   if (test_case == 0)
   {
     // Add a second logger using the same file handler
-    Handler* file_handler_a = lm.handler_collection().file_handler(filename_1);
-    Handler* file_handler_b = lm.handler_collection().file_handler(filename_2);
+    Handler* file_handler_a =
+      lm.handler_collection().create_handler<FileHandler>(filename_1, "", FilenameAppend::None);
+    Handler* file_handler_b =
+      lm.handler_collection().create_handler<FileHandler>(filename_2, "", FilenameAppend::None);
     QUILL_MAYBE_UNUSED Logger* logger_2 =
       lm.logger_collection().create_logger("custom_logger", {file_handler_a, file_handler_b});
   }
@@ -307,7 +313,7 @@ TEST_CASE("many_loggers_multiple_threads")
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().file_handler(filename, "w"));
+    lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
   lm.start_backend_worker();
 
@@ -376,7 +382,7 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().file_handler(filename, "w"));
+    lm.handler_collection().create_handler<FileHandler>(filename, "w", FilenameAppend::None));
 
   lm.start_backend_worker();
 
@@ -438,7 +444,7 @@ TEST_CASE("backend_error_handler")
 
     // Set a file handler as the custom logger handler and log to it
     lm.logger_collection().set_default_logger_handler(
-      lm.handler_collection().file_handler(filename, "w"));
+      lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
     // Start backend worker
     lm.start_backend_worker();
@@ -486,7 +492,7 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
 
     // Set a file handler as the custom logger handler and log to it
     lm.logger_collection().set_default_logger_handler(
-      lm.handler_collection().file_handler(filename, "w"));
+      lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
     Logger* default_logger = lm.logger_collection().get_logger();
 
@@ -537,7 +543,7 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().file_handler(filename, "w"));
+    lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
   // Set a custom error handler to handler exceptions
   lm.set_backend_worker_error_handler(
@@ -589,7 +595,7 @@ TEST_CASE("log_backtrace_and_flush_on_error")
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().file_handler(filename, "w"));
+    lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
   lm.start_backend_worker();
 
@@ -648,7 +654,7 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().file_handler(filename, "w"));
+    lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
   lm.start_backend_worker();
 
@@ -712,7 +718,7 @@ TEST_CASE("log_backtrace_manual_flush")
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().file_handler(filename, "w"));
+    lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
   lm.start_backend_worker();
 
@@ -830,13 +836,15 @@ TEST_CASE("logger_with_two_files_filters")
 #endif
 
   // Set file 1
-  quill::Handler* file_handler1 = lm.handler_collection().file_handler(filename1, "w");
+  quill::Handler* file_handler1 =
+    lm.handler_collection().create_handler<FileHandler>(filename1, "w", FilenameAppend::None);
 
   // Create and add the filter to our handler
   file_handler1->add_filter(std::make_unique<FileFilter1>());
 
   // Set file 2
-  quill::Handler* file_handler2 = lm.handler_collection().file_handler(filename2, "w");
+  quill::Handler* file_handler2 =
+    lm.handler_collection().create_handler<FileHandler>(filename2, "w", FilenameAppend::None);
 
   // Create and add the filter to our handler
   file_handler2->add_filter(std::make_unique<FileFilter2>());
@@ -888,10 +896,12 @@ TEST_CASE("logger_with_two_files_set_log_level_on_handler")
 #endif
 
   // Set file 1
-  quill::Handler* file_handler1 = lm.handler_collection().file_handler(filename1, "w");
+  quill::Handler* file_handler1 =
+    lm.handler_collection().create_handler<FileHandler>(filename1, "w", FilenameAppend::None);
 
   // Set file 2
-  quill::Handler* file_handler2 = lm.handler_collection().file_handler(filename2, "w");
+  quill::Handler* file_handler2 =
+    lm.handler_collection().create_handler<FileHandler>(filename2, "w", FilenameAppend::None);
 
   lm.start_backend_worker();
 

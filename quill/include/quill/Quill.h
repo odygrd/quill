@@ -63,6 +63,24 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stdout_handler(
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler(std::string const& stderr_handler_name = std::string{"stderr"});
 
 /**
+ * Creates new handler and registers it internally.
+ * This can be also used for creating custom handlers.
+ * If a handler is already registered under the same name the existing handler is returned and
+ * no new handler is created.
+ * @tparam THandler type of the handler
+ * @tparam Args the handler's constructor arguments types
+ * @param handler_name the name of the handler
+ * @param args the handler's constructor arguments, excluding the file name
+ * @return A pointer to a new or existing handler
+ */
+template <typename THandler, typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(filename_t const& handler_name, Args&&... args)
+{
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().create_handler<THandler>(
+    handler_name, std::forward<Args>(args)...);
+}
+
+/**
  * Creates or returns an existing handler to a file.
  * If the file is already opened the existing handler for this file is returned instead
  * @param filename the name of the file
@@ -140,6 +158,15 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(filename_t c
                                                                     uint32_t backup_count = 0);
 
 #if defined(_WIN32)
+/**
+ * @see create_handler
+ */
+template <typename THandler, typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(std::string const& handler_name, Args&&... args)
+{
+  return create_handler<THandler>(detail::s2ws(handler_name), std::forward<Args>(args)...);
+}
+
 /**
  * @see file_handler
  */
