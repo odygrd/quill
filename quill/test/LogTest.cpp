@@ -44,7 +44,7 @@ TEST_CASE("default_logger_with_filehandler")
   lm.logger_collection().set_default_logger_handler(
     lm.handler_collection().create_handler<FileHandler>(filename, "w", FilenameAppend::None));
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   std::thread frontend([&lm]() {
     Logger* default_logger = lm.logger_collection().get_logger();
@@ -89,7 +89,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   lm.logger_collection().set_default_logger_handler(file_handler);
 
   // Start logging
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   if (test_case == 0)
   {
@@ -192,7 +192,7 @@ void test_custom_default_logger_multiple_handlers(int test_case)
   lm.logger_collection().set_default_logger_handler({file_handler_1, file_handler_2});
 
   // Start logging
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   if (test_case == 0)
   {
@@ -315,7 +315,7 @@ TEST_CASE("many_loggers_multiple_threads")
   lm.logger_collection().set_default_logger_handler(
     lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   // Spawn many threads
   std::vector<std::thread> threads;
@@ -384,7 +384,7 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
   lm.logger_collection().set_default_logger_handler(
     lm.handler_collection().create_handler<FileHandler>(filename, "w", FilenameAppend::None));
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   std::thread frontend([&lm]() {
     Logger* default_logger = lm.logger_collection().get_logger();
@@ -447,7 +447,7 @@ TEST_CASE("backend_error_handler")
       lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
     // Start backend worker
-    lm.start_backend_worker();
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
     Logger* default_logger = lm.logger_collection().get_logger();
 
@@ -503,7 +503,7 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
     });
 
     // Start backend worker
-    lm.start_backend_worker();
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
     LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
     LOG_ERROR(default_logger,
@@ -549,7 +549,7 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
   lm.set_backend_worker_error_handler(
     [&error_handler_invoked](std::string const& s) { ++error_handler_invoked; });
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   std::thread frontend([&lm]() {
     Logger* logger = lm.logger_collection().get_logger();
@@ -597,7 +597,7 @@ TEST_CASE("log_backtrace_and_flush_on_error")
   lm.logger_collection().set_default_logger_handler(
     lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   std::thread frontend([&lm]() {
     // Get a logger and enable backtrace
@@ -656,7 +656,7 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
   lm.logger_collection().set_default_logger_handler(
     lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   std::thread frontend([&lm]() {
     // Get a logger and enable backtrace
@@ -720,7 +720,7 @@ TEST_CASE("log_backtrace_manual_flush")
   lm.logger_collection().set_default_logger_handler(
     lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   std::thread frontend([&lm]() {
     // Get a logger and enable backtrace
@@ -849,7 +849,7 @@ TEST_CASE("logger_with_two_files_filters")
   // Create and add the filter to our handler
   file_handler2->add_filter(std::make_unique<FileFilter2>());
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   Logger* default_logger = lm.logger_collection().create_logger("logger", {file_handler1, file_handler2});
 
@@ -903,7 +903,7 @@ TEST_CASE("logger_with_two_files_set_log_level_on_handler")
   quill::Handler* file_handler2 =
     lm.handler_collection().create_handler<FileHandler>(filename2, "w", FilenameAppend::None);
 
-  lm.start_backend_worker();
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
   Logger* default_logger = lm.logger_collection().create_logger("logger", {file_handler1, file_handler2});
 

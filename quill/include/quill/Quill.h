@@ -38,11 +38,16 @@ QUILL_ATTRIBUTE_COLD void preallocate();
  * Starts the backend thread to write the logs to the handlers.
  * This function is protected with a std::call_once flag, it can only be called once.
  * Blocks the caller thread until the backend worker thread starts spinning.
+ * @param with_signal_handler Initialises a signal handler that will catch signals
+ *                             and flush the log before the application exits
+ * @param catchable_signals List of the signals that the signal handler will catch
  * @throws When the backend thread fails to start
  */
-QUILL_ATTRIBUTE_COLD inline void start()
+QUILL_ATTRIBUTE_COLD inline void start(bool with_signal_handler = false,
+                                       std::initializer_list<int> catchable_signals = {
+                                         SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
-  detail::LogManagerSingleton::instance().log_manager().start_backend_worker();
+  detail::LogManagerSingleton::instance().log_manager().start_backend_worker(with_signal_handler, catchable_signals);
 }
 
 /**
