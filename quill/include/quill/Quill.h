@@ -40,7 +40,7 @@ QUILL_ATTRIBUTE_COLD void preallocate();
  * Blocks the caller thread until the backend worker thread starts spinning.
  * @param with_signal_handler Initialises a signal handler that will catch signals
  *                             and flush the log before the application exits
- * @param catchable_signals List of the signals that the signal handler will catch
+ * @param catchable_signals List of the signals that the signal handler will catch (Posix ONLY).
  * @throws When the backend thread fails to start
  */
 QUILL_ATTRIBUTE_COLD inline void start(bool with_signal_handler = false,

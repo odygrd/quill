@@ -60,7 +60,7 @@ int main()
       LOG_INFO(quill::get_logger(), "Crash after 10 messages");
 
       // After 10 messages Crash
-      divide_by_zero();
+      // divide_by_zero();
       // stack_overflow();
       // illegal_instruction();
       // cause_segfault();

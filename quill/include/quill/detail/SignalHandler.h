@@ -13,17 +13,14 @@ namespace quill
 {
 namespace detail
 {
-
-/**
- * This function will be called in case of a fatal signal
- * @param signal_number signal id
- */
-void on_signal(int32_t signal_number);
-
 /**
  * Setup a signal handler to handle fatal signals
  */
+#if defined(_WIN32)
+void init_signal_handler();
+#else
 void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals = {
                            SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV});
+#endif
 } // namespace detail
 } // namespace quill

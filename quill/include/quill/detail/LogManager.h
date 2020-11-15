@@ -130,7 +130,8 @@ public:
     if (with_signal_handler)
     {
 #if defined(_WIN32)
-      // ... ?
+      (void)catchable_signals;
+      init_signal_handler();
 #else
       // block all signals before spawning the backend worker thread
       // note: we just assume that std::thread is implemented using posix threads, or this
@@ -138,10 +139,10 @@ public:
       sigset_t mask;
       sigfillset(&mask);
       sigprocmask(SIG_SETMASK, &mask, NULL);
-#endif
 
       // Initialise our signal handler
       init_signal_handler(catchable_signals);
+#endif
     }
 
     // Start the backend worker
