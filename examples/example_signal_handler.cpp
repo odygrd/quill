@@ -1,6 +1,34 @@
 #include "quill/Quill.h"
 #include <csignal>
 
+int divide_by_zero()
+{
+  int a = 1;
+  int b = 0;
+  return a / b;
+}
+
+void cause_segfault()
+{
+  int* p = (int*)0x12345678;
+  *p = 0;
+}
+
+void stack_overflow()
+{
+  int foo[1000];
+  (void)foo;
+  stack_overflow();
+}
+
+void infinite_loop()
+{
+  /* break out with ctrl+c to test SIGINT handling */
+  while (1) {};
+}
+
+void illegal_instruction() { raise(SIGILL); }
+
 /**
  * Signal handler example
  */
@@ -29,9 +57,13 @@ int main()
         LOG_INFO(quill::get_logger(), "Log from thread {}", i);
       }
 
-      // crash after 10 messages
       LOG_INFO(quill::get_logger(), "Crash after 10 messages");
-      std::raise(SIGSEGV);
+
+      // After 10 messages Crash
+      divide_by_zero();
+      // stack_overflow();
+      // illegal_instruction();
+      // cause_segfault();
     }));
   }
 
