@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <cstring>
 
 #include "quill/Quill.h"
@@ -9,7 +10,6 @@ namespace
 {
 // std::atomic is also safe here to use instead, as long as it is lock-free
 volatile static std::sig_atomic_t lock{0};
-volatile static std::sig_atomic_t signal_number_{0};
 } // namespace
 
 namespace quill
@@ -35,26 +35,31 @@ void on_signal(int32_t signal_number)
       (tid == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
   {
     // backend worker thread is not running or the handler is called in the backend worker thread
-    // Reset to the default signal handler and re-raise the signal
-    std::signal(signal_number, SIG_DFL);
-    std::raise(signal_number);
+    if (signal_number != SIGINT && signal_number != SIGTERM)
+    {
+      std::exit(EXIT_SUCCESS);
+    }
+    else
+    {
+      // for other signals expect SIGINT and SIGTERM we re-raise
+      std::signal(signal_number, SIG_DFL);
+      std::raise(signal_number);
+    }
   }
   else
   {
-    // This will be called on a caller thread, we can log from the default logger
+    // This means signal handler is running a caller thread, we can log from the default logger
 #if defined(_WIN32)
     LOG_INFO(quill::get_logger(), "Received signal: {}", signal_number);
 #else
     LOG_INFO(quill::get_logger(), "Received signal: {}", ::strsignal(signal_number));
 #endif
 
-    // Store the original signal number
-    signal_number_ = signal_number;
-
     if (signal_number == SIGINT || signal_number == SIGTERM)
     {
       // For SIGINT and SIGTERM, we are shutting down gracefully
       quill::flush();
+      std::exit(EXIT_SUCCESS);
     }
     else
     {
