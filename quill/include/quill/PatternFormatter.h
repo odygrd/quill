@@ -153,7 +153,7 @@ public:
   {
     // Set the default pattern
     _set_pattern(
-      QUILL_STRING("%(ascii_time) [%(thread)] %(fileline:<30) LOG_%(level_name) "
+      QUILL_STRING("%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) "
                    "%(logger_name:<12) - %(message)"));
   }
 
