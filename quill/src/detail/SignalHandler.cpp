@@ -35,7 +35,7 @@ void on_signal(int32_t signal_number)
       (tid == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
   {
     // backend worker thread is not running or the handler is called in the backend worker thread
-    if (signal_number != SIGINT && signal_number != SIGTERM)
+    if (signal_number == SIGINT || signal_number == SIGTERM)
     {
       std::exit(EXIT_SUCCESS);
     }
