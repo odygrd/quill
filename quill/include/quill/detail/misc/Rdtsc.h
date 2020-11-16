@@ -7,7 +7,8 @@
 
 #include "quill/detail/misc/Attributes.h"
 
-#if (__ARM_ARCH >= 6)
+#if defined(__aarch64__)
+#elif ((__ARM_ARCH >= 6) || defined(_M_ARM64))
   #include <sys/time.h>
 #else
   // assume x86-64 ..
