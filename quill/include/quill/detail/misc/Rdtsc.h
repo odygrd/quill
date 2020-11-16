@@ -7,7 +7,8 @@
 
 #include "quill/detail/misc/Attributes.h"
 
-#if (__ARM_ARCH >= 6)
+#if defined(__aarch64__)
+#elif defined(__ARM_ARCH)
   #include <sys/time.h>
 #else
   // assume x86-64 ..
@@ -26,14 +27,18 @@ namespace detail
 // arm64
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
 {
+  // System timer of ARMv8 runs at a different frequency than the CPU's.
+  // The frequency is fixed, typically in the range 1-50MHz.  It can be
+  // read at CNTFRQ special register.  We assume the OS has set up the virtual timer properly.
   int64_t virtual_timer_value;
   asm volatile("mrs %0, cntvct_el0" : "=r"(virtual_timer_value));
   return virtual_timer_value;
 }
-#elif ((__ARM_ARCH >= 6) || defined(_M_ARM64))
-// V6 is the earliest arch that has a standard cyclecount
+#elif defined(__ARM_ARCH)
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
 {
+  #if (__ARM_ARCH >= 6)
+  // V6 is the earliest arch that has a standard cyclecount
   uint32_t pmccntr;
   uint32_t pmuseren;
   uint32_t pmcntenset;
@@ -48,6 +53,7 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
       return (static_cast<uint64_t>(pmccntr)) * 64u;
     }
   }
+  #endif
 
   // soft failover
   struct timeval tv;
