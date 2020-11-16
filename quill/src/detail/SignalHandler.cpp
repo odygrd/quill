@@ -8,15 +8,14 @@
 
 #if defined(_WIN32)
   #include <windows.h>
+#else
+  #include <unistd.h>
 #endif
 
 namespace quill
 {
 namespace detail
 {
-// std::atomic is also safe here to use instead, as long as it is lock-free
-volatile static std::sig_atomic_t lock{0};
-
 namespace
 {
 #if defined(_WIN32)
@@ -88,15 +87,6 @@ BOOL WINAPI on_console_signal(DWORD signal)
 /***/
 LONG WINAPI on_signal(EXCEPTION_POINTERS* exception_info)
 {
-  // We only allow the first thread to enter the signal handler
-  // note: Not sure if the handler can be called multiple times on windows
-  ++lock;
-  while (lock != 1)
-  {
-    // sleep forever
-    std::this_thread::sleep_for(std::chrono::hours{1});
-  }
-
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
   uint32_t const tid = get_thread_id();
   if ((LogManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
@@ -116,9 +106,31 @@ LONG WINAPI on_signal(EXCEPTION_POINTERS* exception_info)
     quill::flush();
   }
 
-  return EXCEPTION_EXECUTE_HANDLER;
+  // FATAL Exception: It doesn't necessarily stop here. we pass on continue search
+  // If nobody catches it, then it will exit anyhow.
+  // The RISK here is if someone is catching this and returning "EXCEPTION_EXECUTE_HANDLER"
+  // but does not shutdown then the software will be running with g3log shutdown.
+  return EXCEPTION_CONTINUE_SEARCH;
 }
 #else
+// std::atomic is also safe here to use instead, as long as it is lock-free
+volatile static std::sig_atomic_t lock{0};
+volatile static std::sig_atomic_t signal_number_{0};
+
+/***/
+void on_alarm(int32_t signal_number)
+{
+  if (signal_number_ == 0)
+  {
+    // Check SIGALRM is the first signal we receive
+    // if SIGALRM is the first signal we ever receive then signal_number_ will be 0
+    signal_number_ = signal_number;
+  }
+
+  // We will raise the original signal back
+  std::signal(signal_number_, SIG_DFL);
+  std::raise(signal_number_);
+}
 
 /***/
 void on_signal(int32_t signal_number)
@@ -128,9 +140,17 @@ void on_signal(int32_t signal_number)
   ++lock;
   while (lock != 1)
   {
-    // sleep forever
-    std::this_thread::sleep_for(std::chrono::hours{1});
+    // sleep until a signal is delivered that either terminates the process or causes the
+    // invocation of a signal-catching function.
+    pause();
   }
+
+  // Store the original signal number
+  signal_number_ = signal_number;
+
+  // We setup an alarm to crash after 5 seconds by redelivering the original signal,
+  // in case anything else goes wrong
+  alarm(std::chrono::seconds{5}.count());
 
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
   uint32_t const tid = get_thread_id();
@@ -152,7 +172,7 @@ void on_signal(int32_t signal_number)
   else
   {
     // This means signal handler is running a caller thread, we can log from the default logger
-    LOG_INFO(quill::get_logger(), "Received signal: {}", (signal_number));
+    LOG_INFO(quill::get_logger(), "Received signal: {}", ::strsignal(signal_number));
 
     if (signal_number == SIGINT || signal_number == SIGTERM)
     {
@@ -162,7 +182,8 @@ void on_signal(int32_t signal_number)
     }
     else
     {
-      LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}", (signal_number));
+      LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}",
+                   ::strsignal(signal_number));
 
       quill::flush();
 
@@ -192,11 +213,22 @@ void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals
 {
   for (auto const& catchable_signal : catchable_signals)
   {
+    if (catchable_signal == SIGALRM)
+    {
+      QUILL_THROW(QuillError{"SIGALRM can not be part of catchable_signals."});
+    }
+
     // setup a signal handler per signal in the array
     if (std::signal(catchable_signal, on_signal) == SIG_ERR)
     {
       QUILL_THROW(QuillError{"Failed to setup signal handler for signal: " + std::to_string(catchable_signal)});
     }
+  }
+
+  /* Register the alarm handler */
+  if (std::signal(SIGALRM, on_alarm) == SIG_ERR)
+  {
+    QUILL_THROW(QuillError{"Failed to setup signal handler for signal: SIGALRM"});
   }
 }
 #endif
