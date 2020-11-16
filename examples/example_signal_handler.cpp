@@ -35,7 +35,15 @@ void illegal_instruction() { raise(SIGILL); }
 
 int main()
 {
+#if defined(_WIN32)
+  // NOTE: On windows a signal handler must be installed on each new thread
+  quill::init_signal_handler();
+#endif
+
   // Start the logging backend thread
+  // Passing true sets up a signal handler
+  // On Linux/Macos one signal handler is set to handle POSIX style signals
+  // On Windows an exception handler and a Ctrl-C handler is set.
   quill::start(true);
 
   quill::Logger* logger = quill::get_logger();
@@ -48,6 +56,12 @@ int main()
   for (size_t i = 0; i < 4; ++i)
   {
     threads.emplace_back(std::thread([]() {
+
+#if defined(_WIN32)
+      // NOTE: On windows the signal handler must be installed on each new thread
+      quill::init_signal_handler();
+#endif
+
       // sleep for 1 second so all threads are ready
       std::this_thread::sleep_for(std::chrono::seconds{1});
 

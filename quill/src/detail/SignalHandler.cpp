@@ -1,9 +1,12 @@
+#include "quill/detail/SignalHandler.h"
+
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <thread>
 
 #include "quill/Quill.h"
 #include "quill/QuillError.h"
-#include "quill/detail/SignalHandler.h"
 #include "quill/detail/misc/Os.h"
 
 #if defined(_WIN32)
@@ -18,6 +21,9 @@ namespace detail
 {
 namespace
 {
+// std::atomic is also safe here to use instead, as long as it is lock-free
+volatile static std::sig_atomic_t lock{0};
+
 #if defined(_WIN32)
 /***/
 char const* get_error_message(DWORD ex_code)
@@ -85,7 +91,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
 }
 
 /***/
-LONG WINAPI on_signal(EXCEPTION_POINTERS* exception_info)
+LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_info)
 {
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
   uint32_t const tid = get_thread_id();
@@ -112,9 +118,62 @@ LONG WINAPI on_signal(EXCEPTION_POINTERS* exception_info)
   // but does not shutdown then the software will be running with g3log shutdown.
   return EXCEPTION_CONTINUE_SEARCH;
 }
+
+/***/
+void on_signal(int32_t signal_number)
+{
+  // This handler can be entered by multiple threads. We only allow the first thread to enter
+  // the signal handler
+  ++lock;
+  while (lock != 1)
+  {
+    // sleep until a signal is delivered that either terminates the process or causes the
+    // invocation of a signal-catching function.
+    std::this_thread::sleep_for(std::chrono::hours{1});
+  }
+
+  // Get the id of this thread in the handler and make sure it is not the backend worker thread
+  uint32_t const tid = get_thread_id();
+  if ((LogManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
+      (tid == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
+  {
+    // backend worker thread is not running or the handler is called in the backend worker thread
+    if (signal_number == SIGINT || signal_number == SIGTERM)
+    {
+      std::exit(EXIT_SUCCESS);
+    }
+    else
+    {
+      // for other signals expect SIGINT and SIGTERM we re-raise
+      std::signal(signal_number, SIG_DFL);
+      std::raise(signal_number);
+    }
+  }
+  else
+  {
+    // This means signal handler is running a caller thread, we can log from the default logger
+    LOG_INFO(quill::get_logger(), "Received signal: {}", signal_number);
+
+    if (signal_number == SIGINT || signal_number == SIGTERM)
+    {
+      // For SIGINT and SIGTERM, we are shutting down gracefully
+      quill::flush();
+      std::exit(EXIT_SUCCESS);
+    }
+    else
+    {
+      LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
+
+      quill::flush();
+
+      // Reset to the default signal handler and re-raise the signal
+      std::signal(signal_number, SIG_DFL);
+      std::raise(signal_number);
+    }
+  }
+}
+
 #else
-// std::atomic is also safe here to use instead, as long as it is lock-free
-volatile static std::sig_atomic_t lock{0};
 volatile static std::sig_atomic_t signal_number_{0};
 
 /***/
@@ -198,13 +257,26 @@ void on_signal(int32_t signal_number)
 
 /***/
 #if defined(_WIN32)
-void init_signal_handler()
+void init_exception_handler()
 {
-  SetUnhandledExceptionFilter(on_signal);
+  SetUnhandledExceptionFilter(on_exception);
 
   if (!SetConsoleCtrlHandler(on_console_signal, TRUE))
   {
     QUILL_THROW(QuillError{"Failed to call SetConsoleCtrlHandler"});
+  }
+}
+
+/***/
+void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals)
+{
+  for (auto const& catchable_signal : catchable_signals)
+  {
+    // setup a signal handler per signal in the array
+    if (std::signal(catchable_signal, on_signal) == SIG_ERR)
+    {
+      QUILL_THROW(QuillError{"Failed to setup signal handler for signal: " + std::to_string(catchable_signal)});
+    }
   }
 }
 #else

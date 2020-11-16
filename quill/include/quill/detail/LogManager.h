@@ -131,7 +131,7 @@ public:
     {
 #if defined(_WIN32)
       (void)catchable_signals;
-      init_signal_handler();
+      init_exception_handler();
 #else
       // block all signals before spawning the backend worker thread
       // note: we just assume that std::thread is implemented using posix threads, or this

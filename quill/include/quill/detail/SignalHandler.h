@@ -17,10 +17,16 @@ namespace detail
  * Setup a signal handler to handle fatal signals
  */
 #if defined(_WIN32)
-void init_signal_handler();
-#else
+void init_exception_handler();
+#endif
+
+/**
+ * Linux/Windows.
+ * On windows it has to be called on each thread
+ * @param catchable_signals
+ */
 void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals = {
                            SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV});
-#endif
+
 } // namespace detail
 } // namespace quill
