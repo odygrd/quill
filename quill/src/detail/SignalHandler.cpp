@@ -115,7 +115,7 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_info)
   // FATAL Exception: It doesn't necessarily stop here. we pass on continue search
   // If nobody catches it, then it will exit anyhow.
   // The RISK here is if someone is catching this and returning "EXCEPTION_EXECUTE_HANDLER"
-  // but does not shutdown then the software will be running with g3log shutdown.
+  // but does not shutdown then the software will be running with quill shutdown.
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
