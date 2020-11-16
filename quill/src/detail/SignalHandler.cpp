@@ -148,9 +148,9 @@ void on_signal(int32_t signal_number)
   // Store the original signal number
   signal_number_ = signal_number;
 
-  // We setup an alarm to crash after 5 seconds by redelivering the original signal,
+  // We setup an alarm to crash after 20 seconds by redelivering the original signal,
   // in case anything else goes wrong
-  alarm(std::chrono::seconds{5}.count());
+  alarm(std::chrono::seconds{20}.count());
 
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
   uint32_t const tid = get_thread_id();
