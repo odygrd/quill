@@ -77,8 +77,10 @@ The main goals of the library are:
     -  File Logging
     -  Rotating log files
     -  Time rotating log files
+    -  Custom Handlers
  -  Filters for filtering log messages. See [Filters](https://github.com/odygrd/quill/wiki/3.-Filters).
  -  Clean warning-free codebase even on high warning levels.
+ -  Crash safe behaviour.
 
 ## Performance
 The following message is logged 2'000'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.

@@ -38,12 +38,42 @@ QUILL_ATTRIBUTE_COLD void preallocate();
  * Starts the backend thread to write the logs to the handlers.
  * This function is protected with a std::call_once flag, it can only be called once.
  * Blocks the caller thread until the backend worker thread starts spinning.
+ *
+ * @param with_signal_handler Initialises a signal handler (or exception handler and Ctrl-C on Windows)
+ *                            that will catch signals and flush the log before the application crashes
+ *
+ * @param catchable_signals List of the signals that the signal handler will catch (Posix ONLY).
+ *
+ * @note On Windows regardless the value of `with_signal_handler` init_signal_handler
+ * can also be called on each new caller thread. @see init_signal_handler
+ * - with_signal_handler=true will set up an exception handler and a Ctrl-C on windows to handle windows exception.
+ * - init_signal_handler() on Windows will setup a signal handler that will handle posix style signals.
+ * To fully handle signals on windows use with_signal_handler=true and also call init_signal_handler()
+ * on each thread.
+ *
  * @throws When the backend thread fails to start
  */
-QUILL_ATTRIBUTE_COLD inline void start()
+QUILL_ATTRIBUTE_COLD inline void start(bool with_signal_handler = false,
+                                       std::initializer_list<int> catchable_signals = {
+                                         SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
-  detail::LogManagerSingleton::instance().log_manager().start_backend_worker();
+  detail::LogManagerSingleton::instance().log_manager().start_backend_worker(with_signal_handler, catchable_signals);
 }
+
+#if defined(_WIN32)
+/**
+ * Setups up a signal handler for the caller thread. This must be called by each new thread
+ * on windows. On linux this is called automatically on quill::start().
+ * When init_signal_handler() is not called on windows, the windows exception will be catched
+ * instead if start() was called with_signal_handler = true
+ * @param catchable_signals List of the signals that the signal handler will catch
+ */
+QUILL_ATTRIBUTE_COLD inline void init_signal_handler(std::initializer_list<int> catchable_signals = {
+                                                       SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
+{
+  quill::detail::init_signal_handler(catchable_signals);
+}
+#endif
 
 /**
  * @param stdout_handler_name a custom name for stdout_handler. This is only useful if you want to

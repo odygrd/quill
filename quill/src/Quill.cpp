@@ -73,8 +73,7 @@ Handler* time_rotating_file_handler(filename_t const& base_filename,
 /***/
 Handler* rotating_file_handler(filename_t const& base_filename,
                                std::string const& mode /* = std::string {"a"} */,
-                               size_t max_bytes /* = 0 */,
-                               uint32_t backup_count /* = 0 */)
+                               size_t max_bytes /* = 0 */, uint32_t backup_count /* = 0 */)
 {
   return create_handler<RotatingFileHandler>(base_filename, mode, max_bytes, backup_count);
 }

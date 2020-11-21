@@ -165,7 +165,7 @@ private:
   HandlerCollection const& _handler_collection;
 
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
-  uint32_t _backend_worker_thread_id; /** cached backend worker thread id */
+  uint32_t _backend_worker_thread_id{0}; /** cached backend worker thread id */
 
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 

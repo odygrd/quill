@@ -11,8 +11,8 @@
 #include "quill/detail/Config.h"
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/LoggerCollection.h"
+#include "quill/detail/SignalHandler.h" // for init_signal_handler
 #include "quill/detail/ThreadContextCollection.h"
-
 #include "quill/detail/events/FlushEvent.h"
 #include "quill/detail/misc/Spinlock.h"
 
@@ -66,7 +66,15 @@ public:
   /**
    * @return The current process id
    */
-  QUILL_NODISCARD std::string const& process_id() noexcept { return _process_id; }
+  QUILL_NODISCARD std::string const& process_id() const noexcept { return _process_id; }
+
+  /**
+   * @return The current process id
+   */
+  QUILL_NODISCARD uint32_t backend_worker_thread_id() const noexcept
+  {
+    return _backend_worker.thread_id();
+  }
 
   /**
    * Blocks the caller thread until all log messages until the current timestamp are flushed
@@ -116,7 +124,44 @@ public:
   /**
    * Starts the backend worker thread.
    */
-  QUILL_ATTRIBUTE_COLD void inline start_backend_worker() { _backend_worker.run(); }
+  QUILL_ATTRIBUTE_COLD void inline start_backend_worker(bool with_signal_handler,
+                                                        std::initializer_list<int> const& catchable_signals)
+  {
+    if (with_signal_handler)
+    {
+#if defined(_WIN32)
+      (void)catchable_signals;
+      init_exception_handler();
+#else
+      // block all signals before spawning the backend worker thread
+      // note: we just assume that std::thread is implemented using posix threads, or this
+      // won't have any effect
+      sigset_t mask;
+      sigfillset(&mask);
+      sigprocmask(SIG_SETMASK, &mask, NULL);
+
+      // Initialise our signal handler
+      init_signal_handler(catchable_signals);
+#endif
+    }
+
+    // Start the backend worker
+    _backend_worker.run();
+
+    if (with_signal_handler)
+    {
+#if defined(_WIN32)
+      // ... ?
+#else
+      // unblock all signals after spawning the thread
+      // note: we just assume that std::thread is implemented using posix threads, or this
+      // won't have any effect
+      sigset_t mask;
+      sigemptyset(&mask);
+      sigprocmask(SIG_SETMASK, &mask, NULL);
+#endif
+    }
+  }
 
   /**
    * Stops the backend worker thread
