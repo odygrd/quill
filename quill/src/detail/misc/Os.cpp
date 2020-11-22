@@ -262,7 +262,7 @@ void* aligned_alloc(size_t alignment, size_t size)
   if (!p)
   {
     std::ostringstream error_msg;
-    error_msg << "create_memory_mapped_files failed with error message "
+    error_msg << "aligned_alloc failed with error message "
               << "\", errno \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
