@@ -22,7 +22,7 @@ void preallocate()
                                                  .log_manager()
                                                  .thread_context_collection()
                                                  .local_thread_context()
-                                                 ->spsc_queue()
+                                                 ->event_spsc_queue()
                                                  .capacity();
 }
 

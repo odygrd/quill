@@ -7,12 +7,12 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/detail/BackendWorker.h"
 #include "quill/detail/Config.h"
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/SignalHandler.h" // for init_signal_handler
 #include "quill/detail/ThreadContextCollection.h"
+#include "quill/detail/backend/BackendWorker.h"
 #include "quill/detail/events/FlushEvent.h"
 #include "quill/detail/misc/Spinlock.h"
 
@@ -107,10 +107,11 @@ public:
     bool emplaced{false};
     do
     {
-      emplaced = _thread_context_collection.local_thread_context()->spsc_queue().try_emplace<event_t>(notify_callback);
+      emplaced =
+        _thread_context_collection.local_thread_context()->event_spsc_queue().try_emplace<event_t>(notify_callback);
     } while (!emplaced);
 #else
-    _thread_context_collection.local_thread_context()->spsc_queue().emplace<event_t>(notify_callback);
+    _thread_context_collection.local_thread_context()->event_spsc_queue().emplace<event_t>(notify_callback);
 #endif
 
     // The caller thread keeps checking the flag until the backend thread flushes

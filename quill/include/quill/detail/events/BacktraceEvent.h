@@ -41,7 +41,7 @@ public:
     // allocate memory using the memory manager
     void* buffer = fla.allocate(sizeof(BacktraceEvent));
 
-    // create emplace a new object inside the buffer using the copy constructor of LogRecordEvent
+    // create emplace a new object inside the buffer using the copy constructor of LogEvent
     // and store this in a unique ptr with the custom deleter
     return std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>>{
       new (buffer) BacktraceEvent(*this), FreeListAllocatorDeleter<BaseEvent>{&fla}};

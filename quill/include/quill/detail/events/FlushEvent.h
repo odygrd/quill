@@ -14,7 +14,7 @@ namespace detail
 {
 /**
  * Special type of event to make a caller thread wait until all log is flushed.
- * We use that to make the caller wait until the logger thread has flushed all LogRecordEvents to all handlers
+ * We use that to make the caller wait until the logger thread has flushed all LogEvents to all handlers
  */
 class FlushEvent final : public BaseEvent
 {
@@ -33,7 +33,7 @@ public:
     // allocate memory using the memory manager
     void* buffer = fla.allocate(sizeof(FlushEvent));
 
-    // create emplace a new object inside the buffer using the copy constructor of LogRecordEvent
+    // create emplace a new object inside the buffer using the copy constructor of LogEvent
     // and store this in a unique ptr with the custom deleter
     return std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>>{
       new (buffer) FlushEvent(*this), FreeListAllocatorDeleter<BaseEvent>{&fla}};

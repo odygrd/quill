@@ -6,7 +6,7 @@
 #pragma once
 
 #include "quill/Fmt.h"
-#include "quill/detail/events/LogRecordMetadata.h"
+#include "quill/LogMacroMetadata.h"
 #include "quill/detail/misc/Attributes.h"
 #include <string>
 
@@ -38,7 +38,7 @@ public:
    * @return true if the log record should be written to the file, false otherwise
    */
   QUILL_NODISCARD virtual bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                                      detail::LogRecordMetadata const& metadata,
+                                      LogMacroMetadata const& metadata,
                                       fmt::memory_buffer const& formatted_record) noexcept = 0;
 
   /**

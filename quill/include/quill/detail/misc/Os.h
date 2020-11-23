@@ -76,14 +76,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_process_id() noexcept;
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t get_page_size() noexcept;
 
 /**
- * Provides hints to OS for memory page usage
- * @param addr  begin address
- * @param len size of address
- * @throws  std::system_error on failure
- */
-QUILL_ATTRIBUTE_COLD void madvice(void* addr, size_t len);
-
-/**
  * Aligned alloc
  * @param alignment specifies the alignment. Must be a valid alignment supported by the implementation.
  * @param size number of bytes to allocate. An integral multiple of alignment
@@ -158,20 +150,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_in_terminal(FILE* file) noexcept;
  */
 void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer& mem_buffer);
 #endif
-
-/**
- * Creates the memory map files needed for the queue buffer
- * Maps the same region of physical memory two times into a contiguous virtual address range
- * first: valid address
- * second: file_handler (windows only)
- */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<unsigned char*, void*> create_memory_mapped_files(size_t capacity);
-
-/**
- * Destroys the memory mapped files that were created using create_memory_mapped_files
- */
-QUILL_ATTRIBUTE_COLD void destroy_memory_mapped_files(std::pair<unsigned char*, void*> pointer_pair,
-                                                      size_t capacity);
 
 } // namespace detail
 } // namespace quill

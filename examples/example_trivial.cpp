@@ -22,12 +22,15 @@ int main()
 
     LOG_TRACE_L3(logger, "This is a log trace l3 example {}", 1);
     LOG_TRACE_L2(logger, "This is a log trace l2 example {} {}", 2, 2.3);
-    LOG_TRACE_L1(logger, "This is a log trace l1 example {}", 3);
+    LOG_TRACE_L1(logger, "This is a log trace l1 {} example", "string");
     LOG_DEBUG(logger, "This is a log debug example {}", 4);
     LOG_INFO(logger, "This is a log info example {}", 5);
     LOG_WARNING(logger, "This is a log warning example {}", 6);
     LOG_ERROR(logger, "This is a log error example {}", 7);
     LOG_CRITICAL(logger, "This is a log critical example {}", 8);
+
+    std::array<uint32_t, 4> arr = {1, 2, 3, 4};
+    LOG_INFO(logger, "This is a log info example {}", arr);
   }
 
   // b) Or like this

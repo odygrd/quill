@@ -10,7 +10,8 @@ set(SOURCE_FILES
         misc/TestUtilities.cpp
         misc/DocTestExtensions.cpp
         BacktraceLogRecordStorageTest.cpp
-        BoundedSPSCQueueTest.cpp
+        BoundedSPSCEventQueueTest.cpp
+        BoundedSPSCRawQueueTest.cpp
         ConfigTest.cpp
         FileUtilitiesTest.cpp
         FreeListAllocatorTest.cpp
@@ -18,16 +19,19 @@ set(SOURCE_FILES
         LoggerCollectionTest.cpp
         LoggerTest.cpp
         LogLevelTest.cpp
-        LogRecordMetadataTest.cpp
+        LogMacroMetadataTest.cpp
         LogTest.cpp
         PatternFormatterTest.cpp
         QuillLogTest.cpp
-        RecordTest.cpp
+        SerializeTest.cpp
+        LogEventTest.cpp
         StringFromTimeTest.cpp
         ThreadContextCollectionTest.cpp
         TimeRotatingFileHandlerTest.cpp
         TimestampFormatterTest.cpp
+        TypeDescriptorTest.cpp
         TypeTraitsCopyableTest.cpp
+        TypeTraitsSerializableTest.cpp
         UtilitiesTest.cpp
         UtilityTest.cpp
         )

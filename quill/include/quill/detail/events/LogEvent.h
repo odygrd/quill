@@ -6,9 +6,9 @@
 #pragma once
 
 #include "quill/Fmt.h"
+#include "quill/LogMacroMetadata.h"
 #include "quill/bundled/invoke/invoke.h"
 #include "quill/detail/events/BaseEvent.h"
-#include "quill/detail/events/LogRecordMetadata.h"
 #include "quill/detail/misc/TypeTraits.h"
 #include <memory>
 #include <tuple>
@@ -18,19 +18,19 @@ namespace quill
 namespace detail
 {
 /**
- * For each log statement a LogRecordEvent is produced and pushed to the thread local spsc queue.
+ * For each log statement a LogEvent is produced and pushed to the thread local spsc queue.
  * The backend thread reads events from the queue via a BaseEvent*
  *
- * The LogRecordEvent can be a normal LogRecordEvent or a BacktraceLogRecordEvent depending on
+ * The LogEvent can be a normal LogEvent or a BacktraceLogEvent depending on
  * the template argument IsBacktraceLogRecord
  */
-template <bool IsBacktraceLogRecord, typename TLogRecordMetadata, typename... FmtArgs>
-class LogRecordEvent final : public BaseEvent
+template <bool IsBacktraceLogRecord, typename TLogMacroMetadata, typename... FmtArgs>
+class LogEvent final : public BaseEvent
 {
 public:
   using PromotedTupleT = std::tuple<PromotedTypeT<FmtArgs>...>;
   using RealTupleT = std::tuple<FmtArgs...>;
-  using LogRecordMetadataT = TLogRecordMetadata;
+  using LogMacroMetadataT = TLogMacroMetadata;
 
   /**
    * Constructor
@@ -40,7 +40,7 @@ public:
    * @param fmt_args format arguments
    */
   template <typename... UFmtArgs>
-  LogRecordEvent(LoggerDetails const* logger_details, UFmtArgs&&... fmt_args)
+  LogEvent(LoggerDetails const* logger_details, UFmtArgs&&... fmt_args)
     : _logger_details(logger_details), _fmt_args(std::make_tuple(std::forward<UFmtArgs>(fmt_args)...))
   {
   }
@@ -48,7 +48,7 @@ public:
   /**
    * Destructor
    */
-  ~LogRecordEvent() override = default;
+  ~LogEvent() override = default;
 
   /**
    * Virtual clone using a custom memory manager
@@ -57,12 +57,12 @@ public:
   QUILL_NODISCARD std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> clone(FreeListAllocator& fla) const override
   {
     // allocate memory using the memory manager
-    void* buffer = fla.allocate(sizeof(LogRecordEvent));
+    void* buffer = fla.allocate(sizeof(LogEvent));
 
-    // create emplace a new object inside the buffer using the copy constructor of LogRecordEvent
+    // create emplace a new object inside the buffer using the copy constructor of LogEvent
     // and store this in a unique ptr with the custom deleter
     return std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>>{
-      new (buffer) LogRecordEvent(*this), FreeListAllocatorDeleter<BaseEvent>{&fla}};
+      new (buffer) LogEvent(*this), FreeListAllocatorDeleter<BaseEvent>{&fla}};
   }
 
   /**
@@ -98,7 +98,7 @@ public:
     std::chrono::nanoseconds const log_record_timestamp = timestamp_callback(this);
 
     // Get the metadata of this record
-    constexpr detail::LogRecordMetadata log_record_metadata = LogRecordMetadataT{}();
+    constexpr LogMacroMetadata log_record_metadata = LogMacroMetadataT{}();
 
     // Write record to all handlers
     _write_record_to_handlers(thread_id, log_record_timestamp, log_record_metadata);
@@ -121,7 +121,7 @@ private:
     std::chrono::nanoseconds const log_record_timestamp = timestamp_callback(this);
 
     // Get the metadata of this record
-    constexpr detail::LogRecordMetadata log_record_metadata = LogRecordMetadataT{}();
+    constexpr LogMacroMetadata log_record_metadata = LogMacroMetadataT{}();
 
     // Write record to all handlers
     _write_record_to_handlers(thread_id, log_record_timestamp, log_record_metadata);
@@ -166,12 +166,12 @@ private:
    * @param log_record_metadata the log record metadata
    */
   void _write_record_to_handlers(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                                 detail::LogRecordMetadata const& log_record_metadata) const
+                                 LogMacroMetadata const& log_record_metadata) const
   {
     // Forward the record to all of the logger handlers
     for (auto& handler : _logger_details->handlers())
     {
-      // lambda to unpack the tuple args stored in the LogRecordEvent (the arguments that were passed by
+      // lambda to unpack the tuple args stored in the LogEvent (the arguments that were passed by
       // the user) We also capture all additional information we need to create the log message
       auto forward_tuple_args_to_formatter = [this, &log_record_metadata, log_record_timestamp,
                                               thread_id, handler](auto const&... tuple_args) {

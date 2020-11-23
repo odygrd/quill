@@ -30,12 +30,12 @@
 // Main Log Macros
 
 #if defined(QUILL_NOFN_MACROS)
-// clang-format off
+  // clang-format off
 #define QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ...)                  \
   do {                                                                                             \
     struct {                                                                                       \
-      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                     \
-        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,               \
+      constexpr quill::LogMacroMetadata operator()() const noexcept {                     \
+        return quill::LogMacroMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,               \
                                                 "n/a", fmt, log_statement_level}; }                \
       } anonymous_log_record_info;                                                                 \
                                                                                                    \
@@ -54,8 +54,8 @@
   do {                                                                                             \
     static constexpr char const* function_name = __FUNCTION__;                                     \
     struct {                                                                                       \
-      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                     \
-        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,               \
+      constexpr quill::LogMacroMetadata operator()() const noexcept {                              \
+        return quill::LogMacroMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,                        \
                                                 function_name, fmt, log_statement_level}; }        \
       } anonymous_log_record_info;                                                                 \
                                                                                                    \
@@ -71,8 +71,8 @@
   do {                                                                                             \
     static constexpr char const* function_name = __FUNCTION__;                                     \
     struct {                                                                                       \
-      constexpr quill::detail::LogRecordMetadata operator()() const noexcept {                     \
-        return quill::detail::LogRecordMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,               \
+      constexpr quill::LogMacroMetadata operator()() const noexcept {                              \
+        return quill::LogMacroMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,                        \
                                                 function_name, fmt, quill::LogLevel::Backtrace}; } \
       } anonymous_log_record_info;                                                                 \
                                                                                                    \

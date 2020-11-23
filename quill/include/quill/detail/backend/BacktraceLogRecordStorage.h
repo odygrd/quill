@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "quill/detail/misc/FreeListAllocator.h"
+#include "quill/detail/backend/FreeListAllocator.h"
 #include <cstdint>
 #include <functional>
 #include <memory>

@@ -6,8 +6,8 @@
 #pragma once
 
 #include "quill/Fmt.h"
+#include "quill/LogMacroMetadata.h"
 #include "quill/PatternFormatter.h"
-#include "quill/detail/events/LogRecordMetadata.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/RecursiveSpinlock.h"
@@ -115,7 +115,7 @@ public:
    * @return result of all filters
    */
   QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                                     detail::LogRecordMetadata const& metadata,
+                                     LogMacroMetadata const& metadata,
                                      fmt::memory_buffer const& formatted_record);
 
 private:

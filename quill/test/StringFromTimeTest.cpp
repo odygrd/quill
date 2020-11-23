@@ -1,4 +1,4 @@
-#include "quill/detail/misc/StringFromTime.h"
+#include "quill/detail/backend/StringFromTime.h"
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
 #include "quill/detail/misc/Os.h"

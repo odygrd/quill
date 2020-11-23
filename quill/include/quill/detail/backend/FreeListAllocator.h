@@ -250,6 +250,7 @@ protected:
 template <typename T>
 struct FreeListAllocatorDeleter
 {
+  FreeListAllocatorDeleter() = default;
   explicit FreeListAllocatorDeleter(FreeListAllocator* fla) : _fla(fla){};
 
   template <typename U = T>

@@ -1,4 +1,4 @@
-#include "quill/detail/TimestampFormatter.h"
+#include "quill/detail/backend/TimestampFormatter.h"
 #include "quill/Fmt.h"                // for buffer
 #include "quill/QuillError.h"         // for QUILL_THROW, QuillError
 #include "quill/detail/misc/Macros.h" // for QUILL_UNLIKELY

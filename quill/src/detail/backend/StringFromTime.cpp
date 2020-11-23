@@ -1,4 +1,4 @@
-#include "quill/detail/misc/StringFromTime.h"
+#include "quill/detail/backend/StringFromTime.h"
 #include "quill/QuillError.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/Utilities.h"
