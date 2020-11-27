@@ -30,7 +30,7 @@ class ThreadContext
 {
 public:
 #if defined(QUILL_USE_BOUNDED_QUEUE)
-  using SPSCQueueT = BoundedSPSCQueue<RecordBase, QUILL_QUEUE_CAPACITY>;
+  using SPSCQueueT = BoundedSPSCQueue<BaseEvent, QUILL_QUEUE_CAPACITY>;
 #else
   using SPSCQueueT = UnboundedSPSCQueue<BaseEvent>;
 #endif
