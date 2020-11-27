@@ -45,14 +45,11 @@ jobs:
         CXX: ${{matrix.cxx}}
         CXXFLAGS: ${{matrix.cxxflags}}
       run: |
-        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.asan}} ${{matrix.tsan}} \
               -DCMAKE_CXX_STANDARD=${{matrix.std}} \
               -DQUILL_BUILD_TESTS=ON \
               -DQUILL_BUILD_EXAMPLES=ON \ 
-              -DQUILL_VERBOSE_MAKEFILE=ON \
-              ${{matrix.asan}} \
-              ${{matrix.tsan}} \
-              $GITHUB_WORKSPACE
+              -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
                
     - name: Build
       working-directory: ${{runner.workspace}}/build
