@@ -9,6 +9,7 @@ jobs:
       matrix:
         cxx: [g++-10, clang++-9]
         build_type: [Debug, Release]
+        std: [14]
         include:
 #           - cxx: g++-5
 #             install: sudo apt install g++-5
