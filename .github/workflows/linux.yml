@@ -7,22 +7,19 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        cxx: [g++-10]
+        cxx: [g++-10, clang++-9]
         build_type: [Debug, Release]
-        std: [14]
         include:
 #           - cxx: g++-5
 #             install: sudo apt install g++-5
           - cxx: g++-10
             std: 14
-#           - cxx: g++-10
-#             std: 17
-#           - cxx: g++-10
-#             std: 20
-#           - cxx: clang++-9
-#             std: 14
-#           - cxx: clang++-9
-#             std: 17
+          - cxx: g++-10
+            std: 17
+          - cxx: g++-10
+            std: 20
+          - cxx: clang++-9
+            std: 20
     
     steps:
     - uses: actions/checkout@v2
