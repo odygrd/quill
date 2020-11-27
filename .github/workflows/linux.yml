@@ -1,4 +1,4 @@
-name: CMake
+name: linux
 
 on: [push, pull_request]
 
@@ -7,12 +7,13 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        cxx: [g++-10, clang++-9]
+        cxx: [g++-5, g++-10, clang++-9]
         build_type: [Debug, Release]
         std: [14]
         include:
-#           - cxx: g++-5
-#             install: sudo apt install g++-5
+          - cxx: g++-5
+            std: 14
+            install: sudo apt install g++-5
           - cxx: g++-10
             std: 14
           - cxx: g++-10
