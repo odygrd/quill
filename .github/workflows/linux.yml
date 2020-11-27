@@ -17,10 +17,13 @@ jobs:
           - cxx: g++-10
             std: 14
           - cxx: g++-10
+            build_type: Release
             std: 17
           - cxx: g++-10
+            build_type: Release
             std: 20
           - cxx: clang++-9
+            build_type: Release
             std: 20
     
     steps:
