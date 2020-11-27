@@ -1,0 +1,51 @@
+name: CMake
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        cxx: [g++-5, g++-10, clang++-9]
+        build_type: [Debug, Release]
+        std: [14]
+        include:
+#           - cxx: g++-5
+#             install: sudo apt install g++-5
+          - cxx: g++-10
+            std: 14
+#           - cxx: g++-10
+#             std: 17
+#           - cxx: g++-10
+#             std: 20
+#           - cxx: clang++-9
+#             std: 14
+#           - cxx: clang++-9
+#             std: 17
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      run: |
+        ${{matrix.install}}
+        cmake -E make_directory ${{runner.workspace}}/build
+        
+    - name: Configure
+      working-directory: ${{runner.workspace}}/build
+      env:
+        CXX: ${{matrix.cxx}}
+        CXXFLAGS: ${{matrix.cxxflags}}
+      run: |
+        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+              -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+              -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
+               
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config ${{matrix.build_type}}
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      run: ctest --verbose -C ${{matrix.build_type}}
