@@ -76,14 +76,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_process_id() noexcept;
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t get_page_size() noexcept;
 
 /**
- * Provides hints to OS for memory page usage
- * @param addr  begin address
- * @param len size of address
- * @throws  std::system_error on failure
- */
-QUILL_ATTRIBUTE_COLD void madvice(void* addr, size_t len);
-
-/**
  * Aligned alloc
  * @param alignment specifies the alignment. Must be a valid alignment supported by the implementation.
  * @param size number of bytes to allocate. An integral multiple of alignment

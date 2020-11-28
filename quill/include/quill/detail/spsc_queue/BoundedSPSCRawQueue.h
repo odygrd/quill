@@ -25,7 +25,6 @@ public:
   {
     _storage = static_cast<unsigned char*>(aligned_alloc(CACHELINE_SIZE, QUILL_QUEUE_CAPACITY));
     std::memset(_storage, 0, QUILL_QUEUE_CAPACITY);
-    madvice(_storage, QUILL_QUEUE_CAPACITY);
 
     _end_of_recorded_space = _storage + QUILL_QUEUE_CAPACITY;
     _min_free_space = QUILL_QUEUE_CAPACITY;
