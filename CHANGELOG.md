@@ -22,8 +22,10 @@
 
 **Improvements/Fixes**
 - Fix compiler error when `CMAKE_CXX_STANDARD 20` is set.
+- Fix compiler error when `QUILL_USE_BOUNDED_QUEUE` is set.
 - Replaced an assertion check that could trigger incorrectly. ([#68](https://github.com/odygrd/quill/issues/68))
 - Don't include `x86intrin.h` when `ARM_ARCH < 6`. Default to system clock when `ARM_ARCH < 6`. ([#78](https://github.com/odygrd/quill/issues/78))
+- Upgraded bundled libfmt to `7.1.3`
 
 ## v1.5.2
 - Removed the use of `fmt::format()` in `FileUtilities.cpp` as a workaround to the link errors in fmt v7. Use the header only version of libfmt when external libfmt is defiend is no longer required.

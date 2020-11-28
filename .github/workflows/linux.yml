@@ -1,0 +1,61 @@
+name: linux
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        cxx: [g++-5, g++-10, clang++-9]
+        build_type: [Debug, Release]
+        std: [14]
+        include:
+          - cxx: g++-5
+            std: 14
+            install: sudo apt install g++-5
+          - cxx: g++-10
+            std: 14
+          - cxx: g++-10
+            build_type: Release
+            std: 17
+          - cxx: g++-10
+            build_type: Release
+            std: 20
+            valgrind: -DQUILL_USE_VALGRIND=ON
+            memcheck: -T memcheck
+            install: sudo apt install valgrind
+          - cxx: clang++-9
+            build_type: Release
+            std: 20
+            asan: -DQUILL_SANITIZE_ADDRESS=ON
+          - cxx: clang++-9
+            build_type: Release
+            std: 20
+            tsan: -DQUILL_SANITIZE_THREAD=ON
+            
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      run: |
+        ${{matrix.install}}
+        cmake -E make_directory ${{runner.workspace}}/build
+        
+    - name: Configure
+      working-directory: ${{runner.workspace}}/build
+      env:
+        CXX: ${{matrix.cxx}}
+        CXXFLAGS: ${{matrix.cxxflags}}
+      run: |
+        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.asan}} ${{matrix.tsan}} ${{matrix.valgrind}} \
+              -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=ON \
+              -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
+               
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config ${{matrix.build_type}}
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      run: ctest ${{matrix.memcheck}} --verbose -C ${{matrix.build_type}}

@@ -5,12 +5,21 @@
   <h1>Quill</h1>
 
   <div>
-    <a href="https://travis-ci.org/odygrd/quill">
-      <img src="https://img.shields.io/travis/odygrd/quill/master?logo=travis&style=flat-square" alt="Travis-ci" />
+    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Alinux">
+      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/linux?label=linux&logo=linux&style=flat-square" alt="linux-ci" />
     </a>
-    <a href="https://ci.appveyor.com/project/odygrd/quill/branch/master">
-      <img src="https://img.shields.io/appveyor/ci/odygrd/quill/master?logo=appveyor&style=flat-square" alt="Appveyor-ci" />
+    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Amacos">
+      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/macos?label=macos&logo=apple&logoColor=white&style=flat-square" alt="macos-ci" />
     </a>
+    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Awindows">
+      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/windows?label=windows&logo=windows&logoColor=blue&style=flat-square" alt="windows-ci" />
+    </a>
+    <a href="https://cloud.drone.io/odygrd/quill">
+      <img src="https://img.shields.io/drone/build/odygrd/quill/master?label=ARM&logo=drone&style=flat-square" alt="drone-ci" />
+    </a>
+  </div>
+  
+  <div>
     <a href="https://codecov.io/gh/odygrd/quill">
       <img src="https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov&style=flat-square" alt="Codecov" />
     </a>
