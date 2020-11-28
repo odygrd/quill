@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v1
     
     - name: configure   
-      run: cmake -Htest -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_CODE_COVERAGE=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
+      run: cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_CODE_COVERAGE=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
 
     - name: build
       run: cmake --build build -j4
