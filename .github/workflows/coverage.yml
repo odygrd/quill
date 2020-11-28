@@ -7,13 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     
     steps:
     - uses: actions/checkout@v2
       
     - name: Create Build Environment
       run: |
+        sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-7 800; gcov --version
+        sudo -H pip install --upgrade pip; sudo -H pip install codecov --ignore-installed
         cmake -E make_directory ${{runner.workspace}}/build
         
     - name: Configure
