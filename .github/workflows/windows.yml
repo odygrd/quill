@@ -17,13 +17,8 @@ jobs:
         include:
           - os: windows-2019
             std: 20
-            build_type: Release
             platform: x64
-          - os: windows-2019
-            std: 20
             build_type: Release
-            platform: x64
-            shared: -DBUILD_SHARED_LIBS=ON
 
     steps:
     - uses: actions/checkout@v2
