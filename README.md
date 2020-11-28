@@ -13,6 +13,7 @@
     </a>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Awindows">
       <img src="https://img.shields.io/github/workflow/status/odygrd/quill/windows?label=windows&logo=windows&logoColor=blue&style=flat-square" alt="windows-ci" />
+   <br>
     </a>
     <a href="https://travis-ci.org/odygrd/quill">
       <img src="https://img.shields.io/travis/odygrd/quill/master?logo=travis&style=flat-square" alt="Travis-ci" />
