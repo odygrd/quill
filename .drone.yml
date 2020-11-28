@@ -1,5 +1,5 @@
 kind: pipeline
-name: arm64-gcc8
+name: arm64-gcc8-debug
 platform: { os: linux, arch: arm64 }
 steps:
 - name: Build and Test
@@ -16,7 +16,7 @@ steps:
     - ctest --verbose
 ---
 kind: pipeline
-name: arm64-gcc8
+name: arm64-gcc8-release
 platform: { os: linux, arch: arm64 }
 steps:
 - name: Build and Test
