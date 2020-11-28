@@ -22,6 +22,9 @@ jobs:
           - cxx: g++-10
             build_type: Release
             std: 20
+            valgrind: -DQUILL_USE_VALGRIND=ON
+            memcheck: -T memcheck
+            install: sudo apt install valgrind
           - cxx: clang++-9
             build_type: Release
             std: 20
@@ -45,7 +48,7 @@ jobs:
         CXX: ${{matrix.cxx}}
         CXXFLAGS: ${{matrix.cxxflags}}
       run: |
-        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.asan}} ${{matrix.tsan}} \
+        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.asan}} ${{matrix.tsan}} ${{matrix.valgrind}} \
               -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=ON \
               -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
                
@@ -55,4 +58,4 @@ jobs:
 
     - name: Test
       working-directory: ${{runner.workspace}}/build
-      run: ctest --verbose -C ${{matrix.build_type}}
+      run: ctest ${{matrix.memcheck}} --verbose -C ${{matrix.build_type}}
