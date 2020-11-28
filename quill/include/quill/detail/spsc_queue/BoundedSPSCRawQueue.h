@@ -175,7 +175,7 @@ public:
     return _consumer_pos.load(std::memory_order_relaxed) == _producer_pos.load(std::memory_order_relaxed);
   }
 
-  static QUILL_NODISCARD size_t capacity() noexcept { return QUILL_QUEUE_CAPACITY; }
+  QUILL_NODISCARD static size_t capacity() noexcept { return QUILL_QUEUE_CAPACITY; }
 
 protected:
   unsigned char* _storage{nullptr};
