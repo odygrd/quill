@@ -15,8 +15,8 @@
       <img src="https://img.shields.io/github/workflow/status/odygrd/quill/windows?label=windows&logo=windows&logoColor=blue&style=flat-square" alt="windows-ci" />
    <br>
     </a>
-    <a href="https://travis-ci.org/odygrd/quill">
-      <img src="https://img.shields.io/travis/odygrd/quill/master?logo=travis&style=flat-square" alt="Travis-ci" />
+    <a href="https://travis-ci.com/github/odygrd/quill">
+      <img src="https://img.shields.io/travis/com/odygrd/quill/master?label=ARM&logo=travis&style=flat-square" alt="Travis-ci" />
     </a>
     <a href="https://ci.appveyor.com/project/odygrd/quill/branch/master">
       <img src="https://img.shields.io/appveyor/ci/odygrd/quill/master?logo=appveyor&style=flat-square" alt="Appveyor-ci" />
