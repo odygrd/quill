@@ -4,18 +4,7 @@ python:
   - "3.8"
     
 matrix:
-  include:
-    - name: 'Linux Gcc C++17 Debug'
-      os: linux
-      compiler: gcc
-      env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, cmake, cmake-data]
-        sonarcloud:
-          organization: "odygrd"
-    
+  include:    
     - name: 'Linux Gcc C++17 Release With Valgrind'
       os: linux
       compiler: gcc
@@ -34,24 +23,6 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-7, cmake, cmake-data, lcov]
 
-    - name: 'Linux Gcc C++14 Debug'
-      os: linux
-      compiler: gcc
-      env: GCC_VERSION=5 BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, cmake, cmake-data]
-
-    - name: 'Linux Gcc C++14 Release'
-      os: linux
-      compiler: gcc
-      env: GCC_VERSION=5 BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-5, cmake, cmake-data]
-
     - name: 'Linux Gcc C++17 Release ARM64'
       os: linux
       arch: arm64
@@ -62,27 +33,56 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
           packages: [g++-9, cmake, cmake-data]
 
-    - name: 'MacOs Clang C++17 Release with Address Sanitiser'
-      os: osx
-      osx_image: xcode11.2
-      env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=ON TSAN=OFF SONAR=OFF
-      compiler: clang
+#     - name: 'Linux Gcc C++17 Debug'
+#       os: linux
+#       compiler: gcc
+#       env: GCC_VERSION=9 BUILD=Debug STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
+#       addons:
+#         apt:
+#           sources: ['ubuntu-toolchain-r-test']
+#           packages: [g++-9, cmake, cmake-data]
+#         sonarcloud:
+#           organization: "odygrd"
 
-    - name: 'MacOs Clang C++17 Release with Thread Sanitiser'
-      os: osx
-      osx_image: xcode11.2
-      env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=ON SONAR=OFF
-      compiler: clang
+#     - name: 'Linux Gcc C++14 Debug'
+#       os: linux
+#       compiler: gcc
+#       env: GCC_VERSION=5 BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
+#       addons:
+#         apt:
+#           sources: ['ubuntu-toolchain-r-test']
+#           packages: [g++-5, cmake, cmake-data]
 
-    - name: 'MacOs Clang C++14 Debug'
-      os: osx
-      env: BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
-      compiler: clang
+#     - name: 'Linux Gcc C++14 Release'
+#       os: linux
+#       compiler: gcc
+#       env: GCC_VERSION=5 BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
+#       addons:
+#         apt:
+#           sources: ['ubuntu-toolchain-r-test']
+#           packages: [g++-5, cmake, cmake-data]
 
-    - name: 'MacOs Clang C++14 Release'
-      os: osx
-      env: BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
-      compiler: clang
+#     - name: 'MacOs Clang C++17 Release with Address Sanitiser'
+#       os: osx
+#       osx_image: xcode11.2
+#       env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=ON TSAN=OFF SONAR=OFF
+#       compiler: clang
+
+#     - name: 'MacOs Clang C++17 Release with Thread Sanitiser'
+#       os: osx
+#       osx_image: xcode11.2
+#       env: BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=ON SONAR=OFF
+#       compiler: clang
+
+#     - name: 'MacOs Clang C++14 Debug'
+#       os: osx
+#       env: BUILD=Debug STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
+#       compiler: clang
+
+#     - name: 'MacOs Clang C++14 Release'
+#       os: osx
+#       env: BUILD=Release STANDARD=14 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
+#       compiler: clang
 
 before_install:
   - if [ -n "$GCC_VERSION" ]; then export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}"; fi
