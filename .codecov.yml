@@ -3,3 +3,7 @@ ignore:
   - "quill/include/quill/bundled"
   - "quill/src/bundled"
   - "quill/test"
+  
+fixes:
+  - "/home/runner/work/quill/quill/::"
+ 
