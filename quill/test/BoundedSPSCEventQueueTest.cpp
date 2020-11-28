@@ -27,7 +27,6 @@ TEST_CASE("produce_consume_many_same_type")
 {
   BoundedSPSCEventQueue<test_struct_ints> buffer;
 
-  REQUIRE_EQ(buffer.capacity(), 2'097'152);
   REQUIRE_EQ(buffer.empty(), true);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
@@ -144,7 +143,6 @@ private:
 TEST_CASE("produce_consume_many_different_types")
 {
   BoundedSPSCEventQueue<TestBase> buffer;
-  REQUIRE_EQ(buffer.capacity(), 2'097'152);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
   {
@@ -217,8 +215,6 @@ TEST_CASE("produce_consume_many_different_types")
 TEST_CASE("produce_consume_many_multithreaded")
 {
   BoundedSPSCEventQueue<TestBase> buffer;
-
-  REQUIRE_EQ(buffer.capacity(), 2'097'152);
 
   std::thread producer_thread([&buffer]() {
     for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
