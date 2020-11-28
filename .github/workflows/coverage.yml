@@ -4,28 +4,24 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     
-    - name: configure   
+    - name: Configure 
       run: cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_CODE_COVERAGE=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
 
-    - name: build
+    - name: Build
       run: cmake --build build -j4
 
-    - name: test
+    - name: Test
       run: |
         cd build
         ctest --build-config Debug
   
-    - name: collect code coverage
+    - name: Collect code coverage
       run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
