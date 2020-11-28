@@ -37,6 +37,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Setup Environment
+      run: |
+        sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 800; gcov --version
+      shell: bash
+        
     - name: Create Build Environment
       run: |
         ${{matrix.install}}
