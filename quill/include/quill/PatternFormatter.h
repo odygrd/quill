@@ -200,9 +200,6 @@ public:
   void format(std::chrono::nanoseconds timestamp, char const* thread_id, char const* logger_name,
               LogMacroMetadata const& logline_info, Args const&... args) const;
 
-  inline void format(std::chrono::nanoseconds timestamp, char const* thread_id,
-                     char const* logger_name, LogMacroMetadata const& logline_info,
-                     fmt::dynamic_format_arg_store<fmt::format_context> const& fmt_arg_store) const;
 #else
   /**
    * Formats the given LogRecord
@@ -234,6 +231,10 @@ public:
     std::chrono::nanoseconds timestamp, char const* thread_id, char const* logger_name,
     LogMacroMetadata const& logline_info, Args const&... args) const;
 #endif
+
+  inline void format(std::chrono::nanoseconds timestamp, char const* thread_id,
+                     char const* logger_name, LogMacroMetadata const& logline_info,
+                     fmt::dynamic_format_arg_store<fmt::format_context> const& fmt_arg_store) const;
 
   /**
    * Returns the stored formatted record, to be called after format(...) is called
@@ -393,28 +394,6 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, const char* th
   // Append a new line
   _formatted_log_record.push_back('\n');
 }
-
-/***/
-void PatternFormatter::format(std::chrono::nanoseconds timestamp, char const* thread_id,
-                              char const* logger_name, LogMacroMetadata const& logline_info,
-                              fmt::dynamic_format_arg_store<fmt::format_context> const& fmt_arg_store) const
-{
-  // clear out existing buffer
-  _formatted_log_record.clear();
-
-  // Format part 1 of the pattern first
-  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-
-  // Format the user requested string
-  fmt::vformat_to(_formatted_log_record, logline_info.message_format(), fmt_arg_store);
-
-  // Format part 3 of the pattern
-  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
-
-  // Append a new line
-  _formatted_log_record.push_back('\n');
-}
-
 #else
 /***/
 template <typename... Args>
@@ -467,6 +446,27 @@ typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::valu
   _formatted_log_record.push_back('\n');
 }
 #endif
+
+/***/
+void PatternFormatter::format(std::chrono::nanoseconds timestamp, char const* thread_id,
+                              char const* logger_name, LogMacroMetadata const& logline_info,
+                              fmt::dynamic_format_arg_store<fmt::format_context> const& fmt_arg_store) const
+{
+  // clear out existing buffer
+  _formatted_log_record.clear();
+
+  // Format part 1 of the pattern first
+  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
+
+  // Format the user requested string
+  fmt::vformat_to(_formatted_log_record, logline_info.message_format(), fmt_arg_store);
+
+  // Format part 3 of the pattern
+  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, logger_name, logline_info);
+
+  // Append a new line
+  _formatted_log_record.push_back('\n');
+}
 
 /***/
 template <typename TConstantString>
