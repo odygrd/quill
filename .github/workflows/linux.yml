@@ -19,7 +19,6 @@ jobs:
           - cxx: g++-10
             build_type: Release
             std: 17
-            coverage: -DQUILL_CODE_COVERAGE=ON
           - cxx: g++-10
             build_type: Release
             std: 20
@@ -38,12 +37,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Setup gcov
-      run: |
-        sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-10 800; gcov --version
-      shell: bash
-      if: ${{matrix.gcov}} == '-DQUILL_CODE_COVERAGE=ON'
-        
     - name: Create Build Environment
       run: |
         ${{matrix.install}}
@@ -55,7 +48,7 @@ jobs:
         CXX: ${{matrix.cxx}}
         CXXFLAGS: ${{matrix.cxxflags}}
       run: |
-        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.asan}} ${{matrix.tsan}} ${{matrix.valgrind}} ${{matrix.coverage}} \
+        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.asan}} ${{matrix.tsan}} ${{matrix.valgrind}} \
               -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=ON \
               -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
                
@@ -66,9 +59,3 @@ jobs:
     - name: Test
       working-directory: ${{runner.workspace}}/build
       run: ctest ${{matrix.memcheck}} --verbose -C ${{matrix.build_type}}
-
-    - name: Publish Codecov
-      run: |
-        bash <(curl -s https://codecov.io/bash)
-      shell: bash
-      if: ${{matrix.gcov}} == '-DQUILL_CODE_COVERAGE=ON'
