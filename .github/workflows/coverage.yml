@@ -1,0 +1,41 @@
+name: coverage
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: 1
+  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Create Build Environment
+      run: |
+        cmake -E make_directory ${{runner.workspace}}/build
+        
+    - name: Configure
+      working-directory: ${{runner.workspace}}/build
+      env:
+        CXX: g++-10
+      run: |
+        cmake -DCMAKE_BUILD_TYPE=Debug -DQUILL_CODE_COVERAGE=ON \
+              -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON \
+              -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
+               
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build . --config Debug
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      run: ctest --verbose -C Debug
+
+    - name: Collect code coverage
+      run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
