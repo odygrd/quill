@@ -5,24 +5,24 @@ python:
     
 matrix:
   include:    
-    - name: 'Linux Gcc7 C++17 Debug with Code Coverage'
-      os: linux
-      compiler: gcc
-      env: GCC_VERSION=7 BUILD=Coverage STANDARD=17 CODE_COVERAGE=ON VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-7, cmake, cmake-data, lcov]
+#     - name: 'Linux Gcc7 C++17 Debug with Code Coverage'
+#       os: linux
+#       compiler: gcc
+#       env: GCC_VERSION=7 BUILD=Coverage STANDARD=17 CODE_COVERAGE=ON VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
+#       addons:
+#         apt:
+#           sources: ['ubuntu-toolchain-r-test']
+#           packages: [g++-7, cmake, cmake-data, lcov]
 
-    - name: 'Linux Gcc C++17 Release ARM64'
-      os: linux
-      arch: arm64
-      compiler: gcc
-      env: GCC_VERSION=9 BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: [g++-9, cmake, cmake-data]
+#     - name: 'Linux Gcc C++17 Release ARM64'
+#       os: linux
+#       arch: arm64
+#       compiler: gcc
+#       env: GCC_VERSION=9 BUILD=Release STANDARD=17 CODE_COVERAGE=OFF VALGRIND=OFF ASAN=OFF TSAN=OFF SONAR=OFF
+#       addons:
+#         apt:
+#           sources: ['ubuntu-toolchain-r-test']
+#           packages: [g++-9, cmake, cmake-data]
 
 #     - name: 'Linux Gcc C++17 Release With Valgrind'
 #       os: linux
