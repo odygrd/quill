@@ -25,7 +25,7 @@ struct test_struct_ints_2
 
 TEST_CASE("produce_consume_many_same_type")
 {
-  BoundedSPSCEventQueue<test_struct_ints, 2'097'152> buffer;
+  BoundedSPSCEventQueue<test_struct_ints> buffer;
 
   REQUIRE_EQ(buffer.capacity(), 2'097'152);
   REQUIRE_EQ(buffer.empty(), true);
@@ -143,7 +143,7 @@ private:
 
 TEST_CASE("produce_consume_many_different_types")
 {
-  BoundedSPSCEventQueue<TestBase, 2'097'152> buffer;
+  BoundedSPSCEventQueue<TestBase> buffer;
   REQUIRE_EQ(buffer.capacity(), 2'097'152);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
@@ -216,7 +216,7 @@ TEST_CASE("produce_consume_many_different_types")
 
 TEST_CASE("produce_consume_many_multithreaded")
 {
-  BoundedSPSCEventQueue<TestBase, 2'097'152> buffer;
+  BoundedSPSCEventQueue<TestBase> buffer;
 
   REQUIRE_EQ(buffer.capacity(), 2'097'152);
 

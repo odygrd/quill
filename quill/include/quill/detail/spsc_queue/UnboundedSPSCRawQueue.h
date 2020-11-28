@@ -38,11 +38,10 @@ namespace detail
  *       version but it offers extra safety. When performance is important consider using a
  *       large fixed_circular_buffer instead.
  */
-template <size_t Capacity>
 class UnboundedSPSCRawQueue
 {
 public:
-  using bounded_spsc_queue_t = BoundedSPSCRawQueue<Capacity>;
+  using bounded_spsc_queue_t = BoundedSPSCRawQueue;
 
 private:
   /** Private Definitions **/

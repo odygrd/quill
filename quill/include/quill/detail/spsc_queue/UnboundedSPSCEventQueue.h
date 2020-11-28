@@ -37,12 +37,12 @@ namespace detail
  *       version but it offers extra safety. When performance is important consider using a
  *       large fixed_circular_buffer instead.
  */
-template <typename TBaseObject, size_t Capacity>
+template <typename TBaseObject>
 class UnboundedSPSCEventQueue
 {
 public:
   using value_type = TBaseObject;
-  using bounded_spsc_queue_t = BoundedSPSCEventQueue<value_type, Capacity>;
+  using bounded_spsc_queue_t = BoundedSPSCEventQueue<value_type>;
   using handle_t = typename bounded_spsc_queue_t::Handle;
 
 private:

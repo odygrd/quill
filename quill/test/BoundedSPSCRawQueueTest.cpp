@@ -11,9 +11,11 @@ using namespace quill::detail;
 
 TEST_CASE("read_write_raw_queue_single_thread")
 {
-  // (8192 times * 4) + 1
+  BoundedSPSCRawQueue buffer;
+
+  // eg. (8192 times * 4) + 1
   // There is always 1 byte that is never reserved in our queue
-  BoundedSPSCRawQueue<32769> buffer;
+  size_t const iterations_to_full = (buffer.capacity() / sizeof(uint32_t)) - 2;
 
   for (uint32_t wrap_cnt = 0; wrap_cnt < 20; ++wrap_cnt)
   {
@@ -34,7 +36,7 @@ TEST_CASE("read_write_raw_queue_single_thread")
     buffer.finish_read(sizeof(uint32_t));
 
     // Main test loop
-    for (uint32_t i = 0; i < 8191; ++i)
+    for (uint32_t i = 0; i < iterations_to_full; ++i)
     {
       auto* write_buffer = buffer.prepare_write(sizeof(uint32_t));
 
@@ -49,7 +51,7 @@ TEST_CASE("read_write_raw_queue_single_thread")
       buffer.commit_write(sizeof(uint32_t));
     }
 
-    for (uint32_t i = 0; i < 8191; ++i)
+    for (uint32_t i = 0; i < iterations_to_full; ++i)
     {
       auto read_buffer = buffer.prepare_read();
       while (read_buffer.second == 0)
@@ -68,9 +70,7 @@ TEST_CASE("read_write_raw_queue_single_thread")
 
 TEST_CASE("read_write_multithreaded_raw_queue")
 {
-  BoundedSPSCRawQueue<32'768> buffer;
-
-  REQUIRE_EQ(buffer.capacity(), 32'768);
+  BoundedSPSCRawQueue buffer;
 
   std::thread producer_thread([&buffer]() {
     for (uint32_t wrap_cnt = 0; wrap_cnt < 20; ++wrap_cnt)

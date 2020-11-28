@@ -36,11 +36,11 @@ namespace detail
  * @see BoundedSPSCQueueTest.cpp for examples
  * @tparam TBaseObject A base class type
  */
-template <typename TBaseObject, size_t Capacity>
-class BoundedSPSCEventQueue : private BoundedSPSCRawQueue<Capacity>
+template <typename TBaseObject>
+class BoundedSPSCEventQueue : private BoundedSPSCRawQueue
 {
 public:
-  using base_t = BoundedSPSCRawQueue<Capacity>;
+  using base_t = BoundedSPSCRawQueue;
   using value_type = TBaseObject;
 
   /**
@@ -121,7 +121,7 @@ public:
      * Private constructor
      * Only this constructor creates a valid handle
      */
-    Handle(value_type* data, BoundedSPSCRawQueue<Capacity>* queue_ref, size_t read_size) noexcept
+    Handle(value_type* data, BoundedSPSCRawQueue* queue_ref, size_t read_size) noexcept
       : _data(data), _buffer_ref(queue_ref), _read_size(read_size)
     {
     }
@@ -145,7 +145,7 @@ public:
 
   private:
     value_type* _data{nullptr}; /**< The data */
-    BoundedSPSCRawQueue<Capacity>* _buffer_ref{nullptr};
+    BoundedSPSCRawQueue* _buffer_ref{nullptr};
     size_t _read_size{0};
   };
 
@@ -191,7 +191,7 @@ public:
     return reinterpret_cast<base_t const*>(this)->empty();
   }
 
-  QUILL_NODISCARD size_t capacity() const noexcept { return Capacity; }
+  QUILL_NODISCARD size_t capacity() const noexcept { return base_t::capacity(); }
 
 private:
   /**
@@ -207,9 +207,9 @@ private:
 };
 
 /***/
-template <typename TBaseObject, size_t Capacity>
+template <typename TBaseObject>
 template <typename TInsertedObject, typename... Args>
-bool BoundedSPSCEventQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) noexcept
+bool BoundedSPSCEventQueue<TBaseObject>::try_emplace(Args&&... args) noexcept
 {
   static_assert(sizeof(TInsertedObject) < QUILL_QUEUE_CAPACITY,
                 "The size of the object is greater than the queue capacity. Increase "
@@ -240,8 +240,8 @@ bool BoundedSPSCEventQueue<TBaseObject, Capacity>::try_emplace(Args&&... args) n
 }
 
 /***/
-template <typename TBaseObject, size_t Capacity>
-typename BoundedSPSCEventQueue<TBaseObject, Capacity>::Handle BoundedSPSCEventQueue<TBaseObject, Capacity>::try_pop() noexcept
+template <typename TBaseObject>
+typename BoundedSPSCEventQueue<TBaseObject>::Handle BoundedSPSCEventQueue<TBaseObject>::try_pop() noexcept
 {
   // we have been asked to consume but we don't know yet how much to consume
   // e.g object T might be a base class
@@ -274,9 +274,9 @@ typename BoundedSPSCEventQueue<TBaseObject, Capacity>::Handle BoundedSPSCEventQu
 }
 
 /***/
-template <typename TBaseObject, size_t Capacity>
-size_t BoundedSPSCEventQueue<TBaseObject, Capacity>::_distance_from_next_cache_line(unsigned char* start_pos,
-                                                                                    size_t obj_size) noexcept
+template <typename TBaseObject>
+size_t BoundedSPSCEventQueue<TBaseObject>::_distance_from_next_cache_line(unsigned char* start_pos,
+                                                                          size_t obj_size) noexcept
 {
   // increment the pointer to obj size
   start_pos += obj_size;

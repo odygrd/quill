@@ -234,6 +234,26 @@ size_t get_page_size() noexcept
 }
 
 /***/
+void madvice(void* addr, size_t len)
+{
+#if defined(_WIN32)
+  // Nothing to do on windows, silence the warning
+  (void)addr;
+  (void)len;
+#else
+  // It looks like madvice hint has no effect but we do it anyway ..
+  auto const res = madvise(addr, len, MADV_WILLNEED);
+  if (res == -1)
+  {
+    std::ostringstream error_msg;
+    error_msg << "failed to call madvice, with error message "
+              << "\"" << strerror(res) << "\", errno \"" << res << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+#endif
+}
+
+/***/
 void* aligned_alloc(size_t alignment, size_t size)
 {
 #if defined(_WIN32)

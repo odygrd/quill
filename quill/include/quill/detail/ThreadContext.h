@@ -34,8 +34,8 @@ public:
   using EventSPSCQueueT = BoundedSPSCEventQueue<BaseEvent, QUILL_QUEUE_CAPACITY>;
   using RawSPSCQueueT = BoundedSPSCRawQueue<QUILL_QUEUE_CAPACITY>;
 #else
-  using EventSPSCQueueT = UnboundedSPSCEventQueue<BaseEvent, QUILL_QUEUE_CAPACITY>;
-  using RawSPSCQueueT = UnboundedSPSCRawQueue<QUILL_QUEUE_CAPACITY>;
+  using EventSPSCQueueT = UnboundedSPSCEventQueue<BaseEvent>;
+  using RawSPSCQueueT = UnboundedSPSCRawQueue;
 #endif
 
   /**
