@@ -1,0 +1,33 @@
+kind: pipeline
+name: arm64-gcc8
+platform: { os: linux, arch: arm64 }
+steps:
+- name: Build and Test
+  image: gcc:8
+  environment:
+    CC: gcc
+    CXX: g++
+  commands:
+    - apt-get update -qq
+    - apt-get install -y cmake 
+    - mkdir -p build && cd build
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON ..
+    - cmake --build . 
+    - ctest --verbose
+---
+kind: pipeline
+name: arm64-gcc8
+platform: { os: linux, arch: arm64 }
+steps:
+- name: Build and Test
+  image: gcc:8
+  environment:
+    CC: gcc
+    CXX: g++
+  commands:
+    - apt-get update -qq
+    - apt-get install -y cmake 
+    - mkdir -p build && cd build
+    - cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON ..
+    - cmake --build . 
+    - ctest --verbose
