@@ -5,6 +5,15 @@
   <h1>Quill</h1>
 
   <div>
+    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Alinux">
+      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/linux?label=linux&logo=linux&style=flat-square" alt="linux-ci" />
+    </a>
+    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Amacos">
+      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/macos?label=macos&logo=apple&logoColor=white&style=flat-square" alt="macos-ci" />
+    </a>
+    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Awindows">
+      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/windows?label=windows&logo=windows&logoColor=blue&style=flat-square" alt="windows-ci" />
+    </a>
     <a href="https://travis-ci.org/odygrd/quill">
       <img src="https://img.shields.io/travis/odygrd/quill/master?logo=travis&style=flat-square" alt="Travis-ci" />
     </a>
