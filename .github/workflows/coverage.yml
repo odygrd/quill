@@ -4,35 +4,28 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+
+    runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v2
-      
-    - name: Create Build Environment
+    - uses: actions/checkout@v1
+    
+    - name: configure   
+      run: cmake -Htest -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_CODE_COVERAGE=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
+
+    - name: build
+      run: cmake --build build -j4
+
+    - name: test
       run: |
-        sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-7 800; gcov --version
-        sudo -H pip install --upgrade pip; sudo -H pip install codecov --ignore-installed
-        cmake -E make_directory ${{runner.workspace}}/build
-        
-    - name: Configure
-      working-directory: ${{runner.workspace}}/build
-
-      run: |
-        cmake -DCMAKE_BUILD_TYPE=Debug -DQUILL_CODE_COVERAGE=ON \
-              -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON \
-              -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
-               
-    - name: Build
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config Debug
-
-    - name: Test
-      working-directory: ${{runner.workspace}}/build
-      run: ctest --verbose -C Debug
-
-    - name: Collect code coverage
+        cd build
+        ctest --build-config Debug
+  
+    - name: collect code coverage
       run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
