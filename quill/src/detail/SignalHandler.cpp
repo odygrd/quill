@@ -91,7 +91,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
 }
 
 /***/
-LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_info)
+LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
 {
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
   uint32_t const tid = get_thread_id();
@@ -104,10 +104,10 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_info)
   {
     // This means signal handler is running a caller thread, we can log from the default logger
     LOG_INFO(quill::get_logger(), "Received exception code: {}",
-             get_error_message(exception_info->ExceptionRecord->ExceptionCode));
+             get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
     LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of exception code: {}",
-                 get_error_message(exception_info->ExceptionRecord->ExceptionCode));
+                 get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
     quill::flush();
   }

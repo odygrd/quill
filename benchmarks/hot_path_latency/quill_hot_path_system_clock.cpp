@@ -4,7 +4,6 @@
  */
 
 #define QUILL_CHRONO_CLOCK
-#define QUILL_QUEUE_CAPACITY 262'144
 
 #include "hot_path_bench.h"
 #include "quill/Quill.h"

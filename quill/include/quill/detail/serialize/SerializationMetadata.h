@@ -30,7 +30,7 @@ struct SerializationMetadata
 
 /**
  * Creates and returns a static SerializeMetadata pointer during program init
- * @return
+ * @return A pointer to SerializationMetadata
  */
 template <typename F, typename... Args>
 inline SerializationMetadata const* get_serialization_metadata_ptr()

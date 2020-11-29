@@ -57,7 +57,7 @@ private:
      * Constructor
      * @param capacity the capacity of the fixed buffer
      */
-    explicit node() = default;
+    node() = default;
 
     /**
      * Alignment requirement as we have bounded_spsc_queue as member
@@ -70,7 +70,7 @@ private:
     /** members */
     bounded_spsc_queue_t bounded_spsc_queue;
     alignas(CACHELINE_SIZE) std::atomic<node*> next{nullptr};
-    char _pad1[detail::CACHELINE_SIZE - sizeof(std::atomic<node*>)];
+    char _pad1[detail::CACHELINE_SIZE - sizeof(std::atomic<node*>)] = "\0";
   };
 
 public:
@@ -78,7 +78,7 @@ public:
    * Constructor
    * @param capacity The starting capacity
    */
-  explicit UnboundedSPSCEventQueue() : _producer(new node()), _consumer(_producer) {}
+  UnboundedSPSCEventQueue() : _producer(new node()), _consumer(_producer) {}
 
   /**
    * Deleted

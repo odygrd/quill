@@ -118,8 +118,8 @@ public:
    * @note This function is thread-safe.
    * @param fmt_args format arguments
    */
-  template <bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT std::enable_if_t<detail::is_all_serializable<FmtArgs...>::value && !IsBackTraceLogRecord, void> log(
+  template <bool TryFastQueue, bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
+  QUILL_ALWAYS_INLINE_HOT std::enable_if_t<detail::is_all_serializable<FmtArgs...>::value && !IsBackTraceLogRecord && TryFastQueue, void> log(
     TFormatString format_string, FmtArgs&&... fmt_args)
   {
     check_format(format_string, std::forward<FmtArgs>(fmt_args)...);
@@ -132,15 +132,14 @@ public:
     unsigned char* write_buffer =
       _thread_context_collection.local_thread_context()->raw_spsc_queue().prepare_write(total_size);
 
-  #if defined(QUILL_USE_BOUNDED_QUEUE)
-    // push to the spsc queue owned by the ctx
     if (QUILL_UNLIKELY(write_buffer == nullptr))
     {
-      // not enough space to push to queue message is dropped
-      _thread_context_collection.local_thread_context()->increment_dropped_message_counter();
+      // We have no space to write to the fast queue, it is still better to try to push to the event
+      // queue first before re-allocating
+      constexpr bool try_fast_queue{false};
+      log<try_fast_queue, IsBackTraceLogRecord, TLogMacroMetadata>(format_string, fmt_args...);
       return;
     }
-  #endif
     // we have enough space in this buffer and we will write to the buffer
 
     // write the timestamp first
@@ -188,12 +187,12 @@ public:
    * @param fmt_args format arguments
    */
 #if defined(QUILL_DUAL_QUEUE_MODE)
-  template <bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT std::enable_if_t<!detail::is_all_serializable<FmtArgs...>::value || IsBackTraceLogRecord, void> log(
+  template <bool TryFastQueue, bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
+  QUILL_ALWAYS_INLINE_HOT std::enable_if_t<!detail::is_all_serializable<FmtArgs...>::value || IsBackTraceLogRecord || !TryFastQueue, void> log(
     TFormatString format_string, FmtArgs&&... fmt_args)
 #else
   // If the QUILL_DUAL_QUEUE_MODE is not enabled, this is always enabled
-  template <bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
+  template <bool TryFastQueue, bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
 #endif
   {

@@ -30,7 +30,7 @@
 // Main Log Macros
 
 #if defined(QUILL_NOFN_MACROS)
-  // clang-format off
+// clang-format off
 #define QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ...)                  \
   do {                                                                                             \
     struct {                                                                                       \
@@ -41,9 +41,10 @@
                                                                                                    \
     if (likelyhood(logger->should_log<log_statement_level>()))                                     \
     {                                                                                              \
+      constexpr bool try_fast_queue {true}; /* Available in dual queue mode only */                \
       constexpr bool is_backtrace_log_record {false};                                              \
-      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(FMT_STRING(fmt),   \
-                                                                                ##__VA_ARGS__);    \
+      logger->log<try_fast_queue, is_backtrace_log_record, decltype(anonymous_log_record_info)>    \
+                                                             (FMT_STRING(fmt),  ##__VA_ARGS__);    \
     }                                                                                              \
   } while (0)
 // clang-format on
@@ -61,9 +62,10 @@
                                                                                                    \
     if (likelyhood(logger->should_log<log_statement_level>()))                                     \
     {                                                                                              \
+      constexpr bool try_fast_queue {true}; /* Available in dual queue mode only */                \
       constexpr bool is_backtrace_log_record {false};                                              \
-      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(FMT_STRING(fmt),   \
-                                                                                ##__VA_ARGS__);    \
+      logger->log<try_fast_queue, is_backtrace_log_record, decltype(anonymous_log_record_info)>    \
+                                                             (FMT_STRING(fmt),  ##__VA_ARGS__);    \
     }                                                                                              \
   } while (0)
 
@@ -78,9 +80,10 @@
                                                                                                    \
     if (QUILL_LIKELY(logger->should_log<quill::LogLevel::Backtrace>()))                            \
     {                                                                                              \
+      constexpr bool try_fast_queue {true}; /* Available in dual queue mode only */                \
       constexpr bool is_backtrace_log_record {true};                                               \
-      logger->log<is_backtrace_log_record, decltype(anonymous_log_record_info)>(FMT_STRING(fmt),   \
-                                                                                ##__VA_ARGS__);    \
+      logger->log<try_fast_queue, is_backtrace_log_record, decltype(anonymous_log_record_info)>    \
+                                                             (FMT_STRING(fmt),  ##__VA_ARGS__);    \
     }                                                                                              \
   } while (0)
 // clang-format on

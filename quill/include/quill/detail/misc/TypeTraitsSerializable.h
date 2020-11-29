@@ -58,8 +58,6 @@ struct is_serializable_helper<char const[N]> : public std::true_type
 
 /**
  * We won't be serializing arrays, expect char arrays
- * @tparam T
- * @tparam N
  */
 template <class T, size_t N>
 struct is_serializable_helper<T[N]> : public std::false_type
@@ -69,9 +67,7 @@ struct is_serializable_helper<T[N]> : public std::false_type
 /**
  * The below type traits are not supported for serialization, mixing character types is disallowed
  * when using fmt store
- * @tparam TArgs
  */
-
 template <size_t N>
 struct is_serializable_helper<wchar_t[N]> : public std::false_type
 {

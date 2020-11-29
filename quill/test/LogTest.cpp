@@ -79,9 +79,9 @@ TEST_CASE("default_logger_with_filehandler_using_raw_queue")
   LogManager lm;
 
 #if defined(_WIN32)
-  std::wstring const filename{L"test_default_logger_with_filehandler_using_event_queue"};
+  std::wstring const filename{L"test_default_logger_with_filehandler_using_raw_queue"};
 #else
-  std::string const filename{"test_default_logger_with_filehandler_using_event_queue"};
+  std::string const filename{"test_default_logger_with_filehandler_using_raw_queue"};
 #endif
 
   // Set a file handler as the custom logger handler and log to it

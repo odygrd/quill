@@ -161,8 +161,8 @@ private:
   {
     /**
      * Constructor used when we are pulling event from the generic_queue
-     * @param in_thread_context
-     * @param base_event
+     * @param in_thread_context thread context
+     * @param in_base_event the base event
      */
     TransitEvent(ThreadContext* in_thread_context,
                  std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> in_base_event)
@@ -173,11 +173,12 @@ private:
     }
 
     /**
-     * Constructor used for any events coming from the fast_queue
-     * @param in_thread_context
-     * @param in_timestamp
-     * @param in_log_data_node
-     * @param in_fmt_store
+     * Constructor used for any events coming from the raw queue
+     * @param in_thread_context thread context
+     * @param in_timestamp timestamp for log message
+     * @param in_serialization_metadata contains LogMacroMetadata and the deserialization info
+     * @param in_logger_details logger details
+     * @param in_fmt_store holds the arguments of the log message
      */
     TransitEvent(ThreadContext* in_thread_context, uint64_t in_timestamp,
                  detail::SerializationMetadata const* in_serialization_metadata,
@@ -396,15 +397,12 @@ void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context)
     auto const logger_details = reinterpret_cast<detail::LoggerDetails const*>(logger_details_ptr);
     read_buffer += sizeof(uintptr_t);
 
-    // Use our type_info string to read the remaining message until the end
-    std::vector<std::string> type_descriptor_tokens = split(serialization_metadata->serialization_info, '%');
-
     // Store all arguments
     fmt::dynamic_format_arg_store<fmt::format_context> fmt_store;
     size_t read_size = 0;
-    for (auto const& type_descriptor_str : type_descriptor_tokens)
+    for (char const type_descriptor : serialization_metadata->serialization_info)
     {
-      read_size += deserialize_argument(read_buffer, fmt_store, type_descriptor_str);
+      read_size += deserialize_argument(read_buffer, fmt_store, static_cast<TypeDescriptor>(type_descriptor));
     }
 
     // Finish reading

@@ -9,7 +9,6 @@
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/spsc_queue/UnboundedSPSCEventQueue.h"
-#include "quill/detail/spsc_queue/UnboundedSPSCRawQueue.h"
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
@@ -30,12 +29,11 @@ namespace detail
 class ThreadContext
 {
 public:
+  using RawSPSCQueueT = BoundedSPSCRawQueue;
 #if defined(QUILL_USE_BOUNDED_QUEUE)
-  using EventSPSCQueueT = BoundedSPSCEventQueue<BaseEvent, QUILL_QUEUE_CAPACITY>;
-  using RawSPSCQueueT = BoundedSPSCRawQueue<QUILL_QUEUE_CAPACITY>;
+  using EventSPSCQueueT = BoundedSPSCEventQueue<BaseEvent>;
 #else
   using EventSPSCQueueT = UnboundedSPSCEventQueue<BaseEvent>;
-  using RawSPSCQueueT = UnboundedSPSCRawQueue;
 #endif
 
   /**

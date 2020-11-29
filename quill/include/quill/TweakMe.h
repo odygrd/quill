@@ -120,25 +120,64 @@
 // #define QUILL_MODE_UNSAFE
 
 /**
- * Quill uses a unbounded SPSC queue per spawned thread to forward the LogRecords to the backend thread.
+ * This option is useful only for GCC versions < 9.0.
+ * Quill requires __FUNCTION__ to be usable as a constant expression and in some cases in gcc prior
+ * to 9.0 __FUNCTION__ is not usable as a constant expression (e.g. in nested lambdas)
+ * In those cases the regular LOG_* macros won't compile.
+ * see https://github.com/odygrd/quill/issues/28
+ *     https://stackoverflow.com/questions/55850013/pretty-function-in-constant-expression
  *
- * During very high logging activity the backend thread won't be able to consume fast enough
- * and the queue will become full. In this scenario the caller thread will not block but instead
- * it will allocate a new queue of the same capacity.
- *
- * If the backend thread is falling behind also consider reducing the sleep duration of the backend
- * thread first or pinning it to a dedicated core. This will keep the queue more empty.
- *
- * The queue size can be increased or decreased based on the user needs. This queue will be shared
- * between two threads and it should not exceed the size of LLC cache.
- *
- * When QUILL_DUAL_QUEUE_MODE is used this affects the size of both queues.
- *
- * @warning The configured queue size needs to be in bytes, it MUST be a power of two and a multiple
- * of the page size (4096).
- * Look for an online Mebibyte to Byte converted to easily find a correct value.
+ * When this option is enabled then some extra log macros get enabled that can be used in places
+ * where __FUNCTION__ is not constexpr
+ * All log macros will also be available in the form of LOG_LEVEL_NOFN(...)
  */
-// #define QUILL_QUEUE_CAPACITY 262'144
+// #define QUILL_NOFN_MACROS
+
+/**
+ * When QUILL_DISABLE_NON_PREFIXED_MACROS is removes LOG_INFO macros and only QUILL_LOG_INFO is available.
+ * This is only required in case the original macro names collide with another third party library
+ */
+// #define QUILL_DISABLE_NON_PREFIXED_MACROS
+
+/**************************************************************************************************/
+/* Anything after this point requires the whole library to be recompiled with the desired option. */
+/**************************************************************************************************/
+
+/**
+ * Uses an installed version of the fmt library instead of quill's bundled copy.
+ * In this case quill will try to include <fmt/format.h> so make sure to set -I directories
+ * accordingly if not using CMake.
+ *
+ * This is also available as CMake option -DQUILL_FMT_EXTERNAL=ON.
+ * When -DQUILL_FMT_EXTERNAL=ON is used the below line does not need to be uncommented as CMake will
+ * define it automatically.
+ * Quill will look for a CMake Target with name `fmt`. If the target is not found it will
+ * use find_package(fmt REQUIRED) so make sure that fmt library is installed in your system
+ */
+// #define QUILL_FMT_EXTERNAL
+
+/**
+ * Disables all exceptions and replaces them with std::abort()
+ */
+// #define QUILL_NO_EXCEPTIONS
+
+/**
+ * When QUILL_USE_BOUNDED_QUEUE is defined a bounded queue for passing the log messages
+ * to the backend thread, instead of the default unbounded queue is used.
+ *
+ * Bounded Queue : When full the log messages will get dropped.
+ * Unbounded Queue : When full, a new queue is allocated and no log messages are lost.
+ *
+ * The default mode is unbounded queue as the recommended option. The overhead is low.
+ * Using QUILL_USE_BOUNDED_QUEUE option is in the case when all re-allocations should be avoided.
+ * In QUILL_USE_BOUNDED_QUEUE mode the number of dropped log messages is written to stderr.
+ *
+ * @note: In both modes (unbounded or bounded) the queue size is configurable via `quill::config::set_initial_queue_capacity`.
+ *
+ * @note: You can avoid re-allocations when using the unbounded queue (default mode) by setting the initial_queue_capacity to a higher value.
+ * QUILL_USE_BOUNDED_QUEUE mode seems to be faster in `quill_hot_path_rdtsc_clock` benchmark by a few nanoseconds.
+ */
+// #define QUILL_USE_BOUNDED_QUEUE
 
 /**
  * When this is enabled Quill will use 2 SPSC queues for each thread
@@ -199,61 +238,22 @@
 #define QUILL_DUAL_QUEUE_MODE
 
 /**
- * This option is useful only for GCC versions < 9.0.
- * Quill requires __FUNCTION__ to be usable as a constant expression and in some cases in gcc prior
- * to 9.0 __FUNCTION__ is not usable as a constant expression (e.g. in nested lambdas)
- * In those cases the regular LOG_* macros won't compile.
- * see https://github.com/odygrd/quill/issues/28
- *     https://stackoverflow.com/questions/55850013/pretty-function-in-constant-expression
+ * Quill uses a unbounded SPSC queue per spawned thread to forward the LogRecords to the backend thread.
  *
- * When this option is enabled then some extra log macros get enabled that can be used in places
- * where __FUNCTION__ is not constexpr
- * All log macros will also be available in the form of LOG_LEVEL_NOFN(...)
+ * During very high logging activity the backend thread won't be able to consume fast enough
+ * and the queue will become full. In this scenario the caller thread will not block but instead
+ * it will allocate a new queue of the same capacity.
+ *
+ * If the backend thread is falling behind also consider reducing the sleep duration of the backend
+ * thread first or pinning it to a dedicated core. This will keep the queue more empty.
+ *
+ * The queue size can be increased or decreased based on the user needs. This queue will be shared
+ * between two threads and it should not exceed the size of LLC cache.
+ *
+ * When QUILL_DUAL_QUEUE_MODE is used this affects the size of both queues.
+ *
+ * @warning The configured queue size needs to be in bytes, it MUST be a power of two and a multiple
+ * of the page size (4096).
+ * Look for an online Mebibyte to Byte converted to easily find a correct value.
  */
-// #define QUILL_NOFN_MACROS
-
-/**
- * When QUILL_DISABLE_NON_PREFIXED_MACROS is removes LOG_INFO macros and only QUILL_LOG_INFO is available.
- * This is only required in case the original macro names collide with another third party library
- */
-// #define QUILL_DISABLE_NON_PREFIXED_MACROS
-
-/**************************************************************************************************/
-/* Anything after this point requires the whole library to be recompiled with the desired option. */
-/**************************************************************************************************/
-
-/**
- * Uses an installed version of the fmt library instead of quill's bundled copy.
- * In this case quill will try to include <fmt/format.h> so make sure to set -I directories
- * accordingly if not using CMake.
- *
- * This is also available as CMake option -DQUILL_FMT_EXTERNAL=ON.
- * When -DQUILL_FMT_EXTERNAL=ON is used the below line does not need to be uncommented as CMake will
- * define it automatically.
- * Quill will look for a CMake Target with name `fmt`. If the target is not found it will
- * use find_package(fmt REQUIRED) so make sure that fmt library is installed in your system
- */
-// #define QUILL_FMT_EXTERNAL
-
-/**
- * Disables all exceptions and replaces them with std::abort()
- */
-// #define QUILL_NO_EXCEPTIONS
-
-/**
- * When QUILL_USE_BOUNDED_QUEUE is defined a bounded queue for passing the log messages
- * to the backend thread, instead of the default unbounded queue is used.
- *
- * Bounded Queue : When full the log messages will get dropped.
- * Unbounded Queue : When full, a new queue is allocated and no log messages are lost.
- *
- * The default mode is unbounded queue as the recommended option. The overhead is low.
- * Using QUILL_USE_BOUNDED_QUEUE option is in the case when all re-allocations should be avoided.
- * In QUILL_USE_BOUNDED_QUEUE mode the number of dropped log messages is written to stderr.
- *
- * @note: In both modes (unbounded or bounded) the queue size is configurable via `quill::config::set_initial_queue_capacity`.
- *
- * @note: You can avoid re-allocations when using the unbounded queue (default mode) by setting the initial_queue_capacity to a higher value.
- * QUILL_USE_BOUNDED_QUEUE mode seems to be faster in `quill_hot_path_rdtsc_clock` benchmark by a few nanoseconds.
- */
-// #define QUILL_USE_BOUNDED_QUEUE
+// #define QUILL_QUEUE_CAPACITY 262'144

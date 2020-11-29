@@ -46,7 +46,6 @@ set(HEADER_FILES
         include/quill/detail/spsc_queue/BoundedSPSCEventQueue.h
         include/quill/detail/spsc_queue/BoundedSPSCRawQueue.h
         include/quill/detail/spsc_queue/UnboundedSPSCEventQueue.h
-        include/quill/detail/spsc_queue/UnboundedSPSCRawQueue.h
 
         include/quill/detail/Config.h
         include/quill/detail/HandlerCollection.h

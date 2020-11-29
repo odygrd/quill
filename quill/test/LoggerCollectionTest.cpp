@@ -65,12 +65,7 @@ TEST_CASE("get_non_existing_logger")
   LoggerCollection logger_collection{tc, hc};
 
   // try to get a new logger with a default log level
-#if defined(QUILL_NO_EXCEPTIONS)
-  #if !defined(_WIN32)
-  ASSERT_EXIT(QUILL_MAYBE_UNUSED auto logger = logger_collection.get_logger("logger_2"),
-              ::testing::KilledBySignal(SIGABRT), ".*");
-  #endif
-#else
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto logger = logger_collection.get_logger("logger_2"), quill::QuillError);
 #endif
 }

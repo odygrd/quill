@@ -35,6 +35,11 @@
   #include <sys/sysctl.h>
   #include <sys/types.h>
   #include <unistd.h>
+#elif defined(__CYGWIN__)
+  #include <sched.h>
+  #include <sys/mman.h>
+  #include <sys/stat.h>
+  #include <unistd.h>
 #elif defined(__linux__)
   #include <sched.h>
   #include <sys/mman.h>
@@ -42,23 +47,6 @@
   #include <sys/stat.h>
   #include <syscall.h>
   #include <unistd.h>
-
-  /**
-   * Detect if _MAP_POPULATE is available for mmap
-   */
-  #include <linux/version.h>
-  #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 22)
-    #define _MAP_POPULATE_AVAILABLE
-  #endif
-#endif
-
-/**
- * MMAP Flags for linux/Macos only
- */
-#ifdef _MAP_POPULATE_AVAILABLE
-  #define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS | MAP_POPULATE)
-#else
-  #define MMAP_FLAGS (MAP_PRIVATE | MAP_ANONYMOUS)
 #endif
 
 namespace quill
@@ -121,7 +109,9 @@ tm* localtime_rs(time_t const* timer, tm* buf)
 /***/
 void set_cpu_affinity(uint16_t cpu_id)
 {
-#if defined(_WIN32)
+#if defined(__CYGWIN__)
+  // setting cpu affinity on cygwin is not supported
+#elif defined(_WIN32)
   // core number starts from 0
   auto mask = (static_cast<DWORD_PTR>(1) << cpu_id);
   auto ret = SetThreadAffinityMask(GetCurrentThread(), mask);
@@ -164,7 +154,9 @@ void set_cpu_affinity(uint16_t cpu_id)
 /***/
 void set_thread_name(char const* name)
 {
-#if defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__CYGWIN__)
+  // set thread name on cygwin not supported
+#elif defined(__MINGW32__) || defined(__MINGW64__)
   // Disabled on MINGW.
   (void)name;
 #elif defined(_WIN32)
@@ -197,7 +189,10 @@ void set_thread_name(char const* name)
 /***/
 uint32_t get_thread_id() noexcept
 {
-#if defined(_WIN32)
+#if defined(__CYGWIN__)
+  // get thread id on cygwin not supported
+  return 0;
+#elif defined(_WIN32)
   return static_cast<uint32_t>(GetCurrentThreadId());
 #elif defined(__linux__)
   return static_cast<uint32_t>(::syscall(SYS_gettid));
@@ -211,7 +206,10 @@ uint32_t get_thread_id() noexcept
 /***/
 uint32_t get_process_id() noexcept
 {
-#if defined(_WIN32)
+#if defined(__CYGWIN__)
+  // get pid on cygwin not supported
+  return 0;
+#elif defined(_WIN32)
   return static_cast<uint32_t>(GetCurrentProcessId());
 #else
   return static_cast<uint32_t>(getpid());
@@ -223,7 +221,9 @@ size_t get_page_size() noexcept
 {
   // thread local to avoid race condition when more than one threads are creating the queue at the same time
   static thread_local uint32_t page_size{0};
-#if defined(_WIN32)
+#if defined(__CYGWIN__)
+  page_size = 4096;
+#elif defined(_WIN32)
   SYSTEM_INFO system_info;
   GetSystemInfo(&system_info);
   page_size = std::max(system_info.dwPageSize, system_info.dwAllocationGranularity);

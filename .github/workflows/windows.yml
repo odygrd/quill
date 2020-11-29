@@ -11,20 +11,28 @@ on:
 
 jobs:
   build:
-    runs-on: ${{matrix.os}}
+    # windows-2016 and windows-2019 have MSVC 2017 and 2019 installed
+    # respectively: https://github.com/actions/virtual-environments.
+    runs-on: windows-2019
     strategy:
       matrix:
-        # windows-2016 and windows-2019 have MSVC 2017 and 2019 installed
-        # respectively: https://github.com/actions/virtual-environments.
-        os: [windows-2019]
-        platform: [x64]
-        build_type: [Debug, Release]
-        std: [17]
+        platform: [ x64 ]
+        build_type: [ Debug, Release ]
+        std: [ 17 ]
+        with_tests: [ ON ]
+
         include:
-          - os: windows-2019
-            std: 20
-            platform: x64
+          # Builds with bounded queue and no exceptions
+          - platform: x64
             build_type: Release
+            std: 17
+            with_tests: "OFF"
+            cmake_options: -DQUILL_USE_BOUNDED_QUEUE=ON
+          - platform: x64
+            build_type: Release
+            std: 17
+            with_tests: "OFF"
+            cmake_options: -DQUILL_NO_EXCEPTIONS=ON
 
     steps:
     - uses: actions/checkout@v2
@@ -37,14 +45,14 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: |
-        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.shared}} \
-              -A ${{matrix.platform}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=ON \
+        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_options}} \
+              -A ${{matrix.platform}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} \
               -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
-                             
+
     - name: Build
       working-directory: ${{runner.workspace}}/build
       run: cmake --build . --config ${{matrix.build_type}}
 
     - name: Test
       working-directory: ${{runner.workspace}}/build
-      run: ctest -C ${{matrix.build_type}}
+      run: ctest --build-config ${{matrix.build_type}} --verbose --output-on-failure --parallel 2
