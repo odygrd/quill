@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
-#include "quill/detail/TimestampFormatter.h"
-#include "quill/QuillError.h"
 #include "misc/DocTestExtensions.h"
+#include "quill/QuillError.h"
+#include "quill/detail/backend/TimestampFormatter.h"
 
 TEST_SUITE_BEGIN("ThreadContextCollection");
 
@@ -12,16 +12,7 @@ using namespace quill::detail;
 TEST_CASE("simple_format_string")
 {
   // invalid format strings
-#if defined(QUILL_NO_EXCEPTIONS)
-  #if !defined(_WIN32)
-  ASSERT_EXIT(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus z"},
-              ::testing::KilledBySignal(SIGABRT), ".*");
-  ASSERT_EXIT(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus%Qns z"},
-              ::testing::KilledBySignal(SIGABRT), ".*");
-  ASSERT_EXIT(TimestampFormatter ts_formatter{"%I:%M%p%S%Qus%Qns z"},
-              ::testing::KilledBySignal(SIGABRT), ".*");
-  #endif
-#else
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus z"}, quill::QuillError);
   REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus%Qns z"}, quill::QuillError);
   REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%S%Qus%Qns z"}, quill::QuillError);

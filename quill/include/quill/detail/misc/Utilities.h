@@ -42,6 +42,16 @@ QUILL_NODISCARD constexpr size_t strlength(char const* str)
 }
 
 /**
+ * Constexpr string length
+ * @param str input string
+ * @return the length of the string
+ */
+QUILL_NODISCARD constexpr size_t strlength(wchar_t const* str)
+{
+  return *str ? 1 + strlength(str + 1) : 0;
+}
+
+/**
  * Constexpr string comparison
  * @param lhs string 1
  * @param rhs string 2
@@ -135,5 +145,12 @@ QUILL_NODISCARD time_t next_noon_or_midnight_timestamp(time_t timestamp, Timezon
  */
 QUILL_NODISCARD std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone timezone);
 
+/**
+ * Split a string into tokens
+ * @param s given string
+ * @param delimiter delimiter
+ * @return returns a vector of tokens
+ */
+QUILL_NODISCARD std::vector<std::string> split(std::string const& s, char delimiter);
 } // namespace detail
 } // namespace quill

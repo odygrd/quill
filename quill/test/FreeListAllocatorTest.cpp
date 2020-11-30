@@ -1,7 +1,7 @@
 #include "doctest/doctest.h"
 
 #include "misc/DocTestExtensions.h"
-#include "quill/detail/misc/FreeListAllocator.h"
+#include "quill/detail/backend/FreeListAllocator.h"
 
 #include <algorithm>
 #include <iostream>

@@ -30,14 +30,14 @@ using namespace quill::detail;
 // For the tests we will use threads so that the thread local is also destructed with the LogManager
 
 /***/
-TEST_CASE("default_logger_with_filehandler")
+TEST_CASE("default_logger_with_filehandler_using_raw_queue")
 {
   LogManager lm;
 
 #if defined(_WIN32)
-  std::wstring const filename{L"test_default_logger_with_filehandler"};
+  std::wstring const filename{L"test_default_logger_with_filehandler_using_raw_queue"};
 #else
-  std::string const filename{"test_default_logger_with_filehandler"};
+  std::string const filename{"test_default_logger_with_filehandler_using_raw_queue"};
 #endif
 
   // Set a file handler as the custom logger handler and log to it
@@ -49,9 +49,11 @@ TEST_CASE("default_logger_with_filehandler")
   std::thread frontend([&lm]() {
     Logger* default_logger = lm.logger_collection().get_logger();
 
-    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+    // log using the raw selialization queue
+    std::string s = "adipiscing";
+    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur {} {} {} {}", s, "elit", 1, 3.14);
     LOG_ERROR(default_logger,
-              "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+              "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {} {}", 2, true);
 
     // Let all log get flushed to the file
     lm.flush();
@@ -63,9 +65,54 @@ TEST_CASE("default_logger_with_filehandler")
 
   REQUIRE_EQ(file_contents.size(), 2);
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit 1 3.14"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true"}));
+
+  lm.stop_backend_worker();
+  quill::detail::file_utilities::remove(filename);
+}
+
+/***/
+TEST_CASE("default_logger_with_filehandler_using_raw_queue")
+{
+  LogManager lm;
+
+#if defined(_WIN32)
+  std::wstring const filename{L"test_default_logger_with_filehandler_using_raw_queue"};
+#else
+  std::string const filename{"test_default_logger_with_filehandler_using_raw_queue"};
+#endif
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().create_handler<FileHandler>(filename, "w", FilenameAppend::None));
+
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::thread frontend([&lm]() {
+    Logger* default_logger = lm.logger_collection().get_logger();
+
+    // log an array so the log message is pushed to the event queue
+    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}",
+             std::array<int, 2>{1, 2});
+    LOG_ERROR(default_logger,
+              "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}",
+              std::array<int, 2>{3, 4});
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit {1, 2}"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {3, 4}"}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
@@ -583,14 +630,14 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 #endif
 
 /***/
-TEST_CASE("log_backtrace_and_flush_on_error")
+TEST_CASE("log_backtrace_and_flush_on_error_from_raw_queue")
 {
   LogManager lm;
 
 #if defined(_WIN32)
-  std::wstring const filename{L"test_log_backtrace_and_flush_on_error"};
+  std::wstring const filename{L"test_log_backtrace_and_flush_on_error_from_raw_queue"};
 #else
-  std::string const filename{"test_log_backtrace_and_flush_on_error"};
+  std::string const filename{"test_log_backtrace_and_flush_on_error_from_raw_queue"};
 #endif
 
   // Set a file handler as the custom logger handler and log to it
@@ -630,6 +677,67 @@ TEST_CASE("log_backtrace_and_flush_on_error")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      root         - Before backtrace."}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root         - After Error."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 10."}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 11."}));
+
+  lm.stop_backend_worker();
+  quill::detail::file_utilities::remove(filename);
+}
+
+/***/
+TEST_CASE("log_backtrace_and_flush_on_error_from_event_queue")
+{
+  LogManager lm;
+
+#if defined(_WIN32)
+  std::wstring const filename{L"test_log_backtrace_and_flush_on_error_from_event_queue"};
+#else
+  std::string const filename{"test_log_backtrace_and_flush_on_error_from_event_queue"};
+#endif
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().create_handler<FileHandler>(filename, "a", FilenameAppend::None));
+
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::thread frontend([&lm]() {
+    // Get a logger and enable backtrace
+    Logger* logger = lm.logger_collection().get_logger();
+
+    // Enable backtrace for 2 messages
+    logger->init_backtrace(2, LogLevel::Error);
+
+    // here we log error with an array so that the error message is pushed into the event queue
+    LOG_INFO(logger, "Before backtrace {}", std::array<int, 2>{0, 1});
+
+    for (uint32_t i = 0; i < 12; ++i)
+    {
+#if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
+      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // when in this loop and make the test unstable
+      std::this_thread::sleep_for(std::chrono::microseconds{200});
+#endif
+      LOG_BACKTRACE(logger, "Backtrace message {}.", i);
+    }
+
+    // here we log error with an array so that the error message is pushed into the event queue
+    LOG_ERROR(logger, "After Error {}", std::array<int, 2>{0, 1});
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 4);
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      root         - Before backtrace"}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root         - After Error"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 10."}));
   REQUIRE(quill::testing::file_contains(
@@ -791,7 +899,7 @@ public:
   FileFilter1() : quill::FilterBase("FileFilter1"){};
 
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                              quill::detail::LogRecordMetadata const& metadata,
+                              quill::LogMacroMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
   {
     if (metadata.level() < quill::LogLevel::Warning)
@@ -811,7 +919,7 @@ public:
   FileFilter2() : quill::FilterBase("FileFilter2"){};
 
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                              quill::detail::LogRecordMetadata const& metadata,
+                              quill::LogMacroMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
   {
     if (metadata.level() >= quill::LogLevel::Warning)

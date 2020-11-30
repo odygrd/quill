@@ -20,7 +20,7 @@ namespace detail
  * The logger object is broken down to LoggerDetails and Logger as we end up in circular include
  * references if we include both in LogRecord
  *
- * Logger includes LogRecordEvent as it needs it to create it, and LogRecordEvent needs to read the
+ * Logger includes LogEvent as it needs it to create it, and LogEvent needs to read the
  * LoggerDetails later during the backend thread processing, but we don't want to include Logger
  */
 class LoggerDetails

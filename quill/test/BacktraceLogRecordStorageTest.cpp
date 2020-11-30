@@ -1,9 +1,9 @@
 #include "doctest/doctest.h"
 
 #include "misc/DocTestExtensions.h"
-#include "quill/detail/BacktraceLogRecordStorage.h"
+#include "quill/detail/backend/BacktraceLogRecordStorage.h"
+#include "quill/detail/backend/FreeListAllocator.h"
 #include "quill/detail/events/BaseEvent.h"
-#include "quill/detail/misc/FreeListAllocator.h"
 #include <iostream>
 
 TEST_SUITE_BEGIN("BacktraceLogRecordStorage");
@@ -21,7 +21,7 @@ public:
     // allocate memory using the memory manager
     void* buffer = fla.allocate(sizeof(TestRecord));
 
-    // create emplace a new object inside the buffer using the copy constructor of LogRecordEvent
+    // create emplace a new object inside the buffer using the copy constructor of LogEvent
     // and store this in a unique ptr with the custom deleter
     return std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>>{
       new (buffer) TestRecord(*this), FreeListAllocatorDeleter<BaseEvent>{&fla}};

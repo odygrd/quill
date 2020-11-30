@@ -6,6 +6,7 @@
 #include <cstring>
 #include <ctime>
 #include <locale> // for wstring_convert
+#include <sstream>
 
 namespace quill
 {
@@ -128,5 +129,23 @@ std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Tim
 
   return buffer;
 }
+
+/***/
+std::vector<std::string> split(std::string const& s, char delimiter)
+{
+  std::vector<std::string> tokens;
+  std::istringstream token_stream(s);
+
+  std::string token;
+  while (std::getline(token_stream, token, delimiter))
+  {
+    if (!token.empty())
+    {
+      tokens.push_back(token);
+    }
+  }
+  return tokens;
+}
+
 } // namespace detail
 } // namespace quill

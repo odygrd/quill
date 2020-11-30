@@ -23,7 +23,7 @@ void init_exception_handler();
 /**
  * Linux/Windows.
  * On windows it has to be called on each thread
- * @param catchable_signals
+ * @param catchable_signals the signals we are catching
  */
 void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals = {
                            SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV});

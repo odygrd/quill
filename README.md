@@ -72,24 +72,24 @@ The main goals of the library are:
 -  **Convenience** Ease application monitoring/debugging. Latency is equal to latencies of binary loggers, but the produced log is in human readable form.
 
 ## Features
- -  Type safe python style API with compile type checks and built-in support for logging STL types/containers by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
- -  Blazing fast. See [Benchmarks](https://github.com/odygrd/quill#performance).
- -  Formatting is performed outside of the hot-path in a backend logging thread. For `non-built-in` types `ostream::operator<<()` is called on a copy of the object by the backend logging thread. Unsafe to copy `non-trivial user defined` are detected in compile time. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/8.-User-Defined-Types).
- -  Log levels can be completely stripped out at compile time reducing `if` branches.
- -  Custom logs formatting. Logs can be formatted based on a user specified pattern. See [Formatters](https://github.com/odygrd/quill/wiki/4.-Formatters).
- -  Log statements always appear in timestamp order even if produced by different threads. This makes debugging easier in multi-threaded applications.
- -  Backtrace logging. Store log messages in a ring buffer and display later when a higher severity log statement occurs or on demand. See [Backtrace Logging](https://github.com/odygrd/quill/wiki/6.-Backtrace-Logging).
- -  `guaranteed non-blocking` or `non-guaranteed` logging. In `guaranteed non-blocking` logging more memory is allocated so the caller doesn't get blocked, log messages are never dropped. In `non-guaranteed` mode there is no heap allocation log messages can be dropped. See [FAQ](https://github.com/odygrd/quill/wiki/7.-FAQ#guaranteed-logging-mode).
- -  Support for wide character logging and wide character filenames (Windows only).
+ -  Log anything - Blazing fast. See [Benchmarks](https://github.com/odygrd/quill#performance).
+ -  Format outside of the hot-path in a backend logging thread. For `non-built-in` types `ostream::operator<<()` is called on a copy of the object by the backend logging thread. Unsafe to copy `non-trivial user defined` are detected in compile time. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/8.-User-Defined-Types).
+ -  Custom formatters. Logs can be formatted based on a user specified pattern. See [Formatters](https://github.com/odygrd/quill/wiki/4.-Formatters).
+ -  Support for log stack traces. Store log messages in a ring buffer and display later on a higher severity log statement or on demand. See [Backtrace Logging](https://github.com/odygrd/quill/wiki/6.-Backtrace-Logging).
  -  Various logging targets. See [Handlers](https://github.com/odygrd/quill/wiki/2.-Handlers).
-    -  Console logging with coloured log support.
+    -  Console logging with colours support.
     -  File Logging
     -  Rotating log files
     -  Time rotating log files
     -  Custom Handlers
  -  Filters for filtering log messages. See [Filters](https://github.com/odygrd/quill/wiki/3.-Filters).
+ -  `guaranteed non-blocking` or `non-guaranteed` logging. In `non-guaranteed` mode there is no heap allocation of a new queue but log messages can be dropped. See [FAQ](https://github.com/odygrd/quill/wiki/7.-FAQ#guaranteed-logging-mode).
+ -  Support for wide character logging and wide character filenames (Windows only).
+ -  Log statements in timestamp order even when produced by different threads. This makes debugging easier in multi-threaded applications.
+ -  Log levels can be completely stripped out at compile time reducing `if` branches.
  -  Clean warning-free codebase even on high warning levels.
- -  Crash safe behaviour.
+ -  Crash safe behaviour with a build-in signal handler.
+ -  Type safe python style API with compile type checks and built-in support for logging STL types/containers by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
 
 ## Performance
 The following message is logged 2'000'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.
@@ -149,7 +149,6 @@ However :
 
 ## Supported Platforms And Compilers
 Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
-Cygwin is not supported at the moment.
 
 | Compiler  | Notes            |
 |-----------|------------------|

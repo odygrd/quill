@@ -1,11 +1,11 @@
 #include "doctest/doctest.h"
 
-#include "quill/detail/BoundedSPSCQueue.h"
+#include "quill/detail/spsc_queue/BoundedSPSCEventQueue.h"
 #include <cstring>
 #include <thread>
 #include <vector>
 
-TEST_SUITE_BEGIN("BoundedSPSCQueue");
+TEST_SUITE_BEGIN("BoundedSPSCEventQueue");
 
 using namespace quill::detail;
 
@@ -25,9 +25,8 @@ struct test_struct_ints_2
 
 TEST_CASE("produce_consume_many_same_type")
 {
-  BoundedSPSCQueue<test_struct_ints, 2'097'152> buffer;
+  BoundedSPSCEventQueue<test_struct_ints> buffer;
 
-  REQUIRE_EQ(buffer.capacity(), 2'097'152);
   REQUIRE_EQ(buffer.empty(), true);
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
@@ -91,7 +90,6 @@ TEST_CASE("produce_consume_many_same_type")
   }
 }
 
-
 class TestBase
 {
 public:
@@ -144,8 +142,7 @@ private:
 
 TEST_CASE("produce_consume_many_different_types")
 {
-  BoundedSPSCQueue<TestBase, 2'097'152> buffer;
-  REQUIRE_EQ(buffer.capacity(), 2'097'152);
+  BoundedSPSCEventQueue<TestBase> buffer;
 
   for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)
   {
@@ -217,9 +214,7 @@ TEST_CASE("produce_consume_many_different_types")
 
 TEST_CASE("produce_consume_many_multithreaded")
 {
-  BoundedSPSCQueue<TestBase, 2'097'152> buffer;
-
-  REQUIRE_EQ(buffer.capacity(), 2'097'152);
+  BoundedSPSCEventQueue<TestBase> buffer;
 
   std::thread producer_thread([&buffer]() {
     for (int wrap_cnt = 0; wrap_cnt < 10; ++wrap_cnt)

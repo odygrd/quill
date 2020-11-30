@@ -11,29 +11,42 @@ set(HEADER_FILES
         include/quill/bundled/invoke/invoke.h
 
         # quill
+        include/quill/detail/backend/BackendWorker.h
+        include/quill/detail/backend/BacktraceLogRecordStorage.h
+        include/quill/detail/backend/FreeListAllocator.h
+        include/quill/detail/backend/StringFromTime.h
+        include/quill/detail/backend/TimestampFormatter.h
+
+        include/quill/detail/events/BacktraceEvent.h
+        include/quill/detail/events/BaseEvent.h
+        include/quill/detail/events/FlushEvent.h
+        include/quill/detail/events/LogEvent.h
+
         include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
         include/quill/detail/misc/FileUtilities.h
-        include/quill/detail/misc/FreeListAllocator.h
         include/quill/detail/misc/Macros.h
         include/quill/detail/misc/Os.h
         include/quill/detail/misc/Rdtsc.h
         include/quill/detail/misc/RdtscClock.h
         include/quill/detail/misc/RecursiveSpinlock.h
         include/quill/detail/misc/Spinlock.h
-        include/quill/detail/misc/StringFromTime.h
-        include/quill/detail/misc/Utilities.h
+        include/quill/detail/misc/StringView.h
         include/quill/detail/misc/TypeTraits.h
         include/quill/detail/misc/TypeTraitsCopyable.h
-        include/quill/detail/events/BacktraceEvent.h
-        include/quill/detail/events/FlushEvent.h
-        include/quill/detail/events/LogRecordEvent.h
-        include/quill/detail/events/BaseEvent.h
-        include/quill/detail/events/LogRecordMetadata.h
-        include/quill/detail/BackendWorker.h
-        include/quill/detail/BacktraceLogRecordStorage.h
-        include/quill/detail/BoundedSPSCQueue.h
+        include/quill/detail/misc/TypeTraitsSerializable.h
+        include/quill/detail/misc/Utilities.h
+
+        include/quill/detail/serialize/Deserialize.h
+        include/quill/detail/serialize/Serialize.h
+        include/quill/detail/serialize/SerializationMetadata.h
+        include/quill/detail/serialize/TypeDescriptor.h
+
+        include/quill/detail/spsc_queue/BoundedSPSCEventQueue.h
+        include/quill/detail/spsc_queue/BoundedSPSCRawQueue.h
+        include/quill/detail/spsc_queue/UnboundedSPSCEventQueue.h
+
         include/quill/detail/Config.h
         include/quill/detail/HandlerCollection.h
         include/quill/detail/LoggerCollection.h
@@ -44,8 +57,6 @@ set(HEADER_FILES
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
         include/quill/detail/SignalHandler.h
-        include/quill/detail/TimestampFormatter.h
-        include/quill/detail/UnboundedSPSCQueue.h
         include/quill/filters/FilterBase.h
         include/quill/handlers/ConsoleHandler.h
         include/quill/handlers/FileHandler.h
@@ -56,6 +67,7 @@ set(HEADER_FILES
         include/quill/Fmt.h
         include/quill/Logger.h
         include/quill/LogLevel.h
+        include/quill/LogMacroMetadata.h
         include/quill/PatternFormatter.h
         include/quill/Quill.h
         include/quill/QuillError.h
@@ -66,29 +78,32 @@ set(HEADER_FILES
 
 # source files
 set(SOURCE_FILES
-        src/detail/misc/Utilities.cpp
+        src/detail/backend/BackendWorker.cpp
+        src/detail/backend/BacktraceLogRecordStorage.cpp
+        src/detail/backend/FreeListAllocator.cpp
+        src/detail/backend/TimestampFormatter.cpp
+        src/detail/backend/StringFromTime.cpp
+        src/detail/misc/FileUtilities.cpp
         src/detail/misc/Os.cpp
         src/detail/misc/RdtscClock.cpp
         src/detail/misc/RecursiveSpinlock.cpp
         src/detail/misc/Spinlock.cpp
-        src/detail/misc/StringFromTime.cpp
-        src/detail/misc/FileUtilities.cpp
-        src/detail/misc/FreeListAllocator.cpp
-        src/detail/BackendWorker.cpp
-        src/detail/BacktraceLogRecordStorage.cpp
+        src/detail/misc/Utilities.cpp
         src/detail/Config.cpp
+        src/detail/Deserialize.cpp
         src/detail/HandlerCollection.cpp
         src/detail/LoggerCollection.cpp
         src/detail/LogManagerSingleton.cpp
         src/detail/SignalHandler.cpp
         src/detail/ThreadContextCollection.cpp
-        src/detail/TimestampFormatter.cpp
+
         src/handlers/ConsoleHandler.cpp
         src/handlers/FileHandler.cpp
         src/handlers/Handler.cpp
         src/handlers/RotatingFileHandler.cpp
         src/handlers/StreamHandler.cpp
         src/handlers/TimeRotatingFileHandler.cpp
+
         src/LogLevel.cpp
         src/PatternFormatter.cpp
         src/Quill.cpp

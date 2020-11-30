@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "BoundedSPSCQueue.h"
+#include "quill/detail/spsc_queue/BoundedSPSCEventQueue.h"
 #include <atomic>
 #include <cassert>
 #include <cstddef>
@@ -38,11 +38,11 @@ namespace detail
  *       large fixed_circular_buffer instead.
  */
 template <typename TBaseObject>
-class UnboundedSPSCQueue
+class UnboundedSPSCEventQueue
 {
 public:
   using value_type = TBaseObject;
-  using bounded_spsc_queue_t = BoundedSPSCQueue<value_type, QUILL_QUEUE_CAPACITY>;
+  using bounded_spsc_queue_t = BoundedSPSCEventQueue<value_type>;
   using handle_t = typename bounded_spsc_queue_t::Handle;
 
 private:
@@ -57,7 +57,7 @@ private:
      * Constructor
      * @param capacity the capacity of the fixed buffer
      */
-    explicit node() = default;
+    node() = default;
 
     /**
      * Alignment requirement as we have bounded_spsc_queue as member
@@ -70,7 +70,7 @@ private:
     /** members */
     bounded_spsc_queue_t bounded_spsc_queue;
     alignas(CACHELINE_SIZE) std::atomic<node*> next{nullptr};
-    char _pad1[detail::CACHELINE_SIZE - sizeof(std::atomic<node*>)];
+    char _pad1[detail::CACHELINE_SIZE - sizeof(std::atomic<node*>)] = "\0";
   };
 
 public:
@@ -78,18 +78,18 @@ public:
    * Constructor
    * @param capacity The starting capacity
    */
-  explicit UnboundedSPSCQueue() : _producer(new node()), _consumer(_producer) {}
+  UnboundedSPSCEventQueue() : _producer(new node()), _consumer(_producer) {}
 
   /**
    * Deleted
    */
-  UnboundedSPSCQueue(UnboundedSPSCQueue const&) = delete;
-  UnboundedSPSCQueue& operator=(UnboundedSPSCQueue const&) = delete;
+  UnboundedSPSCEventQueue(UnboundedSPSCEventQueue const&) = delete;
+  UnboundedSPSCEventQueue& operator=(UnboundedSPSCEventQueue const&) = delete;
 
   /**
    * Destructor
    */
-  ~UnboundedSPSCQueue()
+  ~UnboundedSPSCEventQueue()
   {
     // Get the current consumer node
     node* current_node = _consumer;

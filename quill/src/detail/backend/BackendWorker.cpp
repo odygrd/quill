@@ -1,4 +1,4 @@
-#include "quill/detail/BackendWorker.h"
+#include "quill/detail/backend/BackendWorker.h"
 #include "quill/detail/misc/FileUtilities.h"
 #include <iostream> // for endl, basic_ostream, cerr, ostream
 #include <vector>   // for vector

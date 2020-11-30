@@ -5,13 +5,13 @@
 
 #pragma once
 
+#include "quill/detail/backend/StringFromTime.h"
 #include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
 #include "quill/detail/misc/Common.h"     // for Timezone, Timezone::LocalTime
-#include "quill/detail/misc/StringFromTime.h"
-#include <chrono>  // for nanoseconds
-#include <cstddef> // for size_t
-#include <cstdint> // for uint32_t, uint8_t
-#include <string>  // for string
+#include <chrono>                         // for nanoseconds
+#include <cstddef>                        // for size_t
+#include <cstdint>                        // for uint32_t, uint8_t
+#include <string>                         // for string
 
 /** forward declarations **/
 struct tm;

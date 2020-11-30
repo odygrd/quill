@@ -1,4 +1,4 @@
--  [v1.5.3](#v1.5.3)
+-  [v1.6.0](#v1.6.0)
 -  [v1.5.2](#v1.5.2)
 -  [v1.5.1](#v1.5.1)
 -  [v1.5.0](#v1.5.0)
@@ -15,17 +15,24 @@
 -  [v1.1.0](#v1.1.0)
 -  [v1.0.0](#v1.0.0)
 
-## v1.5.3
+## v1.6.0
 **New Features**
-- Added support for custom handlers. ([#75](https://github.com/odygrd/quill/issues/75))
+- Dual queue mode offering even lower latencies on hot paths. See [Dual Queue Mode](https://github.com/odygrd/quill/wiki/9.-Dual-Queue-Mode)
 - Added a signal handler for linux and windows. The signal handler flushes the log when the app crashes or exits. ([#1](https://github.com/odygrd/quill/issues/1)
+- Added support for custom handlers. ([#75](https://github.com/odygrd/quill/issues/75))
+- Quill now compiles and runs on `Cygwin`
 
 **Improvements/Fixes**
-- Fix compiler error when `CMAKE_CXX_STANDARD 20` is set.
-- Fix compiler error when `QUILL_USE_BOUNDED_QUEUE` is set.
+- The queue from the caller to the backend worker thread has been reworked. The new queue generates slightly better assembly than the previous one. Quill does no longer depend on mapping the same region of physical memory twice.
 - Replaced an assertion check that could trigger incorrectly. ([#68](https://github.com/odygrd/quill/issues/68))
-- Don't include `x86intrin.h` when `ARM_ARCH < 6`. Default to system clock when `ARM_ARCH < 6`. ([#78](https://github.com/odygrd/quill/issues/78))
+- Fix build on `ARM_ARCH < 6`. ([#78](https://github.com/odygrd/quill/issues/78))
+- Fixed compile errors when `QUILL_NOEXCEPTIONS`, `CMAKE_CXX_STANDARD 20`, `QUILL_USE_BOUNDED_QUEUE` are set.
+- The unit tests have been moved to a separate binary with their own main(). This increased build times when building the tests, but the failures are now easier to debug on different CI platforms and the tests can also run faster in parallel.
+- Fixed minor compiler warnings on windows.
 - Upgraded bundled libfmt to `7.1.3`
+
+**Note**
+- If a custom queue capacity is defined using `#define QUILL_QUEUE_CAPACITY` after `1.6.0` the whole library needs to be recompiled.
 
 ## v1.5.2
 - Removed the use of `fmt::format()` in `FileUtilities.cpp` as a workaround to the link errors in fmt v7. Use the header only version of libfmt when external libfmt is defiend is no longer required.

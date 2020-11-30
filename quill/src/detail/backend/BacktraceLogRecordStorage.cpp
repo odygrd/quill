@@ -1,4 +1,4 @@
-#include "quill/detail/BacktraceLogRecordStorage.h"
+#include "quill/detail/backend/BacktraceLogRecordStorage.h"
 #include "quill/QuillError.h" // for QUILL_THROW, Quil...
 #include "quill/detail/events//BaseEvent.h"
 #include "quill/detail/misc/Macros.h"

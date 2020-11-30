@@ -12,20 +12,18 @@
 
 namespace quill
 {
-namespace detail
-{
 
 /**
  * Captures and stores information about a logging event in compile time
- * This information is later passed to the LogRecordEvent runtime class
+ * This information is later passed to the LogEvent runtime class
  */
-class LogRecordMetadata
+class LogMacroMetadata
 {
 public:
-  constexpr LogRecordMetadata() = default;
+  constexpr LogMacroMetadata() = default;
 
-  constexpr LogRecordMetadata(const char* lineno, char const* pathname, char const* func,
-                              char const* message_format, LogLevel level)
+  constexpr LogMacroMetadata(const char* lineno, char const* pathname, char const* func,
+                             char const* message_format, LogLevel level)
     : _func(func),
       _pathname(pathname),
       _filename(_extract_source_file_name(_pathname)),
@@ -117,5 +115,4 @@ private:
   LogLevel _level{LogLevel::None};
 };
 
-} // namespace detail
 } // namespace quill

@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "quill/detail/BacktraceLogRecordStorage.h"
 #include "quill/detail/LoggerDetails.h"
+#include "quill/detail/backend/BacktraceLogRecordStorage.h"
+#include "quill/detail/backend/FreeListAllocator.h"
 #include "quill/detail/misc/Common.h"
-#include "quill/detail/misc/FreeListAllocator.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/Rdtsc.h"
 #include <chrono>
@@ -82,8 +82,8 @@ public:
   virtual void backend_process_backtrace_log_record(char const*, GetHandlersCallbackT const&,
                                                     GetRealTsCallbackT const&) const
   {
-    // this is only used for the BacktraceLogRecordEvent and not any other record.
-    // We can only store the backtrace LogRecordEvents as BaseEvent* as we need to type erase them
+    // this is only used for the BacktraceLogEvent and not any other record.
+    // We can only store the backtrace LogEvents as BaseEvent* as we need to type erase them
     // and then when we want to process them we call this virtual method.
   }
 
