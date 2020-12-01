@@ -25,9 +25,9 @@
 **Improvements/Fixes**
 - The queue from the caller to the backend worker thread has been reworked. The new queue generates slightly better assembly than the previous one. Quill does no longer depend on mapping the same region of physical memory twice.
 - Replaced an assertion check that could trigger incorrectly. ([#68](https://github.com/odygrd/quill/issues/68))
-- Fix build on `ARM_ARCH < 6`. ([#78](https://github.com/odygrd/quill/issues/78))
+- Fixed build on `ARM_ARCH < 6`. ([#78](https://github.com/odygrd/quill/issues/78))
 - Fixed compile errors when `QUILL_NOEXCEPTIONS`, `CMAKE_CXX_STANDARD 20`, `QUILL_USE_BOUNDED_QUEUE` are set.
-- The unit tests have been moved to a separate binary with their own main(). This increased build times when building the tests, but the failures are now easier to debug on different CI platforms and the tests can also run faster in parallel.
+- The unit tests have been moved to a separate binary with their own `main()`. This increased build times when building the tests, but the failures are now easier to debug on different CI platforms and the tests can also run faster in parallel.
 - Fixed minor compiler warnings on windows.
 - Upgraded bundled libfmt to `7.1.3`
 
