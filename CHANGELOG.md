@@ -17,10 +17,10 @@
 
 ## v1.6.0
 **New Features**
-- Dual queue mode offering even lower latencies on hot paths. See [Dual Queue Mode](https://github.com/odygrd/quill/wiki/9.-Dual-Queue-Mode)
-- Added a signal handler for linux and windows. The signal handler flushes the log when the app crashes or exits. ([#1](https://github.com/odygrd/quill/issues/1)
+- Dual queue mode offering even lower latencies on hot paths. See [Dual Queue Mode](https://github.com/odygrd/quill/wiki/9.-Dual-Queue-Mode).
+- Added a signal handler for linux and windows. The signal handler flushes the log when the app crashes or exits. ([#1](https://github.com/odygrd/quill/issues/1))
 - Added support for custom handlers. ([#75](https://github.com/odygrd/quill/issues/75))
-- Quill now compiles and runs on `Cygwin`
+- Quill now compiles and runs on Cygwin.
 
 **Improvements/Fixes**
 - The queue from the caller to the backend worker thread has been reworked. The new queue generates slightly better assembly than the previous one. Quill does no longer depend on mapping the same region of physical memory twice.
