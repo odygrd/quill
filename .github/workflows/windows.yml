@@ -22,6 +22,11 @@ jobs:
         with_tests: [ ON ]
 
         include:
+          - platform: x64
+            build_type: Debug
+            std: 20
+            with_tests: "ON"
+
           # Builds with bounded queue and no exceptions
           - platform: x64
             build_type: Release

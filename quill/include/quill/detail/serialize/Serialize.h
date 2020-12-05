@@ -29,9 +29,9 @@ constexpr size_t argument_size(T const&)
 /**
  * For strings we append + 1 for the null terminator
  */
-constexpr size_t argument_size(char* s) { return strlength(s) + 1; }
+inline size_t argument_size(char* s) { return std::strlen(s) + 1; }
 
-constexpr size_t argument_size(char const* s) { return strlength(s) + 1; }
+inline size_t argument_size(char const* s) { return std::strlen(s) + 1; }
 
 inline size_t argument_size(std::string&& s) { return s.length() + 1; }
 
