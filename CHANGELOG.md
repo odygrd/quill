@@ -20,7 +20,7 @@
 
 **Improvements/Fixes**
 
-- Fix windows C++20 build
+- Fix windows C++20 build. ([#83](https://github.com/odygrd/quill/issues/83))
 
 ## v1.6.0
 

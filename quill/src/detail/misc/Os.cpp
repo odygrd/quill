@@ -267,10 +267,10 @@ void* aligned_alloc(size_t alignment, size_t size)
 /***/
 void aligned_free(void* ptr) noexcept
 {
-#ifdef WIN32
-  return _aligned_free(ptr);
+#if defined(_WIN32)
+  _aligned_free(ptr);
 #else
-  return free(ptr);
+  free(ptr);
 #endif
 }
 
