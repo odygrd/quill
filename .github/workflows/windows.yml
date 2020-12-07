@@ -39,25 +39,35 @@ jobs:
             with_tests: "OFF"
             cmake_options: -DQUILL_NO_EXCEPTIONS=ON
 
+          # Builds for ARM
+          - platform: ARM64
+            build_type: Release
+            std: 17
+            with_tests: "OFF"
+
+          - platform: ARM
+            build_type: Release
+            std: 17
+            with_tests: "OFF"
+
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
 
-    - name: Configure
-      # Use a bash shell for $GITHUB_WORKSPACE.
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: |
-        cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_options}} \
+      - name: Configure
+        shell: bash         # Use a bash shell for $GITHUB_WORKSPACE.
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_options}} \
               -A ${{matrix.platform}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} \
               -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 
-    - name: Build
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build . --config ${{matrix.build_type}}
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        run: cmake --build . --config ${{matrix.build_type}}
 
-    - name: Test
-      working-directory: ${{runner.workspace}}/build
-      run: ctest --build-config ${{matrix.build_type}} --verbose --output-on-failure --parallel 2
+      - name: Test
+        working-directory: ${{runner.workspace}}/build
+        run: ctest --build-config ${{matrix.build_type}} --verbose --output-on-failure --parallel 2

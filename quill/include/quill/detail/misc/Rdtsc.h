@@ -9,7 +9,8 @@
 
 #if defined(__aarch64__)
 #elif defined(__ARM_ARCH)
-  #include <sys/time.h>
+  #include <chrono>
+#elif (defined(_M_ARM) || defined(_M_ARM64))
 #else
   // assume x86-64 ..
   #if defined(_WIN32)
@@ -31,7 +32,7 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   // The frequency is fixed, typically in the range 1-50MHz.  It can be
   // read at CNTFRQ special register.  We assume the OS has set up the virtual timer properly.
   int64_t virtual_timer_value;
-  asm volatile("mrs %0, cntvct_el0" : "=r"(virtual_timer_value));
+  __asm__ volatile("mrs %0, cntvct_el0" : "=r"(virtual_timer_value));
   return virtual_timer_value;
 }
 #elif defined(__ARM_ARCH)
@@ -43,22 +44,26 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   uint32_t pmuseren;
   uint32_t pmcntenset;
 
-  asm volatile("mrc p15, 0, %0, c9, c14, 0" : "=r"(pmuseren));
+  __asm__ volatile("mrc p15, 0, %0, c9, c14, 0" : "=r"(pmuseren));
   if (pmuseren & 1)
   {
-    asm volatile("mrc p15, 0, %0, c9, c12, 1" : "=r"(pmcntenset));
+    __asm__ volatile("mrc p15, 0, %0, c9, c12, 1" : "=r"(pmcntenset));
     if (pmcntenset & 0x80000000ul)
     {
-      asm volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(pmccntr));
+      __asm__ volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(pmccntr));
       return (static_cast<uint64_t>(pmccntr)) * 64u;
     }
   }
   #endif
 
   // soft failover
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
+  return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+}
+#elif (defined(_M_ARM) || defined(_M_ARM64))
+QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
+{
+  // soft failover
+  return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
 }
 #else
 /**
