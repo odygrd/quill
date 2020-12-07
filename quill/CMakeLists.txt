@@ -189,12 +189,9 @@ target_compile_options(${TARGET_NAME} PRIVATE
         -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field>
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324>)
 
-if (MSVC_VERSION GREATER 1900)  #Allow non fatal security warnings for msvc 2015
-    target_compile_options(${TARGET_NAME} PRIVATE /WX)
-endif ()
-
 # TODO:: use MultiByteToWideChar() and WideCharToMultiByte() from <Windows.h> instead of covecvt
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(${TARGET_NAME} PRIVATE /WX /EHsc)
     target_compile_definitions(${TARGET_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 endif ()
 
