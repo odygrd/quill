@@ -21,6 +21,8 @@
 **Improvements/Fixes**
 
 - Fix windows C++20 build. ([#83](https://github.com/odygrd/quill/issues/83))
+- Fix ARM build on windows.
+- Fix `example_backtrace` and minor bug when destructing with empty backtrace.
 
 ## v1.6.0
 
