@@ -32,7 +32,11 @@ class BacktraceLogRecordStorage
 {
 public:
   BacktraceLogRecordStorage();
-  ~BacktraceLogRecordStorage() = default;
+  ~BacktraceLogRecordStorage()
+  {
+    // we want to clear all messages first, calling deallocate on the free list allocator before destructing
+    _stored_records_map.clear();
+  }
 
   /**
    * Stores an object to a vector that maps to logger_name
