@@ -294,7 +294,7 @@ inline std::tm localtime(std::time_t time) {
     std::time_t time_;
     std::tm tm_;
 
-    dispatcher(std::time_t t) : time_(t) {}
+    dispatcher(std::time_t t) : time_(t), tm_() {}
 
     bool run() {
       using namespace fmt::detail;
@@ -336,7 +336,7 @@ inline std::tm gmtime(std::time_t time) {
     std::time_t time_;
     std::tm tm_;
 
-    dispatcher(std::time_t t) : time_(t) {}
+    dispatcher(std::time_t t) : time_(t), tm_() {}
 
     bool run() {
       using namespace fmt::detail;
