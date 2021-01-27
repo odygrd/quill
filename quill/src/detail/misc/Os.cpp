@@ -15,7 +15,7 @@
 #if defined(_WIN32)
   #define WIN32_LEAN_AND_MEAN
 
-  #if !defined(__MINGW64__) || !defined(__MINGW32__)
+  #if !defined(NOMINMAX)
     // Mingw already defines this, so no need to redefine
     #define NOMINMAX
   #endif
