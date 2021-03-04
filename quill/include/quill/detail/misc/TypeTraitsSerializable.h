@@ -27,7 +27,7 @@ namespace detail
  */
 template <typename T>
 struct is_serializable_helper
-  : public disjunction<std::is_fundamental<T>, std::is_enum<T>, std::is_same<std::string, T>>
+  : public disjunction<std::is_fundamental<T>, std::is_same<std::string, T>>
 {
 };
 
