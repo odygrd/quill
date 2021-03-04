@@ -18,28 +18,16 @@ struct TestClass
 {
 };
 
-enum Enum : long int
-{
-  One,
-  Two
-};
-
-enum class EnumClass : char
-{
-  Three,
-  Four
-};
-
 TEST_CASE("type_descriptor_string")
 {
   std::string const s1 = type_descriptor_string<char, std::string, unsigned long, double>();
   REQUIRE_STREQ(s1.c_str(), "mqhj");
 
-  std::string const s2 = type_descriptor_string<unsigned int, EnumClass, void*, double>();
-  REQUIRE_STREQ(s2.c_str(), "gmpj");
+  std::string const s2 = type_descriptor_string<unsigned int, void*, double>();
+  REQUIRE_STREQ(s2.c_str(), "gpj");
 
-  std::string const s3 = type_descriptor_string<char const[32], EnumClass, Enum, long int>();
-  REQUIRE_STREQ(s3.c_str(), "qmdd");
+  std::string const s3 = type_descriptor_string<char const[32], long int>();
+  REQUIRE_STREQ(s3.c_str(), "qd");
 
   std::string const s4 = type_descriptor_string<>();
   REQUIRE_STREQ(s4.c_str(), "");
@@ -84,12 +72,6 @@ TEST_CASE("argument_size")
 
   // Char Arrays
   REQUIRE_EQ(argument_size("123456789123456789123456789123456789123456789"), 46);
-
-  // enums
-  EnumClass ec;
-  REQUIRE_EQ(argument_size(ec), sizeof(char));
-  Enum en;
-  REQUIRE_EQ(argument_size(en), sizeof(long int));
 
   // pointers
   void* ptr{nullptr};
