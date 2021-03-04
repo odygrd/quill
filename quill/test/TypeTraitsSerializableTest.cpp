@@ -30,6 +30,18 @@ private:
   std::string x;
 };
 
+enum Enum
+{
+  One,
+  Two
+};
+
+enum class EnumClass
+{
+  Three,
+  Four
+};
+
 TEST_CASE("is_serializable")
 {
   static_assert(is_serializable<std::string>::value, "_");
@@ -48,6 +60,9 @@ TEST_CASE("is_serializable")
   static_assert(is_serializable<char*>::value, "_");
   static_assert(is_serializable<char const[10]>::value, "_");
   static_assert(is_serializable<decltype("string")>::value, "_");
+
+  static_assert(!is_serializable<EnumClass>::value, "_");
+  static_assert(!is_serializable<Enum>::value, "_");
 
   static_assert(!is_serializable<NonTrivial>::value, "_");
   static_assert(!is_serializable<Trivial>::value, "_");
