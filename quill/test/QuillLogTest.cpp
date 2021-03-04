@@ -514,4 +514,63 @@ TEST_CASE("invalid_handlers")
 }
 #endif
 
+enum RawEnum : int { Test1 = 1, Test2 = 2, Test3 = 3 };
+std::ostream& operator<<(std::ostream& os, const RawEnum& raw_enum) {
+  switch (raw_enum) {
+  case RawEnum::Test1:
+    os << "Test1";
+    break;
+  case RawEnum::Test2:
+    os << "Test2";
+    break;
+  case RawEnum::Test3:
+    os << "Test3";
+    break;
+  default:
+    os << "Unknown";
+    break;
+  }
+  return os;
+}
+
+enum EnumClass : int { Test4 = 4, Test5 = 5, Test6 = 6 };
+std::ostream& operator<<(std::ostream& os, const EnumClass& enum_class) {
+  switch (enum_class) {
+  case EnumClass::Test4:
+    os << "Test4";
+    break;
+  case EnumClass::Test5:
+    os << "Test5";
+    break;
+  case EnumClass::Test6:
+    os << "Test6";
+    break;
+  default:
+    os << "Unknown";
+    break;
+  }
+  return os;
+}
+
+/***/
+TEST_CASE("log_enums_with_overloaded_ostream_operators")
+{
+  quill::start();
+
+  quill::testing::CaptureStdout();
+
+  quill::Handler* stdout_handler = quill::stdout_handler();
+  stdout_handler->set_pattern(QUILL_STRING("%(message)"));
+
+  quill::Logger* custom_logger = quill::create_logger("raw_enum_logger", stdout_handler);
+
+  LOG_INFO(custom_logger, "{},{},{},{},{},{}", Test1, Test2, Test3, Test4, Test5, Test6);
+
+  quill::flush();
+
+  std::string results = quill::testing::GetCapturedStdout();
+
+  REQUIRE_EQ(results, "Test1,Test2,Test3,Test4,Test5,Test6\n");
+}
+
 TEST_SUITE_END();
