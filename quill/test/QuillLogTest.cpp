@@ -539,7 +539,7 @@ std::ostream& operator<<(std::ostream& os, const RawEnum& raw_enum)
   return os;
 }
 
-enum EnumClass : int
+enum class EnumClass : int
 {
   Test4 = 4,
   Test5 = 5,
@@ -576,7 +576,7 @@ TEST_CASE("log_enums_with_overloaded_insertion_operator")
 
   quill::Logger* custom_logger = quill::create_logger("enum_logger", stdout_handler);
 
-  LOG_INFO(custom_logger, "{},{},{},{},{},{}", Test1, Test2, Test3, Test4, Test5, Test6);
+  LOG_INFO(custom_logger, "{},{},{},{},{},{}", Test1, Test2, Test3, EnumClass::Test4, EnumClass::Test5, EnumClass::Test6);
 
   quill::flush();
 
