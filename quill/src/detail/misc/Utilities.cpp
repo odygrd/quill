@@ -15,7 +15,11 @@ namespace detail
 /***/
 std::wstring s2ws(std::string const& str) noexcept
 {
+#if defined(__MINGW32__) || defined(__MINGW64__)
+  using convert_t = std::codecvt_utf8_utf16<wchar_t>;
+#else
   using convert_t = std::codecvt_utf8<wchar_t>;
+#endif
   std::wstring_convert<convert_t, wchar_t> converter;
 
   return converter.from_bytes(str);
@@ -24,7 +28,11 @@ std::wstring s2ws(std::string const& str) noexcept
 /***/
 std::string ws2s(std::wstring const& wstr) noexcept
 {
+#if defined(__MINGW32__) || defined(__MINGW64__)
+  using convert_t = std::codecvt_utf8_utf16<wchar_t>;
+#else
   using convert_t = std::codecvt_utf8<wchar_t>;
+#endif
   std::wstring_convert<convert_t, wchar_t> converter;
 
   return converter.to_bytes(wstr);
