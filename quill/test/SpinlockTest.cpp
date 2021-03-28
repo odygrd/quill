@@ -23,7 +23,7 @@ void spinlock_test_thread(LockedVal* v)
   constexpr size_t max = 1000;
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<uint32_t> dis(1, std::numeric_limits<uint32_t>::max());
+  std::uniform_int_distribution<uint32_t> dis(1, (std::numeric_limits<uint32_t>::max)());
 
   for (int i = 0; i < max; i++)
   {

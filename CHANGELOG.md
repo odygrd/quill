@@ -22,8 +22,9 @@
 **Fixes**
 
 - Fix WIN32 compilation error when `NOMINMAX` is already defined.
-- Fixed `string` to `wstring` MinGW conversion. ([#92](https://github.com/odygrd/quill/issues/92))
+- Fix `string` to `wstring` MinGW conversion. ([#92](https://github.com/odygrd/quill/issues/92))
 - Log enums via the main queue. ([#90](https://github.com/odygrd/quill/issues/90))
+- Fix windows compiler error when `min/max` macros are defined. ([#94](https://github.com/odygrd/quill/issues/94))
 
 ## v1.6.1
 

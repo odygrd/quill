@@ -27,7 +27,7 @@ public:
    * @param backtrace_capacity provide backtrace_capacity only if we want to setup the backtrace
    */
   BacktraceEvent(LoggerDetails const* logger_details,
-                 uint32_t backtrace_capacity = (std::numeric_limits<uint32_t>::max()))
+                 uint32_t backtrace_capacity = (std::numeric_limits<uint32_t>::max)())
     : _logger_details(logger_details), _backtrace_capacity(backtrace_capacity)
   {
   }
@@ -58,7 +58,7 @@ public:
                        GetHandlersCallbackT const& obtain_active_handlers,
                        GetRealTsCallbackT const& timestamp_callback) const noexcept override
   {
-    if (_backtrace_capacity != std::numeric_limits<uint32_t>::max())
+    if (_backtrace_capacity != (std::numeric_limits<uint32_t>::max)())
     {
       // If the _backtrace_capacity is set it means we are setting up the backtrace
       // We setup the backtrace like this with an event to the backend thread - that way we avoid any overcomplications
@@ -84,7 +84,7 @@ public:
 
 private:
   LoggerDetails const* _logger_details{nullptr};
-  uint32_t _backtrace_capacity{(std::numeric_limits<uint32_t>::max())};
+  uint32_t _backtrace_capacity{(std::numeric_limits<uint32_t>::max)()};
 };
 
 } // namespace detail
