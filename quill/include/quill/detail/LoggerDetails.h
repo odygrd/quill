@@ -88,7 +88,7 @@ public:
 private:
   std::array<char, 22> _name; /** Because size of string in gcc is 32 we use an array here as we need the Logger object to fit all in a single cache line */
   std::atomic<LogLevel> _backtrace_flush_level{
-    LogLevel::None}; /** Updated by the caller thread and read by the backedn worker thread */
+    LogLevel::None}; /** Updated by the caller thread and read by the backend worker thread */
   std::vector<Handler*> _handlers;
 };
 } // namespace detail

@@ -64,7 +64,7 @@ QUILL_ATTRIBUTE_COLD inline void start(bool with_signal_handler = false,
 /**
  * Setups up a signal handler for the caller thread. This must be called by each new thread
  * on windows. On linux this is called automatically on quill::start().
- * When init_signal_handler() is not called on windows, the windows exception will be catched
+ * When init_signal_handler() is not called on windows, the windows exception will be caught
  * instead if start() was called with_signal_handler = true
  * @param catchable_signals List of the signals that the signal handler will catch
  */
