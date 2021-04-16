@@ -207,7 +207,7 @@ public:
 
 #if !defined(QUILL_MODE_UNSAFE)
     static_assert(detail::is_copyable_v<typename log_record_event_t::RealTupleT>,
-                  "Trying to copy an unsafe to copy type. Either tag the object with as copy "
+                  "Trying to copy an unsafe to copy type. Either tag the object as copy "
                   "loggable or explicitly format to string before logging.");
 #endif
 

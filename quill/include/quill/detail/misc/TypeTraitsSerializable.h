@@ -18,7 +18,7 @@ namespace detail
 /**
  * Default is based on std::is_fundamental type as all of them are supported if it is true
  *
- * We serialize pointers as strings, the the pointer is not a string we still serialize and
+ * We serialize pointers as strings, the pointer is not a string we still serialize and
  * print the pointer value. All this happens in the serialization logic, here we just pass it as true
  *
  * We also serialize enums to their underlying type
