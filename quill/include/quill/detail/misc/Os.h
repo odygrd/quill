@@ -58,6 +58,14 @@ QUILL_ATTRIBUTE_COLD void set_cpu_affinity(uint16_t cpu_id);
 QUILL_ATTRIBUTE_COLD void set_thread_name(char const* name);
 
 /**
+ * Returns the name of the thread. By default, each thread is unnamed.
+ * If set_thread_name has not been used to set the name of the specified thread,
+ * a null string is retrieved into name.
+ * @return the thread name
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::string get_thread_name();
+
+/**
  * Returns the os assigned ID of the thread
  * @return the thread ID of the calling thread
  */

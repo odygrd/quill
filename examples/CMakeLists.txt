@@ -25,6 +25,9 @@ target_link_libraries(example_stdout_multiple_formatters quill)
 add_executable(example_custom_formatter example_custom_formatter.cpp)
 target_link_libraries(example_custom_formatter quill)
 
+add_executable(example_custom_formatter_thread_name example_custom_formatter_thread_name.cpp)
+target_link_libraries(example_custom_formatter_thread_name quill)
+
 add_executable(example_custom_handler example_custom_handler.cpp)
 target_link_libraries(example_custom_handler quill)
 

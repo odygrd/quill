@@ -77,13 +77,13 @@ public:
    * @param obtain_active_handlers A callback to obtain all the active handlers for all loggers
    * @param timestamp_callback A callback to obtain the real timestamp of the record
    */
-  void backend_process(BacktraceLogRecordStorage& backtrace_log_record_storage,
-                       char const* thread_id, GetHandlersCallbackT const& obtain_active_handlers,
+  void backend_process(BacktraceLogRecordStorage& backtrace_log_record_storage, char const* thread_id,
+                       char const* thread_name, GetHandlersCallbackT const& obtain_active_handlers,
                        GetRealTsCallbackT const& timestamp_callback) const override
   {
     // Since this is C++14 with no constexpr and a virtual function we call the internal to
     // branch between processing a backtrace log record or a normal log record
-    _backend_process(backtrace_log_record_storage, thread_id, obtain_active_handlers, timestamp_callback);
+    _backend_process(backtrace_log_record_storage, thread_id, thread_name, obtain_active_handlers, timestamp_callback);
   }
 
   /**
@@ -91,7 +91,8 @@ public:
    * @param thread_id The thread id that initialised the original record. This is stored and provided separately.
    * @param timestamp_callback A callback to obtain the real timestamp of the record
    */
-  void backend_process_backtrace_log_record(char const* thread_id, GetHandlersCallbackT const&,
+  void backend_process_backtrace_log_record(char const* thread_id, char const* thread_name,
+                                            GetHandlersCallbackT const&,
                                             GetRealTsCallbackT const& timestamp_callback) const override
   {
     // Get the log record timestamp and convert it to a real timestamp in nanoseconds from epoch
@@ -101,7 +102,7 @@ public:
     constexpr LogMacroMetadata log_record_metadata = LogMacroMetadataT{}();
 
     // Write record to all handlers
-    _write_record_to_handlers(thread_id, log_record_timestamp, log_record_metadata);
+    _write_record_to_handlers(thread_id, thread_name, log_record_timestamp, log_record_metadata);
   }
 
 private:
@@ -114,7 +115,7 @@ private:
    */
   template <bool BacktraceLogRecord = IsBacktraceLogRecord>
   std::enable_if_t<!BacktraceLogRecord, void> _backend_process(
-    BacktraceLogRecordStorage& backtrace_log_record_storage, char const* thread_id,
+    BacktraceLogRecordStorage& backtrace_log_record_storage, char const* thread_id, char const* thread_name,
     GetHandlersCallbackT const& obtain_active_handlers, GetRealTsCallbackT const& timestamp_callback) const
   {
     // Get the log record timestamp and convert it to a real timestamp in nanoseconds from epoch
@@ -124,7 +125,7 @@ private:
     constexpr LogMacroMetadata log_record_metadata = LogMacroMetadataT{}();
 
     // Write record to all handlers
-    _write_record_to_handlers(thread_id, log_record_timestamp, log_record_metadata);
+    _write_record_to_handlers(thread_id, thread_name, log_record_timestamp, log_record_metadata);
 
     // Check if we should also flush the backtrace messages:
     // After we forwarded the message we will check the severity of this message for this logger
@@ -137,10 +138,11 @@ private:
       // we only use the handlers of the logger, but we just have to pass it because of the API
       backtrace_log_record_storage.process(
         _logger_details->name(),
-        [&obtain_active_handlers, &timestamp_callback](
-          std::string const& stored_thread_id, BaseEvent const* stored_backtrace_log_record) {
+        [&obtain_active_handlers, &timestamp_callback](std::string const& stored_thread_id,
+                                                       std::string const& stored_thread_name,
+                                                       BaseEvent const* stored_backtrace_log_record) {
           stored_backtrace_log_record->backend_process_backtrace_log_record(
-            stored_thread_id.data(), obtain_active_handlers, timestamp_callback);
+            stored_thread_id.data(), stored_thread_name.data(), obtain_active_handlers, timestamp_callback);
         });
     }
   }
@@ -152,11 +154,12 @@ private:
    */
   template <bool BacktraceLogRecord = IsBacktraceLogRecord>
   std::enable_if_t<BacktraceLogRecord, void> _backend_process(BacktraceLogRecordStorage& backtrace_log_record_storage,
-                                                              char const* thread_id, GetHandlersCallbackT const&,
+                                                              char const* thread_id, char const* thread_name,
+                                                              GetHandlersCallbackT const&,
                                                               GetRealTsCallbackT const&) const
   {
     // Backtrace record we just store it in the queue
-    backtrace_log_record_storage.store(_logger_details->name(), thread_id, this);
+    backtrace_log_record_storage.store(_logger_details->name(), thread_id, thread_name, this);
   }
 
   /**
@@ -165,7 +168,8 @@ private:
    * @param log_record_timestamp the timestamp of the log record since epoch
    * @param log_record_metadata the log record metadata
    */
-  void _write_record_to_handlers(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+  void _write_record_to_handlers(char const* thread_id, char const* thread_name,
+                                 std::chrono::nanoseconds log_record_timestamp,
                                  LogMacroMetadata const& log_record_metadata) const
   {
     // Forward the record to all of the logger handlers
@@ -173,10 +177,10 @@ private:
     {
       // lambda to unpack the tuple args stored in the LogEvent (the arguments that were passed by
       // the user) We also capture all additional information we need to create the log message
-      auto forward_tuple_args_to_formatter = [this, &log_record_metadata, log_record_timestamp,
-                                              thread_id, handler](auto const&... tuple_args) {
-        handler->formatter().format(log_record_timestamp, thread_id, _logger_details->name(),
-                                    log_record_metadata, tuple_args...);
+      auto forward_tuple_args_to_formatter = [this, &log_record_metadata, log_record_timestamp, thread_id,
+                                              thread_name, handler](auto const&... tuple_args) {
+        handler->formatter().format(log_record_timestamp, thread_id, thread_name,
+                                    _logger_details->name(), log_record_metadata, tuple_args...);
       };
 
       // formatted record by the formatter

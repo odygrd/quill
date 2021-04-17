@@ -67,11 +67,12 @@ public:
    * thread
    * @param backtrace_log_record_storage for backtrace messages
    * @param thread_id the thread_id of the caller thread
+   * @param thread_name the thread_id of the caller thread
    * @param obtain_active_handlers This is a callback to obtain all loggers for use in FlushEvent only
    * @param timestamp_callback a callback to obtain the real timestamp of this event
    */
-  virtual void backend_process(BacktraceLogRecordStorage& backtrace_log_record_storage,
-                               char const* thread_id, GetHandlersCallbackT const& obtain_active_handlers,
+  virtual void backend_process(BacktraceLogRecordStorage& backtrace_log_record_storage, char const* thread_id,
+                               char const* thread_name, GetHandlersCallbackT const& obtain_active_handlers,
                                GetRealTsCallbackT const& timestamp_callback) const = 0;
 
   /**
@@ -79,7 +80,7 @@ public:
    * We pass some additional information to this function that are gathered by the backend worker
    * thread
    */
-  virtual void backend_process_backtrace_log_record(char const*, GetHandlersCallbackT const&,
+  virtual void backend_process_backtrace_log_record(char const*, char const*, GetHandlersCallbackT const&,
                                                     GetRealTsCallbackT const&) const
   {
     // this is only used for the BacktraceLogEvent and not any other record.
