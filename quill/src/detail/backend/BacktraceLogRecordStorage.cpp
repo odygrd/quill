@@ -18,7 +18,8 @@ BacktraceLogRecordStorage::BacktraceLogRecordStorage()
 }
 
 /***/
-void BacktraceLogRecordStorage::store(std::string const& logger_name, std::string thread_id, BaseEvent const* record)
+void BacktraceLogRecordStorage::store(std::string const& logger_name, std::string thread_id,
+                                      std::string thread_name, BaseEvent const* record)
 {
   auto stored_records_it = _stored_records_map.find(logger_name);
 
@@ -35,14 +36,14 @@ void BacktraceLogRecordStorage::store(std::string const& logger_name, std::strin
   if (stored_object_info.stored_records_collection.size() < stored_object_info.capacity)
   {
     // We are still growing the vector to max capacity
-    stored_object_info.stored_records_collection.emplace_back(std::move(thread_id),
-                                                              record->clone(_free_list_allocator));
+    stored_object_info.stored_records_collection.emplace_back(
+      std::move(thread_id), std::move(thread_name), record->clone(_free_list_allocator));
   }
   else
   {
     // Store the object in the vector
-    stored_object_info.stored_records_collection[stored_object_info.index] =
-      BacktraceLogRecord{std::move(thread_id), record->clone(_free_list_allocator)};
+    stored_object_info.stored_records_collection[stored_object_info.index] = BacktraceLogRecord{
+      std::move(thread_id), std::move(thread_name), record->clone(_free_list_allocator)};
 
     // Update the index wrapping around the vector capacity
     if (stored_object_info.index < stored_object_info.capacity - 1)
@@ -57,8 +58,9 @@ void BacktraceLogRecordStorage::store(std::string const& logger_name, std::strin
 }
 
 /***/
-void BacktraceLogRecordStorage::process(std::string const& logger_name,
-                                        std::function<void(std::string const&, BaseEvent const*)> const& callback)
+void BacktraceLogRecordStorage::process(
+  std::string const& logger_name,
+  std::function<void(std::string const&, std::string const&, BaseEvent const*)> const& callback)
 {
   auto stored_records_it = _stored_records_map.find(logger_name);
 
@@ -75,7 +77,8 @@ void BacktraceLogRecordStorage::process(std::string const& logger_name,
   for (uint32_t i = 0; i < stored_record_collection.size(); ++i)
   {
     // Give to the user callback the thread id and the RecordBase pointer
-    callback(stored_record_collection[index].thread_id, stored_record_collection[index].base_record.get());
+    callback(stored_record_collection[index].thread_id, stored_record_collection[index].thread_name,
+             stored_record_collection[index].base_record.get());
 
     // We wrap around to iterate all messages
     if (index < stored_record_collection.size() - 1)

@@ -105,6 +105,12 @@ public:
   QUILL_NODISCARD char const* thread_id() const noexcept { return _thread_id.data(); }
 
   /**
+   * The thread_name must be set prior to ThreadContext creation (first call to a log statement on that thread)
+   * @return The cached thread name value.
+   */
+  QUILL_NODISCARD char const* thread_name() const noexcept { return _thread_name.data(); }
+
+  /**
    * Invalidate the context.
    */
   void invalidate() noexcept { _valid.store(false, std::memory_order_relaxed); }
@@ -146,6 +152,7 @@ private:
 
   EventSPSCQueueT _event_spsc_queue; /** queue for this thread, events are pushed here */
   std::string _thread_id{fmt::format_int(get_thread_id()).str()}; /**< cache this thread pid */
+  std::string _thread_name{get_thread_name()};                    /**< cache this thread name */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)

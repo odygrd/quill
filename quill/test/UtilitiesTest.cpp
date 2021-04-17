@@ -5,6 +5,7 @@
 #include "quill/detail/misc/Utilities.h"
 #include <chrono>
 #include <ctime>
+#include <thread>
 
 using namespace quill;
 using namespace quill::detail;
@@ -96,4 +97,15 @@ TEST_CASE("safe_strftime_empty")
   REQUIRE_STREQ(expected_result, safe_strftime_result.data());
 }
 
+TEST_CASE("set_get_thread_name")
+{
+  std::thread t1{[](){
+    std::string const tname {"test_thread"};
+    set_thread_name(tname.data());
+    std::string const res = get_thread_name();
+    REQUIRE_EQ(tname, res);
+  }};
+
+  t1.join();
+}
 TEST_SUITE_END();

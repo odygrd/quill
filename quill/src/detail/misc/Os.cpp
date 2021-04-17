@@ -24,7 +24,6 @@
   #include <malloc.h>
   #include <share.h>
   #include <windows.h>
-
   #include <processthreadsapi.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
@@ -154,10 +153,8 @@ void set_cpu_affinity(uint16_t cpu_id)
 /***/
 void set_thread_name(char const* name)
 {
-#if defined(__CYGWIN__)
-  // set thread name on cygwin not supported
-#elif defined(__MINGW32__) || defined(__MINGW64__)
-  // Disabled on MINGW.
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+  // Disabled on MINGW / Cygwin.
   (void)name;
 #elif defined(_WIN32)
   std::wstring name_ws = s2ws(name);
@@ -183,6 +180,36 @@ void set_thread_name(char const* name)
               << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
+#endif
+}
+
+/***/
+std::string get_thread_name()
+{
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+  // Disabled on MINGW / Cygwin.
+  return std::string{};
+#elif defined(_WIN32)
+  PWSTR data;
+  HRESULT hr = GetThreadDescription(GetCurrentThread(), &data);
+  if (FAILED(hr))
+  {
+    QUILL_THROW(QuillError{"Failed to get thread name"});
+  }
+
+  std::wstring tname{&data[0], wcslen(&data[0])};
+  LocalFree(data);
+  return ws2s(tname);
+#else
+  // Apple, linux
+  std::array<char, 16> thread_name{'\0'};
+  pthread_t thread = pthread_self();
+  auto res = pthread_getname_np(thread, &thread_name[0], 16);
+  if (res != 0)
+  {
+    QUILL_THROW(QuillError{"Failed to get thread name. error: " + std::to_string(res)});
+  }
+  return std::string{&thread_name[0], strlen(&thread_name[0])};
 #endif
 }
 

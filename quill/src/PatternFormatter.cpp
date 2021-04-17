@@ -58,39 +58,45 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
 
   if (pattern_attr == "ascii_time")
   {
-    return [this](std::chrono::nanoseconds timestamp, char const*, char const*, LogMacroMetadata const&) {
-      return _timestamp_formatter.format_timestamp(timestamp);
-    };
+    return
+      [this](std::chrono::nanoseconds timestamp, char const*, char const*, char const*,
+             LogMacroMetadata const&) { return _timestamp_formatter.format_timestamp(timestamp); };
   }
   else if (pattern_attr == "thread")
   {
-    return [](std::chrono::nanoseconds, char const* thread_id, char const*,
+    return [](std::chrono::nanoseconds, char const* thread_id, char const*, char const*,
               LogMacroMetadata const&) { return thread_id; };
+  }
+  else if (pattern_attr == "thread_name")
+  {
+    return [](std::chrono::nanoseconds, char const*, char const* thread_name, char const*,
+              LogMacroMetadata const&) { return thread_name; };
   }
   else if (pattern_attr == "process")
   {
-    return [](std::chrono::nanoseconds, char const*, char const*, LogMacroMetadata const&) {
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*, LogMacroMetadata const&) {
       return detail::LogManagerSingleton::instance().log_manager().process_id().data();
     };
   }
   else if (pattern_attr == "pathname")
   {
-    return [](std::chrono::nanoseconds, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*,
               LogMacroMetadata const& logline_info) { return logline_info.pathname(); };
   }
   else if (pattern_attr == "filename")
   {
-    return [](std::chrono::nanoseconds, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*,
               LogMacroMetadata const& logline_info) { return logline_info.filename(); };
   }
   else if (pattern_attr == "lineno")
   {
-    return [](std::chrono::nanoseconds, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*,
               LogMacroMetadata const& logline_info) { return logline_info.lineno(); };
   }
   else if (pattern_attr == "fileline")
   {
-    return [this](std::chrono::nanoseconds, char const*, char const*, LogMacroMetadata const& logline_info) {
+    return [this](std::chrono::nanoseconds, char const*, char const*, char const*,
+                  LogMacroMetadata const& logline_info) {
       _fileline.clear();
       _fileline += logline_info.filename();
       _fileline += ":";
@@ -100,18 +106,19 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   }
   else if (pattern_attr == "level_name")
   {
-    return [](std::chrono::nanoseconds, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*,
               LogMacroMetadata const& logline_info) { return logline_info.level_as_str(); };
   }
   else if (pattern_attr == "logger_name")
   {
-    return [](std::chrono::nanoseconds, char const*, char const* logger_name,
+    return [](std::chrono::nanoseconds, char const*, char const*, char const* logger_name,
               LogMacroMetadata const&) { return logger_name; };
   }
   else if (pattern_attr == "function_name")
   {
 #if defined(_WIN32)
-    return [this](std::chrono::nanoseconds, char const*, char const*, LogMacroMetadata const& logline_info) {
+    return [this](std::chrono::nanoseconds, char const*, char const*, char const*,
+                  LogMacroMetadata const& logline_info) {
       // On windows, __FUNCTION__ also contains the namespace name e.g. a::b::my_function().
       _win_func = logline_info.func();
 
@@ -126,7 +133,7 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
       return _win_func.data();
     };
 #else
-    return [](std::chrono::nanoseconds, char const*, char const*,
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*,
               LogMacroMetadata const& logline_info) { return logline_info.func(); };
 #endif
   }

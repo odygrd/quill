@@ -44,7 +44,8 @@ public:
    * @param thread_id the thread id of this record
    * @param record the record to store
    */
-  void store(std::string const& logger_name, std::string thread_id, BaseEvent const* record);
+  void store(std::string const& logger_name, std::string thread_id, std::string thread_name,
+             BaseEvent const* record);
 
   /**
    * Calls the provided callback on all stored objects. The stored objects are provided
@@ -53,7 +54,7 @@ public:
    * @param callback A user provided lambda [](std::string const& thread_id, RecordBase const* record) { ... }
    */
   void process(std::string const& logger_name,
-               std::function<void(std::string const&, BaseEvent const*)> const& callback);
+               std::function<void(std::string const&, std::string const&, BaseEvent const*)> const& callback);
 
   /**
    * Insert a new StoredObject with the given capacity
@@ -76,13 +77,14 @@ private:
    */
   struct BacktraceLogRecord
   {
-    BacktraceLogRecord(std::string thread_id,
+    BacktraceLogRecord(std::string thread_id, std::string thread_name,
                        std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> base_record)
-      : thread_id(std::move(thread_id)), base_record(std::move(base_record))
+      : thread_id(std::move(thread_id)), thread_name(std::move(thread_name)), base_record(std::move(base_record))
     {
     }
 
     std::string thread_id;
+    std::string thread_name;
     std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> base_record;
   };
 

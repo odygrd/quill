@@ -45,7 +45,7 @@ public:
    * When we encounter this message we are going to call flush for all loggers on all handlers.
    * @param obtain_active_handlers a function that is passed to this method and obtains all the active handlers when called
    */
-  void backend_process(BacktraceLogRecordStorage&, char const*,
+  void backend_process(BacktraceLogRecordStorage&, char const*, char const*,
                        GetHandlersCallbackT const& obtain_active_handlers, GetRealTsCallbackT const&) const override
   {
     std::vector<Handler*> const active_handlers = obtain_active_handlers();

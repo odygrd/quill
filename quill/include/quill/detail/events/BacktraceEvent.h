@@ -55,7 +55,7 @@ public:
    * @param timestamp_callback a callback to obtain the timestamp
    */
   void backend_process(BacktraceLogRecordStorage& backtrace_log_record_storage, char const*,
-                       GetHandlersCallbackT const& obtain_active_handlers,
+                       char const*, GetHandlersCallbackT const& obtain_active_handlers,
                        GetRealTsCallbackT const& timestamp_callback) const noexcept override
   {
     if (_backtrace_capacity != (std::numeric_limits<uint32_t>::max)())
@@ -69,10 +69,11 @@ public:
       // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_record
       backtrace_log_record_storage.process(
         _logger_details->name(),
-        [&obtain_active_handlers, &timestamp_callback](
-          std::string const& stored_thread_id, BaseEvent const* stored_backtrace_log_record) {
+        [&obtain_active_handlers, &timestamp_callback](std::string const& stored_thread_id,
+                                                       std::string const& stored_thread_name,
+                                                       BaseEvent const* stored_backtrace_log_record) {
           stored_backtrace_log_record->backend_process_backtrace_log_record(
-            stored_thread_id.data(), obtain_active_handlers, timestamp_callback);
+            stored_thread_id.data(), stored_thread_name.data(), obtain_active_handlers, timestamp_callback);
         });
     }
   }
