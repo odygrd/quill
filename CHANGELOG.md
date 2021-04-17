@@ -1,3 +1,4 @@
+- [v1.6.3](#v1.6.3)
 - [v1.6.2](#v1.6.2)
 - [v1.6.1](#v1.6.1)
 - [v1.6.0](#v1.6.0)
@@ -16,6 +17,13 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v1.6.3
+
+**Improvements/Fixes**
+
+- Add support for `%(thread_name)` in PatternFormatter. ([#97](https://github.com/odygrd/quill/issues/97))
+- Add missing header needed for recent versions of fmt. ([#95](https://github.com/odygrd/quill/issues/95))
 
 ## v1.6.2
 
