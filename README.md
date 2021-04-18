@@ -95,6 +95,7 @@ The main goals of the library are:
 
 ### Log Numbers
 The following message is logged 100'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.
+
 The results in the tables below are in nanoseconds (ns).
 
 #### 1 Thread
@@ -157,7 +158,7 @@ The large string is over 35 characters to avoid short string optimisation of `st
 |[spdlog](https://github.com/gabime/spdlog)                                       |  266  |  309  |  593  |  672  |  911  |  1329  |  13600  |
 |[g3log](https://github.com/KjellKod/g3log)                                       |  1816  |  2207  |  2389  |  2497  |  3457  |  4211  |  8365  |
 
-The benchmarks are done on `Linux (Ubuntu/RHEL)` with GCC 8.1.
+The benchmarks are done on `Linux (Ubuntu/RHEL) - Intel(R) Xeon(R) CPU E5-2690 0 @ 2.90GHz` with GCC 8.1.
 
 Each thread is pinned on a different cpu. Unfortunately the cores are not isolated. 
 Running the backend logger thread in the same CPU as the caller hot-path threads, slows down the log message processing on the backend logging thread and will cause the SPSC queue to fill faster and re-allocate.
