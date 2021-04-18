@@ -95,6 +95,7 @@ The main goals of the library are:
 
 ### Log Numbers
 The following message is logged 100'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.
+The results in the tables below are in nanoseconds (ns).
 
 #### 1 Thread
 
