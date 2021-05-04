@@ -21,7 +21,6 @@ jobs:
         include:
           - cxx: g++-5
             std: 14
-            os: ubuntu-18.04
             with_tests: ON
             install: sudo apt install g++-5
 
