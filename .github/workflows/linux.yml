@@ -16,6 +16,7 @@ jobs:
         cxx: [ g++-5, g++-10, clang++-9 ]
         build_type: [ Debug, Release ]
         std: [ 14 ]
+        os: [ubuntu-18.04]
         with_tests: [ ON ]
 
         include:
