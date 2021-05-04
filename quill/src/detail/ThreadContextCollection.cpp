@@ -44,8 +44,9 @@ ThreadContextCollection::ThreadContextWrapper::~ThreadContextWrapper() noexcept
 /***/
 void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadContext> const& thread_context)
 {
-  std::lock_guard<Spinlock> const lock(_spinlock);
+  _spinlock.lock();
   _thread_contexts.push_back(thread_context);
+  _spinlock.unlock();
   _set_new_thread_context();
 }
 
