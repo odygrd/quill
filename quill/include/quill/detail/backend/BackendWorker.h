@@ -107,7 +107,7 @@ private:
   QUILL_ATTRIBUTE_HOT inline void _main_loop();
 
   /**
-   * Logging thread exist function that flushes everything after stop() is called
+   * Logging thread exit function that flushes everything after stop() is called
    */
   QUILL_ATTRIBUTE_COLD inline void _exit();
 
@@ -611,8 +611,7 @@ void BackendWorker::_exit()
     else
     {
       _check_dropped_messages(cached_thread_contexts);
-
-      // keep going until there are no events are found
+      _force_flush();
       break;
     }
   }

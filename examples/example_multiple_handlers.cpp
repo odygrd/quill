@@ -1,0 +1,60 @@
+#include "quill/Quill.h"
+
+#include <string>
+#include <vector>
+
+/**
+ * A custom handler class that appends formatted logs to a vector
+ */
+class VectorHandler final : public quill::Handler
+{
+public:
+  VectorHandler() = default;
+
+  /***/
+  void write(fmt::memory_buffer const& formatted_log_record,
+             std::chrono::nanoseconds log_record_timestamp, quill::LogLevel log_message_severity) override
+  {
+    // Called by the logger backend worker thread for each LOG_* macro
+    // formatted_log_record.size() - 1 to exclude '/n'
+    _formatted_messages.emplace_back(std::string{formatted_log_record.begin(), formatted_log_record.size() - 1});
+  }
+
+  /***/
+  void flush() noexcept override
+  {
+    // Called by the logger backend worker thread
+    // This is not called for each LOG_* invocation like the write function, instead it is called
+    // periodically or when there are no more LOG_* writes left to process.
+    std::cout << fmt::format("VectorHandler: {}", _formatted_messages) << std::endl;
+  }
+
+private:
+  std::vector<std::string> _formatted_messages;
+};
+
+int main()
+{
+  // Start the logging backend thread
+  quill::start();
+
+  // Get a handler to the file
+  quill::Handler* file_handler = quill::file_handler("app.log", "w");
+
+  // Get the handler to console
+  quill::Handler* console_handler = quill::stdout_handler();
+
+  // Create a logger using this handler
+  // create_handler(unique handler name, constructor args...)
+  quill::Handler* vector_handler = quill::create_handler<VectorHandler>("my_vector_handler");
+
+  // Customise vector_handler format
+  vector_handler->set_pattern(QUILL_STRING("%(level_name) %(logger_name) - %(message)"));
+
+  quill::Logger* logger_foo =
+    quill::create_logger("my_logger", {file_handler, console_handler, vector_handler});
+  logger_foo->set_log_level(quill::LogLevel::Debug);
+
+  LOG_INFO(logger_foo, "Hello from {}", "quill");
+  LOG_DEBUG(logger_foo, "Multiple handlers {}", "example");
+}
