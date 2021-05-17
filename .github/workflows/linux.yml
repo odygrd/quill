@@ -12,6 +12,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         cxx: [ g++-5, g++-10 ]
         build_type: [ Debug, Release ]
