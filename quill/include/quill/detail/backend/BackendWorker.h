@@ -611,7 +611,7 @@ void BackendWorker::_exit()
     else
     {
       _check_dropped_messages(cached_thread_contexts);
-      _force_flush();
+      // _force_flush();
       break;
     }
   }
