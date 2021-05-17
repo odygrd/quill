@@ -58,6 +58,4 @@ int main()
   LOG_INFO(logger_foo, "Hello from {}", "quill");
   LOG_DEBUG(logger_foo, "Multiple handlers {}", "example");
 
-  // Force flush everything before application exit
-  quill::flush();
 }
