@@ -65,6 +65,12 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   // soft failover
   return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
 }
+#elif (defined(__PPC64__))
+QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
+{
+  // soft failover
+  return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+}
 #else
 /**
  * Get the TSC counter
