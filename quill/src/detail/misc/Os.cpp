@@ -153,7 +153,7 @@ void set_cpu_affinity(uint16_t cpu_id)
 /***/
 void set_thread_name(char const* name)
 {
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+  #if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(QUILL_NO_THREAD_NAME_SUPPORT)
   // Disabled on MINGW / Cygwin.
   (void)name;
 #elif defined(_WIN32)
@@ -186,7 +186,7 @@ void set_thread_name(char const* name)
 /***/
 std::string get_thread_name()
 {
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(QUILL_NO_THREAD_NAME_SUPPORT)
   // Disabled on MINGW / Cygwin.
   return std::string{};
 #elif defined(_WIN32)
