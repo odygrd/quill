@@ -27,6 +27,8 @@ option(QUILL_USE_VALGRIND "Use valgrind as the default memcheck tool in CTest (R
 
 option(QUILL_ENABLE_INSTALL "Enable CMake Install when Quill is not a master project" OFF)
 
+option(QUILL_NO_THREAD_NAME_SUPPORT "Disable not supported features on windows 2012/2016" OFF)
+
 #-------------------------------------------------------------------------------------------------------
 # Use newer policies if possible, up to most recent tested version of CMake.
 #-------------------------------------------------------------------------------------------------------
@@ -127,9 +129,14 @@ if (QUILL_FMT_EXTERNAL)
     add_definitions(-DQUILL_FMT_EXTERNAL)
 endif ()
 
+if (QUILL_NO_THREAD_NAME_SUPPORT)
+    add_definitions(-DQUILL_NO_THREAD_NAME_SUPPORT)
+endif ()
+
 message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
 message(STATUS "QUILL_USE_BOUNDED_QUEUE: " ${QUILL_USE_BOUNDED_QUEUE})
 message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
+message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
 
 # address sanitizer flags
 if (QUILL_SANITIZE_ADDRESS)

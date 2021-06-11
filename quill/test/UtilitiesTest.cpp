@@ -100,7 +100,11 @@ TEST_CASE("safe_strftime_empty")
 TEST_CASE("set_get_thread_name")
 {
   std::thread t1{[](){
-    std::string const tname {"test_thread"};
+#ifdef QUILL_NO_THREAD_NAME_SUPPORT
+    std::string const tname{};
+#else
+    std::string const tname{"test_thread"};
+#endif
     set_thread_name(tname.data());
     std::string const res = get_thread_name();
     REQUIRE_EQ(tname, res);
