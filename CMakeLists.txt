@@ -27,7 +27,7 @@ option(QUILL_USE_VALGRIND "Use valgrind as the default memcheck tool in CTest (R
 
 option(QUILL_ENABLE_INSTALL "Enable CMake Install when Quill is not a master project" OFF)
 
-option(QUILL_NO_THREAD_NAME_SUPPORT "Disable not supported features on windows 2012/2016" OFF)
+option(QUILL_NO_THREAD_NAME_SUPPORT "Disable features that are not supported on Windows 2012/2016" OFF)
 
 #-------------------------------------------------------------------------------------------------------
 # Use newer policies if possible, up to most recent tested version of CMake.
