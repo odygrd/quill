@@ -113,6 +113,7 @@ set(SOURCE_FILES
 if (NOT QUILL_FMT_EXTERNAL)
     # if not using external fmt, include the bundled version of libfmt
     list(APPEND HEADER_FILES
+            include/quill/bundled/fmt/args.h
             include/quill/bundled/fmt/chrono.h
             include/quill/bundled/fmt/color.h
             include/quill/bundled/fmt/compile.h
@@ -122,9 +123,9 @@ if (NOT QUILL_FMT_EXTERNAL)
             include/quill/bundled/fmt/locale.h
             include/quill/bundled/fmt/os.h
             include/quill/bundled/fmt/ostream.h
-            include/quill/bundled/fmt/posix.h
             include/quill/bundled/fmt/printf.h
-            include/quill/bundled/fmt/ranges.h)
+            include/quill/bundled/fmt/ranges.h
+            include/quill/bundled/fmt/xchar.h)
 
     list(APPEND SOURCE_FILES
             src/bundled/fmt/format.cc
