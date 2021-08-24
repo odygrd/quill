@@ -29,7 +29,9 @@
 #if FMT_VERSION > 70103
   #if defined(QUILL_FMT_EXTERNAL)
     #include <fmt/args.h>
+    #include <fmt/xchar.h>
   #else
     #include "quill/bundled/fmt/args.h"
+    #include "quill/bundled/fmt/xchar.h"
   #endif
 #endif
