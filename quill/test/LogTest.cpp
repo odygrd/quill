@@ -438,8 +438,8 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
 
     std::wstring arg_1 = L"consectetur adipiscing elit";
     LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, {}", arg_1);
-    wchar_t const* arg_2 = L"lectus libero finibus ante";
-    LOG_ERROR(default_logger, "Nulla tempus, libero at dignissim viverra, {}", arg_2);
+    //wchar_t const* arg_2 = L"lectus libero finibus ante";
+    //LOG_ERROR(default_logger, "Nulla tempus, libero at dignissim viverra, {}", arg_2);
 
     // Let all log get flushed to the file
     lm.flush();
