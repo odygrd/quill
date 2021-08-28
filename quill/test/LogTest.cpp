@@ -449,7 +449,7 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE_EQ(file_contents.size(), 2);
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
   REQUIRE(quill::testing::file_contains(
