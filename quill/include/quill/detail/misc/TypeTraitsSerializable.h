@@ -101,5 +101,26 @@ struct is_all_serializable : conjunction<is_serializable<TArgs>...>
 {
 };
 
+template <typename T, typename... Args>
+struct contains;
+
+template <typename T>
+struct contains<T> : std::false_type
+{
+};
+
+template <typename T, typename... Args>
+struct contains<T, T, Args...> : std::true_type
+{
+};
+
+template <typename T, typename A, typename... Args>
+struct contains<T, A, Args...> : contains<T, Args...>
+{
+};
+
+template <typename T, typename... Args>
+constexpr bool contains_v = contains<T, Args...>::value;
+
 } // namespace detail
 } // namespace quill

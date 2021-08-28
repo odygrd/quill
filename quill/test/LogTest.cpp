@@ -438,8 +438,8 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
 
     std::wstring arg_1 = L"consectetur adipiscing elit";
     LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, {}", arg_1);
-    //wchar_t const* arg_2 = L"lectus libero finibus ante";
-    //LOG_ERROR(default_logger, "Nulla tempus, libero at dignissim viverra, {}", arg_2);
+    wchar_t const* arg_2 = L"lectus libero finibus ante";
+    LOG_ERROR(default_logger, "Nulla tempus, libero at dignissim viverra, {}", arg_2);
 
     // Let all log get flushed to the file
     lm.flush();
@@ -452,8 +452,8 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
   REQUIRE_EQ(file_contents.size(), 1);
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
-  //REQUIRE(quill::testing::file_contains(
-  //  file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
