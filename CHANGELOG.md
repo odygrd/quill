@@ -25,6 +25,7 @@
 - Add support for `%(thread_name)` in PatternFormatter. ([#97](https://github.com/odygrd/quill/issues/97))
 - Add missing header needed for recent versions of fmt. ([#95](https://github.com/odygrd/quill/issues/95))
 - Force flush all active handlers on application exit.
+- Update bundled fmt to 8.0.1
 
 ## v1.6.2
 
