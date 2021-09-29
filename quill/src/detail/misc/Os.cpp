@@ -46,6 +46,17 @@
   #include <sys/stat.h>
   #include <syscall.h>
   #include <unistd.h>
+#elif defined(__FreeBSD__)
+  #include <pthread_np.h>
+  #include <sys/cpuset.h>
+  #include <sys/mman.h>
+  #include <sys/param.h>
+  #include <sys/sched.h>
+  #include <sys/stat.h>
+  #include <sys/syscall.h>
+  #include <sys/sysctl.h>
+  #include <sys/types.h>
+  #include <unistd.h>
 #endif
 
 namespace quill
@@ -133,7 +144,7 @@ void set_cpu_affinity(uint16_t cpu_id)
   thread_port_t mach_thread = pthread_mach_thread_np(pthread_self());
 
   thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, 1);
-#else
+#elif defined(__linux__)
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(cpu_id, &cpuset);
@@ -147,6 +158,27 @@ void set_cpu_affinity(uint16_t cpu_id)
               << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
+#elif defined(__FreeBSD__)
+  cpuset_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(cpu_id, &cpuset);
+
+  // Set the affinity of the current thread to the cpu core specified.
+  //
+  // Can also use:
+  // auto const err = cpuset_setaffinity(
+  //     CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(cpuset), &cpuset);
+  auto const err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+
+  if (QUILL_UNLIKELY(err != 0))
+  {
+    std::ostringstream error_msg;
+    error_msg << "failed to call set_cpu_affinity, with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+#else
+  QUILL_THROW(QuillError{"Not supported yet."});
 #endif
 }
 
@@ -166,6 +198,12 @@ void set_thread_name(char const* name)
   }
 #elif defined(__APPLE__)
   auto const res = pthread_setname_np(name);
+  if (res != 0)
+  {
+    QUILL_THROW(QuillError{"Failed to set thread name. error: " + std::to_string(res)});
+  }
+#elif defined(__FreeBSD__)
+  auto const res = pthread_setname_np(pthread_self(), name);
   if (res != 0)
   {
     QUILL_THROW(QuillError{"Failed to set thread name. error: " + std::to_string(res)});
@@ -227,6 +265,8 @@ uint32_t get_thread_id() noexcept
   uint64_t tid64;
   pthread_threadid_np(nullptr, &tid64);
   return static_cast<uint32_t>(tid64);
+#elif defined(__FreeBSD__)
+  return static_cast<uint32_t>(pthread_getthreadid_np());
 #endif
 }
 
