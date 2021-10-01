@@ -222,6 +222,19 @@ int main()
 ### Output
 [![Screenshot-2020-08-14-at-01-09-43.png](https://i.postimg.cc/02Vbt8LH/Screenshot-2020-08-14-at-01-09-43.png)](https://postimg.cc/LnZ95M4z)
 
+## Configuring the library
+
+The library can be configured to avoid exceptions, attach a prefix to the
+logging macros, strip macros based on log level, and others knobs using the
+configuration options in `quill/quill/include/quill/Tweakme.h`. For
+example, the following command would configure the library to use macros
+prefixed with `QUILL_` to avoid potential symbol collisions.
+
+```shell
+cmake -DCMAKE_CXX_FLAGS="-DQUILL_DISABLE_NON_PREFIXED_MACROS=1" .
+```
+
+
 ## CMake-Integration
 
 #### External
