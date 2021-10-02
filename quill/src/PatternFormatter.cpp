@@ -109,6 +109,11 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
     return [](std::chrono::nanoseconds, char const*, char const*, char const*,
               LogMacroMetadata const& logline_info) { return logline_info.level_as_str(); };
   }
+  else if (pattern_attr == "level_id")
+  {
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*,
+              LogMacroMetadata const& logline_info) { return logline_info.level_as_id(); };
+  }
   else if (pattern_attr == "logger_name")
   {
     return [](std::chrono::nanoseconds, char const*, char const*, char const* logger_name,

@@ -71,6 +71,14 @@ public:
     return _log_level_to_string(_level);
   }
 
+  /**
+   * @return  The log level of this logging event as a string ID.
+   */
+  QUILL_NODISCARD constexpr char const* level_as_id() const noexcept
+  {
+    return _log_level_to_id(_level);
+  }
+
 private:
   QUILL_NODISCARD static constexpr char const* _str_end(char const* str) noexcept
   {
@@ -104,6 +112,16 @@ private:
 
     using log_lvl_t = std::underlying_type<LogLevel>::type;
     return log_levels_strings[static_cast<log_lvl_t>(log_level)];
+  }
+
+  // Helps shorten log lines.
+  QUILL_NODISCARD static constexpr char const* _log_level_to_id(LogLevel log_level)
+  {
+    constexpr std::array<char const*, 10> log_levels_ids = {
+      {"T3", "T2", "T1", "D", "I", "W", "E", "C", "B", "N"}};
+
+    using log_lvl_t = std::underlying_type<LogLevel>::type;
+    return log_levels_ids[static_cast<log_lvl_t>(log_level)];
   }
 
 private:

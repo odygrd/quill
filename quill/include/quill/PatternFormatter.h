@@ -294,6 +294,7 @@ private:
    * %(pathname)      - Full source file where the logging call was issued
    * %(function_name) - Name of function containing the logging call
    * %(level_name)    - Text logging level for the messageText logging level for the message
+   * %(level_id)      - Text logging level ID (C = critical, T1 = trace level 1, D = debug, etc.).
    * %(lineno)        - Source line number where the logging call was issued
    * %(logger_name)   - Name of the logger used to log the call.
    * %(message)       - The logged message

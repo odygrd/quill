@@ -29,6 +29,7 @@ TEST_CASE("construct")
     REQUIRE_STREQ(log_line_info.lineno(), "24");
     REQUIRE_STREQ(log_line_info.filename(), "LogMacroMetadataTest.cpp");
     REQUIRE_STREQ(log_line_info.level_as_str(), "INFO     ");
+    REQUIRE_STREQ(log_line_info.level_as_id(), "I");
   }
 }
 
