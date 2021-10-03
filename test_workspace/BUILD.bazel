@@ -1,5 +1,13 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 
+test_suite(
+    name = "third_party_tests",
+    tests = [
+        # Example of how a user can ensure all our tests pass on their machine.
+        "@odygrd_quill//quill/test:all_tests",
+    ],
+)
+
 cc_test(
     name = "trivial_test",
     srcs = ["trivial_test.cc"],
