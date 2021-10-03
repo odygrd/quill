@@ -35,9 +35,6 @@ cc_library(
     srcs = SRCS,
     hdrs = HDRS,
     includes = INCLUDES,
-    copts = [
-        "-std=c++14",
-    ],
     linkopts = select({
         "//:platform_windows": [],
         "//conditions:default": [
@@ -55,9 +52,6 @@ cc_library(
     includes = INCLUDES,
     defines = [
         "QUILL_NO_EXCEPTIONS=1",
-    ],
-    copts = [
-        "-std=c++14",
     ],
     linkopts = select({
         "//:platform_windows": [],

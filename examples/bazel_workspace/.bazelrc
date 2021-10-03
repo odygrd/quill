@@ -12,3 +12,4 @@ build --copt=-DHAVE_BAZEL_BUILD=1
 
 # To easily test with C++ 20.
 #build --cxxopt="-std=c++20"
+build --cxxopt="-std=c++14"
