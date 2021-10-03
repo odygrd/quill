@@ -15,8 +15,8 @@ cc_library(
 
 cc_library(
     name = "misc_noexcept_lib",
-    hdrs = glob(["misc/**/*.h"]),
     srcs = glob(["misc/**/*.cpp"]),
+    hdrs = glob(["misc/**/*.h"]),
     includes = [
         "misc",
     ],
@@ -28,8 +28,8 @@ cc_library(
 
 cc_library(
     name = "misc_lib",
-    hdrs = glob(["misc/**/*.h"]),
     srcs = glob(["misc/**/*.cpp"]),
+    hdrs = glob(["misc/**/*.h"]),
     includes = [
         "misc",
     ],

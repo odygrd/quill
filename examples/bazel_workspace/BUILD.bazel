@@ -12,8 +12,8 @@ cc_test(
     name = "trivial_test",
     srcs = ["trivial_test.cc"],
     deps = [
-        "@odygrd_quill//:quill",
         "@com_google_googletest//:gtest",
+        "@odygrd_quill//:quill",
     ],
 )
 
@@ -21,7 +21,7 @@ cc_test(
     name = "trivial_noexcept_test",
     srcs = ["trivial_test.cc"],
     deps = [
-        "@odygrd_quill//:quill_noexcept",
         "@com_google_googletest//:gtest",
+        "@odygrd_quill//:quill_noexcept",
     ],
 )

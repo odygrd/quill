@@ -1,3 +1,5 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 licenses(["notice"])  # MIT
 
 exports_files(["LICENSE"])
@@ -8,7 +10,6 @@ config_setting(
         "@platforms//os:windows",
     ],
 )
-load("@rules_cc//cc:defs.bzl", "cc_library")
 
 SRCS = glob(
     [
@@ -32,11 +33,11 @@ cc_library(
     name = "quill",
     srcs = SRCS,
     hdrs = HDRS,
-    includes = INCLUDES,
     defines = [
         # Avoid ambiguity altogether.
         "QUILL_DISABLE_NON_PREFIXED_MACROS=1",
     ],
+    includes = INCLUDES,
     linkopts = select({
         "//:platform_windows": [],
         "//conditions:default": [
@@ -51,12 +52,12 @@ cc_library(
     name = "quill_noexcept",
     srcs = SRCS,
     hdrs = HDRS,
-    includes = INCLUDES,
     defines = [
         "QUILL_NO_EXCEPTIONS=1",
         # Avoid ambiguity altogether.
         "QUILL_DISABLE_NON_PREFIXED_MACROS=1",
     ],
+    includes = INCLUDES,
     linkopts = select({
         "//:platform_windows": [],
         "//conditions:default": [
