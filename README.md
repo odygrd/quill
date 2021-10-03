@@ -53,6 +53,7 @@
 -  [Supported Platforms And Compilers](#supported-platforms-and-compilers)
 -  [Basic Usage](#basic-usage)
 -  [CMake Integration](#cmake-integration)
+-  [Bazel Integration](#bazel-integration)
 -  [Documentation](#documentation)
 -  [License](#license)
 
@@ -289,6 +290,35 @@ target_link_libraries(my_project PRIVATE quill::quill)
 ```
 ##### main.cpp
 See [basic usage](#basic-usage)
+
+### Bazel Integration
+#### Including quill as a dependency:
+
+##### BUILD.bazel:
+```
+cc_binary(
+    name = "trivial_example",
+    srcs = ["trivial_example.cc"],
+    deps = [
+        #"@odygrd_quill//:quill",           # <-- Using quill with exceptions enabled.
+        "@odygrd_quill//:quill_noexcept",   # <-- Using quill without exceptions.
+    ],
+)
+```
+
+##### WORKSPACE.bazel:
+
+```
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "odygrd_quill",
+    strip_prefix = "quill-master",
+    urls = ["https://github.com/odygrd/quill/archive/master.tar.gz"],
+)
+```
+
+An example can be found under `examples/bazel_workspace`.
 
 ## Documentation
 Advanced usage and additional documentation can be found in the [wiki](https://github.com/odygrd/quill/wiki) pages.
