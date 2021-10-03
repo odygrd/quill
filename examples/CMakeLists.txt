@@ -13,6 +13,9 @@ target_link_libraries(example_custom_console_colours quill)
 add_executable(example_trivial example_trivial.cpp)
 target_link_libraries(example_trivial quill)
 
+add_executable(example_unprefixed_macros example_unprefixed_macros.cpp)
+target_link_libraries(example_unprefixed_macros quill)
+
 add_executable(example_logging_to_file example_logging_to_file.cpp)
 target_link_libraries(example_logging_to_file quill)
 
