@@ -10,24 +10,22 @@ config_setting(
 )
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
-PREFIX = "quill/"
-
 SRCS = glob(
     [
-        PREFIX + "src/**/*.cpp",
-        PREFIX + "src/bundled/fmt/format.cc",
-        PREFIX + "src/bundled/fmt/os.cc",
+        "quill/src/**/*.cpp",
+        "quill/src/bundled/fmt/format.cc",
+        "quill/src/bundled/fmt/os.cc",
     ],
 )
 
 HDRS = glob(
     [
-        PREFIX + "include/**/*.h",
+        "quill/include/**/*.h",
     ],
 )
 
 INCLUDES = [
-    PREFIX + "include",
+    "quill/include",
 ]
 
 cc_library(
