@@ -1,0 +1,32 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+cc_library(
+    name = "bench_lib",
+    hdrs = [
+        "hot_path_bench.h",
+        "hot_path_bench_config.h",
+    ],
+    deps = [
+        "//:quill",
+    ],
+)
+
+cc_binary(
+    name = "rtdsc_clock_benchmark",
+    srcs = [
+        "quill_hot_path_rdtsc_clock.cpp",
+    ],
+    deps = [
+        ":bench_lib",
+    ],
+)
+
+cc_binary(
+    name = "system_clock_benchmark",
+    srcs = [
+        "quill_hot_path_system_clock.cpp",
+    ],
+    deps = [
+        ":bench_lib",
+    ],
+)

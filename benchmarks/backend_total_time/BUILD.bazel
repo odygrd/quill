@@ -1,0 +1,17 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "backend_total_time_benchmark",
+    srcs = ["quill_backend_total_time.cpp"],
+    deps = [
+        "//:quill",
+    ],
+)
+
+cc_binary(
+    name = "backend_total_time_noexcept_benchmark",
+    srcs = ["quill_backend_total_time.cpp"],
+    deps = [
+        "//:quill_noexcept",
+    ],
+)
