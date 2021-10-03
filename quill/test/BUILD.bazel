@@ -39,13 +39,15 @@ cc_library(
     ],
 )
 
+TEST_SRCS = glob(["*Test.cpp"])
+
 [cc_test(
     name = filename[:-4] + "_noexcept",
     srcs = [filename],
     deps = [
         ":misc_noexcept_lib",
     ],
-) for filename in glob(["*Test.cpp"])]
+) for filename in TEST_SRCS]
 
 [cc_test(
     name = filename[:-4],
@@ -53,4 +55,4 @@ cc_library(
     deps = [
         ":misc_lib",
     ],
-) for filename in glob(["*Test.cpp"])]
+) for filename in TEST_SRCS]
