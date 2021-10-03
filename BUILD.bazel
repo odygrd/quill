@@ -33,6 +33,10 @@ cc_library(
     srcs = SRCS,
     hdrs = HDRS,
     includes = INCLUDES,
+    defines = [
+        # Avoid ambiguity altogether.
+        "QUILL_DISABLE_NON_PREFIXED_MACROS=1",
+    ],
     linkopts = select({
         "//:platform_windows": [],
         "//conditions:default": [
@@ -50,6 +54,8 @@ cc_library(
     includes = INCLUDES,
     defines = [
         "QUILL_NO_EXCEPTIONS=1",
+        # Avoid ambiguity altogether.
+        "QUILL_DISABLE_NON_PREFIXED_MACROS=1",
     ],
     linkopts = select({
         "//:platform_windows": [],

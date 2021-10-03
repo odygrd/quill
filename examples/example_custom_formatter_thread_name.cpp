@@ -33,25 +33,27 @@ int main()
   quill::detail::set_thread_name("MainThread");
 
   // Log using the default logger
-  LOG_INFO(quill::get_logger(), "The default logger is using a custom format");
+  QUILL_LOG_INFO(quill::get_logger(), "The default logger is using a custom format");
 
-  std::thread t1([]() {
-    // Must set the thread name before any log statement
-    quill::detail::set_thread_name("NewThread");
+  std::thread t1(
+    []()
+    {
+      // Must set the thread name before any log statement
+      quill::detail::set_thread_name("NewThread");
 
-    // Obtain a new logger. Since no handlers were specified during the creation of the new logger. The new logger will use the default logger's handlers. In that case it will use the stdout_handler with the modified format.
-    quill::Logger* logger_foo = quill::create_logger("logger_foo");
+      // Obtain a new logger. Since no handlers were specified during the creation of the new logger. The new logger will use the default logger's handlers. In that case it will use the stdout_handler with the modified format.
+      quill::Logger* logger_foo = quill::create_logger("logger_foo");
 
-    LOG_INFO(logger_foo, "The new logger is using the custom format");
+      QUILL_LOG_INFO(logger_foo, "The new logger is using the custom format");
 
-    // Backtrace log
-    logger_foo->init_backtrace(2, quill::LogLevel::Error);
-    LOG_BACKTRACE(logger_foo, "Backtrace log {}", 1);
-    LOG_BACKTRACE(logger_foo, "Backtrace log {}", 2);
-    LOG_ERROR(logger_foo, "An error has happened, Backtrace is also flushed.");
-  });
+      // Backtrace log
+      logger_foo->init_backtrace(2, quill::LogLevel::Error);
+      QUILL_LOG_BACKTRACE(logger_foo, "Backtrace log {}", 1);
+      QUILL_LOG_BACKTRACE(logger_foo, "Backtrace log {}", 2);
+      QUILL_LOG_ERROR(logger_foo, "An error has happened, Backtrace is also flushed.");
+    });
   t1.join();
 
   // Log using the default logger
-  LOG_INFO(quill::get_logger(), "Done");
+  QUILL_LOG_INFO(quill::get_logger(), "Done");
 }

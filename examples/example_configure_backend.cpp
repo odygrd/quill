@@ -15,9 +15,8 @@ int main()
 {
 #if !defined(QUILL_NO_EXCEPTIONS)
   // Set a custom error handler to handler exceptions - if exceptions are enabled
-  quill::set_backend_worker_error_handler([](std::string const& s) {
-    std::cout << "Hello from error handler. Error: " << s << std::endl;
-  });
+  quill::set_backend_worker_error_handler(
+    [](std::string const& s) { std::cout << "Hello from error handler. Error: " << s << std::endl; });
 #endif
 
   // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
@@ -31,5 +30,5 @@ int main()
   // Start the logging backend thread
   quill::start();
 
-  LOG_INFO(quill::get_logger(), "{} {}", "Hello", "World!");
+  QUILL_LOG_INFO(quill::get_logger(), "{} {}", "Hello", "World!");
 }

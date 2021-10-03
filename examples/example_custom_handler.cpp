@@ -44,5 +44,5 @@ int main()
   // Create a logger using this handler
   quill::Logger* logger_bar = quill::create_logger("logger_bar", custom_handler);
 
-  LOG_INFO(logger_bar, "Hello from {}", "library bar");
+  QUILL_LOG_INFO(logger_bar, "Hello from {}", "library bar");
 }

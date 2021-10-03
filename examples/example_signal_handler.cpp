@@ -55,36 +55,38 @@ int main()
   std::vector<std::thread> threads;
   for (size_t i = 0; i < 4; ++i)
   {
-    threads.emplace_back(std::thread([]() {
+    threads.emplace_back(std::thread(
+      []()
+      {
 
 #if defined(_WIN32)
-      // NOTE: On windows the signal handler must be installed on each new thread
-      quill::init_signal_handler();
+        // NOTE: On windows the signal handler must be installed on each new thread
+        quill::init_signal_handler();
 #endif
 
-      // sleep for 1 second so all threads are ready
-      std::this_thread::sleep_for(std::chrono::seconds{1});
+        // sleep for 1 second so all threads are ready
+        std::this_thread::sleep_for(std::chrono::seconds{1});
 
-      for (size_t i = 0; i < 10; ++i)
-      {
-        // log 10 messages
-        LOG_INFO(quill::get_logger(), "Log from thread {}", i);
-      }
+        for (size_t i = 0; i < 10; ++i)
+        {
+          // log 10 messages
+          QUILL_LOG_INFO(quill::get_logger(), "Log from thread {}", i);
+        }
 
-      LOG_INFO(quill::get_logger(), "Crash after 10 messages");
+        QUILL_LOG_INFO(quill::get_logger(), "Crash after 10 messages");
 
-      // After 10 messages Crash
-      // divide_by_zero();
-      // stack_overflow();
-      // illegal_instruction();
-      // cause_segfault();
-    }));
+        // After 10 messages Crash
+        // divide_by_zero();
+        // stack_overflow();
+        // illegal_instruction();
+        // cause_segfault();
+      }));
   }
 
   uint32_t cnt{0};
   while (true)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds{100});
-    LOG_INFO(quill::get_logger(), "Log from main {}", cnt++);
+    QUILL_LOG_INFO(quill::get_logger(), "Log from main {}", cnt++);
   }
 }

@@ -15,6 +15,6 @@ int main()
 
   for (uint32_t i = 0; i < 15; ++i)
   {
-    LOG_INFO(logger_bar, "Hello from {} {}", "rotating logger", i);
+    QUILL_LOG_INFO(logger_bar, "Hello from {} {}", "rotating logger", i);
   }
 }

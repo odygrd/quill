@@ -81,7 +81,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
   if (signal == CTRL_C_EVENT || signal == CTRL_BREAK_EVENT)
   {
     // This means signal handler is running a caller thread, we can log from the default logger
-    LOG_INFO(quill::get_logger(), "Interrupted by Ctrl+C:");
+    QUILL_LOG_INFO(quill::get_logger(), "Interrupted by Ctrl+C:");
 
     quill::flush();
     std::exit(EXIT_SUCCESS);
@@ -103,11 +103,11 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
   else
   {
     // This means signal handler is running a caller thread, we can log from the default logger
-    LOG_INFO(quill::get_logger(), "Received exception code: {}",
-             get_error_message(exception_p->ExceptionRecord->ExceptionCode));
+    QUILL_LOG_INFO(quill::get_logger(), "Received exception code: {}",
+                   get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
-    LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of exception code: {}",
-                 get_error_message(exception_p->ExceptionRecord->ExceptionCode));
+    QUILL_LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of exception code: {}",
+                       get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
     quill::flush();
   }
@@ -152,7 +152,7 @@ void on_signal(int32_t signal_number)
   else
   {
     // This means signal handler is running a caller thread, we can log from the default logger
-    LOG_INFO(quill::get_logger(), "Received signal: {}", signal_number);
+    QUILL_LOG_INFO(quill::get_logger(), "Received signal: {}", signal_number);
 
     if (signal_number == SIGINT || signal_number == SIGTERM)
     {
@@ -162,7 +162,7 @@ void on_signal(int32_t signal_number)
     }
     else
     {
-      LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
+      QUILL_LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
 
       quill::flush();
 
@@ -231,7 +231,7 @@ void on_signal(int32_t signal_number)
   else
   {
     // This means signal handler is running a caller thread, we can log from the default logger
-    LOG_INFO(quill::get_logger(), "Received signal: {}", ::strsignal(signal_number));
+    QUILL_LOG_INFO(quill::get_logger(), "Received signal: {}", ::strsignal(signal_number));
 
     if (signal_number == SIGINT || signal_number == SIGTERM)
     {
@@ -241,8 +241,8 @@ void on_signal(int32_t signal_number)
     }
     else
     {
-      LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}",
-                   ::strsignal(signal_number));
+      QUILL_LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}",
+                         ::strsignal(signal_number));
 
       quill::flush();
 

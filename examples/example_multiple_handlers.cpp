@@ -15,7 +15,7 @@ public:
   void write(fmt::memory_buffer const& formatted_log_record,
              std::chrono::nanoseconds log_record_timestamp, quill::LogLevel log_message_severity) override
   {
-    // Called by the logger backend worker thread for each LOG_* macro
+    // Called by the logger backend worker thread for each QUILL_LOG_* macro
     // formatted_log_record.size() - 1 to exclude '/n'
     _formatted_messages.emplace_back(std::string{formatted_log_record.begin(), formatted_log_record.size() - 1});
   }
@@ -24,8 +24,8 @@ public:
   void flush() noexcept override
   {
     // Called by the logger backend worker thread
-    // This is not called for each LOG_* invocation like the write function, instead it is called
-    // periodically or when there are no more LOG_* writes left to process.
+    // This is not called for each QUILL_LOG_* invocation like the write function, instead it is
+    // called periodically or when there are no more QUILL_LOG_* writes left to process.
     std::cout << fmt::format("VectorHandler: {}", _formatted_messages) << std::endl;
   }
 
@@ -55,7 +55,6 @@ int main()
     quill::create_logger("my_logger", {file_handler, console_handler, vector_handler});
   logger_foo->set_log_level(quill::LogLevel::Debug);
 
-  LOG_INFO(logger_foo, "Hello from {}", "quill");
-  LOG_DEBUG(logger_foo, "Multiple handlers {}", "example");
-
+  QUILL_LOG_INFO(logger_foo, "Hello from {}", "quill");
+  QUILL_LOG_DEBUG(logger_foo, "Multiple handlers {}", "example");
 }

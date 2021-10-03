@@ -59,12 +59,12 @@ int main()
   User usr{"James", "Bond", 32};
 
   // The following fails to compile
-  // LOG_INFO(quill::get_logger(), "The user is {}", usr);
+  // QUILL_LOG_INFO(quill::get_logger(), "The user is {}", usr);
 
   // The user has to explicitly format on the hot path, or instead tag the object (see User2)
-  LOG_INFO(quill::get_logger(), "The user is {}", quill::utility::to_string(usr));
+  QUILL_LOG_INFO(quill::get_logger(), "The user is {}", quill::utility::to_string(usr));
 
   // The following compiles and logs, because the object is tagged by the user as safe
   User2 tagged_user{"James", "Bond", 32};
-  LOG_INFO(quill::get_logger(), "The user is {}", tagged_user);
+  QUILL_LOG_INFO(quill::get_logger(), "The user is {}", tagged_user);
 }

@@ -29,14 +29,14 @@ int main()
   quill::Logger* logger_bar = quill::create_logger("logger_bar", stdout_handler_2);
 
   // Use both loggers
-  LOG_INFO(logger_foo, "The logger is using stdout_handler_1");
-  LOG_INFO(logger_bar, "The logger is using stdout_handler_2");
-  LOG_INFO(logger_bar, "Logging from {}", "logger_bar");
-  LOG_INFO(logger_foo, "Logging from {}", "logger_foo");
+  QUILL_LOG_INFO(logger_foo, "The logger is using stdout_handler_1");
+  QUILL_LOG_INFO(logger_bar, "The logger is using stdout_handler_2");
+  QUILL_LOG_INFO(logger_bar, "Logging from {}", "logger_bar");
+  QUILL_LOG_INFO(logger_foo, "Logging from {}", "logger_foo");
 
   // Retrieve existing handler to create a new logger that will use the retrieved handler's format pattern.
   quill::Handler* stdout_handler_3 = quill::stdout_handler("stdout_1");
   quill::Logger* logger_foo_2 = quill::create_logger("logger_foo_2", stdout_handler_3);
-  LOG_INFO(logger_foo_2, "The logger is using stdout_handler_1");
-  LOG_INFO(logger_foo_2, "Logging from {}", "logger_foo_2");
+  QUILL_LOG_INFO(logger_foo_2, "The logger is using stdout_handler_1");
+  QUILL_LOG_INFO(logger_foo_2, "Logging from {}", "logger_foo_2");
 }

@@ -16,7 +16,7 @@ int main()
 
   for (int i = 0; i < 5000; ++i)
   {
-    LOG_INFO(logger_bar, "Hello from {}", "daily logger");
+    QUILL_LOG_INFO(logger_bar, "Hello from {}", "daily logger");
     std::this_thread::sleep_for(std::chrono::seconds{1});
   }
 }
