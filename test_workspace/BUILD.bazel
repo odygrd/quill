@@ -1,0 +1,19 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "trivial_test",
+    srcs = ["trivial_test.cc"],
+    deps = [
+        "@odygrd_quill//:quill",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
+    name = "trivial_noexcept_test",
+    srcs = ["trivial_test.cc"],
+    deps = [
+        "@odygrd_quill//:quill_noexcept",
+        "@com_google_googletest//:gtest",
+    ],
+)

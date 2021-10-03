@@ -1,0 +1,51 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_library(
+    name = "doctest_lib",
+    hdrs = ["bundled/doctest/doctest.h"],
+    includes = [
+        "bundled",
+    ],
+)
+
+cc_library(
+    name = "misc_noexcept_lib",
+    hdrs = glob(["misc/**/*.h"]),
+    srcs = glob(["misc/**/*.cpp"]),
+    includes = [
+        "misc",
+    ],
+    deps = [
+        ":doctest_lib",
+        "//:quill_noexcept",
+    ],
+)
+
+cc_library(
+    name = "misc_lib",
+    hdrs = glob(["misc/**/*.h"]),
+    srcs = glob(["misc/**/*.cpp"]),
+    includes = [
+        "misc",
+    ],
+    deps = [
+        ":doctest_lib",
+        "//:quill",
+    ],
+)
+
+[cc_test(
+    name = filename[:-4] + "_noexcept",
+    srcs = [filename],
+    deps = [
+        ":misc_noexcept_lib",
+    ],
+) for filename in glob(["*Test.cpp"])]
+
+[cc_test(
+    name = filename[:-4],
+    srcs = [filename],
+    deps = [
+        ":misc_lib",
+    ],
+) for filename in glob(["*Test.cpp"])]

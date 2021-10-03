@@ -1,0 +1,70 @@
+licenses(["notice"])  # MIT
+
+exports_files(["LICENSE"])
+
+config_setting(
+    name = "platform_windows",
+    constraint_values = [
+        "@platforms//os:windows",
+    ],
+)
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+PREFIX = "quill/"
+
+SRCS = glob(
+    [
+        PREFIX + "src/**/*.cpp",
+        PREFIX + "src/bundled/fmt/format.cc",
+        PREFIX + "src/bundled/fmt/os.cc",
+    ],
+)
+
+HDRS = glob(
+    [
+        PREFIX + "include/**/*.h",
+    ],
+)
+
+INCLUDES = [
+    PREFIX + "include",
+]
+
+cc_library(
+    name = "quill",
+    srcs = SRCS,
+    hdrs = HDRS,
+    includes = INCLUDES,
+    copts = [
+        "-std=c++14",
+    ],
+    linkopts = select({
+        "//:platform_windows": [],
+        "//conditions:default": [
+            "-lpthread",
+        ],
+    }),
+    linkstatic = True,
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "quill_noexcept",
+    srcs = SRCS,
+    hdrs = HDRS,
+    includes = INCLUDES,
+    defines = [
+        "QUILL_NO_EXCEPTIONS=1",
+    ],
+    copts = [
+        "-std=c++14",
+    ],
+    linkopts = select({
+        "//:platform_windows": [],
+        "//conditions:default": [
+            "-lpthread",
+        ],
+    }),
+    linkstatic = True,
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,11 @@
+startup --windows_enable_symlinks
+
+run --color=yes
+
+build --color=yes
+build --verbose_failures
+
+test --test_output=errors
+test --test_summary=terse
+
+build --copt=-DHAVE_BAZEL_BUILD=1
