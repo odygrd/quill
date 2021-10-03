@@ -11,6 +11,20 @@ config_setting(
     ],
 )
 
+config_setting(
+    name = "platform_freebsd",
+    constraint_values = [
+        "@platforms//os:freebsd",
+    ],
+)
+
+config_setting(
+    name = "platform_openbsd",
+    constraint_values = [
+        "@platforms//os:openbsd",
+    ],
+)
+
 SRCS = glob(
     [
         "quill/src/**/*.cpp",
