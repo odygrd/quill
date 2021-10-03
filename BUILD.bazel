@@ -43,6 +43,21 @@ INCLUDES = [
     "quill/include",
 ]
 
+LINKOPTS = select({
+    "//:platform_windows": [],
+    "//:platform_freebsd": [
+        "-lm",
+        "-lpthread",
+    ],
+    "//:platform_openbsd": [
+        "-lm",
+        "-lpthread",
+    ],
+    "//conditions:default": [
+        "-lpthread",
+    ],
+})
+
 cc_library(
     name = "quill",
     srcs = SRCS,
@@ -52,12 +67,7 @@ cc_library(
         "QUILL_DISABLE_NON_PREFIXED_MACROS=1",
     ],
     includes = INCLUDES,
-    linkopts = select({
-        "//:platform_windows": [],
-        "//conditions:default": [
-            "-lpthread",
-        ],
-    }),
+    linkopts = LINKOPTS,
     linkstatic = True,
     visibility = ["//visibility:public"],
 )
@@ -72,12 +82,7 @@ cc_library(
         "QUILL_DISABLE_NON_PREFIXED_MACROS=1",
     ],
     includes = INCLUDES,
-    linkopts = select({
-        "//:platform_windows": [],
-        "//conditions:default": [
-            "-lpthread",
-        ],
-    }),
+    linkopts = LINKOPTS,
     linkstatic = True,
     visibility = ["//visibility:public"],
 )
