@@ -20,5 +20,5 @@ http_archive(
 
 local_repository(
     name = "odygrd_quill",
-    path = "../",
+    path = "../../",
 )
