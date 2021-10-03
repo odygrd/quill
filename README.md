@@ -1,4 +1,4 @@
-<div align="center">
+ <div align="center">
   <a href="https://github.com/odygrd/quill">
     <img width="125" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
   </a>
@@ -189,6 +189,7 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 | Linux     | Ubuntu, RHEL, Centos, Fedora                   |
 | Windows   | Windows 10 - version 1607, Windows Server 2016 |
 | macOS     | Tested with Xcode 9.4                          |
+| FreeBSD   | FreeBSD 13.0 - tested with Clang 14.0          |
 
 ## Basic usage
 
@@ -292,7 +293,8 @@ target_link_libraries(my_project PRIVATE quill::quill)
 See [basic usage](#basic-usage)
 
 ### Bazel Integration
-#### Including quill as a dependency:
+
+#### How to include quill as a dependency
 
 ##### BUILD.bazel:
 ```
@@ -319,6 +321,18 @@ http_archive(
 ```
 
 An example can be found under `examples/bazel_workspace`.
+
+### How to ensure all quill tests pass on your CI infrastructure
+
+In your workspace run:
+
+```
+$ bazel test @odygrd_quill//quill/test:all_tests
+```
+
+Or include `@odygrd_quill//quill/test:all_tests` as a `test_suite`
+dependency to run these tests automatically as part of your
+test/CI infrastructure.
 
 ## Documentation
 Advanced usage and additional documentation can be found in the [wiki](https://github.com/odygrd/quill/wiki) pages.
