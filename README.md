@@ -322,7 +322,7 @@ http_archive(
 
 An example can be found under `examples/bazel_workspace`.
 
-### How to ensure all quill tests pass on your CI infrastructure
+#### How to ensure all quill tests pass on your CI infrastructure
 
 In your workspace run:
 
