@@ -10,6 +10,23 @@ test --test_summary=terse
 
 build --copt=-DHAVE_BAZEL_BUILD=1
 
-# To easily test with C++ 20.
-#build --cxxopt="-std=c++20"
-build --cxxopt="-std=c++14"
+# See https://github.com/odygrd/quill/issues/135
+#build --cxxopt="-std=c++20"  # broken.
+
+# Compiler specific flags.
+build:cc --cxxopt="-std=c++14"
+build:msvc --cxxopt=/std:c++latest
+build:gcc --config=cc
+build:gcc --cxxopt='-fanalyzer'
+build:clang --config=cc
+build:clang --cxxopt='-stdlib=libc++'
+
+# Platform specific configuration.
+build --enable_platform_specific_config
+build:windows --enable_runfiles
+build:windows --config=msvc
+build:linux   --config=cc
+build:macos   --config=cc
+build:macos   --features=-supports_dynamic_linker
+build:freebsd --config=cc
+build:openbsd --config=cc
