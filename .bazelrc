@@ -10,6 +10,7 @@ test --test_summary=terse
 
 build --copt=-DHAVE_BAZEL_BUILD=1
 
+
 # See https://github.com/odygrd/quill/issues/135
 #build --cxxopt="-std=c++20"  # broken.
 
@@ -30,3 +31,11 @@ build:macos   --config=cc
 build:macos   --features=-supports_dynamic_linker
 build:freebsd --config=cc
 build:openbsd --config=cc
+
+# Debugging configuration.
+build:debug --compilation_mode=dbg
+build:debug --copt=-DHAVE_BAZEL_BUILD_DEBUG=1
+#build:debug --copt="-g0"
+build:debug --copt="-g3"
+build:debug --copt="-fpic"
+build:debug --strip=never
