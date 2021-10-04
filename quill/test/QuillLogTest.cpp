@@ -368,7 +368,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:340         LOG_INFO      root         - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:345         LOG_INFO      root         - Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
