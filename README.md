@@ -207,17 +207,17 @@ int main()
   // enable a backtrace that will get flushed when we log CRITICAL
   logger->init_backtrace(2, quill::LogLevel::Critical);
 
-  LOG_BACKTRACE(logger, "Backtrace log {}", 1);
-  LOG_BACKTRACE(logger, "Backtrace log {}", 2);
+  QUILL_LOG_BACKTRACE(logger, "Backtrace log {}", 1);
+  QUILL_LOG_BACKTRACE(logger, "Backtrace log {}", 2);
 
-  LOG_INFO(logger, "Welcome to Quill!");
-  LOG_ERROR(logger, "An error message. error code {}", 123);
-  LOG_WARNING(logger, "A warning message.");
-  LOG_CRITICAL(logger, "A critical error.");
-  LOG_DEBUG(logger, "Debugging foo {}", 1234);
-  LOG_TRACE_L1(logger, "{:>30}", "right aligned");
-  LOG_TRACE_L2(logger, "Positional arguments are {1} {0} ", "too", "supported");
-  LOG_TRACE_L3(logger, "Support for floats {:03.2f}", 1.23456);
+  QUILL_LOG_INFO(logger, "Welcome to Quill!");
+  QUILL_LOG_ERROR(logger, "An error message. error code {}", 123);
+  QUILL_LOG_WARNING(logger, "A warning message.");
+  QUILL_LOG_CRITICAL(logger, "A critical error.");
+  QUILL_LOG_DEBUG(logger, "Debugging foo {}", 1234);
+  QUILL_LOG_TRACE_L1(logger, "{:>30}", "right aligned");
+  QUILL_LOG_TRACE_L2(logger, "Positional arguments are {1} {0} ", "too", "supported");
+  QUILL_LOG_TRACE_L3(logger, "Support for floats {:03.2f}", 1.23456);
 }
 ```
 
