@@ -23,10 +23,10 @@ int main()
   quill::start();
 
   // Log using the default logger
-  LOG_INFO(quill::get_logger(), "The default logger is using a custom format");
+  QUILL_LOG_INFO(quill::get_logger(), "The default logger is using a custom format");
 
   // Obtain a new logger. Since no handlers were specified during the creation of the new logger. The new logger will use the default logger's handlers. In that case it will use the stdout_handler with the modified format.
   quill::Logger* logger_foo = quill::create_logger("logger_foo");
 
-  LOG_INFO(logger_foo, "The new logger is using the custom format");
+  QUILL_LOG_INFO(logger_foo, "The new logger is using the custom format");
 }
