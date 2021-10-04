@@ -324,7 +324,7 @@ An example can be found under `examples/bazel_workspace`.
 
 #### How to ensure all quill tests pass on your CI infrastructure
 
-In your workspace run:
+In your workspace, run:
 
 ```
 $ bazel test @odygrd_quill//quill/test:all_tests
@@ -333,6 +333,18 @@ $ bazel test @odygrd_quill//quill/test:all_tests
 Or include `@odygrd_quill//quill/test:all_tests` as a `test_suite`
 dependency to run these tests automatically as part of your
 test/CI infrastructure.
+
+#### How to run an example
+
+In your workspace, run:
+
+```
+$ bazel run @odygrd_quill//examples:example_console_colours
+```
+
+Here's what that should look like:
+
+<img src="https://i.postimg.cc/J0T2vxTb/quill-tp-example.png" />
 
 ## Documentation
 Advanced usage and additional documentation can be found in the [wiki](https://github.com/odygrd/quill/wiki) pages.
