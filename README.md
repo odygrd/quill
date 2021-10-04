@@ -342,10 +342,6 @@ In your workspace, run:
 $ bazel run @odygrd_quill//examples:example_console_colours
 ```
 
-Here's what that should look like:
-
-<img src="https://i.postimg.cc/J0T2vxTb/quill-tp-example.png" />
-
 ## Documentation
 Advanced usage and additional documentation can be found in the [wiki](https://github.com/odygrd/quill/wiki) pages.
 
