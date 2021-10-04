@@ -188,6 +188,7 @@ Quill requires a C++14 compiler. Minimum required versions of supported compiler
 | Linux     | Ubuntu, RHEL, Centos, Fedora                   |
 | Windows   | Windows 10 - version 1607, Windows Server 2016 |
 | macOS     | Tested with Xcode 9.4                          |
+| FreeBSD   | FreeBSD 13.0 - tested with Clang 14.0          |
 
 ## Basic usage
 
