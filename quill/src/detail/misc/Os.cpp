@@ -20,11 +20,13 @@
     #define NOMINMAX
   #endif
 
+// clang-format off
   #include <io.h>
   #include <malloc.h>
   #include <share.h>
   #include <windows.h>
   #include <processthreadsapi.h>
+// clang-format on
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
@@ -159,13 +161,21 @@ void set_cpu_affinity(uint16_t cpu_id)
     QUILL_THROW(QuillError{error_msg.str()});
   }
 #elif defined(__FreeBSD__)
-  cpuset_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(cpu_id, &cpuset);
+  // Calling CPU_SET on the address of a stack-allocated cpuset_t object
+  // causes a SIGSEGV/SEGV_ACCERR.
+  cpuset_t* cpuset = static_cast<cpuset_t*>(calloc(1, sizeof(cpuset_t)));
+  if ((NULL == cpuset))
+  {
+    std::ostringstream error_msg;
+    error_msg << "failed to call set_cpu_affinity, with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+  CPU_ZERO(cpuset);
+  CPU_SET(cpu_id, cpuset);
 
   // Set the affinity of the current thread to the cpu core specified.
-  #if 1
-  auto const err = cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(cpuset_t), &cpuset);
+  auto const err = cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(cpuset_t), cpuset);
   if (QUILL_UNLIKELY(err == -1))
   {
     std::ostringstream error_msg;
@@ -173,17 +183,7 @@ void set_cpu_affinity(uint16_t cpu_id)
               << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
-  #else
-  auto const err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
-
-  if (QUILL_UNLIKELY(err != 0))
-  {
-    std::ostringstream error_msg;
-    error_msg << "failed to call set_cpu_affinity, with error message "
-              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
-    QUILL_THROW(QuillError{error_msg.str()});
-  }
-  #endif
+  free(cpuset);
 
 #else
   QUILL_THROW(QuillError{"Not supported yet."});
