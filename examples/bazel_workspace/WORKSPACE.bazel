@@ -22,3 +22,18 @@ local_repository(
     name = "odygrd_quill",
     path = "../../",
 )
+
+new_local_repository(
+    name = "quill_custom",
+    build_file = "//:quill.bazel",
+    path = "../../",
+    #strip_prefix = "quill-master",
+    #urls = ["https://github.com/odygrd/quill/archive/refs/heads/master.tar.gz"],
+)
+
+http_archive(
+    name = "fmt",
+    build_file = "//:fmt.bazel",
+    strip_prefix = "fmt-master",
+    urls = ["https://github.com/fmtlib/fmt/archive/refs/heads/master.tar.gz"],
+)

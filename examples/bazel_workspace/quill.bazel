@@ -1,0 +1,72 @@
+# Custom bazel build rules if you want to customize your
+# version of quill for your repository.
+#
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+licenses(["notice"])  # MIT
+
+exports_files(["LICENSE"])
+
+config_setting(
+    name = "platform_windows",
+    constraint_values = [
+        "@platforms//os:windows",
+    ],
+)
+
+config_setting(
+    name = "platform_freebsd",
+    constraint_values = [
+        "@platforms//os:freebsd",
+    ],
+)
+
+config_setting(
+    name = "platform_openbsd",
+    constraint_values = [
+        "@platforms//os:openbsd",
+    ],
+)
+
+cc_library(
+    name = "quill_custom",
+    srcs = glob(
+        [
+            "quill/src/**/*.cpp",
+        ],
+        exclude = ["quill/src/bundled/fmt/*"],
+    ),
+    hdrs = glob(
+        [
+            "quill/include/**/*.h",
+        ],
+        exclude = ["quill/include/quill/bundled/fmt/*"],
+    ),
+    defines = [
+        "QUILL_NO_EXCEPTIONS=1",
+        "QUILL_DISABLE_NON_PREFIXED_MACROS=1",
+        "QUILL_FMT_EXTERNAL=1",
+    ],
+    includes = [
+        "quill/include",
+    ],
+    linkopts = select({
+        "//:platform_windows": [],
+        "//:platform_freebsd": [
+            "-lm",
+            "-lpthread",
+        ],
+        "//:platform_openbsd": [
+            "-lm",
+            "-lpthread",
+        ],
+        "//conditions:default": [
+            "-lpthread",
+        ],
+    }),
+    linkstatic = True,
+    visibility = ["//visibility:public"],
+    deps = [
+        "@fmt",
+    ],
+)

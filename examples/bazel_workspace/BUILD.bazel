@@ -25,3 +25,12 @@ cc_test(
         "@odygrd_quill//:quill_noexcept",
     ],
 )
+
+cc_test(
+    name = "trivial_custom_test",
+    srcs = ["trivial_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest",
+        "@quill_custom",
+    ],
+)
