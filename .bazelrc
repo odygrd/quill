@@ -10,12 +10,8 @@ test --test_summary=terse
 
 build --copt=-DHAVE_BAZEL_BUILD=1
 
-
-# See https://github.com/odygrd/quill/issues/135
-#build --cxxopt="-std=c++20"  # broken.
-
 # Compiler specific flags.
-build:cc --cxxopt="-std=c++14"
+build --cxxopt="-std=c++20"  # broken.
 build:msvc --cxxopt=/std:c++latest
 build:gcc --config=cc
 build:gcc --cxxopt='-fanalyzer'
