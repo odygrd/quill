@@ -79,7 +79,7 @@ public:
     return _event_spsc_queue;
   }
 
-#if defined(QUILL_DUAL_QUEUE_MODE)
+#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
   /**
    * In this queue we store only log statements that contain 100% of built-in types
    * @return A reference to the fast single-producer-single-consumer queue
@@ -146,7 +146,7 @@ public:
 #endif
 
 private:
-#if defined(QUILL_DUAL_QUEUE_MODE)
+#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
   RawSPSCQueueT _raw_spsc_queue; /** queue for this thread, only log statements with POD types are here */
 #endif
 

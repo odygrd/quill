@@ -118,7 +118,7 @@ public:
     return log_statement_level >= log_level();
   }
 
-#if defined(QUILL_DUAL_QUEUE_MODE)
+#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
   /**
    * Push a log record event to the spsc queue to be logged by the backend thread.
    * One spsc queue per caller thread. This function is enabled only when all arguments are
@@ -195,12 +195,12 @@ public:
    * @note This function is thread-safe.
    * @param fmt_args format arguments
    */
-#if defined(QUILL_DUAL_QUEUE_MODE)
+#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
   template <bool TryFastQueue, bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT std::enable_if_t<!detail::is_all_serializable<FmtArgs...>::value || IsBackTraceLogRecord || !TryFastQueue, void> log(
     TFormatString format_string, FmtArgs&&... fmt_args)
 #else
-  // If the QUILL_DUAL_QUEUE_MODE is not enabled, this is always enabled
+  // If the dual queue mode is not enabled, this is always enabled
   template <bool TryFastQueue, bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
 #endif

@@ -118,7 +118,7 @@ private:
   QUILL_ATTRIBUTE_HOT inline void _populate_priority_queue(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
-#if defined(QUILL_DUAL_QUEUE_MODE)
+#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
   /**
    * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
    */
@@ -334,7 +334,7 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
     // read the generic event queue
     _read_event_queue(thread_context);
 
-#if defined(QUILL_DUAL_QUEUE_MODE)
+#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
     // read the fast raw spsc queue
     _deserialize_raw_queue(thread_context);
 #endif
@@ -359,7 +359,7 @@ void BackendWorker::_read_event_queue(ThreadContext* thread_context)
   }
 }
 
-#if defined(QUILL_DUAL_QUEUE_MODE)
+#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
 /***/
 void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context)
 {

@@ -210,9 +210,9 @@
  *
  * Each log statement is pushed either to the first OR to the second queue.
  *
- * When QUILL_DUAL_QUEUE_MODE is disabled everything is pushed into the first queue.
+ * When dual queue mode is disabled everything is pushed into the first queue.
  *
- * When QUILL_DUAL_QUEUE_MODE is enabled any log statements that have all their arguments satisfying
+ * When dual queue mode is enabled any log statements that have all their arguments satisfying
  * the below criteria will get pushed to the second queue resulting in better performance and less allocations
  * a) fundamental types
  * b) enums
@@ -223,19 +223,19 @@
  * LOG_INFO(logger, "{} {} {}", 1, "test", std::array<int,3>{1,2,3}); -> This is pushed to the first queue (EVENT) as it contains a complex type
  *
  * NOTE:
- * 1) Using QUILL_DUAL_QUEUE_MODE with unbounded queue is the recommended option.
+ * 1) Using dual queue mode with unbounded queue is the recommended option.
  *  The difference of bounded and unbounded queues is very small in latency and the unbounded queue is
  *  safer as no log messages will get dropped.
  *
- * 2) Using QUILL_DUAL_QUEUE_MODE + QUILL_USE_BOUNDED_QUEUE will give the fastest performance possible.
+ * 2) Using dual queue mode + QUILL_USE_BOUNDED_QUEUE will give the fastest performance possible.
  * Logging only fundamental types or strings (like a printf only API) in the hot path is also recommended if you care about every nanosecond of latency.
  *
- * 3) Disable QUILL_DUAL_QUEUE_MODE if
+ * 3) Disable dual queue mode if
  * a) Don't care about around 2-10 extra nanoseconds of latency when logging just fundamental types
  * b) Mostly logging complex types, user defined types etc
  * c) A few extra ms during program initialization time are important
  */
-#define QUILL_DUAL_QUEUE_MODE
+// #define QUILL_DISABLE_DUAL_QUEUE_MODE
 
 /**
  * Quill uses a unbounded SPSC queue per spawned thread to forward the LogRecords to the backend thread.
@@ -250,7 +250,7 @@
  * The queue size can be increased or decreased based on the user needs. This queue will be shared
  * between two threads and it should not exceed the size of LLC cache.
  *
- * When QUILL_DUAL_QUEUE_MODE is used this affects the size of both queues.
+ * When dual queue mode is used this affects the size of both queues.
  *
  * @warning The configured queue size needs to be in bytes, it MUST be a power of two and a multiple
  * of the page size (4096).
