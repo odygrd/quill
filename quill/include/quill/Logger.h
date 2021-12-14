@@ -49,7 +49,7 @@ constexpr std::enable_if_t<!detail::contains_v<wchar_t, detail::remove_cvref_t<s
 
 template <typename S, typename... Args, typename Char = fmt::char_t<S>>
   constexpr std::enable_if_t <detail::contains_v<wchar_t, detail::remove_cvref_t<std::remove_pointer_t<std::decay_t<Args>>>...>, void> check_format(
-  S const& format_str, Args&&...)
+  S const&, Args&&...)
 {
     // in newer fmt versions we can not mix a narrow format string with wide chars and we have to disable this check in order to compile
     // Quill does not support wide format strings at the moment, only wide format arguments are supported
