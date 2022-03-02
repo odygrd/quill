@@ -151,8 +151,8 @@ private:
 #endif
 
   EventSPSCQueueT _event_spsc_queue; /** queue for this thread, events are pushed here */
-  std::string _thread_id{fmt::format_int(get_thread_id()).str()}; /**< cache this thread pid */
-  std::string _thread_name{get_thread_name()};                    /**< cache this thread name */
+  std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
+  std::string _thread_name = get_thread_name();                    /**< cache this thread name */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)

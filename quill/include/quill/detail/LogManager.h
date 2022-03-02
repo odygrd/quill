@@ -195,7 +195,7 @@ private:
   ThreadContextCollection _thread_context_collection{_config};
   LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
-  std::string _process_id{fmt::format_int(get_process_id()).str()};
+  std::string _process_id = fmt::format_int(get_process_id()).str();
 };
 } // namespace detail
 } // namespace quill
