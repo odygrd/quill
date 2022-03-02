@@ -121,7 +121,7 @@ public:
 private:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter
    * must not be moved or copied. We create the default pattern formatter always on init */
-  std::unique_ptr<PatternFormatter> _formatter{std::make_unique<PatternFormatter>()};
+  std::unique_ptr<PatternFormatter> _formatter = std::make_unique<PatternFormatter>();
 
   /** Local Filters for this handler **/
   std::vector<FilterBase*> _local_filters;
