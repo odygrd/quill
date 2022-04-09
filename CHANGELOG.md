@@ -1,3 +1,4 @@
+- [v1.6.4](#v1.6.4)
 - [v1.6.3](#v1.6.3)
 - [v1.6.2](#v1.6.2)
 - [v1.6.1](#v1.6.1)
@@ -17,6 +18,14 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v1.6.4
+
+**Improvements/Fixes**
+- Fix initializations for C++17 
+- Fix compiler warning in check_format function
+- Replace QUILL_DUAL_QUEUE_MODE with QUILL_DISABLE_DUAL_QUEUE_MODE
+- Update bundled fmt to 8.1.1
 
 ## v1.6.3
 
