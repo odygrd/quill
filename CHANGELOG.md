@@ -26,6 +26,7 @@
 - Fix compiler warning in check_format function
 - Replace QUILL_DUAL_QUEUE_MODE with QUILL_DISABLE_DUAL_QUEUE_MODE
 - Update bundled fmt to 8.1.1
+- Fix compile error when C++20 is used ([162](https://github.com/odygrd/quill/issues/162))
 
 ## v1.6.3
 

@@ -548,7 +548,8 @@ TEST_CASE("serialize_deserialize_string_view")
   // get the type_descriptor and also erase % since we are only using it to split the string
   for (char const type_descriptor : type_descriptor_string<value_t>())
   {
-    deserialize_argument(cbuffer, fmt_store, static_cast<TypeDescriptor>(type_descriptor));
+    auto x = deserialize_argument(cbuffer, fmt_store, static_cast<TypeDescriptor>(type_descriptor));
+    (void)x;
   }
 
   REQUIRE_EQ(fmt::vformat("{}", fmt_store), "test serialize_deserialize_string");
