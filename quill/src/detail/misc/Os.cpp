@@ -248,15 +248,18 @@ size_t get_page_size() noexcept
 {
   // thread local to avoid race condition when more than one threads are creating the queue at the same time
   static thread_local uint32_t page_size{0};
+  if (page_size == 0)
+  {
 #if defined(__CYGWIN__)
-  page_size = 4096;
+    page_size = 4096;
 #elif defined(_WIN32)
-  SYSTEM_INFO system_info;
-  GetSystemInfo(&system_info);
-  page_size = std::max(system_info.dwPageSize, system_info.dwAllocationGranularity);
+    SYSTEM_INFO system_info;
+    GetSystemInfo(&system_info);
+    page_size = std::max(system_info.dwPageSize, system_info.dwAllocationGranularity);
 #else
-  page_size = static_cast<uint32_t>(sysconf(_SC_PAGESIZE));
+    page_size = static_cast<uint32_t>(sysconf(_SC_PAGESIZE));
 #endif
+  }
   return page_size;
 }
 
