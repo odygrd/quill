@@ -24,7 +24,7 @@
 **New Features**
 - Add a new function `quill::get_all_loggers()` that returns all the existing loggers ([##114](https://github.com/odygrd/quill/issues/#114))
 
-- **Improvements/Fixes**
+**Improvements/Fixes**
 
 - Fix initializations for C++17
 - Fix compiler warning in check_format function.
