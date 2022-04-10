@@ -188,7 +188,7 @@ target_include_directories(${TARGET_NAME}
 target_compile_options(${TARGET_NAME} PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field -Wno-gnu-zero-variadic-macro-arguments>
-        $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324>)
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324 /wd4189>)
 
 # TODO:: use MultiByteToWideChar() and WideCharToMultiByte() from <Windows.h> instead of covecvt
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
