@@ -41,7 +41,8 @@ TEST_CASE("default_pattern_formatter")
 TEST_CASE("custom_pattern_message_only")
 {
   // Message only
-  PatternFormatter custom_pattern_formatter{QUILL_STRING("%(message)"), "%H:%M:%S.%Qns", Timezone::GmtTime};
+  PatternFormatter custom_pattern_formatter{QUILL_STRING("%(level_id) %(message)"), "%H:%M:%S.%Qns",
+                                            Timezone::GmtTime};
 
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -58,7 +59,7 @@ TEST_CASE("custom_pattern_message_only")
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
-  std::string const expected_string = "This the 12.34 formatter pattern\n";
+  std::string const expected_string = "D This the 12.34 formatter pattern\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
   REQUIRE_EQ(formatted_string, expected_string);

@@ -71,6 +71,14 @@ public:
     return _log_level_to_string(_level);
   }
 
+  /**
+   * @return  The log level of this logging event as a string
+   */
+  QUILL_NODISCARD constexpr char const* level_id_as_str() const noexcept
+  {
+    return _log_level_id_to_string(_level);
+  }
+
 private:
   QUILL_NODISCARD static constexpr char const* _str_end(char const* str) noexcept
   {
@@ -101,6 +109,15 @@ private:
     constexpr std::array<char const*, 10> log_levels_strings = {
       {"TRACE_L3 ", "TRACE_L2 ", "TRACE_L1 ", "DEBUG    ", "INFO     ", "WARNING  ", "ERROR    ",
        "CRITICAL ", "BACKTRACE", "NONE"}};
+
+    using log_lvl_t = std::underlying_type<LogLevel>::type;
+    return log_levels_strings[static_cast<log_lvl_t>(log_level)];
+  }
+
+  QUILL_NODISCARD static constexpr char const* _log_level_id_to_string(LogLevel log_level)
+  {
+    constexpr std::array<char const*, 10> log_levels_strings = {
+      {"T3", "T2", "T1", "D", "I", "W", "E", "C", "BT", "N"}};
 
     using log_lvl_t = std::underlying_type<LogLevel>::type;
     return log_levels_strings[static_cast<log_lvl_t>(log_level)];

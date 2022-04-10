@@ -109,6 +109,11 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
     return [](std::chrono::nanoseconds, char const*, char const*, char const*,
               LogMacroMetadata const& logline_info) { return logline_info.level_as_str(); };
   }
+  else if (pattern_attr == "level_id")
+  {
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*,
+              LogMacroMetadata const& logline_info) { return logline_info.level_id_as_str(); };
+  }
   else if (pattern_attr == "logger_name")
   {
     return [](std::chrono::nanoseconds, char const*, char const*, char const* logger_name,
@@ -117,8 +122,8 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   else if (pattern_attr == "function_name")
   {
 #if defined(_WIN32)
-    return [this](std::chrono::nanoseconds, char const*, char const*, char const*,
-                  LogMacroMetadata const& logline_info) {
+    return [this](std::chrono::nanoseconds, char const*, char const*, char const*, LogMacroMetadata const& logline_info)
+    {
       // On windows, __FUNCTION__ also contains the namespace name e.g. a::b::my_function().
       _win_func = logline_info.func();
 
