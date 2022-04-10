@@ -10,6 +10,18 @@ namespace quill
 {
 namespace detail
 {
+
+namespace
+{
+/**
+ * Calculates a fast average of two numbers
+ */
+QUILL_NODISCARD uint64_t fast_average(uint64_t x, uint64_t y) noexcept
+{
+  return (x & y) + ((x ^ y) >> 1);
+}
+}
+
 /***/
 RdtscClock::RdtscTicks::RdtscTicks()
 {
@@ -44,15 +56,16 @@ RdtscClock::RdtscTicks::RdtscTicks()
 
   std::nth_element(rates.begin(), rates.begin() + trials / 2, rates.end());
 
-  _ticks_per_ns = rates[trials / 2];
+  double const ticks_per_ns = rates[trials / 2];
+  _ns_per_tick = 1 / ticks_per_ns;
 }
 
 /***/
 RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono::seconds{100} */)
   : _resync_interval_ticks(static_cast<std::int64_t>(static_cast<double>(resync_interval.count()) *
-                                                     RdtscTicks::instance().ticks_per_ns())),
+                                                     RdtscTicks::instance().ns_per_tick())),
     _resync_interval_original(_resync_interval_ticks),
-    _ticks_per_nanosecond(RdtscTicks::instance().ticks_per_ns())
+    _ns_per_tick(RdtscTicks::instance().ns_per_tick())
 
 {
   resync();
@@ -66,16 +79,17 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
 std::chrono::nanoseconds RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
   // get rtsc current value and compare the diff then add it to base wall time
-  auto const diff = static_cast<int64_t>(rdtsc_value - _base_tsc);
-
-  auto const duration_since_epoch = std::chrono::nanoseconds{
-    _base_time + static_cast<int64_t>(static_cast<double>(diff) / _ticks_per_nanosecond)};
+  auto diff = static_cast<int64_t>(rdtsc_value - _base_tsc);
 
   // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value
   if (diff > _resync_interval_ticks)
   {
     resync();
+    diff = static_cast<int64_t>(rdtsc_value - _base_tsc);
   }
+
+  auto const duration_since_epoch = std::chrono::nanoseconds{
+    _base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick)};
 
   return duration_since_epoch;
 }
@@ -100,7 +114,7 @@ void RdtscClock::resync() const noexcept
     if (QUILL_LIKELY(end - beg <= 2000))
     {
       _base_time = wall_time;
-      _base_tsc = end;
+      _base_tsc = fast_average(beg, end);
       _resync_interval_ticks = _resync_interval_original;
       return;
     }
