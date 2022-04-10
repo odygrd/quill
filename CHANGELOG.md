@@ -27,8 +27,10 @@
 - Fix compiler warning in check_format function.
 - Replace QUILL_DUAL_QUEUE_MODE with QUILL_DISABLE_DUAL_QUEUE_MODE
 - Update bundled fmt to 8.1.1
+- Minor performance and accuracy improvements to rdtsc clock used by the backend thread.
 - Fix compile error when C++20 is used. ([#162](https://github.com/odygrd/quill/issues/162))
 - Fix `get_page_size()` to only call sysconf once. ([#160](https://github.com/odygrd/quill/issues/160))
+- Fix incorrect timestamps in the log file when the system clock is updated ([#127](https://github.com/odygrd/quill/issues/127))
 
 ## v1.6.3
 
