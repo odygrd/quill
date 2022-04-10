@@ -114,6 +114,12 @@ Logger* get_logger(char const* logger_name /* = nullptr */)
 }
 
 /***/
+std::unordered_map<std::string, Logger*> get_all_loggers()
+{
+  return detail::LogManagerSingleton::instance().log_manager().logger_collection().get_all_loggers();
+}
+
+/***/
 Logger* create_logger(char const* logger_name)
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(logger_name);

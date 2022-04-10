@@ -79,4 +79,14 @@ int main()
   quill::Logger* logger_1 = quill::create_logger("my_logger");
   logger_1->set_log_level(quill::LogLevel::None);
   LOG_CRITICAL(logger_1, "This is never logged");
+
+  // Get all created loggers
+  std::unordered_map<std::string, quill::Logger*> created_loggers = quill::get_all_loggers();
+  std::vector<std::string> logger_names;
+  for (auto const& elem : created_loggers)
+  {
+    logger_names.emplace_back(elem.first);
+  }
+
+  LOG_INFO(default_logger, "Existing logger names {}", logger_names);
 }

@@ -19,6 +19,7 @@
 #include <cstdint>                              // for uint16_t
 #include <initializer_list>                     // for initializer_list
 #include <string>                               // for string
+#include <unordered_map>                        // for unordered_map
 
 namespace quill
 {
@@ -238,6 +239,12 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(std::string 
  * @return A pointer to a thread-safe Logger object
  */
 QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr);
+
+/**
+ * Returns all existing loggers and the pointers to them
+ * @return a map logger_name -> logger*
+ */
+QUILL_NODISCARD std::unordered_map<std::string, Logger*> get_all_loggers();
 
 /**
  * Creates a new Logger using the existing default logger's handler and formatter pattern

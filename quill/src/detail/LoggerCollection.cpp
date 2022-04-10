@@ -52,6 +52,21 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
 }
 
 /***/
+QUILL_NODISCARD std::unordered_map<std::string, Logger*> LoggerCollection::get_all_loggers() const
+{
+  std::unordered_map<std::string, Logger*> logger_names;
+
+  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
+  logger_names.reserve(_logger_name_map.size());
+  for (auto const& elem : _logger_name_map)
+  {
+    logger_names.emplace(elem.first, elem.second.get());
+  }
+
+  return logger_names;
+}
+
+/***/
 Logger* LoggerCollection::create_logger(char const* logger_name)
 {
   // Get a copy of the default logger handlers

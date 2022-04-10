@@ -33,6 +33,40 @@ TEST_CASE("create_get_same_logger")
 }
 
 /***/
+TEST_CASE("create_get_all_loggers")
+{
+  // Create and then get the same logger and check that the values we set are cached
+  Config cfg;
+  HandlerCollection hc;
+  ThreadContextCollection tc{cfg};
+  LoggerCollection logger_collection{tc, hc};
+
+  Handler* stream_handler = hc.stdout_console_handler();
+  Logger* logger_1 = logger_collection.create_logger("logger_1", stream_handler);
+  REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
+  logger_1->set_log_level(LogLevel::TraceL2);
+  REQUIRE_EQ(logger_1->log_level(), LogLevel::TraceL2);
+
+  Logger* logger_2 = logger_collection.create_logger("logger_2", stream_handler);
+  REQUIRE_EQ(logger_2->log_level(), LogLevel::Info);
+  logger_2->set_log_level(LogLevel::Debug);
+  REQUIRE_EQ(logger_2->log_level(), LogLevel::Debug);
+
+  Logger* logger_3 = logger_collection.create_logger("logger_3", stream_handler);
+  REQUIRE_EQ(logger_3->log_level(), LogLevel::Info);
+  logger_3->set_log_level(LogLevel::Error);
+  REQUIRE_EQ(logger_3->log_level(), LogLevel::Error);
+
+  // Get all created loggers
+  std::unordered_map<std::string, Logger*> all_loggers = logger_collection.get_all_loggers();
+  REQUIRE_EQ(all_loggers.size(), 4);
+  REQUIRE_EQ(logger_collection.get_all_loggers().find("root")->second->log_level(), LogLevel::Info);
+  REQUIRE_EQ(logger_collection.get_all_loggers().find("logger_1")->second->log_level(), LogLevel::TraceL2);
+  REQUIRE_EQ(logger_collection.get_all_loggers().find("logger_2")->second->log_level(), LogLevel::Debug);
+  REQUIRE_EQ(logger_collection.get_all_loggers().find("logger_3")->second->log_level(), LogLevel::Error);
+}
+
+/***/
 TEST_CASE("create_get_different_loggers")
 {
   // Create and then get the same logger and check that the values we set are different

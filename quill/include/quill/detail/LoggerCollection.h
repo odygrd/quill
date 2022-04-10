@@ -57,6 +57,12 @@ public:
   QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr) const;
 
   /**
+   * Returns all existing loggers and the pointers to them
+   * @return a map logger_name -> logger*
+   */
+  QUILL_NODISCARD std::unordered_map<std::string, Logger*> get_all_loggers() const;
+
+  /**
    * Create a new logger using the same handlers and formatter as the default logger
    * @param logger_name the name of the logger to add
    * @return a pointer to the logger
