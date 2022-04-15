@@ -38,6 +38,16 @@
 // clang-format off
 namespace quill
 {
+
+/**
+ * A struct to registered as copy_loggable via a specialization provided by the user.
+ * This is here and not in the detail namespace so that the user can provide a specialization for user defined types
+ */
+template <typename T>
+struct copy_loggable : std::false_type
+{
+};
+
 namespace detail
 {
 
@@ -183,6 +193,15 @@ template <typename T>
 constexpr bool is_tagged_copyable_v = is_tagged_copyable<remove_cvref_t<T>>::value;
 
 /**
+ * Check if registered as copy_loggable via a specialization to copy_loggable struct provided by the user
+ */
+template <typename T>
+using is_registered_copyable_t = typename copy_loggable<remove_cvref_t<T>>::type;
+
+template <typename T>
+constexpr bool is_registered_copyable_v = copy_loggable<remove_cvref_t<T>>::value;
+
+/**
  * is std::string ?
  */
 template <typename T>
@@ -311,6 +330,17 @@ struct is_user_defined_copyable : conjunction<std::is_class<T>,
 {};
 
 /**
+ * A user defined object that was tagged by the user to be copied via an external template specialisation
+ * to copy_logable
+ */
+template <typename T>
+struct is_user_registered_copyable : conjunction<std::is_class<T>,
+                                                 negation<std::is_trivial<T>>,
+                                                 copy_loggable<T>
+                                                 >
+{};
+
+/**
  * An object is copyable if it meets one of the following criteria
  */
 template <typename T>
@@ -318,6 +348,7 @@ struct filter_copyable : disjunction<std::is_arithmetic<T>,
                                      is_string<T>,
                                      std::is_trivial<T>,
                                      is_user_defined_copyable<T>,
+                                     is_user_registered_copyable<T>,
                                      is_copyable_pair<T>,
                                      is_copyable_tuple<T>,
                                      is_copyable_container<T>
