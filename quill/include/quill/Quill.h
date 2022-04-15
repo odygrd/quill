@@ -183,10 +183,9 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  * @param backup_count The maximum number of times we want to rollover
  * @return a pointer to a rotating file handler
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(filename_t const& base_filename,
-                                                                    std::string const& mode = std::string{"a"},
-                                                                    size_t max_bytes = 0,
-                                                                    uint32_t backup_count = 0);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(
+  filename_t const& base_filename, std::string const& mode = std::string{"a"}, size_t max_bytes = 0,
+  uint32_t backup_count = 0, bool overwrite_oldest_files = true);
 
 #if defined(_WIN32)
 /**

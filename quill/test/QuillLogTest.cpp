@@ -175,7 +175,7 @@ TEST_CASE("log_from_const_function")
 }
 
 /***/
-TEST_CASE("log_using_rotating_file_handler")
+TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
 {
   // This test has 2 loggers that they logged to different rotating file handlers
 
@@ -189,7 +189,7 @@ TEST_CASE("log_using_rotating_file_handler")
 
   // Create a rotating file handler
   QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler =
-    quill::rotating_file_handler(base_filename, "w", max_file_size, 2);
+    quill::rotating_file_handler(base_filename, "w", max_file_size, 2, true);
 
   // Get the same instance back - we search it again (for testing only)
   quill::Handler* looked_up_rotating_file_handler = quill::rotating_file_handler(base_filename);
@@ -200,7 +200,7 @@ TEST_CASE("log_using_rotating_file_handler")
   static constexpr char const* rotated_filename_2nd_1 = "rot_2nd_logger.1.log";
 
   QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler_2 =
-    quill::rotating_file_handler(base_filename_2, "w", max_file_size, 1);
+    quill::rotating_file_handler(base_filename_2, "w", max_file_size, 1, true);
 
   quill::Logger* rotating_logger_2 = quill::create_logger("rot_2nd_logger", rotating_file_handler_2);
 
@@ -248,6 +248,102 @@ TEST_CASE("log_using_rotating_file_handler")
   // File from 2nd logger
   std::vector<std::string> const file_contents_3 = quill::testing::file_contents(base_filename_2);
   REQUIRE_GE(file_contents_3.size(), 4);
+
+  std::vector<std::string> const file_contents_4 = quill::testing::file_contents(rotated_filename_2nd_1);
+  REQUIRE_GE(file_contents_4.size(), 7);
+#endif
+
+#if defined(_WIN32)
+  // Remove filenames
+  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_1));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename_2));
+  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2nd_1));
+#else
+  // Remove filenames
+  quill::detail::file_utilities::remove(base_filename);
+  quill::detail::file_utilities::remove(rotated_filename_1);
+  quill::detail::file_utilities::remove(rotated_filename_2);
+  quill::detail::file_utilities::remove(base_filename_2);
+  quill::detail::file_utilities::remove(rotated_filename_2nd_1);
+#endif
+}
+
+/***/
+TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
+{
+  // This test has 2 loggers that they logged to different rotating file handlers
+
+  static char const* base_filename = "rot_logger.log";
+  static constexpr char const* rotated_filename_1 = "rot_logger.1.log";
+  static constexpr char const* rotated_filename_2 = "rot_logger.2.log";
+  static constexpr size_t max_file_size = 1024;
+
+  // Start the logging backend thread
+  quill::start();
+
+  // Create a rotating file handler
+  QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler =
+    quill::rotating_file_handler(base_filename, "w", max_file_size, 2, false);
+
+  // Get the same instance back - we search it again (for testing only)
+  quill::Handler* looked_up_rotating_file_handler = quill::rotating_file_handler(base_filename);
+  quill::Logger* rotating_logger = quill::create_logger("rot_logger", looked_up_rotating_file_handler);
+
+  // Another rotating logger to another file with max backup count 1 this time. Here we rotate only once
+  static char const* base_filename_2 = "rot_2nd_logger.log";
+  static constexpr char const* rotated_filename_2nd_1 = "rot_2nd_logger.1.log";
+
+  QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler_2 =
+    quill::rotating_file_handler(base_filename_2, "w", max_file_size, 1, false);
+
+  quill::Logger* rotating_logger_2 = quill::create_logger("rot_2nd_logger", rotating_file_handler_2);
+
+  // log a few messages so we rotate files
+  for (uint32_t i = 0; i < 20; ++i)
+  {
+    LOG_INFO(rotating_logger, "Hello rotating file log num {}", i);
+    LOG_INFO(rotating_logger_2, "Hello rotating file log num {}", i);
+  }
+
+  quill::flush();
+
+#if defined(_WIN32)
+  // Read file and check
+  std::vector<std::string> const file_contents =
+    quill::testing::file_contents(quill::detail::s2ws(base_filename));
+  REQUIRE_GE(file_contents.size(), 3);
+
+  std::vector<std::string> const file_contents_1 =
+    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_1));
+  REQUIRE_GE(file_contents_1.size(), 7);
+
+  std::vector<std::string> const file_contents_2 =
+    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2));
+  REQUIRE_GE(file_contents_2.size(), 7);
+
+  std::vector<std::string> const file_contents_3 =
+    quill::testing::file_contents(quill::detail::s2ws(base_filename_2));
+  REQUIRE_GE(file_contents_3.size(), 11);
+
+  std::vector<std::string> const file_contents_4 =
+    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2nd_1));
+  REQUIRE_GE(file_contents_4.size(), 7);
+#else
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
+  REQUIRE_GE(file_contents.size(), 3);
+
+  std::vector<std::string> const file_contents_1 = quill::testing::file_contents(rotated_filename_1);
+  REQUIRE_GE(file_contents_1.size(), 7);
+
+  std::vector<std::string> const file_contents_2 = quill::testing::file_contents(rotated_filename_2);
+  REQUIRE_GE(file_contents_2.size(), 7);
+
+  // File from 2nd logger
+  std::vector<std::string> const file_contents_3 = quill::testing::file_contents(base_filename_2);
+  REQUIRE_GE(file_contents_3.size(), 11);
 
   std::vector<std::string> const file_contents_4 = quill::testing::file_contents(rotated_filename_2nd_1);
   REQUIRE_GE(file_contents_4.size(), 7);

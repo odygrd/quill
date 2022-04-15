@@ -27,10 +27,13 @@ public:
    * @param mode the mode to open the file
    * @param max_bytes max size per file in bytes
    * @param backup_count maximum log files
+   * @param replace_oldest_files if set to true, oldest logs will get overwritten when backup_count
+   * is reached. if set to false then when backup_count is reached the rotation will stop and
+   * the base log file will grow indefinitely
    * @throws on invalid rotation values
    */
   RotatingFileHandler(filename_t const& base_filename, std::string const& mode, size_t max_bytes,
-                      uint32_t backup_count);
+                      uint32_t backup_count, bool overwrite_oldest_files);
 
   /**
    * Destructor
@@ -57,6 +60,7 @@ private:
   size_t _max_bytes{0};
   uint32_t _backup_count{0};
   uint32_t _current_index{0};
+  bool _overwrite_oldest_files{true};
 };
 
 } // namespace quill
