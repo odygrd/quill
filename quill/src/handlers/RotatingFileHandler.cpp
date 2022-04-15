@@ -48,6 +48,8 @@ void RotatingFileHandler::_rotate()
   {
     // close the previous file
     int const res = fclose(_file);
+    _file = nullptr;
+
     if (QUILL_UNLIKELY(res != 0))
     {
       std::ostringstream error_msg;

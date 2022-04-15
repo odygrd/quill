@@ -90,6 +90,7 @@ void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_reco
     {
       // close the previous file
       int const res = fclose(_file);
+      _file = nullptr;
 
       if (QUILL_UNLIKELY(res != 0))
       {
