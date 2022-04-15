@@ -41,8 +41,11 @@
 - Fix incorrect timestamps in the log file when the system clock is
   updated. ([#127](https://github.com/odygrd/quill/issues/127))
 - Previously if `quill:start(true)` was called more than once in the application, the signal handlers would get
-  initialised again. This is not the case anymore. Any subsequent calls to `quill:start(true)` will now have no effect
+  initialised again. Now any subsequent calls to `quill:start(true)` will now have no effect
   ([#167](https://github.com/odygrd/quill/issues/167))
+- Previously when the max limit of rotated files in `RotatingFileHandler` was reached, quill would stop rotating and
+  instead keep logging everything into the last log file. Now when the maximum limit of files is reached,
+  quill will now keep rotating by replacing the oldest logs. ([#157](https://github.com/odygrd/quill/issues/157))
 
 ## v1.6.3
 

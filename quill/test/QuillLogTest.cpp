@@ -229,7 +229,7 @@ TEST_CASE("log_using_rotating_file_handler")
 
   std::vector<std::string> const file_contents_3 =
     quill::testing::file_contents(quill::detail::s2ws(base_filename_2));
-  REQUIRE_GE(file_contents_3.size(), 11);
+  REQUIRE_GE(file_contents_3.size(), 4);
 
   std::vector<std::string> const file_contents_4 =
     quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2nd_1));
@@ -247,7 +247,7 @@ TEST_CASE("log_using_rotating_file_handler")
 
   // File from 2nd logger
   std::vector<std::string> const file_contents_3 = quill::testing::file_contents(base_filename_2);
-  REQUIRE_GE(file_contents_3.size(), 11);
+  REQUIRE_GE(file_contents_3.size(), 4);
 
   std::vector<std::string> const file_contents_4 = quill::testing::file_contents(rotated_filename_2nd_1);
   REQUIRE_GE(file_contents_4.size(), 7);
