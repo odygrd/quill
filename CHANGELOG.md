@@ -19,12 +19,15 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
-## v1.6.4
+## v1.6.4 (in progress)
 
 **New Features**
+
 - Add a new function `quill::get_all_loggers()` that returns all the existing
   loggers. ([#114](https://github.com/odygrd/quill/issues/114))
 - Add `%(level_id)` to pattern formatter. ([#136](https://github.com/odygrd/quill/issues/136))
+- Users can now specialise copy_loggable<T> to mark user defined types as safe to
+  copy. ([#132](https://github.com/odygrd/quill/issues/132))
 
 **Improvements/Fixes**
 
