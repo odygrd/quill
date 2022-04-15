@@ -148,7 +148,7 @@ void LoggerCollection::set_default_logger_handler(std::initializer_list<Handler*
   _logger_name_map.erase(std::string{_default_logger_name});
 
   // Remake the default logger
-  _default_logger = create_logger(_default_logger_name, std::move(handlers));
+  _default_logger = create_logger(_default_logger_name, handlers);
 }
 
 /***/

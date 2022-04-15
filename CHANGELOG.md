@@ -1,4 +1,4 @@
-- [v1.6.4](#v1.6.4)
+- [v1.7.0](#v1.7.0)
 - [v1.6.3](#v1.6.3)
 - [v1.6.2](#v1.6.2)
 - [v1.6.1](#v1.6.1)
@@ -19,20 +19,20 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
-## v1.6.4 (in progress)
+## v1.7.0 (in progress)
 
 **New Features**
 
 - Add a new function `quill::get_all_loggers()` that returns all the existing
   loggers. ([#114](https://github.com/odygrd/quill/issues/114))
 - Add `%(level_id)` to pattern formatter. ([#136](https://github.com/odygrd/quill/issues/136))
-- Users can now specialise copy_loggable<T> to mark user defined types as safe to
+- Users can now specialise `copy_loggable<T>` to mark user defined types as safe to
   copy. ([#132](https://github.com/odygrd/quill/issues/132))
 
 **Improvements/Fixes**
 
 - Fix initializations for C++17.
-- Fix compiler warning in check_format function.
+- Fix compiler warning in `check_format()` function.
 - Replace `QUILL_DUAL_QUEUE_MODE` with `QUILL_DISABLE_DUAL_QUEUE_MODE`.
 - Update bundled fmt to 8.1.1
 - Minor performance and accuracy improvements to rdtsc clock used by the backend thread.
@@ -40,6 +40,9 @@
 - Fix `get_page_size()` to only call sysconf once. ([#160](https://github.com/odygrd/quill/issues/160))
 - Fix incorrect timestamps in the log file when the system clock is
   updated. ([#127](https://github.com/odygrd/quill/issues/127))
+- Previously if `quill:start(true)` was called more than once in the application, the signal handlers would get
+  initialised again. This is not the case anymore. Any subsequent calls to `quill:start(true)` will now have no effect
+  ([#167](https://github.com/odygrd/quill/issues/167))
 
 ## v1.6.3
 

@@ -144,7 +144,11 @@ void set_default_logger_handler(Handler* handler)
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
   {
-    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+    QUILL_THROW(QuillError{
+      "quill::set_default_logger_handler(...) needs to be called before quill::start(). That can "
+      "cause a race condition on the backend worker thread. Catch the exception to "
+      "avoid this error but the call to quill::set_default_logger_handler(...) will have no "
+      "effect."});
   }
 
   detail::LogManagerSingleton::instance().log_manager().logger_collection().set_default_logger_handler(handler);
@@ -155,7 +159,11 @@ void set_default_logger_handler(std::initializer_list<Handler*> handlers)
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
   {
-    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+    QUILL_THROW(QuillError{
+      "quill::set_default_logger_handler(...) needs to be called before quill::start(). That can "
+      "cause a race condition on the backend worker thread. Catch the exception to "
+      "avoid this error but the call to quill::set_default_logger_handler(...) will have no "
+      "effect."});
   }
 
   detail::LogManagerSingleton::instance().log_manager().logger_collection().set_default_logger_handler(handlers);
@@ -166,7 +174,11 @@ void enable_console_colours()
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
   {
-    QUILL_THROW(QuillError{"enable_console_colours needs to be called before quill::start()"});
+    QUILL_THROW(QuillError{
+      "quill::enable_console_colours(...) needs to be called before quill::start(). That can "
+      "cause a race condition on the backend worker thread. Catch the exception to "
+      "avoid this error but the call to quill::enable_console_colours(...) will have no "
+      "effect."});
   }
 
   detail::LogManagerSingleton::instance().log_manager().logger_collection().enable_console_colours();
@@ -181,7 +193,11 @@ void set_backend_worker_error_handler(backend_worker_error_handler_t backend_wor
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
   {
-    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+    QUILL_THROW(QuillError{
+      "quill::set_backend_worker_error_handler(...) needs to be called before quill::start(). That "
+      "can cause a race condition on the backend worker thread. Catch the exception to "
+      "avoid this error but the call to quill::set_backend_worker_error_handler(...) will have no "
+      "effect."});
   }
 
   detail::LogManagerSingleton::instance().log_manager().set_backend_worker_error_handler(
@@ -197,7 +213,11 @@ void set_backend_thread_cpu_affinity(uint16_t cpu)
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
   {
-    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+    QUILL_THROW(QuillError{
+      "quill::set_backend_thread_cpu_affinity(...) needs to be called before quill::start(). That "
+      "can cause a race condition on the backend worker thread. Catch the exception to "
+      "avoid this error but the call to quill::set_backend_thread_cpu_affinity(...) will have no "
+      "effect."});
   }
 
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_cpu_affinity(cpu);
@@ -208,7 +228,11 @@ void set_backend_thread_name(std::string const& name)
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
   {
-    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+    QUILL_THROW(QuillError{
+      "quill::set_backend_thread_name(...) needs to be called before quill::start(). That can "
+      "cause a race condition on the backend worker thread. Catch the exception to "
+      "avoid this error but the call to quill::set_backend_thread_name(...) will have no "
+      "effect."});
   }
 
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_name(name);
@@ -219,7 +243,11 @@ void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration)
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
   {
-    QUILL_THROW(QuillError{"set_default_logger_handler needs to be called before quill::start()"});
+    QUILL_THROW(QuillError{
+      "quill::set_backend_thread_sleep_duration(...) needs to be called before quill::start(). "
+      "That can cause a race condition on the backend worker thread. Catch the exception to "
+      "avoid this error but the call to quill::set_backend_thread_sleep_duration(...) will have no "
+      "effect."});
   }
 
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_sleep_duration(sleep_duration);

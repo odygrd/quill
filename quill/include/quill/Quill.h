@@ -308,7 +308,9 @@ QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
 QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
 
 /**
- * If called then by default we are printing colour codes when console/terminal is used
+ * If called then by default we are printing colour codes when console/terminal is used.
+ *
+ * @warning Must be called before calling start()
  */
 QUILL_ATTRIBUTE_COLD void enable_console_colours();
 

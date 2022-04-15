@@ -33,7 +33,6 @@
 #include <functional>                                      // for greater, function
 #include <limits>                                          // for numeric_limits
 #include <memory>                                          // for unique_ptr, make_u...
-#include <mutex>                                           // for call_once, once_flag
 #include <queue>                                           // for priority_queue
 #include <string>                                          // for allocator, string
 #include <thread>                                          // for sleep_for, thread
@@ -222,7 +221,6 @@ private:
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
-  std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
   std::priority_queue<TransitEvent, std::vector<TransitEvent>, std::greater<>> _transit_events;
@@ -245,14 +243,14 @@ bool BackendWorker::is_running() const noexcept
 /***/
 void BackendWorker::run()
 {
-  // protect init to be called only once
-  std::call_once(_start_init_once_flag, [this]() {
-    // We store the configuration here on our local variable since the config flag is not atomic
-    // and we don't want it to change after we have started - This is just for safety and to
-    // enforce the user to configure a variable before the thread has started
-    _backend_thread_sleep_duration = _config.backend_thread_sleep_duration();
+  // We store the configuration here on our local variable since the config flag is not atomic
+  // and we don't want it to change after we have started - This is just for safety and to
+  // enforce the user to configure a variable before the thread has started
+  _backend_thread_sleep_duration = _config.backend_thread_sleep_duration();
 
-    std::thread worker([this]() {
+  std::thread worker(
+    [this]()
+    {
       QUILL_TRY
       {
         // On Start
@@ -314,15 +312,14 @@ void BackendWorker::run()
 #endif
     });
 
-    // Move the worker ownership to our class
-    _backend_worker_thread.swap(worker);
+  // Move the worker ownership to our class
+  _backend_worker_thread.swap(worker);
 
-    while (!_is_running.load(std::memory_order_seq_cst))
-    {
-      // wait for the thread to start
-      std::this_thread::sleep_for(std::chrono::microseconds{100});
-    }
-  });
+  while (!_is_running.load(std::memory_order_seq_cst))
+  {
+    // wait for the thread to start
+    std::this_thread::sleep_for(std::chrono::microseconds{100});
+  }
 }
 
 /***/
@@ -491,7 +488,8 @@ void BackendWorker::_process_transit_event()
         _backtrace_log_record_storage.process(
           transit_event.logger_details->name(),
           [&obtain_active_handlers, &get_real_ts](std::string const& stored_thread_id, std::string const& stored_thread_name,
-                                                  BaseEvent const* stored_backtrace_log_record) {
+                                                  BaseEvent const* stored_backtrace_log_record)
+          {
             // call backend process on each stored record
             stored_backtrace_log_record->backend_process_backtrace_log_record(
               stored_thread_id.data(), stored_thread_name.data(), obtain_active_handlers, get_real_ts);

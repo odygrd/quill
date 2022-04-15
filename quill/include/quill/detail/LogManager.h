@@ -15,6 +15,7 @@
 #include "quill/detail/backend/BackendWorker.h"
 #include "quill/detail/events/FlushEvent.h"
 #include "quill/detail/misc/Spinlock.h"
+#include <mutex> // for call_once, once_flag
 
 namespace quill
 {
@@ -95,7 +96,8 @@ public:
     std::atomic<bool> backend_thread_flushed{false};
 
     // notify will be invoked done the backend thread when this message is processed
-    auto notify_callback = [&backend_thread_flushed]() {
+    auto notify_callback = [&backend_thread_flushed]()
+    {
       // When the backend thread is done flushing it will set the flag to true
       backend_thread_flushed.store(true);
     };
@@ -128,40 +130,45 @@ public:
   QUILL_ATTRIBUTE_COLD void inline start_backend_worker(bool with_signal_handler,
                                                         std::initializer_list<int> const& catchable_signals)
   {
-    if (with_signal_handler)
-    {
+    // protect init to be called only once
+    std::call_once(_start_init_once_flag,
+                   [this, with_signal_handler, catchable_signals]()
+                   {
+                     if (with_signal_handler)
+                     {
 #if defined(_WIN32)
-      (void)catchable_signals;
-      init_exception_handler();
+                       (void)catchable_signals;
+                       init_exception_handler();
 #else
-      // block all signals before spawning the backend worker thread
-      // note: we just assume that std::thread is implemented using posix threads, or this
-      // won't have any effect
-      sigset_t mask;
-      sigfillset(&mask);
-      sigprocmask(SIG_SETMASK, &mask, NULL);
+                       // block all signals before spawning the backend worker thread
+                       // note: we just assume that std::thread is implemented using posix threads
+                       // or this won't have any effect
+                       sigset_t mask;
+                       sigfillset(&mask);
+                       sigprocmask(SIG_SETMASK, &mask, NULL);
 
-      // Initialise our signal handler
-      init_signal_handler(catchable_signals);
+                       // Initialise our signal handler
+                       init_signal_handler(catchable_signals);
 #endif
-    }
+                     }
 
-    // Start the backend worker
-    _backend_worker.run();
+                     // Start the backend worker
+                     _backend_worker.run();
 
-    if (with_signal_handler)
-    {
+                     if (with_signal_handler)
+                     {
 #if defined(_WIN32)
-      // ... ?
+        // ... ?
 #else
-      // unblock all signals after spawning the thread
-      // note: we just assume that std::thread is implemented using posix threads, or this
-      // won't have any effect
-      sigset_t mask;
-      sigemptyset(&mask);
-      sigprocmask(SIG_SETMASK, &mask, NULL);
+                      // unblock all signals after spawning the thread
+                      // note: we just assume that std::thread is implemented using posix threads
+                      // or this won't have any effect
+                      sigset_t mask;
+                      sigemptyset(&mask);
+                      sigprocmask(SIG_SETMASK, &mask, NULL);
 #endif
-    }
+                     }
+                   });
   }
 
   /**
@@ -195,6 +202,7 @@ private:
   ThreadContextCollection _thread_context_collection{_config};
   LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
+  std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   std::string _process_id = fmt::format_int(get_process_id()).str();
 };
 } // namespace detail
