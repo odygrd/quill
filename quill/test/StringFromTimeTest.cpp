@@ -175,6 +175,38 @@ TEST_CASE("string_from_time_gmtime_main_format")
   }
 }
 
+TEST_CASE("string_from_time_localtime_main_format_increment_ts")
+{
+  std::string fmt2 = "%Y-%m-%dT%H:%M:%SZ";
+  StringFromTime string_from_time;
+
+  string_from_time.init(fmt2, Timezone::LocalTime);
+
+  // Get the timestamp now
+  time_t raw_ts;
+  std::time(&raw_ts);
+
+  // Try for a few timestamps
+  for (uint32_t i = 0; i <= 10'000; ++i)
+  {
+    // Get the time from string from time
+    auto const& time_s1 = string_from_time.format_timestamp(raw_ts);
+
+    // Get the time from strftime
+    std::tm time_info{};
+    quill::detail::localtime_rs(&raw_ts, &time_info);
+    char buffer[256];
+    std::strftime(buffer, 256, fmt2.data(), &time_info);
+    auto const time_s2 = std::string{buffer};
+
+    REQUIRE_STREQ(time_s1.data(), time_s2.data());
+
+    // Increment the timestamp for the next loop
+    // This test increments the ts by a huge amount trying to mimic e.g. system clock changes
+    raw_ts += 7200;
+  }
+}
+
 /***/
 TEST_CASE("string_from_time_localtime_empty_cached_indexes")
 {
