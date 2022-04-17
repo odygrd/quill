@@ -275,9 +275,9 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
 {
   // This test has 2 loggers that they logged to different rotating file handlers
 
-  static char const* base_filename = "rot_logger.log";
-  static constexpr char const* rotated_filename_1 = "rot_logger.1.log";
-  static constexpr char const* rotated_filename_2 = "rot_logger.2.log";
+  static char const* base_filename = "another_rot_logger.log";
+  static constexpr char const* rotated_filename_1 = "another_rot_logger.1.log";
+  static constexpr char const* rotated_filename_2 = "another_rot_logger.2.log";
   static constexpr size_t max_file_size = 1024;
 
   // Start the logging backend thread
@@ -289,16 +289,16 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
 
   // Get the same instance back - we search it again (for testing only)
   quill::Handler* looked_up_rotating_file_handler = quill::rotating_file_handler(base_filename);
-  quill::Logger* rotating_logger = quill::create_logger("rot_logger", looked_up_rotating_file_handler);
+  quill::Logger* rotating_logger = quill::create_logger("another_rot_logger", looked_up_rotating_file_handler);
 
   // Another rotating logger to another file with max backup count 1 this time. Here we rotate only once
-  static char const* base_filename_2 = "rot_2nd_logger.log";
-  static constexpr char const* rotated_filename_2nd_1 = "rot_2nd_logger.1.log";
+  static char const* base_filename_2 = "another_2nd_rot_logger.log";
+  static constexpr char const* rotated_filename_2nd_1 = "another_2nd_rot_logger.1.log";
 
   QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler_2 =
     quill::rotating_file_handler(base_filename_2, "w", max_file_size, 1, false);
 
-  quill::Logger* rotating_logger_2 = quill::create_logger("rot_2nd_logger", rotating_file_handler_2);
+  quill::Logger* rotating_logger_2 = quill::create_logger("another_rot_2nd_logger", rotating_file_handler_2);
 
   // log a few messages so we rotate files
   for (uint32_t i = 0; i < 20; ++i)

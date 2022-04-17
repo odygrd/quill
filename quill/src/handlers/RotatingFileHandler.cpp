@@ -41,7 +41,7 @@ void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_record,
 /***/
 void RotatingFileHandler::_rotate()
 {
-  if ((_current_index == (_backup_count - 1)) && !_overwrite_oldest_files)
+  if ((_current_index == _backup_count) && !_overwrite_oldest_files)
   {
     // we can not rotate anymore, do not rotate
     return;
@@ -77,11 +77,20 @@ void RotatingFileHandler::_rotate()
     filename_t const new_file = detail::file_utilities::append_index_to_filename(_filename, 1);
     quill::detail::rename(previous_file, new_file);
 
-    // Increment the rotation index, -1 as we are counting _current_index from 0
-    if (_current_index < (_backup_count - 1))
+    if (!_overwrite_oldest_files)
     {
-      // don't increment past _backup_count
+      // always increment current index as we will break above. This is needed to avoid
+      // _backup_count - 1 contidion below when _backup_count == 1 and !_overwrite_oldest_files
       ++_current_index;
+    }
+    else
+    {
+      // Increment the rotation index, -1 as we are counting _current_index from 0
+      if (_current_index < (_backup_count - 1))
+      {
+        // don't increment past _backup_count
+        ++_current_index;
+      }
     }
   }
 
