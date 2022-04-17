@@ -377,8 +377,7 @@ void rename(filename_t const& previous_file, filename_t const& new_file)
   if (QUILL_UNLIKELY(res != 0))
   {
     std::ostringstream error_msg;
-    error_msg << "failed to rename previous log file " << previous_file << " to " << new_file
-              << " during rotation, with error message. error: " << strerror(errno) << " errno: \""
+    error_msg << "failed to rename previous log file during rotation, with error message errno: \""
               << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }

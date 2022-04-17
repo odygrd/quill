@@ -112,21 +112,22 @@ private:
   /**
    * Populate our local priority queue
    * @param cached_thread_contexts local thread context cache
+   * @param is_terminating
    */
   QUILL_ATTRIBUTE_HOT inline void _populate_priority_queue(
-    ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
+    ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts, bool is_terminating);
 
 #if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
   /**
    * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
    */
-  QUILL_ATTRIBUTE_HOT inline void _deserialize_raw_queue(ThreadContext* thread_context);
+  QUILL_ATTRIBUTE_HOT inline void _deserialize_raw_queue(ThreadContext* thread_context, bool is_terminating);
 #endif
 
   /**
    * Read events from the Event SPSC queue and emplace them to the priority queue
    */
-  QUILL_ATTRIBUTE_HOT inline void _read_event_queue(ThreadContext* thread_context);
+  QUILL_ATTRIBUTE_HOT inline void _read_event_queue(ThreadContext* thread_context, bool is_terminating);
 
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
@@ -325,25 +326,26 @@ void BackendWorker::run()
 }
 
 /***/
-void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
+void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
+                                             bool is_terminating)
 {
   // copy everything to a priority queue
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
     // read the generic event queue
-    _read_event_queue(thread_context);
+    _read_event_queue(thread_context, is_terminating);
 
 #if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
     // read the fast raw spsc queue
-    _deserialize_raw_queue(thread_context);
+    _deserialize_raw_queue(thread_context, is_terminating);
 #endif
   }
 }
 
 /***/
-void BackendWorker::_read_event_queue(ThreadContext* thread_context)
+void BackendWorker::_read_event_queue(ThreadContext* thread_context, bool is_terminating)
 {
-  if (_transit_events.size() >= _max_transit_events)
+  if (!is_terminating && (_transit_events.size() >= _max_transit_events))
   {
     // transit events queue is full
     return;
@@ -356,7 +358,7 @@ void BackendWorker::_read_event_queue(ThreadContext* thread_context)
   {
     auto handle = object_spsc_queue.try_pop();
 
-    if (!handle.is_valid() || (_transit_events.size() == _max_transit_events))
+    if (!handle.is_valid() || (!is_terminating && (_transit_events.size() == _max_transit_events)))
     {
       // keep reading until the queue is empty or we reached the transit events limit
       break;
@@ -368,9 +370,9 @@ void BackendWorker::_read_event_queue(ThreadContext* thread_context)
 
 #if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
 /***/
-void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context)
+void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context, bool is_terminating)
 {
-  if (_transit_events.size() >= _max_transit_events)
+  if (!is_terminating && (_transit_events.size() >= _max_transit_events))
   {
     // transit events queue is full
     return;
@@ -391,7 +393,7 @@ void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context)
     unsigned char const* read_buffer = read_buffer_avail_bytes_pair.first;
     size_t const bytes_available = read_buffer_avail_bytes_pair.second;
 
-    if (bytes_available == 0 || (_transit_events.size() == _max_transit_events))
+    if (bytes_available == 0 || (!is_terminating && (_transit_events.size() == _max_transit_events)))
     {
       // keep reading until the queue is empty or we reached the transit events limit
       break;
@@ -560,7 +562,7 @@ void BackendWorker::_main_loop()
   ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
-  _populate_priority_queue(cached_thread_contexts);
+  _populate_priority_queue(cached_thread_contexts, false);
 
   if (QUILL_LIKELY(!_transit_events.empty()))
   {
@@ -629,7 +631,7 @@ void BackendWorker::_exit()
 
   while (true)
   {
-    _populate_priority_queue(cached_thread_contexts);
+    _populate_priority_queue(cached_thread_contexts, true);
 
     if (!_transit_events.empty())
     {
