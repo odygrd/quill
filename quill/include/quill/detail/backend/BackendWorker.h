@@ -635,7 +635,21 @@ void BackendWorker::_exit()
 
     if (!_transit_events.empty())
     {
-      _process_transit_event();
+      // the queue is not empty,
+      if (_transit_events.size() >= _max_transit_events)
+      {
+        // process half transit events
+        for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
+        {
+          _process_transit_event();
+        }
+      }
+      else
+      {
+        // process a single transit event, then populate priority queue again. This gives priority
+        // to emptying the spsc queue from the hot threads as soon as possible
+        _process_transit_event();
+      }
     }
     else
     {
