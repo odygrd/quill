@@ -400,15 +400,18 @@ void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context, bool i
     }
 
     // read the next full message
-    auto const timestamp = *(reinterpret_cast<uint64_t const*>(read_buffer));
+    uint64_t timestamp;
+    std::memcpy(&timestamp, read_buffer, sizeof(uint64_t));
     read_buffer += sizeof(uint64_t);
 
-    auto const serialization_metadata_ptr = *(reinterpret_cast<uintptr_t const*>(read_buffer));
+    uintptr_t serialization_metadata_ptr;
+    std::memcpy(&serialization_metadata_ptr, read_buffer, sizeof(uintptr_t));
     auto const serialization_metadata =
       reinterpret_cast<detail::SerializationMetadata const*>(serialization_metadata_ptr);
     read_buffer += sizeof(uintptr_t);
 
-    auto const logger_details_ptr = *(reinterpret_cast<uintptr_t const*>(read_buffer));
+    uintptr_t logger_details_ptr;
+    std::memcpy(&logger_details_ptr, read_buffer, sizeof(uintptr_t));
     auto const logger_details = reinterpret_cast<detail::LoggerDetails const*>(logger_details_ptr);
     read_buffer += sizeof(uintptr_t);
 

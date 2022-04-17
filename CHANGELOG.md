@@ -48,6 +48,8 @@
   quill will now keep rotating by replacing the oldest logs. ([#157](https://github.com/odygrd/quill/issues/157))
 - Improve the backend logging thread responsiveness when variables are logged in loops without any delay
   from multiple threads. ([#116](https://github.com/odygrd/quill/issues/116))
+- Fix some undefined behaviour issues reported via the AddressSantizer on the backend logging
+  thread. ([#166](https://github.com/odygrd/quill/issues/166))
 
 ## v1.6.3
 
