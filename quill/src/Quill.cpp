@@ -103,7 +103,7 @@ Handler* rotating_file_handler(std::string const& base_filename,
                                std::string const& mode /* = std::string {"a"} */, size_t max_bytes /* = 0 */,
                                uint32_t backup_count /* = 0 */, bool overwrite_oldest_files /* = true */)
 {
-  return rotating_file_handler(detail::s2ws(base_filename), mode, max_bytes, backup_count, true);
+  return rotating_file_handler(detail::s2ws(base_filename), mode, max_bytes, backup_count, overwrite_oldest_files);
 }
 #endif
 
