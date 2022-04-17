@@ -101,9 +101,10 @@ Handler* time_rotating_file_handler(std::string const& base_filename,
 /***/
 Handler* rotating_file_handler(std::string const& base_filename,
                                std::string const& mode /* = std::string {"a"} */,
-                               size_t max_bytes /* = 0 */, uint32_t backup_count /* = 0 */)
+                               size_t max_bytes /* = 0 */, uint32_t backup_count /* = 0 */,
+                               bool overwrite_oldest_files /* = true */))
 {
-  return rotating_file_handler(detail::s2ws(base_filename), mode, max_bytes, backup_count);
+  return rotating_file_handler(detail::s2ws(base_filename), mode, max_bytes, backup_count, true);
 }
 #endif
 

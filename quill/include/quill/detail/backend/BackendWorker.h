@@ -345,20 +345,20 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
 /***/
 void BackendWorker::_read_event_queue(ThreadContext* thread_context, bool is_terminating)
 {
-  if (!is_terminating && (_transit_events.size() >= _max_transit_events))
-  {
-    // transit events queue is full
-    return;
-  }
-
   // Read the generic queue
   ThreadContext::EventSPSCQueueT& object_spsc_queue = thread_context->event_spsc_queue();
 
   while (true)
   {
+    if (!is_terminating && (_transit_events.size() >= _max_transit_events))
+    {
+      // transit events queue is full
+      break;
+    }
+
     auto handle = object_spsc_queue.try_pop();
 
-    if (!handle.is_valid() || (!is_terminating && (_transit_events.size() == _max_transit_events)))
+    if (!handle.is_valid())
     {
       // keep reading until the queue is empty or we reached the transit events limit
       break;
@@ -372,17 +372,17 @@ void BackendWorker::_read_event_queue(ThreadContext* thread_context, bool is_ter
 /***/
 void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context, bool is_terminating)
 {
-  if (!is_terminating && (_transit_events.size() >= _max_transit_events))
-  {
-    // transit events queue is full
-    return;
-  }
-
   // Read the fast queue
   ThreadContext::RawSPSCQueueT& raw_spsc_queue = thread_context->raw_spsc_queue();
 
   while (true)
   {
+    if (!is_terminating && (_transit_events.size() >= _max_transit_events))
+    {
+      // transit events queue is full
+      break;
+    }
+
     // Note: The producer will commit a write to this queue when one complete message is written.
     // This means that if we can read something from the queue it will be a full message
     // The producer will add items to the buffer :
@@ -393,7 +393,7 @@ void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context, bool i
     unsigned char const* read_buffer = read_buffer_avail_bytes_pair.first;
     size_t const bytes_available = read_buffer_avail_bytes_pair.second;
 
-    if (bytes_available == 0 || (!is_terminating && (_transit_events.size() == _max_transit_events)))
+    if (bytes_available == 0)
     {
       // keep reading until the queue is empty or we reached the transit events limit
       break;
