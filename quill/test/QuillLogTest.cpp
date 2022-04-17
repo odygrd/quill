@@ -530,9 +530,9 @@ TEST_CASE("log_to_multiple_handlers_from_same_logger")
   std::string results_handler_2 = quill::testing::GetCapturedStdout();
 
   REQUIRE_EQ(results_handler_1,
-             "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_20)\n");
+             "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_22)\n");
   REQUIRE_EQ(results_handler_2,
-             "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_20)\n");
+             "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_22)\n");
 }
 
 /***/
