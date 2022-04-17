@@ -98,7 +98,6 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void set_error_handler(backend_worker_error_handler_t error_handler);
 #endif
-
 private:
   /**
    * Backend worker thread main function
@@ -221,6 +220,8 @@ private:
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
+  size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
+
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
   std::priority_queue<TransitEvent, std::vector<TransitEvent>, std::greater<>> _transit_events;
@@ -247,6 +248,7 @@ void BackendWorker::run()
   // and we don't want it to change after we have started - This is just for safety and to
   // enforce the user to configure a variable before the thread has started
   _backend_thread_sleep_duration = _config.backend_thread_sleep_duration();
+  _max_transit_events = _config.backend_thread_max_transit_events();
 
   std::thread worker(
     [this]()
@@ -341,6 +343,12 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
 /***/
 void BackendWorker::_read_event_queue(ThreadContext* thread_context)
 {
+  if (_transit_events.size() >= _max_transit_events)
+  {
+    // transit events queue is full
+    return;
+  }
+
   // Read the generic queue
   ThreadContext::EventSPSCQueueT& object_spsc_queue = thread_context->event_spsc_queue();
 
@@ -348,10 +356,12 @@ void BackendWorker::_read_event_queue(ThreadContext* thread_context)
   {
     auto handle = object_spsc_queue.try_pop();
 
-    if (!handle.is_valid())
+    if (!handle.is_valid() || (_transit_events.size() == _max_transit_events))
     {
+      // keep reading until the queue is empty or we reached the transit events limit
       break;
     }
+
     _transit_events.emplace(thread_context, handle.data()->clone(_free_list_allocator));
   }
 }
@@ -360,6 +370,12 @@ void BackendWorker::_read_event_queue(ThreadContext* thread_context)
 /***/
 void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context)
 {
+  if (_transit_events.size() >= _max_transit_events)
+  {
+    // transit events queue is full
+    return;
+  }
+
   // Read the fast queue
   ThreadContext::RawSPSCQueueT& raw_spsc_queue = thread_context->raw_spsc_queue();
 
@@ -375,9 +391,9 @@ void BackendWorker::_deserialize_raw_queue(ThreadContext* thread_context)
     unsigned char const* read_buffer = read_buffer_avail_bytes_pair.first;
     size_t const bytes_available = read_buffer_avail_bytes_pair.second;
 
-    if (bytes_available == 0)
+    if (bytes_available == 0 || (_transit_events.size() == _max_transit_events))
     {
-      // nothing to read
+      // keep reading until the queue is empty or we reached the transit events limit
       break;
     }
 
@@ -548,8 +564,21 @@ void BackendWorker::_main_loop()
 
   if (QUILL_LIKELY(!_transit_events.empty()))
   {
-    // the queue is not empty
-    _process_transit_event();
+    // the queue is not empty,
+    if (_transit_events.size() >= _max_transit_events)
+    {
+      // process half transit events
+      for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
+      {
+        _process_transit_event();
+      }
+    }
+    else
+    {
+      // process a single transit event, then populate priority queue again. This gives priority
+      // to emptying the spsc queue from the hot threads as soon as possible
+      _process_transit_event();
+    }
   }
   else
   {

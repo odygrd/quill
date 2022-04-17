@@ -253,6 +253,21 @@ void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration)
   detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_sleep_duration(sleep_duration);
 }
 
+/***/
+QUILL_ATTRIBUTE_COLD void set_backend_thread_max_transit_events(size_t max_transit_events)
+{
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{
+      "quill::set_backend_worker_max_transit_events(...) needs to be called before quill::start(). "
+      "That can cause a race condition on the backend worker thread. Catch the exception to "
+      "avoid this error but the call to quill::set_backend_worker_max_transit_events(...) will "
+      "have no "
+      "effect."});
+  }
+
+  detail::LogManagerSingleton::instance().log_manager().config().set_backend_thread_max_transit_events(max_transit_events);
+}
 } // namespace config
 
 } // namespace quill

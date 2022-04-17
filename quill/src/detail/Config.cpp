@@ -29,6 +29,18 @@ uint16_t Config::backend_thread_cpu_affinity() const noexcept
 }
 
 /***/
+void Config::set_backend_thread_max_transit_events(size_t max_transit_events) noexcept
+{
+  _backend_thread_max_transit_events = max_transit_events;
+}
+
+/***/
+size_t Config::backend_thread_max_transit_events() const noexcept
+{
+  return _backend_thread_max_transit_events;
+}
+
+/***/
 void Config::set_backend_thread_name(std::string const& name) noexcept
 {
   _backend_thread_name = name;

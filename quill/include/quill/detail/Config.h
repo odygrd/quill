@@ -41,6 +41,17 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint16_t backend_thread_cpu_affinity() const noexcept;
 
   /**
+   * Names the backend thread max_transit_events
+   * @param max_transit_events the max number before we flush the queue
+   */
+  QUILL_ATTRIBUTE_COLD void set_backend_thread_max_transit_events(size_t max_transit_events) noexcept;
+
+  /**
+   * @return get the backend thread max_transit_events
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t backend_thread_max_transit_events() const noexcept;
+
+  /**
    * Names the backend thread
    * @param name the desired name
    */
@@ -54,7 +65,7 @@ public:
 private:
   std::string _backend_thread_name{"Quill_Backend"}; /** Custom name for the backend thread */
   std::chrono::nanoseconds _backend_thread_sleep_duration{300};
-
+  size_t _backend_thread_max_transit_events{1000};
   uint16_t _backend_thread_cpu_affinity{
     (std::numeric_limits<uint16_t>::max)()}; /** max() as undefined value, cpu affinity will not be set */
 };

@@ -402,6 +402,14 @@ QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name);
  * @param sleep_duration The sleep duration of the backend thread when idle
  */
 QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration);
+
+/**
+ * Sets the maximum transit events number. When that number is reached then half of them
+ * will get flushed to the log files.
+ * @param max_transit_events
+ */
+QUILL_ATTRIBUTE_COLD void set_backend_thread_max_transit_events(size_t max_transit_events);
+
 } // namespace config
 
 } // namespace quill
