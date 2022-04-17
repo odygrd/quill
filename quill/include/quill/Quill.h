@@ -217,7 +217,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(std::string const& base_filename,
                                                                     std::string const& mode = std::string{"a"},
                                                                     size_t max_bytes = 0,
-                                                                    uint32_t backup_count = 0);
+                                                                    uint32_t backup_count = 0, 
+                                                                    bool overwrite_oldest_files = true);
 #endif
 
 /**
