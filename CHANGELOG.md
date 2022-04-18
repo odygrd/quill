@@ -1,3 +1,4 @@
+- [v1.7.1](#v1.7.1)
 - [v1.7.0](#v1.7.0)
 - [v1.6.3](#v1.6.3)
 - [v1.6.2](#v1.6.2)
@@ -18,6 +19,12 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v1.7.1 (in progress)
+
+**Improvements/Fixes**
+
+- Fix support for wide characters on Windows ([#168](https://github.com/odygrd/quill/issues/168))
 
 ## v1.7.0
 

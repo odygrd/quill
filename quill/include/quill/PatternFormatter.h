@@ -205,7 +205,10 @@ public:
 #else
   /**
    * Formats the given LogRecord
-   * Enabled only when there are no wide strings as arguments
+   * Enabled only when there are no wide strings as arguments. 
+   * Everything is promoted to wstring before copied to the queue so we do not need
+   * to check against anything else here.
+   * 
    * @param timestamp timestamp since epoch
    * @param thread_id caller thread id
    * @param thread_name caller thread name
@@ -215,13 +218,17 @@ public:
    * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
-  typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::value, void> format(
+  typename std::enable_if_t<!(detail::any_is_same<std::wstring, void, Args...>::value), void>
+  format(
     std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
     char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const;
 
   /**
    * Formats the given LogRecord after converting the wide characters to UTF-8
-   * Enabled when a wide character is passed as an argument
+   * Enabled when a wide character is passed as an argument.
+   * Everything is promoted to wstring before copied to the queue so we do not need
+   * to check against anything else here.
+   *
    * @param timestamp timestamp since epoch
    * @param thread_id caller thread id
    * @param thread_name caller thread name
@@ -231,7 +238,8 @@ public:
    * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
-  typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::value, void> format(
+  typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::value), void>
+  format(
     std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
     char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const;
 #endif
@@ -406,7 +414,8 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, const char* th
 #else
 /***/
 template <typename... Args>
-typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::value, void> PatternFormatter::format(
+typename std::enable_if_t<!(detail::any_is_same<std::wstring, void, Args...>::value), void>
+PatternFormatter::format(
   std::chrono::nanoseconds timestamp, const char* thread_id, const char* thread_name,
   char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const
 {
@@ -430,7 +439,9 @@ typename std::enable_if_t<!detail::any_is_same<std::wstring, void, Args...>::val
 
 /***/
 template <typename... Args>
-typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::value, void> PatternFormatter::format(
+typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::value),
+                          void>
+PatternFormatter::format(
   std::chrono::nanoseconds timestamp, char const* thread_id, const char* thread_name,
   char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const
 {
@@ -441,12 +452,9 @@ typename std::enable_if_t<detail::any_is_same<std::wstring, void, Args...>::valu
   _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, thread_name,
                                            logger_name, logline_info);
 
-  // Format the user message format string to a wide char buffer
-  std::wstring const w_message_format = detail::s2ws(logline_info.message_format());
-
   // Format the whole message to a wide buffer
   _w_memory_buffer.clear();
-  fmt::format_to(std::back_inserter(_w_memory_buffer), w_message_format, args...);
+  fmt::format_to(std::back_inserter(_w_memory_buffer), logline_info.wmessage_format(), args...);
 
   // Convert the results to UTF-8
   detail::wstring_to_utf8(_w_memory_buffer, _formatted_log_record);
