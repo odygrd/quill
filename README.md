@@ -109,7 +109,7 @@ The results in the tables below are in nanoseconds (ns).
 |[Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)    |  16  |  18  |  21  |  22  |  28  |  39  |  58  |
 |[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                     |  52  |  66  |  76  |  81  |  92  |  107  |  192  |
 |[MS BinLog](https://github.com/Morgan-Stanley/binlog)                             |  39  |  41  |  43  |  44  |  67  |  110  |  216  |
-|[fmtlog](https://https://github.com/MengRao/fmtlog)                               |  34  |  50  |  66  |  75  |  92  |  112  |  149  |
+|[fmtlog](https://https://github.com/MengRao/fmtlog)                               |  16  |  18  |  20  |  21  |  26  |  36  |  47  |
 |[Reckless](https://github.com/mattiasflodin/reckless)                             |  62  |  72  |  79  |  87  |  107  |  126  |  168  |
 |[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                          |  147  |  169  |  187  |  209  |  283  |  376  |  33623  |                
 |[spdlog](https://github.com/gabime/spdlog)                                        |  626  |  675  |  721  |  755  |  877  |  1026  |  1206  |      
@@ -124,6 +124,7 @@ The results in the tables below are in nanoseconds (ns).
 |[Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)   |  16  |  19  |  21  |  23  |  30  |  39  |  57  |
 |[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                    |  53  |  67  |  77  |  82  |  93  |  131  |  236  |
 |[MS BinLog](https://github.com/Morgan-Stanley/binlog)                            |  39  |  42  |  43  |  46  |  73  |  119  |  243  |
+|[fmtlog](https://https://github.com/MengRao/fmtlog)                              |  16  |  18  |  19  |  21  |  25  |  34  |  53  |
 |[Reckless](https://github.com/mattiasflodin/reckless)                            |  46  |  60  |  75  |  88  |  112  |  156  |  262  |                         
 |[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                         |  140  |  173  |  239  |  273  |  336  |  432  |  43605  |
 |[spdlog](https://github.com/gabime/spdlog)                                       |  665  |  742  |  825  |  880  |  1069  |  1395  |  2087  |
@@ -142,7 +143,7 @@ The large string is over 35 characters to avoid short string optimisation of `st
 |[Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)  |  116  |  132  |  145  |  153  |  168  |  185  |  214  | 
 |[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                   |  35  |  36  |  37  |  39  |  46  |  53  |  70  |     
 |[MS BinLog](https://github.com/Morgan-Stanley/binlog)                           |  52  |  53  |  56  |  60  |  80  |  133  |  251  |
-|[fmtlog](https://https://github.com/MengRao/fmtlog)                             |  37  |  42  |  48  |  59  |  93  |  126  |  356  |
+|[fmtlog](https://https://github.com/MengRao/fmtlog)                             |  35  |  37  |  40  |  42  |  47  |  55  |  181  |
 |[Reckless](https://github.com/mattiasflodin/reckless)                           |  211  |  236  |  262  |  280  |  317  |  522  |  1051  |
 |[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                        |  157  |  176  |  196  |  220  |  290  |  372  |  22812  |   
 |[spdlog](https://github.com/gabime/spdlog)                                      |  652  |  715  |  775  |  827  |  953  |  1082  |  1453  |     
@@ -157,6 +158,7 @@ The large string is over 35 characters to avoid short string optimisation of `st
 |[Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)   |  125  |  138  |  151  |  160  |  176  |  192  |  247  |
 |[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                    |  34  |  35  |  36  |  38  |  45  |  53  |  100  |
 |[MS BinLog](https://github.com/Morgan-Stanley/binlog)                            |  51  |  53  |  55  |  60  |  85  |  128  |  243  |
+|[fmtlog](https://https://github.com/MengRao/fmtlog)                              |  34  |  36  |  38  |  41  |  47  |  55  |  371  |
 |[Reckless](https://github.com/mattiasflodin/reckless)                            |  184  |  204  |  226  |  240  |  283  |  531  |  761  |
 |[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                         |  151  |  218  |  267  |  296  |  353  |  469  |  71636  |
 |[spdlog](https://github.com/gabime/spdlog)                                       |  640  |  710  |  795  |  867  |  1097  |  1465  |  2259  |    
