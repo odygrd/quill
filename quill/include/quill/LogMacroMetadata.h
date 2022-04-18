@@ -33,6 +33,20 @@ public:
   {
   }
 
+#if defined(_WIN32)
+  constexpr LogMacroMetadata(const char* lineno, char const* pathname, char const* func,
+                             wchar_t const* message_format, LogLevel level)
+    : _func(func),
+      _pathname(pathname),
+      _filename(_extract_source_file_name(_pathname)),
+      _lineno(lineno),
+      _level(level),
+      _has_wide_char(true),
+      _wmessage_format(message_format)
+  {
+  }
+#endif
+
   /**
    * @return The function name
    */
@@ -78,6 +92,21 @@ public:
   {
     return _log_level_id_to_string(_level);
   }
+
+#if defined(_WIN32)
+  /**
+   * @return true if the user provided a wide char format string
+   */
+  QUILL_NODISCARD constexpr bool has_wide_char() const noexcept { return _has_wide_char; }
+
+  /**
+   * @return The user provided wide character format
+   */
+  QUILL_NODISCARD constexpr wchar_t const* wmessage_format() const noexcept
+  {
+    return _wmessage_format;
+  }
+#endif
 
 private:
   QUILL_NODISCARD static constexpr char const* _str_end(char const* str) noexcept
@@ -130,6 +159,11 @@ private:
   char const* _message_format{nullptr};
   char const* _lineno{nullptr};
   LogLevel _level{LogLevel::None};
+
+#if defined(_WIN32)
+  bool _has_wide_char{false};
+  wchar_t const* _wmessage_format{nullptr};
+#endif
 };
 
 } // namespace quill

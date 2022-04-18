@@ -416,53 +416,53 @@ TEST_CASE("many_loggers_multiple_threads")
 }
 
 #if defined(_WIN32)
-// TODO:: fix LOG_* macros to accept format strings in wide chars 
-// fmt requires the format string as wide char when the arguments are wide chars. 
-// This is not supported in quill for now but should be fixed in the future
-// 
 
 /***/
-//TEST_CASE("default_logger_with_filehandler_wide_chars")
-//{
-//  LogManager lm;
-//
-//  #if defined(_WIN32)
-//  std::wstring const filename{L"test_default_logger_with_filehandler"};
-//  #else
-//  std::string const filename{"test_default_logger_with_filehandler"};
-//  #endif
-//
-//  // Set a file handler as the custom logger handler and log to it
-//  lm.logger_collection().set_default_logger_handler(
-//    lm.handler_collection().create_handler<FileHandler>(filename, "w", FilenameAppend::None));
-//
-//  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
-//
-//  std::thread frontend([&lm]() {
-//    Logger* default_logger = lm.logger_collection().get_logger();
-//
-//    std::wstring arg_1 = L"consectetur adipiscing elit";
-//    LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, {}", arg_1);
-//    wchar_t const* arg_2 = L"lectus libero finibus ante";
-//    LOG_ERROR(default_logger, "Nulla tempus, libero at dignissim viverra, {}", arg_2);
-//
-//    // Let all log get flushed to the file
-//    lm.flush();
-//  });
-//
-//  frontend.join();
-//
-//  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-//
-//  REQUIRE_EQ(file_contents.size(), 2);
-//  REQUIRE(quill::testing::file_contains(
-//    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
-//  REQUIRE(quill::testing::file_contains(
-//    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
-//
-//  lm.stop_backend_worker();
-//  quill::detail::file_utilities::remove(filename);
-//}
+TEST_CASE("default_logger_with_filehandler_wide_chars")
+{
+  LogManager lm;
+
+  #if defined(_WIN32)
+  std::wstring const filename{L"test_default_logger_with_filehandler"};
+  #else
+  std::string const filename{"test_default_logger_with_filehandler"};
+  #endif
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().create_handler<FileHandler>(filename, "w", FilenameAppend::None));
+
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::thread frontend([&lm]() {
+    Logger* default_logger = lm.logger_collection().get_logger();
+
+    std::wstring arg_1 = L"consectetur adipiscing elit";
+    LOG_INFO(default_logger, L"Lorem ipsum dolor sit amet, {}", arg_1);
+    wchar_t const* arg_2 = L"lectus libero finibus ante";
+    LOG_ERROR(default_logger, L"Nulla tempus, libero at dignissim viverra, {}", arg_2);
+    wchar_t const arg_3[] = L"wide array";
+    LOG_ERROR(default_logger, L"Nulla tempus, libero at dignissim viverra, {}", arg_3);
+
+    // Let all log get flushed to the file
+    lm.flush();
+  });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 3);
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, wide array"}));
+
+  lm.stop_backend_worker();
+  quill::detail::file_utilities::remove(filename);
+}
 #endif
 
 #if !defined(QUILL_NO_EXCEPTIONS)
