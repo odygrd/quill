@@ -115,7 +115,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(filename_t const& h
  * Creates or returns an existing handler to a file.
  * If the file is already opened the existing handler for this file is returned instead
  * @param filename the name of the file
- * @param append_to_filename additional info to append to the name of the file. FilenameAppend::None or FilenameAppend::Date
+ * @param append_to_filename additional info to append to the name of the file.
+ * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
  * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
  * If no value is specified during the file creation "a" is used as default.
  * @return A handler to a file

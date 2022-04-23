@@ -37,6 +37,7 @@ QUILL_NODISCARD char const* to_string(LogLevel log_level);
 /**
  * Converts a string to a LogLevel enum value
  * @param log_level the log level string to convert
+ * "tracel3", "tracel2", "tracel1", "debug", "info", "warning", "error", "backtrace", "none"
  * @return the corresponding LogLevel enum value
  */
 QUILL_NODISCARD LogLevel from_string(std::string log_level);

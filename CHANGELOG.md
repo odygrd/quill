@@ -20,11 +20,13 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
-## v1.7.1 (in progress)
+## v1.7.1
 
 **Improvements/Fixes**
 
 - Fix support for wide characters on Windows ([#168](https://github.com/odygrd/quill/issues/168))
+- Fix compilation error when `Quill::Logger*` is stored as a class member in templated classes
+- Add `FilenameAppend::DateTime` as an option when creating a file handler
 
 ## v1.7.0
 

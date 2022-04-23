@@ -14,6 +14,7 @@ namespace quill
 
 enum class FilenameAppend
 {
+  DateTime,
   Date,
   None
 };
