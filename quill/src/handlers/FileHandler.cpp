@@ -16,6 +16,11 @@ FileHandler::FileHandler(filename_t const& filename, std::string const& mode, Fi
   {
     _current_filename = detail::file_utilities::append_date_to_filename(_filename);
   }
+  else if (append_to_filename == FilenameAppend::DateTime)
+  {
+    _current_filename =
+      detail::file_utilities::append_date_to_filename(_filename, std::chrono::system_clock::now(), true);
+  }
 
   // _file is the base file*
   _file = detail::file_utilities::open(_current_filename, mode);
