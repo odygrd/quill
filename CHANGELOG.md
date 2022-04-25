@@ -1,3 +1,4 @@
+- [v1.7.2](#v1.7.2)
 - [v1.7.1](#v1.7.1)
 - [v1.7.0](#v1.7.0)
 - [v1.6.3](#v1.6.3)
@@ -19,6 +20,12 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v1.7.2
+
+**Improvements/Fixes**
+
+- Fix compile error when C++20 is used on windows ([#162](https://github.com/odygrd/quill/issues/162))
 
 ## v1.7.1
 

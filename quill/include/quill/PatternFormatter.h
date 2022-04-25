@@ -33,10 +33,14 @@
  * Must be used in order to pass the arguments to the set_pattern function
  */
 #define QUILL_STRING(str)                                                                          \
-  [] {                                                                                             \
+  []                                                                                               \
+  {                                                                                                \
     union X                                                                                        \
     {                                                                                              \
-      static constexpr auto value() { return str; }                                                \
+      static constexpr auto value()                                                                \
+      {                                                                                            \
+        return str;                                                                                \
+      }                                                                                            \
     };                                                                                             \
     return X{};                                                                                    \
   }()
@@ -119,7 +123,8 @@ private:
     {
       // lambda expand the stored tuple arguments
       auto format_buffer = [this, &memory_buffer, timestamp, thread_id, thread_name, logger_name,
-                            logline_info](auto... tuple_args) {
+                            logline_info](auto... tuple_args)
+      {
         fmt::format_to(std::back_inserter(memory_buffer), fmt::runtime(_fmt_pattern.data()),
                        tuple_args(timestamp, thread_id, thread_name, logger_name, logline_info)...);
       };
@@ -205,10 +210,10 @@ public:
 #else
   /**
    * Formats the given LogRecord
-   * Enabled only when there are no wide strings as arguments. 
+   * Enabled only when there are no wide strings as arguments.
    * Everything is promoted to wstring before copied to the queue so we do not need
    * to check against anything else here.
-   * 
+   *
    * @param timestamp timestamp since epoch
    * @param thread_id caller thread id
    * @param thread_name caller thread name
@@ -218,8 +223,7 @@ public:
    * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
-  typename std::enable_if_t<!(detail::any_is_same<std::wstring, void, Args...>::value), void>
-  format(
+  typename std::enable_if_t<!(detail::any_is_same<std::wstring, void, Args...>::value), void> format(
     std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
     char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const;
 
@@ -238,8 +242,7 @@ public:
    * @return a fmt::memory_buffer that contains the formatted log record
    */
   template <typename... Args>
-  typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::value), void>
-  format(
+  typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::value), void> format(
     std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
     char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const;
 #endif
@@ -402,7 +405,8 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, const char* th
                                            logger_name, logline_info);
 
   // Format the user requested string
-  fmt::format_to(std::back_inserter(_formatted_log_record), fmt::runtime(logline_info.message_format()), args...);
+  fmt::format_to(std::back_inserter(_formatted_log_record),
+                 fmt::runtime(logline_info.message_format()), args...);
 
   // Format part 3 of the pattern
   _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, thread_name,
@@ -414,8 +418,7 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, const char* th
 #else
 /***/
 template <typename... Args>
-typename std::enable_if_t<!(detail::any_is_same<std::wstring, void, Args...>::value), void>
-PatternFormatter::format(
+typename std::enable_if_t<!(detail::any_is_same<std::wstring, void, Args...>::value), void> PatternFormatter::format(
   std::chrono::nanoseconds timestamp, const char* thread_id, const char* thread_name,
   char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const
 {
@@ -427,7 +430,8 @@ PatternFormatter::format(
                                            logger_name, logline_info);
 
   // Format the user requested string
-  fmt::format_to(std::back_inserter(_formatted_log_record), logline_info.message_format(), args...);
+  fmt::format_to(std::back_inserter(_formatted_log_record),
+                 fmt::runtime(logline_info.message_format()), args...);
 
   // Format part 3 of the pattern
   _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, thread_name,
@@ -439,9 +443,7 @@ PatternFormatter::format(
 
 /***/
 template <typename... Args>
-typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::value),
-                          void>
-PatternFormatter::format(
+typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::value), void> PatternFormatter::format(
   std::chrono::nanoseconds timestamp, char const* thread_id, const char* thread_name,
   char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const
 {
@@ -454,7 +456,7 @@ PatternFormatter::format(
 
   // Format the whole message to a wide buffer
   _w_memory_buffer.clear();
-  fmt::format_to(std::back_inserter(_w_memory_buffer), logline_info.wmessage_format(), args...);
+  fmt::format_to(std::back_inserter(_w_memory_buffer), fmt::runtime(logline_info.wmessage_format()), args...);
 
   // Convert the results to UTF-8
   detail::wstring_to_utf8(_w_memory_buffer, _formatted_log_record);
