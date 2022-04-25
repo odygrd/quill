@@ -456,7 +456,7 @@ typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::val
 
   // Format the whole message to a wide buffer
   _w_memory_buffer.clear();
-  fmt::format_to(std::back_inserter(_w_memory_buffer), fmt::runtime(logline_info.wmessage_format()), args...);
+  fmt::format_to(std::back_inserter(_w_memory_buffer), logline_info.wmessage_format(), args...);
 
   // Convert the results to UTF-8
   detail::wstring_to_utf8(_w_memory_buffer, _formatted_log_record);
