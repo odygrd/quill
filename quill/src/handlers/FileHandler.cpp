@@ -5,7 +5,7 @@
 namespace quill
 {
 /***/
-FileHandler::FileHandler(filename_t const& filename, std::string const& mode, FilenameAppend append_to_filename)
+FileHandler::FileHandler(std::filesystem::path const& filename, std::string const& mode, FilenameAppend append_to_filename)
   : StreamHandler(filename)
 {
   if (append_to_filename == FilenameAppend::None)
@@ -14,20 +14,19 @@ FileHandler::FileHandler(filename_t const& filename, std::string const& mode, Fi
   }
   else if (append_to_filename == FilenameAppend::Date)
   {
-    _current_filename = detail::file_utilities::append_date_to_filename(_filename);
+    _current_filename = detail::append_date_to_filename(_filename);
   }
   else if (append_to_filename == FilenameAppend::DateTime)
   {
-    _current_filename =
-      detail::file_utilities::append_date_to_filename(_filename, std::chrono::system_clock::now(), true);
+    _current_filename = detail::append_date_to_filename(_filename, std::chrono::system_clock::now(), true);
   }
 
   // _file is the base file*
-  _file = detail::file_utilities::open(_current_filename, mode);
+  _file = detail::open_file(_current_filename, mode);
 }
 
 /***/
-FileHandler::FileHandler(filename_t const& filename) : StreamHandler(filename) {}
+FileHandler::FileHandler(std::filesystem::path const& filename) : StreamHandler(filename) {}
 
 /***/
 FileHandler::~FileHandler()

@@ -9,43 +9,37 @@
 #include "quill/detail/misc/Common.h"
 #include <array>
 #include <cstdint>
+#include <filesystem>
+#include <type_traits>
 
 namespace quill
 {
-
 /**
  * Captures and stores information about a logging event in compile time
  * This information is later passed to the LogEvent runtime class
  */
-class LogMacroMetadata
+class MacroMetadata
 {
 public:
-  constexpr LogMacroMetadata() = default;
+  enum Event : uint8_t
+  {
+    Log,
+    InitBacktrace,
+    FlushBacktrace,
+    Flush
+  };
 
-  constexpr LogMacroMetadata(const char* lineno, char const* pathname, char const* func,
-                             char const* message_format, LogLevel level)
+  constexpr MacroMetadata(const char* lineno, char const* pathname, char const* func,
+                          char const* message_format, LogLevel level, Event event)
     : _func(func),
       _pathname(pathname),
       _filename(_extract_source_file_name(_pathname)),
       _message_format(message_format),
       _lineno(lineno),
-      _level(level)
-  {
-  }
-
-#if defined(_WIN32)
-  constexpr LogMacroMetadata(const char* lineno, char const* pathname, char const* func,
-                             wchar_t const* message_format, LogLevel level)
-    : _func(func),
-      _pathname(pathname),
-      _filename(_extract_source_file_name(_pathname)),
-      _lineno(lineno),
       _level(level),
-      _has_wide_char(true),
-      _wmessage_format(message_format)
+      _event(event)
   {
   }
-#endif
 
   /**
    * @return The function name
@@ -93,44 +87,20 @@ public:
     return _log_level_id_to_string(_level);
   }
 
-#if defined(_WIN32)
-  /**
-   * @return true if the user provided a wide char format string
-   */
-  QUILL_NODISCARD constexpr bool has_wide_char() const noexcept { return _has_wide_char; }
-
-  /**
-   * @return The user provided wide character format
-   */
-  QUILL_NODISCARD constexpr wchar_t const* wmessage_format() const noexcept
-  {
-    return _wmessage_format;
-  }
-#endif
+  QUILL_NODISCARD constexpr Event event() const noexcept { return _event; }
 
 private:
-  QUILL_NODISCARD static constexpr char const* _str_end(char const* str) noexcept
+  QUILL_NODISCARD static constexpr char const* _extract_source_file_name(char const* path) noexcept
   {
-    return *str ? _str_end(str + 1) : str;
-  }
-
-  QUILL_NODISCARD static constexpr bool _str_slant(char const* str) noexcept
-  {
-    return *str == path_delimiter ? true : (*str ? _str_slant(str + 1) : false);
-  }
-
-  QUILL_NODISCARD static constexpr char const* _r_slant(char const* const str_begin, char const* str) noexcept
-  {
-    // clang-format off
-    return str != str_begin ? (*str == path_delimiter ? (str + 1)
-                                                      : _r_slant( str_begin, str -1))
-                            : str;
-    // clang-format on
-  }
-
-  QUILL_NODISCARD static constexpr char const* _extract_source_file_name(char const* str) noexcept
-  {
-    return _str_slant(str) ? _r_slant(str, _str_end(str)) : str;
+    const char* file = path;
+    while (*path)
+    {
+      if (*path++ == std::filesystem::path::preferred_separator)
+      {
+        file = path;
+      }
+    }
+    return file;
   }
 
   QUILL_NODISCARD static constexpr char const* _log_level_to_string(LogLevel log_level)
@@ -159,11 +129,6 @@ private:
   char const* _message_format{nullptr};
   char const* _lineno{nullptr};
   LogLevel _level{LogLevel::None};
-
-#if defined(_WIN32)
-  bool _has_wide_char{false};
-  wchar_t const* _wmessage_format{nullptr};
-#endif
+  Event _event{Event::Log};
 };
-
 } // namespace quill

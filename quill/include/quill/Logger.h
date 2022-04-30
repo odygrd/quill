@@ -9,18 +9,13 @@
 #include "quill/LogLevel.h"
 #include "quill/QuillError.h"
 #include "quill/detail/LoggerDetails.h"
+#include "quill/detail/Serialize.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/events//BacktraceEvent.h"
-#include "quill/detail/events/LogEvent.h"
-#include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Rdtsc.h"
-#include "quill/detail/misc/TypeTraits.h"
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 #include "quill/detail/misc/Utilities.h"
-#include "quill/detail/serialize/SerializationMetadata.h"
-#include "quill/detail/serialize/Serialize.h"
-#include "quill/detail/serialize/TypeDescriptor.h"
 #include <atomic>
 #include <cstdint>
 #include <vector>
@@ -31,19 +26,6 @@ namespace quill
 namespace detail
 {
 class LoggerCollection;
-}
-
-/**
- * Check in compile time the correctness of a format string
- */
-template <typename S, typename... Args, typename Char = fmt::char_t<S>>
-constexpr void check_format(S const& format_str, Args&&...)
-{
-#if FMT_VERSION >= 70000
-  fmt::detail::check_format_string<std::remove_reference_t<Args>...>(format_str);
-#else
-  fmt::internal::check_format_string<std::remove_reference_t<Args>...>(format_str);
-#endif
 }
 
 /**
@@ -109,7 +91,6 @@ public:
     return log_statement_level >= log_level();
   }
 
-#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
   /**
    * Push a log record event to the spsc queue to be logged by the backend thread.
    * One spsc queue per caller thread. This function is enabled only when all arguments are
@@ -118,112 +99,60 @@ public:
    * @note This function is thread-safe.
    * @param fmt_args format arguments
    */
-  template <bool TryFastQueue, bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT std::enable_if_t<detail::is_all_serializable<FmtArgs...>::value && !IsBackTraceLogRecord && TryFastQueue, void> log(
-    TFormatString format_string, FmtArgs&&... fmt_args)
+  template <typename TMacroMetadata, typename TFormatString, typename... FmtArgs>
+  QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
   {
-    check_format(format_string, std::forward<FmtArgs>(fmt_args)...);
+    fmt::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
 
-    // We want timestamp + log_data_node pointer + logger_details pointer + the size of all arguments
-    size_t total_size = sizeof(uint64_t) + sizeof(uintptr_t) + sizeof(uintptr_t);
-    detail::accumulate_arguments_size(total_size, fmt_args...);
+    detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
+
+    constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
+    size_t c_string_sizes[std::max(c_string_count, static_cast<size_t>(1))];
+
+    size_t const total_size = sizeof(detail::Header) + detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
 
     // request this size from the queue
-    unsigned char* write_buffer =
-      _thread_context_collection.local_thread_context()->raw_spsc_queue().prepare_write(total_size);
-
-    if (QUILL_UNLIKELY(write_buffer == nullptr))
-    {
-      // We have no space to write to the fast queue, it is still better to try to push to the event
-      // queue first before re-allocating
-      constexpr bool try_fast_queue{false};
-      log<try_fast_queue, IsBackTraceLogRecord, TLogMacroMetadata>(format_string, fmt_args...);
-      return;
-    }
-    // we have enough space in this buffer and we will write to the buffer
-
-    // write the timestamp first
-  #if !defined(QUILL_CHRONO_CLOCK)
-    uint64_t timestamp{detail::rdtsc()};
-  #else
-    uint64_t timestamp{static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())};
-  #endif
-
-    memcpy(write_buffer, &timestamp, sizeof(timestamp));
-    write_buffer += sizeof(timestamp);
-
-    // Then write the pointer to the LogDataNode. The LogDataNode has all details on how to
-    // deserialize the object. We will just serialize the arguments in our queue but we need to look
-    // up their types to deserialize them
-
-    // Note: The serialization_metadata variable here is created during program init time,
-    // in runtime we just get it's pointer
-    detail::SerializationMetadata const* serialization_metadata =
-      detail::seriallization_metadata<TLogMacroMetadata, FmtArgs...>.serialization_metadata;
-
-    memcpy(write_buffer, &serialization_metadata, sizeof(uintptr_t));
-    write_buffer += sizeof(uintptr_t);
-
-    // Then write the pointer to the logger details of this logger
-    detail::LoggerDetails const* logger_details = std::addressof(_logger_details);
-    memcpy(write_buffer, &logger_details, sizeof(uintptr_t));
-    write_buffer += sizeof(uintptr_t);
-
-    // Write all arguments
-    detail::serialize_arguments(write_buffer, fmt_args...);
-
-    _thread_context_collection.local_thread_context()->raw_spsc_queue().commit_write(total_size);
-  }
-#endif
-
-  /**
-   * Push a log record event to the spsc queue to be logged by the backend thread.
-   * One spsc queue per caller thread. This function is used when the we want to log more
-   * complex types
-   * This is slightly slower to log than the other function.
-   * Instead of copying the arguments directly to the buffer instead we will put them in a tuple
-   * and push that tuple to the spsc queue
-   * @note This function is thread-safe.
-   * @param fmt_args format arguments
-   */
-#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
-  template <bool TryFastQueue, bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT std::enable_if_t<!detail::is_all_serializable<FmtArgs...>::value || IsBackTraceLogRecord || !TryFastQueue, void> log(
-    TFormatString format_string, FmtArgs&&... fmt_args)
-#else
-  // If the dual queue mode is not enabled, this is always enabled
-  template <bool TryFastQueue, bool IsBackTraceLogRecord, typename TLogMacroMetadata, typename TFormatString, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
-#endif
-  {
-    check_format(format_string, std::forward<FmtArgs>(fmt_args)...);
-    static_assert(
-      detail::is_all_copy_constructible<FmtArgs...>::value,
-      "The type must be copy constructible. If the type can not be copy constructed it must"
-      "be converted to string on the caller side.");
-
-    // Resolve the type of the record first
-    using log_record_event_t = quill::detail::LogEvent<IsBackTraceLogRecord, TLogMacroMetadata, FmtArgs...>;
+    std::byte* write_buffer = thread_context->spsc_queue().prepare_write(total_size);
 
 #if !defined(QUILL_MODE_UNSAFE)
-    static_assert(detail::is_copyable_v<typename log_record_event_t::RealTupleT>,
-                  "Trying to copy an unsafe to copy type. Either tag the object as copy "
-                  "loggable or explicitly format to string before logging.");
+    {
+      // not allowing unsafe copies
+      static_assert(detail::are_copyable_v<FmtArgs...>,
+                    "Trying to copy an unsafe to copy type. Tag or specialize the type as "
+                    "`copy_loggable` or explicitly format the type to string on the caller thread"
+                    "prior to logging. See "
+                    "https://github.com/odygrd/quill/wiki/8.-User-Defined-Types for more info.");
+    }
 #endif
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)
-    // emplace to the spsc queue owned by the ctx
-    if (QUILL_UNLIKELY(!_thread_context_collection.local_thread_context()->event_spsc_queue().try_emplace<log_record_event_t>(
-          std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...)))
+    if (QUILL_UNLIKELY(write_buffer == nullptr))
     {
       // not enough space to push to queue message is dropped
-      _thread_context_collection.local_thread_context()->increment_dropped_message_counter();
+      thread_context->increment_dropped_message_counter();
+      return;
     }
-#else
-    // emplace to the spsc queue owned by the ctx
-    _thread_context_collection.local_thread_context()->event_spsc_queue().emplace<log_record_event_t>(
-      std::addressof(_logger_details), std::forward<FmtArgs>(fmt_args)...);
 #endif
+
+    // we have enough space in this buffer, and we will write to the buffer
+
+    // Then write the pointer to the LogDataNode. The LogDataNode has all details on how to
+    // deserialize the object. We will just serialize the arguments in our queue but we need to
+    // look up their types to deserialize them
+
+    // Note: The metadata variable here is created during program init time,
+    // in runtime we just get it's pointer
+    std::byte* const write_begin = write_buffer;
+    write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
+
+    new (write_buffer)
+      detail::Header(get_metadata_ptr<TMacroMetadata, FmtArgs...>, std::addressof(_logger_details));
+    write_buffer += sizeof(detail::Header);
+
+    // encode remaining arguments
+    write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
+
+    thread_context->spsc_queue().commit_write(write_buffer - write_begin);
   }
 
   /**
@@ -235,20 +164,18 @@ public:
    */
   void init_backtrace(uint32_t capacity, LogLevel backtrace_flush_level = LogLevel::None)
   {
-    // Set the backtrace capacity by sending a command event to the queue
-    using event_t = detail::BacktraceEvent;
-#if defined(QUILL_USE_BOUNDED_QUEUE)
-    // emplace to the spsc queue owned by the ctx, we never drop the dump backtrace message
-    bool emplaced{false};
-    do
+    // we do not care about the other fields, except quill::MacroMetadata::Event::InitBacktrace
+    struct
     {
-      emplaced = _thread_context_collection.local_thread_context()->event_spsc_queue().try_emplace<event_t>(
-        std::addressof(_logger_details), capacity);
-    } while (!emplaced);
-#else
-    _thread_context_collection.local_thread_context()->event_spsc_queue().emplace<event_t>(
-      std::addressof(_logger_details), capacity);
-#endif
+      constexpr quill::MacroMetadata operator()() const noexcept
+      {
+        return quill::MacroMetadata{
+          QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace};
+      }
+    } anonymous_log_record_info;
+
+    // we pass this message to the queue and also pass capacity as arg
+    this->template log<decltype(anonymous_log_record_info)>(FMT_STRING("{}"), capacity);
 
     // Also store the desired flush log level
     _logger_details.set_backtrace_flush_level(backtrace_flush_level);
@@ -259,20 +186,18 @@ public:
    */
   void flush_backtrace()
   {
-    using event_t = detail::BacktraceEvent;
-
-#if defined(QUILL_USE_BOUNDED_QUEUE)
-    // emplace to the spsc queue owned by the ctx, we never drop the dump backtrace message
-    bool emplaced{false};
-    do
+    // we do not care about the other fields, except quill::MacroMetadata::Event::Flush
+    struct
     {
-      emplaced = _thread_context_collection.local_thread_context()->event_spsc_queue().try_emplace<event_t>(
-        std::addressof(_logger_details));
-    } while (!emplaced);
-#else
-    _thread_context_collection.local_thread_context()->event_spsc_queue().emplace<event_t>(
-      std::addressof(_logger_details));
-#endif
+      constexpr quill::MacroMetadata operator()() const noexcept
+      {
+        return quill::MacroMetadata{
+          QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace};
+      }
+    } anonymous_log_record_info;
+
+    // we pass this message to the queue and also pass capacity as arg
+    this->template log<decltype(anonymous_log_record_info)>(FMT_STRING(""));
   }
 
 private:

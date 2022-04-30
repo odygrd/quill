@@ -76,7 +76,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
                               std::function<void()> const& on_thread_start,
                               std::function<void(uint64_t, uint64_t, double)> const& log_func,
                               std::function<void()> const& on_thread_exit, uint16_t current_thread_num,
-                              std::vector<uint64_t>& latencies, double rdtsc_ticks_per_ns)
+                              std::vector<uint64_t>& latencies, double rdtsc_ns_per_tick)
 {
   // running thread affinity
   quill::detail::set_cpu_affinity(current_thread_num);
@@ -96,7 +96,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
     }
     auto const end = __rdtscp(&aux);
 
-    uint64_t const latency{static_cast<uint64_t>((end - start) / messages_per_iteration / rdtsc_ticks_per_ns)};
+    uint64_t const latency{static_cast<uint64_t>((end - start) / messages_per_iteration * rdtsc_ns_per_tick)};
     latencies.push_back(latency);
 
     // send the next batch of messages after x time
@@ -142,7 +142,7 @@ inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size
     // Spawn num threads
     threads.emplace_back(run_log_benchmark, num_iterations, (messages_per_iteration / thread_count),
                          std::ref(on_thread_start), std::ref(log_func), std::ref(on_thread_exit),
-                         thread_num + 1, std::ref(latencies[thread_num]), rdtsc_clock.ticks_per_nanosecond());
+                         thread_num + 1, std::ref(latencies[thread_num]), rdtsc_clock.nanoseconds_per_tick());
 #endif
   }
 

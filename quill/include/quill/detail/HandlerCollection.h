@@ -6,8 +6,6 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h"  // for QUILL_NODISCARD, QUILL_ATT...
-#include "quill/detail/misc/Common.h"      // for filename_t
-#include "quill/detail/misc/Spinlock.h"    // for Spinlock
 #include "quill/handlers/ConsoleHandler.h" // for ConsoleColours
 #include "quill/handlers/FileHandler.h"    // for FilenameAppend
 #include "quill/handlers/StreamHandler.h"  // for StreamHandler
@@ -64,10 +62,10 @@ public:
    */
   template <typename THandler, typename... Args>
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::enable_if_t<std::is_base_of<StreamHandler, THandler>::value, StreamHandler*> create_handler(
-    filename_t const& handler_name, Args&&... args)
+    std::string const& handler_name, Args&&... args)
   {
     // Protect shared access
-    std::lock_guard<Spinlock> const lock{_spinlock};
+    std::lock_guard<std::mutex> const lock{_mutex};
 
     // Try to insert it unless we failed it means we already had it
     auto const search = _handler_collection.find(handler_name);
@@ -91,10 +89,10 @@ public:
    */
   template <typename THandler, typename... Args>
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::enable_if_t<!std::is_base_of<StreamHandler, THandler>::value, Handler*> create_handler(
-    filename_t const& handler_name, Args&&... args)
+    std::string const& handler_name, Args&&... args)
   {
     // Protect shared access
-    std::lock_guard<Spinlock> const lock{_spinlock};
+    std::lock_guard<std::mutex> const lock{_mutex};
 
     // Try to insert it unless we failed it means we already had it
     auto const search = _handler_collection.find(handler_name);
@@ -134,7 +132,7 @@ public:
   // list Check if no other logger is using it first
 
 private:
-  QUILL_NODISCARD StreamHandler* _create_console_handler(filename_t const& stream, FILE* file,
+  QUILL_NODISCARD StreamHandler* _create_console_handler(std::string const& stream, FILE* file,
                                                          ConsoleColours const& console_colours);
 
 private:
@@ -148,12 +146,12 @@ private:
   /**
    * Owns all created handlers. Each handler is identified by name
    * For Streamhandlers the name is the filename, they are stored per unique filename so
-   * that we don't open the same file twice
+   * that we don't open_file the same file twice
    */
-  std::unordered_map<filename_t, std::unique_ptr<Handler>> _handler_collection;
+  std::unordered_map<std::string, std::unique_ptr<Handler>> _handler_collection;
 
   /** Use to lock both _active_handlers_collection and _file_handler_collection, mutable to have an active_handlers() const function */
-  mutable Spinlock _spinlock;
+  mutable std::mutex _mutex;
 };
 } // namespace detail
 } // namespace quill

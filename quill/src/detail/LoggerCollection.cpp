@@ -2,7 +2,7 @@
 #include "quill/QuillError.h"               // for QUILL_THROW, QuillError
 #include "quill/detail/HandlerCollection.h" // for HandlerCollection
 #include "quill/detail/LoggerDetails.h"     // for LoggerDetails
-#include "quill/detail/misc/Macros.h"       // for QUILL_UNLIKELY
+#include "quill/detail/misc/Common.h"       // for QUILL_UNLIKELY
 #include "quill/handlers/StreamHandler.h"   // for StreamHandler
 #include <mutex>                            // for lock_guard
 #include <utility>                          // for move, pair
@@ -33,7 +33,7 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
   if (logger_name)
   {
     std::string logger_name_str{logger_name};
-    std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
+    std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
     // Search for the logger
     auto const search = _logger_name_map.find(logger_name_str);
@@ -56,7 +56,7 @@ QUILL_NODISCARD std::unordered_map<std::string, Logger*> LoggerCollection::get_a
 {
   std::unordered_map<std::string, Logger*> logger_names;
 
-  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
+  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
   logger_names.reserve(_logger_name_map.size());
   for (auto const& elem : _logger_name_map)
   {
@@ -81,7 +81,7 @@ Logger* LoggerCollection::create_logger(char const* logger_name)
   // We can't use make_unique since the constructor is private
   std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(handlers), _thread_context_collection)};
 
-  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
+  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
   // Place the logger in our map
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
@@ -99,7 +99,7 @@ Logger* LoggerCollection::create_logger(char const* logger_name, Handler* handle
   // We can't use make_unique since the constructor is private
   std::unique_ptr<Logger> logger{new Logger(logger_name, handler, _thread_context_collection)};
 
-  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
+  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
@@ -119,7 +119,7 @@ Logger* LoggerCollection::create_logger(char const* logger_name, std::initialize
   // We can't use make_unique since the constructor is private
   std::unique_ptr<Logger> logger{new Logger(logger_name, handlers, _thread_context_collection)};
 
-  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
+  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
@@ -130,7 +130,7 @@ Logger* LoggerCollection::create_logger(char const* logger_name, std::initialize
 /***/
 void LoggerCollection::set_default_logger_handler(Handler* handler)
 {
-  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
+  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
   // Remove the old default logger
   _logger_name_map.erase(std::string{_default_logger_name});
@@ -142,7 +142,7 @@ void LoggerCollection::set_default_logger_handler(Handler* handler)
 /***/
 void LoggerCollection::set_default_logger_handler(std::initializer_list<Handler*> handlers)
 {
-  std::lock_guard<RecursiveSpinlock> const lock{_spinlock};
+  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
   // Remove the old default logger
   _logger_name_map.erase(std::string{_default_logger_name});

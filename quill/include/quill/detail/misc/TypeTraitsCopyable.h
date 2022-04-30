@@ -6,13 +6,9 @@
 #pragma once
 
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
-
-#ifdef _LIBCPP_VERSION
-  // libc++ does not forward declares tuple.
-  #include <tuple>
-#endif
 
 /**
  * Below are type traits to determine whether an object is marked as copyable.
@@ -50,81 +46,6 @@ struct copy_loggable : std::false_type
 
 namespace detail
 {
-
-/**
- * C++14 implementation of C++17's std::bool_constant.
- */
-template <bool B>
-using bool_constant = std::integral_constant<bool, B>;
-
-/**
- * C++14 implementation of C++17's std::conjunction
- */
-template <typename...>
-struct conjunction : std::true_type
-{
-};
-
-template <typename B1>
-struct conjunction<B1> : B1
-{
-};
-
-template <typename B1, typename... Bn>
-struct conjunction<B1, Bn...> : std::conditional_t<static_cast<bool>(B1::value),
-                                                   conjunction<Bn...>,
-                                                   B1
-                                                   >
-{
-};
-
-template <typename... B1>
-using conjunction_t = typename conjunction<B1...>::type;
-
-template <typename... B1>
-constexpr bool conjunction_v = conjunction<B1...>::value;
-
-/**
- * C++14 implementation of C++17's std::disjunction.
- */
-template <typename...>
-struct disjunction : std::false_type
-{
-};
-
-template <typename B1>
-struct disjunction<B1> : B1
-{
-};
-
-template <typename B1, typename... Bn>
-struct disjunction<B1, Bn...> : std::conditional_t<static_cast<bool>(B1::value),
-                                                   B1,
-                                                   disjunction<Bn...>
-                                                   >
-{
-};
-
-template <typename... B1>
-using disjunction_t = typename disjunction<B1...>::type;
-
-template <typename... B1>
-constexpr bool disjunction_v = disjunction<B1...>::value;
-
-/**
- * C++14 implementation of C++17's std::negation.
- */
-template <typename B>
-struct negation : bool_constant<!static_cast<bool>(B::value)>
-{
-};
-
-template <typename B>
-using negation_t = typename negation<B>::type;
-
-template <typename B>
-constexpr bool negation_v = negation<B>::value;
-
 /**
  * C++14 implementation of C++20's remove_cvref
  */
@@ -169,6 +90,12 @@ using is_copyable_t = typename is_copyable<remove_cvref_t<T>>::type;
 
 template <typename T>
 constexpr bool is_copyable_v = is_copyable<remove_cvref_t<T>>::value;
+
+template<typename... Args>
+using are_copyable_t = typename std::conjunction<is_copyable<remove_cvref_t<Args>>...>;
+
+template<typename... Args>
+constexpr bool are_copyable_v = std::conjunction_v<is_copyable<remove_cvref_t<Args>>...>;
 
 /**
  * A trait to detect an object was tagged as copy_loggable
@@ -233,7 +160,7 @@ struct is_copyable_pair : std::false_type
  */
 template <typename T1, typename T2>
 struct is_copyable_pair<std::pair<T1, T2>>
-  : conjunction<is_copyable<remove_cvref_t<T1>>,
+  : std::conjunction<is_copyable<remove_cvref_t<T1>>,
                 is_copyable<remove_cvref_t<T2>>
                 >
 {
@@ -270,7 +197,7 @@ struct is_container : std::false_type
  * Enable only when not a std::string as they also are like containers
  */
 template <typename T>
-struct is_container<T, std::enable_if_t<negation_v<is_string<T>>>>
+struct is_container<T, std::enable_if_t<std::negation_v<is_string<T>>>>
   : is_container_helper<T>
 {
 };
@@ -315,7 +242,7 @@ struct is_copyable_tuple : std::false_type
 
 template <typename... Ts>
 struct is_copyable_tuple<std::tuple<Ts...>>
-    : conjunction<is_copyable<remove_cvref_t<Ts>>...>
+    : std::conjunction<is_copyable<remove_cvref_t<Ts>>...>
 {
 };
 
@@ -323,8 +250,8 @@ struct is_copyable_tuple<std::tuple<Ts...>>
  * A user defined object that was tagged by the user to be copied
  */
 template <typename T>
-struct is_user_defined_copyable : conjunction<std::is_class<T>,
-                                              negation<std::is_trivial<T>>,
+struct is_user_defined_copyable : std::conjunction<std::is_class<T>,
+                                              std::negation<std::is_trivial<T>>,
                                               is_tagged_copyable<T>
                                              >
 {};
@@ -334,8 +261,8 @@ struct is_user_defined_copyable : conjunction<std::is_class<T>,
  * to copy_logable
  */
 template <typename T>
-struct is_user_registered_copyable : conjunction<std::is_class<T>,
-                                                 negation<std::is_trivial<T>>,
+struct is_user_registered_copyable : std::conjunction<std::is_class<T>,
+                                                 std::negation<std::is_trivial<T>>,
                                                  copy_loggable<T>
                                                  >
 {};
@@ -344,7 +271,7 @@ struct is_user_registered_copyable : conjunction<std::is_class<T>,
  * An object is copyable if it meets one of the following criteria
  */
 template <typename T>
-struct filter_copyable : disjunction<std::is_arithmetic<T>,
+struct filter_copyable : std::disjunction<std::is_arithmetic<T>,
                                      is_string<T>,
                                      std::is_trivial<T>,
                                      is_user_defined_copyable<T>,

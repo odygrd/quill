@@ -2,7 +2,7 @@
 #include "quill/QuillError.h"
 #include "quill/detail/Config.h"                    // for Config
 #include "quill/detail/HandlerCollection.h"         // for HandlerCollection
-#include "quill/detail/LogManagerSingleton.h"       // for LogManagerSingleton
+#include "quill/detail/LogManager.h"                // for LogManagerSingleton
 #include "quill/detail/LoggerCollection.h"          // for LoggerCollection
 #include "quill/detail/ThreadContext.h"             // for ThreadContext, Thr...
 #include "quill/detail/ThreadContextCollection.h"   // for ThreadContextColle...
@@ -22,7 +22,7 @@ void preallocate()
                                                  .log_manager()
                                                  .thread_context_collection()
                                                  .local_thread_context()
-                                                 ->event_spsc_queue()
+                                                 ->spsc_queue()
                                                  .capacity();
 }
 
@@ -52,60 +52,32 @@ Handler* stderr_handler(std::string const& stderr_handler_name /* = "stderr" */)
 }
 
 /***/
-Handler* file_handler(filename_t const& filename, std::string const& mode, /* = std::string{} */
+Handler* file_handler(std::filesystem::path const& filename, std::string const& mode, /* = std::string{} */
                       FilenameAppend append_to_filename /* = FilenameAppend::None */)
 {
-  return create_handler<FileHandler>(filename, mode, append_to_filename);
+  return create_handler<FileHandler>(filename.string(), mode, append_to_filename);
 }
 
 /***/
-Handler* time_rotating_file_handler(filename_t const& base_filename,
+Handler* time_rotating_file_handler(std::filesystem::path const& base_filename,
                                     std::string const& mode /* = std::string{"a"} */,
                                     std::string const& when /* = std::string{"H"} */,
                                     uint32_t interval /* = 1 */, uint32_t backup_count /* = 0 */,
                                     Timezone timezone /* = Timezone::LocalTime */,
                                     std::string const& at_time /* = std::string{} */)
 {
-  return create_handler<TimeRotatingFileHandler>(base_filename, mode, when, interval, backup_count,
-                                                 timezone, at_time);
+  return create_handler<TimeRotatingFileHandler>(base_filename.string(), mode, when, interval,
+                                                 backup_count, timezone, at_time);
 }
 
 /***/
-Handler* rotating_file_handler(filename_t const& base_filename,
+Handler* rotating_file_handler(std::filesystem::path const& base_filename,
                                std::string const& mode /* = std::string {"a"} */, size_t max_bytes /* = 0 */,
                                uint32_t backup_count /* = 0 */, bool overwrite_oldest_files /* = true */)
 {
-  return create_handler<RotatingFileHandler>(base_filename, mode, max_bytes, backup_count, overwrite_oldest_files);
+  return create_handler<RotatingFileHandler>(base_filename.string(), mode, max_bytes, backup_count,
+                                             overwrite_oldest_files);
 }
-
-#if defined(_WIN32)
-/***/
-Handler* file_handler(std::string const& filename, std::string const& mode /* = std::string{} */,
-                      FilenameAppend append_to_filename /* = FilenameAppend::None */)
-{
-  return file_handler(detail::s2ws(filename), mode, append_to_filename);
-}
-
-/***/
-Handler* time_rotating_file_handler(std::string const& base_filename,
-                                    std::string const& mode /* = std::string{"a"} */,
-                                    std::string const& when /* = std::string{"H"} */,
-                                    uint32_t interval /* = 1 */, uint32_t backup_count /* = 0 */,
-                                    Timezone timezone /* = Timezone::LocalTime */,
-                                    std::string const& at_time /* = std::string{} */)
-{
-  return time_rotating_file_handler(detail::s2ws(base_filename), mode, when, interval, backup_count,
-                                    timezone, at_time);
-}
-
-/***/
-Handler* rotating_file_handler(std::string const& base_filename,
-                               std::string const& mode /* = std::string {"a"} */, size_t max_bytes /* = 0 */,
-                               uint32_t backup_count /* = 0 */, bool overwrite_oldest_files /* = true */)
-{
-  return rotating_file_handler(detail::s2ws(base_filename), mode, max_bytes, backup_count, overwrite_oldest_files);
-}
-#endif
 
 /***/
 Logger* get_logger(char const* logger_name /* = nullptr */)

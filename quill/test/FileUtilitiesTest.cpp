@@ -8,156 +8,111 @@ TEST_SUITE_BEGIN("FileUtilities");
 
 using namespace quill;
 using namespace quill::detail;
-using namespace quill::detail::file_utilities;
 
 /***/
 TEST_CASE("extract_stem_and_extension")
 {
   {
     // simple file
-#if defined(_WIN32)
-    filename_t fname = L"logfile";
+    std::filesystem::path fname = "logfile";
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname.data());
-    REQUIRE_WSTREQ(res.second.data(), L"");
-#else
-    filename_t fname = "logfile";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname.data());
+    REQUIRE_STREQ(res.first.data(), fname.string().data());
     REQUIRE_STREQ(res.second.data(), "");
-#endif
   }
 
   {
     // simple directory
-#if defined(_WIN32)
-    filename_t fname = L"etc\\eng\\logfile";
+    std::filesystem::path fname = "etc";
+    fname /= "eng";
+    fname /= "logfile";
+
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname.data());
-    REQUIRE_WSTREQ(res.second.data(), L"");
-#else
-    filename_t fname = "etc/eng/logfile";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname.data());
+    REQUIRE_STREQ(res.first.data(), fname.string().data());
     REQUIRE_STREQ(res.second.data(), "");
-#endif
   }
 
   {
     // no file extension
-#if defined(_WIN32)
-    filename_t fname = L"logfile.";
+    std::filesystem::path fname = "logfile.";
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname.data());
-    REQUIRE_WSTREQ(res.second.data(), L"");
-#else
-    filename_t fname = "logfile.";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname.data());
-    REQUIRE_STREQ(res.second.data(), "");
-#endif
+    REQUIRE_STREQ(res.first.data(), "logfile");
+    REQUIRE_STREQ(res.second.data(), ".");
   }
 
   {
     // no file extension - directory
-#if defined(_WIN32)
-    filename_t fname = L"etc\\eng\\logfile.";
+    std::filesystem::path fname = "etc";
+    fname /= "eng";
+    fname /= "logfile.";
+
+    std::filesystem::path fname_expected = "etc";
+    fname_expected /= "eng";
+    fname_expected /= "logfile";
+
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname.data());
-    REQUIRE_WSTREQ(res.second.data(), L"");
-#else
-    filename_t fname = "etc/eng/logfile.";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname.data());
-    REQUIRE_STREQ(res.second.data(), "");
-#endif
+    REQUIRE_STREQ(res.first.data(), fname_expected.string().data());
+    REQUIRE_STREQ(res.second.data(), ".");
   }
 
   {
     // hidden file
-#if defined(_WIN32)
-    filename_t fname = L".logfile.";
+    std::filesystem::path fname = ".logfile.";
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname.data());
-    REQUIRE_WSTREQ(res.second.data(), L"");
-#else
-    filename_t fname = ".logfile.";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname.data());
-    REQUIRE_STREQ(res.second.data(), "");
-#endif
+    REQUIRE_STREQ(res.first.data(), ".logfile");
+    REQUIRE_STREQ(res.second.data(), ".");
   }
 
   {
     // hidden file - directory
-#if defined(_WIN32)
-    filename_t fname = L"etc\\eng\\.logfile";
+    std::filesystem::path fname = "etc";
+    fname /= "eng";
+    fname /= ".logfile";
+
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname.data());
-    REQUIRE_WSTREQ(res.second.data(), L"");
-#else
-    filename_t fname = "etc/eng/.logfile";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname.data());
+    REQUIRE_STREQ(res.first.data(), fname.string().data());
     REQUIRE_STREQ(res.second.data(), "");
-#endif
   }
 
   {
     // valid stem and extension
-#if defined(_WIN32)
-    filename_t fname = L"logfile.log";
-    filename_t fname_expected = L"logfile";
-    filename_t extension_expected = L".log";
+    std::filesystem::path fname = "logfile.log";
+    std::filesystem::path fname_expected = "logfile";
+    std::filesystem::path extension_expected = ".log";
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname_expected.data());
-    REQUIRE_WSTREQ(res.second.data(), extension_expected.data());
-#else
-    filename_t fname = "logfile.log";
-    filename_t fname_expected = "logfile";
-    filename_t extension_expected = ".log";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname_expected.data());
-    REQUIRE_STREQ(res.second.data(), extension_expected.data());
-#endif
+    REQUIRE_STREQ(res.first.data(), fname_expected.string().data());
+    REQUIRE_STREQ(res.second.data(), extension_expected.string().data());
   }
 
   {
     // valid stem and extension - directory
-#if defined(_WIN32)
-    filename_t fname = L"etc\\eng\\logfile.log";
-    filename_t fname_expected = L"etc\\eng\\logfile";
-    filename_t extension_expected = L".log";
+    std::filesystem::path fname = "etc";
+    fname /= "eng";
+    fname /= "logfile.log";
+
+    std::filesystem::path fname_expected = "etc";
+    fname_expected /= "eng";
+    fname_expected /= "logfile";
+
+    std::filesystem::path extension_expected = ".log";
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname_expected.data());
-    REQUIRE_WSTREQ(res.second.data(), extension_expected.data());
-#else
-    filename_t fname = "etc/eng/logfile.log";
-    filename_t fname_expected = "etc/eng/logfile";
-    filename_t extension_expected = ".log";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname_expected.data());
-    REQUIRE_STREQ(res.second.data(), extension_expected.data());
-#endif
+    REQUIRE_STREQ(res.first.data(), fname_expected.string().data());
+    REQUIRE_STREQ(res.second.data(), extension_expected.string().data());
   }
 
   {
     // valid stem and extension - directory
-#if defined(_WIN32)
-    filename_t fname = L"\\etc\\eng\\logfile.log";
-    filename_t fname_expected = L"\\etc\\eng\\logfile";
-    filename_t extension_expected = L".log";
+    std::filesystem::path fname = "/etc";
+    fname /= "eng";
+    fname /= "logfile.log";
+
+    std::filesystem::path fname_expected = "/etc";
+    fname_expected /= "eng";
+    fname_expected /= "logfile";
+
+    std::filesystem::path extension_expected = ".log";
     auto const res = extract_stem_and_extension(fname);
-    REQUIRE_WSTREQ(res.first.data(), fname_expected.data());
-    REQUIRE_WSTREQ(res.second.data(), extension_expected.data());
-#else
-    filename_t fname = "/etc/eng/logfile.log";
-    filename_t fname_expected = "/etc/eng/logfile";
-    filename_t extension_expected = ".log";
-    auto const res = extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname_expected.data());
-    REQUIRE_STREQ(res.second.data(), extension_expected.data());
-#endif
+    REQUIRE_STREQ(res.first.data(), fname_expected.string().data());
+    REQUIRE_STREQ(res.second.data(), extension_expected.string().data());
   }
 }
 
@@ -166,14 +121,10 @@ TEST_CASE("append_date_to_filename")
 {
   std::chrono::system_clock::time_point ts =
     std::chrono::system_clock::time_point{std::chrono::seconds{1583376945}};
-  filename_t expected_fname = QUILL_FILENAME_STR("logfile_2020-03-05.log");
-  filename_t base_fname = QUILL_FILENAME_STR("logfile.log");
+  std::filesystem::path expected_fname = "logfile_2020-03-05.log";
+  std::filesystem::path base_fname = "logfile.log";
 
-#if defined(_WIN32)
-  REQUIRE_WSTREQ(append_date_to_filename(base_fname, ts).data(), expected_fname.data());
-#else
-  REQUIRE_STREQ(append_date_to_filename(base_fname, ts).data(), expected_fname.data());
-#endif
+  REQUIRE_STREQ(append_date_to_filename(base_fname, ts).string().data(), expected_fname.string().data());
 }
 
 /***/
@@ -181,26 +132,18 @@ TEST_CASE("append_index_to_filename")
 {
   {
     // index is 0
-    filename_t expected_fname = QUILL_FILENAME_STR("logfile.log");
-    filename_t base_fname = QUILL_FILENAME_STR("logfile.log");
+    std::filesystem::path expected_fname = "logfile.log";
+    std::filesystem::path base_fname = "logfile.log";
 
-#if defined(_WIN32)
-    REQUIRE_WSTREQ(append_index_to_filename(base_fname, 0).data(), expected_fname.data());
-#else
-    REQUIRE_STREQ(append_index_to_filename(base_fname, 0).data(), expected_fname.data());
-#endif
+    REQUIRE_STREQ(append_index_to_filename(base_fname, 0).string().data(), expected_fname.string().data());
   }
 
   {
     // index is non zero
-    filename_t expected_fname = QUILL_FILENAME_STR("logfile.1.log");
-    filename_t base_fname = QUILL_FILENAME_STR("logfile.log");
+    std::filesystem::path expected_fname = "logfile.1.log";
+    std::filesystem::path base_fname = "logfile.log";
 
-#if defined(_WIN32)
-    REQUIRE_WSTREQ(append_index_to_filename(base_fname, 1).data(), expected_fname.data());
-#else
-    REQUIRE_STREQ(append_index_to_filename(base_fname, 1).data(), expected_fname.data());
-#endif
+    REQUIRE_STREQ(append_index_to_filename(base_fname, 1).string().data(), expected_fname.string().data());
   }
 }
 

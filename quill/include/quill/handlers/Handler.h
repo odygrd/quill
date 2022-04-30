@@ -6,14 +6,14 @@
 #pragma once
 
 #include "quill/Fmt.h"
-#include "quill/LogMacroMetadata.h"
+#include "quill/MacroMetadata.h"
 #include "quill/PatternFormatter.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
-#include "quill/detail/misc/RecursiveSpinlock.h"
 #include "quill/filters/FilterBase.h"
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace quill
@@ -115,8 +115,7 @@ public:
    * @return result of all filters
    */
   QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                                     LogMacroMetadata const& metadata,
-                                     fmt::memory_buffer const& formatted_record);
+                                     MacroMetadata const& metadata, fmt::memory_buffer const& formatted_record);
 
 private:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter
@@ -128,7 +127,7 @@ private:
 
   /** Global filter for this handler - protected by a spinlock **/
   std::vector<std::unique_ptr<FilterBase>> _global_filters;
-  quill::detail::RecursiveSpinlock _global_filters_lock;
+  std::recursive_mutex _global_filters_lock;
 
   /** Indicator that a new filter was added **/
   alignas(detail::CACHELINE_SIZE) std::atomic<bool> _new_filter{false};

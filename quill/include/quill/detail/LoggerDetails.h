@@ -6,7 +6,6 @@
 #pragma once
 
 #include "quill/detail/misc/Utilities.h"
-#include "quill/handlers/Handler.h"
 #include <atomic>
 #include <memory>
 #include <string>
@@ -14,6 +13,10 @@
 
 namespace quill
 {
+
+// ** Forward Declaration **/
+class Handler;
+
 namespace detail
 {
 /**

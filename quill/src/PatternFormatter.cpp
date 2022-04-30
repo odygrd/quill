@@ -1,6 +1,5 @@
 #include "quill/PatternFormatter.h"
 #include "quill/detail/LogManager.h"          // for LogManager
-#include "quill/detail/LogManagerSingleton.h" // for LogManagerSingleton
 #include <algorithm>                          // for max
 
 namespace quill
@@ -31,7 +30,7 @@ std::vector<PatternFormatter::argument_callback_t> PatternFormatter::_generate_v
 
       if (pos != std::string::npos)
       {
-        // we found user format specifiers that we need to remove before we pass the pattern_attr
+        // we found user format specifiers that we need to remove_file before we pass the pattern_attr
         pattern_attr = pattern_attr.substr(0, pos);
       }
 
@@ -58,45 +57,43 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
 
   if (pattern_attr == "ascii_time")
   {
-    return
-      [this](std::chrono::nanoseconds timestamp, char const*, char const*, char const*,
-             LogMacroMetadata const&) { return _timestamp_formatter.format_timestamp(timestamp); };
+    return [this](std::chrono::nanoseconds timestamp, char const*, char const*, char const*,
+                  MacroMetadata const&) { return _timestamp_formatter.format_timestamp(timestamp); };
   }
   else if (pattern_attr == "thread")
   {
     return [](std::chrono::nanoseconds, char const* thread_id, char const*, char const*,
-              LogMacroMetadata const&) { return thread_id; };
+              MacroMetadata const&) { return thread_id; };
   }
   else if (pattern_attr == "thread_name")
   {
     return [](std::chrono::nanoseconds, char const*, char const* thread_name, char const*,
-              LogMacroMetadata const&) { return thread_name; };
+              MacroMetadata const&) { return thread_name; };
   }
   else if (pattern_attr == "process")
   {
-    return [](std::chrono::nanoseconds, char const*, char const*, char const*, LogMacroMetadata const&) {
-      return detail::LogManagerSingleton::instance().log_manager().process_id().data();
-    };
+    return [](std::chrono::nanoseconds, char const*, char const*, char const*, MacroMetadata const&)
+    { return detail::LogManagerSingleton::instance().log_manager().process_id().data(); };
   }
   else if (pattern_attr == "pathname")
   {
     return [](std::chrono::nanoseconds, char const*, char const*, char const*,
-              LogMacroMetadata const& logline_info) { return logline_info.pathname(); };
+              MacroMetadata const& logline_info) { return logline_info.pathname(); };
   }
   else if (pattern_attr == "filename")
   {
     return [](std::chrono::nanoseconds, char const*, char const*, char const*,
-              LogMacroMetadata const& logline_info) { return logline_info.filename(); };
+              MacroMetadata const& logline_info) { return logline_info.filename(); };
   }
   else if (pattern_attr == "lineno")
   {
     return [](std::chrono::nanoseconds, char const*, char const*, char const*,
-              LogMacroMetadata const& logline_info) { return logline_info.lineno(); };
+              MacroMetadata const& logline_info) { return logline_info.lineno(); };
   }
   else if (pattern_attr == "fileline")
   {
-    return [this](std::chrono::nanoseconds, char const*, char const*, char const*,
-                  LogMacroMetadata const& logline_info) {
+    return [this](std::chrono::nanoseconds, char const*, char const*, char const*, MacroMetadata const& logline_info)
+    {
       _fileline.clear();
       _fileline += logline_info.filename();
       _fileline += ":";
@@ -107,22 +104,22 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
   else if (pattern_attr == "level_name")
   {
     return [](std::chrono::nanoseconds, char const*, char const*, char const*,
-              LogMacroMetadata const& logline_info) { return logline_info.level_as_str(); };
+              MacroMetadata const& logline_info) { return logline_info.level_as_str(); };
   }
   else if (pattern_attr == "level_id")
   {
     return [](std::chrono::nanoseconds, char const*, char const*, char const*,
-              LogMacroMetadata const& logline_info) { return logline_info.level_id_as_str(); };
+              MacroMetadata const& logline_info) { return logline_info.level_id_as_str(); };
   }
   else if (pattern_attr == "logger_name")
   {
     return [](std::chrono::nanoseconds, char const*, char const*, char const* logger_name,
-              LogMacroMetadata const&) { return logger_name; };
+              MacroMetadata const&) { return logger_name; };
   }
   else if (pattern_attr == "function_name")
   {
 #if defined(_WIN32)
-    return [this](std::chrono::nanoseconds, char const*, char const*, char const*, LogMacroMetadata const& logline_info)
+    return [this](std::chrono::nanoseconds, char const*, char const*, char const*, MacroMetadata const& logline_info)
     {
       // On windows, __FUNCTION__ also contains the namespace name e.g. a::b::my_function().
       _win_func = logline_info.func();
@@ -139,7 +136,7 @@ PatternFormatter::argument_callback_t PatternFormatter::_select_argument_callbac
     };
 #else
     return [](std::chrono::nanoseconds, char const*, char const*, char const*,
-              LogMacroMetadata const& logline_info) { return logline_info.func(); };
+              MacroMetadata const& logline_info) { return logline_info.func(); };
 #endif
   }
   else
@@ -177,7 +174,7 @@ std::string PatternFormatter::_generate_fmt_format_string(std::string pattern)
         // we found user format specifiers that we want to keep.
         // e.g. %(fileline:<32)
         std::string custom_format_specifier = pattern_attr.substr(pos);
-        custom_format_specifier.pop_back(); // remove ")"
+        custom_format_specifier.pop_back(); // remove_file ")"
 
         // replace with the pattern with the correct value
         std::string value;

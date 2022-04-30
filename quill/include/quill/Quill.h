@@ -7,9 +7,8 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/detail/LogMacros.h"             // for filename_t
+#include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManager.h"            // for LogManager
-#include "quill/detail/LogManagerSingleton.h"   // for LogManagerSingleton
 #include "quill/detail/backend/BackendWorker.h" // for backend_worker_error_h...
 #include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_COLD
 #include "quill/detail/misc/Common.h"           // for Timezone
@@ -17,12 +16,19 @@
 #include <chrono>                               // for hours, minutes, nanose...
 #include <cstddef>                              // for size_t
 #include <cstdint>                              // for uint16_t
-#include <initializer_list>                     // for initializer_list
-#include <string>                               // for string
-#include <unordered_map>                        // for unordered_map
+#include <filesystem>
+#include <initializer_list> // for initializer_list
+#include <string>           // for string
+#include <unordered_map>    // for unordered_map
 
 namespace quill
 {
+
+/** Version Info **/
+constexpr uint32_t VersionMajor{2};
+constexpr uint32_t VersionMinor{0};
+constexpr uint32_t VersionPatch{0};
+constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 /** forward declarations **/
 class Handler;
@@ -105,7 +111,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* stderr_handler(std::string const& 
  * @return A pointer to a new or existing handler
  */
 template <typename THandler, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(filename_t const& handler_name, Args&&... args)
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(std::string const& handler_name, Args&&... args)
 {
   return detail::LogManagerSingleton::instance().log_manager().handler_collection().create_handler<THandler>(
     handler_name, std::forward<Args>(args)...);
@@ -121,7 +127,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(filename_t const& h
  * If no value is specified during the file creation "a" is used as default.
  * @return A handler to a file
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& filename,
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::filesystem::path const& filename,
                                                            std::string const& mode = std::string{"a"},
                                                            FilenameAppend append_to_filename = FilenameAppend::None);
 
@@ -142,7 +148,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& fil
  * at_time specifies the time of day when rollover occurs and only used when 'daily' is passed. It must be in the format HH:MM
  *
  * @param base_filename the filename
- * @param mode mode to open the file 'a' or 'w'
+ * @param mode mode to open_file the file 'a' or 'w'
  * @param when 'M' for minutes, 'H' for hours or 'daily'
  * @param interval The interval used for rotation.
  * @param backup_count maximum backup files to keep
@@ -151,7 +157,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(filename_t const& fil
  * @return a pointer to a time rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
-  filename_t const& base_filename, std::string const& mode = std::string{"a"},
+  std::filesystem::path const& base_filename, std::string const& mode = std::string{"a"},
   std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
   Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"});
 
@@ -179,48 +185,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  * app.1.log, app.2.log, etc. exist, then they are renamed to app.2.log, app.3.log etc. respectively.
  *
  * @param base_filename the base file name
- * @param mode file mode to open file
- * @param max_bytes The max_bytes of the file, when the size is exceeded the file witll rollover
+ * @param mode file mode to open_file file
+ * @param max_bytes The max_bytes of the file, when the size is exceeded the file will rollover
  * @param backup_count The maximum number of times we want to rollover
  * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(
-  filename_t const& base_filename, std::string const& mode = std::string{"a"}, size_t max_bytes = 0,
-  uint32_t backup_count = 0, bool overwrite_oldest_files = true);
-
-#if defined(_WIN32)
-/**
- * @see create_handler
- */
-template <typename THandler, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(std::string const& handler_name, Args&&... args)
-{
-  return create_handler<THandler>(detail::s2ws(handler_name), std::forward<Args>(args)...);
-}
-
-/**
- * @see file_handler
- */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::string const& filename,
-                                                           std::string const& mode = std::string{"a"},
-                                                           FilenameAppend append_to_filename = FilenameAppend::None);
-/**
- * @see time_rotating_file_handler
- */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
-  std::string const& base_filename, std::string const& mode = std::string{"a"},
-  std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
-  Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"});
-
-/**
- * @see rotating_file_handler
- */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(std::string const& base_filename,
-                                                                    std::string const& mode = std::string{"a"},
-                                                                    size_t max_bytes = 0,
-                                                                    uint32_t backup_count = 0, 
-                                                                    bool overwrite_oldest_files = true);
-#endif
+  std::filesystem::path const& base_filename, std::string const& mode = std::string{"a"},
+  size_t max_bytes = 0, uint32_t backup_count = 0, bool overwrite_oldest_files = true);
 
 /**
  * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed

@@ -7,10 +7,10 @@
 
 #include "quill/Fmt.h"                    // for memory_buffer
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_HOT, QUILL...
-#include "quill/detail/misc/Common.h"     // for filename_t
 #include "quill/handlers/Handler.h"       // for Handler
 #include <chrono>                         // for nanoseconds
 #include <cstdio>                         // for FILE
+#include <filesystem>
 
 namespace quill
 {
@@ -30,7 +30,7 @@ public:
    * @param stream only stdout or stderr
    * @throws on invalid param
    */
-  explicit StreamHandler(filename_t stream, FILE* file = nullptr);
+  explicit StreamHandler(std::filesystem::path stream, FILE* file = nullptr);
 
   ~StreamHandler() override = default;
 
@@ -51,7 +51,7 @@ public:
   /**
    * @return return the name of the file
    */
-  QUILL_NODISCARD virtual filename_t const& filename() const noexcept;
+  QUILL_NODISCARD virtual std::filesystem::path const& filename() const noexcept;
 
   /**
    * @return stdout, stderr or file based on FILE*
@@ -59,7 +59,7 @@ public:
   QUILL_NODISCARD StreamHandlerType stream_handler_type() const noexcept;
 
 protected:
-  filename_t _filename;
+  std::filesystem::path _filename;
   FILE* _file{nullptr};
 };
 } // namespace quill

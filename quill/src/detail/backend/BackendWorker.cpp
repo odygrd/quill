@@ -82,7 +82,7 @@ void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thr
       std::string const msg = fmt::format("~ {} localtime dropped {} log messages from thread {}\n",
                                           ts, dropped_messages_cnt, thread_context->thread_id());
 
-      detail::file_utilities::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
+      detail::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
     }
   }
 #endif

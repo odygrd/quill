@@ -146,11 +146,12 @@ FMT_API const std::error_category& system_category() FMT_NOEXCEPT;
 FMT_BEGIN_DETAIL_NAMESPACE
 // A converter from UTF-16 to UTF-8.
 // It is only provided for Windows since other systems support UTF-8 natively.
-class utf16_to_utf8 {
- private:
+class utf16_to_utf8
+{
+private:
   memory_buffer buffer_;
 
- public:
+public:
   utf16_to_utf8() {}
   FMT_API explicit utf16_to_utf8(basic_string_view<wchar_t> s);
   operator string_view() const { return string_view(&buffer_[0], size()); }
@@ -164,12 +165,10 @@ class utf16_to_utf8 {
   FMT_API int convert(basic_string_view<wchar_t> s);
 };
 
-FMT_API void format_windows_error(buffer<char>& out, int error_code,
-                                  const char* message) FMT_NOEXCEPT;
+FMT_API void format_windows_error(buffer<char>& out, int error_code, const char* message) FMT_NOEXCEPT;
 FMT_END_DETAIL_NAMESPACE
 
-FMT_API std::system_error vwindows_error(int error_code, string_view format_str,
-                                         format_args args);
+FMT_API std::system_error vwindows_error(int error_code, string_view format_str, format_args args);
 
 /**
  \rst
@@ -195,20 +194,19 @@ FMT_API std::system_error vwindows_error(int error_code, string_view format_str,
    HFILE file = OpenFile(filename, &of, OF_READ);
    if (file == HFILE_ERROR) {
      throw fmt::windows_error(GetLastError(),
-                              "cannot open file '{}'", filename);
+                              "cannot open_file file '{}'", filename);
    }
  \endrst
 */
 template <typename... Args>
-std::system_error windows_error(int error_code, string_view message,
-                                const Args&... args) {
+std::system_error windows_error(int error_code, string_view message, const Args&... args)
+{
   return vwindows_error(error_code, message, fmt::make_format_args(args...));
 }
 
 // Reports a Windows error without throwing an exception.
 // Can be used to report errors from destructors.
-FMT_API void report_windows_error(int error_code,
-                                  const char* message) FMT_NOEXCEPT;
+FMT_API void report_windows_error(int error_code, const char* message) FMT_NOEXCEPT;
 #else
 inline const std::error_category& system_category() FMT_NOEXCEPT {
   return std::system_category();
@@ -460,8 +458,8 @@ class FMT_API ostream final : private detail::buffer<char> {
   \rst
   Opens a file for writing. Supported parameters passed in *params*:
 
-  * ``<integer>``: Flags passed to `open
-    <https://pubs.opengroup.org/onlinepubs/007904875/functions/open.html>`_
+  * ``<integer>``: Flags passed to `open_file
+    <https://pubs.opengroup.org/onlinepubs/007904875/functions/open_file.html>`_
     (``file::WRONLY | file::CREATE`` by default)
   * ``buffer_size=<integer>``: Output buffer size
 

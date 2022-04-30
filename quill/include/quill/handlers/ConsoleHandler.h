@@ -7,7 +7,6 @@
 
 #include "quill/LogLevel.h"
 #include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"     // for filename_t
 #include "quill/handlers/StreamHandler.h" // for StreamHandler
 #include <array>
 #include <string> // for string
@@ -188,7 +187,7 @@ private:
 class ConsoleHandler : public StreamHandler
 {
 public:
-  ConsoleHandler(filename_t stream, FILE* file, ConsoleColours const& console_colours);
+  ConsoleHandler(std::string stream, FILE* file, ConsoleColours const& console_colours);
 
   ~ConsoleHandler() override = default;
 

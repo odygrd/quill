@@ -2459,12 +2459,12 @@ FMT_API auto vsystem_error(int error_code, string_view format_str,
  **Example**::
 
    // This throws std::system_error with the description
-   //   cannot open file 'madeup': No such file or directory
+   //   cannot open_file file 'madeup': No such file or directory
    // or similar (system message may vary).
    const char* filename = "madeup";
    std::FILE* file = std::fopen(filename, "r");
    if (!file)
-     throw fmt::system_error(errno, "cannot open file '{}'", filename);
+     throw fmt::system_error(errno, "cannot open_file file '{}'", filename);
  \endrst
 */
 template <typename... T>

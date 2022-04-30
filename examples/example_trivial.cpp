@@ -58,6 +58,7 @@ int main()
   quill::Logger* default_logger = quill::get_logger();
 
   LOG_INFO(default_logger, "Welcome to Quill!");
+  LOG_INFO(default_logger, "Print a vector {} ", std::vector<int>{1, 2, 3, 4, 5});
   LOG_ERROR(default_logger, "An error message with error code {}, error message {}", 123,
             "system_error");
 

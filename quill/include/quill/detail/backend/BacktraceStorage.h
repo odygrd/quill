@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "quill/detail/backend/FreeListAllocator.h"
+#include "quill/detail/backend/TransitEvent.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -28,11 +28,11 @@ class BaseEvent;
  * For simplicity this class is used ONLY by the backend worker thread.
  * We push to the queue a BacktraceCommand event to communicate this from the frontend caller threads
  */
-class BacktraceLogRecordStorage
+class BacktraceStorage
 {
 public:
-  BacktraceLogRecordStorage();
-  ~BacktraceLogRecordStorage()
+  BacktraceStorage() = default;
+  ~BacktraceStorage()
   {
     // we want to clear all messages first, calling deallocate on the free list allocator before destructing
     _stored_records_map.clear();
@@ -44,8 +44,7 @@ public:
    * @param thread_id the thread id of this record
    * @param record the record to store
    */
-  void store(std::string const& logger_name, std::string thread_id, std::string thread_name,
-             BaseEvent const* record);
+  void store(TransitEvent transit_event);
 
   /**
    * Calls the provided callback on all stored objects. The stored objects are provided
@@ -53,8 +52,7 @@ public:
    * @param logger_name The name of the logger
    * @param callback A user provided lambda [](std::string const& thread_id, RecordBase const* record) { ... }
    */
-  void process(std::string const& logger_name,
-               std::function<void(std::string const&, std::string const&, BaseEvent const*)> const& callback);
+  void process(std::string const& logger_name, std::function<void(TransitEvent const&)> const& callback);
 
   /**
    * Insert a new StoredObject with the given capacity
@@ -71,24 +69,7 @@ public:
   void clear(std::string const& logger_name);
 
 private:
-  /**
-   * In this type we store a full copy of the thread id (because the thread context can get
-   * destroyed before printing the backtrace) and a copy of the Record we would like to log
-   */
-  struct BacktraceLogRecord
-  {
-    BacktraceLogRecord(std::string thread_id, std::string thread_name,
-                       std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> base_record)
-      : thread_id(std::move(thread_id)), thread_name(std::move(thread_name)), base_record(std::move(base_record))
-    {
-    }
-
-    std::string thread_id;
-    std::string thread_name;
-    std::unique_ptr<BaseEvent, FreeListAllocatorDeleter<BaseEvent>> base_record;
-  };
-
-  using StoredRecordsCollection = std::vector<BacktraceLogRecord>;
+  using StoredRecordsCollection = std::vector<TransitEvent>;
 
   /**
    * We map each logger name to this type
@@ -109,8 +90,6 @@ private:
 private:
   /** A map where we store a vector of stored records for each logger name. We use the vectors like a ring buffer and loop around */
   std::unordered_map<std::string, StoredRecordInfo> _stored_records_map;
-
-  FreeListAllocator _free_list_allocator; /** The backstore records are stored here */
 };
 } // namespace detail
 } // namespace quill

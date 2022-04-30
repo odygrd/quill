@@ -164,7 +164,7 @@ void ConsoleColours::_set_can_use_colours(FILE* file) noexcept
 #endif
 
 /***/
-ConsoleHandler::ConsoleHandler(filename_t stream, FILE* file, ConsoleColours const& console_colours)
+ConsoleHandler::ConsoleHandler(std::string stream, FILE* file, ConsoleColours const& console_colours)
   : StreamHandler{std::move(stream), file}, _console_colours(console_colours)
 {
   // In this ctor we take a full copy of console_colours and in our instance we modify it
@@ -221,7 +221,7 @@ void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_record,
     // Write colour code
     std::string const& colour_code = _console_colours.colour_code(log_message_severity);
 
-    detail::file_utilities::fwrite_fully(colour_code.data(), sizeof(char), colour_code.size(), _file);
+    detail::fwrite_fully(colour_code.data(), sizeof(char), colour_code.size(), _file);
   }
 
   // Write record to file
@@ -229,8 +229,7 @@ void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_record,
 
   if (_console_colours.can_use_colours())
   {
-    detail::file_utilities::fwrite_fully(ConsoleColours::reset.data(), sizeof(char),
-                                         ConsoleColours::reset.size(), _file);
+    detail::fwrite_fully(ConsoleColours::reset.data(), sizeof(char), ConsoleColours::reset.size(), _file);
   }
 #endif
 }

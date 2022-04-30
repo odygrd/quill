@@ -1,5 +1,4 @@
 #include "quill/Quill.h"
-#include "quill/detail/misc/Common.h" // for filename_t
 #include "quill/handlers/Handler.h"   // for Handler
 
 #include <iostream>

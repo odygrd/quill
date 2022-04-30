@@ -5,17 +5,15 @@
 
 #pragma once
 
-#include "quill/detail/events/BaseEvent.h"
+#include "quill/Fmt.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
-#include "quill/detail/spsc_queue/UnboundedSPSCEventQueue.h"
+#include "quill/detail/spsc_queue/UnboundedQueue.h"
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /**
  * Each thread has it's own instance of a ThreadContext class
@@ -29,11 +27,10 @@ namespace detail
 class ThreadContext
 {
 public:
-  using RawSPSCQueueT = BoundedSPSCRawQueue;
 #if defined(QUILL_USE_BOUNDED_QUEUE)
-  using EventSPSCQueueT = BoundedSPSCEventQueue<BaseEvent>;
+  using SPSCQueueT = BoundedQueue;
 #else
-  using EventSPSCQueueT = UnboundedSPSCEventQueue<BaseEvent>;
+  using SPSCQueueT = UnboundedQueue;
 #endif
 
   /**
@@ -66,38 +63,15 @@ public:
   /**
    * @return A reference to the generic single-producer-single-consumer queue
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT EventSPSCQueueT& event_spsc_queue() noexcept
-  {
-    return _event_spsc_queue;
-  }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT SPSCQueueT& spsc_queue() noexcept { return _spsc_queue; }
 
   /**
    * @return A reference to the generic single-producer-single-consumer queue const overload
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT EventSPSCQueueT const& event_spsc_queue() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT SPSCQueueT const& spsc_queue() const noexcept
   {
-    return _event_spsc_queue;
+    return _spsc_queue;
   }
-
-#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
-  /**
-   * In this queue we store only log statements that contain 100% of built-in types
-   * @return A reference to the fast single-producer-single-consumer queue
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT RawSPSCQueueT& raw_spsc_queue() noexcept
-  {
-    return _raw_spsc_queue;
-  }
-
-  /**
-   * In this queue we store only log statements that contain 100% of built-in types
-   * @return A reference to the fast single-producer-single-consumer queue const overload
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT RawSPSCQueueT const& raw_spsc_queue() const noexcept
-  {
-    return _raw_spsc_queue;
-  }
-#endif
 
   /**
    * @return The cached thread id value
@@ -146,11 +120,7 @@ public:
 #endif
 
 private:
-#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
-  RawSPSCQueueT _raw_spsc_queue; /** queue for this thread, only log statements with POD types are here */
-#endif
-
-  EventSPSCQueueT _event_spsc_queue; /** queue for this thread, events are pushed here */
+  SPSCQueueT _spsc_queue; /** queue for this thread, events are pushed here */
   std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                    /**< cache this thread name */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
@@ -161,4 +131,3 @@ private:
 #endif
 };
 } // namespace detail
-} // namespace quill

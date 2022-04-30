@@ -32,36 +32,6 @@ QUILL_NODISCARD constexpr bool is_pow_of_two(uint64_t number) noexcept
 }
 
 /**
- * Constexpr string length
- * @param str input string
- * @return the length of the string
- */
-QUILL_NODISCARD constexpr size_t strlength(char const* str)
-{
-  return *str ? 1 + strlength(str + 1) : 0;
-}
-
-/**
- * Constexpr string length
- * @param str input string
- * @return the length of the string
- */
-QUILL_NODISCARD constexpr size_t strlength(wchar_t const* str)
-{
-  return *str ? 1 + strlength(str + 1) : 0;
-}
-
-/**
- * Constexpr string comparison
- * @param lhs string 1
- * @param rhs string 2
- * @return true if they are equal
- */
-QUILL_NODISCARD constexpr bool strequal(char const* lhs, char const* rhs)
-{
-  return (*lhs && *rhs) ? (*lhs == *rhs && strequal(lhs + 1, rhs + 1)) : (!*lhs && !*rhs);
-}
-/**
  * Finds and replaces all occurrences of the old value in the given string
  * @param str The string we want to search and replace
  * @param old_value the old value to be replaced

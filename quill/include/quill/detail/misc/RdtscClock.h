@@ -61,7 +61,7 @@ public:
    * Sync base wall time and base tsc.
    * @see static constexpr std::chrono::minutes resync_timer_{5};
    */
-  void resync() const noexcept;
+  bool resync(uint32_t lag) const noexcept;
 
   /**
    * rdtsc ticks per nanosecond

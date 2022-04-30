@@ -15,7 +15,7 @@ public:
   FileFilter() : quill::FilterBase("FileFilter"){};
 
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                              quill::LogMacroMetadata const& metadata,
+                              quill::MacroMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
   {
     // log only messages that are INFO or above in the file
@@ -32,7 +32,7 @@ public:
   StdoutFilter() : quill::FilterBase("StdoutFilter"){};
 
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                              quill::LogMacroMetadata const& metadata,
+                              quill::MacroMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
   {
     // log only WARNINGS or higher to stdout

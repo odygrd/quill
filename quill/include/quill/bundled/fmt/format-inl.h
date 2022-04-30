@@ -2060,7 +2060,7 @@ FMT_INLINE decimal_fp<T> shorter_interval_case(int exponent) FMT_NOEXCEPT {
   // Try bigger divisor
   ret_value.significand = zi / 10;
 
-  // If succeed, remove trailing zeros if necessary and return
+  // If succeed, remove_file trailing zeros if necessary and return
   if (ret_value.significand * 10 >= xi) {
     ret_value.exponent = minus_k + 1;
     ret_value.exponent += remove_trailing_zeros(ret_value.significand);
@@ -2129,7 +2129,7 @@ template <typename T> decimal_fp<T> to_decimal(T x) FMT_NOEXCEPT {
   const carrier_uint zi =
       cache_accessor<T>::compute_mul(two_fr << beta_minus_1, cache);
 
-  // Step 2: Try larger divisor; remove trailing zeros if necessary
+  // Step 2: Try larger divisor; remove_file trailing zeros if necessary
 
   // Using an upper bound on zi, we might be able to optimize the division
   // better than the compiler; we are computing zi / big_divisor here
@@ -2161,7 +2161,7 @@ template <typename T> decimal_fp<T> to_decimal(T x) FMT_NOEXCEPT {
   }
   ret_value.exponent = minus_k + float_info<T>::kappa + 1;
 
-  // We may need to remove trailing zeros
+  // We may need to remove_file trailing zeros
   ret_value.exponent += remove_trailing_zeros(ret_value.significand);
   return ret_value;
 
@@ -2475,7 +2475,7 @@ int snprintf_float(T value, int precision, float_specs specs,
         buf.try_resize(size);
         return 0;
       }
-      // Find and remove the decimal point.
+      // Find and remove_file the decimal point.
       auto end = begin + size, p = end;
       do {
         --p;

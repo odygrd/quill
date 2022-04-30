@@ -1,6 +1,6 @@
 #include "quill/LogLevel.h"
 #include "quill/QuillError.h"         // for QUILL_THROW, QuillError
-#include "quill/detail/misc/Macros.h" // for QUILL_UNLIKELY
+#include "quill/detail/misc/Common.h" // for QUILL_UNLIKELY
 #include <algorithm>                  // for transform, max
 #include <array>                      // for array
 #include <cctype>                     // for tolower

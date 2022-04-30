@@ -52,13 +52,8 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
   // Flush all log
   quill::flush();
 
-#if defined(_WIN32)
-  // Read file and check
-  std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
-#else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-#endif
 
   REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads);
 
@@ -76,11 +71,7 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
     }
   }
 
-#if defined(_WIN32)
-  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
-#else
-  quill::detail::file_utilities::remove(filename);
-#endif
+  quill::detail::remove_file(filename);
 }
 
 /***/
@@ -90,13 +81,8 @@ TEST_CASE("log_from_one_thread")
   static constexpr size_t number_of_threads = 1;
   static constexpr char const* test_id = "single";
 
-#if defined(_WIN32)
-  static constexpr wchar_t const* filename = L"log_from_one_thread.log";
-  test_quill_log(test_id, quill::detail::ws2s(filename), number_of_threads, number_of_messages);
-#else
   static constexpr char const* filename = "log_from_one_thread.log";
   test_quill_log(test_id, filename, number_of_threads, number_of_messages);
-#endif
 }
 
 /***/
@@ -106,13 +92,8 @@ TEST_CASE("log_from_multiple_threads")
   static constexpr size_t number_of_threads = 10;
   static constexpr char const* test_id = "multi";
 
-#if defined(_WIN32)
-  static constexpr wchar_t const* filename = L"log_from_multiple_threads.log";
-  test_quill_log(test_id, quill::detail::ws2s(filename), number_of_threads, number_of_messages);
-#else
   static constexpr char const* filename = "log_from_multiple_threads.log";
   test_quill_log(test_id, filename, number_of_threads, number_of_messages);
-#endif
 }
 
 /**
@@ -161,17 +142,10 @@ TEST_CASE("log_from_const_function")
 
   quill::flush();
 
-#if defined(_WIN32)
-  // Read file and check
-  std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
-  REQUIRE_EQ(file_contents.size(), 3);
-  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
-#else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   REQUIRE_EQ(file_contents.size(), 3);
-  quill::detail::file_utilities::remove(filename);
-#endif
+  quill::detail::remove_file(filename);
 }
 
 /***/
@@ -213,28 +187,6 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
 
   quill::flush();
 
-#if defined(_WIN32)
-  // Read file and check
-  std::vector<std::string> const file_contents =
-    quill::testing::file_contents(quill::detail::s2ws(base_filename));
-  REQUIRE_GE(file_contents.size(), 3);
-
-  std::vector<std::string> const file_contents_1 =
-    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_1));
-  REQUIRE_GE(file_contents_1.size(), 7);
-
-  std::vector<std::string> const file_contents_2 =
-    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2));
-  REQUIRE_GE(file_contents_2.size(), 7);
-
-  std::vector<std::string> const file_contents_3 =
-    quill::testing::file_contents(quill::detail::s2ws(base_filename_2));
-  REQUIRE_GE(file_contents_3.size(), 4);
-
-  std::vector<std::string> const file_contents_4 =
-    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2nd_1));
-  REQUIRE_GE(file_contents_4.size(), 7);
-#else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
   REQUIRE_GE(file_contents.size(), 3);
@@ -251,23 +203,13 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
 
   std::vector<std::string> const file_contents_4 = quill::testing::file_contents(rotated_filename_2nd_1);
   REQUIRE_GE(file_contents_4.size(), 7);
-#endif
 
-#if defined(_WIN32)
   // Remove filenames
-  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_1));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename_2));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2nd_1));
-#else
-  // Remove filenames
-  quill::detail::file_utilities::remove(base_filename);
-  quill::detail::file_utilities::remove(rotated_filename_1);
-  quill::detail::file_utilities::remove(rotated_filename_2);
-  quill::detail::file_utilities::remove(base_filename_2);
-  quill::detail::file_utilities::remove(rotated_filename_2nd_1);
-#endif
+  quill::detail::remove_file(base_filename);
+  quill::detail::remove_file(rotated_filename_1);
+  quill::detail::remove_file(rotated_filename_2);
+  quill::detail::remove_file(base_filename_2);
+  quill::detail::remove_file(rotated_filename_2nd_1);
 }
 
 /***/
@@ -309,28 +251,6 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
 
   quill::flush();
 
-#if defined(_WIN32)
-  // Read file and check
-  std::vector<std::string> const file_contents =
-    quill::testing::file_contents(quill::detail::s2ws(base_filename));
-  REQUIRE_GE(file_contents.size(), 3);
-
-  std::vector<std::string> const file_contents_1 =
-    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_1));
-  REQUIRE_GE(file_contents_1.size(), 7);
-
-  std::vector<std::string> const file_contents_2 =
-    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2));
-  REQUIRE_GE(file_contents_2.size(), 7);
-
-  std::vector<std::string> const file_contents_3 =
-    quill::testing::file_contents(quill::detail::s2ws(base_filename_2));
-  REQUIRE_GE(file_contents_3.size(), 11);
-
-  std::vector<std::string> const file_contents_4 =
-    quill::testing::file_contents(quill::detail::s2ws(rotated_filename_2nd_1));
-  REQUIRE_GE(file_contents_4.size(), 7);
-#else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
   REQUIRE_GE(file_contents.size(), 3);
@@ -347,23 +267,13 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
 
   std::vector<std::string> const file_contents_4 = quill::testing::file_contents(rotated_filename_2nd_1);
   REQUIRE_GE(file_contents_4.size(), 7);
-#endif
 
-#if defined(_WIN32)
   // Remove filenames
-  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_1));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename_2));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(rotated_filename_2nd_1));
-#else
-  // Remove filenames
-  quill::detail::file_utilities::remove(base_filename);
-  quill::detail::file_utilities::remove(rotated_filename_1);
-  quill::detail::file_utilities::remove(rotated_filename_2);
-  quill::detail::file_utilities::remove(base_filename_2);
-  quill::detail::file_utilities::remove(rotated_filename_2nd_1);
-#endif
+  quill::detail::remove_file(base_filename);
+  quill::detail::remove_file(rotated_filename_1);
+  quill::detail::remove_file(rotated_filename_2);
+  quill::detail::remove_file(base_filename_2);
+  quill::detail::remove_file(rotated_filename_2nd_1);
 }
 
 /***/
@@ -392,27 +302,14 @@ TEST_CASE("log_using_daily_file_handler")
 
   quill::flush();
 
-#if defined(_WIN32)
-  std::vector<std::string> const file_contents =
-    quill::testing::file_contents(quill::detail::s2ws(base_filename));
-  REQUIRE_EQ(file_contents.size(), 20);
-#else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
   REQUIRE_EQ(file_contents.size(), 20);
-#endif
 
-#if defined(_WIN32)
   // Remove filenames
-  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
-  quill::detail::file_utilities::remove(quill::detail::s2ws(base_filename));
-#else
-  // Remove filenames
-  quill::detail::file_utilities::remove(base_filename);
-  quill::detail::file_utilities::remove(base_filename);
-  quill::detail::file_utilities::remove(base_filename);
-#endif
+  quill::detail::remove_file(base_filename);
+  quill::detail::remove_file(base_filename);
+  quill::detail::remove_file(base_filename);
 }
 
 /***/
@@ -459,7 +356,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:436         LOG_INFO      root         - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:333         LOG_INFO      root         - Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -470,7 +367,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     {
 
       std::string expected_string =
-        "custom - Hello log num " + std::to_string(i) + " (_DOCTEST_ANON_FUNC_16)";
+        "custom - Hello log num " + std::to_string(i) + " (DOCTEST_ANON_FUNC_15)";
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -500,8 +397,8 @@ TEST_CASE("log_using_stderr")
   std::string results = quill::testing::GetCapturedStderr();
 
   REQUIRE_EQ(results,
-             "log_using_stderr - Hello log stderr (_DOCTEST_ANON_FUNC_20)\n"
-             "log_using_stderr - Hello log stderr again (_DOCTEST_ANON_FUNC_20)\n");
+             "log_using_stderr - Hello log stderr (DOCTEST_ANON_FUNC_19)\n"
+             "log_using_stderr - Hello log stderr again (DOCTEST_ANON_FUNC_19)\n");
 }
 
 /***/
@@ -530,9 +427,9 @@ TEST_CASE("log_to_multiple_handlers_from_same_logger")
   std::string results_handler_2 = quill::testing::GetCapturedStdout();
 
   REQUIRE_EQ(results_handler_1,
-             "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_22)\n");
+             "log_multi_handlers - Hello log multiple handlers (DOCTEST_ANON_FUNC_21)\n");
   REQUIRE_EQ(results_handler_2,
-             "log_multi_handlers - Hello log multiple handlers (_DOCTEST_ANON_FUNC_22)\n");
+             "log_multi_handlers - Hello log multiple handlers (DOCTEST_ANON_FUNC_21)\n");
 }
 
 /***/
@@ -565,17 +462,10 @@ TEST_CASE("check_log_arguments_evaluation")
 
   quill::flush();
 
-#if defined(_WIN32)
-  // Read file and check
-  std::vector<std::string> const file_contents = quill::testing::file_contents(quill::detail::s2ws(filename));
-  REQUIRE_EQ(file_contents.size(), 1);
-  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
-#else
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   REQUIRE_EQ(file_contents.size(), 1);
-  quill::detail::file_utilities::remove(filename);
-#endif
+  quill::detail::remove_file(filename);
 }
 #ifndef QUILL_NO_EXCEPTIONS
 /***/
@@ -601,12 +491,8 @@ TEST_CASE("invalid_handlers")
   terminal_colours.set_default_colours();
   REQUIRE_THROWS_AS(auto x5 = quill::stdout_handler("stdout", terminal_colours), quill::QuillError);
 
-  // remove file
-  #if defined(_WIN32)
-  quill::detail::file_utilities::remove(quill::detail::s2ws(filename));
-  #else
-  quill::detail::file_utilities::remove(filename);
-  #endif
+  // remove_file file
+  quill::detail::remove_file(filename);
 }
 #endif
 

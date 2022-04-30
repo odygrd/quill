@@ -6,9 +6,9 @@
 #pragma once
 
 #include "quill/Fmt.h"                               // for memory_buffer
-#include "quill/LogMacroMetadata.h"                  // for LogMacroMetadata
+#include "quill/MacroMetadata.h"                     // for MacroMetadata
 #include "quill/QuillError.h"                        // for QUILL_THROW, Quil...
-#include "quill/bundled/invoke/invoke.h"             // for apply
+#include "quill/detail/LoggerDetails.h"
 #include "quill/detail/backend/TimestampFormatter.h" // for TimestampFormatter
 #include "quill/detail/misc/Attributes.h"            // for QUILL_NODISCARD
 #include "quill/detail/misc/Common.h"                // for Timezone, Timezon...
@@ -25,25 +25,13 @@
 
 #if defined(_WIN32)
   #include "quill/detail/misc/Os.h"
-  #include "quill/detail/misc/TypeTraits.h"
 #endif
 
 /**
  * A macro to pass a string as a constexpr argument
  * Must be used in order to pass the arguments to the set_pattern function
  */
-#define QUILL_STRING(str)                                                                          \
-  []                                                                                               \
-  {                                                                                                \
-    union X                                                                                        \
-    {                                                                                              \
-      static constexpr auto value()                                                                \
-      {                                                                                            \
-        return str;                                                                                \
-      }                                                                                            \
-    };                                                                                             \
-    return X{};                                                                                    \
-  }()
+#define QUILL_STRING(str) []() { return std::string_view{str}; }
 
 namespace quill
 {
@@ -94,7 +82,7 @@ private:
      */
     virtual void format(fmt::memory_buffer& memory_buffer, std::chrono::nanoseconds timestamp,
                         char const* thread_id, char const* thread_name, char const* logger_name,
-                        LogMacroMetadata const& logline_info) const = 0;
+                        MacroMetadata const& macro_metadata) const = 0;
   };
 
   /**
@@ -117,9 +105,8 @@ private:
      * @param logger_name name of logger
      * @param logline_info pointer to the log line info object
      */
-    void format(fmt::memory_buffer& memory_buffer, std::chrono::nanoseconds timestamp,
-                char const* thread_id, char const* thread_name, char const* logger_name,
-                LogMacroMetadata const& logline_info) const override
+    void format(fmt::memory_buffer& memory_buffer, std::chrono::nanoseconds timestamp, char const* thread_id,
+                char const* thread_name, char const* logger_name, MacroMetadata const& logline_info) const override
     {
       // lambda expand the stored tuple arguments
       auto format_buffer = [this, &memory_buffer, timestamp, thread_id, thread_name, logger_name,
@@ -129,7 +116,7 @@ private:
                        tuple_args(timestamp, thread_id, thread_name, logger_name, logline_info)...);
       };
 
-      invoke_hpp::apply(format_buffer, _tuple_of_callbacks);
+      std::apply(format_buffer, _tuple_of_callbacks);
     }
 
   private:
@@ -193,63 +180,9 @@ public:
    */
   ~PatternFormatter() = default;
 
-#if !defined(_WIN32)
-  /**
-   * Formats the given LogRecord
-   * @param timestamp timestamp since epoch
-   * @param thread_id caller thread id
-   * @param thread_name caller thread name
-   * @param logger_name name of logger
-   * @param logline_info pointer to the constexpr logline_info object
-   * @param args log statement arguments
-   */
-  template <typename... Args>
-  void format(std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
-              char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const;
-
-#else
-  /**
-   * Formats the given LogRecord
-   * Enabled only when there are no wide strings as arguments.
-   * Everything is promoted to wstring before copied to the queue so we do not need
-   * to check against anything else here.
-   *
-   * @param timestamp timestamp since epoch
-   * @param thread_id caller thread id
-   * @param thread_name caller thread name
-   * @param logger_name name of logger
-   * @param logline_info pointer to the constexpr logline_info object
-   * @param args log statement arguments
-   * @return a fmt::memory_buffer that contains the formatted log record
-   */
-  template <typename... Args>
-  typename std::enable_if_t<!(detail::any_is_same<std::wstring, void, Args...>::value), void> format(
-    std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
-    char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const;
-
-  /**
-   * Formats the given LogRecord after converting the wide characters to UTF-8
-   * Enabled when a wide character is passed as an argument.
-   * Everything is promoted to wstring before copied to the queue so we do not need
-   * to check against anything else here.
-   *
-   * @param timestamp timestamp since epoch
-   * @param thread_id caller thread id
-   * @param thread_name caller thread name
-   * @param logger_name name of logger
-   * @param logline_info pointer to the constexpr logline_info object
-   * @param args log statement arguments
-   * @return a fmt::memory_buffer that contains the formatted log record
-   */
-  template <typename... Args>
-  typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::value), void> format(
-    std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
-    char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const;
-#endif
-
   inline void format(std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
-                     char const* logger_name, LogMacroMetadata const& logline_info,
-                     fmt::dynamic_format_arg_store<fmt::format_context> const& fmt_arg_store) const;
+                     char const* logger_name, MacroMetadata const& macro_metadata,
+                     quill::detail::FormatFnMemoryBuffer const& log_msg) const;
 
   /**
    * Returns the stored formatted record, to be called after format(...) is called
@@ -262,7 +195,7 @@ private:
    * The stored callback type that will return the appropriate value based on the format pattern specifiers
    */
   using argument_callback_t =
-    std::function<char const*(std::chrono::nanoseconds, char const*, char const*, char const*, LogMacroMetadata const&)>;
+    std::function<char const*(std::chrono::nanoseconds, char const*, char const*, char const*, MacroMetadata const&)>;
 
   /**
    * Generate a tuple of callbacks [](size i) { };
@@ -332,7 +265,7 @@ private:
    * @return an array with the count of %(..) for part 1 and part 3
    * */
   template <typename TConstantString>
-  QUILL_NODISCARD static constexpr std::array<size_t, 2> _parse_format_pattern();
+  QUILL_NODISCARD static constexpr std::array<size_t, 2> _parse_format_pattern(TConstantString cs);
 
   /**
    * Process part of the pattern and create a helper formatter class
@@ -390,104 +323,24 @@ private:
 
 /** Inline Implementation **/
 
-#if !defined(_WIN32)
-/***/
-template <typename... Args>
-void PatternFormatter::format(std::chrono::nanoseconds timestamp, const char* thread_id,
-                              const char* thread_name, char const* logger_name,
-                              LogMacroMetadata const& logline_info, Args const&... args) const
-{
-  // clear out existing buffer
-  _formatted_log_record.clear();
-
-  // Format part 1 of the pattern first
-  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, thread_name,
-                                           logger_name, logline_info);
-
-  // Format the user requested string
-  fmt::format_to(std::back_inserter(_formatted_log_record),
-                 fmt::runtime(logline_info.message_format()), args...);
-
-  // Format part 3 of the pattern
-  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, thread_name,
-                                           logger_name, logline_info);
-
-  // Append a new line
-  _formatted_log_record.push_back('\n');
-}
-#else
-/***/
-template <typename... Args>
-typename std::enable_if_t<!(detail::any_is_same<std::wstring, void, Args...>::value), void> PatternFormatter::format(
-  std::chrono::nanoseconds timestamp, const char* thread_id, const char* thread_name,
-  char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const
-{
-  // clear out existing buffer
-  _formatted_log_record.clear();
-
-  // Format part 1 of the pattern first
-  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, thread_name,
-                                           logger_name, logline_info);
-
-  // Format the user requested string
-  fmt::format_to(std::back_inserter(_formatted_log_record),
-                 fmt::runtime(logline_info.message_format()), args...);
-
-  // Format part 3 of the pattern
-  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, thread_name,
-                                           logger_name, logline_info);
-
-  // Append a new line
-  _formatted_log_record.push_back('\n');
-}
-
-/***/
-template <typename... Args>
-typename std::enable_if_t<(detail::any_is_same<std::wstring, void, Args...>::value), void> PatternFormatter::format(
-  std::chrono::nanoseconds timestamp, char const* thread_id, const char* thread_name,
-  char const* logger_name, LogMacroMetadata const& logline_info, Args const&... args) const
-{
-  // clear out existing buffer
-  _formatted_log_record.clear();
-
-  // Format part 1 of the pattern first
-  _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, thread_name,
-                                           logger_name, logline_info);
-
-  // Format the whole message to a wide buffer
-  _w_memory_buffer.clear();
-  fmt::format_to(std::back_inserter(_w_memory_buffer), fmt::runtime(logline_info.wmessage_format()), args...);
-
-  // Convert the results to UTF-8
-  detail::wstring_to_utf8(_w_memory_buffer, _formatted_log_record);
-
-  // Format part 3 of the pattern
-  _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, thread_name,
-                                           logger_name, logline_info);
-
-  // Append a new line
-  _formatted_log_record.push_back('\n');
-}
-#endif
-
 /***/
 void PatternFormatter::format(std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
-                              char const* logger_name, LogMacroMetadata const& logline_info,
-                              fmt::dynamic_format_arg_store<fmt::format_context> const& fmt_arg_store) const
+                              char const* logger_name, MacroMetadata const& macro_metadata,
+                              quill::detail::FormatFnMemoryBuffer const& log_msg) const
 {
   // clear out existing buffer
   _formatted_log_record.clear();
 
   // Format part 1 of the pattern first
   _pattern_formatter_helper_part_1->format(_formatted_log_record, timestamp, thread_id, thread_name,
-                                           logger_name, logline_info);
+                                           logger_name, macro_metadata);
 
-  // Format the user requested string
-  fmt::vformat_to(std::back_inserter(_formatted_log_record), logline_info.message_format(), fmt_arg_store);
+  // append the user requested string
+  _formatted_log_record.append(log_msg.begin(), log_msg.end());
 
   // Format part 3 of the pattern
   _pattern_formatter_helper_part_3->format(_formatted_log_record, timestamp, thread_id, thread_name,
-                                           logger_name, logline_info);
+                                           logger_name, macro_metadata);
 
   // Append a new line
   _formatted_log_record.push_back('\n');
@@ -495,24 +348,25 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, char const* th
 
 /***/
 template <typename TConstantString>
-void PatternFormatter::_set_pattern(TConstantString)
+void PatternFormatter::_set_pattern(TConstantString cs)
 {
-  std::string const pattern = TConstantString::value();
+  constexpr std::string_view pattern = cs();
 
   // parse and check the given pattern
-  size_t const message_found = pattern.find("%(message)");
-  if (message_found == std::string::npos)
+  constexpr std::string_view message{"%(message)"};
+  size_t const message_found = pattern.find(message);
+  if constexpr (message_found == std::string::npos)
   {
     QUILL_THROW(QuillError{"%(message) is required in the format pattern"});
   }
 
   // break down the pattern to three parts, we can ignore part_2 which will be '%(message)'
-  std::string const pattern_part_1 = pattern.substr(0, message_found);
-  std::string const pattern_part_3 = pattern.substr(message_found + quill::detail::strlength("%(message)"));
+  std::string const pattern_part_1 = std::string{pattern.substr(0, message_found)};
+  std::string const pattern_part_3 = std::string{pattern.substr(message_found + message.length())};
 
   // calculate the size of the format specifiers '%'
   // pos 0 = number of part_1 args, pos 1 = number of part_3 args
-  constexpr std::array<size_t, 2> arr = _parse_format_pattern<TConstantString>();
+  constexpr std::array<size_t, 2> arr = _parse_format_pattern<TConstantString>(cs);
   constexpr size_t part_1_args_count = arr[0];
   constexpr size_t part_3_args_count = arr[1];
 
@@ -523,10 +377,10 @@ void PatternFormatter::_set_pattern(TConstantString)
 
 /***/
 template <typename TConstantString>
-constexpr std::array<size_t, 2> PatternFormatter::_parse_format_pattern()
+constexpr std::array<size_t, 2> PatternFormatter::_parse_format_pattern(TConstantString cs)
 {
-  constexpr char const* pattern = TConstantString::value();
-  constexpr size_t len = quill::detail::strlength(pattern);
+  constexpr std::string_view pattern = cs();
+  constexpr size_t len = pattern.length();
 
   size_t pos{0};
   bool part_2_found = false;
@@ -551,7 +405,7 @@ constexpr std::array<size_t, 2> PatternFormatter::_parse_format_pattern()
                            pattern[pos + 7], pattern[pos + 8],
                            pattern[pos + 9], '\0'};
 
-          if (quill::detail::strequal(attr, "(message)"))
+          if (std::string_view{attr} == "(message)")
           {
             // do not increment the style counter
             part_2_found = true;

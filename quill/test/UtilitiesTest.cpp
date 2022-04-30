@@ -77,8 +77,6 @@ TEST_CASE("safe_strftime_resize")
 
 TEST_CASE("safe_strftime_empty")
 {
-  constexpr char const* format_string = "";
-
   // Get the timestamp now
   time_t raw_ts;
   std::time(&raw_ts);
@@ -88,11 +86,11 @@ TEST_CASE("safe_strftime_empty")
 
   // we will format a string greater than 32
   char expected_result[256];
-  std::strftime(expected_result, 256, format_string, &time_info);
+  std::strftime(expected_result, 256, "", &time_info);
 
   // Also try our version
   std::string const safe_strftime_result =
-    std::string{safe_strftime(format_string, raw_ts, Timezone::LocalTime).data()};
+    std::string{safe_strftime("", raw_ts, Timezone::LocalTime).data()};
 
   REQUIRE_STREQ(expected_result, safe_strftime_result.data());
 }
