@@ -17,7 +17,6 @@ namespace quill
 {
 /**
  * Captures and stores information about a logging event in compile time
- * This information is later passed to the LogEvent runtime class
  */
 class MacroMetadata
 {

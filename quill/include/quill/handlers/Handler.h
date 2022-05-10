@@ -66,14 +66,14 @@ public:
   QUILL_ATTRIBUTE_HOT PatternFormatter& formatter() { return *_formatter; }
 
   /**
-   * Logs a formatted log record to the handler
+   * Logs a formatted log message to the handler
    * @note: Accessor for backend processing
-   * @param formatted_log_record input log record to write
-   * @param log_record_timestamp log record timestamp
+   * @param formatted_log_message input log message to write
+   * @param log_message_timestamp log message timestamp
    * @param log_message_severity the severity of the log message
    */
-  QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_record,
-                                         std::chrono::nanoseconds log_record_timestamp,
+  QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_message,
+                                         std::chrono::nanoseconds log_message_timestamp,
                                          LogLevel log_message_severity) = 0;
 
   /**
@@ -113,7 +113,7 @@ public:
    * @note: called internally by the backend worker thread.
    * @return result of all filters
    */
-  QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+  QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
                                      MacroMetadata const& metadata, fmt::memory_buffer const& formatted_record);
 
 private:

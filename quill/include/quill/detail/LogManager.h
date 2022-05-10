@@ -98,7 +98,7 @@ public:
           QUILL_STRINGIFY(__LINE__),         __FILE__, __FUNCTION__, "", LogLevel::Critical,
           quill::MacroMetadata::Event::Flush};
       }
-    } anonymous_log_record_info;
+    } anonymous_log_message_info;
 
     detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
     uint32_t total_size = sizeof(detail::Header) + sizeof(uintptr_t);
@@ -109,7 +109,7 @@ public:
 
     write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
 
-    new (write_buffer) detail::Header(get_metadata_ptr<decltype(anonymous_log_record_info)>, nullptr);
+    new (write_buffer) detail::Header(get_metadata_ptr<decltype(anonymous_log_message_info)>, nullptr);
     write_buffer += sizeof(detail::Header);
 
     // encode the pointer to atomic bool

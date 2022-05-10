@@ -191,7 +191,7 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_vi
                               MacroMetadata const& macro_metadata, fmt::memory_buffer const& log_msg)
 {
   // clear out existing buffer
-  _formatted_log_record.clear();
+  _formatted_log_message.clear();
 
   std::string const fileline = fmt::format("{}:{}", macro_metadata.filename(), macro_metadata.lineno());
 
@@ -209,11 +209,11 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_vi
   _set_arg_val<Attribute::FileLine>(std::string_view{fileline});
   _set_arg_val<Attribute::Message>(std::string_view{log_msg.begin(), log_msg.size()});
 
-  fmt::vformat_to(std::back_inserter(_formatted_log_record), _format,
+  fmt::vformat_to(std::back_inserter(_formatted_log_message), _format,
                   fmt::basic_format_args(_args.data(), static_cast<int>(_args.size())));
 
   // Append a new line
-  _formatted_log_record.push_back('\n');
+  _formatted_log_message.push_back('\n');
 }
 
 } // namespace quill

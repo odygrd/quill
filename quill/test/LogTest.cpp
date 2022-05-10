@@ -521,7 +521,7 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
     for (uint32_t i = 0; i < 4; ++i)
     {
   #if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
-      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // On ARM we add a small delay because log messages can get the same timestamp from rdtsc
       // when in this loop and make the test unstable
       std::this_thread::sleep_for(std::chrono::microseconds{200});
   #endif
@@ -565,7 +565,7 @@ TEST_CASE("log_backtrace_and_flush_on_error_1")
     for (uint32_t i = 0; i < 12; ++i)
     {
 #if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
-      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // On ARM we add a small delay because log messages can get the same timestamp from rdtsc
       // when in this loop and make the test unstable
       std::this_thread::sleep_for(std::chrono::microseconds{200});
 #endif
@@ -619,7 +619,7 @@ TEST_CASE("log_backtrace_and_flush_on_error_2")
     for (uint32_t i = 0; i < 12; ++i)
     {
 #if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
-      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // On ARM we add a small delay because log messages can get the same timestamp from rdtsc
       // when in this loop and make the test unstable
       std::this_thread::sleep_for(std::chrono::microseconds{200});
 #endif
@@ -675,7 +675,7 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
     for (uint32_t i = 0; i < 12; ++i)
     {
 #if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
-      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // On ARM we add a small delay because log messages can get the same timestamp from rdtsc
       // when in this loop and make the test unstable
       std::this_thread::sleep_for(std::chrono::microseconds{200});
 #endif
@@ -735,7 +735,7 @@ TEST_CASE("log_backtrace_manual_flush")
     for (uint32_t i = 0; i < 12; ++i)
     {
 #if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
-      // On ARM we add a small delay because log records can get the same timestamp from rdtsc
+      // On ARM we add a small delay because log messages can get the same timestamp from rdtsc
       // when in this loop and make the test unstable
       std::this_thread::sleep_for(std::chrono::microseconds{200});
 #endif
@@ -792,7 +792,7 @@ class FileFilter1 : public quill::FilterBase
 public:
   FileFilter1() : quill::FilterBase("FileFilter1"){};
 
-  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
                               quill::MacroMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
   {
@@ -812,7 +812,7 @@ class FileFilter2 : public quill::FilterBase
 public:
   FileFilter2() : quill::FilterBase("FileFilter2"){};
 
-  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
                               quill::MacroMetadata const& metadata,
                               fmt::memory_buffer const& formatted_record) noexcept override
   {

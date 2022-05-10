@@ -73,7 +73,7 @@ public:
   /**
    * Checks if the given log_statement_level can be logged by this logger
    * @param log_statement_level The log level of the log statement to be logged
-   * @return bool if a log record can be logged based on the current log level
+   * @return bool if a message can be logged based on the current log level
    */
   QUILL_NODISCARD bool should_log(LogLevel log_statement_level) const noexcept
   {
@@ -83,7 +83,7 @@ public:
   /**
    * Checks if the given log_statement_level can be logged by this logger
    * @tparam log_statement_level The log level of the log statement to be logged
-   * @return bool if a log record can be logged based on the current log level
+   * @return bool if a message can be logged based on the current log level
    */
   template <LogLevel log_statement_level>
   QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log() const noexcept
@@ -92,7 +92,7 @@ public:
   }
 
   /**
-   * Push a log record event to the spsc queue to be logged by the backend thread.
+   * Push a log message to the spsc queue to be logged by the backend thread.
    * One spsc queue per caller thread. This function is enabled only when all arguments are
    * fundamental types.
    * This is the fastest way possible to log
@@ -107,7 +107,7 @@ public:
     detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
 
     constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
-    size_t c_string_sizes[std::max(c_string_count, static_cast<size_t>(1))];
+    size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
 
     size_t const total_size = sizeof(detail::Header) + detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
 
@@ -172,10 +172,10 @@ public:
         return quill::MacroMetadata{
           QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace};
       }
-    } anonymous_log_record_info;
+    } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_record_info)>(FMT_STRING("{}"), capacity);
+    this->template log<decltype(anonymous_log_message_info)>(FMT_STRING("{}"), capacity);
 
     // Also store the desired flush log level
     _logger_details.set_backtrace_flush_level(backtrace_flush_level);
@@ -194,10 +194,10 @@ public:
         return quill::MacroMetadata{
           QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace};
       }
-    } anonymous_log_record_info;
+    } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_record_info)>(FMT_STRING(""));
+    this->template log<decltype(anonymous_log_message_info)>(FMT_STRING(""));
   }
 
 private:

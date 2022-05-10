@@ -11,7 +11,7 @@ int main()
   quill::Handler* stdout_handler_1 = quill::stdout_handler("stdout_1");
 
   stdout_handler_1->set_pattern(
-    "%(ascii_time) [%(process)] [%(thread)] LOG_%(level_name) %(logger_name) - %(message)", // log recorder format
+    "%(ascii_time) [%(process)] [%(thread)] LOG_%(level_name) %(logger_name) - %(message)", // message format
     "%D %H:%M:%S.%Qms %z",     // timestamp format
     quill::Timezone::GmtTime); // timestamp's timezone
 
@@ -20,7 +20,7 @@ int main()
   // Get the stdout file handler, with another unique name
   quill::Handler* stdout_handler_2 = quill::stdout_handler("stdout_2");
 
-  stdout_handler_2->set_pattern("%(ascii_time) LOG_%(level_name) %(logger_name) - %(message)", // log recorder format
+  stdout_handler_2->set_pattern("%(ascii_time) LOG_%(level_name) %(logger_name) - %(message)", // message format
                                 "%D %H:%M:%S.%Qms %z",     // timestamp format
                                 quill::Timezone::GmtTime); // timestamp's timezone
 

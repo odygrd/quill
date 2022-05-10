@@ -189,7 +189,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(fmt::string_view format
                                                          std::vector<fmt::basic_format_arg<fmt::format_context>>& args)
 {
   constexpr size_t num_dtors = fmt::detail::count<need_call_dtor_for<Args>()...>();
-  std::byte* dtor_args[std::max(num_dtors, (size_t)1)];
+  std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
 
   args.clear();
   std::byte* ret = decode_args<0, Args...>(data, args, dtor_args);

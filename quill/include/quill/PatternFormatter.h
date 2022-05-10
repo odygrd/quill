@@ -104,9 +104,9 @@ public:
    * Returns the stored formatted record, to be called after format(...) is called
    * @return Returns the stored formatted record
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt::memory_buffer const& formatted_log_record() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt::memory_buffer const& formatted_log_message() const noexcept
   {
-    return _formatted_log_record;
+    return _formatted_log_message;
   }
 
 private:
@@ -161,6 +161,6 @@ private:
 
   /** The buffer where we store each formatted string, also stored as class member to avoid
    * re-allocations. This is mutable so we can have a format() const function **/
-  fmt::memory_buffer _formatted_log_record;
+  fmt::memory_buffer _formatted_log_message;
 };
 } // namespace quill

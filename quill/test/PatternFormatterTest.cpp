@@ -30,7 +30,7 @@ TEST_CASE("default_pattern_formatter")
   default_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                    log_line_info, mbuff);
 
-  auto const& formatted_buffer = default_pattern_formatter.formatted_log_record();
+  auto const& formatted_buffer = default_pattern_formatter.formatted_log_message();
 
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -61,7 +61,7 @@ TEST_CASE("custom_pattern_message_only")
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
 
-  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -93,7 +93,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
 
-  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -126,7 +126,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
 
-  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -159,7 +159,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
 
-  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -192,7 +192,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
 
-  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -228,7 +228,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
                    "pattern", 1234);
     custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                     log_line_info, mbuff);
-    auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+    auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
     // Convert the buffer to a string
     std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -265,7 +265,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
                    "pattern", 1234);
     custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                     log_line_info, mbuff);
-    auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+    auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
     // Convert the buffer to a string
     std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -328,7 +328,7 @@ TEST_CASE("custom_pattern")
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
 
-  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);
@@ -362,7 +362,7 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
 
-  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_record();
+  auto const& formatted_buffer = custom_pattern_formatter.formatted_log_message();
 
   // Convert the buffer to a string
   std::string const formatted_string = fmt::to_string(formatted_buffer);

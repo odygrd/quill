@@ -172,8 +172,8 @@ ConsoleHandler::ConsoleHandler(std::string stream, FILE* file, ConsoleColours co
 }
 
 /***/
-void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_record,
-                           std::chrono::nanoseconds log_record_timestamp, LogLevel log_message_severity)
+void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_message,
+                           std::chrono::nanoseconds log_message_timestamp, LogLevel log_message_severity)
 {
 #if defined(_WIN32)
   if (_console_colours.using_colours())
@@ -187,8 +187,8 @@ void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_record,
 
     // Write to console
     bool const write_to_console =
-      ::WriteConsoleA(out_handle, formatted_log_record.data(),
-                      static_cast<DWORD>(formatted_log_record.size()), nullptr, nullptr);
+      ::WriteConsoleA(out_handle, formatted_log_message.data(),
+                      static_cast<DWORD>(formatted_log_message.size()), nullptr, nullptr);
 
     if (QUILL_UNLIKELY(!write_to_console))
     {
@@ -213,7 +213,7 @@ void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_record,
   else
   {
     // Write record to file
-    StreamHandler::write(formatted_log_record, log_record_timestamp, log_message_severity);
+    StreamHandler::write(formatted_log_message, log_message_timestamp, log_message_severity);
   }
 #else
   if (_console_colours.can_use_colours())
@@ -225,7 +225,7 @@ void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_record,
   }
 
   // Write record to file
-  StreamHandler::write(formatted_log_record, log_record_timestamp, log_message_severity);
+  StreamHandler::write(formatted_log_message, log_message_timestamp, log_message_severity);
 
   if (_console_colours.can_use_colours())
   {

@@ -23,19 +23,19 @@ RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filen
 }
 
 /***/
-void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_record,
-                                std::chrono::nanoseconds log_record_timestamp, LogLevel log_message_severity)
+void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_message,
+                                std::chrono::nanoseconds log_message_timestamp, LogLevel log_message_severity)
 {
-  _current_size += formatted_log_record.size();
+  _current_size += formatted_log_message.size();
 
   if (_current_size > _max_bytes)
   {
     _rotate();
-    _current_size = formatted_log_record.size();
+    _current_size = formatted_log_message.size();
   }
 
   // write to file
-  StreamHandler::write(formatted_log_record, log_record_timestamp, log_message_severity);
+  StreamHandler::write(formatted_log_message, log_message_timestamp, log_message_severity);
 }
 
 /***/

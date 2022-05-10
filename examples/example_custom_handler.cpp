@@ -11,15 +11,15 @@ public:
   ~CustomHandler() override = default;
 
   /**
-   * Write a formatted log record to the stream
-   * @param formatted_log_record input log record to write
-   * @param log_record_timestamp log record timestamp
+   * Write a formatted message to the stream
+   * @param formatted_log_message input message to write
+   * @param log_message_timestamp log timestamp
    */
-  void write(fmt::memory_buffer const& formatted_log_record,
-             std::chrono::nanoseconds log_record_timestamp, quill::LogLevel log_message_severity) override
+  void write(fmt::memory_buffer const& formatted_log_message,
+             std::chrono::nanoseconds log_message_timestamp, quill::LogLevel log_message_severity) override
   {
     // write a formatted log
-    std::string log{formatted_log_record.data(), formatted_log_record.size()};
+    std::string log{formatted_log_message.data(), formatted_log_message.size()};
     std::cout << log << "\n";
   }
 

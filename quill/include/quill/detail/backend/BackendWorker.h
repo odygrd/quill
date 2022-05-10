@@ -157,7 +157,7 @@ private:
 
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
 
-  BacktraceStorage _backtrace_log_record_storage; /** Stores a vector of backtrace log records per logger name */
+  BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
   FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
 
   /** Id of the current running process **/
@@ -362,31 +362,31 @@ void BackendWorker::_process_transit_event()
         if (QUILL_UNLIKELY(transit_event->header.metadata->macro_metadata.level() >=
                            transit_event->header.logger_details->backtrace_flush_level()))
         {
-          _backtrace_log_record_storage.process(transit_event->header.logger_details->name(),
-                                                [this](TransitEvent const& transit_event)
-                                                { _write_transit_event(transit_event); });
+          _backtrace_log_message_storage.process(transit_event->header.logger_details->name(),
+                                                 [this](TransitEvent const& transit_event)
+                                                 { _write_transit_event(transit_event); });
         }
       }
       else
       {
         // this is a backtrace log and we will store it
-        _backtrace_log_record_storage.store(*transit_event);
+        _backtrace_log_message_storage.store(*transit_event);
       }
     }
     else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
     {
       // we can just convert the capacity back to int here and use it
-      _backtrace_log_record_storage.set_capacity(
+      _backtrace_log_message_storage.set_capacity(
         transit_event->header.logger_details->name(),
         static_cast<uint32_t>(std::stoul(
           std::string{transit_event->formatted_msg.begin(), transit_event->formatted_msg.end()})));
     }
     else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::FlushBacktrace)
     {
-      // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_record
-      _backtrace_log_record_storage.process(transit_event->header.logger_details->name(),
-                                            [this](TransitEvent const& transit_event)
-                                            { _write_transit_event(transit_event); });
+      // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
+      _backtrace_log_message_storage.process(transit_event->header.logger_details->name(),
+                                             [this](TransitEvent const& transit_event)
+                                             { _write_transit_event(transit_event); });
     }
     else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::Flush)
     {
@@ -448,15 +448,15 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
                                 transit_event.header.metadata->macro_metadata, transit_event.formatted_msg);
 
     // After calling format on the formatter we have to request the formatter record
-    auto const& formatted_log_record_buffer = handler->formatter().formatted_log_record();
+    auto const& formatted_log_message_buffer = handler->formatter().formatted_log_message();
 
-    // If all filters are okay we write this log record to the file
+    // If all filters are okay we write this message to the file
     if (handler->apply_filters(transit_event.thread_id.data(), timestamp,
-                               transit_event.header.metadata->macro_metadata, formatted_log_record_buffer))
+                               transit_event.header.metadata->macro_metadata, formatted_log_message_buffer))
     {
-      // log to the handler, also pass the log_record_timestamp this is only needed in some
+      // log to the handler, also pass the log_message_timestamp this is only needed in some
       // cases like daily file rotation
-      handler->write(formatted_log_record_buffer, timestamp,
+      handler->write(formatted_log_message_buffer, timestamp,
                      transit_event.header.metadata->macro_metadata.level());
     }
   }

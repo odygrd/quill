@@ -12,12 +12,13 @@ public:
   VectorHandler() = default;
 
   /***/
-  void write(fmt::memory_buffer const& formatted_log_record,
-             std::chrono::nanoseconds log_record_timestamp, quill::LogLevel log_message_severity) override
+  void write(fmt::memory_buffer const& formatted_log_message,
+             std::chrono::nanoseconds log_message_timestamp, quill::LogLevel log_message_severity) override
   {
     // Called by the logger backend worker thread for each LOG_* macro
-    // formatted_log_record.size() - 1 to exclude '/n'
-    _formatted_messages.emplace_back(std::string{formatted_log_record.begin(), formatted_log_record.size() - 1});
+    // formatted_log_message.size() - 1 to exclude '/n'
+    _formatted_messages.emplace_back(
+      std::string{formatted_log_message.begin(), formatted_log_message.size() - 1});
   }
 
   /***/
