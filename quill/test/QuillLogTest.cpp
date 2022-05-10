@@ -24,24 +24,26 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 
   for (int i = 0; i < number_of_threads; ++i)
   {
-    threads.emplace_back([filename, number_of_messages, test_id, i]() {
-      // Also use preallocate
-      quill::preallocate();
-
-      // Set writing logging to a file
-      quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
-
-      std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
-      quill::Logger* logger = quill::create_logger(logger_name.data(), log_from_one_thread_file);
-
-      // Change the LogLevel to print everything
-      logger->set_log_level(quill::LogLevel::TraceL3);
-
-      for (uint32_t j = 0; j < number_of_messages; ++j)
+    threads.emplace_back(
+      [filename, number_of_messages, test_id, i]()
       {
-        LOG_INFO(logger, "Hello from thread {} this is message {}", i, j);
-      }
-    });
+        // Also use preallocate
+        quill::preallocate();
+
+        // Set writing logging to a file
+        quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
+
+        std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
+        quill::Logger* logger = quill::create_logger(logger_name.data(), log_from_one_thread_file);
+
+        // Change the LogLevel to print everything
+        logger->set_log_level(quill::LogLevel::TraceL3);
+
+        for (uint32_t j = 0; j < number_of_messages; ++j)
+        {
+          LOG_INFO(logger, "Hello from thread {} this is message {}", i, j);
+        }
+      });
   }
 
   for (auto& elem : threads)
@@ -321,8 +323,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
   quill::testing::CaptureStdout();
 
   quill::Handler* stdout_custom_handler = quill::stdout_handler("stdout_custom_1");
-  stdout_custom_handler->set_pattern(
-    QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
+  stdout_custom_handler->set_pattern("%(logger_name) - %(message) (%(function_name))");
   quill::Logger* custom_logger = quill::create_logger("custom", stdout_custom_handler);
 
   // log a few messages so we rotate files
@@ -356,7 +357,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:333         LOG_INFO      root         - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:334         LOG_INFO      root         - Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -386,7 +387,7 @@ TEST_CASE("log_using_stderr")
   quill::testing::CaptureStderr();
 
   quill::Handler* stderr_handler = quill::stderr_handler("stderr_custom_1");
-  stderr_handler->set_pattern(QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
+  stderr_handler->set_pattern("%(logger_name) - %(message) (%(function_name))");
   quill::Logger* custom_logger = quill::create_logger("log_using_stderr", stderr_handler);
 
   LOG_INFO(custom_logger, "Hello log stderr");
@@ -411,10 +412,10 @@ TEST_CASE("log_to_multiple_handlers_from_same_logger")
   quill::testing::CaptureStdout();
 
   quill::Handler* stderr_handler = quill::stderr_handler();
-  stderr_handler->set_pattern(QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
+  stderr_handler->set_pattern("%(logger_name) - %(message) (%(function_name))");
 
   quill::Handler* stdout_handler = quill::stdout_handler();
-  stdout_handler->set_pattern(QUILL_STRING("%(logger_name) - %(message) (%(function_name))"));
+  stdout_handler->set_pattern("%(logger_name) - %(message) (%(function_name))");
 
   // Create the new logger with multiple handlers
   quill::Logger* custom_logger = quill::create_logger("log_multi_handlers", {stdout_handler, stderr_handler});
@@ -436,7 +437,8 @@ TEST_CASE("log_to_multiple_handlers_from_same_logger")
 TEST_CASE("check_log_arguments_evaluation")
 {
   size_t cnt{0};
-  auto arg_str = [&cnt](){
+  auto arg_str = [&cnt]()
+  {
     ++cnt;
     return "expensive_calculation";
   };
@@ -504,7 +506,8 @@ enum RawEnum : int
 };
 std::ostream& operator<<(std::ostream& os, const RawEnum& raw_enum)
 {
-  switch (raw_enum) {
+  switch (raw_enum)
+  {
   case RawEnum::Test1:
     os << "Test1";
     break;
@@ -529,7 +532,8 @@ enum class EnumClass : int
 };
 std::ostream& operator<<(std::ostream& os, const EnumClass& enum_class)
 {
-  switch (enum_class) {
+  switch (enum_class)
+  {
   case EnumClass::Test4:
     os << "Test4";
     break;
@@ -554,11 +558,12 @@ TEST_CASE("log_enums_with_overloaded_insertion_operator")
   quill::testing::CaptureStdout();
 
   quill::Handler* stdout_handler = quill::stdout_handler();
-  stdout_handler->set_pattern(QUILL_STRING("%(message)"));
+  stdout_handler->set_pattern("%(message)");
 
   quill::Logger* custom_logger = quill::create_logger("enum_logger", stdout_handler);
 
-  LOG_INFO(custom_logger, "{},{},{},{},{},{}", Test1, Test2, Test3, EnumClass::Test4, EnumClass::Test5, EnumClass::Test6);
+  LOG_INFO(custom_logger, "{},{},{},{},{},{}", Test1, Test2, Test3, EnumClass::Test4,
+           EnumClass::Test5, EnumClass::Test6);
 
   quill::flush();
 

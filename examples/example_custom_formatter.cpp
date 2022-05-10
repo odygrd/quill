@@ -10,10 +10,9 @@ int main()
   quill::Handler* file_handler = quill::stdout_handler();
 
   // Set a custom formatter for this handler
-  file_handler->set_pattern(
-    QUILL_STRING("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)"), // log recorder format
-    "%D %H:%M:%S.%Qms %z",     // timestamp format
-    quill::Timezone::GmtTime); // timestamp's timezone
+  file_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // log recorder format
+                            "%D %H:%M:%S.%Qms %z",     // timestamp format
+                            quill::Timezone::GmtTime); // timestamp's timezone
 
   // This line sets the default logger's handler to be the new handler with the custom format string
   quill::set_default_logger_handler(file_handler);

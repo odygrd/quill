@@ -160,6 +160,9 @@ private:
   BacktraceStorage _backtrace_log_record_storage; /** Stores a vector of backtrace log records per logger name */
   FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
 
+  /** Id of the current running process **/
+  std::string _process_id;
+
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
 
@@ -441,7 +444,7 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
   for (auto& handler : transit_event.header.logger_details->handlers())
   {
     handler->formatter().format(timestamp, transit_event.thread_id.data(), transit_event.thread_name.data(),
-                                transit_event.header.logger_details->name(),
+                                _process_id, transit_event.header.logger_details->name(),
                                 transit_event.header.metadata->macro_metadata, transit_event.formatted_msg);
 
     // After calling format on the formatter we have to request the formatter record

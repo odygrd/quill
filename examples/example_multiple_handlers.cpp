@@ -49,7 +49,7 @@ int main()
   quill::Handler* vector_handler = quill::create_handler<VectorHandler>("my_vector_handler");
 
   // Customise vector_handler format
-  vector_handler->set_pattern(QUILL_STRING("%(level_name) %(logger_name) - %(message)"));
+  vector_handler->set_pattern("%(level_name) %(logger_name) - %(message)");
 
   quill::Logger* logger_foo =
     quill::create_logger("my_logger", {file_handler, console_handler, vector_handler});

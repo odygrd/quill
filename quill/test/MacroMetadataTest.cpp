@@ -16,9 +16,9 @@ TEST_CASE("construct")
       QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "Test fmt {}", quill::LogLevel::Debug,
       MacroMetadata::Event::Log};
 
-    REQUIRE_STREQ(log_line_info.message_format(), "Test fmt {}");
+    REQUIRE_STREQ(log_line_info.message_format().data(), "Test fmt {}");
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Debug);
-    REQUIRE_STREQ(log_line_info.lineno(), "16");
+    REQUIRE_STREQ(log_line_info.lineno().data(), "16");
   }
 
   {
@@ -29,11 +29,11 @@ TEST_CASE("construct")
                                           quill::LogLevel::Info,
                                           MacroMetadata::Event::Log};
 
-    REQUIRE_STREQ(log_line_info.message_format(), "Test another fmt {}");
+    REQUIRE_STREQ(log_line_info.message_format().data(), "Test another fmt {}");
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Info);
-    REQUIRE_STREQ(log_line_info.lineno(), "25");
-    REQUIRE_STREQ(log_line_info.filename(), "MacroMetadataTest.cpp");
-    REQUIRE_STREQ(log_line_info.level_as_str(), "INFO     ");
+    REQUIRE_STREQ(log_line_info.lineno().data(), "25");
+    REQUIRE_STREQ(log_line_info.filename().data(), "MacroMetadataTest.cpp");
+    REQUIRE_STREQ(log_line_info.level_as_str().data(), "INFO     ");
   }
 }
 

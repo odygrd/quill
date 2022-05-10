@@ -117,8 +117,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   // Set a file handler the custom logger handler and log to it
   Handler* file_handler =
     lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None);
-  file_handler->set_pattern(
-    QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(logger_name)]"));
+  file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
   lm.logger_collection().set_default_logger_handler(file_handler);
 
   // Start logging
@@ -173,10 +172,10 @@ void custom_default_logger_same_handler(int test_case = 0)
 
   std::string const first_log_line_custom =
     "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit "
-    "[custom_logger]";
+    "[I]";
   std::string const second_log_line_custom =
     "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
-    "[custom_logger]";
+    "[E]";
 
   REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
   REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
@@ -207,14 +206,12 @@ void test_custom_default_logger_multiple_handlers(int test_case)
   // First handler
   Handler* file_handler_1 =
     lm.handler_collection().create_handler<FileHandler>(filename_1.string(), "w", FilenameAppend::None);
-  file_handler_1->set_pattern(
-    QUILL_STRING("%(ascii_time) %(logger_name) - %(message) [%(logger_name)]"));
+  file_handler_1->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
 
   // Second handler with different pattern
   Handler* file_handler_2 =
     lm.handler_collection().create_handler<FileHandler>(filename_2.string(), "w", FilenameAppend::None);
-  file_handler_2->set_pattern(QUILL_STRING("%(ascii_time) %(logger_name) - %(message)"),
-                              "%D %H:%M:%S.%Qms");
+  file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
 
   lm.logger_collection().set_default_logger_handler({file_handler_1, file_handler_2});
 
@@ -269,17 +266,17 @@ void test_custom_default_logger_multiple_handlers(int test_case)
     REQUIRE_EQ(file_contents.size(), 4);
 
     std::string const first_log_line_default =
-      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit [root]";
+      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit [I]";
     std::string const second_log_line_default =
       "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
-      "[root]";
+      "[E]";
 
     std::string const first_log_line_custom =
       "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit "
-      "[custom_logger]";
+      "[I]";
     std::string const second_log_line_custom =
       "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
-      "ante [custom_logger]";
+      "ante [E]";
 
     REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
     REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));

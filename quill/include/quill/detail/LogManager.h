@@ -66,11 +66,6 @@ public:
   /**
    * @return The current process id
    */
-  QUILL_NODISCARD std::string const& process_id() const noexcept { return _process_id; }
-
-  /**
-   * @return The current process id
-   */
   QUILL_NODISCARD uint32_t backend_worker_thread_id() const noexcept
   {
     return _backend_worker.thread_id();
@@ -211,7 +206,6 @@ private:
   LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
-  std::string _process_id = fmt::format_int(get_process_id()).str();
 };
 
 /**

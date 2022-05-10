@@ -10,7 +10,10 @@ namespace detail
 /***/
 BackendWorker::BackendWorker(Config const& config, ThreadContextCollection& thread_context_collection,
                              HandlerCollection const& handler_collection)
-  : _config(config), _thread_context_collection(thread_context_collection), _handler_collection(handler_collection)
+  : _config(config),
+    _thread_context_collection(thread_context_collection),
+    _handler_collection(handler_collection),
+    _process_id(fmt::format_int(get_process_id()).str())
 {
 #if !defined(QUILL_NO_EXCEPTIONS)
   if (!_error_handler)

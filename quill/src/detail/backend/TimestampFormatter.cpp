@@ -89,7 +89,7 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
 }
 
 /***/
-char const* TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_since_epoch)
+std::string_view TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_since_epoch)
 {
   int64_t const timestamp_ns = time_since_epoch.count();
 
