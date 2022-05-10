@@ -152,7 +152,7 @@ public:
     // encode remaining arguments
     write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
 
-    thread_context->spsc_queue().commit_write(write_buffer - write_begin);
+    thread_context->spsc_queue().commit_write(static_cast<size_t>(write_buffer - write_begin));
   }
 
   /**

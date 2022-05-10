@@ -117,7 +117,7 @@ public:
     std::memcpy(write_buffer, &flush_ptr, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
-    thread_context->spsc_queue().commit_write(write_buffer - write_begin);
+    thread_context->spsc_queue().commit_write(static_cast<size_t>(write_buffer - write_begin));
 
     // The caller thread keeps checking the flag until the backend thread flushes
     do
