@@ -10,16 +10,6 @@ StreamHandler::StreamHandler(std::filesystem::path stream, FILE* file /* = nullp
   : _filename(std::move(stream)), _file(file)
 {
   // reserve stdout and stderr as filenames
-#if defined(_WIN32)
-  if (_filename == std::wstring{L"stdout"})
-  {
-    _file = stdout;
-  }
-  else if (_filename == std::wstring{L"stderr"})
-  {
-    _file = stderr;
-  }
-#else
   if (_filename == std::string{"stdout"})
   {
     _file = stdout;
@@ -28,7 +18,6 @@ StreamHandler::StreamHandler(std::filesystem::path stream, FILE* file /* = nullp
   {
     _file = stderr;
   }
-#endif
 }
 
 /***/
