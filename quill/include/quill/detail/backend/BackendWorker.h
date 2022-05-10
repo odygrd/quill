@@ -156,7 +156,7 @@ private:
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
   std::priority_queue<TransitEvent, std::vector<TransitEvent>, std::greater<>> _transit_events;
 
-  FormatFnMemoryBuffer _membuf;                                  /** Format buffer */
+  fmt::memory_buffer _membuf;                                    /** Format buffer */
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args */
 
   BacktraceStorage _backtrace_log_record_storage; /** Stores a vector of backtrace log records per logger name */

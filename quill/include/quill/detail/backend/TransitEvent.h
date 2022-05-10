@@ -16,7 +16,7 @@ namespace detail
 struct TransitEvent
 {
   TransitEvent(ThreadContext* thread_context, detail::Header header,
-               FormatFnMemoryBuffer formatted_msg, std::atomic<bool>* flush_flag)
+               fmt::memory_buffer formatted_msg, std::atomic<bool>* flush_flag)
     : thread_id(thread_context->thread_id()),
       thread_name(thread_context->thread_name()),
       header(header),
@@ -86,7 +86,7 @@ struct TransitEvent
   std::string thread_id;
   std::string thread_name;
   detail::Header header;
-  FormatFnMemoryBuffer formatted_msg;     /** buffer for message **/
+  fmt::memory_buffer formatted_msg;       /** buffer for message **/
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
 } // namespace detail

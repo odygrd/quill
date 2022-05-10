@@ -23,7 +23,7 @@ TEST_CASE("default_pattern_formatter")
     "This the {} formatter {}", LogLevel::Info, MacroMetadata::Event::Log};
 
   // Format to a buffer
-  quill::detail::FormatFnMemoryBuffer mbuff;
+  fmt::memory_buffer mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   default_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
 
@@ -54,7 +54,7 @@ TEST_CASE("custom_pattern_message_only")
     "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
 
   // Format to a buffer
-  quill::detail::FormatFnMemoryBuffer mbuff;
+  fmt::memory_buffer mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 12.34);
   custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
 
@@ -86,7 +86,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
     "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
 
   // Format to a buffer
-  quill::detail::FormatFnMemoryBuffer mbuff;
+  fmt::memory_buffer mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
 
@@ -119,7 +119,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
     "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
 
   // Format to a buffer
-  quill::detail::FormatFnMemoryBuffer mbuff;
+  fmt::memory_buffer mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
 
@@ -152,7 +152,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
     "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
 
   // Format to a buffer
-  quill::detail::FormatFnMemoryBuffer mbuff;
+  fmt::memory_buffer mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
 
@@ -185,7 +185,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
     "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
 
   // Format to a buffer
-  quill::detail::FormatFnMemoryBuffer mbuff;
+  fmt::memory_buffer mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
 
@@ -221,7 +221,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
   for (size_t i = 0; i < 5; ++i)
   {
     // Format to a buffer
-    quill::detail::FormatFnMemoryBuffer mbuff;
+    fmt::memory_buffer mbuff;
     fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()),
                    "pattern", 1234);
     custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
@@ -258,7 +258,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
   for (size_t i = 0; i < 5; ++i)
   {
     // Format to a buffer
-    quill::detail::FormatFnMemoryBuffer mbuff;
+    fmt::memory_buffer mbuff;
     fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()),
                    "pattern", 1234);
     custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
@@ -322,7 +322,7 @@ TEST_CASE("custom_pattern")
     "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
 
   // Format to a buffer
-  quill::detail::FormatFnMemoryBuffer mbuff;
+  fmt::memory_buffer mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
 
@@ -355,7 +355,7 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
     "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
 
   // Format to a buffer
-  quill::detail::FormatFnMemoryBuffer mbuff;
+  fmt::memory_buffer mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, logger_name.data(), log_line_info, mbuff);
 

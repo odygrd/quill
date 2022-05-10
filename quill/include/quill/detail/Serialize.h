@@ -180,13 +180,12 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::byte* encode_args(size_t* c_str
 /**
  * Format function
  */
-using FormatToFn = std::byte* (*)(fmt::string_view format, std::byte* data,
-                                  quill::detail::FormatFnMemoryBuffer& out,
+using FormatToFn = std::byte* (*)(fmt::string_view format, std::byte* data, fmt::memory_buffer& out,
                                   std::vector<fmt::basic_format_arg<fmt::format_context>>& args);
 
 template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(fmt::string_view format, std::byte* data,
-                                                         quill::detail::FormatFnMemoryBuffer& out,
+                                                         fmt::memory_buffer& out,
                                                          std::vector<fmt::basic_format_arg<fmt::format_context>>& args)
 {
   constexpr size_t num_dtors = fmt::detail::count<need_call_dtor_for<Args>()...>();
@@ -195,9 +194,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(fmt::string_view format
   args.clear();
   std::byte* ret = decode_args<0, Args...>(data, args, dtor_args);
 
-  constexpr size_t num_args = sizeof...(Args);
   out.clear();
-  vformat_to(std::back_inserter(out), format, fmt::basic_format_args(args.data(), num_args));
+  fmt::vformat_to(std::back_inserter(out), format, fmt::basic_format_args(args.data(), sizeof...(Args)));
 
   destruct_args<0, Args...>(dtor_args);
 

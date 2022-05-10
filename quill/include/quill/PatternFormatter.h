@@ -180,9 +180,9 @@ public:
    */
   ~PatternFormatter() = default;
 
-  inline void format(std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
-                     char const* logger_name, MacroMetadata const& macro_metadata,
-                     quill::detail::FormatFnMemoryBuffer const& log_msg) const;
+  inline void format(std::chrono::nanoseconds timestamp, char const* thread_id,
+                     char const* thread_name, char const* logger_name,
+                     MacroMetadata const& macro_metadata, fmt::memory_buffer const& log_msg) const;
 
   /**
    * Returns the stored formatted record, to be called after format(...) is called
@@ -324,9 +324,9 @@ private:
 /** Inline Implementation **/
 
 /***/
-void PatternFormatter::format(std::chrono::nanoseconds timestamp, char const* thread_id, char const* thread_name,
-                              char const* logger_name, MacroMetadata const& macro_metadata,
-                              quill::detail::FormatFnMemoryBuffer const& log_msg) const
+void PatternFormatter::format(std::chrono::nanoseconds timestamp, char const* thread_id,
+                              char const* thread_name, char const* logger_name,
+                              MacroMetadata const& macro_metadata, fmt::memory_buffer const& log_msg) const
 {
   // clear out existing buffer
   _formatted_log_record.clear();

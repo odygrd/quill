@@ -59,8 +59,6 @@ namespace quill
 {
 namespace detail
 {
-using FormatFnMemoryBuffer = fmt::basic_memory_buffer<char, 1024>;
-
 /**
  * Cache line size
  */
