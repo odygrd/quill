@@ -5,9 +5,9 @@
 
 #pragma once
 
+#include "quill/Fmt.h"
 #include "quill/detail/Serialize.h"
 #include "quill/detail/ThreadContext.h"
-#include "quill/detail/misc/Common.h"
 
 namespace quill
 {
@@ -15,6 +15,9 @@ namespace detail
 {
 struct TransitEvent
 {
+  TransitEvent() = default;
+  ~TransitEvent() = default;
+
   TransitEvent(ThreadContext* thread_context, detail::Header header,
                fmt::memory_buffer formatted_msg, std::atomic<bool>* flush_flag)
     : thread_id(thread_context->thread_id()),
@@ -74,11 +77,6 @@ struct TransitEvent
     return *this;
   }
 
-  friend bool operator>(TransitEvent const& lhs, TransitEvent const& rhs)
-  {
-    return lhs.header.timestamp > rhs.header.timestamp;
-  }
-
   /**
    * Need to take a copy of thread_id and thread_name here as the thread that logged can terminate
    * before we flush the backtrace.
@@ -88,6 +86,15 @@ struct TransitEvent
   detail::Header header;
   fmt::memory_buffer formatted_msg;       /** buffer for message **/
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
+};
+
+class TransitEventComparator
+{
+public:
+  bool operator()(TransitEvent const* lhs, TransitEvent const* rhs)
+  {
+    return lhs->header.timestamp > rhs->header.timestamp;
+  }
 };
 } // namespace detail
 } // namespace quill

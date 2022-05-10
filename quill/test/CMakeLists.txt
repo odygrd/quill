@@ -41,6 +41,7 @@ endfunction()
 
 quill_add_test(TEST_Config ConfigTest.cpp)
 quill_add_test(TEST_FileUtilities FileUtilitiesTest.cpp)
+quill_add_test(TEST_FreeListAllocator FreeListAllocatorTest.cpp)
 quill_add_test(TEST_HandlerCollection HandlerCollectionTest.cpp)
 quill_add_test(TEST_LoggerCollection LoggerCollectionTest.cpp)
 quill_add_test(TEST_Logger LoggerTest.cpp)

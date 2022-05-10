@@ -15,11 +15,12 @@
 #include "quill/detail/ThreadContext.h"            // for ThreadContext, Thr...
 #include "quill/detail/ThreadContextCollection.h"  // for ThreadContextColle...
 #include "quill/detail/backend/BacktraceStorage.h" // for BacktraceStorage
-#include "quill/detail/misc/Attributes.h"          // for QUILL_ATTRIBUTE_HOT
-#include "quill/detail/misc/Common.h"              // for QUILL_RDTSC_RESYNC...
-#include "quill/detail/misc/Common.h"              // for QUILL_LIKELY
-#include "quill/detail/misc/Os.h"                  // for set_cpu_affinity, get_thread_id
-#include "quill/detail/misc/RdtscClock.h"          // for RdtscClock
+#include "quill/detail/backend/FreeListAllocator.h"
+#include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_HOT
+#include "quill/detail/misc/Common.h"     // for QUILL_RDTSC_RESYNC...
+#include "quill/detail/misc/Common.h"     // for QUILL_LIKELY
+#include "quill/detail/misc/Os.h"         // for set_cpu_affinity, get_thread_id
+#include "quill/detail/misc/RdtscClock.h" // for RdtscClock
 #include "quill/detail/misc/Utilities.h"
 #include "quill/detail/spsc_queue/UnboundedQueue.h"
 #include "quill/handlers/Handler.h" // for Handler
@@ -152,14 +153,15 @@ private:
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
 
-  bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
-  std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
-  std::priority_queue<TransitEvent, std::vector<TransitEvent>, std::greater<>> _transit_events;
+  std::priority_queue<TransitEvent*, std::vector<TransitEvent*>, TransitEventComparator> _transit_events;
 
-  fmt::memory_buffer _membuf;                                    /** Format buffer */
-  std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args */
+  std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
 
   BacktraceStorage _backtrace_log_record_storage; /** Stores a vector of backtrace log records per logger name */
+  FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
+
+  bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
+  std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   backend_worker_error_handler_t _error_handler; /** error handler for the backend thread */
@@ -210,6 +212,13 @@ void BackendWorker::run()
 
       // Cache this thread's id
       _backend_worker_thread_id = get_thread_id();
+
+      // Initialise memory for our free list allocator. We reserve the same size as a full
+      // size of 1 caller thread queue
+      _free_list_allocator.reserve(QUILL_QUEUE_CAPACITY);
+
+      // Also configure our allocator to request bigger chunks from os
+      _free_list_allocator.set_minimum_allocation(QUILL_QUEUE_CAPACITY);
 
       // All okay, set the backend worker thread running flag
       _is_running.store(true, std::memory_order_seq_cst);
@@ -290,19 +299,24 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
       break;
     }
 
-    // read the next full message
+    // The queue is empty. First we want to allocate a new TransitEvent to store the message
+    // from the queue
+    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
+    auto* transit_event = new (transit_event_buffer) TransitEvent{};
+    transit_event->thread_id = thread_context->thread_id();
+    transit_event->thread_name = thread_context->thread_name();
+
+    // read the header first, and take copy of the header
     read_buffer = detail::align_pointer<alignof(Header), std::byte>(read_buffer);
-    detail::Header header = *(reinterpret_cast<detail::Header*>(read_buffer));
+    transit_event->header = *(reinterpret_cast<detail::Header*>(read_buffer));
     read_buffer += sizeof(detail::Header);
 
-    // it is a flush event, we store the pointer of the passed in variable to the transit event
-    std::atomic<bool>* flush_flag{nullptr};
-
     // we need to check and do not try to format the flush events as that wouldn't be valid
-    if (header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
+    if (transit_event->header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
     {
-      read_buffer = header.metadata->format_to_fn(header.metadata->macro_metadata.message_format(),
-                                                  read_buffer, _membuf, _args);
+      read_buffer = transit_event->header.metadata->format_to_fn(
+        transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
+        transit_event->formatted_msg, _args);
     }
     else
     {
@@ -310,7 +324,7 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
       // transit_event, but we need to set the transit event's flush_flag pointer instead
       uintptr_t flush_flag_tmp;
       std::memcpy(&flush_flag_tmp, read_buffer, sizeof(uintptr_t));
-      flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
+      transit_event->flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
       read_buffer += sizeof(uintptr_t);
     }
 
@@ -318,34 +332,34 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
     spsc_queue.finish_read(static_cast<uint64_t>(read_buffer - read_begin));
 
     // We have the timestamp and the data node ptr, we can construct a transit event out of them
-    _transit_events.emplace(thread_context, header, std::move(_membuf), flush_flag);
+    _transit_events.emplace(transit_event);
   }
 }
 
 /***/
 void BackendWorker::_process_transit_event()
 {
-  TransitEvent const& transit_event = _transit_events.top();
+  TransitEvent const* transit_event = _transit_events.top();
 
   // If backend_process(...) throws we want to skip this event and move to the next so we catch the
   // error here instead of catching it in the parent try/catch block of main_loop
   QUILL_TRY
   {
-    if (transit_event.header.metadata->macro_metadata.event() == MacroMetadata::Event::Log)
+    if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::Log)
     {
-      if (transit_event.header.metadata->macro_metadata.level() != LogLevel::Backtrace)
+      if (transit_event->header.metadata->macro_metadata.level() != LogLevel::Backtrace)
       {
-        _write_transit_event(transit_event);
+        _write_transit_event(*transit_event);
 
         // We also need to check the severity of the log message here against the backtrace
         // Check if we should also flush the backtrace messages:
         // After we forwarded the message we will check the severity of this message for this logger
         // If the severity of the message is higher than the backtrace flush severity we will also
         // flush the backtrace of the logger
-        if (QUILL_UNLIKELY(transit_event.header.metadata->macro_metadata.level() >=
-                           transit_event.header.logger_details->backtrace_flush_level()))
+        if (QUILL_UNLIKELY(transit_event->header.metadata->macro_metadata.level() >=
+                           transit_event->header.logger_details->backtrace_flush_level()))
         {
-          _backtrace_log_record_storage.process(transit_event.header.logger_details->name(),
+          _backtrace_log_record_storage.process(transit_event->header.logger_details->name(),
                                                 [this](TransitEvent const& transit_event)
                                                 { _write_transit_event(transit_event); });
         }
@@ -353,34 +367,37 @@ void BackendWorker::_process_transit_event()
       else
       {
         // this is a backtrace log and we will store it
-        _backtrace_log_record_storage.store(transit_event);
+        _backtrace_log_record_storage.store(*transit_event);
       }
     }
-    else if (transit_event.header.metadata->macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
+    else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
     {
       // we can just convert the capacity back to int here and use it
       _backtrace_log_record_storage.set_capacity(
-        transit_event.header.logger_details->name(),
+        transit_event->header.logger_details->name(),
         static_cast<uint32_t>(std::stoul(
-          std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
+          std::string{transit_event->formatted_msg.begin(), transit_event->formatted_msg.end()})));
     }
-    else if (transit_event.header.metadata->macro_metadata.event() == MacroMetadata::Event::FlushBacktrace)
+    else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::FlushBacktrace)
     {
       // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_record
-      _backtrace_log_record_storage.process(transit_event.header.logger_details->name(),
+      _backtrace_log_record_storage.process(transit_event->header.logger_details->name(),
                                             [this](TransitEvent const& transit_event)
                                             { _write_transit_event(transit_event); });
     }
-    else if (transit_event.header.metadata->macro_metadata.event() == MacroMetadata::Event::Flush)
+    else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::Flush)
     {
       _force_flush();
 
       // this is a flush event so we need to notify the caller to continue now
-      transit_event.flush_flag->store(true);
+      transit_event->flush_flag->store(true);
     }
 
-    // Remove this event and move to the next
+    // Remove this event and move to the next. We also need to remove that event from the
+    // free list allocator
     _transit_events.pop();
+    const_cast<TransitEvent*>(transit_event)->~TransitEvent();
+    _free_list_allocator.deallocate(const_cast<TransitEvent*>(transit_event));
 
     // Since after processing an event we never force flush but leave it up to the OS instead,
     // set this to true to keep track of unflushed messages we have

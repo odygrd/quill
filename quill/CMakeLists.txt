@@ -10,6 +10,7 @@ set(HEADER_FILES
         # quill
         include/quill/detail/backend/BackendWorker.h
         include/quill/detail/backend/BacktraceStorage.h
+        include/quill/detail/backend/FreeListAllocator.h
         include/quill/detail/backend/StringFromTime.h
         include/quill/detail/backend/TimestampFormatter.h
         include/quill/detail/backend/TransitEvent.h
@@ -59,6 +60,7 @@ set(HEADER_FILES
 set(SOURCE_FILES
         src/detail/backend/BackendWorker.cpp
         src/detail/backend/BacktraceStorage.cpp
+        src/detail/backend/FreeListAllocator.cpp
         src/detail/backend/TimestampFormatter.cpp
         src/detail/backend/StringFromTime.cpp
         src/detail/misc/FileUtilities.cpp
