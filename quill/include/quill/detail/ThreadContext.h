@@ -160,7 +160,9 @@ private:
 #ifdef __clang__
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-private-field"
+#endif
   char _pad0[detail::CACHELINE_SIZE - sizeof(std::atomic<size_t>)] = "\0";
+#ifdef __clang__
   #pragma GCC diagnostic pop
 #endif
 #endif
