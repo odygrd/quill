@@ -451,13 +451,17 @@ bool is_in_terminal(FILE* file) noexcept
 /***/
 void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer& mem_buffer)
 {
-  auto bytes_needed = static_cast<int32_t>(mem_buffer.capacity() - mem_buffer.size());
+  auto remain_space = static_cast<int32_t>(mem_buffer.capacity() - mem_buffer.size());
+  auto bytes_needed = remain_space;
 
-  if ((w_mem_buffer.size() + 1) * 2 > static_cast<size_t>(bytes_needed))
+  // TODO: so far utf-8 will use at most 4 bytes for a character.
+  if ((w_mem_buffer.size() + 1) * 4 > static_cast<size_t>(remain_space))
   {
     // if our given string is larger than the capacity, calculate how many bytes we need
-    bytes_needed = ::WideCharToMultiByte(
-      CP_UTF8, 0, w_mem_buffer.data(), static_cast<int>(w_mem_buffer.size()), NULL, 0, NULL, NULL);
+    bytes_needed = ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(),
+                                         static_cast<int>(w_mem_buffer.size()), NULL, 0, NULL, NULL);
+
+    mem_buffer.reserve(static_cast<uint32_t>(bytes_needed + 1 + mem_buffer.size())); // +1 for EOL symbol, i.e. '\n'
   }
 
   if (QUILL_UNLIKELY(bytes_needed == 0))

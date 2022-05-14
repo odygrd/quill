@@ -1,3 +1,4 @@
+- [v1.7.3](#v1.7.3)
 - [v1.7.2](#v1.7.2)
 - [v1.7.1](#v1.7.1)
 - [v1.7.0](#v1.7.0)
@@ -20,6 +21,12 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v1.7.3 (to be released)
+
+**Improvements/Fixes**
+
+- Fix crash on windows when a long wstring (>500 chars) is logged ([#173](https://github.com/odygrd/quill/issues/173))
 
 ## v1.7.2
 

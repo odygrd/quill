@@ -443,7 +443,21 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
     LOG_ERROR(default_logger, L"Nulla tempus, libero at dignissim viverra, {}", arg_2);
     wchar_t const arg_3[] = L"wide array";
     LOG_ERROR(default_logger, L"Nulla tempus, libero at dignissim viverra, {}", arg_3);
-
+    std::wstring arg_4 = L"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
+        "incididunt ut labore et dolore magna aliqua. Ornare suspendisse sed nisi lacus sed viverra tellus in hac. "
+        "Consectetur adipiscing elit ut aliquam purus sit amet luctus. Ac turpis egestas maecenas pharetra convallis. " 
+        "In vitae turpis massa sed elementum tempus egestas. Senectus et netus et malesuada fames ac turpis. "
+        "Felis eget velit aliquet sagittis id consectetur purus ut faucibus. Venenatis tellus in metus "
+        "vulputate eu scelerisque felis imperdiet proin. Auctor urna nunc id cursus metus. Mi sit amet mauris " 
+        "commodo quis imperdiet massa tincidunt nunc. Quis enim lobortis scelerisque fermentum dui faucibus. "
+        "Tellus molestie nunc non blandit massa enim.";
+    LOG_INFO(default_logger, L"Adipiscing commodo elit at imperdiet dui. Mi eget mauris pharetra et "
+        "ultrices neque ornare aenean euismod. Suspendisse sed nisi lacus sed viverra tellus in. "
+        "Tortor id aliquet lectus proin nibh. Mattis molestie a iaculis at erat pellentesque adipiscing "
+        "commodo elit. Amet massa vitae tortor condimentum lacinia. Nunc eget lorem dolor sed viverra "
+        "ipsum nunc. Viverra accumsan in nisl nisi. Amet tellus cras adipiscing enim eu turpis egestas pretium."
+        "Vitae elementum curabitur vitae nunc sed velit dignissim sodales ut. Mi sit amet mauris commodo "
+        "quis imperdiet massa., {}", arg_4);
     // Let all log get flushed to the file
     lm.flush();
   });
@@ -452,13 +466,28 @@ TEST_CASE("default_logger_with_filehandler_wide_chars")
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), 3);
+  REQUIRE_EQ(file_contents.size(), 4);
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, wide array"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      root         - Adipiscing commodo elit at imperdiet dui. Mi eget mauris pharetra et "
+        "ultrices neque ornare aenean euismod. Suspendisse sed nisi lacus sed viverra tellus in. "
+        "Tortor id aliquet lectus proin nibh. Mattis molestie a iaculis at erat pellentesque adipiscing "
+        "commodo elit. Amet massa vitae tortor condimentum lacinia. Nunc eget lorem dolor sed viverra "
+        "ipsum nunc. Viverra accumsan in nisl nisi. Amet tellus cras adipiscing enim eu turpis egestas pretium."
+        "Vitae elementum curabitur vitae nunc sed velit dignissim sodales ut. Mi sit amet mauris commodo "
+        "quis imperdiet massa., Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
+        "incididunt ut labore et dolore magna aliqua. Ornare suspendisse sed nisi lacus sed viverra tellus in hac. "
+        "Consectetur adipiscing elit ut aliquam purus sit amet luctus. Ac turpis egestas maecenas pharetra convallis. " 
+        "In vitae turpis massa sed elementum tempus egestas. Senectus et netus et malesuada fames ac turpis. "
+        "Felis eget velit aliquet sagittis id consectetur purus ut faucibus. Venenatis tellus in metus "
+        "vulputate eu scelerisque felis imperdiet proin. Auctor urna nunc id cursus metus. Mi sit amet mauris " 
+        "commodo quis imperdiet massa tincidunt nunc. Quis enim lobortis scelerisque fermentum dui faucibus. "
+        "Tellus molestie nunc non blandit massa enim."}));
 
   lm.stop_backend_worker();
   quill::detail::file_utilities::remove(filename);
