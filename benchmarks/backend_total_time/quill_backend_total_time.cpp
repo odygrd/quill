@@ -46,7 +46,7 @@ int main()
   quill::flush();
   auto const end = __rdtscp(&aux);
 
-  uint64_t const latency{static_cast<uint64_t>((end - start) / rdtsc_clock.ticks_per_nanosecond())};
+  uint64_t const latency{static_cast<uint64_t>((end - start) * rdtsc_clock.nanoseconds_per_tick())};
   std::chrono::nanoseconds latency_ns = std::chrono::nanoseconds{latency};
 
   std::cout << "Iterations: " << total_iterations << "\nTotal time elapsed: " << latency_ns.count()
