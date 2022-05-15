@@ -177,7 +177,7 @@ public:
    * Gives a pointer to producer pos
    * @return
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte const* producer_pos() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* producer_pos() const noexcept
   {
     return _producer_pos.load(std::memory_order_relaxed);
   }

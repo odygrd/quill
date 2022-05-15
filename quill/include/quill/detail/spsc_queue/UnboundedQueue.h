@@ -193,7 +193,7 @@ public:
    * Gives a pointer to producer pos
    * @return
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte const* producer_pos() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* producer_pos() const noexcept
   {
     return _producer->bounded_queue.producer_pos();
   }
