@@ -1,3 +1,4 @@
+- [v2.0.0](#v2.0.0)
 - [v1.7.3](#v1.7.3)
 - [v1.7.2](#v1.7.2)
 - [v1.7.1](#v1.7.1)
@@ -22,12 +23,33 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
-## v1.7.3 (to be released)
+## v2.0.0
+
+From version `v2.0` and onwards only C++17 is supported.
+
+This version is a major refactor.
+
+**Improvements**
+
+- Reduced and simplified codebase.
+- Improved backend worker thread performance.
+- `QUILL_DUAL_QUEUE_MODE` has been removed. A single queue now handles every case.
+- `QUILL_STRING` has been removed. That macro is no longer required when passing a format string to the
+  PatternFormatter.
+
+**Differences**
+
+- `v1.7x` compiles with C++14, `v2.x` only compiles for C++17.
+- `v1.7x` supports wide character logging on Windows, `v2.x` does not. This includes the filename strings that are
+  passed to the handlers.
+
+## v1.7.3
 
 **Improvements/Fixes**
 
 - Fix crash on windows when a long wstring (>500 chars) is logged ([#173](https://github.com/odygrd/quill/issues/173))
-- Fix compiler error when trying to compile with -DQUILL_DISABLE_NON_PREFIXED_MACROS ([#174](https://github.com/odygrd/quill/issues/174))
+- Fix compiler error when trying to compile with
+  -DQUILL_DISABLE_NON_PREFIXED_MACROS ([#174](https://github.com/odygrd/quill/issues/174))
 - Fix a compile warning in clang ([#175](https://github.com/odygrd/quill/issues/175))
 
 ## v1.7.2
