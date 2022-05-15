@@ -23,12 +23,6 @@ jobs:
         with_tests: [ ON ]
 
         include:
-          - os: windows-2022
-            platform: x64
-            build_type: Debug
-            std: 20
-            with_tests: "ON"
-
           # Builds with bounded queue and no exceptions
           - os: windows-2019
             platform: x64
