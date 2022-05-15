@@ -366,7 +366,6 @@ TEST_CASE("log_using_multiple_stdout_formats")
     }
     else
     {
-
       std::string expected_string =
         "custom - Hello log num " + std::to_string(i) + " (DOCTEST_ANON_FUNC_15)";
 

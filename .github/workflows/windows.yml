@@ -13,39 +13,45 @@ jobs:
   build:
     # windows-2016 and windows-2019 have MSVC 2017 and 2019 installed
     # respectively: https://github.com/actions/virtual-environments.
-    runs-on: windows-2019
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [windows-2019]
         platform: [ x64 ]
         build_type: [ Debug, Release ]
-        std: [ 17 ]
+        std: [ 17, 20 ]
         with_tests: [ ON ]
 
         include:
-          - platform: x64
+          - os: windows-2022
+            platform: x64
             build_type: Debug
             std: 20
             with_tests: "ON"
 
           # Builds with bounded queue and no exceptions
-          - platform: x64
+          - os: windows-2019
+            platform: x64
             build_type: Release
             std: 17
             with_tests: "OFF"
             cmake_options: -DQUILL_USE_BOUNDED_QUEUE=ON
-          - platform: x64
+          - os: windows-2019
+            platform: x64
             build_type: Release
             std: 17
             with_tests: "OFF"
             cmake_options: -DQUILL_NO_EXCEPTIONS=ON
 
           # Builds for ARM
-          - platform: ARM64
+          - os: windows-2019
+            platform: ARM64
             build_type: Release
             std: 17
             with_tests: "OFF"
 
-          - platform: ARM
+          - os: windows-2019
+            platform: ARM
             build_type: Release
             std: 17
             with_tests: "OFF"
