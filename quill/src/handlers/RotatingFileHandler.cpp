@@ -47,9 +47,9 @@ RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filen
           std::string index = entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
           
           // Attempt to convert the index to a number
-          try
+          QUILL_TRY
           {
-            uint32_t index_num = std::stoul(index);
+            uint32_t index_num = static_cast<uint32_t>(std::stoul(index));
             _current_index = (std::max)(_current_index, index_num);
             if (_current_index > (_backup_count - 1))
             {
@@ -57,7 +57,7 @@ RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filen
               _current_index = (_backup_count - 1);
             }
           }
-          catch (...)
+          QUILL_CATCH_ALL()
           {
             continue;
           }
