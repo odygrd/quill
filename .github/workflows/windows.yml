@@ -13,16 +13,18 @@ jobs:
   build:
     # windows-2016 and windows-2019 have MSVC 2017 and 2019 installed
     # respectively: https://github.com/actions/virtual-environments.
-    runs-on: windows-2019
+    runs-on: ${{matrix.os}}
     strategy:
       matrix:
+        os: [windows-2019]
         platform: [ x64 ]
         build_type: [ Debug, Release ]
         std: [ 17 ]
         with_tests: [ ON ]
 
         include:
-          - platform: x64
+          - os: windows-2022
+            platform: x64
             build_type: Debug
             std: 20
             with_tests: "ON"
