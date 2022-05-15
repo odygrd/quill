@@ -22,7 +22,7 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
-## v1.7.3 (to be released)
+## v1.7.3
 
 **Improvements/Fixes**
 
