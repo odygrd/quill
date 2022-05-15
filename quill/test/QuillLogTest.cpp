@@ -463,11 +463,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
-#if defined(_WIN32)
-        FAIL("expected is not in results");
-#else
         FAIL(fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data());
-#endif
       }
     }
     else
@@ -477,11 +473,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
-#if defined(_WIN32)
-        FAIL("expected is not in results");
-#else
         FAIL(fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data());
-#endif
       }
     }
   }
