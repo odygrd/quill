@@ -18,7 +18,55 @@ RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filen
     _backup_count(backup_count),
     _overwrite_oldest_files(overwrite_oldest_files)
 {
-  _file = detail::open_file(_filename, mode);
+  // if we are starting in w mode, then we also should clean all previous log files of the previous run
+  if (mode == "w")
+  {
+    for (const auto& entry :
+         std::filesystem::directory_iterator(std::filesystem::current_path() / base_filename.parent_path()))
+    {
+      std::size_t found = entry.path().string().find(base_filename.stem().string() + ".");
+      if (found != std::string::npos) 
+      {
+        std::filesystem::remove(entry);
+      }
+    }
+  }
+  else if (mode == "a")
+  {
+    // Since we are appending, we need to find the current index
+    for (const auto& entry :
+         std::filesystem::directory_iterator(std::filesystem::current_path() / base_filename.parent_path()))
+    {
+      std::size_t found = entry.path().string().find(base_filename.stem().string() + ".");
+      if (found != std::string::npos)
+      {
+        // stem will be something like `logfile.1`
+        size_t pos = entry.path().stem().string().find_last_of(".");
+        if (pos != std::string::npos)
+        {
+          std::string index = entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
+          
+          // Attempt to convert the index to a number
+          try
+          {
+            uint32_t index_num = std::stoul(index);
+            _current_index = (std::max)(_current_index, index_num);
+            if (_current_index > (_backup_count - 1))
+            {
+              // don't increment past _backup_count
+              _current_index = (_backup_count - 1);
+            }
+          }
+          catch (...)
+          {
+            continue;
+          }
+        }
+      }
+    }
+  }
+
+    _file = detail::open_file(_filename, mode);
   _current_size = detail::file_size(_filename);
 }
 

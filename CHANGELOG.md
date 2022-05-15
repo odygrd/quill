@@ -29,6 +29,9 @@ From version `v2.0` and onwards only C++17 is supported.
 
 This version is a major refactor.
 
+**Fixes**
+- RotatingFileHandler will now correctly rotate the files when append mode is used ([#123](https://github.com/odygrd/quill/issues/123))
+
 **Improvements**
 
 - Reduced and simplified codebase.
