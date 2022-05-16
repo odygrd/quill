@@ -109,7 +109,9 @@ public:
     constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
     size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
 
-    size_t const total_size = sizeof(detail::Header) + detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
+    // Need to reserve additional space as we will be aligning the pointer
+    size_t const total_size = sizeof(detail::Header) + alignof(detail::Header) +
+      detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
 
     // request this size from the queue
     std::byte* write_buffer = thread_context->spsc_queue().prepare_write(total_size);
@@ -152,6 +154,8 @@ public:
     // encode remaining arguments
     write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
 
+    assert(total_size >= (static_cast<size_t>(write_buffer - write_begin)) &&
+           "The committed write bytes can not be greater than the requested bytes");
     thread_context->spsc_queue().commit_write(static_cast<size_t>(write_buffer - write_begin));
   }
 

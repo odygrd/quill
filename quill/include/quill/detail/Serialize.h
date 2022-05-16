@@ -122,15 +122,15 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr size_t get_args_sizes(size_t* c_stri
   {
     size_t const len = strlen(arg) + 1;
     c_string_sizes[CstringIdx] = len;
-    return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+    return alignof(Arg) + len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
   }
   else if constexpr (is_type_of_string<Arg>())
   {
-    return (arg.size() + 1) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
+    return alignof(Arg) + (arg.size() + 1) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
   }
   else
   {
-    return sizeof(Arg) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
+    return alignof(Arg) + sizeof(Arg) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
   }
 }
 
