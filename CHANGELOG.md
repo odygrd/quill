@@ -51,8 +51,7 @@ This version is a major refactor.
 **Improvements/Fixes**
 
 - Fix crash on windows when a long wstring (>500 chars) is logged ([#173](https://github.com/odygrd/quill/issues/173))
-- Fix compiler error when trying to compile with
-  -DQUILL_DISABLE_NON_PREFIXED_MACROS ([#174](https://github.com/odygrd/quill/issues/174))
+- Fix compiler error when trying to compile with -DQUILL_DISABLE_NON_PREFIXED_MACROS ([#174](https://github.com/odygrd/quill/issues/174))
 - Fix a compile warning in clang ([#175](https://github.com/odygrd/quill/issues/175))
 
 ## v1.7.2
