@@ -142,8 +142,8 @@ The results in the tables below are in nanoseconds (ns).
 | [Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  21  |  23  |  25  |  27  |  32  |   43   |  64   |
 | [Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) |  16  |  19  |  21  |  23  |  30  |   39   |  57   |
 | [Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  20  |  21  |  23  |  24  |  27  |   38   |  59   |
-| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  53  |  67  |  77  |  82  |  93  |  131   |  236  |
 | [fmtlog](https://github.com/MengRao/fmtlog)                                    |  16  |  18  |  19  |  21  |  25  |   34   |  53   |
+| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  53  |  67  |  77  |  82  |  93  |  131   |  236  |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  39  |  42  |  43  |  46  |  73  |  119   |  243  |
 | [Reckless](https://github.com/mattiasflodin/reckless)                          |  46  |  60  |  75  |  88  | 112  |  156   |  262  |                         
 | [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                       | 140  | 173  | 239  | 273  | 336  |  432   | 43605 |
