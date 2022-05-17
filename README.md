@@ -123,9 +123,9 @@ The results in the tables below are in nanoseconds (ns).
 | Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
 |--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
 | [Quill v2, Unbounded Queue](https://github.com/odygrd/quill)                   |  16  |  17  |  19  |  20  |  21  |   29   |  55   |
-| [Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  21  |  22  |  24  |  25  |  28  |   34   |  54   |
-| [Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) |  16  |  18  |  21  |  22  |  28  |   39   |  58   |
-| [Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  20  |  21  |  23  |  24  |  27  |   32   |  46   |
+| [Quill v1.7, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  21  |  22  |  24  |  25  |  28  |   34   |  54   |
+| [Quill v1.7, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) |  16  |  18  |  21  |  22  |  28  |   39   |  58   |
+| [Quill v1.7, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  20  |  21  |  23  |  24  |  27  |   32   |  46   |
 | [fmtlog](https://github.com/MengRao/fmtlog)                                    |  16  |  18  |  20  |  21  |  26  |   36   |  47   |
 | [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  52  |  66  |  76  |  81  |  92  |  107   |  192  |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  39  |  41  |  43  |  44  |  67  |  110   |  216  |
@@ -139,9 +139,9 @@ The results in the tables below are in nanoseconds (ns).
 | Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
 |--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
 | [Quill v2, Unbounded Queue](https://github.com/odygrd/quill)                   |  16  |  17  |  19  |  21  |  24  |   29   |  70   |
-| [Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  21  |  23  |  25  |  27  |  32  |   43   |  64   |
-| [Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) |  16  |  19  |  21  |  23  |  30  |   39   |  57   |
-| [Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  20  |  21  |  23  |  24  |  27  |   38   |  59   |
+| [Quill v1.7, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  21  |  23  |  25  |  27  |  32  |   43   |  64   |
+| [Quill v1.7, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) |  16  |  19  |  21  |  23  |  30  |   39   |  57   |
+| [Quill v1.7, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  20  |  21  |  23  |  24  |  27  |   38   |  59   |
 | [fmtlog](https://github.com/MengRao/fmtlog)                                    |  16  |  18  |  19  |  21  |  25  |   34   |  53   |
 | [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  53  |  67  |  77  |  82  |  93  |  131   |  236  |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  39  |  42  |  43  |  46  |  73  |  119   |  243  |
@@ -159,9 +159,9 @@ The large string is over 35 characters to avoid short string optimisation of `st
 | Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
 |--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
 | [Quill v2, Unbounded Queue](https://github.com/odygrd/quill)                   |  27  |  29  |  31  |  32  |  35  |   45   |  69   |  
-| [Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  25  |  26  |  28  |  30  |  35  |   47   |  70   |   
-| [Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) | 116  | 132  | 145  | 153  | 168  |  185   |  214  |
-| [Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  26  |  27  |  30  |  31  |  36  |   47   |  65   |
+| [Quill v1.7, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  25  |  26  |  28  |  30  |  35  |   47   |  70   |   
+| [Quill v1.7, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) | 116  | 132  | 145  | 153  | 168  |  185   |  214  |
+| [Quill v1.7, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  26  |  27  |  30  |  31  |  36  |   47   |  65   |
 | [fmtlog](https://github.com/MengRao/fmtlog)                                    |  27  |  29  |  32  |  34  |  40  |   49   |  67   |
 | [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  68  |  81  |  96  |  107 |  126 |  151   |  222  |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  52  |  53  |  56  |  60  |  80  |  133   |  251  |
@@ -175,9 +175,9 @@ The large string is over 35 characters to avoid short string optimisation of `st
 | Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
 |--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
 | [Quill v2, Unbounded Queue](https://github.com/odygrd/quill)                   |  28  |  30  |  32  |  34  |  38  |   45   |  73   |
-| [Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  25  |  27  |  29  |  30  |  37  |   53   |  83   |
-| [Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) | 125  | 138  | 151  | 160  | 176  |  192   |  247  |
-| [Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  25  |  27  |  29  |  31  |  39  |   51   |  86   |
+| [Quill v1.7, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  25  |  27  |  29  |  30  |  37  |   53   |  83   |
+| [Quill v1.7, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) | 125  | 138  | 151  | 160  | 176  |  192   |  247  |
+| [Quill v1.7, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  25  |  27  |  29  |  31  |  39  |   51   |  86   |
 | [fmtlog](https://github.com/MengRao/fmtlog)                                    |  26  |  28  |  31  |  34  |  40  |   49   |  78   |
 | [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  67  |  80  |  95  |  106 |  127 |  182   |  315  |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  51  |  53  |  55  |  60  |  85  |  128   |  243  |
@@ -204,7 +204,7 @@ I run each logger benchmark 4 times and the above latencies are the second best 
 The benchmark code and results can be found [here](https://github.com/odygrd/logger_benchmarks).
 
 ## Supported Platforms And Compilers
-Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
+Quill v1.7.x requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
 
 | Compiler  | Notes            |
 |-----------|------------------|
