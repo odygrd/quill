@@ -317,9 +317,30 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
     // we need to check and do not try to format the flush events as that wouldn't be valid
     if (transit_event->header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
     {
+#if defined(_WIN32)
+      if (transit_event->header.metadata->macro_metadata.has_wide_char()) 
+      {
+          // convert the format string to a narrow string
+        size_t const size_needed =
+          get_wide_string_encoding_size(transit_event->header.metadata->macro_metadata.wmessage_format());
+        std::string format_str(size_needed, 0);
+        wide_string_to_narrow(format_str.data(), size_needed,
+                              transit_event->header.metadata->macro_metadata.wmessage_format());
+
+        read_buffer = transit_event->header.metadata->format_to_fn(format_str, read_buffer,
+          transit_event->formatted_msg, _args);
+      }
+      else
+      {
+        read_buffer = transit_event->header.metadata->format_to_fn(
+          transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
+          transit_event->formatted_msg, _args);
+      }
+#else
       read_buffer = transit_event->header.metadata->format_to_fn(
         transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
         transit_event->formatted_msg, _args);
+#endif
     }
     else
     {

@@ -10,10 +10,12 @@
 #include "quill/MacroMetadata.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Rdtsc.h"
+#include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 #include <cstdint>
 #include <cstring>
 #include <string_view>
+#include <string>
 #include <type_traits>
 
 namespace quill
@@ -27,20 +29,36 @@ class LoggerDetails;
 template <typename Arg>
 QUILL_NODISCARD constexpr bool is_type_of_c_string()
 {
-  return fmt::detail::mapped_type_constant<Arg, fmt::format_context>::value == fmt::detail::type::cstring_type;
+  using ArgType = std::decay_t<Arg>;
+  return std::disjunction_v<std::is_same<ArgType, char const*>, std::is_same<ArgType, char*>>;
+}
+
+template <typename Arg>
+QUILL_NODISCARD constexpr bool is_type_of_wide_c_string()
+{
+  using ArgType = std::decay_t<Arg>;
+  return std::disjunction_v<std::is_same<ArgType, wchar_t const*>, std::is_same<ArgType, wchar_t*>>;
 }
 
 template <typename Arg>
 QUILL_NODISCARD constexpr bool is_type_of_string()
 {
-  return fmt::detail::mapped_type_constant<Arg, fmt::format_context>::value == fmt::detail::type::string_type;
+  using ArgType = std::decay_t<Arg>;
+  return std::disjunction_v<std::is_same<ArgType, std::string>, std::is_same<ArgType, std::string_view>>;
 }
 
+template <typename Arg>
+QUILL_NODISCARD constexpr bool is_type_of_wide_string()
+{
+  using ArgType = std::decay_t<Arg>;
+  return std::disjunction_v<std::is_same<ArgType, std::wstring>, std::is_same<ArgType, std::wstring_view>>;
+
+}
 template <typename Arg>
 QUILL_NODISCARD inline constexpr bool need_call_dtor_for()
 {
   using ArgType = detail::remove_cvref_t<Arg>;
-  if constexpr (is_type_of_string<Arg>())
+  if constexpr (is_type_of_string<Arg>() || is_type_of_wide_string<Arg>())
   {
     return false;
   }
@@ -60,9 +78,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
 {
   using ArgType = detail::remove_cvref_t<Arg>;
 
-  in = detail::align_pointer<alignof(Arg), std::byte>(in);
-
-  if constexpr (is_type_of_c_string<Arg>() || is_type_of_string<Arg>())
+  if constexpr (is_type_of_c_string<Arg>() || is_type_of_string<Arg>() || is_type_of_wide_c_string<Arg>() || is_type_of_wide_string<Arg>())
   {
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, strlen(str)};
@@ -71,6 +87,9 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
   }
   else
   {
+    // no need to align for chars, but align for any other type
+    in = detail::align_pointer<alignof(Arg), std::byte>(in);
+
     args.emplace_back(fmt::detail::make_arg<fmt::format_context>(*reinterpret_cast<ArgType*>(in)));
 
     if constexpr (need_call_dtor_for<Arg>())
@@ -106,7 +125,7 @@ QUILL_ATTRIBUTE_HOT inline void destruct_args(std::byte** args)
 }
 
 template <size_t CstringIdx>
-QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr size_t get_args_sizes(size_t*)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t*)
 {
   return 0;
 }
@@ -115,10 +134,22 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr size_t get_args_sizes(size_t*)
  * Get the size of all arguments
  */
 template <size_t CstringIdx, typename Arg, typename... Args>
-QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr size_t get_args_sizes(size_t* c_string_sizes,
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_string_sizes,
                                                                   Arg const& arg, Args const&... args)
 {
-  if constexpr (is_type_of_c_string<Arg>())
+  if constexpr (is_type_of_wide_c_string<Arg>())
+  {
+    size_t const len = get_wide_string_encoding_size(std::wstring_view {arg, wcslen(arg)}) + 1;
+    c_string_sizes[CstringIdx] = len;
+    return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+  }
+  else if constexpr (is_type_of_wide_string<Arg>())
+  {
+    size_t const len = get_wide_string_encoding_size(arg) + 1;
+    c_string_sizes[CstringIdx] = len;
+    return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+  }
+  else if constexpr (is_type_of_c_string<Arg>())
   {
     size_t const len = strlen(arg) + 1;
     c_string_sizes[CstringIdx] = len;
@@ -138,18 +169,28 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr size_t get_args_sizes(size_t* c_stri
  * Encode args to the buffer
  */
 template <size_t CstringIdx>
-QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::byte* encode_args(size_t*, std::byte* out)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t*, std::byte* out)
 {
   return out;
 }
 
 template <size_t CstringIdx, typename Arg, typename... Args>
-QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::byte* encode_args(size_t* c_string_sizes, std::byte* out,
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_string_sizes, std::byte* out,
                                                                    Arg&& arg, Args&&... args)
 {
-  out = detail::align_pointer<alignof(Arg), std::byte>(out);
-
-  if constexpr (is_type_of_c_string<Arg>())
+  if constexpr (is_type_of_wide_c_string<Arg>())
+  {
+    wide_string_to_narrow(out, c_string_sizes[CstringIdx], std::wstring_view{arg, wcslen(arg)});
+    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
+                                       std::forward<Args>(args)...);
+  }
+  else if constexpr (is_type_of_wide_string<Arg>())
+  {
+    wide_string_to_narrow(out, c_string_sizes[CstringIdx], arg);
+    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
+                                       std::forward<Args>(args)...);
+  }
+  else if constexpr (is_type_of_c_string<Arg>())
   {
     std::memcpy(out, arg, c_string_sizes[CstringIdx]);
     return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
@@ -163,6 +204,9 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::byte* encode_args(size_t* c_str
   }
   else
   {
+    // no need to align for chars, but align for any other type
+    out = detail::align_pointer<alignof(Arg), std::byte>(out);
+
     // use memcpy when possible
     if constexpr (std::is_trivially_copyable_v<detail::remove_cvref_t<Arg>>)
     {
@@ -245,8 +289,8 @@ public:
   Header(Metadata const* metadata, detail::LoggerDetails const* logger_details)
     : metadata(metadata), logger_details(logger_details){};
 
-  Metadata const* metadata;
-  detail::LoggerDetails const* logger_details;
+  Metadata const* metadata{nullptr};
+  detail::LoggerDetails const* logger_details{nullptr};
 #if !defined(QUILL_CHRONO_CLOCK)
   using using_rdtsc = std::true_type;
   uint64_t timestamp{detail::rdtsc()};

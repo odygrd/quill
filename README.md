@@ -53,8 +53,8 @@
 -  [Supported Platforms And Compilers](#supported-platforms-and-compilers)
 -  [Basic Usage](#basic-usage)
 -  [CMake Integration](#cmake-integration)
-- [Documentation](#documentation)
-- [License](#license)
+-  [Documentation](#documentation)
+-  [License](#license)
 
 |  homebrew             |  vcpkg                 |  conan            |
 |:---------------------:|:----------------------:|:-----------------:|
@@ -66,9 +66,8 @@ Quill is a cross-platform low latency logging library based on C++14/C++17.
 
 There are two versions on the library:
 
-`v2.x.x` : C++17 support. **No** support for wide characters logging.
-
-`v1.7.x` : C++14 support.
+`v2` : C++17
+`v1.7` : C++14
 
 Going forward any new features will only be added to the C++17 version of the library.
 The old library (v1.7.x) still remains there and there will be releases only for bug fixes.

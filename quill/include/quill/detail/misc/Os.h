@@ -21,7 +21,20 @@ namespace quill
 {
 namespace detail
 {
+
 /**
+ * Return the size required to encode a wide string
+ * @param s wide string to be encoded
+ * @return required size for encoding 
+ */
+size_t get_wide_string_encoding_size(std::wstring_view s);
+
+/**
+* Converts a wide string to a narrow string
+*/
+void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s);
+
+ /**
  * Portable gmtime_r or _s per operating system
  * @param timer to a time_t object to convert
  * @param buf to a struct tm object to store the result

@@ -41,6 +41,21 @@ public:
   {
   }
 
+#if defined(_WIN32)
+  constexpr MacroMetadata(const char* lineno, std::string_view pathname, std::string_view func,
+                          std::wstring_view message_format, LogLevel level, Event event)
+    : _func(func),
+      _pathname(pathname),
+      _filename(_extract_source_file_name(_pathname)),
+      _lineno(lineno),
+      _level(level),
+      _event(event),
+      _has_wide_char{true},
+      _wmessage_format(message_format)
+  {
+  }
+#endif
+
   /**
    * @return The function name
    */
@@ -92,6 +107,21 @@ public:
 
   QUILL_NODISCARD constexpr Event event() const noexcept { return _event; }
 
+#if defined(_WIN32)
+  /**
+   * @return true if the user provided a wide char format string
+   */
+  QUILL_NODISCARD constexpr bool has_wide_char() const noexcept { return _has_wide_char; }
+
+  /**
+   * @return The user provided wide character format
+   */
+  QUILL_NODISCARD constexpr std::wstring_view wmessage_format() const noexcept
+  {
+    return _wmessage_format;
+  }
+#endif
+
 private:
   QUILL_NODISCARD static constexpr std::string_view _extract_source_file_name(std::string_view pathname) noexcept
   {
@@ -134,5 +164,10 @@ private:
   std::string_view _lineno;
   LogLevel _level{LogLevel::None};
   Event _event{Event::Log};
+
+#if defined(_WIN32)
+  bool _has_wide_char{false};
+  std::wstring_view _wmessage_format;
+#endif
 };
 } // namespace quill

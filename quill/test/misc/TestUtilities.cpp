@@ -21,6 +21,21 @@ std::vector<std::string> file_contents(std::filesystem::path const& filename)
   return lines;
 }
 
+// Convert the given file to a vector
+std::vector<std::wstring> wfile_contents(std::filesystem::path const& filename)
+{
+  std::wifstream out_file(filename.string());
+
+  std::vector<std::wstring> lines;
+
+  for (std::wstring current_line; getline(out_file, current_line);)
+  {
+    lines.push_back(current_line);
+  }
+
+  return lines;
+}
+
 // Search a vector for the given string
 bool file_contains(std::vector<std::string> const& file_vector, std::string search_string)
 {
@@ -43,5 +58,6 @@ bool file_contains(std::vector<std::string> const& file_vector, std::string sear
 
   return success;
 }
+
 } // namespace testing
 } // namespace quill

@@ -1,4 +1,4 @@
-#include "doctest/doctest.h"
+﻿#include "doctest/doctest.h"
 
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
@@ -210,6 +210,98 @@ TEST_CASE("default_logger_ints_and_very_large_string")
   lm.stop_backend_worker();
   quill::detail::remove_file(filename);
 }
+
+#if defined(_WIN32)
+/***/
+TEST_CASE("default_logger_ints_and_wide_string")
+{
+  LogManager lm;
+
+  std::filesystem::path const filename{"default_logger_ints_and_wide_string"};
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None));
+
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::thread frontend(
+    [&lm]()
+    {
+      Logger* default_logger = lm.logger_collection().get_logger();
+
+      std::wstring s1{L"μιλάμε ελληνικά"};
+      LOG_INFO(default_logger, L"καλημέρα, {}", s1);
+
+      wchar_t const* s2{L"Λορεμ ιπσθμ δολορ σιτ αμετ, αδμοδθμ δελενιτι ηενδρεριτ"};
+      LOG_INFO(default_logger, L"{}", s2);
+
+      lm.flush();
+    });
+
+  frontend.join();
+
+  std::vector<std::wstring> const file_contents = quill::testing::wfile_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 2);
+
+  lm.stop_backend_worker();
+  quill::detail::remove_file(filename);
+}
+
+/***/
+TEST_CASE("default_logger_ints_and_very_large_wide_string")
+{
+  LogManager lm;
+
+  std::filesystem::path const filename{"default_logger_ints_and_very_large_wide_string"};
+
+  // Set a file handler as the custom logger handler and log to it
+  lm.logger_collection().set_default_logger_handler(
+    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None));
+
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::thread frontend(
+    [&lm]()
+    {
+      Logger* default_logger = lm.logger_collection().get_logger();
+
+      // log an array so the log message is pushed to the queue
+      for (int i = 0; i < 100; ++i)
+      {
+        std::wstring v{
+          L"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
+          "incididunt ut labore et dolore magna aliqua. Dui accumsan sit amet nulla facilisi morbi "
+          "tempus. Diam ut venenatis tellus in metus vulputate eu scelerisque felis. Lorem mollis "
+          "aliquam ut porttitor leo a. Posuere urna nec tincidunt praesent semper feugiat nibh "
+          "sed. Auctor urna nunc id cursus metus aliquam eleifend mi. Et ultrices neque ornare "
+          "aenean euismod elementum nisi quis. Phasellus vestibulum lorem sed risus ultricies "
+          "tristique nulla. Porta nibh venenatis cras sed felis eget velit aliquet sagittis. Eget "
+          "arcu dictum varius duis at consectetur lorem. Diam quam nulla porttitor massa id neque "
+          "aliquam vestibulum morbi. Sed euismod nisi porta lorem mollis aliquam. Arcu felis "
+          "bibendum ut tristique. Lorem ipsum dolor sit amet consectetur adipiscing elit "
+          "pellentesque habitant. Mauris augue neque gravida in. Dictum fusce ut placerat orci "
+          "nulla pellentesque dignissim "};
+        v += std::to_wstring(i);
+
+        LOG_INFO(default_logger, L"Logging int: {}, int: {}, string: {}, string: {}", i, i * 10, v, v);
+      }
+
+      // Let all log get flushed to the file
+      lm.flush();
+    });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 100);
+
+  lm.stop_backend_worker();
+  quill::detail::remove_file(filename);
+}
+#endif
 
 void custom_default_logger_same_handler(int test_case = 0)
 {

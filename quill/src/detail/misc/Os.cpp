@@ -7,10 +7,10 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring> // for strerror
 #include <cstring>
 #include <ctime>
 #include <sstream>
+#include <string>
 
 #if defined(_WIN32)
   #define WIN32_LEAN_AND_MEAN
@@ -52,6 +52,18 @@ namespace quill
 {
 namespace detail
 {
+/***/
+size_t get_wide_string_encoding_size(std::wstring_view s)
+{
+  return static_cast<size_t>(::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0, nullptr, nullptr));
+}
+
+/***/
+void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s) 
+{
+  ::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
+                        reinterpret_cast<char*>(dest), static_cast<int>(required_bytes), NULL, NULL);
+}
 
 /***/
 tm* gmtime_rs(time_t const* timer, tm* buf)
