@@ -181,4 +181,4 @@
  * of the page size (4096).
  * Look for an online Mebibyte to Byte converter to easily find a correct value.
  */
-// #define QUILL_QUEUE_CAPACITY 262'144
+// #define QUILL_QUEUE_CAPACITY 131'072

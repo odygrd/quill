@@ -21,6 +21,7 @@ namespace quill::detail
 /**
  * Implements a circular Single Producer Single Consumer FIFO queue
  */
+template <size_t Capacity>
 class BoundedQueue
 {
 public:
@@ -187,7 +188,7 @@ public:
     return _consumer_pos.load(std::memory_order_relaxed) == _producer_pos.load(std::memory_order_relaxed);
   }
 
-  QUILL_NODISCARD static constexpr size_t capacity() noexcept { return QUILL_QUEUE_CAPACITY; }
+  QUILL_NODISCARD static constexpr size_t capacity() noexcept { return Capacity; }
 
 protected:
   std::byte* _storage{nullptr};

@@ -29,10 +29,11 @@ namespace quill::detail
  * buffer is created from the producer the consumer first consumes everything in the old
  * buffer and then moves to the new buffer.
  */
+template <size_t Capacity>
 class UnboundedQueue
 {
 public:
-  using bounded_queue_t = BoundedQueue;
+  using bounded_queue_t = BoundedQueue<Capacity>;
 
 private:
   /** Private Definitions **/
