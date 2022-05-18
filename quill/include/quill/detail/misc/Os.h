@@ -21,7 +21,7 @@ namespace quill
 {
 namespace detail
 {
-
+#if defined(_WIN32)
 /**
  * Return the size required to encode a wide string
  * @param s wide string to be encoded
@@ -33,6 +33,7 @@ size_t get_wide_string_encoding_size(std::wstring_view s);
 * Converts a wide string to a narrow string
 */
 void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s);
+#endif
 
  /**
  * Portable gmtime_r or _s per operating system

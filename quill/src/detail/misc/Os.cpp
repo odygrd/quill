@@ -52,6 +52,7 @@ namespace quill
 {
 namespace detail
 {
+#if defined(_WIN32)
 /***/
 size_t get_wide_string_encoding_size(std::wstring_view s)
 {
@@ -64,6 +65,7 @@ void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view 
   ::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
                         reinterpret_cast<char*>(dest), static_cast<int>(required_bytes), NULL, NULL);
 }
+#endif
 
 /***/
 tm* gmtime_rs(time_t const* timer, tm* buf)
