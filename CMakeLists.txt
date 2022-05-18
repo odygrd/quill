@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.1.0)
-project(my_project)
+cmake_minimum_required(VERSION 3.8)
+project(quill)
 
 #-------------------------------------------------------------------------------------------------------
 # Options
@@ -32,11 +32,7 @@ option(QUILL_NO_THREAD_NAME_SUPPORT "Disable features that are not supported on 
 #-------------------------------------------------------------------------------------------------------
 # Use newer policies if possible, up to most recent tested version of CMake.
 #-------------------------------------------------------------------------------------------------------
-if (${CMAKE_VERSION} VERSION_LESS 3.16)
-    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-else ()
-    cmake_policy(VERSION 3.16)
-endif ()
+cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 
 #-------------------------------------------------------------------------------------------------------
 # Determine if quill is built as a subproject (using add_subdirectory) or if it is the master project.
@@ -70,7 +66,7 @@ endif ()
 # Compiler config
 #---------------------------------------------------------------------------------------
 if (NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif ()
 
@@ -140,7 +136,7 @@ message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
 
 # address sanitizer flags
 if (QUILL_SANITIZE_ADDRESS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g")
 endif ()
 
 # thread sanitizer flags

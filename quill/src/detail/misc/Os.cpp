@@ -1,16 +1,16 @@
 #include "quill/detail/misc/Os.h"
 #include "quill/QuillError.h"
-#include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Utilities.h"
 #include <array>
 #include <cerrno> // for errno, EINVAL, ENOMEM
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring> // for strerror
 #include <cstring>
 #include <ctime>
 #include <sstream>
+#include <string>
 
 #if defined(_WIN32)
   #define WIN32_LEAN_AND_MEAN
@@ -52,6 +52,20 @@ namespace quill
 {
 namespace detail
 {
+#if defined(_WIN32)
+/***/
+size_t get_wide_string_encoding_size(std::wstring_view s)
+{
+  return static_cast<size_t>(::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0, nullptr, nullptr));
+}
+
+/***/
+void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s) 
+{
+  ::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
+                        reinterpret_cast<char*>(dest), static_cast<int>(required_bytes), NULL, NULL);
+}
+#endif
 
 /***/
 tm* gmtime_rs(time_t const* timer, tm* buf)
@@ -305,85 +319,6 @@ void aligned_free(void* ptr) noexcept
 }
 
 /***/
-FILE* fopen(filename_t const& filename, std::string const& mode)
-{
-  FILE* fp{nullptr};
-#if defined(_WIN32)
-  std::wstring const w_mode = s2ws(mode);
-  fp = ::_wfsopen((filename.c_str()), w_mode.data(), _SH_DENYNO);
-#else
-  fp = ::fopen(filename.data(), mode.data());
-#endif
-  if (!fp)
-  {
-    std::ostringstream error_msg;
-    error_msg << "fopen failed with error message errno: \"" << errno << "\"";
-    QUILL_THROW(QuillError{error_msg.str()});
-  }
-  return fp;
-}
-
-/***/
-size_t fsize(FILE* file)
-{
-  if (!file)
-  {
-    QUILL_THROW(QuillError{"fsize failed. file is nullptr"});
-  }
-
-#if defined(_WIN32) && !defined(__CYGWIN__)
-  auto const fd = ::_fileno(file);
-  auto const ret = ::_filelength(fd);
-
-  if (ret >= 0)
-  {
-    return static_cast<size_t>(ret);
-  }
-#else
-  auto const fd = fileno(file);
-  struct stat st;
-
-  if (fstat(fd, &st) == 0)
-  {
-    return static_cast<size_t>(st.st_size);
-  }
-#endif
-
-  // failed to get the file size
-  std::ostringstream error_msg;
-  error_msg << "fopen failed with error message errno: \"" << errno << "\"";
-  QUILL_THROW(QuillError{error_msg.str()});
-}
-
-/***/
-int remove(filename_t const& filename) noexcept
-{
-#if defined(_WIN32)
-  return ::_wremove(filename.c_str());
-#else
-  return std::remove(filename.c_str());
-#endif
-}
-
-/***/
-void rename(filename_t const& previous_file, filename_t const& new_file)
-{
-#if defined(_WIN32)
-  int const res = ::_wrename(previous_file.c_str(), new_file.c_str());
-#else
-  int const res = std::rename(previous_file.c_str(), new_file.c_str());
-#endif
-
-  if (QUILL_UNLIKELY(res != 0))
-  {
-    std::ostringstream error_msg;
-    error_msg << "failed to rename previous log file during rotation, with error message errno: \""
-              << errno << "\"";
-    QUILL_THROW(QuillError{error_msg.str()});
-  }
-}
-
-/***/
 time_t timegm(tm* tm)
 {
 #if defined(_WIN32)
@@ -446,51 +381,6 @@ bool is_in_terminal(FILE* file) noexcept
   return ::isatty(fileno(file)) != 0;
 #endif
 }
-
-#if defined(_WIN32)
-/***/
-void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer& mem_buffer)
-{
-  auto remain_space = static_cast<int32_t>(mem_buffer.capacity() - mem_buffer.size());
-  auto bytes_needed = remain_space;
-
-  // TODO: so far utf-8 will use at most 4 bytes for a character.
-  if ((w_mem_buffer.size() + 1) * 4 > static_cast<size_t>(remain_space))
-  {
-    // if our given string is larger than the capacity, calculate how many bytes we need
-    bytes_needed = ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(),
-                                         static_cast<int>(w_mem_buffer.size()), NULL, 0, NULL, NULL);
-
-    mem_buffer.reserve(static_cast<uint32_t>(bytes_needed + 1 + mem_buffer.size())); // +1 for EOL symbol, i.e. '\n'
-  }
-
-  if (QUILL_UNLIKELY(bytes_needed == 0))
-  {
-    auto const error = std::error_code(GetLastError(), std::system_category());
-    std::ostringstream error_msg;
-    error_msg << "wstring_to_utf8 failed with error message "
-              << "\"" << error.message() << "\", errno \"" << error.value() << "\"";
-    QUILL_THROW(QuillError{error_msg.str()});
-  }
-
-  // convert
-  bytes_needed =
-    ::WideCharToMultiByte(CP_UTF8, 0, w_mem_buffer.data(), static_cast<int>(w_mem_buffer.size()),
-                          mem_buffer.data() + mem_buffer.size(), bytes_needed, NULL, NULL);
-
-  if (QUILL_UNLIKELY(bytes_needed == 0))
-  {
-    auto const error = std::error_code(GetLastError(), std::system_category());
-    std::ostringstream error_msg;
-    error_msg << "wstring_to_utf8 failed with error message "
-              << "\"" << error.message() << "\", errno \"" << error.value() << "\"";
-    QUILL_THROW(QuillError{error_msg.str()});
-  }
-
-  // resize again in case we didn't calculate before how many bytes needed (1st call to WideCharToMultiByte was skipped)
-  mem_buffer.resize(static_cast<uint32_t>(bytes_needed + mem_buffer.size()));
-}
-#endif
 
 } // namespace detail
 } // namespace quill

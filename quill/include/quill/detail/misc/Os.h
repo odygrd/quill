@@ -6,16 +6,13 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
-#include "quill/detail/misc/Common.h"     // for filename_t
+#include "quill/detail/misc/Common.h"     // for std::filesystem::path
 #include <cstdint>                        // for uint32_t, uint16_t
 #include <cstdio>                         // for FILE
 #include <ctime>                          // for size_t, time_t
-#include <string>                         // for string
-#include <utility>                        // for pair
-
-#if defined(_WIN32)
-#include "quill/Fmt.h"
-#endif
+#include <filesystem>
+#include <string>  // for string
+#include <utility> // for pair
 
 /** forward declarations **/
 struct tm;
@@ -24,7 +21,21 @@ namespace quill
 {
 namespace detail
 {
+#if defined(_WIN32)
 /**
+ * Return the size required to encode a wide string
+ * @param s wide string to be encoded
+ * @return required size for encoding 
+ */
+size_t get_wide_string_encoding_size(std::wstring_view s);
+
+/**
+* Converts a wide string to a narrow string
+*/
+void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s);
+#endif
+
+ /**
  * Portable gmtime_r or _s per operating system
  * @param timer to a time_t object to convert
  * @param buf to a struct tm object to store the result
@@ -100,37 +111,6 @@ QUILL_NODISCARD void* aligned_alloc(size_t alignment, size_t size);
 void aligned_free(void* ptr) noexcept;
 
 /**
- * Opens a file
- * @param filename name of file
- * @param mode string containing a file access mode
- * @return a FILE* pointer to opened file
- * @throws std::system_error on failure
- */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* fopen(filename_t const& filename, std::string const& mode);
-
-/**
- * Calculates the size of a file
- * @param file a valid pointer to the file
- * @return the size of the file
- * @throws std::runtime_error on failure
- */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t fsize(FILE* file);
-
-/**
- * Removes a file
- * @param filename the name of the file to remove
- * @return ​Zero​ upon success or non-zero value on error.
- */
-QUILL_ATTRIBUTE_COLD int remove(filename_t const& filename) noexcept;
-
-/**
- * Rename a file
- * @param previous_file previous file name
- * @param new_file new file name
- */
-QUILL_ATTRIBUTE_COLD void rename(filename_t const& previous_file, filename_t const& new_file);
-
-/**
  * inverses of gmtime
  * @param tm struct tm to convert
  * @throws on invalid input
@@ -149,15 +129,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_colour_terminal() noexcept;
  * @return true if the file is attached to terminal
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_in_terminal(FILE* file) noexcept;
-
-#if defined(_WIN32)
-/**
- * Given a wide character fmt memory buffer convert it to a memory buffer
- * @param w_mem_buffer [in] wide buffer input
- * @param mem_buffer [out] output
- */
-void wstring_to_utf8(fmt::wmemory_buffer const& w_mem_buffer, fmt::memory_buffer& mem_buffer);
-#endif
 
 } // namespace detail
 } // namespace quill

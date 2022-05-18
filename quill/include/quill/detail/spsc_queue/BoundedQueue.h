@@ -1,44 +1,48 @@
-#pragma once
+/**
+ * Copyright(c) 2020-present, Odysseas Georgoudis & quill contributors.
+ * Distributed under the MIT License (http://opensource.org/licenses/MIT)
+ */
 
-#include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"
-#include "quill/detail/misc/Macros.h"
-#include "quill/detail/misc/Os.h"
+#pragma once
 
 #include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <utility>
 
-namespace quill
-{
-namespace detail
+#include "quill/detail/misc/Attributes.h"
+#include "quill/detail/misc/Common.h"
+#include "quill/detail/misc/Os.h"
+
+namespace quill::detail
 {
 /**
- * Implements a circular FIFO producer/consumer byte queue
+ * Implements a circular Single Producer Single Consumer FIFO queue
  */
-class BoundedSPSCRawQueue
+template <size_t Capacity>
+class BoundedQueue
 {
 public:
-  BoundedSPSCRawQueue()
+  BoundedQueue()
   {
-    _storage = static_cast<unsigned char*>(aligned_alloc(CACHELINE_SIZE, QUILL_QUEUE_CAPACITY));
-    std::memset(_storage, 0, QUILL_QUEUE_CAPACITY);
+    _storage = static_cast<std::byte*>(aligned_alloc(CACHELINE_SIZE, capacity()));
+    std::memset(_storage, 0, capacity());
 
-    _end_of_recorded_space = _storage + QUILL_QUEUE_CAPACITY;
-    _min_free_space = QUILL_QUEUE_CAPACITY;
+    _end_of_recorded_space = _storage + capacity();
+    _min_free_space = capacity();
     _producer_pos.store(_storage);
     _consumer_pos.store(_storage);
   }
 
-  ~BoundedSPSCRawQueue() { aligned_free(_storage); }
+  ~BoundedQueue() { aligned_free(_storage); }
 
   /**
    * Attempt to reserve contiguous space for the producer without
    * making it visible to the consumer.
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT unsigned char* prepare_write(size_t nbytes)
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(size_t nbytes) noexcept
   {
     // Fast in-line path
     if (_min_free_space > nbytes)
@@ -56,14 +60,14 @@ public:
 
     // Since consumerPos can be updated in a different thread, we
     // save a consistent copy of it here to do calculations on
-    unsigned char* producer_pos = _producer_pos.load(std::memory_order_relaxed);
-    unsigned char* consumer_pos = _consumer_pos.load(std::memory_order_acquire);
+    std::byte* producer_pos = _producer_pos.load(std::memory_order_relaxed);
+    std::byte* consumer_pos = _consumer_pos.load(std::memory_order_acquire);
 
     if (producer_pos >= consumer_pos)
     {
       // producer is ahead of the consumer
       // cxxxxxxxxxp0000EOB
-      unsigned char* endOfBuffer = _storage + QUILL_QUEUE_CAPACITY;
+      std::byte* endOfBuffer = _storage + capacity();
 
       // remaining space to the end of the buffer
       _min_free_space = static_cast<size_t>(endOfBuffer - producer_pos);
@@ -116,10 +120,10 @@ public:
   }
 
   /**
-   * Complement to reserveProducerSpace that makes nbytes starting
-   * from the return of reserveProducerSpace visible to the consumer.
+   * Complement to reserve producer space that makes nbytes starting
+   * from the return of reserve producer space visible to the consumer.
    */
-  QUILL_ALWAYS_INLINE_HOT void commit_write(size_t nbytes)
+  QUILL_ALWAYS_INLINE_HOT void commit_write(size_t nbytes) noexcept
   {
     _min_free_space -= nbytes;
     _producer_pos.store(_producer_pos.load(std::memory_order_relaxed) + nbytes, std::memory_order_release);
@@ -129,12 +133,12 @@ public:
    * Prepare to read from the buffer
    * @return a pair of the buffer location to read and the number of available bytes
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::pair<unsigned char*, size_t> prepare_read()
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::pair<std::byte*, size_t> prepare_read() noexcept
   {
     // Save a consistent copy of producerPos
     // Prevent reading new producerPos but old endOf...
-    unsigned char* producer_pos = _producer_pos.load(std::memory_order_acquire);
-    unsigned char* consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
+    std::byte* producer_pos = _producer_pos.load(std::memory_order_acquire);
+    std::byte* consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
 
     size_t bytes_available;
 
@@ -146,7 +150,7 @@ public:
 
       if (bytes_available > 0)
       {
-        return std::make_pair(consumer_pos, bytes_available);
+        return std::pair<std::byte*, size_t>{consumer_pos, bytes_available};
       }
 
       // Roll over because there is nothing to read until end of buffer
@@ -157,7 +161,7 @@ public:
     consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
     bytes_available = static_cast<size_t>(producer_pos - consumer_pos);
 
-    return std::make_pair(consumer_pos, bytes_available);
+    return std::pair<std::byte*, size_t>{consumer_pos, bytes_available};
   }
 
   /**
@@ -165,9 +169,18 @@ public:
    * for the producer to reuse.
    * nbytes must be less or equal than what is returned by prepare_read().
    */
-  QUILL_ALWAYS_INLINE_HOT void finish_read(uint64_t nbytes)
+  QUILL_ALWAYS_INLINE_HOT void finish_read(uint64_t nbytes) noexcept
   {
     _consumer_pos.store(_consumer_pos.load(std::memory_order_relaxed) + nbytes, std::memory_order_release);
+  }
+
+  /**
+   * Gives a pointer to producer pos
+   * @return
+   */
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* producer_pos() const noexcept
+  {
+    return _producer_pos.load(std::memory_order_relaxed);
   }
 
   QUILL_NODISCARD bool empty() const noexcept
@@ -175,16 +188,16 @@ public:
     return _consumer_pos.load(std::memory_order_relaxed) == _producer_pos.load(std::memory_order_relaxed);
   }
 
-  QUILL_NODISCARD static size_t capacity() noexcept { return QUILL_QUEUE_CAPACITY; }
+  QUILL_NODISCARD static constexpr size_t capacity() noexcept { return Capacity; }
 
 protected:
-  unsigned char* _storage{nullptr};
+  std::byte* _storage{nullptr};
 
   /** Position within storage[] where the producer may place new data **/
-  alignas(CACHELINE_SIZE) std::atomic<unsigned char*> _producer_pos;
+  alignas(CACHELINE_SIZE) std::atomic<std::byte*> _producer_pos;
 
   /**  Marks the end of valid data for the consumer. Set by the producer on a roll-over **/
-  unsigned char* _end_of_recorded_space;
+  std::byte* _end_of_recorded_space;
 
   /** Lower bound on the number of bytes the producer can allocate w/o rolling over the
    * producerPos or stalling behind the consumer **/
@@ -194,8 +207,7 @@ protected:
    * Position within the storage buffer where the consumer will consume
    * the next bytes from. This value is only updated by the consumer.
    */
-  alignas(CACHELINE_SIZE) std::atomic<unsigned char*> _consumer_pos;
-  char _pad0[CACHELINE_SIZE - sizeof(std::atomic<unsigned char*>)] = "\0";
+  alignas(CACHELINE_SIZE) std::atomic<std::byte*> _consumer_pos;
+  char _pad0[CACHELINE_SIZE - sizeof(std::atomic<std::byte*>)] = "\0";
 };
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

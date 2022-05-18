@@ -7,7 +7,7 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/detail/misc/Macros.h"
+#include "quill/detail/misc/Common.h"
 #include <exception>
 #include <string>
 

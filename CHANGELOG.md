@@ -1,3 +1,4 @@
+- [v2.0.0](#v2.0.0)
 - [v1.7.3](#v1.7.3)
 - [v1.7.2](#v1.7.2)
 - [v1.7.1](#v1.7.1)
@@ -21,6 +22,29 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.0.0
+
+From version `v2` and onwards only c++17 is supported.
+
+This version is a major refactor.
+
+**Fixes**
+- RotatingFileHandler will now correctly rotate the files when append mode is used ([#123](https://github.com/odygrd/quill/issues/123))
+
+**Improvements**
+
+- Reduced and simplified codebase.
+- Improved backend worker thread performance.
+- `QUILL_DUAL_QUEUE_MODE` has been removed. A single queue now handles every case.
+- `QUILL_STRING` has been removed. That macro is no longer required when passing a format string to the
+  PatternFormatter.
+
+**Differences**
+
+- `v1.7` compiles with c++14, `v2` only compiles for c++17.
+- `v1.7` on Windows supports wide character logging, `v2` has limited wide character support such as logging `wchar_t`, `std::wstring`, `std::wstring_view`. For example, logging `std::vector<std::wstring>` is not supported.
+- `v1.7` on Windows requires the filepath used for the handlers as a wide strings, `v2` supports only filenames as narrow strings.
 
 ## v1.7.3
 

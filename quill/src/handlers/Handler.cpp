@@ -10,7 +10,7 @@ namespace quill
 void Handler::add_filter(std::unique_ptr<FilterBase> filter)
 {
   // Lock and add this filter to our global collection
-  std::lock_guard<detail::RecursiveSpinlock> const lock(_global_filters_lock);
+  std::lock_guard<std::recursive_mutex> const lock(_global_filters_lock);
 
   // Check if the same filter already exists
   auto const search_filter_it = std::find_if(
@@ -30,9 +30,8 @@ void Handler::add_filter(std::unique_ptr<FilterBase> filter)
 }
 
 /***/
-QUILL_NODISCARD bool Handler::apply_filters(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                                            LogMacroMetadata const& metadata,
-                                            fmt::memory_buffer const& formatted_record)
+QUILL_NODISCARD bool Handler::apply_filters(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
+                                            MacroMetadata const& metadata, fmt::memory_buffer const& formatted_record)
 {
   if (metadata.level() < _log_level.load(std::memory_order_relaxed))
   {
@@ -45,7 +44,7 @@ QUILL_NODISCARD bool Handler::apply_filters(char const* thread_id, std::chrono::
     // if there is a new filter we have to update
     _local_filters.clear();
 
-    std::lock_guard<detail::RecursiveSpinlock> const lock(_global_filters_lock);
+    std::lock_guard<std::recursive_mutex> const lock(_global_filters_lock);
     for (auto const& filter : _global_filters)
     {
       _local_filters.push_back(filter.get());
@@ -57,9 +56,8 @@ QUILL_NODISCARD bool Handler::apply_filters(char const* thread_id, std::chrono::
 
   return std::all_of(
     _local_filters.begin(), _local_filters.end(),
-    [thread_id, log_record_timestamp, &metadata, &formatted_record](FilterBase* filter_elem) {
-      return filter_elem->filter(thread_id, log_record_timestamp, metadata, formatted_record);
-    });
+    [thread_id, log_message_timestamp, &metadata, &formatted_record](FilterBase* filter_elem)
+    { return filter_elem->filter(thread_id, log_message_timestamp, metadata, formatted_record); });
 }
 
 } // namespace quill

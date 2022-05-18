@@ -1,6 +1,6 @@
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/ThreadContext.h" // for ThreadContext, ThreadContext...
-#include "quill/detail/misc/Macros.h"   // for QUILL_UNLIKELY
+#include "quill/detail/misc/Common.h"   // for QUILL_UNLIKELY
 #include <algorithm>                    // for find_if
 #include <mutex>                        // for lock_guard
 #include <type_traits>                  // for remove_extent<>::type
@@ -31,7 +31,7 @@ ThreadContextCollection::ThreadContextWrapper::~ThreadContextWrapper() noexcept
 {
   // This destructor will get called when the thread that created this wrapper stops
   // we will only invalidate the thread context
-  // The backend thread will empty an invalidated ThreadContext and then remove it from
+  // The backend thread will empty an invalidated ThreadContext and then remove_file it from
   // the ThreadContextCollection
   // There is only exception for the thread who owns the ThreadContextCollection the
   // main thread. The thread context of the main thread can get deleted before getting invalidated
@@ -44,9 +44,9 @@ ThreadContextCollection::ThreadContextWrapper::~ThreadContextWrapper() noexcept
 /***/
 void ThreadContextCollection::register_thread_context(std::shared_ptr<ThreadContext> const& thread_context)
 {
-  _spinlock.lock();
+  _mutex.lock();
   _thread_contexts.push_back(thread_context);
-  _spinlock.unlock();
+  _mutex.unlock();
   _set_new_thread_context();
 }
 
@@ -57,7 +57,7 @@ ThreadContextCollection::backend_thread_contexts_cache_t const& ThreadContextCol
   if (QUILL_UNLIKELY(_has_new_thread_context()))
   {
     // if the thread _thread_contexts was changed we lock and remake our reference cache
-    std::lock_guard<Spinlock> const lock(_spinlock);
+    std::lock_guard<std::mutex> const lock(_mutex);
     _thread_context_cache.clear();
 
     // Remake thread context ref
@@ -131,25 +131,20 @@ bool ThreadContextCollection::_has_invalid_thread_context() const noexcept
 /***/
 void ThreadContextCollection::_remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
 {
-  std::lock_guard<Spinlock> const lock(_spinlock);
+  std::lock_guard<std::mutex> const lock(_mutex);
 
   auto thread_context_it = std::find_if(_thread_contexts.begin(), _thread_contexts.end(),
-                                        [thread_context](std::shared_ptr<ThreadContext> const& elem) {
-                                          return elem.get() == thread_context;
-                                        });
+                                        [thread_context](std::shared_ptr<ThreadContext> const& elem)
+                                        { return elem.get() == thread_context; });
 
   assert(thread_context_it != _thread_contexts.end() &&
-         "Attempting to remove a non existent thread context");
+         "Attempting to remove_file a non existent thread context");
 
-  assert(!thread_context_it->get()->is_valid() && "Attempting to remove a valid thread context");
+  assert(!thread_context_it->get()->is_valid() &&
+         "Attempting to remove_file a valid thread context");
 
-  assert(thread_context_it->get()->event_spsc_queue().empty() &&
-         "Attempting to remove a thread context with a non empty queue");
-
-#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
-  assert(thread_context_it->get()->raw_spsc_queue().empty() &&
-         "Attempting to remove a thread context with a non empty queue");
-#endif
+  assert(thread_context_it->get()->spsc_queue().empty() &&
+         "Attempting to remove_file a thread context with a non empty queue");
 
   _thread_contexts.erase(thread_context_it);
 
@@ -162,44 +157,36 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
 {
   // First we iterate our existing cache and we look for any invalidated contexts
   auto found_invalid_and_empty_thread_context = std::find_if(
-    _thread_context_cache.begin(), _thread_context_cache.end(), [](ThreadContext* thread_context) {
-  // If the thread context is invalid it means the thread that created it has now died.
-  // We also want to empty the queue from all LogRecords before removing the thread context
+    _thread_context_cache.begin(), _thread_context_cache.end(), [](ThreadContext* thread_context)
+                 {
+                   // If the thread context is invalid it means the thread that created it has now died.
+                   // We also want to empty the queue from all LogRecords before removing the thread context
 
-#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
-      return !thread_context->is_valid() && thread_context->event_spsc_queue().empty() &&
-        thread_context->raw_spsc_queue().empty();
-#else
-      return !thread_context->is_valid() && thread_context->event_spsc_queue().empty();
-#endif
-    });
+                   return !thread_context->is_valid() && thread_context->spsc_queue().empty();
+                 });
 
   while (QUILL_UNLIKELY(found_invalid_and_empty_thread_context != _thread_context_cache.cend()))
   {
-    // Decrement the counter since we found something to remove
+    // Decrement the counter since we found something to remove_file
     _sub_invalid_thread_context();
 
-    // if we found anything then remove it - Here if we have more than one to remove we will try to
-    // acquire the lock multiple times but it should be fine as it is unlikely to have that many
-    // to remove
+    // if we found anything then remove it - Here if we have more than one to remove_file we will
+    // try to acquire the lock multiple times but it should be fine as it is unlikely to have that
+    // many to remove_file
     _remove_shared_invalidated_thread_context(*found_invalid_and_empty_thread_context);
 
-    // We also need to remove this from _thread_context_cache, that is used only by the backend
+    // We also need to remove_file this from _thread_context_cache, that is used only by the backend
     _thread_context_cache.erase(found_invalid_and_empty_thread_context);
 
     // And then look again
     found_invalid_and_empty_thread_context = std::find_if(
-      _thread_context_cache.begin(), _thread_context_cache.end(), [](ThreadContext* thread_context) {
-    // If the thread context is invalid it means the thread that created it has now died.
-    // We also want to empty the queue from all LogRecords before removing the thread context
+      _thread_context_cache.begin(), _thread_context_cache.end(), [](ThreadContext* thread_context)
+                   {
+                     // If the thread context is invalid it means the thread that created it has now died.
+                     // We also want to empty the queue from all LogRecords before removing the thread context
 
-#if !defined(QUILL_DISABLE_DUAL_QUEUE_MODE)
-        return !thread_context->is_valid() && thread_context->event_spsc_queue().empty() &&
-          thread_context->raw_spsc_queue().empty();
-#else
-        return !thread_context->is_valid() && thread_context->event_spsc_queue().empty();
-#endif
-      });
+                     return !thread_context->is_valid() && thread_context->spsc_queue().empty();
+                   });
   }
 }
 } // namespace detail

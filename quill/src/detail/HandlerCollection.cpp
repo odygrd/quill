@@ -14,29 +14,21 @@ namespace detail
 StreamHandler* HandlerCollection::stdout_console_handler(std::string const& stdout_handler_name /* = std::string{"stdout"} */,
                                                          ConsoleColours const& console_colours /* = ConsoleColours{} */)
 {
-#if defined(_WIN32)
-  return _create_console_handler(s2ws(stdout_handler_name), stdout, console_colours);
-#else
   return _create_console_handler(stdout_handler_name, stdout, console_colours);
-#endif
 }
 
 /***/
 StreamHandler* HandlerCollection::stderr_console_handler(std::string const& stderr_handler_name /* = std::string{"stderr"} */)
 {
   // we just pass an empty ConsoleColours class, as we don't use colours for stderr.
-#if defined(_WIN32)
-  return _create_console_handler(s2ws(stderr_handler_name), stderr, quill::ConsoleColours{});
-#else
   return _create_console_handler(stderr_handler_name, stderr, quill::ConsoleColours{});
-#endif
 }
 
 /***/
 void HandlerCollection::subscribe_handler(Handler* handler_to_insert)
 {
   // Protect shared access
-  std::lock_guard<Spinlock> const lock{_spinlock};
+  std::lock_guard<std::mutex> const lock{_mutex};
 
   // Check if we already have this object
   auto const search = std::find_if(
@@ -57,18 +49,18 @@ std::vector<Handler*> HandlerCollection::active_handlers() const
 
   // Protect shared access, we just use a lock here since this function is not used when logging
   // messages but only in special cases e.g. flushing
-  std::lock_guard<Spinlock> const lock{_spinlock};
+  std::lock_guard<std::mutex> const lock{_mutex};
   subscribed_handlers_collection = _active_handlers_collection;
 
   return subscribed_handlers_collection;
 }
 
 /***/
-StreamHandler* HandlerCollection::_create_console_handler(filename_t const& stream, FILE* file,
+StreamHandler* HandlerCollection::_create_console_handler(std::string const& stream, FILE* file,
                                                           ConsoleColours const& console_colours)
 {
   // Protect shared access
-  std::lock_guard<Spinlock> const lock{_spinlock};
+  std::lock_guard<std::mutex> const lock{_mutex};
 
   // Try to insert it unless we failed it means we already had it
   auto const search = _handler_collection.find(stream);

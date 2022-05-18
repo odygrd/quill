@@ -1,5 +1,3 @@
-#define QUILL_QUEUE_CAPACITY 262'144
-
 #include "quill/Quill.h"
 #include "quill/detail/misc/RdtscClock.h"
 #include <chrono>

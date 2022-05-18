@@ -1,8 +1,7 @@
 #include "quill/handlers/TimeRotatingFileHandler.h"
 #include "quill/QuillError.h"                // for QuillError, QUILL_THROW
-#include "quill/detail/misc/Common.h"        // for filename_t
+#include "quill/detail/misc/Common.h"        // for QUILL_UNLIKELY
 #include "quill/detail/misc/FileUtilities.h" // for append_date_to_filename
-#include "quill/detail/misc/Macros.h"        // for QUILL_UNLIKELY
 #include "quill/detail/misc/Os.h"            // for localtime_rs
 #include "quill/handlers/StreamHandler.h"    // for StreamHandler
 #include <cerrno>                            // for errno
@@ -15,8 +14,9 @@ namespace quill
 {
 
 /***/
-TimeRotatingFileHandler::TimeRotatingFileHandler(filename_t const& base_filename, std::string const& mode,
-                                                 std::string when, uint32_t interval, uint32_t backup_count,
+TimeRotatingFileHandler::TimeRotatingFileHandler(std::filesystem::path const& base_filename,
+                                                 std::string const& mode, std::string when,
+                                                 uint32_t interval, uint32_t backup_count,
                                                  Timezone timezone, std::string const& at_time)
   : FileHandler(base_filename),
     _when(std::move(when)),
@@ -75,14 +75,14 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(filename_t const& base_filename
     _calculate_initial_rotation_tp(_file_creation_time, _when, timezone, at_time_hours, at_time_minutes);
 
   // Open file for logging
-  _file = detail::file_utilities::open(_filename, mode);
+  _file = detail::open_file(_filename, mode);
 }
 
 /***/
-void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_record,
-                                    std::chrono::nanoseconds log_record_timestamp, LogLevel log_message_severity)
+void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_message,
+                                    std::chrono::nanoseconds log_message_timestamp, LogLevel log_message_severity)
 {
-  bool const should_rotate = (log_record_timestamp >= _next_rotation_time.time_since_epoch());
+  bool const should_rotate = (log_message_timestamp >= _next_rotation_time.time_since_epoch());
 
   if (QUILL_UNLIKELY(should_rotate))
   {
@@ -102,21 +102,21 @@ void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_reco
       }
     }
 
-    filename_t const previous_file = _filename;
+    std::filesystem::path const previous_file = _filename;
     bool const append_time_to_filename = true;
-    filename_t const new_file = detail::file_utilities::append_date_to_filename(
+    std::filesystem::path const new_file = detail::append_date_to_filename(
       _filename, _file_creation_time, append_time_to_filename, _using_timezone);
 
-    quill::detail::rename(previous_file, new_file);
+    detail::rename_file(previous_file, new_file);
 
-    // Also store the file name in a queue to remove it later if we exceed backup count
+    // Also store the file name in a queue to remove_file it later if we exceed backup count
     _created_files.push(new_file);
 
-    // If we have too many files in the queue remove the oldest one
+    // If we have too many files in the queue remove_file the oldest one
     if (_created_files.size() > _backup_count)
     {
-      // remove that file from the system and also pop it from the queue
-      detail::remove(_created_files.front());
+      // remove_file that file from the system and also pop it from the queue
+      detail::remove_file(_created_files.front());
       _created_files.pop();
     }
 
@@ -125,11 +125,11 @@ void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_reco
     _next_rotation_time = _calculate_rotation_tp(_file_creation_time, _when, _interval);
 
     // Open file for logging
-    _file = detail::file_utilities::open(_filename, "w");
+    _file = detail::open_file(_filename, "w");
   }
 
   // write to file
-  StreamHandler::write(formatted_log_record, log_record_timestamp, log_message_severity);
+  StreamHandler::write(formatted_log_message, log_message_timestamp, log_message_severity);
 }
 
 /***/

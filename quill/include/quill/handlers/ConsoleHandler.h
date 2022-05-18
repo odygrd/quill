@@ -7,7 +7,6 @@
 
 #include "quill/LogLevel.h"
 #include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"     // for filename_t
 #include "quill/handlers/StreamHandler.h" // for StreamHandler
 #include <array>
 #include <string> // for string
@@ -188,17 +187,17 @@ private:
 class ConsoleHandler : public StreamHandler
 {
 public:
-  ConsoleHandler(filename_t stream, FILE* file, ConsoleColours const& console_colours);
+  ConsoleHandler(std::string stream, FILE* file, ConsoleColours const& console_colours);
 
   ~ConsoleHandler() override = default;
 
   /**
-   * Write a formatted log record to the stream
-   * @param formatted_log_record input log record to write
-   * @param log_record_timestamp log record timestamp
+   * Write a formatted log message to the stream
+   * @param formatted_log_message input log message to write
+   * @param log_message_timestamp log message timestamp
    */
-  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record,
-                                 std::chrono::nanoseconds log_record_timestamp,
+  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_message,
+                                 std::chrono::nanoseconds log_message_timestamp,
                                  LogLevel log_message_severity) override;
 
   /**

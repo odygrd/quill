@@ -33,7 +33,7 @@ CapturedStream::CapturedStream(int fd) : fd_(fd), uncaptured_fd_(dup(fd))
     const int captured_fd = creat(temp_file_path, _S_IREAD | _S_IWRITE);
     if (captured_fd == -1)
     {
-      FAIL("Unable to open temporary file " << temp_file_path);
+      FAIL("Unable to open_file temporary file " << temp_file_path);
     }
     filename_ = temp_file_path;
 #else
@@ -81,7 +81,7 @@ CapturedStream::CapturedStream(int fd) : fd_(fd), uncaptured_fd_(dup(fd))
     FILE* const file = _fopen(filename_.c_str(), "r");
     if (file == nullptr)
     {
-     // FAIL("Failed to open tmp file " << filename_ << " for capturing stream.");
+      // FAIL("Failed to open_file tmp file " << filename_ << " for capturing stream.");
     }
 
     std::string content = _read_entire_file(file);

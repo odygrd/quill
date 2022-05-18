@@ -5,9 +5,7 @@
 #include <algorithm>
 #include <cassert>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 namespace
 {
@@ -522,5 +520,4 @@ size_t FreeListAllocator::_add_padding(size_t s) noexcept
  */
 size_t FreeListAllocator::_add_header_size(size_t s) noexcept { return s + sizeof(BlockHeader); }
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

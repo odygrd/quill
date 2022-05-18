@@ -165,7 +165,7 @@ TEST_CASE("set_default_logger_pattern")
   LoggerCollection logger_collection{tc, hc};
 
   Handler* stream_handler = hc.stdout_console_handler();
-  stream_handler->set_pattern(QUILL_STRING("%(message)"));
+  stream_handler->set_pattern("%(message)");
 
   logger_collection.set_default_logger_handler(stream_handler);
 }

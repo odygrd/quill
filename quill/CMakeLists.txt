@@ -7,45 +7,26 @@ set(TARGET_NAME quill)
 
 # header files
 set(HEADER_FILES
-        # Bundled invoke
-        include/quill/bundled/invoke/invoke.h
-
         # quill
         include/quill/detail/backend/BackendWorker.h
-        include/quill/detail/backend/BacktraceLogRecordStorage.h
+        include/quill/detail/backend/BacktraceStorage.h
         include/quill/detail/backend/FreeListAllocator.h
         include/quill/detail/backend/StringFromTime.h
         include/quill/detail/backend/TimestampFormatter.h
-
-        include/quill/detail/events/BacktraceEvent.h
-        include/quill/detail/events/BaseEvent.h
-        include/quill/detail/events/FlushEvent.h
-        include/quill/detail/events/LogEvent.h
+        include/quill/detail/backend/TransitEvent.h
 
         include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
         include/quill/detail/misc/FileUtilities.h
-        include/quill/detail/misc/Macros.h
         include/quill/detail/misc/Os.h
         include/quill/detail/misc/Rdtsc.h
         include/quill/detail/misc/RdtscClock.h
-        include/quill/detail/misc/RecursiveSpinlock.h
-        include/quill/detail/misc/Spinlock.h
-        include/quill/detail/misc/StringView.h
-        include/quill/detail/misc/TypeTraits.h
         include/quill/detail/misc/TypeTraitsCopyable.h
-        include/quill/detail/misc/TypeTraitsSerializable.h
         include/quill/detail/misc/Utilities.h
 
-        include/quill/detail/serialize/Deserialize.h
-        include/quill/detail/serialize/Serialize.h
-        include/quill/detail/serialize/SerializationMetadata.h
-        include/quill/detail/serialize/TypeDescriptor.h
-
-        include/quill/detail/spsc_queue/BoundedSPSCEventQueue.h
-        include/quill/detail/spsc_queue/BoundedSPSCRawQueue.h
-        include/quill/detail/spsc_queue/UnboundedSPSCEventQueue.h
+        include/quill/detail/spsc_queue/BoundedQueue.h
+        include/quill/detail/spsc_queue/UnboundedQueue.h
 
         include/quill/detail/Config.h
         include/quill/detail/HandlerCollection.h
@@ -53,7 +34,7 @@ set(HEADER_FILES
         include/quill/detail/LoggerDetails.h
         include/quill/detail/LogMacros.h
         include/quill/detail/LogManager.h
-        include/quill/detail/LogManagerSingleton.h
+        include/quill/detail/Serialize.h
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
         include/quill/detail/SignalHandler.h
@@ -67,33 +48,27 @@ set(HEADER_FILES
         include/quill/Fmt.h
         include/quill/Logger.h
         include/quill/LogLevel.h
-        include/quill/LogMacroMetadata.h
+        include/quill/MacroMetadata.h
         include/quill/PatternFormatter.h
         include/quill/Quill.h
         include/quill/QuillError.h
         include/quill/TweakMe.h
         include/quill/Utility.h
-        include/quill/Version.h
         )
 
 # source files
 set(SOURCE_FILES
         src/detail/backend/BackendWorker.cpp
-        src/detail/backend/BacktraceLogRecordStorage.cpp
+        src/detail/backend/BacktraceStorage.cpp
         src/detail/backend/FreeListAllocator.cpp
         src/detail/backend/TimestampFormatter.cpp
         src/detail/backend/StringFromTime.cpp
         src/detail/misc/FileUtilities.cpp
         src/detail/misc/Os.cpp
         src/detail/misc/RdtscClock.cpp
-        src/detail/misc/RecursiveSpinlock.cpp
-        src/detail/misc/Spinlock.cpp
         src/detail/misc/Utilities.cpp
-        src/detail/Config.cpp
-        src/detail/Deserialize.cpp
         src/detail/HandlerCollection.cpp
         src/detail/LoggerCollection.cpp
-        src/detail/LogManagerSingleton.cpp
         src/detail/SignalHandler.cpp
         src/detail/ThreadContextCollection.cpp
 
@@ -176,6 +151,10 @@ if(MINGW)
     target_link_libraries(${TARGET_NAME} PUBLIC ucrtbase)
 endif()
 
+if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+    target_link_libraries(${TARGET_NAME} PUBLIC stdc++fs)
+endif ()
+
 # Add include directories for this library
 target_include_directories(${TARGET_NAME}
         PUBLIC
@@ -187,10 +166,9 @@ target_include_directories(${TARGET_NAME}
 # Compiler options
 target_compile_options(${TARGET_NAME} PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field -Wno-gnu-zero-variadic-macro-arguments>
-        $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324 /wd4189>)
+        -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field -Wno-gnu-zero-variadic-macro-arguments -Wno-unused-parameter>
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324 /wd4189 /wd4996 /wd4100>)
 
-# TODO:: use MultiByteToWideChar() and WideCharToMultiByte() from <Windows.h> instead of covecvt
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(${TARGET_NAME} PRIVATE /WX /EHsc)
     target_compile_definitions(${TARGET_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)

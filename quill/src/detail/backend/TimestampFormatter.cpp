@@ -1,7 +1,7 @@
 #include "quill/detail/backend/TimestampFormatter.h"
 #include "quill/Fmt.h"                // for buffer
 #include "quill/QuillError.h"         // for QUILL_THROW, QuillError
-#include "quill/detail/misc/Macros.h" // for QUILL_UNLIKELY
+#include "quill/detail/misc/Common.h" // for QUILL_UNLIKELY
 #include "quill/detail/misc/Os.h"     // for gmtime_rs, localtime_rs
 #include <array>                      // for array
 #include <cassert>                    // for assert
@@ -89,7 +89,7 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
 }
 
 /***/
-char const* TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_since_epoch)
+std::string_view TimestampFormatter::format_timestamp(std::chrono::nanoseconds time_since_epoch)
 {
   int64_t const timestamp_ns = time_since_epoch.count();
 

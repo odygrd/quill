@@ -6,7 +6,7 @@
 #pragma once
 
 #include "quill/Fmt.h"
-#include "quill/LogMacroMetadata.h"
+#include "quill/MacroMetadata.h"
 #include "quill/detail/misc/Attributes.h"
 #include <string>
 
@@ -32,13 +32,13 @@ public:
   virtual ~FilterBase() = default;
 
   /**
-   * Filters a log record
-   * @param metadata log record
-   * @param formatted_record formatted log record
-   * @return true if the log record should be written to the file, false otherwise
+   * Filters a log message
+   * @param metadata log message
+   * @param formatted_record formatted log message
+   * @return true if the log message should be written to the file, false otherwise
    */
-  QUILL_NODISCARD virtual bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                                      LogMacroMetadata const& metadata,
+  QUILL_NODISCARD virtual bool filter(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
+                                      MacroMetadata const& metadata,
                                       fmt::memory_buffer const& formatted_record) noexcept = 0;
 
   /**

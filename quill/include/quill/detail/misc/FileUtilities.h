@@ -6,18 +6,17 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
-#include "quill/detail/misc/Common.h"     // for filename_t
-#include <chrono>                         // for system_clock, system_clock...
-#include <cstdint>                        // for uint32_t
-#include <cstdio>                         // for FILE, size_t
-#include <string>                         // for string
-#include <utility>                        // for pair
+#include "quill/detail/misc/Common.h"
+#include <chrono>  // for system_clock, system_clock...
+#include <cstdint> // for uint32_t
+#include <cstdio>  // for FILE, size_t
+#include <filesystem>
+#include <string>  // for string
+#include <utility> // for pair
 
 namespace quill
 {
 namespace detail
-{
-namespace file_utilities
 {
 
 /**
@@ -36,7 +35,8 @@ QUILL_ATTRIBUTE_HOT void fwrite_fully(void const* ptr, size_t size, size_t count
  * @return a FILE* pointer to opened file
  * @throws std::system_error on failure
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* open(filename_t const& filename, std::string const& mode);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* open_file(std::filesystem::path const& filename,
+                                                     std::string const& mode);
 
 /**
  * Calculates the size of a file
@@ -44,21 +44,29 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* open(filename_t const& filename, std:
  * @return the size of the file
  * @throws std::runtime_error on failure
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t file_size(FILE* file);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t file_size(std::filesystem::path const& filename);
 
 /**
  * Removes a file
- * @param filename the name of the file to remove
+ * @param filename the name of the file to remove_file
  * @return ​Zero​ upon success or non-zero value on error.
  */
-QUILL_ATTRIBUTE_COLD int remove(filename_t const& filename) noexcept;
+QUILL_ATTRIBUTE_COLD bool remove_file(std::filesystem::path const& filename) noexcept;
+
+/**
+ * Renames a file
+ * @param filename
+ * @return
+ */
+void rename_file(std::filesystem::path const& previous_file, std::filesystem::path const& new_file) noexcept;
 
 /**
  * Return the main body of the filename and it's extension
  * @param filename the name of the file
  * @return first filename, second extension
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<filename_t, filename_t> extract_stem_and_extension(filename_t const& filename) noexcept;
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<std::string, std::string> extract_stem_and_extension(
+  std::filesystem::path const& filename) noexcept;
 
 /**
  * Append the date to the given filename
@@ -66,20 +74,19 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<filename_t, filename_t> extract_s
  * @param timestamp optional, timestamp now, no timestamp gives current date
  * @param append_time also appends the time
  * @param timezone gmt or local time
- * @return a string as filename_t with the date appended
+ * @return a filepath with the date appended
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD filename_t append_date_to_filename(
-  filename_t const& filename, std::chrono::system_clock::time_point timestamp = {},
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::filesystem::path append_date_to_filename(
+  std::filesystem::path const& filename, std::chrono::system_clock::time_point timestamp = {},
   bool append_time = false, Timezone timezone = Timezone::LocalTime) noexcept;
 
 /**
  * Append an index to the given filename
  * @param filename the name of the file
  * @param index the index to append
- * @return a string as filename_t with the index appended
+ * @return a filepath with the index appended
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD filename_t append_index_to_filename(filename_t const& filename,
-                                                                         uint32_t index) noexcept;
-} // namespace file_utilities
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::filesystem::path append_index_to_filename(std::filesystem::path const& filename,
+                                                                                    uint32_t index) noexcept;
 } // namespace detail
 } // namespace quill

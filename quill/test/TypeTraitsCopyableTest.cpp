@@ -159,4 +159,11 @@ TEST_CASE("is_copyable")
   static_assert(!is_copyable_v<std::vector<std::reference_wrapper<int>>>, "-");
 }
 
+TEST_CASE("are_copyable")
+{
+  // built in - copyable
+  static_assert(are_copyable_v<int, Enum, std::string, TaggedNonTrivial>, "_");
+  static_assert(!are_copyable_v<int, Enum, std::string, NonTrivial>, "_");
+}
+
 TEST_SUITE_END();

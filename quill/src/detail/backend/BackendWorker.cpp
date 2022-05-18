@@ -10,7 +10,10 @@ namespace detail
 /***/
 BackendWorker::BackendWorker(Config const& config, ThreadContextCollection& thread_context_collection,
                              HandlerCollection const& handler_collection)
-  : _config(config), _thread_context_collection(thread_context_collection), _handler_collection(handler_collection)
+  : _config(config),
+    _thread_context_collection(thread_context_collection),
+    _handler_collection(handler_collection),
+    _process_id(fmt::format_int(get_process_id()).str())
 {
 #if !defined(QUILL_NO_EXCEPTIONS)
   if (!_error_handler)
@@ -82,7 +85,7 @@ void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thr
       std::string const msg = fmt::format("~ {} localtime dropped {} log messages from thread {}\n",
                                           ts, dropped_messages_cnt, thread_context->thread_id());
 
-      detail::file_utilities::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
+      detail::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
     }
   }
 #endif

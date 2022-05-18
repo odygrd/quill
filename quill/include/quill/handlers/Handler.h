@@ -6,14 +6,14 @@
 #pragma once
 
 #include "quill/Fmt.h"
-#include "quill/LogMacroMetadata.h"
+#include "quill/MacroMetadata.h"
 #include "quill/PatternFormatter.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
-#include "quill/detail/misc/RecursiveSpinlock.h"
 #include "quill/filters/FilterBase.h"
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace quill
@@ -47,14 +47,13 @@ public:
 
   /**
    * Set a custom formatter for this handler
-   * @param format_pattern format pattern as QUILL_STRING(...)
+   * @param format_pattern format pattern see PatternFormatter
    * @param timestamp_format defaults to "%H:%M:%S.%Qns"
    * @param timezone defaults to PatternFormatter::Timezone::LocalTime
    */
-  template <typename TConstantString>
-  QUILL_ATTRIBUTE_COLD void set_pattern(TConstantString format_pattern,
-                                        std::string timestamp_format = std::string{"%H:%M:%S.%Qns"},
-                                        Timezone timezone = Timezone::LocalTime)
+  QUILL_ATTRIBUTE_COLD void set_pattern(
+    std::string const& format_pattern, std::string const& timestamp_format = std::string{"%H:%M:%S.%Qns"},
+    Timezone timezone = Timezone::LocalTime)
   {
     _formatter = std::make_unique<PatternFormatter>(format_pattern, timestamp_format, timezone);
   }
@@ -64,17 +63,17 @@ public:
    * @note: Accessor for backend processing
    * @return reference to the pattern formatter of this handler
    */
-  QUILL_ATTRIBUTE_HOT PatternFormatter const& formatter() { return *_formatter; }
+  QUILL_ATTRIBUTE_HOT PatternFormatter& formatter() { return *_formatter; }
 
   /**
-   * Logs a formatted log record to the handler
+   * Logs a formatted log message to the handler
    * @note: Accessor for backend processing
-   * @param formatted_log_record input log record to write
-   * @param log_record_timestamp log record timestamp
+   * @param formatted_log_message input log message to write
+   * @param log_message_timestamp log message timestamp
    * @param log_message_severity the severity of the log message
    */
-  QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_record,
-                                         std::chrono::nanoseconds log_record_timestamp,
+  QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_message,
+                                         std::chrono::nanoseconds log_message_timestamp,
                                          LogLevel log_message_severity) = 0;
 
   /**
@@ -114,9 +113,8 @@ public:
    * @note: called internally by the backend worker thread.
    * @return result of all filters
    */
-  QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
-                                     LogMacroMetadata const& metadata,
-                                     fmt::memory_buffer const& formatted_record);
+  QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
+                                     MacroMetadata const& metadata, fmt::memory_buffer const& formatted_record);
 
 private:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter
@@ -128,7 +126,7 @@ private:
 
   /** Global filter for this handler - protected by a spinlock **/
   std::vector<std::unique_ptr<FilterBase>> _global_filters;
-  quill::detail::RecursiveSpinlock _global_filters_lock;
+  std::recursive_mutex _global_filters_lock;
 
   /** Indicator that a new filter was added **/
   alignas(detail::CACHELINE_SIZE) std::atomic<bool> _new_filter{false};

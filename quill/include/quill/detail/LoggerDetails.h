@@ -6,7 +6,6 @@
 #pragma once
 
 #include "quill/detail/misc/Utilities.h"
-#include "quill/handlers/Handler.h"
 #include <atomic>
 #include <memory>
 #include <string>
@@ -14,15 +13,12 @@
 
 namespace quill
 {
+
+// ** Forward Declaration **/
+class Handler;
+
 namespace detail
 {
-/**
- * The logger object is broken down to LoggerDetails and Logger as we end up in circular include
- * references if we include both in LogRecord
- *
- * Logger includes LogEvent as it needs it to create it, and LogEvent needs to read the
- * LoggerDetails later during the backend thread processing, but we don't want to include Logger
- */
 class LoggerDetails
 {
 public:

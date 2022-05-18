@@ -7,7 +7,6 @@
 
 #include "quill/Fmt.h"                    // for memory_buffer
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
-#include "quill/detail/misc/Common.h"     // for filename_t
 #include "quill/handlers/FileHandler.h"   // for FileHandler
 #include <chrono>                         // for nanoseconds
 #include <cstddef>                        // for size_t
@@ -24,7 +23,7 @@ public:
   /**
    * constructor
    * @param base_filename Base file name to be used for logs
-   * @param mode the mode to open the file
+   * @param mode the mode to open_file the file
    * @param max_bytes max size per file in bytes
    * @param backup_count maximum log files
    * @param replace_oldest_files if set to true, oldest logs will get overwritten when backup_count
@@ -32,8 +31,8 @@ public:
    * the base log file will grow indefinitely
    * @throws on invalid rotation values
    */
-  RotatingFileHandler(filename_t const& base_filename, std::string const& mode, size_t max_bytes,
-                      uint32_t backup_count, bool overwrite_oldest_files);
+  RotatingFileHandler(std::filesystem::path const& base_filename, std::string const& mode,
+                      size_t max_bytes, uint32_t backup_count, bool overwrite_oldest_files);
 
   /**
    * Destructor
@@ -41,12 +40,12 @@ public:
   ~RotatingFileHandler() override = default;
 
   /**
-   * Write a formatted log record to the stream
-   * @param formatted_log_record input log record to write
-   * @param log_record_timestamp log record timestamp
+   * Write a formatted log message to the stream
+   * @param formatted_log_message input log message to write
+   * @param log_message_timestamp log message timestamp
    */
-  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record,
-                                 std::chrono::nanoseconds log_record_timestamp,
+  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_message,
+                                 std::chrono::nanoseconds log_message_timestamp,
                                  LogLevel log_message_severity) override;
 
 private:

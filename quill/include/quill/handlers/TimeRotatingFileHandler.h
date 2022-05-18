@@ -7,7 +7,6 @@
 
 #include "quill/Fmt.h"                    // for memory_buffer
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
-#include "quill/detail/misc/Common.h"     // for filename_t
 #include "quill/handlers/FileHandler.h"   // for FileHandler
 #include <chrono>                         // for hours, minutes, nanoseconds
 #include <queue>
@@ -24,26 +23,26 @@ public:
   /**
    * Constructor
    * @param base_filename base filename
-   * @param mode mode to open file
+   * @param mode mode to open_file file
    * @param when 'M', 'H' or 'daily'
    * @param interval Used when 'M' is 'H' is specified
    * @param backup_count Maximum files to keep
    * @param timezone if true gmt time then UTC times are used instead
    * @param at_time used when 'daily' is specified
    */
-  TimeRotatingFileHandler(filename_t const& base_filename, std::string const& mode,
+  TimeRotatingFileHandler(std::filesystem::path const& base_filename, std::string const& mode,
                           std::string when, uint32_t interval, uint32_t backup_count,
                           Timezone timezone, std::string const& at_time);
 
   ~TimeRotatingFileHandler() override = default;
 
   /**
-   * Write a formatted log record to the stream
-   * @param formatted_log_record input log record to write
-   * @param log_record_timestamp log record timestamp
+   * Write a formatted log message to the stream
+   * @param formatted_log_message input log message to write
+   * @param log_message_timestamp log message timestamp
    */
-  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record,
-                                 std::chrono::nanoseconds log_record_timestamp,
+  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_message,
+                                 std::chrono::nanoseconds log_message_timestamp,
                                  LogLevel log_message_severity) override;
 
 private:
@@ -55,12 +54,12 @@ private:
     std::chrono::system_clock::time_point time_now, std::string const& when, uint32_t interval) noexcept;
 
 private:
-  std::queue<filename_t> _created_files; /**< We store in a queue the filenames we created, in order to remove them if we exceed _backup_count limit */
-  std::string _when;                     /**< 'M', 'H' or 'daily' */
+  std::queue<std::filesystem::path> _created_files; /**< We store in a queue the filenames we created, in order to remove_file them if we exceed _backup_count limit */
+  std::string _when;                                /**< 'M', 'H' or 'daily' */
   std::chrono::system_clock::time_point _file_creation_time; /**< The time we create the file we are writing */
   std::chrono::system_clock::time_point _next_rotation_time; /**< The next rotation time point */
-  uint32_t _interval;     /**< Interval when 'M' or 'H' is used */
-  uint32_t _backup_count; /**< Maximum files to keep after rotation */
-  Timezone _using_timezone;     /**< The timezone used */
+  uint32_t _interval;       /**< Interval when 'M' or 'H' is used */
+  uint32_t _backup_count;   /**< Maximum files to keep after rotation */
+  Timezone _using_timezone; /**< The timezone used */
 };
 } // namespace quill

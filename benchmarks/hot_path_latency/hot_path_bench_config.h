@@ -7,8 +7,8 @@
 #include <chrono>
 
 /**
- * When running the benchmark using e.g. perf, enable this definition to remove extra noise from
- * calculating and printing the results.
+ * When running the benchmark using e.g. perf, enable this definition to remove_file extra noise
+ * from calculating and printing the results.
  *
  * To see shared cached lines :
  * perf c2c record -g --call-graph dwarf,8192  ./benchmark_quill_call_site_latency

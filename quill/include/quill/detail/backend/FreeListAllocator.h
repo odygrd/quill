@@ -13,9 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 /**
@@ -268,5 +266,4 @@ struct FreeListAllocatorDeleter
 
   FreeListAllocator* _fla{nullptr};
 };
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

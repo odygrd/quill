@@ -56,25 +56,40 @@
 -  [Documentation](#documentation)
 -  [License](#license)
 
-
 |  homebrew             |  vcpkg                 |  conan            |
 |:---------------------:|:----------------------:|:-----------------:|
-|  `brew install quill` |  `vcpkg install quill` | `quill/[>=1.2.3]` |
-
+| `brew install quill`  | `vcpkg install quill`  | `quill/[>=1.2.3]` |
 
 ## Introduction
-Quill is a cross-platform low latency logging library based on C++14.
+
+Quill is a cross-platform low latency logging library based on C++14/C++17.
+
+There are two versions on the library:
+
+`v2` : C++17
+`v1.7` : C++14
+
+Going forward any new features will only be added to the C++17 version of the library.
+The old library (v1.7.x) still remains there and there will be releases only for bug fixes.
 
 The main goals of the library are:
 
--  **Simplicity** A small example code snippet should be enough to get started and use most of features.
--  **Performance** Ultra low latency. No formatting on the hot-path, asynchronous only mode. No hot-path allocations for fundamental types, enums and strings (including `std::string` and `std::string_view`). Any other custom or user defined type gets copy constructed with the formatting done on a backend worker thread.
--  **Convenience** Ease application monitoring/debugging. Latency is equal to latencies of binary loggers, but the produced log is in human readable form.
+- **Simplicity** A small example code snippet should be enough to get started and use most of features.
+- **Performance** Ultra low latency. No formatting on the hot-path, asynchronous only mode. No hot-path allocations for
+  fundamental types, enums and strings (including `std::string` and `std::string_view`). Any other custom or user
+  defined type gets copy constructed with the formatting done on a backend worker thread.
+- **Convenience** Ease application monitoring/debugging. Latency is equal to latencies of binary loggers, but the
+  produced log is in human readable form.
 
 ## Features
- -  Log anything - Blazing fast. See [Benchmarks](https://github.com/odygrd/quill#performance).
- -  Format outside of the hot-path in a backend logging thread. For `non-built-in` types `ostream::operator<<()` is called on a copy of the object by the backend logging thread. Unsafe to copy `non-trivial user defined` are detected in compile time. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path. See [User Defined Types](https://github.com/odygrd/quill/wiki/8.-User-Defined-Types).
- -  Custom formatters. Logs can be formatted based on a user specified pattern. See [Formatters](https://github.com/odygrd/quill/wiki/4.-Formatters).
+
+- Log anything - Blazing fast. See [Benchmarks](https://github.com/odygrd/quill#performance).
+- Format outside the hot-path in a backend logging thread. For `non-built-in` types `ostream::operator<<()` is called on
+  a copy of the object by the backend logging thread. Unsafe to copy `non-trivial user defined` are detected in compile
+  time. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path.
+  See [User Defined Types](https://github.com/odygrd/quill/wiki/8.-User-Defined-Types).
+- Custom formatters. Logs can be formatted based on a user specified pattern.
+  See [Formatters](https://github.com/odygrd/quill/wiki/4.-Formatters).
  -  Support for log stack traces. Store log messages in a ring buffer and display later on a higher severity log statement or on demand. See [Backtrace Logging](https://github.com/odygrd/quill/wiki/6.-Backtrace-Logging).
  -  Various logging targets. See [Handlers](https://github.com/odygrd/quill/wiki/2.-Handlers).
     -  Console logging with colours support.
@@ -83,9 +98,11 @@ The main goals of the library are:
     -  Time rotating log files
     -  Custom Handlers
  -  Filters for filtering log messages. See [Filters](https://github.com/odygrd/quill/wiki/3.-Filters).
- -  `guaranteed non-blocking` or `non-guaranteed` logging. In `non-guaranteed` mode there is no heap allocation of a new queue but log messages can be dropped. See [FAQ](https://github.com/odygrd/quill/wiki/7.-FAQ#guaranteed-logging-mode).
- -  Support for wide character logging and wide character filenames (Windows only).
- -  Log statements in timestamp order even when produced by different threads. This makes debugging easier in multi-threaded applications.
+- `guaranteed non-blocking` or `non-guaranteed` logging. In `non-guaranteed` mode there is no heap allocation of a new
+  queue but log messages can be dropped. See [FAQ](https://github.com/odygrd/quill/wiki/7.-FAQ#guaranteed-logging-mode).
+- Support for wide character logging and wide character filenames (Windows and v1.7.x only).
+- Log statements in timestamp order even when produced by different threads. This makes debugging easier in
+  multi-threaded applications.
  -  Log levels can be completely stripped out at compile time reducing `if` branches.
  -  Clean warning-free codebase even on high warning levels.
  -  Crash safe behaviour with a build-in signal handler.
@@ -102,33 +119,35 @@ The results in the tables below are in nanoseconds (ns).
 
 #### 1 Thread
 
-| Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
-|--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)       |  20  |  21  |  23  |  24  |  27  |  32  |  46  |
-|[Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)     |  21  |  22  |  24  |  25  |  28  |  34  |  54  |
-|[Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)    |  16  |  18  |  21  |  22  |  28  |  39  |  58  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                     |  52  |  66  |  76  |  81  |  92  |  107  |  192  |
-|[MS BinLog](https://github.com/Morgan-Stanley/binlog)                             |  39  |  41  |  43  |  44  |  67  |  110  |  216  |
-|[fmtlog](https://github.com/MengRao/fmtlog)                                       |  16  |  18  |  20  |  21  |  26  |  36  |  47  |
-|[Reckless](https://github.com/mattiasflodin/reckless)                             |  62  |  72  |  79  |  87  |  107  |  126  |  168  |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                          |  147  |  169  |  187  |  209  |  283  |  376  |  33623  |                
-|[spdlog](https://github.com/gabime/spdlog)                                        |  626  |  675  |  721  |  755  |  877  |  1026  |  1206  |      
-|[g3log](https://github.com/KjellKod/g3log)                                        |  5551  |  5759  |  5962  |  6090  |  6338  |  6647  |  7133  |               
+| Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
+|--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
+| [Quill v2, Unbounded Queue](https://github.com/odygrd/quill)                   |  16  |  17  |  19  |  20  |  21  |   29   |  55   |
+| [Quill v1.7, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  21  |  22  |  24  |  25  |  28  |   34   |  54   |
+| [Quill v1.7, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) |  16  |  18  |  21  |  22  |  28  |   39   |  58   |
+| [Quill v1.7, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  20  |  21  |  23  |  24  |  27  |   32   |  46   |
+| [fmtlog](https://github.com/MengRao/fmtlog)                                    |  16  |  18  |  20  |  21  |  26  |   36   |  47   |
+| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  52  |  66  |  76  |  81  |  92  |  107   |  192  |
+| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  39  |  41  |  43  |  44  |  67  |  110   |  216  |
+| [Reckless](https://github.com/mattiasflodin/reckless)                          |  62  |  72  |  79  |  87  | 107  |  126   |  168  |
+| [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                       | 147  | 169  | 187  | 209  | 283  |  376   | 33623 |                
+| [spdlog](https://github.com/gabime/spdlog)                                     | 626  | 675  | 721  | 755  | 877  |  1026  | 1206  |      
+| [g3log](https://github.com/KjellKod/g3log)                                     | 5551 | 5759 | 5962 | 6090 | 6338 |  6647  | 7133  |               
 
 #### 4 Threads
 
-| Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
-|--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)      |  20  |  21  |  23  |  24  |  27  |  38  |  59  |
-|[Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)    |  21  |  23  |  25  |  27  |  32  |  43  |  64  |
-|[Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)   |  16  |  19  |  21  |  23  |  30  |  39  |  57  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                    |  53  |  67  |  77  |  82  |  93  |  131  |  236  |
-|[MS BinLog](https://github.com/Morgan-Stanley/binlog)                            |  39  |  42  |  43  |  46  |  73  |  119  |  243  |
-|[fmtlog](https://github.com/MengRao/fmtlog)                                      |  16  |  18  |  19  |  21  |  25  |  34  |  53  |
-|[Reckless](https://github.com/mattiasflodin/reckless)                            |  46  |  60  |  75  |  88  |  112  |  156  |  262  |                         
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                         |  140  |  173  |  239  |  273  |  336  |  432  |  43605  |
-|[spdlog](https://github.com/gabime/spdlog)                                       |  665  |  742  |  825  |  880  |  1069  |  1395  |  2087  |
-|[g3log](https://github.com/KjellKod/g3log)                                       |  5294  |  5532  |  5759  |  5901  |  6179  |  6521  |  7443  |
+| Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
+|--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
+| [Quill v2, Unbounded Queue](https://github.com/odygrd/quill)                   |  16  |  17  |  19  |  21  |  24  |   29   |  70   |
+| [Quill v1.7, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  21  |  23  |  25  |  27  |  32  |   43   |  64   |
+| [Quill v1.7, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) |  16  |  19  |  21  |  23  |  30  |   39   |  57   |
+| [Quill v1.7, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  20  |  21  |  23  |  24  |  27  |   38   |  59   |
+| [fmtlog](https://github.com/MengRao/fmtlog)                                    |  16  |  18  |  19  |  21  |  25  |   34   |  53   |
+| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  53  |  67  |  77  |  82  |  93  |  131   |  236  |
+| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  39  |  42  |  43  |  46  |  73  |  119   |  243  |
+| [Reckless](https://github.com/mattiasflodin/reckless)                          |  46  |  60  |  75  |  88  | 112  |  156   |  262  |                         
+| [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                       | 140  | 173  | 239  | 273  | 336  |  432   | 43605 |
+| [spdlog](https://github.com/gabime/spdlog)                                     | 665  | 742  | 825  | 880  | 1069 |  1395  | 2087  |
+| [g3log](https://github.com/KjellKod/g3log)                                     | 5294 | 5532 | 5759 | 5901 | 6179 |  6521  | 7443  |
 
 ### Log Numbers and Large Strings
 The following message is logged 100'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, string: {}", i, j, large_string)```.
@@ -136,33 +155,35 @@ The large string is over 35 characters to avoid short string optimisation of `st
 
 #### 1 Thread
 
-| Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
-|--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)     |  26  |  27  |  30  |  31  |  36  |  47  |  65  |   
-|[Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)   |  25  |  26  |  28  |  30  |  35  |  47  |  70  |   
-|[Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)  |  116  |  132  |  145  |  153  |  168  |  185  |  214  | 
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                   |  35  |  36  |  37  |  39  |  46  |  53  |  70  |     
-|[MS BinLog](https://github.com/Morgan-Stanley/binlog)                           |  52  |  53  |  56  |  60  |  80  |  133  |  251  |
-|[fmtlog](https://github.com/MengRao/fmtlog)                                     |  35  |  37  |  40  |  42  |  47  |  55  |  181  |
-|[Reckless](https://github.com/mattiasflodin/reckless)                           |  211  |  236  |  262  |  280  |  317  |  522  |  1051  |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                        |  157  |  176  |  196  |  220  |  290  |  372  |  22812  |   
-|[spdlog](https://github.com/gabime/spdlog)                                      |  652  |  715  |  775  |  827  |  953  |  1082  |  1453  |     
-|[g3log](https://github.com/KjellKod/g3log)                                      |  4563  |  4752  |  4942  |  5066  |  5309  |  5633  |  6188  |  
+| Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
+|--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
+| [Quill v2, Unbounded Queue](https://github.com/odygrd/quill)                   |  27  |  29  |  31  |  32  |  35  |   45   |  69   |  
+| [Quill v1.7, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  25  |  26  |  28  |  30  |  35  |   47   |  70   |   
+| [Quill v1.7, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) | 116  | 132  | 145  | 153  | 168  |  185   |  214  |
+| [Quill v1.7, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  26  |  27  |  30  |  31  |  36  |   47   |  65   |
+| [fmtlog](https://github.com/MengRao/fmtlog)                                    |  27  |  29  |  32  |  34  |  40  |   49   |  67   |
+| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  68  |  81  |  96  |  107 |  126 |  151   |  222  |
+| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  52  |  53  |  56  |  60  |  80  |  133   |  251  |
+| [Reckless](https://github.com/mattiasflodin/reckless)                          | 211  | 236  | 262  | 280  | 317  |  522   | 1051  |
+| [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                       | 157  | 176  | 196  | 220  | 290  |  372   | 22812 |   
+| [spdlog](https://github.com/gabime/spdlog)                                     | 652  | 715  | 775  | 827  | 953  |  1082  | 1453  |     
+| [g3log](https://github.com/KjellKod/g3log)                                     | 4563 | 4752 | 4942 | 5066 | 5309 |  5633  | 6188  |  
 
 #### 4 Threads
 
-| Library            | 50th     | 75th     | 90th     | 95th     |  99th    | 99.9th   | Worst     |
-|--------------------|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:---------:|
-|[Quill, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)      |  25  |  27  |  29  |  31  |  39  |  51  |  86  |
-|[Quill, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)    |  25  |  27  |  29  |  30  |  37  |  53  |  83  |
-|[Quill, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)   |  125  |  138  |  151  |  160  |  176  |  192  |  247  |
-|[PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                    |  34  |  35  |  36  |  38  |  45  |  53  |  100  |
-|[MS BinLog](https://github.com/Morgan-Stanley/binlog)                            |  51  |  53  |  55  |  60  |  85  |  128  |  243  |
-|[fmtlog](https://github.com/MengRao/fmtlog)                                      |  34  |  36  |  38  |  41  |  47  |  55  |  371  |
-|[Reckless](https://github.com/mattiasflodin/reckless)                            |  184  |  204  |  226  |  240  |  283  |  531  |  761  |
-|[Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                         |  151  |  218  |  267  |  296  |  353  |  469  |  71636  |
-|[spdlog](https://github.com/gabime/spdlog)                                       |  640  |  710  |  795  |  867  |  1097  |  1465  |  2259  |    
-|[g3log](https://github.com/KjellKod/g3log)                                       |  3575  |  3776  |  3967  |  4089  |  4332  |  4650  |  5544  |
+| Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
+|--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
+| [Quill v2, Unbounded Queue](https://github.com/odygrd/quill)                   |  28  |  30  |  32  |  34  |  38  |   45   |  73   |
+| [Quill v1.7, Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)  |  25  |  27  |  29  |  30  |  37  |   53   |  83   |
+| [Quill v1.7, Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill) | 125  | 138  | 151  | 160  | 176  |  192   |  247  |
+| [Quill v1.7, Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)    |  25  |  27  |  29  |  31  |  39  |   51   |  86   |
+| [fmtlog](https://github.com/MengRao/fmtlog)                                    |  26  |  28  |  31  |  34  |  40  |   49   |  78   |
+| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)                  |  67  |  80  |  95  |  106 |  127 |  182   |  315  |
+| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                          |  51  |  53  |  55  |  60  |  85  |  128   |  243  |
+| [Reckless](https://github.com/mattiasflodin/reckless)                          | 184  | 204  | 226  | 240  | 283  |  531   |  761  |
+| [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                       | 151  | 218  | 267  | 296  | 353  |  469   | 71636 |
+| [spdlog](https://github.com/gabime/spdlog)                                     | 640  | 710  | 795  | 867  | 1097 |  1465  | 2259  |    
+| [g3log](https://github.com/KjellKod/g3log)                                     | 3575 | 3776 | 3967 | 4089 | 4332 |  4650  | 5544  |
 
 The benchmarks are done on `Ubuntu - Intel(R) Xeon(R) Gold 6254 CPU @ 3.10GHz` with GCC 11.2
 
@@ -182,7 +203,7 @@ I run each logger benchmark 4 times and the above latencies are the second best 
 The benchmark code and results can be found [here](https://github.com/odygrd/logger_benchmarks).
 
 ## Supported Platforms And Compilers
-Quill requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
+Quill v1.7.x requires a C++14 compiler. Minimum required versions of supported compilers are shown in the below table.
 
 | Compiler  | Notes            |
 |-----------|------------------|

@@ -22,45 +22,69 @@ public:
    * Sets the backend thread sleep duration
    * @param duration sleep duration in nanoseconds
    */
-  QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds duration) noexcept;
+  QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds duration) noexcept
+  {
+    _backend_thread_sleep_duration = duration;
+  }
 
   /**
    * @return The backend thread sleep duration when idle
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::chrono::nanoseconds backend_thread_sleep_duration() const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::chrono::nanoseconds backend_thread_sleep_duration() const noexcept
+  {
+    return _backend_thread_sleep_duration;
+  }
 
   /**
    * Pins the backend thread to the given cpu
    * @param cpu desired cpu to pin the thread
    */
-  QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept;
+  QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu) noexcept
+  {
+    _backend_thread_cpu_affinity = cpu;
+  }
 
   /**
    * @return The backend thread cpu affinity
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint16_t backend_thread_cpu_affinity() const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint16_t backend_thread_cpu_affinity() const noexcept
+  {
+    return _backend_thread_cpu_affinity;
+  }
 
   /**
    * Names the backend thread max_transit_events
    * @param max_transit_events the max number before we flush the queue
    */
-  QUILL_ATTRIBUTE_COLD void set_backend_thread_max_transit_events(size_t max_transit_events) noexcept;
+  QUILL_ATTRIBUTE_COLD void set_backend_thread_max_transit_events(size_t max_transit_events) noexcept
+  {
+    _backend_thread_max_transit_events = max_transit_events;
+  }
 
   /**
    * @return get the backend thread max_transit_events
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t backend_thread_max_transit_events() const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t backend_thread_max_transit_events() const noexcept
+  {
+    return _backend_thread_max_transit_events;
+  }
 
   /**
    * Names the backend thread
    * @param name the desired name
    */
-  QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexcept;
+  QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name) noexcept
+  {
+    _backend_thread_name = name;
+  }
 
   /**
    * @return The backend thread name
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::string backend_thread_name() const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::string backend_thread_name() const noexcept
+  {
+    return _backend_thread_name;
+  }
 
 private:
   std::string _backend_thread_name{"Quill_Backend"}; /** Custom name for the backend thread */

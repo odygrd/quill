@@ -5,14 +5,14 @@
 
 #pragma once
 
-#include "quill/Logger.h"                        // for Logger
-#include "quill/detail/misc/Attributes.h"        // for QUILL_ATTRIBUTE_COLD
-#include "quill/detail/misc/Common.h"            // for CACHELINE_SIZE
-#include "quill/detail/misc/RecursiveSpinlock.h" // for RecursiveSpinlock
-#include <initializer_list>                      // for initializer_list
-#include <memory>                                // for unique_ptr
-#include <string>                                // for string, hash
-#include <unordered_map>                         // for unordered_map
+#include "quill/Logger.h"                 // for Logger
+#include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD
+#include "quill/detail/misc/Common.h"     // for CACHELINE_SIZE
+#include <initializer_list>               // for initializer_list
+#include <memory>                         // for unique_ptr
+#include <mutex>
+#include <string>        // for string, hash
+#include <unordered_map> // for unordered_map
 
 namespace quill
 {
@@ -111,7 +111,7 @@ private:
   Logger* _default_logger{nullptr}; /**< A pointer to the default logger to avoid lookup */
 
   /** We can not avoid having less than 2 cache lines here, so we will just align the lock and the logger map on the same cache line as they are used together anyway */
-  alignas(detail::CACHELINE_SIZE) mutable RecursiveSpinlock _spinlock; /**< Thread safe access to logger map, Mutable to have a const get_logger() function  */
+  alignas(detail::CACHELINE_SIZE) mutable std::recursive_mutex _rmutex; /**< Thread safe access to logger map, Mutable to have a const get_logger() function  */
   std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
 };
 
