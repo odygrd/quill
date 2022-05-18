@@ -1,9 +1,9 @@
 AccessModifierOffset: -2
-AlignConsecutiveDeclarations: false
+AlignConsecutiveDeclarations: None
 AlignOperands: false
 AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: false
-AllowShortBlocksOnASingleLine: true
+AllowShortBlocksOnASingleLine: Never
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakBeforeMultilineStrings: true
@@ -40,6 +40,6 @@ SpacesInAngles: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 Cpp11BracedListStyle: true
-Standard: Cpp11
+Standard: c++20
 TabWidth: 2
 UseTab: Never
