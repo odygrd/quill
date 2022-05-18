@@ -34,6 +34,14 @@ QUILL_NODISCARD constexpr bool is_type_of_c_string()
 }
 
 template <typename Arg>
+QUILL_NODISCARD constexpr bool is_type_of_string()
+{
+  using ArgType = std::decay_t<Arg>;
+  return std::disjunction_v<std::is_same<ArgType, std::string>, std::is_same<ArgType, std::string_view>>;
+}
+
+#if defined(_WIN32)
+template <typename Arg>
 QUILL_NODISCARD constexpr bool is_type_of_wide_c_string()
 {
   using ArgType = std::decay_t<Arg>;
@@ -41,27 +49,30 @@ QUILL_NODISCARD constexpr bool is_type_of_wide_c_string()
 }
 
 template <typename Arg>
-QUILL_NODISCARD constexpr bool is_type_of_string()
-{
-  using ArgType = std::decay_t<Arg>;
-  return std::disjunction_v<std::is_same<ArgType, std::string>, std::is_same<ArgType, std::string_view>>;
-}
-
-template <typename Arg>
 QUILL_NODISCARD constexpr bool is_type_of_wide_string()
 {
   using ArgType = std::decay_t<Arg>;
   return std::disjunction_v<std::is_same<ArgType, std::wstring>, std::is_same<ArgType, std::wstring_view>>;
-
 }
+#endif
+
 template <typename Arg>
 QUILL_NODISCARD inline constexpr bool need_call_dtor_for()
 {
   using ArgType = detail::remove_cvref_t<Arg>;
-  if constexpr (is_type_of_string<Arg>() || is_type_of_wide_string<Arg>())
+
+#if defined(_WIN32)
+  if constexpr (is_type_of_wide_string<Arg>())
   {
     return false;
   }
+#endif
+
+  if constexpr (is_type_of_string<Arg>())
+  {
+    return false;
+  }
+
   return !std::is_trivially_destructible<ArgType>::value;
 }
 
@@ -78,13 +89,22 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
 {
   using ArgType = detail::remove_cvref_t<Arg>;
 
-  if constexpr (is_type_of_c_string<Arg>() || is_type_of_string<Arg>() || is_type_of_wide_c_string<Arg>() || is_type_of_wide_string<Arg>())
+  if constexpr (is_type_of_c_string<Arg>() || is_type_of_string<Arg>())
   {
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, strlen(str)};
     args.emplace_back(fmt::detail::make_arg<fmt::format_context>(v));
     return decode_args<DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
   }
+#if defined(_WIN32)
+  else if constexpr (is_type_of_wide_c_string<Arg>() || is_type_of_wide_string<Arg>())
+  {
+    char const* str = reinterpret_cast<char const*>(in);
+    std::string_view const v{str, strlen(str)};
+    args.emplace_back(fmt::detail::make_arg<fmt::format_context>(v));
+    return decode_args<DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
+  }
+#endif
   else
   {
     // no need to align for chars, but align for any other type
@@ -137,7 +157,18 @@ template <size_t CstringIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_string_sizes,
                                                                   Arg const& arg, Args const&... args)
 {
-  if constexpr (is_type_of_wide_c_string<Arg>())
+  if constexpr (is_type_of_c_string<Arg>())
+  {
+    size_t const len = strlen(arg) + 1;
+    c_string_sizes[CstringIdx] = len;
+    return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+  }
+  else if constexpr (is_type_of_string<Arg>())
+  {
+    return (arg.size() + 1) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
+  }
+#if defined(_WIN32)
+  else if constexpr (is_type_of_wide_c_string<Arg>())
   {
     size_t const len = get_wide_string_encoding_size(std::wstring_view {arg, wcslen(arg)}) + 1;
     c_string_sizes[CstringIdx] = len;
@@ -149,16 +180,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_st
     c_string_sizes[CstringIdx] = len;
     return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
   }
-  else if constexpr (is_type_of_c_string<Arg>())
-  {
-    size_t const len = strlen(arg) + 1;
-    c_string_sizes[CstringIdx] = len;
-    return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
-  }
-  else if constexpr (is_type_of_string<Arg>())
-  {
-    return (arg.size() + 1) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
-  }
+#endif
   else
   {
     return alignof(Arg) + sizeof(Arg) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
@@ -178,19 +200,7 @@ template <size_t CstringIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_string_sizes, std::byte* out,
                                                                    Arg&& arg, Args&&... args)
 {
-  if constexpr (is_type_of_wide_c_string<Arg>())
-  {
-    wide_string_to_narrow(out, c_string_sizes[CstringIdx], std::wstring_view{arg, wcslen(arg)});
-    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
-                                       std::forward<Args>(args)...);
-  }
-  else if constexpr (is_type_of_wide_string<Arg>())
-  {
-    wide_string_to_narrow(out, c_string_sizes[CstringIdx], arg);
-    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
-                                       std::forward<Args>(args)...);
-  }
-  else if constexpr (is_type_of_c_string<Arg>())
+  if constexpr (is_type_of_c_string<Arg>())
   {
     std::memcpy(out, arg, c_string_sizes[CstringIdx]);
     return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
@@ -202,6 +212,20 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
     out[arg.length()] = static_cast<std::byte>(0);
     return encode_args<CstringIdx>(c_string_sizes, out + arg.length() + 1, std::forward<Args>(args)...);
   }
+#if defined(_WIN32)
+  else if constexpr (is_type_of_wide_c_string<Arg>())
+  {
+    wide_string_to_narrow(out, c_string_sizes[CstringIdx], std::wstring_view{arg, wcslen(arg)});
+    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
+                                       std::forward<Args>(args)...);
+  }
+  else if constexpr (is_type_of_wide_string<Arg>())
+  {
+    wide_string_to_narrow(out, c_string_sizes[CstringIdx], arg);
+    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
+                                       std::forward<Args>(args)...);
+  }
+#endif
   else
   {
     // no need to align for chars, but align for any other type
