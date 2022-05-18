@@ -43,7 +43,7 @@ This version is a major refactor.
 **Differences**
 
 - `v1.7` compiles with c++14, `v2` only compiles for c++17.
-- `v1.7` on Windows supports wide character logging, `v2` supports only trivial wide character logging such as `wchar_t`, `std::wstring`, `std::wstring_view`. For example, logging `std::vector<std::wstring>` is not supported.
+- `v1.7` on Windows supports wide character logging, `v2` has limited wide character support such as logging `wchar_t`, `std::wstring`, `std::wstring_view`. For example, logging `std::vector<std::wstring>` is not supported.
 - `v1.7` on Windows requires the filepath used for the handlers as a wide strings, `v2` supports only filenames as narrow strings.
 
 ## v1.7.3
