@@ -1,3 +1,4 @@
+- [v2.0.1](#v2.0.1)
 - [v2.0.0](#v2.0.0)
 - [v1.7.3](#v1.7.3)
 - [v1.7.2](#v1.7.2)
@@ -23,6 +24,12 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
+## v2.0.1
+
+**Improvements**
+
+- Add a flag to RotatingFileHandler to disable removing the old files when `w` mode is used.
+
 ## v2.0.0
 
 From version `v2` and onwards only c++17 is supported.
@@ -30,7 +37,9 @@ From version `v2` and onwards only c++17 is supported.
 This version is a major refactor.
 
 **Fixes**
-- RotatingFileHandler will now correctly rotate the files when append mode is used ([#123](https://github.com/odygrd/quill/issues/123))
+
+- RotatingFileHandler will now correctly rotate the files when append mode is
+  used ([#123](https://github.com/odygrd/quill/issues/123))
 
 **Improvements**
 

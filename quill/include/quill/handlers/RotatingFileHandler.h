@@ -29,10 +29,12 @@ public:
    * @param replace_oldest_files if set to true, oldest logs will get overwritten when backup_count
    * is reached. if set to false then when backup_count is reached the rotation will stop and
    * the base log file will grow indefinitely
+   * @param clean_old_files Setting this to true will also clean any previous rotated log files when
+   * mode="w" is used
    * @throws on invalid rotation values
    */
-  RotatingFileHandler(std::filesystem::path const& base_filename, std::string const& mode,
-                      size_t max_bytes, uint32_t backup_count, bool overwrite_oldest_files);
+  RotatingFileHandler(std::filesystem::path const& base_filename, std::string const& mode, size_t max_bytes,
+                      uint32_t backup_count, bool overwrite_oldest_files, bool clean_old_files = false);
 
   /**
    * Destructor

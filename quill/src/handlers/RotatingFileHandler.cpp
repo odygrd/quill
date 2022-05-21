@@ -11,21 +11,22 @@
 namespace quill
 {
 /***/
-RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filename, std::string const& mode,
-                                         size_t max_bytes, uint32_t backup_count, bool overwrite_oldest_files)
+RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filename,
+                                         std::string const& mode, size_t max_bytes, uint32_t backup_count,
+                                         bool overwrite_oldest_files, bool clean_old_files /*=false*/)
   : FileHandler(base_filename),
     _max_bytes(max_bytes),
     _backup_count(backup_count),
     _overwrite_oldest_files(overwrite_oldest_files)
 {
   // if we are starting in w mode, then we also should clean all previous log files of the previous run
-  if (mode == "w")
+  if (clean_old_files && (mode == "w"))
   {
     for (const auto& entry :
          std::filesystem::directory_iterator(std::filesystem::current_path() / base_filename.parent_path()))
     {
       std::size_t found = entry.path().string().find(base_filename.stem().string() + ".");
-      if (found != std::string::npos) 
+      if (found != std::string::npos)
       {
         std::filesystem::remove(entry);
       }
