@@ -89,12 +89,26 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
 {
   using ArgType = detail::remove_cvref_t<Arg>;
 
-  if constexpr (is_type_of_c_string<Arg>() || is_type_of_string<Arg>())
+  if constexpr (is_type_of_c_string<Arg>())
   {
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, strlen(str)};
     args.emplace_back(fmt::detail::make_arg<fmt::format_context>(v));
     return decode_args<DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
+  }
+  else if constexpr (is_type_of_string<Arg>())
+  {
+    // for std::string we first need to retrieve the length
+    in = detail::align_pointer<alignof(Arg), std::byte>(in);
+    size_t len{0};
+    std::memcpy(&len, in, sizeof(size_t));
+    in += sizeof(size_t);
+
+    // retrieve the rest of the string
+    char const* str = reinterpret_cast<char const*>(in);
+    std::string_view const v{str, len};
+    args.emplace_back(fmt::detail::make_arg<fmt::format_context>(v));
+    return decode_args<DestructIdx, Args...>(in + v.length(), args, destruct_args);
   }
 #if defined(_WIN32)
   else if constexpr (is_type_of_wide_c_string<Arg>() || is_type_of_wide_string<Arg>())
@@ -165,7 +179,12 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_st
   }
   else if constexpr (is_type_of_string<Arg>())
   {
-    return (arg.size() + 1) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
+    // for std::string we also need to store the size in order to correctly retrieve it
+    // the reason for this is that if we create e.g:
+    // std::string msg = fmt::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
+    // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
+    return (arg.size() + sizeof(size_t)) + alignof(size_t) +
+      get_args_sizes<CstringIdx>(c_string_sizes, args...);
   }
 #if defined(_WIN32)
   else if constexpr (is_type_of_wide_c_string<Arg>())
@@ -208,9 +227,15 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
   }
   else if constexpr (is_type_of_string<Arg>())
   {
+    // for std::string we store the size first, in order to correctly retrieve it
+    out = detail::align_pointer<alignof(Arg), std::byte>(out);
+    size_t const len = arg.length();
+    std::memcpy(out, &len, sizeof(size_t));
+    out += sizeof(size_t);
+
+    // copy the string, no need to zero terminate it as we got the length
     std::memcpy(out, arg.data(), arg.length());
-    out[arg.length()] = static_cast<std::byte>(0);
-    return encode_args<CstringIdx>(c_string_sizes, out + arg.length() + 1, std::forward<Args>(args)...);
+    return encode_args<CstringIdx>(c_string_sizes, out + arg.length(), std::forward<Args>(args)...);
   }
 #if defined(_WIN32)
   else if constexpr (is_type_of_wide_c_string<Arg>())
