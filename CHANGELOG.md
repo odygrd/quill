@@ -1,3 +1,4 @@
+- [v2.0.2](#v2.0.2)
 - [v2.0.1](#v2.0.1)
 - [v2.0.0](#v2.0.0)
 - [v1.7.3](#v1.7.3)
@@ -23,6 +24,12 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.0.2
+
+**Fixes**
+
+- Fix crash when a `std::string` containing null-terminated characters is passed to the logger. ([#176](https://github.com/odygrd/quill/issues/176))
 
 ## v2.0.1
 
