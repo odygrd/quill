@@ -10,7 +10,6 @@
 #include <chrono>  // for system_clock, system_clock...
 #include <cstdint> // for uint32_t
 #include <cstdio>  // for FILE, size_t
-#include <filesystem>
 #include <string>  // for string
 #include <utility> // for pair
 
@@ -35,7 +34,7 @@ QUILL_ATTRIBUTE_HOT void fwrite_fully(void const* ptr, size_t size, size_t count
  * @return a FILE* pointer to opened file
  * @throws std::system_error on failure
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* open_file(std::filesystem::path const& filename,
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* open_file(detail::std_fs::path const& filename,
                                                      std::string const& mode);
 
 /**
@@ -44,21 +43,21 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* open_file(std::filesystem::path const
  * @return the size of the file
  * @throws std::runtime_error on failure
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t file_size(std::filesystem::path const& filename);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t file_size(detail::std_fs::path const& filename);
 
 /**
  * Removes a file
  * @param filename the name of the file to remove_file
  * @return ​Zero​ upon success or non-zero value on error.
  */
-QUILL_ATTRIBUTE_COLD bool remove_file(std::filesystem::path const& filename) noexcept;
+QUILL_ATTRIBUTE_COLD bool remove_file(detail::std_fs::path const& filename) noexcept;
 
 /**
  * Renames a file
  * @param filename
  * @return
  */
-void rename_file(std::filesystem::path const& previous_file, std::filesystem::path const& new_file) noexcept;
+void rename_file(detail::std_fs::path const& previous_file, detail::std_fs::path const& new_file) noexcept;
 
 /**
  * Return the main body of the filename and it's extension
@@ -66,7 +65,7 @@ void rename_file(std::filesystem::path const& previous_file, std::filesystem::pa
  * @return first filename, second extension
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<std::string, std::string> extract_stem_and_extension(
-  std::filesystem::path const& filename) noexcept;
+  detail::std_fs::path const& filename) noexcept;
 
 /**
  * Append the date to the given filename
@@ -76,8 +75,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<std::string, std::string> extract
  * @param timezone gmt or local time
  * @return a filepath with the date appended
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::filesystem::path append_date_to_filename(
-  std::filesystem::path const& filename, std::chrono::system_clock::time_point timestamp = {},
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD detail::std_fs::path append_date_to_filename(
+  detail::std_fs::path const& filename, std::chrono::system_clock::time_point timestamp = {},
   bool append_time = false, Timezone timezone = Timezone::LocalTime) noexcept;
 
 /**
@@ -86,7 +85,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::filesystem::path append_date_to_filena
  * @param index the index to append
  * @return a filepath with the index appended
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::filesystem::path append_index_to_filename(std::filesystem::path const& filename,
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD detail::std_fs::path append_index_to_filename(detail::std_fs::path const& filename,
                                                                                     uint32_t index) noexcept;
 } // namespace detail
 } // namespace quill

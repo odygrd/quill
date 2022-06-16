@@ -16,7 +16,6 @@
 #include <chrono>                               // for hours, minutes, nanose...
 #include <cstddef>                              // for size_t
 #include <cstdint>                              // for uint16_t
-#include <filesystem>
 #include <initializer_list> // for initializer_list
 #include <string>           // for string
 #include <unordered_map>    // for unordered_map
@@ -127,7 +126,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(std::string const& 
  * If no value is specified during the file creation "a" is used as default.
  * @return A handler to a file
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::filesystem::path const& filename,
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(detail::std_fs::path const& filename,
                                                            std::string const& mode = std::string{"a"},
                                                            FilenameAppend append_to_filename = FilenameAppend::None);
 
@@ -157,7 +156,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(std::filesystem::path
  * @return a pointer to a time rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
-  std::filesystem::path const& base_filename, std::string const& mode = std::string{"a"},
+  detail::std_fs::path const& base_filename, std::string const& mode = std::string{"a"},
   std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
   Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"});
 
@@ -191,7 +190,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(
-  std::filesystem::path const& base_filename, std::string const& mode = std::string{"a"},
+  detail::std_fs::path const& base_filename, std::string const& mode = std::string{"a"},
   size_t max_bytes = 0, uint32_t backup_count = 0, bool overwrite_oldest_files = true);
 
 /**

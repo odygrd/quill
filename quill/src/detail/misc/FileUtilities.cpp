@@ -27,7 +27,7 @@ void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream)
 }
 
 /***/
-FILE* open_file(std::filesystem::path const& filename, std::string const& mode)
+FILE* open_file(detail::std_fs::path const& filename, std::string const& mode)
 {
   FILE* fp = ::fopen(filename.string().data(), mode.data());
 
@@ -41,39 +41,39 @@ FILE* open_file(std::filesystem::path const& filename, std::string const& mode)
 }
 
 /***/
-size_t file_size(std::filesystem::path const& filename)
+size_t file_size(detail::std_fs::path const& filename)
 {
-  return static_cast<size_t>(std::filesystem::file_size(filename));
+  return static_cast<size_t>(detail::std_fs::file_size(filename));
 }
 
 /***/
-bool remove_file(std::filesystem::path const& filename) noexcept
+bool remove_file(detail::std_fs::path const& filename) noexcept
 {
   QUILL_TRY
   {
-    std::filesystem::remove(filename);
+    detail::std_fs::remove(filename);
     return true;
   }
-  QUILL_CATCH(std::filesystem::filesystem_error const&) {
+  QUILL_CATCH(detail::std_fs::filesystem_error const&) {
     return false;
   }
 }
 
 /***/
-void rename_file(std::filesystem::path const& previous_file, std::filesystem::path const& new_file) noexcept
+void rename_file(detail::std_fs::path const& previous_file, detail::std_fs::path const& new_file) noexcept
 {
-  std::filesystem::rename(previous_file, new_file);
+  detail::std_fs::rename(previous_file, new_file);
 }
 
 /***/
-std::pair<std::string, std::string> extract_stem_and_extension(std::filesystem::path const& filename) noexcept
+std::pair<std::string, std::string> extract_stem_and_extension(detail::std_fs::path const& filename) noexcept
 {
   // filename and extension
   return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
 }
 
 /***/
-std::filesystem::path append_date_to_filename(std::filesystem::path const& filename,
+detail::std_fs::path append_date_to_filename(detail::std_fs::path const& filename,
                                               std::chrono::system_clock::time_point timestamp, /* = {} */
                                               bool append_time, /* = false */
                                               Timezone timezone /* = Timezone::LocalTime */) noexcept
@@ -116,7 +116,7 @@ std::filesystem::path append_date_to_filename(std::filesystem::path const& filen
 }
 
 /***/
-std::filesystem::path append_index_to_filename(std::filesystem::path const& filename, uint32_t index) noexcept
+detail::std_fs::path append_index_to_filename(detail::std_fs::path const& filename, uint32_t index) noexcept
 {
   if (index == 0u)
   {

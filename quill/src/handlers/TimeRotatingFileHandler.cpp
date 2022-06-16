@@ -14,7 +14,7 @@ namespace quill
 {
 
 /***/
-TimeRotatingFileHandler::TimeRotatingFileHandler(std::filesystem::path const& base_filename,
+TimeRotatingFileHandler::TimeRotatingFileHandler(detail::std_fs::path const& base_filename,
                                                  std::string const& mode, std::string when,
                                                  uint32_t interval, uint32_t backup_count,
                                                  Timezone timezone, std::string const& at_time)
@@ -102,9 +102,9 @@ void TimeRotatingFileHandler::write(fmt::memory_buffer const& formatted_log_mess
       }
     }
 
-    std::filesystem::path const previous_file = _filename;
+    detail::std_fs::path const previous_file = _filename;
     bool const append_time_to_filename = true;
-    std::filesystem::path const new_file = detail::append_date_to_filename(
+    detail::std_fs::path const new_file = detail::append_date_to_filename(
       _filename, _file_creation_time, append_time_to_filename, _using_timezone);
 
     detail::rename_file(previous_file, new_file);

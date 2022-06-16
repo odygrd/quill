@@ -33,7 +33,7 @@ public:
    * mode="w" is used
    * @throws on invalid rotation values
    */
-  RotatingFileHandler(std::filesystem::path const& base_filename, std::string const& mode, size_t max_bytes,
+  RotatingFileHandler(detail::std_fs::path const& base_filename, std::string const& mode, size_t max_bytes,
                       uint32_t backup_count, bool overwrite_oldest_files, bool clean_old_files = false);
 
   /**

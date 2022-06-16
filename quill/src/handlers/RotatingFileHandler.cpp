@@ -11,7 +11,7 @@
 namespace quill
 {
 /***/
-RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filename,
+RotatingFileHandler::RotatingFileHandler(detail::std_fs::path const& base_filename,
                                          std::string const& mode, size_t max_bytes, uint32_t backup_count,
                                          bool overwrite_oldest_files, bool clean_old_files /*=false*/)
   : FileHandler(base_filename),
@@ -23,12 +23,12 @@ RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filen
   if (clean_old_files && (mode == "w"))
   {
     for (const auto& entry :
-         std::filesystem::directory_iterator(std::filesystem::current_path() / base_filename.parent_path()))
+         detail::std_fs::directory_iterator(detail::std_fs::current_path() / base_filename.parent_path()))
     {
       std::size_t found = entry.path().string().find(base_filename.stem().string() + ".");
       if (found != std::string::npos)
       {
-        std::filesystem::remove(entry);
+        detail::std_fs::remove(entry);
       }
     }
   }
@@ -36,7 +36,7 @@ RotatingFileHandler::RotatingFileHandler(std::filesystem::path const& base_filen
   {
     // Since we are appending, we need to find the current index
     for (const auto& entry :
-         std::filesystem::directory_iterator(std::filesystem::current_path() / base_filename.parent_path()))
+         detail::std_fs::directory_iterator(detail::std_fs::current_path() / base_filename.parent_path()))
     {
       std::size_t found = entry.path().string().find(base_filename.stem().string() + ".");
       if (found != std::string::npos)
@@ -114,16 +114,16 @@ void RotatingFileHandler::_rotate()
   // if we have more than 2 files we need to start renaming recursively
   for (uint32_t i = _current_index; i >= 1; --i)
   {
-    std::filesystem::path const previous_file = detail::append_index_to_filename(_filename, i);
-    std::filesystem::path const new_file = detail::append_index_to_filename(_filename, i + 1);
+    detail::std_fs::path const previous_file = detail::append_index_to_filename(_filename, i);
+    detail::std_fs::path const new_file = detail::append_index_to_filename(_filename, i + 1);
     quill::detail::rename_file(previous_file, new_file);
   }
 
   if (_backup_count > 0)
   {
     // then we will always rename_file the base filename to 1
-    std::filesystem::path const previous_file = _filename;
-    std::filesystem::path const new_file = detail::append_index_to_filename(_filename, 1);
+    detail::std_fs::path const previous_file = _filename;
+    detail::std_fs::path const new_file = detail::append_index_to_filename(_filename, 1);
     quill::detail::rename_file(previous_file, new_file);
 
     if (!_overwrite_oldest_files)

@@ -33,7 +33,7 @@ using namespace quill::detail;
 TEST_CASE("default_logger_with_filehandler_1")
 {
   LogManager lm;
-  std::filesystem::path const filename{"test_default_logger_with_filehandler_1"};
+  detail::std_fs::path const filename{"test_default_logger_with_filehandler_1"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -75,7 +75,7 @@ TEST_CASE("default_logger_with_filehandler_2")
 {
   LogManager lm;
 
-  std::filesystem::path const filename{"test_default_logger_with_filehandler_2"};
+  detail::std_fs::path const filename{"test_default_logger_with_filehandler_2"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -118,7 +118,7 @@ TEST_CASE("default_logger_ints_and_large_string")
 {
   LogManager lm;
 
-  std::filesystem::path const filename{"test_default_logger_ints_and_large_string"};
+  detail::std_fs::path const filename{"test_default_logger_ints_and_large_string"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -163,7 +163,7 @@ TEST_CASE("default_logger_ints_and_very_large_string")
 {
   LogManager lm;
 
-  std::filesystem::path const filename{"test_default_logger_ints_and_very_large_string"};
+  detail::std_fs::path const filename{"test_default_logger_ints_and_very_large_string"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -217,7 +217,7 @@ TEST_CASE("default_logger_ints_and_wide_string")
 {
   LogManager lm;
 
-  std::filesystem::path const filename{"default_logger_ints_and_wide_string"};
+  detail::std_fs::path const filename{"default_logger_ints_and_wide_string"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -254,7 +254,7 @@ TEST_CASE("default_logger_ints_and_very_large_wide_string")
 {
   LogManager lm;
 
-  std::filesystem::path const filename{"default_logger_ints_and_very_large_wide_string"};
+  detail::std_fs::path const filename{"default_logger_ints_and_very_large_wide_string"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -306,7 +306,7 @@ TEST_CASE("default_logger_ints_and_very_large_wide_string")
 void custom_default_logger_same_handler(int test_case = 0)
 {
   LogManager lm;
-  std::filesystem::path const filename{"test_custom_default_logger_same_handler"};
+  detail::std_fs::path const filename{"test_custom_default_logger_same_handler"};
 
   // Set a file handler the custom logger handler and log to it
   Handler* file_handler =
@@ -396,8 +396,8 @@ TEST_CASE("custom_default_logger_same_file_from_default_logger")
 void test_custom_default_logger_multiple_handlers(int test_case)
 {
   LogManager lm;
-  std::filesystem::path const filename_1{"test_custom_default_logger_multiple_handlers_1"};
-  std::filesystem::path const filename_2{"test_custom_default_logger_multiple_handlers_2"};
+  detail::std_fs::path const filename_1{"test_custom_default_logger_multiple_handlers_1"};
+  detail::std_fs::path const filename_2{"test_custom_default_logger_multiple_handlers_2"};
 
   // Set a file handler the custom logger handler and log to it
 
@@ -530,7 +530,7 @@ TEST_CASE("custom_default_logger_multiple_handlers_from_default_logger")
 TEST_CASE("many_loggers_multiple_threads")
 {
   LogManager lm;
-  std::filesystem::path const filename{"test_many_loggers_multiple_threads"};
+  detail::std_fs::path const filename{"test_many_loggers_multiple_threads"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -596,7 +596,7 @@ TEST_CASE("many_loggers_multiple_threads")
 TEST_CASE("backend_error_handler")
 {
   LogManager lm;
-  std::filesystem::path const filename{"test_backend_error_handler"};
+  detail::std_fs::path const filename{"test_backend_error_handler"};
 
   // counter to check our error handler was invoked
   // atomic because we check this value on this thread, but the backend worker thread updates it
@@ -650,7 +650,7 @@ TEST_CASE("backend_error_handler")
 TEST_CASE("backend_error_handler_log_from_backend_thread")
 {
   LogManager lm;
-  std::filesystem::path const filename{"test_backend_error_handler_log_from_backend_thread"};
+  detail::std_fs::path const filename{"test_backend_error_handler_log_from_backend_thread"};
 
   std::thread frontend(
     [&lm, &filename]()
@@ -706,7 +706,7 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
 TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 {
   LogManager lm;
-  std::filesystem::path const filename{
+  detail::std_fs::path const filename{
     "test_backend_error_handler_error_throw_while_in_backend_process"};
 
   // counter to check our error handler was invoked
@@ -760,7 +760,7 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 TEST_CASE("log_backtrace_and_flush_on_error_1")
 {
   LogManager lm;
-  std::filesystem::path filename{"test_log_backtrace_and_flush_on_error_1"};
+  detail::std_fs::path filename{"test_log_backtrace_and_flush_on_error_1"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -814,7 +814,7 @@ TEST_CASE("log_backtrace_and_flush_on_error_1")
 TEST_CASE("log_backtrace_and_flush_on_error_2")
 {
   LogManager lm;
-  std::filesystem::path const filename{"test_log_backtrace_and_flush_on_error_2"};
+  detail::std_fs::path const filename{"test_log_backtrace_and_flush_on_error_2"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -874,7 +874,7 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
   // In this test we store in backtrace from one thread that terminates
   // and then we log that backtrace from a different thread
   LogManager lm;
-  std::filesystem::path const filename{
+  detail::std_fs::path const filename{
     "test_log_backtrace_terminate_thread_then_and_flush_on_error"};
 
   // Set a file handler as the custom logger handler and log to it
@@ -938,7 +938,7 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
 TEST_CASE("log_backtrace_manual_flush")
 {
   LogManager lm;
-  std::filesystem::path const filename{"test_log_backtrace_manual_flush"};
+  detail::std_fs::path const filename{"test_log_backtrace_manual_flush"};
 
   // Set a file handler as the custom logger handler and log to it
   lm.logger_collection().set_default_logger_handler(
@@ -1054,8 +1054,8 @@ public:
 TEST_CASE("logger_with_two_files_filters")
 {
   LogManager lm;
-  std::filesystem::path const filename1{"logger_with_two_files_filters1"};
-  std::filesystem::path const filename2{"logger_with_two_files_filters2"};
+  detail::std_fs::path const filename1{"logger_with_two_files_filters1"};
+  detail::std_fs::path const filename2{"logger_with_two_files_filters2"};
 
   // Set file 1
   quill::Handler* file_handler1 =
@@ -1110,8 +1110,8 @@ TEST_CASE("logger_with_two_files_filters")
 TEST_CASE("logger_with_two_files_set_log_level_on_handler")
 {
   LogManager lm;
-  std::filesystem::path const filename1{"logger_with_two_files_set_log_level_on_handler1"};
-  std::filesystem::path const filename2{"logger_with_two_files_set_log_level_on_handler2"};
+  detail::std_fs::path const filename1{"logger_with_two_files_set_log_level_on_handler1"};
+  detail::std_fs::path const filename2{"logger_with_two_files_set_log_level_on_handler2"};
 
   // Set file 1
   quill::Handler* file_handler1 =
