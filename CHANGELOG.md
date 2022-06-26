@@ -1,3 +1,4 @@
+- [v2.0.3](#v2.0.3)
 - [v2.0.2](#v2.0.2)
 - [v2.0.1](#v2.0.1)
 - [v2.0.0](#v2.0.0)
@@ -24,6 +25,14 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.0.3
+
+(to be released...)
+
+**Improvements/Fixes**
+
+- Add support for gcc 7.5.0. ([#178](https://github.com/odygrd/quill/issues/178))
 
 ## v2.0.2
 

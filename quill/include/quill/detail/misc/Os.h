@@ -6,7 +6,7 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
-#include "quill/detail/misc/Common.h"     // for detail::std_fs::path
+#include "quill/detail/misc/Common.h"     // for fs::path
 #include <cstdint>                        // for uint32_t, uint16_t
 #include <cstdio>                         // for FILE
 #include <ctime>                          // for size_t, time_t

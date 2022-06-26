@@ -29,7 +29,7 @@ public:
    * @param stream only stdout or stderr
    * @throws on invalid param
    */
-  explicit StreamHandler(detail::std_fs::path stream, FILE* file = nullptr);
+  explicit StreamHandler(fs::path stream, FILE* file = nullptr);
 
   ~StreamHandler() override = default;
 
@@ -50,7 +50,7 @@ public:
   /**
    * @return return the name of the file
    */
-  QUILL_NODISCARD virtual detail::std_fs::path const& filename() const noexcept;
+  QUILL_NODISCARD virtual fs::path const& filename() const noexcept;
 
   /**
    * @return stdout, stderr or file based on FILE*
@@ -58,7 +58,7 @@ public:
   QUILL_NODISCARD StreamHandlerType stream_handler_type() const noexcept;
 
 protected:
-  detail::std_fs::path _filename;
+  fs::path _filename;
   FILE* _file{nullptr};
 };
 } // namespace quill

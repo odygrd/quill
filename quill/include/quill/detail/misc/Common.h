@@ -106,24 +106,6 @@ enum class Timezone : uint8_t
         #undef QUILL_HAS_FILESYSTEM
         #undef QUILL_HAS_EXPERIMENTAL_FILESYSTEM
     #endif
-
-    // no filesystem support before MSVC 19.14: https://en.cppreference.com/w/cpp/compiler_support
-    #if defined(_MSC_VER) && _MSC_VER < 1940
-        #undef QUILL_HAS_FILESYSTEM
-        #undef QUILL_HAS_EXPERIMENTAL_FILESYSTEM
-    #endif
-
-    // no filesystem support before iOS 13
-    #if defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && __IPHONE_OS_VERSION_MIN_REQUIRED < 130000
-        #undef QUILL_HAS_FILESYSTEM
-        #undef QUILL_HAS_EXPERIMENTAL_FILESYSTEM
-    #endif
-
-    // no filesystem support before macOS Catalina
-    #if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101500
-        #undef QUILL_HAS_FILESYSTEM
-        #undef QUILL_HAS_EXPERIMENTAL_FILESYSTEM
-    #endif
 #endif
 
 #ifndef QUILL_HAS_EXPERIMENTAL_FILESYSTEM
@@ -136,15 +118,15 @@ enum class Timezone : uint8_t
 
 #if QUILL_HAS_EXPERIMENTAL_FILESYSTEM
 #include <experimental/filesystem>
-namespace quill::detail
+namespace quill
 {
-namespace std_fs = std::experimental::filesystem;
-} // namespace quill::detail
+namespace fs = std::experimental::filesystem;
+} // namespace quill
 #elif QUILL_HAS_FILESYSTEM
 #include <filesystem>
-namespace quill::detail
+namespace quill
 {
-namespace std_fs = std::filesystem;
-} // namespace quill::detail
+namespace fs = std::filesystem;
+} // namespace quill
 #endif
 

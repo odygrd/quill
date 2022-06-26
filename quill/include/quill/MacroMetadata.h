@@ -128,7 +128,7 @@ private:
     char const* file = path;
     while (*path)
     {
-      if (*path++ == detail::std_fs::path::preferred_separator)
+      if (*path++ == fs::path::preferred_separator)
       {
         file = path;
       }

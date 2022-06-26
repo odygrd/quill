@@ -26,7 +26,7 @@ namespace quill
 /** Version Info **/
 constexpr uint32_t VersionMajor{2};
 constexpr uint32_t VersionMinor{0};
-constexpr uint32_t VersionPatch{2};
+constexpr uint32_t VersionPatch{3};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 /** forward declarations **/
@@ -126,7 +126,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(std::string const& 
  * If no value is specified during the file creation "a" is used as default.
  * @return A handler to a file
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(detail::std_fs::path const& filename,
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(fs::path const& filename,
                                                            std::string const& mode = std::string{"a"},
                                                            FilenameAppend append_to_filename = FilenameAppend::None);
 
@@ -156,7 +156,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(detail::std_fs::path 
  * @return a pointer to a time rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
-  detail::std_fs::path const& base_filename, std::string const& mode = std::string{"a"},
+  fs::path const& base_filename, std::string const& mode = std::string{"a"},
   std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
   Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"});
 
@@ -190,7 +190,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(
-  detail::std_fs::path const& base_filename, std::string const& mode = std::string{"a"},
+  fs::path const& base_filename, std::string const& mode = std::string{"a"},
   size_t max_bytes = 0, uint32_t backup_count = 0, bool overwrite_oldest_files = true);
 
 /**

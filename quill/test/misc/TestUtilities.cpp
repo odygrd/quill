@@ -7,7 +7,7 @@ namespace quill
 namespace testing
 {
 // Convert the given file to a vector
-std::vector<std::string> file_contents(detail::std_fs::path const& filename)
+std::vector<std::string> file_contents(fs::path const& filename)
 {
   std::ifstream out_file(filename.string());
 
@@ -22,7 +22,7 @@ std::vector<std::string> file_contents(detail::std_fs::path const& filename)
 }
 
 // Convert the given file to a vector
-std::vector<std::wstring> wfile_contents(detail::std_fs::path const& filename)
+std::vector<std::wstring> wfile_contents(fs::path const& filename)
 {
   std::wifstream out_file(filename.string());
 
