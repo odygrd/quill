@@ -33,7 +33,7 @@ public:
    * @param mode string containing a file access mode.
    * @param append_to_filename append extra info to filename
    */
-  FileHandler(std::filesystem::path const& filename, std::string const& mode, FilenameAppend append_to_filename);
+  FileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename);
 
   ~FileHandler() override;
 
@@ -45,9 +45,9 @@ protected:
    * something to the filename and open_file it themselves
    * @param filename  string containing the base name of the files
    */
-  explicit FileHandler(std::filesystem::path const& filename);
+  explicit FileHandler(fs::path const& filename);
 
 protected:
-  std::filesystem::path _current_filename; /**< Includes the base filename and some additional info e.g. an appended date or an index */
+  fs::path _current_filename; /**< Includes the base filename and some additional info e.g. an appended date or an index */
 };
 } // namespace quill

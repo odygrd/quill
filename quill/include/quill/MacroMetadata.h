@@ -9,7 +9,6 @@
 #include "quill/detail/misc/Common.h"
 #include <array>
 #include <cstdint>
-#include <filesystem>
 #include <string_view>
 #include <type_traits>
 
@@ -129,13 +128,12 @@ private:
     char const* file = path;
     while (*path)
     {
-      if (*path++ == std::filesystem::path::preferred_separator)
+      if (*path++ == fs::path::preferred_separator)
       {
         file = path;
       }
     }
-    return file;
-  }
+    return file;  }
 
   QUILL_NODISCARD static constexpr std::string_view _log_level_to_string(LogLevel log_level)
   {

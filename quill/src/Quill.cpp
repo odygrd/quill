@@ -52,14 +52,14 @@ Handler* stderr_handler(std::string const& stderr_handler_name /* = "stderr" */)
 }
 
 /***/
-Handler* file_handler(std::filesystem::path const& filename, std::string const& mode, /* = std::string{} */
+Handler* file_handler(fs::path const& filename, std::string const& mode, /* = std::string{} */
                       FilenameAppend append_to_filename /* = FilenameAppend::None */)
 {
   return create_handler<FileHandler>(filename.string(), mode, append_to_filename);
 }
 
 /***/
-Handler* time_rotating_file_handler(std::filesystem::path const& base_filename,
+Handler* time_rotating_file_handler(fs::path const& base_filename,
                                     std::string const& mode /* = std::string{"a"} */,
                                     std::string const& when /* = std::string{"H"} */,
                                     uint32_t interval /* = 1 */, uint32_t backup_count /* = 0 */,
@@ -71,7 +71,7 @@ Handler* time_rotating_file_handler(std::filesystem::path const& base_filename,
 }
 
 /***/
-Handler* rotating_file_handler(std::filesystem::path const& base_filename,
+Handler* rotating_file_handler(fs::path const& base_filename,
                                std::string const& mode /* = std::string {"a"} */, size_t max_bytes /* = 0 */,
                                uint32_t backup_count /* = 0 */, bool overwrite_oldest_files /* = true */)
 {

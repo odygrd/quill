@@ -281,7 +281,7 @@ TEST_CASE("allocate_deallocate_from_free_list_random_initial_capacity_ctor")
     {
       // we will accumulate all sizes and to each size we will add the size of the block header
       size_t const total_allocated_memory =
-        std::accumulate(allocated_sizes.begin(), allocated_sizes.end(), 0,
+        std::accumulate(allocated_sizes.begin(), allocated_sizes.end(), static_cast<size_t>(0),
                         [&fla](size_t a, size_t b) { return a + b + fla.size_of_header(); });
 
       // Check freelist blocks
@@ -345,11 +345,11 @@ TEST_CASE("allocate_deallocate_from_free_list_random_initial_capacity_ctor")
     {
       // we will accumulate all sizes and to each size we will add the size of the block header
       size_t const total_allocated_memory =
-        std::accumulate(allocated_sizes.begin(), allocated_sizes.end(), 0,
+        std::accumulate(allocated_sizes.begin(), allocated_sizes.end(), static_cast<size_t>(0),
                         [&fla](size_t a, size_t b) { return a + b; });
 
       size_t const total_allocated_memory_with_header_size =
-        std::accumulate(allocated_sizes.begin(), allocated_sizes.end(), 0,
+        std::accumulate(allocated_sizes.begin(), allocated_sizes.end(), static_cast<size_t>(0),
                         [&fla](size_t a, size_t b) { return a + b + fla.size_of_header(); });
 
       auto const results = fla.get_all_blocks();
@@ -464,7 +464,7 @@ TEST_CASE("allocate_deallocate_from_free_list_random_default_ctor")
     {
       // we will accumulate all sizes and to each size we will add the size of the block header
       size_t const total_allocated_memory =
-        std::accumulate(allocated_sizes.begin(), allocated_sizes.end(), 0,
+        std::accumulate(allocated_sizes.begin(), allocated_sizes.end(), static_cast<size_t>(0),
                         [&fla](size_t a, size_t b) { return a + b + fla.size_of_header(); });
 
       // Check freelist blocks

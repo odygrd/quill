@@ -7,7 +7,7 @@ TEST_SUITE_BEGIN("TimeRotatingFileHandler");
 using namespace quill::detail;
 using namespace quill;
 
-static std::filesystem::path const filename{"test_time_rotating_file_handler.log"};
+static fs::path const filename{"test_time_rotating_file_handler.log"};
 
 #ifndef QUILL_NO_EXCEPTIONS
 TEST_CASE("construct_invalid_when")

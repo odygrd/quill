@@ -5,7 +5,7 @@
 namespace quill
 {
 /***/
-FileHandler::FileHandler(std::filesystem::path const& filename, std::string const& mode, FilenameAppend append_to_filename)
+FileHandler::FileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename)
   : StreamHandler(filename)
 {
   if (append_to_filename == FilenameAppend::None)
@@ -26,7 +26,7 @@ FileHandler::FileHandler(std::filesystem::path const& filename, std::string cons
 }
 
 /***/
-FileHandler::FileHandler(std::filesystem::path const& filename) : StreamHandler(filename) {}
+FileHandler::FileHandler(fs::path const& filename) : StreamHandler(filename) {}
 
 /***/
 FileHandler::~FileHandler()

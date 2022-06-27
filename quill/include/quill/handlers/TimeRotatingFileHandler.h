@@ -30,7 +30,7 @@ public:
    * @param timezone if true gmt time then UTC times are used instead
    * @param at_time used when 'daily' is specified
    */
-  TimeRotatingFileHandler(std::filesystem::path const& base_filename, std::string const& mode,
+  TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode,
                           std::string when, uint32_t interval, uint32_t backup_count,
                           Timezone timezone, std::string const& at_time);
 
@@ -54,7 +54,7 @@ private:
     std::chrono::system_clock::time_point time_now, std::string const& when, uint32_t interval) noexcept;
 
 private:
-  std::queue<std::filesystem::path> _created_files; /**< We store in a queue the filenames we created, in order to remove_file them if we exceed _backup_count limit */
+  std::queue<fs::path> _created_files; /**< We store in a queue the filenames we created, in order to remove_file them if we exceed _backup_count limit */
   std::string _when;                                /**< 'M', 'H' or 'daily' */
   std::chrono::system_clock::time_point _file_creation_time; /**< The time we create the file we are writing */
   std::chrono::system_clock::time_point _next_rotation_time; /**< The next rotation time point */
