@@ -28,59 +28,64 @@
 #define QUILL_COPY_LOGGABLE using copy_loggable = std::true_type
 
 // Main Log Macros
-// clang-format off
 #define QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ...)                  \
-  do {                                                                                             \
-    struct {                                                                                       \
-      constexpr quill::MacroMetadata operator()() const noexcept {                              \
-        return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,                        \
-                                                "n/a", fmt, log_statement_level,                   \
-                                                   quill::MacroMetadata::Event::Log}; }         \
-      } anonymous_log_message_info;                                                                 \
+  do                                                                                               \
+  {                                                                                                \
+    struct                                                                                         \
+    {                                                                                              \
+      constexpr quill::MacroMetadata operator()() const noexcept                                   \
+      {                                                                                            \
+        return quill::MacroMetadata{                                                               \
+          QUILL_STRINGIFY(__LINE__),       __FILE__, "n/a", fmt, log_statement_level,              \
+          quill::MacroMetadata::Event::Log};                                                       \
+      }                                                                                            \
+    } anonymous_log_message_info;                                                                  \
                                                                                                    \
     if (likelyhood(logger->template should_log<log_statement_level>()))                            \
     {                                                                                              \
-      logger->template log<decltype(anonymous_log_message_info)>                                    \
-                                                             (FMT_STRING(fmt),  ##__VA_ARGS__);    \
+      logger->template log<decltype(anonymous_log_message_info)>(FMT_STRING(fmt), ##__VA_ARGS__);  \
     }                                                                                              \
   } while (0)
-// clang-format on
 
-// clang-format off
 #define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ...)                       \
-  do {                                                                                             \
+  do                                                                                               \
+  {                                                                                                \
     static constexpr char const* function_name = __FUNCTION__;                                     \
-    struct {                                                                                       \
-      constexpr quill::MacroMetadata operator()() const noexcept {                              \
-        return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,                        \
-                                                function_name, fmt, log_statement_level,           \
-                                                    quill::MacroMetadata::Event::Log}; }        \
-      } anonymous_log_message_info;                                                                 \
+    struct                                                                                         \
+    {                                                                                              \
+      constexpr quill::MacroMetadata operator()() const noexcept                                   \
+      {                                                                                            \
+        return quill::MacroMetadata{                                                               \
+          QUILL_STRINGIFY(__LINE__),       __FILE__, function_name, fmt, log_statement_level,      \
+          quill::MacroMetadata::Event::Log};                                                       \
+      }                                                                                            \
+    } anonymous_log_message_info;                                                                  \
                                                                                                    \
     if (likelyhood(logger->template should_log<log_statement_level>()))                            \
     {                                                                                              \
-      logger->template log<decltype(anonymous_log_message_info)>                                    \
-                                                             (FMT_STRING(fmt),  ##__VA_ARGS__);    \
+      logger->template log<decltype(anonymous_log_message_info)>(FMT_STRING(fmt), ##__VA_ARGS__);  \
     }                                                                                              \
   } while (0)
 
-#define QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ...)                                              \
-  do {                                                                                             \
-    static constexpr char const* function_name = __FUNCTION__;                                     \
-    struct {                                                                                       \
-      constexpr quill::MacroMetadata operator()() const noexcept {                              \
-        return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__), __FILE__,                        \
-                                                function_name, fmt, quill::LogLevel::Backtrace,    \
-                                                           quill::MacroMetadata::Event::Log}; } \
-      } anonymous_log_message_info;                                                                 \
-                                                                                                   \
-    if (QUILL_LIKELY(logger->template should_log<quill::LogLevel::Backtrace>()))                   \
-    {                                                                                              \
-      logger->template log<decltype(anonymous_log_message_info)>                                    \
-                                                             (FMT_STRING(fmt),  ##__VA_ARGS__);    \
-    }                                                                                              \
+#define QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ...)                                                \
+  do                                                                                                 \
+  {                                                                                                  \
+    static constexpr char const* function_name = __FUNCTION__;                                       \
+    struct                                                                                           \
+    {                                                                                                \
+      constexpr quill::MacroMetadata operator()() const noexcept                                     \
+      {                                                                                              \
+        return quill::MacroMetadata{                                                                 \
+          QUILL_STRINGIFY(__LINE__),       __FILE__, function_name, fmt, quill::LogLevel::Backtrace, \
+          quill::MacroMetadata::Event::Log};                                                         \
+      }                                                                                              \
+    } anonymous_log_message_info;                                                                    \
+                                                                                                     \
+    if (QUILL_LIKELY(logger->template should_log<quill::LogLevel::Backtrace>()))                     \
+    {                                                                                                \
+      logger->template log<decltype(anonymous_log_message_info)>(FMT_STRING(fmt), ##__VA_ARGS__);    \
+    }                                                                                                \
   } while (0)
-// clang-format on
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L3
   #define QUILL_LOG_TRACE_L3(logger, fmt, ...)                                                     \

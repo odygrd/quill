@@ -7,6 +7,7 @@
 
 #include "quill/TweakMe.h"
 
+#include "quill/clock/TimestampClock.h"
 #include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManager.h"            // for LogManager
 #include "quill/detail/backend/BackendWorker.h" // for backend_worker_error_h...
@@ -16,9 +17,10 @@
 #include <chrono>                               // for hours, minutes, nanose...
 #include <cstddef>                              // for size_t
 #include <cstdint>                              // for uint16_t
-#include <initializer_list> // for initializer_list
-#include <string>           // for string
-#include <unordered_map>    // for unordered_map
+#include <initializer_list>                     // for initializer_list
+#include <optional>                             // for optional
+#include <string>                               // for string
+#include <unordered_map>                        // for unordered_map
 
 namespace quill
 {
@@ -190,8 +192,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(
-  fs::path const& base_filename, std::string const& mode = std::string{"a"},
-  size_t max_bytes = 0, uint32_t backup_count = 0, bool overwrite_oldest_files = true);
+  fs::path const& base_filename, std::string const& mode = std::string{"a"}, size_t max_bytes = 0,
+  uint32_t backup_count = 0, bool overwrite_oldest_files = true);
 
 /**
  * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed
@@ -226,7 +228,9 @@ QUILL_NODISCARD std::unordered_map<std::string, Logger*> get_all_loggers();
  * @param logger_name The name of the logger to add
  * @return A pointer to a thread-safe Logger object
  */
-Logger* create_logger(char const* logger_name);
+QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
+                                      std::optional<TimestampClockType> timestamp_clock_type = std::nullopt,
+                                      std::optional<TimestampClock*> timestamp_clock = std::nullopt);
 
 /**
  * Creates a new Logger using the custom given handler.
@@ -239,9 +243,11 @@ Logger* create_logger(char const* logger_name);
  * @param handler A pointer the a handler for this logger
  * @return A pointer to a thread-safe Logger object
  */
-Logger* create_logger(char const* logger_name, Handler* handler);
+QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, Handler* handler,
+                                      std::optional<TimestampClockType> timestamp_clock_type = std::nullopt,
+                                      std::optional<TimestampClock*> timestamp_clock = std::nullopt);
 
-/***
+/**
  * Creates a new Logger using the custom given handler.
  *
  * A custom formatter pattern the pattern can be specified during the handler creation for each
@@ -251,7 +257,54 @@ Logger* create_logger(char const* logger_name, Handler* handler);
  * @param handlers An initializer list of pointers to handlers for this logger
  * @return A pointer to a thread-safe Logger object
  */
-Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
+QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
+                                      std::optional<TimestampClockType> timestamp_clock_type = std::nullopt,
+                                      std::optional<TimestampClock*> timestamp_clock = std::nullopt);
+
+/**
+ * Creates a new Logger using the custom given handler.
+ *
+ * A custom formatter pattern the pattern can be specified during the handler creation for each
+ * handler
+ *
+ * @param logger_name The name of the logger to add
+ * @param handlers A vector of pointers to handlers for this logger
+ * @return A pointer to a thread-safe Logger object
+ */
+QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vector<Handler*> const& handlers,
+                                      std::optional<TimestampClockType> timestamp_clock_type = std::nullopt,
+                                      std::optional<TimestampClock*> timestamp_clock = std::nullopt);
+
+/**
+ * Sets the clock type that will be used to obtain the timestamp.
+ * Options: rdtsc or system clock
+ *
+ * - rdtsc mode :
+ *
+ * TSC clock gives better performance on the caller thread.
+ * However, the initialisation time of the application takes longer as we have to take multiple samples
+ * in the beginning to convert TSC to nanoseconds
+ *
+ * When using the TSC counter the backend thread will also periodically call std::chrono::system_clock:now() and will
+ * resync the TSC based on the system clock.
+ * The backend thread will constantly keep track of the difference between TSC and the system wall clock in order
+ * to provide accurate timestamps.
+ *
+ * - system mode :
+ * std::chrono::system_clock:now() is used for obtaining the timestamp
+ *
+ * By default rdtsc modeis enabled
+ *
+ * @param timestamp_clock_type rdtsc or system clock
+ */
+QUILL_ATTRIBUTE_COLD void set_timestamp_clock_type(TimestampClockType timestamp_clock_type);
+
+/**
+ * Sets a custom clock that will be used to obtain the timestamp
+ * This is useful for example during simulations where you would need to simulate time
+ * @param timestamp_clock a custom class deriving from TimestampClock
+ */
+QUILL_ATTRIBUTE_COLD void set_custom_timestamp_clock(TimestampClock* timestamp_clock);
 
 /**
  * Resets the default logger and re-creates the logger with the given handler

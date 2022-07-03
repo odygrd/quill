@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "quill/Logger.h"                 // for Logger
+#include "quill/Logger.h" // for Logger
+#include "quill/clock/TimestampClock.h"
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD
 #include "quill/detail/misc/Common.h"     // for CACHELINE_SIZE
 #include <initializer_list>               // for initializer_list
@@ -34,7 +35,9 @@ public:
   /**
    * Constructor
    */
-  LoggerCollection(ThreadContextCollection& thread_context_collection, HandlerCollection& handler_collection);
+  LoggerCollection(ThreadContextCollection& thread_context_collection,
+                   HandlerCollection& handler_collection, TimestampClockType timestamp_clock_type,
+                   TimestampClock* custom_timestamp_clock, std::string const& default_logger_name);
 
   /**
    * Destructor
@@ -65,37 +68,50 @@ public:
   /**
    * Create a new logger using the same handlers and formatter as the default logger
    * @param logger_name the name of the logger to add
+   * @param timestamp_clock_type timestamp clock type
+   * @param timestamp_clock timestamp clock
    * @return a pointer to the logger
    */
-  Logger* create_logger(char const* logger_name);
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, TimestampClockType timestamp_clock_type,
+                                        TimestampClock* timestamp_clock);
 
   /**
    * Creates a new logger
    * @param logger_name the name of the logger to add
    * @param handler The handler for the logger
+   * @param timestamp_clock_type timestamp clock type
+   * @param timestamp_clock timestamp clock
    * @return a pointer to the logger
    */
-  Logger* create_logger(char const* logger_name, Handler* handler);
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, Handler* handler,
+                                        TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock);
 
   /**
    * Create a new logger with multiple handler
    * @param logger_name the name of the logger to add
    * @param handlers An initializer list of pointers to handlers that will be now used as a default handler
+   * @param timestamp_clock_type timestamp clock type
+   * @param timestamp_clock timestamp clock
    * @return a pointer to the logger
    */
-  Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers);
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
+                                        TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock);
 
   /**
-   * Set a custom default logger with a single handler
-   * @param handler A pointer to a handler that will be now used as a default handler
+   * Create a new logger with multiple handler
+   * @param logger_name the name of the logger to add
+   * @param handlers An initializer list of pointers to handlers that will be now used as a default handler
+   * @param timestamp_clock_type timestamp clock type
+   * @param timestamp_clock timestamp clock
+   * @return a pointer to the logger
    */
-  QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vector<Handler*> const& handlers,
+                                        TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock);
 
   /**
-   * Set a custom default logger with multiple handlers
-   * @param handlers A vector of pointers to handlers that will be now used as a default handler
+   * Erases a logger. Only used to erase the default logger internally for now.
    */
-  QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
+  QUILL_ATTRIBUTE_COLD void erase_logger(std::string const& logger_name);
 
   /**
    * Used internally only to enable console colours on "stdout" default console handler
@@ -104,6 +120,18 @@ public:
    * this function.
    */
   QUILL_ATTRIBUTE_COLD void enable_console_colours() noexcept;
+
+  /**
+   * Set the default logger pointer. Used internally
+   * @param logger default logger
+   */
+  QUILL_ATTRIBUTE_COLD void set_default_logger(Logger* logger) noexcept;
+
+  /**
+   * Get the default logger pointer
+   * @return default logger ptr
+   */
+  QUILL_NODISCARD Logger* default_logger() const noexcept;
 
 private:
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */

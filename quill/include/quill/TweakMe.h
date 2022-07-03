@@ -20,33 +20,6 @@
  */
 
 /**
- * If QUILL_CHRONO_CLOCK value is defined, Quill will use chrono system_clock for timestamps.
- *
- * QUILL RDTSC CLOCK mode :
- *
- * TSC clock gives better performance on the caller thread. However, the initialisation time of the application is higher as
- * we have to take multiple samples in the beginning to convert TSC to nanoseconds
- *
- * Consider reading https://stackoverflow.com/questions/42189976/calculate-system-time-using-rdtsc
- *
- * The backend thread is constantly keeping track of the difference between TSC and the system wall clock resulting
- * in accurate timestamps.
- *
- * When using the TSC counter the backend thread will also periodically call chrono::system_clock:now() and will
- * resync the TSC based on the system clock.
- *
- * @note: This should be switchable even after quill is already installed as a static or shared library.
- *
- * Usage:
- * Run cmake as e.g: cmake . -DCMAKE_CXX_FLAGS="-DQUILL_CHRONO_CLOCK=1"
- * or
- * In the root CMake file use: `add_definitions(-DQUILL_CHRONO_CLOCK=1)`
- *
- * By default RDTSC clock is enabled
- */
-// #define QUILL_CHRONO_CLOCK
-
-/**
  * This option is only applicable if the RDTSC clock is enabled.
  * When QUILL_CHRONO_CLOCK is defined this option can be ignored
  *

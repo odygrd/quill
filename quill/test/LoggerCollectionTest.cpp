@@ -18,10 +18,11 @@ TEST_CASE("create_get_same_logger")
   Config cfg;
   HandlerCollection hc;
   ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
   Handler* stream_handler = hc.stdout_console_handler();
-  Logger* logger_1 = logger_collection.create_logger("logger_1", stream_handler);
+  Logger* logger_1 =
+    logger_collection.create_logger("logger_1", stream_handler, TimestampClockType::Rdtsc, nullptr);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
 
   // change existing log level
@@ -39,20 +40,23 @@ TEST_CASE("create_get_all_loggers")
   Config cfg;
   HandlerCollection hc;
   ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
   Handler* stream_handler = hc.stdout_console_handler();
-  Logger* logger_1 = logger_collection.create_logger("logger_1", stream_handler);
+  Logger* logger_1 =
+    logger_collection.create_logger("logger_1", stream_handler, TimestampClockType::Rdtsc, nullptr);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
   logger_1->set_log_level(LogLevel::TraceL2);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::TraceL2);
 
-  Logger* logger_2 = logger_collection.create_logger("logger_2", stream_handler);
+  Logger* logger_2 =
+    logger_collection.create_logger("logger_2", stream_handler, TimestampClockType::Rdtsc, nullptr);
   REQUIRE_EQ(logger_2->log_level(), LogLevel::Info);
   logger_2->set_log_level(LogLevel::Debug);
   REQUIRE_EQ(logger_2->log_level(), LogLevel::Debug);
 
-  Logger* logger_3 = logger_collection.create_logger("logger_3", stream_handler);
+  Logger* logger_3 =
+    logger_collection.create_logger("logger_3", stream_handler, TimestampClockType::Rdtsc, nullptr);
   REQUIRE_EQ(logger_3->log_level(), LogLevel::Info);
   logger_3->set_log_level(LogLevel::Error);
   REQUIRE_EQ(logger_3->log_level(), LogLevel::Error);
@@ -73,10 +77,11 @@ TEST_CASE("create_get_different_loggers")
   Config cfg;
   HandlerCollection hc;
   ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
   Handler* stream_handler = hc.stdout_console_handler();
-  Logger* logger_1 = logger_collection.create_logger("logger_1", stream_handler);
+  Logger* logger_1 =
+    logger_collection.create_logger("logger_1", stream_handler, TimestampClockType::Rdtsc, nullptr);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
 
   // change existing log level
@@ -84,7 +89,8 @@ TEST_CASE("create_get_different_loggers")
 
   // try to get a new logger with a default log level
   Handler* stream_handler_2 = hc.stdout_console_handler();
-  QUILL_MAYBE_UNUSED Logger* logger_2 = logger_collection.create_logger("logger_2", stream_handler_2);
+  QUILL_MAYBE_UNUSED Logger* logger_2 =
+    logger_collection.create_logger("logger_2", stream_handler_2, TimestampClockType::Rdtsc, nullptr);
   Logger* logger_3 = logger_collection.get_logger("logger_2");
   REQUIRE_EQ(logger_3->log_level(), LogLevel::Info);
 }
@@ -96,7 +102,7 @@ TEST_CASE("get_non_existing_logger")
   Config cfg;
   HandlerCollection hc;
   ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
   // try to get a new logger with a default log level
 #if !defined(QUILL_NO_EXCEPTIONS)
@@ -112,7 +118,7 @@ TEST_CASE("default_logger")
   Config cfg;
   HandlerCollection hc;
   ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
   Logger* default_logger = logger_collection.get_logger();
   REQUIRE_EQ(default_logger->log_level(), LogLevel::Info);
@@ -136,50 +142,10 @@ TEST_CASE("create_logger_from_default_logger")
   Config cfg;
   HandlerCollection hc;
   ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
-  Logger* default_logger = logger_collection.create_logger("logger_test");
+  Logger* default_logger = logger_collection.create_logger("logger_test", TimestampClockType::Rdtsc, nullptr);
   REQUIRE_EQ(default_logger->log_level(), LogLevel::Info);
-}
-
-/***/
-TEST_CASE("set_default_logger_handler")
-{
-  // Set a handler to the default logger
-  Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
-
-  Handler* stream_handler = hc.stdout_console_handler();
-  logger_collection.set_default_logger_handler(stream_handler);
-}
-
-/***/
-TEST_CASE("set_default_logger_pattern")
-{
-  // Set a handler to the default logger with a default pattern
-  Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
-
-  Handler* stream_handler = hc.stdout_console_handler();
-  stream_handler->set_pattern("%(message)");
-
-  logger_collection.set_default_logger_handler(stream_handler);
-}
-
-/***/
-TEST_CASE("set_default_logger_multiple_handlers")
-{
-  // Set a handler to the default logger with a default pattern
-  Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
-  LoggerCollection logger_collection{tc, hc};
-
-  logger_collection.set_default_logger_handler({hc.stdout_console_handler(), hc.stderr_console_handler()});
 }
 
 TEST_SUITE_END();

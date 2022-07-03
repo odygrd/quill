@@ -206,13 +206,6 @@ void BackendWorker::run()
       QUILL_CATCH_ALL() { _error_handler(std::string{"Caught unhandled exception."}); }
 #endif
 
-      if constexpr (std::is_same<detail::Header::using_rdtsc, std::true_type>::value)
-      {
-        // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
-        // taking samples first
-        _rdtsc_clock = std::make_unique<RdtscClock>(std::chrono::milliseconds{QUILL_RDTSC_RESYNC_INTERVAL});
-      }
-
       // Cache this thread's id
       _backend_worker_thread_id = get_thread_id();
 
@@ -314,21 +307,39 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
     transit_event->header = *(reinterpret_cast<detail::Header*>(read_buffer));
     read_buffer += sizeof(detail::Header);
 
+    // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
+    // doing the conversion here ensures that every transit that is inserted in the priority queue
+    // below has a header timestamp of nanoseconds since epoch and makes it even possible to
+    // have Logger objects using different clocks
+    if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc)
+    {
+      if (!_rdtsc_clock)
+      {
+        // Here we lazy initialise rdtsc clock on the backend thread only if the user decides to use it
+        // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
+        // taking samples first
+        _rdtsc_clock = std::make_unique<RdtscClock>(std::chrono::milliseconds{QUILL_RDTSC_RESYNC_INTERVAL});
+      }
+
+      // convert the rdtsc value to nanoseconds since epoch
+      transit_event->header.timestamp = _rdtsc_clock->time_since_epoch(transit_event->header.timestamp);
+    }
+
     // we need to check and do not try to format the flush events as that wouldn't be valid
     if (transit_event->header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
     {
 #if defined(_WIN32)
-      if (transit_event->header.metadata->macro_metadata.has_wide_char()) 
+      if (transit_event->header.metadata->macro_metadata.has_wide_char())
       {
-          // convert the format string to a narrow string
+        // convert the format string to a narrow string
         size_t const size_needed =
           get_wide_string_encoding_size(transit_event->header.metadata->macro_metadata.wmessage_format());
         std::string format_str(size_needed, 0);
         wide_string_to_narrow(format_str.data(), size_needed,
                               transit_event->header.metadata->macro_metadata.wmessage_format());
 
-        read_buffer = transit_event->header.metadata->format_to_fn(format_str, read_buffer,
-          transit_event->formatted_msg, _args);
+        read_buffer = transit_event->header.metadata->format_to_fn(
+          format_str, read_buffer, transit_event->formatted_msg, _args);
       }
       else
       {
@@ -448,36 +459,25 @@ void BackendWorker::_process_transit_event()
 /***/
 void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
 {
-  std::chrono::nanoseconds timestamp;
-  if constexpr (std::is_same<detail::Header::using_rdtsc, std::true_type>::value)
-  {
-    timestamp = _rdtsc_clock->time_since_epoch(transit_event.header.timestamp);
-  }
-  else
-  {
-    // Then the timestamp() will be already in epoch no need to convert it like above
-    // The precision of system_clock::time-point is not portable across platforms.
-    std::chrono::system_clock::duration const timestamp_duration{transit_event.header.timestamp};
-    timestamp = std::chrono::nanoseconds{timestamp_duration};
-  }
-
-  // Forward the record to all of the logger handlers
+  // Forward the record to all the logger handlers
   for (auto& handler : transit_event.header.logger_details->handlers())
   {
-    handler->formatter().format(timestamp, transit_event.thread_id.data(), transit_event.thread_name.data(),
-                                _process_id, transit_event.header.logger_details->name(),
-                                transit_event.header.metadata->macro_metadata, transit_event.formatted_msg);
+    handler->formatter().format(
+      std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id.data(),
+      transit_event.thread_name.data(), _process_id, transit_event.header.logger_details->name(),
+      transit_event.header.metadata->macro_metadata, transit_event.formatted_msg);
 
     // After calling format on the formatter we have to request the formatter record
     auto const& formatted_log_message_buffer = handler->formatter().formatted_log_message();
 
     // If all filters are okay we write this message to the file
-    if (handler->apply_filters(transit_event.thread_id.data(), timestamp,
-                               transit_event.header.metadata->macro_metadata, formatted_log_message_buffer))
+    if (handler->apply_filters(
+          transit_event.thread_id.data(), std::chrono::nanoseconds{transit_event.header.timestamp},
+          transit_event.header.metadata->macro_metadata, formatted_log_message_buffer))
     {
       // log to the handler, also pass the log_message_timestamp this is only needed in some
       // cases like daily file rotation
-      handler->write(formatted_log_message_buffer, timestamp,
+      handler->write(formatted_log_message_buffer, std::chrono::nanoseconds{transit_event.header.timestamp},
                      transit_event.header.metadata->macro_metadata.level());
     }
   }

@@ -18,9 +18,9 @@ TEST_CASE("log_level")
   ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
-  Logger* logger = logger_collection.create_logger("logger_1");
+  Logger* logger = logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
 
   // Check default log level
   REQUIRE_EQ(logger->log_level(), LogLevel::Info);
@@ -38,7 +38,7 @@ TEST_CASE("get_non_existent_logger")
   ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
   REQUIRE_THROWS_AS((void)logger_collection.get_logger("logger_1"), quill::QuillError);
 }
@@ -50,9 +50,9 @@ TEST_CASE("throw_if_backtrace_log_level_is_used")
   ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
-  Logger* logger_1 = logger_collection.create_logger("logger_1");
+  Logger* logger_1 = logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
 
   REQUIRE_THROWS_AS(logger_1->set_log_level(LogLevel::Backtrace), quill::QuillError);
 }
@@ -65,9 +65,10 @@ TEST_CASE("logger_should_log")
   ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
-  LoggerCollection logger_collection{tc, hc};
+  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
 
-  QUILL_MAYBE_UNUSED Logger* logger_1 = logger_collection.create_logger("logger_1");
+  QUILL_MAYBE_UNUSED Logger* logger_1 =
+    logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
 
   {
     LogLevel log_statement_level{LogLevel::Debug};
@@ -76,7 +77,7 @@ TEST_CASE("logger_should_log")
 
   {
     LogLevel log_statement_level{LogLevel::Info};
-      REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
+    REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
   }
 
   {

@@ -86,7 +86,7 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
  * @param tsc
  * @return
  */
-std::chrono::nanoseconds RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
+uint64_t RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
   // get rtsc current value and compare the diff then add it to base wall time
   auto diff = static_cast<int64_t>(rdtsc_value - _base_tsc);
@@ -98,10 +98,7 @@ std::chrono::nanoseconds RdtscClock::time_since_epoch(uint64_t rdtsc_value) cons
     diff = static_cast<int64_t>(rdtsc_value - _base_tsc);
   }
 
-  auto const duration_since_epoch = std::chrono::nanoseconds{
-    _base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick)};
-
-  return duration_since_epoch;
+  return static_cast<uint64_t>(_base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
 }
 
 /**
