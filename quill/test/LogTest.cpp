@@ -36,8 +36,8 @@ TEST_CASE("default_logger_with_filehandler_1")
   fs::path const filename{"test_default_logger_with_filehandler_1"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -78,8 +78,8 @@ TEST_CASE("default_logger_with_filehandler_2")
   fs::path const filename{"test_default_logger_with_filehandler_2"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -121,8 +121,8 @@ TEST_CASE("default_logger_ints_and_large_string")
   fs::path const filename{"test_default_logger_ints_and_large_string"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -166,8 +166,8 @@ TEST_CASE("default_logger_ints_and_very_large_string")
   fs::path const filename{"test_default_logger_ints_and_very_large_string"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -220,8 +220,8 @@ TEST_CASE("default_logger_ints_and_wide_string")
   fs::path const filename{"default_logger_ints_and_wide_string"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -257,8 +257,8 @@ TEST_CASE("default_logger_ints_and_very_large_wide_string")
   fs::path const filename{"default_logger_ints_and_very_large_wide_string"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -312,7 +312,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   Handler* file_handler =
     lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None);
   file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
-  lm.logger_collection().set_default_logger_handler(file_handler);
+  lm.set_default_logger_handler(file_handler);
 
   // Start logging
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -322,12 +322,13 @@ void custom_default_logger_same_handler(int test_case = 0)
     // Add a second logger using the same file handler
     Handler* file_handler_2 =
       lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None);
-    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger", file_handler_2);
+    QUILL_MAYBE_UNUSED Logger* logger_2 =
+      lm.create_logger("custom_logger", file_handler_2, std::nullopt, std::nullopt);
   }
   else if (test_case == 1)
   {
     // Add the other logger by using the default logger params - which is the same as obtaining the file handler above
-    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger");
+    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
   }
   // Thread for default pattern
   std::thread frontend_default(
@@ -411,7 +412,7 @@ void test_custom_default_logger_multiple_handlers(int test_case)
     lm.handler_collection().create_handler<FileHandler>(filename_2.string(), "w", FilenameAppend::None);
   file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
 
-  lm.logger_collection().set_default_logger_handler({file_handler_1, file_handler_2});
+  lm.set_default_logger_handler({file_handler_1, file_handler_2});
 
   // Start logging
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -424,12 +425,12 @@ void test_custom_default_logger_multiple_handlers(int test_case)
     Handler* file_handler_b =
       lm.handler_collection().create_handler<FileHandler>(filename_2.string(), "", FilenameAppend::None);
     QUILL_MAYBE_UNUSED Logger* logger_2 =
-      lm.logger_collection().create_logger("custom_logger", {file_handler_a, file_handler_b});
+      lm.create_logger("custom_logger", {file_handler_a, file_handler_b}, std::nullopt, std::nullopt);
   }
   else if (test_case == 1)
   {
     // Add the second logger constructing it from the params of the default logger
-    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.logger_collection().create_logger("custom_logger");
+    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
   }
 
   // Thread for default pattern
@@ -533,8 +534,8 @@ TEST_CASE("many_loggers_multiple_threads")
   fs::path const filename{"test_many_loggers_multiple_threads"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "a", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -550,7 +551,7 @@ TEST_CASE("many_loggers_multiple_threads")
       {
         // Create a logger in this thread
         std::string logger_name = "logger_" + std::to_string(i);
-        Logger* logger = lm.logger_collection().create_logger(logger_name.data());
+        Logger* logger = lm.create_logger(logger_name.data(), std::nullopt, std::nullopt);
 
         for (size_t j = 0; j < message_count; ++j)
         {
@@ -619,8 +620,8 @@ TEST_CASE("backend_error_handler")
                                           { ++error_handler_invoked; });
 
       // Set a file handler as the custom logger handler and log to it
-      lm.logger_collection().set_default_logger_handler(
-        lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None));
+      lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+        filename.string(), "a", FilenameAppend::None));
 
       // Start backend worker
       lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -665,8 +666,8 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
         "labore_et_dolore_magna_aliqua");
 
       // Set a file handler as the custom logger handler and log to it
-      lm.logger_collection().set_default_logger_handler(
-        lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None));
+      lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+        filename.string(), "a", FilenameAppend::None));
 
       Logger* default_logger = lm.logger_collection().get_logger();
 
@@ -706,16 +707,15 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
 TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 {
   LogManager lm;
-  fs::path const filename{
-    "test_backend_error_handler_error_throw_while_in_backend_process"};
+  fs::path const filename{"test_backend_error_handler_error_throw_while_in_backend_process"};
 
   // counter to check our error handler was invoked
   // atomic because we check this value on this thread, but the backend worker thread updates it
   std::atomic<size_t> error_handler_invoked{0};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "a", FilenameAppend::None));
 
   // Set a custom error handler to handler exceptions
   lm.set_backend_worker_error_handler([&error_handler_invoked](std::string const& s)
@@ -763,8 +763,8 @@ TEST_CASE("log_backtrace_and_flush_on_error_1")
   fs::path filename{"test_log_backtrace_and_flush_on_error_1"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "a", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -817,8 +817,8 @@ TEST_CASE("log_backtrace_and_flush_on_error_2")
   fs::path const filename{"test_log_backtrace_and_flush_on_error_2"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "a", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -874,12 +874,11 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
   // In this test we store in backtrace from one thread that terminates
   // and then we log that backtrace from a different thread
   LogManager lm;
-  fs::path const filename{
-    "test_log_backtrace_terminate_thread_then_and_flush_on_error"};
+  fs::path const filename{"test_log_backtrace_terminate_thread_then_and_flush_on_error"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "a", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -941,8 +940,8 @@ TEST_CASE("log_backtrace_manual_flush")
   fs::path const filename{"test_log_backtrace_manual_flush"};
 
   // Set a file handler as the custom logger handler and log to it
-  lm.logger_collection().set_default_logger_handler(
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None));
+  lm.set_default_logger_handler(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "a", FilenameAppend::None));
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -1073,7 +1072,8 @@ TEST_CASE("logger_with_two_files_filters")
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  Logger* default_logger = lm.logger_collection().create_logger("logger", {file_handler1, file_handler2});
+  Logger* default_logger =
+    lm.create_logger("logger", {file_handler1, file_handler2}, std::nullopt, std::nullopt);
 
   std::thread frontend(
     [&lm, default_logger]()
@@ -1123,7 +1123,8 @@ TEST_CASE("logger_with_two_files_set_log_level_on_handler")
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  Logger* default_logger = lm.logger_collection().create_logger("logger", {file_handler1, file_handler2});
+  Logger* default_logger =
+    lm.create_logger("logger", {file_handler1, file_handler2}, std::nullopt, std::nullopt);
 
   // Check log levels on the handlers
   REQUIRE_EQ(file_handler1->get_log_level(), LogLevel::TraceL3);

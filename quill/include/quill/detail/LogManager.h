@@ -7,6 +7,8 @@
 
 #include "quill/TweakMe.h"
 
+#include "quill/Logger.h"
+#include "quill/clock/TimestampClock.h"
 #include "quill/detail/Config.h"
 #include "quill/detail/HandlerCollection.h"
 #include "quill/detail/LoggerCollection.h"
@@ -15,6 +17,7 @@
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/backend/BackendWorker.h"
 #include <mutex> // for call_once, once_flag
+#include <optional>
 
 namespace quill
 {
@@ -71,6 +74,114 @@ public:
     return _backend_worker.thread_id();
   }
 
+  QUILL_ATTRIBUTE_COLD void set_custom_timestamp_clock(TimestampClock* timestamp_clock)
+  {
+    _custom_timestamp_clock = timestamp_clock;
+    _timestamp_clock_type = TimestampClockType::Custom;
+
+    // re-create the default logger
+    std::vector<Handler*> handlers = _logger_collection.default_logger()->_logger_details.handlers();
+
+    _logger_collection.erase_logger(_default_logger_name);
+
+    Logger* default_logger = _logger_collection.create_logger(
+      _default_logger_name, handlers, _timestamp_clock_type, _custom_timestamp_clock);
+
+    _logger_collection.set_default_logger(default_logger);
+  }
+
+  QUILL_ATTRIBUTE_COLD void set_timestamp_clock_type(TimestampClockType timestamp_clock_type)
+  {
+    if (timestamp_clock_type != TimestampClockType::Custom)
+    {
+      // create the default logger for rdtsc/system clock types
+      _timestamp_clock_type = timestamp_clock_type;
+      _custom_timestamp_clock = nullptr;
+
+      // re-create the default logger
+      std::vector<Handler*> handlers = _logger_collection.default_logger()->_logger_details.handlers();
+
+      _logger_collection.erase_logger(_default_logger_name);
+
+      Logger* default_logger = _logger_collection.create_logger(
+        _default_logger_name, handlers, _timestamp_clock_type, _custom_timestamp_clock);
+
+      _logger_collection.set_default_logger(default_logger);
+    }
+
+    // For custom type, set_custom_timestamp_clock handles it
+  }
+
+  /**
+   * Set a custom default logger with a single handler
+   * @param handler A pointer to a handler that will be now used as a default handler
+   */
+  QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler)
+  {
+    // re-create the default logger
+    _logger_collection.erase_logger(_default_logger_name);
+
+    Logger* default_logger = _logger_collection.create_logger(
+      _default_logger_name, handler, _timestamp_clock_type, _custom_timestamp_clock);
+
+    _logger_collection.set_default_logger(default_logger);
+  }
+
+  /**
+   * Set a custom default logger with multiple handlers
+   * @param handlers A vector of pointers to handlers that will be now used as a default handler
+   */
+  QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers)
+  {
+    // re-create the default logger
+    _logger_collection.erase_logger(_default_logger_name);
+
+    Logger* default_logger = _logger_collection.create_logger(
+      _default_logger_name, handlers, _timestamp_clock_type, _custom_timestamp_clock);
+
+    _logger_collection.set_default_logger(default_logger);
+  }
+
+  /***/
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
+                                        std::optional<TimestampClockType> timestamp_clock_type,
+                                        std::optional<TimestampClock*> timestamp_clock)
+  {
+    return _logger_collection.create_logger(
+      logger_name, timestamp_clock_type.has_value() ? timestamp_clock_type.value() : _timestamp_clock_type,
+      timestamp_clock.has_value() ? timestamp_clock.value() : _custom_timestamp_clock);
+  }
+
+  /***/
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, Handler* handler,
+                                        std::optional<TimestampClockType> timestamp_clock_type,
+                                        std::optional<TimestampClock*> timestamp_clock)
+  {
+    return _logger_collection.create_logger(
+      logger_name, handler, timestamp_clock_type.has_value() ? timestamp_clock_type.value() : _timestamp_clock_type,
+      timestamp_clock.has_value() ? timestamp_clock.value() : _custom_timestamp_clock);
+  }
+
+  /***/
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
+                                        std::optional<TimestampClockType> timestamp_clock_type,
+                                        std::optional<TimestampClock*> timestamp_clock)
+  {
+    return _logger_collection.create_logger(
+      logger_name, handlers, timestamp_clock_type.has_value() ? timestamp_clock_type.value() : _timestamp_clock_type,
+      timestamp_clock.has_value() ? timestamp_clock.value() : _custom_timestamp_clock);
+  }
+
+  /***/
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vector<Handler*> const& handlers,
+                                        std::optional<TimestampClockType> timestamp_clock_type,
+                                        std::optional<TimestampClock*> timestamp_clock)
+  {
+    return _logger_collection.create_logger(
+      logger_name, handlers, timestamp_clock_type.has_value() ? timestamp_clock_type.value() : _timestamp_clock_type,
+      timestamp_clock.has_value() ? timestamp_clock.value() : _custom_timestamp_clock);
+  }
+
   /**
    * Blocks the caller thread until all log messages until the current timestamp are flushed
    *
@@ -85,6 +196,11 @@ public:
       // 2. self-protection, backend_worker is not able to call this.
       return;
     }
+
+    // get the default logger - this is needed for the logger_details struct, in order to figure out
+    // the clock type later on the backend thread
+    Logger* default_logger = logger_collection().get_logger(nullptr);
+    LoggerDetails* logger_details = std::addressof(default_logger->_logger_details);
 
     // Create an atomic variable
     std::atomic<bool> backend_thread_flushed{false};
@@ -109,7 +225,13 @@ public:
 
     write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
 
-    new (write_buffer) detail::Header(get_metadata_ptr<decltype(anonymous_log_message_info)>, nullptr);
+    new (write_buffer) detail::Header(
+      get_metadata_ptr<decltype(anonymous_log_message_info)>, logger_details,
+      (logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc) ? quill::detail::rdtsc()
+        : (logger_details->timestamp_clock_type() == TimestampClockType::System)
+        ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
+        : default_logger->_custom_timestamp_clock->now());
+
     write_buffer += sizeof(detail::Header);
 
     // encode the pointer to atomic bool
@@ -200,10 +322,15 @@ public:
 #endif
 
 private:
+  std::string _default_logger_name{"root"};
+  TimestampClock* _custom_timestamp_clock{nullptr};
+  TimestampClockType _timestamp_clock_type{TimestampClockType::Rdtsc};
+
   Config _config;
   HandlerCollection _handler_collection;
   ThreadContextCollection _thread_context_collection{_config};
-  LoggerCollection _logger_collection{_thread_context_collection, _handler_collection};
+  LoggerCollection _logger_collection{_thread_context_collection, _handler_collection, _timestamp_clock_type,
+                                      _custom_timestamp_clock, _default_logger_name};
   BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
 };

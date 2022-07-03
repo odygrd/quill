@@ -92,23 +92,63 @@ std::unordered_map<std::string, Logger*> get_all_loggers()
 }
 
 /***/
-Logger* create_logger(char const* logger_name)
+Logger* create_logger(std::string const& logger_name,
+                      std::optional<TimestampClockType> timestamp_clock_type /* = std::nullopt */,
+                      std::optional<TimestampClock*> timestamp_clock /* = std::nullopt */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(logger_name);
+  return detail::LogManagerSingleton::instance().log_manager().create_logger(
+    logger_name, timestamp_clock_type, timestamp_clock);
 }
 
 /***/
-Logger* create_logger(char const* logger_name, Handler* handler)
+Logger* create_logger(std::string const& logger_name, Handler* handler,
+                      std::optional<TimestampClockType> timestamp_clock_type /* = std::nullopt */,
+                      std::optional<TimestampClock*> timestamp_clock /* = std::nullopt */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
-    logger_name, handler);
+  return detail::LogManagerSingleton::instance().log_manager().create_logger(
+    logger_name, handler, timestamp_clock_type, timestamp_clock);
 }
 
 /***/
-Logger* create_logger(char const* logger_name, std::initializer_list<Handler*> handlers)
+Logger* create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
+                      std::optional<TimestampClockType> timestamp_clock_type /* = std::nullopt */,
+                      std::optional<TimestampClock*> timestamp_clock /* = std::nullopt */)
 {
-  return detail::LogManagerSingleton::instance().log_manager().logger_collection().create_logger(
-    logger_name, handlers);
+  return detail::LogManagerSingleton::instance().log_manager().create_logger(
+    logger_name, handlers, timestamp_clock_type, timestamp_clock);
+}
+
+/***/
+Logger* create_logger(std::string const& logger_name, std::vector<Handler*> const& handlers,
+                      std::optional<TimestampClockType> timestamp_clock_type /* = std::nullopt */,
+                      std::optional<TimestampClock*> timestamp_clock /* = std::nullopt */)
+{
+  return detail::LogManagerSingleton::instance().log_manager().create_logger(
+    logger_name, handlers, timestamp_clock_type, timestamp_clock);
+}
+
+/***/
+void set_timestamp_clock_type(TimestampClockType timestamp_clock_type)
+{
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(
+      QuillError{"quill::set_timestamp_clock_type(...) needs to be called before quill::start()."});
+  }
+
+  detail::LogManagerSingleton::instance().log_manager().set_timestamp_clock_type(timestamp_clock_type);
+}
+
+/***/
+void set_custom_timestamp_clock(TimestampClock* timestamp_clock)
+{
+  if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
+  {
+    QUILL_THROW(QuillError{
+      "quill::set_custom_timestamp_clock(...) needs to be called before quill::start()."});
+  }
+
+  detail::LogManagerSingleton::instance().log_manager().set_custom_timestamp_clock(timestamp_clock);
 }
 
 /***/
@@ -123,7 +163,7 @@ void set_default_logger_handler(Handler* handler)
       "effect."});
   }
 
-  detail::LogManagerSingleton::instance().log_manager().logger_collection().set_default_logger_handler(handler);
+  detail::LogManagerSingleton::instance().log_manager().set_default_logger_handler(handler);
 }
 
 /***/
@@ -138,7 +178,7 @@ void set_default_logger_handler(std::initializer_list<Handler*> handlers)
       "effect."});
   }
 
-  detail::LogManagerSingleton::instance().log_manager().logger_collection().set_default_logger_handler(handlers);
+  detail::LogManagerSingleton::instance().log_manager().set_default_logger_handler(handlers);
 }
 
 /***/

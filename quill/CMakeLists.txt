@@ -14,7 +14,6 @@ set(HEADER_FILES
         include/quill/detail/backend/StringFromTime.h
         include/quill/detail/backend/TimestampFormatter.h
         include/quill/detail/backend/TransitEvent.h
-
         include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
@@ -24,10 +23,8 @@ set(HEADER_FILES
         include/quill/detail/misc/RdtscClock.h
         include/quill/detail/misc/TypeTraitsCopyable.h
         include/quill/detail/misc/Utilities.h
-
         include/quill/detail/spsc_queue/BoundedQueue.h
         include/quill/detail/spsc_queue/UnboundedQueue.h
-
         include/quill/detail/Config.h
         include/quill/detail/HandlerCollection.h
         include/quill/detail/LoggerCollection.h
@@ -38,13 +35,18 @@ set(HEADER_FILES
         include/quill/detail/ThreadContext.h
         include/quill/detail/ThreadContextCollection.h
         include/quill/detail/SignalHandler.h
+
+        include/quill/clock/TimestampClock.h
+
         include/quill/filters/FilterBase.h
+
         include/quill/handlers/ConsoleHandler.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
         include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
         include/quill/handlers/TimeRotatingFileHandler.h
+
         include/quill/Fmt.h
         include/quill/Logger.h
         include/quill/LogLevel.h

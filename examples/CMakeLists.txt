@@ -7,6 +7,12 @@ target_link_libraries(example_configure_backend quill)
 add_executable(example_console_colours example_console_colours.cpp)
 target_link_libraries(example_console_colours quill)
 
+add_executable(example_custom_clock example_custom_clock.cpp)
+target_link_libraries(example_custom_clock quill)
+
+add_executable(example_custom_clock_advanced example_custom_clock_advanced.cpp)
+target_link_libraries(example_custom_clock_advanced quill)
+
 add_executable(example_custom_console_colours example_custom_console_colours.cpp)
 target_link_libraries(example_custom_console_colours quill)
 
@@ -45,6 +51,9 @@ target_link_libraries(example_filters quill)
 
 add_executable(example_handler_log_levels example_handler_log_levels.cpp)
 target_link_libraries(example_handler_log_levels quill)
+
+add_executable(example_trivial_system_clock example_trivial_system_clock.cpp)
+target_link_libraries(example_trivial_system_clock quill)
 
 add_executable(example_user_defined_types example_user_defined_types.cpp)
 target_link_libraries(example_user_defined_types quill)

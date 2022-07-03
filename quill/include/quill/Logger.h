@@ -8,6 +8,7 @@
 #include "quill/Fmt.h"
 #include "quill/LogLevel.h"
 #include "quill/QuillError.h"
+#include "quill/clock/TimestampClock.h"
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/Serialize.h"
 #include "quill/detail/ThreadContext.h"
@@ -26,7 +27,8 @@ namespace quill
 namespace detail
 {
 class LoggerCollection;
-}
+class LogManager;
+} // namespace detail
 
 /**
  * Thread safe logger.
@@ -108,9 +110,9 @@ public:
 
     // For windows also take wide strings into consideration.
 #if defined(_WIN32)
-    constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>() + 
-        fmt::detail::count<detail::is_type_of_wide_c_string<FmtArgs>()...>() +
-        fmt::detail::count<detail::is_type_of_wide_string<FmtArgs>()...>();
+    constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>() +
+      fmt::detail::count<detail::is_type_of_wide_c_string<FmtArgs>()...>() +
+      fmt::detail::count<detail::is_type_of_wide_string<FmtArgs>()...>();
 #else
     constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
 #endif
@@ -118,7 +120,8 @@ public:
     size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
 
     // Need to reserve additional space as we will be aligning the pointer
-    size_t const total_size = sizeof(detail::Header) + alignof(detail::Header) + detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
+    size_t const total_size = sizeof(detail::Header) + alignof(detail::Header) +
+      detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
 
     // request this size from the queue
     std::byte* write_buffer = thread_context->spsc_queue().prepare_write(total_size);
@@ -150,12 +153,16 @@ public:
     // look up their types to deserialize them
 
     // Note: The metadata variable here is created during program init time,
-    // in runtime we just get it's pointer
     std::byte* const write_begin = write_buffer;
     write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
 
-    new (write_buffer)
-      detail::Header(get_metadata_ptr<TMacroMetadata, FmtArgs...>, std::addressof(_logger_details));
+    new (write_buffer) detail::Header(
+      get_metadata_ptr<TMacroMetadata, FmtArgs...>, std::addressof(_logger_details),
+      (_logger_details.timestamp_clock_type() == TimestampClockType::Rdtsc) ? quill::detail::rdtsc()
+        : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
+        ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
+        : _custom_timestamp_clock->now());
+
     write_buffer += sizeof(detail::Header);
 
     // encode remaining arguments
@@ -163,7 +170,6 @@ public:
     assert(total_size >= (static_cast<size_t>(write_buffer - write_begin)) &&
            "The committed write bytes can not be greater than the requested bytes");
     thread_context->spsc_queue().commit_write(static_cast<size_t>(write_buffer - write_begin));
-
   }
 
   /**
@@ -213,35 +219,52 @@ public:
 
 private:
   friend class detail::LoggerCollection;
+  friend class detail::LogManager;
 
   /**
    * Constructs new logger object
    * @param name the name of the logger
    * @param handler handlers for this logger
+   * @param timestamp_clock_type timestamp clock
+   * @param custom_timestamp_clock custom timestamp clock
    * @param thread_context_collection thread context collection reference
    */
-  Logger(char const* name, Handler* handler, detail::ThreadContextCollection& thread_context_collection)
-    : _logger_details(name, handler), _thread_context_collection(thread_context_collection)
+  Logger(std::string const& name, Handler* handler, TimestampClockType timestamp_clock_type,
+         TimestampClock* custom_timestamp_clock, detail::ThreadContextCollection& thread_context_collection)
+    : _logger_details(name, handler, timestamp_clock_type),
+      _custom_timestamp_clock(custom_timestamp_clock),
+      _thread_context_collection(thread_context_collection)
   {
+    if ((timestamp_clock_type == TimestampClockType::Custom) && !custom_timestamp_clock)
+    {
+      QUILL_THROW(
+        QuillError{"A valid TimestampClock* needs to be provided when TimestampClockType is set to "
+                   "Custom. Call 'quill::set_custom_timestamp_clock(...)'"});
+    }
   }
 
   /**
    * Constructs a new logger object with multiple handlers
    */
-  Logger(char const* name, std::vector<Handler*> handlers, detail::ThreadContextCollection& thread_context_collection)
-    : _logger_details(name, std::move(handlers)), _thread_context_collection(thread_context_collection)
+  Logger(std::string const& name, std::vector<Handler*> const& handlers, TimestampClockType timestamp_clock_type,
+         TimestampClock* custom_timestamp_clock, detail::ThreadContextCollection& thread_context_collection)
+    : _logger_details(name, handlers, timestamp_clock_type),
+      _custom_timestamp_clock(custom_timestamp_clock),
+      _thread_context_collection(thread_context_collection)
   {
+    if ((timestamp_clock_type == TimestampClockType::Custom) && !custom_timestamp_clock)
+    {
+      QUILL_THROW(
+        QuillError{"A valid TimestampClock* needs to be provided when TimestampClockType is set to "
+                   "Custom. Call 'quill::set_custom_timestamp_clock(...)'"});
+    }
   }
 
 private:
   detail::LoggerDetails _logger_details;
+  TimestampClock* _custom_timestamp_clock{nullptr}; /* A non owned pointer to a custom timestamp clock, valid only when provided */
   detail::ThreadContextCollection& _thread_context_collection;
   std::atomic<LogLevel> _log_level{LogLevel::Info};
 };
-
-#if !(defined(_WIN32) && defined(_DEBUG))
-// In MSVC debug mode the class has increased size
-static_assert(sizeof(Logger) <= detail::CACHELINE_SIZE, "Logger needs to fit in 1 cache line");
-#endif
 
 } // namespace quill

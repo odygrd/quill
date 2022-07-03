@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h"
+#include "quill/detail/misc/Common.h"
 #include <chrono>
 #include <cstdint>
 #include <limits>

@@ -12,11 +12,10 @@ namespace quill
 {
 namespace detail
 {
-static constexpr char const* _default_logger_name{"root"};
-
 /***/
 LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_collection,
-                                   HandlerCollection& handler_collection)
+                                   HandlerCollection& handler_collection, TimestampClockType timestamp_clock_type,
+                                   TimestampClock* custom_timestamp_clock, std::string const& default_logger_name)
   : _thread_context_collection(thread_context_collection), _handler_collection(handler_collection)
 {
   // Pre-allocate early to a reasonable size
@@ -24,7 +23,9 @@ LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_colle
 
   // Add the default console handler to the default logger
   Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
-  _default_logger = create_logger(_default_logger_name, stdout_stream_handler);
+
+  _default_logger = create_logger(default_logger_name, stdout_stream_handler, timestamp_clock_type,
+                                  custom_timestamp_clock);
 }
 
 /***/
@@ -67,7 +68,8 @@ QUILL_NODISCARD std::unordered_map<std::string, Logger*> LoggerCollection::get_a
 }
 
 /***/
-Logger* LoggerCollection::create_logger(char const* logger_name)
+Logger* LoggerCollection::create_logger(std::string const& logger_name, TimestampClockType timestamp_clock_type,
+                                        TimestampClock* timestamp_clock)
 {
   // Get a copy of the default logger handlers
   std::vector<Handler*> handlers = _default_logger->_logger_details.handlers();
@@ -79,7 +81,8 @@ Logger* LoggerCollection::create_logger(char const* logger_name)
   }
 
   // We can't use make_unique since the constructor is private
-  std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(handlers), _thread_context_collection)};
+  std::unique_ptr<Logger> logger{new Logger(logger_name, handlers, timestamp_clock_type,
+                                            timestamp_clock, _thread_context_collection)};
 
   std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
@@ -91,13 +94,15 @@ Logger* LoggerCollection::create_logger(char const* logger_name)
 }
 
 /***/
-Logger* LoggerCollection::create_logger(char const* logger_name, Handler* handler)
+Logger* LoggerCollection::create_logger(std::string const& logger_name, Handler* handler,
+                                        TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock)
 {
-  // Register the handler, even if it already exist
+  // Register the handler, even if it already exists
   _handler_collection.subscribe_handler(handler);
 
   // We can't use make_unique since the constructor is private
-  std::unique_ptr<Logger> logger{new Logger(logger_name, handler, _thread_context_collection)};
+  std::unique_ptr<Logger> logger{new Logger(logger_name, handler, timestamp_clock_type,
+                                            timestamp_clock, _thread_context_collection)};
 
   std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
@@ -108,7 +113,17 @@ Logger* LoggerCollection::create_logger(char const* logger_name, Handler* handle
 }
 
 /***/
-Logger* LoggerCollection::create_logger(char const* logger_name, std::initializer_list<Handler*> handlers)
+Logger* LoggerCollection::create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
+                                        TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock)
+{
+  return create_logger(logger_name, std::vector<Handler*>{handlers}, timestamp_clock_type, timestamp_clock);
+}
+
+/***/
+QUILL_NODISCARD Logger* LoggerCollection::create_logger(std::string const& logger_name,
+                                                        std::vector<Handler*> const& handlers,
+                                                        TimestampClockType timestamp_clock_type,
+                                                        TimestampClock* timestamp_clock)
 {
   // Register the handlers, even if they already exist
   for (auto& handler : handlers)
@@ -117,7 +132,8 @@ Logger* LoggerCollection::create_logger(char const* logger_name, std::initialize
   }
 
   // We can't use make_unique since the constructor is private
-  std::unique_ptr<Logger> logger{new Logger(logger_name, handlers, _thread_context_collection)};
+  std::unique_ptr<Logger> logger{new Logger(logger_name, handlers, timestamp_clock_type,
+                                            timestamp_clock, _thread_context_collection)};
 
   std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
@@ -128,27 +144,10 @@ Logger* LoggerCollection::create_logger(char const* logger_name, std::initialize
 }
 
 /***/
-void LoggerCollection::set_default_logger_handler(Handler* handler)
+void LoggerCollection::erase_logger(std::string const& logger_name)
 {
   std::lock_guard<std::recursive_mutex> const lock{_rmutex};
-
-  // Remove the old default logger
-  _logger_name_map.erase(std::string{_default_logger_name});
-
-  // Remake the default logger
-  _default_logger = create_logger(_default_logger_name, handler);
-}
-
-/***/
-void LoggerCollection::set_default_logger_handler(std::initializer_list<Handler*> handlers)
-{
-  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
-
-  // Remove the old default logger
-  _logger_name_map.erase(std::string{_default_logger_name});
-
-  // Remake the default logger
-  _default_logger = create_logger(_default_logger_name, handlers);
+  _logger_name_map.erase(logger_name);
 }
 
 /***/
@@ -161,5 +160,12 @@ void LoggerCollection::enable_console_colours() noexcept
   auto console_handler = reinterpret_cast<ConsoleHandler*>(stdout_stream_handler);
   console_handler->enable_console_colours();
 }
+
+/***/
+void LoggerCollection::set_default_logger(Logger* logger) noexcept { _default_logger = logger; }
+
+/***/
+Logger* LoggerCollection::default_logger() const noexcept { return _default_logger; }
+
 } // namespace detail
 } // namespace quill

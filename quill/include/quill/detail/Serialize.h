@@ -9,7 +9,6 @@
 #include "quill/LogLevel.h"
 #include "quill/MacroMetadata.h"
 #include "quill/detail/misc/Common.h"
-#include "quill/detail/misc/Rdtsc.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 #include <cstdint>
@@ -352,18 +351,12 @@ struct Header
 {
 public:
   Header() = default;
-  Header(Metadata const* metadata, detail::LoggerDetails const* logger_details)
-    : metadata(metadata), logger_details(logger_details){};
+  Header(Metadata const* metadata, detail::LoggerDetails const* logger_details, uint64_t timestamp)
+    : metadata(metadata), logger_details(logger_details), timestamp(timestamp){};
 
   Metadata const* metadata{nullptr};
   detail::LoggerDetails const* logger_details{nullptr};
-#if !defined(QUILL_CHRONO_CLOCK)
-  using using_rdtsc = std::true_type;
-  uint64_t timestamp{detail::rdtsc()};
-#else
-  using using_rdtsc = std::false_type;
-  uint64_t timestamp{static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())};
-#endif
+  uint64_t timestamp{0};
 };
 } // namespace detail
 } // namespace quill

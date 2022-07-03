@@ -55,7 +55,7 @@ public:
    * @param rdtsc_value the rdtsc timestamp to convert
    * @return the rdtsc timestamp converted to nanoseconds since epoch
    */
-  std::chrono::nanoseconds time_since_epoch(uint64_t rdtsc_value) const noexcept;
+  uint64_t time_since_epoch(uint64_t rdtsc_value) const noexcept;
 
   /**
    * Sync base wall time and base tsc.
