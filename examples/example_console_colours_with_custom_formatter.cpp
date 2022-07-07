@@ -7,9 +7,20 @@
 
 int main()
 {
-  // Enable console colours on the default constructed handler to stdout before calling quill:start()
+  // Get the stdout file handler
+  quill::Handler* stdout_handler = quill::stdout_handler();
+
+  // Set a custom formatter for this handler
+  stdout_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
+                              "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
+                              quill::Timezone::GmtTime); // timestamp's timezone
+
+  // Enable console colours on the handler
+  static_cast<quill::ConsoleHandler*>(stdout_handler)->enable_console_colours();
+
+  // Config using the custom ts class and the stdout handler
   quill::Config cfg;
-  cfg.enable_console_colours = true;
+  cfg.default_handlers.emplace_back(stdout_handler);
   quill::configure(cfg);
 
   // Start the logging backend thread

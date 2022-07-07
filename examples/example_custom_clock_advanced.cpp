@@ -45,16 +45,20 @@ int main()
 {
   // we will also change the log pattern in order to also see our custom timestamp's date
   // Get the stdout file handler
-  quill::Handler* file_handler = quill::stdout_handler();
+  quill::Handler* stdout_handler = quill::stdout_handler();
 
   // Set a custom formatter for this handler
-  file_handler->set_pattern(
+  stdout_handler->set_pattern(
     "%(ascii_time) [%(thread)] %(fileline:<28) %(level_name) %(logger_name:<16) - %(message)", // format
     "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
     quill::Timezone::GmtTime); // timestamp's timezone
 
-  // This line sets the default logger's handler to be the new handler with the custom format string
-  quill::set_default_logger_handler(file_handler);
+  // Register the handler as default
+  quill::Config cfg;
+  cfg.default_handlers.emplace_back(stdout_handler);
+
+  // Apply the configuration
+  quill::configure(cfg);
 
   // Start the logging backend thread
   quill::start();
@@ -66,13 +70,13 @@ int main()
   // create a logger that is using a custom clock
   CustomTimestamp ts1;
   quill::Logger* logger_ts1 = quill::create_logger(
-    "logger_ts1", file_handler, quill::TimestampClockType::Custom, std::addressof(ts1));
+    "logger_ts1", stdout_handler, quill::TimestampClockType::Custom, std::addressof(ts1));
   logger_ts1->set_log_level(quill::LogLevel::TraceL3);
   ts1.set_timestamp(std::chrono::seconds{1655007309});
 
   CustomTimestamp ts2;
   quill::Logger* logger_ts2 = quill::create_logger(
-    "logger_ts2", file_handler, quill::TimestampClockType::Custom, std::addressof(ts2));
+    "logger_ts2", stdout_handler, quill::TimestampClockType::Custom, std::addressof(ts2));
   logger_ts2->set_log_level(quill::LogLevel::TraceL3);
   ts2.set_timestamp(std::chrono::seconds{1685007309});
 

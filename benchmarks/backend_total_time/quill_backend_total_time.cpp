@@ -9,16 +9,17 @@ static constexpr size_t total_iterations = 2'000'000;
  */
 int main()
 {
-  quill::detail::RdtscClock rdtsc_clock;
+  quill::detail::RdtscClock rdtsc_clock{std::chrono::minutes{30}};
 
   // main thread affinity
   quill::detail::set_cpu_affinity(0);
 
   /** - Setup Quill **/
-  quill::config::set_backend_thread_sleep_duration(std::chrono::nanoseconds{0});
+  quill::Config cfg;
+  cfg.backend_thread_sleep_duration = std::chrono::nanoseconds{0};
+  cfg.backend_thread_cpu_affinity = 1;
 
-  // set backend on it's own cpu
-  quill::config::set_backend_thread_cpu_affinity(1);
+  quill::configure(cfg);
 
   // Start the logging backend thread
   quill::start();

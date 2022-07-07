@@ -119,7 +119,7 @@ inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size
 #ifndef PERF_ENABLED
   std::cout << "running for " << thread_count << " thread(s)" << std::endl;
 
-  quill::detail::RdtscClock rdtsc_clock;
+  quill::detail::RdtscClock rdtsc_clock{std::chrono::minutes{30}};
 
   // each thread gets a vector of latencies
   std::vector<std::vector<uint64_t>> latencies;

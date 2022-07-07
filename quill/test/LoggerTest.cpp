@@ -1,7 +1,7 @@
 #include "doctest/doctest.h"
 
+#include "quill/Config.h"
 #include "quill/detail//HandlerCollection.h"
-#include "quill/detail/Config.h"
 #include "quill/detail/LoggerCollection.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/handlers/Handler.h"
@@ -15,10 +15,10 @@ using namespace quill::detail;
 TEST_CASE("log_level")
 {
   Config cfg;
-  ThreadContextCollection tc{cfg};
+  ThreadContextCollection tc;
   HandlerCollection hc;
 
-  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
+  LoggerCollection logger_collection{cfg, tc, hc};
 
   Logger* logger = logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
 
@@ -35,10 +35,10 @@ TEST_CASE("log_level")
 TEST_CASE("get_non_existent_logger")
 {
   Config cfg;
-  ThreadContextCollection tc{cfg};
+  ThreadContextCollection tc;
   HandlerCollection hc;
 
-  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
+  LoggerCollection logger_collection{cfg, tc, hc};
 
   REQUIRE_THROWS_AS((void)logger_collection.get_logger("logger_1"), quill::QuillError);
 }
@@ -47,10 +47,10 @@ TEST_CASE("get_non_existent_logger")
 TEST_CASE("throw_if_backtrace_log_level_is_used")
 {
   Config cfg;
-  ThreadContextCollection tc{cfg};
+  ThreadContextCollection tc;
   HandlerCollection hc;
 
-  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
+  LoggerCollection logger_collection{cfg, tc, hc};
 
   Logger* logger_1 = logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
 
@@ -62,10 +62,10 @@ TEST_CASE("throw_if_backtrace_log_level_is_used")
 TEST_CASE("logger_should_log")
 {
   Config cfg;
-  ThreadContextCollection tc{cfg};
+  ThreadContextCollection tc;
   HandlerCollection hc;
 
-  LoggerCollection logger_collection{tc, hc, TimestampClockType::Rdtsc, nullptr, "root"};
+  LoggerCollection logger_collection{cfg, tc, hc};
 
   QUILL_MAYBE_UNUSED Logger* logger_1 =
     logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);

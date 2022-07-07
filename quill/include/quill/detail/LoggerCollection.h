@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/Config.h"
 #include "quill/Logger.h" // for Logger
 #include "quill/clock/TimestampClock.h"
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD
@@ -35,9 +36,8 @@ public:
   /**
    * Constructor
    */
-  LoggerCollection(ThreadContextCollection& thread_context_collection,
-                   HandlerCollection& handler_collection, TimestampClockType timestamp_clock_type,
-                   TimestampClock* custom_timestamp_clock, std::string const& default_logger_name);
+  LoggerCollection(Config const& config, ThreadContextCollection& thread_context_collection,
+                   HandlerCollection& handler_collection);
 
   /**
    * Destructor
@@ -109,11 +109,6 @@ public:
                                         TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock);
 
   /**
-   * Erases a logger. Only used to erase the default logger internally for now.
-   */
-  QUILL_ATTRIBUTE_COLD void erase_logger(std::string const& logger_name);
-
-  /**
    * Used internally only to enable console colours on "stdout" default console handler
    * which is created by default in this object constructor.
    * This is meant to called before quill:start() and that is checked internally before calling
@@ -122,18 +117,18 @@ public:
   QUILL_ATTRIBUTE_COLD void enable_console_colours() noexcept;
 
   /**
-   * Set the default logger pointer. Used internally
-   * @param logger default logger
-   */
-  QUILL_ATTRIBUTE_COLD void set_default_logger(Logger* logger) noexcept;
-
-  /**
    * Get the default logger pointer
    * @return default logger ptr
    */
   QUILL_NODISCARD Logger* default_logger() const noexcept;
 
+  /**
+   * Creates or resets the default logger
+   */
+  QUILL_ATTRIBUTE_COLD void create_default_logger();
+
 private:
+  Config const& _config;
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */
   HandlerCollection& _handler_collection;              /** Collection of al handlers **/
   Logger* _default_logger{nullptr}; /**< A pointer to the default logger to avoid lookup */

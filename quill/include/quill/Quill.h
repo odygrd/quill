@@ -7,6 +7,7 @@
 
 #include "quill/TweakMe.h"
 
+#include "quill/Config.h"
 #include "quill/clock/TimestampClock.h"
 #include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManager.h"            // for LogManager
@@ -27,8 +28,8 @@ namespace quill
 
 /** Version Info **/
 constexpr uint32_t VersionMajor{2};
-constexpr uint32_t VersionMinor{0};
-constexpr uint32_t VersionPatch{3};
+constexpr uint32_t VersionMinor{1};
+constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 /** forward declarations **/
@@ -41,6 +42,13 @@ class Logger;
  * Although optional, it is recommended to invoke this function during the thread initialisation phase before the first log message.
  */
 QUILL_ATTRIBUTE_COLD void preallocate();
+
+/**
+ * Applies the given config to the logger
+ * @param config configuration
+ * @note Has to be called before quill::start()
+ */
+QUILL_ATTRIBUTE_COLD void configure(Config& config);
 
 /**
  * Starts the backend thread to write the logs to the handlers.
@@ -276,70 +284,6 @@ QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vecto
                                       std::optional<TimestampClock*> timestamp_clock = std::nullopt);
 
 /**
- * Sets the clock type that will be used to obtain the timestamp.
- * Options: rdtsc or system clock
- *
- * - rdtsc mode :
- *
- * TSC clock gives better performance on the caller thread.
- * However, the initialisation time of the application takes longer as we have to take multiple samples
- * in the beginning to convert TSC to nanoseconds
- *
- * When using the TSC counter the backend thread will also periodically call std::chrono::system_clock:now() and will
- * resync the TSC based on the system clock.
- * The backend thread will constantly keep track of the difference between TSC and the system wall clock in order
- * to provide accurate timestamps.
- *
- * - system mode :
- * std::chrono::system_clock:now() is used for obtaining the timestamp
- *
- * By default rdtsc modeis enabled
- *
- * @param timestamp_clock_type rdtsc or system clock
- */
-QUILL_ATTRIBUTE_COLD void set_timestamp_clock_type(TimestampClockType timestamp_clock_type);
-
-/**
- * Sets a custom clock that will be used to obtain the timestamp
- * This is useful for example during simulations where you would need to simulate time
- * @param timestamp_clock a custom class deriving from TimestampClock
- */
-QUILL_ATTRIBUTE_COLD void set_custom_timestamp_clock(TimestampClock* timestamp_clock);
-
-/**
- * Resets the default logger and re-creates the logger with the given handler
- *
- * Any loggers that are created after this point by using create_logger(std::string logger_name)
- * use the same handler by default
- *
- * This function can also be used to change the format pattern of the logger
- *
- * @warning Must be called before calling start()
- *
- * @param handler A pointer to a handler that will be now used as a default handler by the default logger
- */
-QUILL_ATTRIBUTE_COLD void set_default_logger_handler(Handler* handler);
-
-/**
- * Resets the default logger and re-creates the logger with the given multiple handlers
- *
- * Any loggers that are created after this point by using create_logger(std::string logger_name)
- * use the same multiple handlers by default
- *
- * @warning Must be called before calling start()
- *
- * @param handlers An initializer list of pointers to handlers that will be now used as a default handler by the default logger
- */
-QUILL_ATTRIBUTE_COLD void set_default_logger_handler(std::initializer_list<Handler*> handlers);
-
-/**
- * If called then by default we are printing colour codes when console/terminal is used.
- *
- * @warning Must be called before calling start()
- */
-QUILL_ATTRIBUTE_COLD void enable_console_colours();
-
-/**
  * Blocks the caller thread until all log messages up to the current timestamp are flushed
  *
  * The backend thread will call write on all handlers for all loggers up to the point (timestamp)
@@ -348,94 +292,4 @@ QUILL_ATTRIBUTE_COLD void enable_console_colours();
  * @note This function will not do anything if called while the backend worker is not running
  */
 void flush();
-
-#if !defined(QUILL_NO_EXCEPTIONS)
-/**
- * The background thread in very rare occasion might thrown an exception which can not be caught in the
- * user threads. In that case the backend worker thread will call this callback instead.
- *
- * Set up a custom error handler to be used if the backend thread has any error.
- *
- * If no error handler is set, the default one will print to std::cerr.
- *
- * @note Not used when QUILL_NO_EXCEPTIONS is enabled.
- *
- * @note Must be called before quill::start();
- *
- * @param backend_worker_error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
- *
- * @warning backend_worker_error_handler will be executed by the backend worker thread.
- *
- * @throws exception if it is called after the thread has started
- */
-
-QUILL_ATTRIBUTE_COLD void set_backend_worker_error_handler(backend_worker_error_handler_t backend_worker_error_handler);
-#endif
-
-/** Runtime logger configuration options **/
-namespace config
-{
-/**
- * Pins the backend thread to the given CPU
- *
- * By default Quill does not pin the backend thread to any CPU, unless a value is specified by
- * this function
- *
- * @param cpu The cpu affinity of the backend thread
- *
- * @warning: The backend thread will read this value when quill::start() is called.
- * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
- *
- * @see set_backend_thread_sleep_duration
- *
- * @cpu the cpu core to pin the backend thread
- */
-QUILL_ATTRIBUTE_COLD void set_backend_thread_cpu_affinity(uint16_t cpu);
-
-/**
- * Names the backend thread
- *
- * By default the backend thread is named "Quill_Backend"
- *
- * @warning: The backend thread will read this value when quill::start() is called.
- * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
- *
- * @param name The desired name of the backend worker thread
- */
-QUILL_ATTRIBUTE_COLD void set_backend_thread_name(std::string const& name);
-
-/**
- * The backend thread will always "busy wait" spinning around every caller thread's local spsc queue.
- *
- * The reason for this is to reduce latency on the caller thread as notifying the
- * backend thread even by a fast backed by atomics semaphore would add additional latency
- * to the caller thread.
- * The alternative to this is letting the backend thread "busy wait" and at the same time reduce the backend thread's
- * OS scheduler priority by a periodic call to sleep().
- *
- * Each time the backend thread sees that there are no remaining records left to process in the queues it will sleep.
- *
- * @note: It is recommended to pin the backend thread to a shared or a junk cpu core and use the
- * default sleep duration of 300ns.
- * If you really care about the backend thread speed you might want to pin that thread to an exclusive core
- * and change the sleep duration value to 0 so that the thread never sleeps
- *
- * @see set_backend_thread_cpu_affinity
- *
- * @warning: The backend thread will read this value when quill::start() is called.
- * This function must be called before calling quill::start() otherwise the backend thread will ignore the value.
- *
- * @param sleep_duration The sleep duration of the backend thread when idle
- */
-QUILL_ATTRIBUTE_COLD void set_backend_thread_sleep_duration(std::chrono::nanoseconds sleep_duration);
-
-/**
- * Sets the maximum transit events number. When that number is reached then half of them
- * will get flushed to the log files.
- * @param max_transit_events
- */
-QUILL_ATTRIBUTE_COLD void set_backend_thread_max_transit_events(size_t max_transit_events);
-
-} // namespace config
-
 } // namespace quill

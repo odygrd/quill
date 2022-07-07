@@ -18,8 +18,10 @@ int main()
     "%D %H:%M:%S.%Qms %z",     // timestamp format
     quill::Timezone::GmtTime); // timestamp's timezone
 
-  // This line sets the default logger's handler to be the new handler with the custom format string
-  quill::set_default_logger_handler(file_handler);
+  // set the default logger's handler to be the new handler with the custom format string
+  quill::Config cfg;
+  cfg.default_handlers.emplace_back(file_handler);
+  quill::configure(cfg);
 
   // Start the backend logging thread
   // quill::set_default_logger_handler MUST be called before the backend worker thread starts

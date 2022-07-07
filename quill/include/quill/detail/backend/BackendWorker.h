@@ -7,8 +7,8 @@
 
 #include "quill/TweakMe.h"
 
+#include "quill/Config.h"                   // for Config
 #include "quill/QuillError.h"               // for QUILL_CATCH, QUILL...
-#include "quill/detail/Config.h"            // for Config
 #include "quill/detail/HandlerCollection.h" // for HandlerCollection
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/Serialize.h"
@@ -17,7 +17,6 @@
 #include "quill/detail/backend/BacktraceStorage.h" // for BacktraceStorage
 #include "quill/detail/backend/FreeListAllocator.h"
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_HOT
-#include "quill/detail/misc/Common.h"     // for QUILL_RDTSC_RESYNC...
 #include "quill/detail/misc/Common.h"     // for QUILL_LIKELY
 #include "quill/detail/misc/Os.h"         // for set_cpu_affinity, get_thread_id
 #include "quill/detail/misc/RdtscClock.h" // for RdtscClock
@@ -40,8 +39,6 @@
 
 namespace quill
 {
-using backend_worker_error_handler_t = std::function<void(std::string const&)>;
-
 namespace detail
 {
 
@@ -88,15 +85,6 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void stop() noexcept;
 
-#if !defined(QUILL_NO_EXCEPTIONS)
-  /**
-   * Set up a custom error handler that will be used if the backend thread has any error.
-   * If no error handler is set, the default one will print to std::cerr
-   * @param error_handler an error handler callback e.g [](std::string const& s) { std::cerr << s << std::endl; }
-   * @throws exception if it is called after the thread has started
-   */
-  QUILL_ATTRIBUTE_COLD void set_error_handler(backend_worker_error_handler_t error_handler);
-#endif
 private:
   /**
    * Backend worker thread main function
@@ -183,23 +171,37 @@ void BackendWorker::run()
   // We store the configuration here on our local variable since the config flag is not atomic
   // and we don't want it to change after we have started - This is just for safety and to
   // enforce the user to configure a variable before the thread has started
-  _backend_thread_sleep_duration = _config.backend_thread_sleep_duration();
-  _max_transit_events = _config.backend_thread_max_transit_events();
+  _backend_thread_sleep_duration = _config.backend_thread_sleep_duration;
+  _max_transit_events = _config.backend_thread_max_transit_events;
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+  if (_config.backend_thread_error_handler)
+  {
+    // set up the default error handler
+    _error_handler = _config.backend_thread_error_handler;
+  }
+#endif
 
   std::thread worker(
     [this]()
     {
       QUILL_TRY
       {
-        // On Start
-        if (_config.backend_thread_cpu_affinity() != (std::numeric_limits<uint16_t>::max)())
+        if (_config.backend_thread_cpu_affinity != (std::numeric_limits<uint16_t>::max)())
         {
           // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
-          set_cpu_affinity(_config.backend_thread_cpu_affinity());
+          set_cpu_affinity(_config.backend_thread_cpu_affinity);
         }
+      }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
+      QUILL_CATCH_ALL() { _error_handler(std::string{"Caught unhandled exception."}); }
+#endif
 
+      QUILL_TRY
+      {
         // Set the thread name to the desired name
-        set_thread_name(_config.backend_thread_name().data());
+        set_thread_name(_config.backend_thread_name.data());
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
@@ -318,7 +320,7 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
         // Here we lazy initialise rdtsc clock on the backend thread only if the user decides to use it
         // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
         // taking samples first
-        _rdtsc_clock = std::make_unique<RdtscClock>(std::chrono::milliseconds{QUILL_RDTSC_RESYNC_INTERVAL});
+        _rdtsc_clock = std::make_unique<RdtscClock>(_config.rdtsc_resync_interval);
       }
 
       // convert the rdtsc value to nanoseconds since epoch
