@@ -1,13 +1,14 @@
 #include "doctest/doctest.h"
 
-#include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/Config.h"
+#include "quill/Config.h"
 #include "quill/detail/ThreadContext.h"
+#include "quill/detail/ThreadContextCollection.h"
 #include <array>
 #include <thread>
 
 TEST_SUITE_BEGIN("ThreadContextCollection");
 
+using namespace quill;
 using namespace quill::detail;
 
 /***/
@@ -21,7 +22,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
 
   // run the test multiple times to create many thread contexts for the same thread context collection
   Config cfg;
-  ThreadContextCollection thread_context_collection{cfg};
+  ThreadContextCollection thread_context_collection;
 
   constexpr uint32_t tries = 4;
   for (int k = 0; k < tries; ++k)
@@ -113,7 +114,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join
 
   // run the test multiple times to create many thread contexts for the same thread context collection
   Config cfg;
-  ThreadContextCollection thread_context_collection{cfg};
+  ThreadContextCollection thread_context_collection;
 
   constexpr uint32_t tries = 4;
   for (int k = 0; k < tries; ++k)

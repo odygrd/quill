@@ -17,11 +17,12 @@
 
 namespace quill
 {
+/** forward declarations **/
+struct Config;
+
 namespace detail
 {
 
-/** forward declarations **/
-class Config;
 class ThreadContext;
 
 /**
@@ -93,7 +94,7 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContextCollection(Config const& config) : _config(config){};
+  ThreadContextCollection() = default;
 
   /**
    * Destructor
@@ -188,8 +189,6 @@ private:
   void _find_and_remove_invalidated_thread_contexts();
 
 private:
-  Config const& _config; /**< reference to config */
-
   std::mutex _mutex; /**< Protect access when register contexts or removing contexts */
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 

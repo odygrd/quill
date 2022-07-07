@@ -13,19 +13,13 @@ namespace quill
 namespace detail
 {
 /***/
-LoggerCollection::LoggerCollection(ThreadContextCollection& thread_context_collection,
-                                   HandlerCollection& handler_collection, TimestampClockType timestamp_clock_type,
-                                   TimestampClock* custom_timestamp_clock, std::string const& default_logger_name)
-  : _thread_context_collection(thread_context_collection), _handler_collection(handler_collection)
+LoggerCollection::LoggerCollection(Config const& config, ThreadContextCollection& thread_context_collection,
+                                   HandlerCollection& handler_collection)
+  : _config(config), _thread_context_collection(thread_context_collection), _handler_collection(handler_collection)
 {
   // Pre-allocate early to a reasonable size
   _logger_name_map.reserve(16);
-
-  // Add the default console handler to the default logger
-  Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
-
-  _default_logger = create_logger(default_logger_name, stdout_stream_handler, timestamp_clock_type,
-                                  custom_timestamp_clock);
+  create_default_logger();
 }
 
 /***/
@@ -144,13 +138,6 @@ QUILL_NODISCARD Logger* LoggerCollection::create_logger(std::string const& logge
 }
 
 /***/
-void LoggerCollection::erase_logger(std::string const& logger_name)
-{
-  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
-  _logger_name_map.erase(logger_name);
-}
-
-/***/
 void LoggerCollection::enable_console_colours() noexcept
 {
   // Get the previous created default stdout handler
@@ -162,10 +149,38 @@ void LoggerCollection::enable_console_colours() noexcept
 }
 
 /***/
-void LoggerCollection::set_default_logger(Logger* logger) noexcept { _default_logger = logger; }
-
-/***/
 Logger* LoggerCollection::default_logger() const noexcept { return _default_logger; }
 
+/***/
+void LoggerCollection::create_default_logger()
+{
+  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
+
+  if (_default_logger)
+  {
+    _logger_name_map.erase(_default_logger->_logger_details.name());
+  }
+
+  if (_config.default_handlers.empty())
+  {
+    // Add the default console handler to the default logger
+    Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
+
+    if (_config.enable_console_colours)
+    {
+      static_cast<ConsoleHandler*>(stdout_stream_handler)->enable_console_colours();
+    }
+
+    _default_logger =
+      create_logger(_config.default_logger_name, stdout_stream_handler,
+                    _config.default_timestamp_clock_type, _config.default_custom_timestamp_clock);
+  }
+  else
+  {
+    _default_logger =
+      create_logger(_config.default_logger_name, _config.default_handlers,
+                    _config.default_timestamp_clock_type, _config.default_custom_timestamp_clock);
+  }
+}
 } // namespace detail
 } // namespace quill

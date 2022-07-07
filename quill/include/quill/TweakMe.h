@@ -20,22 +20,6 @@
  */
 
 /**
- * This option is only applicable if the RDTSC clock is enabled.
- * When QUILL_CHRONO_CLOCK is defined this option can be ignored
- *
- * This value controls how frequently the backend thread will re-calculate and sync the TSC by
- * getting the system time from the system wall clock.
- * The TSC clock drifts slightly over time and is also not synchronised with the NTP server updates
- * Therefore the smaller this value is the more accurate the log timestamps will be.
- *
- * It is not recommended to change the default value unless there is a real reason.
- * The value is in milliseconds and the default value is 700.
- *
- * @note: This should be switchable even after quill is already installed as a static or shared library.
- */
-// #define QUILL_RDTSC_RESYNC_INTERVAL 700
-
-/**
  * Completely compiles out log level with zero cost.
  *
  * Macros like LOG_TRACE_L3(..), LOG_TRACE_L2(..) will expand to empty statements

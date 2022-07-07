@@ -6,7 +6,6 @@
 #pragma once
 
 #include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
-#include "quill/detail/misc/Common.h"     // for QUILL_RDTSC_RESYNC_INTERVAL
 #include <chrono>                         // for nanoseconds, milliseconds
 #include <cstdint>                        // for int64_t, uint64_t
 
@@ -48,7 +47,7 @@ public:
    * Constructor
    * @param resync_interval the interval to resync the tsc clock with the real system wall clock
    */
-  explicit RdtscClock(std::chrono::nanoseconds resync_interval = std::chrono::milliseconds{QUILL_RDTSC_RESYNC_INTERVAL});
+  explicit RdtscClock(std::chrono::nanoseconds resync_interval);
 
   /**
    * Convert tsc cycles to nanoseconds

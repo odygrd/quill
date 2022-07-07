@@ -6,8 +6,10 @@
 
 int main()
 {
-  // switch to using the system clock for timestamps
-  quill::set_timestamp_clock_type(quill::TimestampClockType::System);
+  // Config using the custom ts class and the stdout handler
+  quill::Config cfg;
+  cfg.default_timestamp_clock_type = quill::TimestampClockType::System;
+  quill::configure(cfg);
 
   // Start the logging backend thread
   quill::start();

@@ -13,10 +13,6 @@
 /**
  * Common type definitions etc
  */
-#if !defined(QUILL_RDTSC_RESYNC_INTERVAL)
-  #define QUILL_RDTSC_RESYNC_INTERVAL 700
-#endif
-
 #if !defined(QUILL_ACTIVE_LOG_LEVEL)
   #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 #endif
@@ -83,6 +79,9 @@ enum TimestampClockType : uint8_t
   System,
   Custom
 };
+
+using backend_worker_error_handler_t = std::function<void(std::string const&)>;
+
 } // namespace quill
 
 #if !defined(QUILL_HAS_FILESYSTEM) && !defined(QUILL_HAS_EXPERIMENTAL_FILESYSTEM)

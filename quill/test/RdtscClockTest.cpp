@@ -27,7 +27,7 @@ void check_wall_time_now(quill::detail::RdtscClock const& tsc_clock)
 
 TEST_CASE("wall_time")
 {
-  quill::detail::RdtscClock tsc_clock{};
+  quill::detail::RdtscClock tsc_clock{std::chrono::milliseconds{700}};
 
   constexpr size_t num_reps{10};
 

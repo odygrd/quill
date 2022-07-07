@@ -7,6 +7,9 @@ target_link_libraries(example_configure_backend quill)
 add_executable(example_console_colours example_console_colours.cpp)
 target_link_libraries(example_console_colours quill)
 
+add_executable(example_console_colours_with_custom_formatter example_console_colours_with_custom_formatter.cpp)
+target_link_libraries(example_console_colours_with_custom_formatter quill)
+
 add_executable(example_custom_clock example_custom_clock.cpp)
 target_link_libraries(example_custom_clock quill)
 

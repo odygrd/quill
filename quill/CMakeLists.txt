@@ -25,7 +25,6 @@ set(HEADER_FILES
         include/quill/detail/misc/Utilities.h
         include/quill/detail/spsc_queue/BoundedQueue.h
         include/quill/detail/spsc_queue/UnboundedQueue.h
-        include/quill/detail/Config.h
         include/quill/detail/HandlerCollection.h
         include/quill/detail/LoggerCollection.h
         include/quill/detail/LoggerDetails.h
@@ -47,6 +46,7 @@ set(HEADER_FILES
         include/quill/handlers/StreamHandler.h
         include/quill/handlers/TimeRotatingFileHandler.h
 
+        include/quill/Config.h
         include/quill/Fmt.h
         include/quill/Logger.h
         include/quill/LogLevel.h

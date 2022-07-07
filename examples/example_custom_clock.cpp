@@ -39,11 +39,8 @@ private:
 
 int main()
 {
-  // create our custom class
+  // create a custom ts class
   CustomTimestamp custom_ts;
-
-  // register our custom class
-  quill::set_custom_timestamp_clock(std::addressof(custom_ts));
 
   // we will also change the log pattern in order to also see our custom timestamp's date
   // Get the stdout file handler
@@ -55,8 +52,11 @@ int main()
     "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
     quill::Timezone::GmtTime); // timestamp's timezone
 
-  // This line sets the default logger's handler to be the new handler with the custom format string
-  quill::set_default_logger_handler(file_handler);
+  // Config using the custom ts class and the stdout handler
+  quill::Config cfg;
+  cfg.default_handlers.emplace_back(file_handler);
+  cfg.default_custom_timestamp_clock = std::addressof(custom_ts);
+  quill::configure(cfg);
 
   // Start the logging backend thread
   quill::start();
