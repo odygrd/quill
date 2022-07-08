@@ -33,19 +33,49 @@
 This version includes breaking changes to the API. Those changes are related to how quill is configured,
 before calling `quill::start()` to start the backend thread.
 
-Please check the updated examples.
+Check the updated [examples](https://github.com/odygrd/quill/blob/master/examples).
+
+[Config.h](https://github.com/odygrd/quill/blob/master/quill/include/quill/Config.h) - contains runtime configuration options
+[TweakMe.h](https://github.com/odygrd/quill/blob/master/quill/include/quill/TweakMe.h) - contains compile time configuration
+
+For example `quill::set_default_logger_handler(...)` has been removed. To set a default filehandler :
+
+```cpp
+  // create a handler
+  quill::Handler* file_handler = quill::file_handler("test.log", "w");
+
+  file_handler->set_pattern(
+    "%(ascii_time) [%(thread)] %(fileline:<28) %(level_name) %(logger_name:<12) - %(message)",
+    "%Y-%m-%d %H:%M:%S.%Qms", quill::Timezone::GmtTime);
+
+  // set the handler as the default handler for any newly created logger in the config
+  quill::Config cfg;
+  cfg.default_handlers.emplace_back(file_handler);
+
+  // configure must always be called prior to `start()`
+  quill::configure(cfg);
+  quill::start();
+```
 
 - Removed some API functions from `Quill.h` that were previously used for configuration. Instead, `quill::Config` object
-  has to be created.
-- `QUILL_CHRONO_CLOCK` has been removed from `TweakMe.h`. It is now possible to switch between `rdtsc` and `system`
+  has to be created. For example `quill::config::set_backend_thread_cpu_affinity(1);` has been removed and instead the following code is needed :
+  
+```cpp
+  quill::Config cfg;
+  cfg.backend_thread_cpu_affinity = 1;
+  quill::configure(cfg);
+```
+
+- `QUILL_CHRONO_CLOCK` has been moved from `TweakMe.h` to `Config.h`. It is now possible to switch between `rdtsc` and `system`
   clocks without re-compiling.
   See [example_trivial_system_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_trivial_system_clock.cpp)
-- `QUILL_RDTSC_RESYNC_INTERVAL` has been moved from `TweakMe.h` to the `Config` class.
-- A custom timestamp class can be passed to `quill::Logger`. This feature is useful for time simulations.
+- `QUILL_RDTSC_RESYNC_INTERVAL` has been moved from `TweakMe.h` to `Config.h`.
+- It is now possible to log user timestamps rather than the system's. This feature is useful for time simulations.
   See [example_custom_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock.cpp)
   and [example_custom_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock_advanced.cpp)
-- Add support for gcc 7.5.0. ([#178](https://github.com/odygrd/quill/issues/178))
-- Update bundled fmt to 9.0.0
+- Previously the logger names were limited to a maximum of 22 characters. This limitation has been removed.
+- Added support for gcc 7.5.0. ([#178](https://github.com/odygrd/quill/issues/178))
+- Updated bundled fmt to 9.0.0
 
 ## v2.0.2
 
