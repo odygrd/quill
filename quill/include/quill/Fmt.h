@@ -35,3 +35,18 @@
     #include "quill/bundled/fmt/xchar.h"
   #endif
 #endif
+
+/**
+ * Also include additional files due to recent fmt versions
+ */
+#if FMT_VERSION > 90000
+  #if defined(QUILL_FMT_EXTERNAL)
+    #include <fmt/args.h>
+    #include <fmt/xchar.h>
+    #include <fmt/std.h>
+  #else
+    #include "quill/bundled/fmt/args.h"
+    #include "quill/bundled/fmt/xchar.h"
+    #include "quill/bundled/fmt/std.h"
+  #endif
+#endif

@@ -79,17 +79,16 @@ export module fmt;
 #define FMT_END_DETAIL_NAMESPACE \
   }                              \
   export {
-
 // all library-provided declarations and definitions
 // must be in the module purview to be exported
-#include "quill/bundled/fmt/args.h"
-#include "quill/bundled/fmt/chrono.h"
-#include "quill/bundled/fmt/color.h"
-#include "quill/bundled/fmt/compile.h"
-#include "quill/bundled/fmt/format.h"
-#include "quill/bundled/fmt/os.h"
-#include "quill/bundled/fmt/printf.h"
-#include "quill/bundled/fmt/xchar.h"
+#include "fmt/args.h"
+#include "fmt/chrono.h"
+#include "fmt/color.h"
+#include "fmt/compile.h"
+#include "fmt/format.h"
+#include "fmt/os.h"
+#include "fmt/printf.h"
+#include "fmt/xchar.h"
 
 // gcc doesn't yet implement private module fragments
 #if !FMT_GCC_VERSION

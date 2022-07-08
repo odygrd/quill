@@ -523,12 +523,15 @@ std::ostream& operator<<(std::ostream& os, const RawEnum& raw_enum)
   return os;
 }
 
+template <> struct fmt::formatter<RawEnum> : ostream_formatter {};
+
 enum class EnumClass : int
 {
   Test4 = 4,
   Test5 = 5,
   Test6 = 6
 };
+
 std::ostream& operator<<(std::ostream& os, const EnumClass& enum_class)
 {
   switch (enum_class)
@@ -548,6 +551,8 @@ std::ostream& operator<<(std::ostream& os, const EnumClass& enum_class)
   }
   return os;
 }
+
+template <> struct fmt::formatter<EnumClass> : ostream_formatter {};
 
 /***/
 TEST_CASE("log_enums_with_overloaded_insertion_operator")

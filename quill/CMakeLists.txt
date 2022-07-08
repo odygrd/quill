@@ -97,11 +97,11 @@ if (NOT QUILL_FMT_EXTERNAL)
             include/quill/bundled/fmt/core.h
             include/quill/bundled/fmt/format.h
             include/quill/bundled/fmt/format-inl.h
-            include/quill/bundled/fmt/locale.h
             include/quill/bundled/fmt/os.h
             include/quill/bundled/fmt/ostream.h
             include/quill/bundled/fmt/printf.h
             include/quill/bundled/fmt/ranges.h
+            include/quill/bundled/fmt/std.h
             include/quill/bundled/fmt/xchar.h)
 
     list(APPEND SOURCE_FILES

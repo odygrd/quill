@@ -45,6 +45,7 @@ Please check the updated examples.
   See [example_custom_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock.cpp)
   and [example_custom_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock_advanced.cpp)
 - Add support for gcc 7.5.0. ([#178](https://github.com/odygrd/quill/issues/178))
+- Update bundled fmt to 9.0.0
 
 ## v2.0.2
 

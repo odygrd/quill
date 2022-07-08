@@ -24,6 +24,8 @@ private:
   uint32_t age;
 };
 
+template <> struct fmt::formatter<User> : ostream_formatter {};
+
 /**
  * An other user defined type that is marked as safe to copy
  */
@@ -51,6 +53,8 @@ private:
   uint32_t age;
 };
 
+template <> struct fmt::formatter<User2> : ostream_formatter {};
+
 /**
  * An other user defined type that is registered as safe to copy via copy_logable
  */
@@ -71,6 +75,8 @@ private:
   std::string surname;
   uint32_t age;
 };
+
+template <> struct fmt::formatter<User3> : ostream_formatter {};
 
 /**
  * Specialise copy_loggable to register User3 object as safe to copy.
