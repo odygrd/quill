@@ -73,7 +73,7 @@ For example `quill::set_default_logger_handler(...)` has been removed. To set a 
 - `QUILL_RDTSC_RESYNC_INTERVAL` has been moved from `TweakMe.h` to `Config.h`.
 - It is now possible to log user timestamps rather than the system's. This feature is useful for time simulations.
   See [example_custom_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock.cpp)
-  and [example_custom_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock_advanced.cpp)
+  and [example_custom_clock_advanced.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock_advanced.cpp)
 - Previously the logger names were limited to a maximum of 22 characters. This limitation has been removed.
 - Added support for gcc 7.5.0. ([#178](https://github.com/odygrd/quill/issues/178))
 - Updated bundled fmt to 9.0.0
