@@ -36,6 +36,7 @@ before calling `quill::start()` to start the backend thread.
 Check the updated [examples](https://github.com/odygrd/quill/blob/master/examples).
 
 [Config.h](https://github.com/odygrd/quill/blob/master/quill/include/quill/Config.h) - contains runtime configuration options
+
 [TweakMe.h](https://github.com/odygrd/quill/blob/master/quill/include/quill/TweakMe.h) - contains compile time configuration
 
 For example `quill::set_default_logger_handler(...)` has been removed. To set a default filehandler :
