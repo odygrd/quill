@@ -1,5 +1,4 @@
 - [v2.1.0](#v2.1.0)
-- [v2.0.3](#v2.0.3)
 - [v2.0.2](#v2.0.2)
 - [v2.0.1](#v2.0.1)
 - [v2.0.0](#v2.0.0)
@@ -31,22 +30,20 @@
 
 **Improvements**
 
-This version includes API breaking changes in the qay quill is configured before calling `quill::start()`.
+This version includes breaking changes to the API. Those changes are related to how quill is configured,
+before calling `quill::start()` to start the backend thread.
+
 Please check the updated examples.
 
-- Removed some API functions used for configuration. Instead, `quill::Config` object has to be created.
-- `QUILL_CHRONO_CLOCK` has been removed from `TweakMe.h`. It is now possible to switch between rdtsc and system clock
-  without re-compiling.
+- Removed some API functions from `Quill.h` that were previously used for configuration. Instead, `quill::Config` object
+  has to be created.
+- `QUILL_CHRONO_CLOCK` has been removed from `TweakMe.h`. It is now possible to switch between `rdtsc` and `system`
+  clocks without re-compiling.
   See [example_trivial_system_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_trivial_system_clock.cpp)
 - `QUILL_RDTSC_RESYNC_INTERVAL` has been moved from `TweakMe.h` to the `Config` class.
-- A custom timestamp class can be passed to the loggers. This feature is useful during time simulations.
+- A custom timestamp class can be passed to `quill::Logger`. This feature is useful for time simulations.
   See [example_custom_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock.cpp)
   and [example_custom_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_clock_advanced.cpp)
-
-## v2.0.3
-
-**Improvements/Fixes**
-
 - Add support for gcc 7.5.0. ([#178](https://github.com/odygrd/quill/issues/178))
 
 ## v2.0.2
