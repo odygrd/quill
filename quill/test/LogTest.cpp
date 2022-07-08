@@ -1203,4 +1203,98 @@ TEST_CASE("logger_with_two_files_set_log_level_on_handler")
   quill::detail::remove_file(filename1);
   quill::detail::remove_file(filename2);
 }
+
+/**
+ * Custom timestamp class
+ */
+class CustomTimestamp : public quill::TimestampClock
+{
+public:
+  CustomTimestamp() = default;
+
+  /**
+   * Required by TimestampClock
+   * @return current time now, in nanoseconds since epoch
+   */
+  uint64_t now() const override { return _ts.load(std::memory_order_relaxed); }
+
+  /**
+   * set custom timestamp
+   * @param time_since_epoch
+   */
+  void set_timestamp(std::chrono::seconds time_since_epoch)
+  {
+    // always convert to nanos
+    _ts.store(std::chrono::nanoseconds{time_since_epoch}.count(), std::memory_order_relaxed);
+  }
+
+private:
+  /**
+   * time since epoch - must always be in nanoseconds
+   * This class needs to be thread-safe, unless only a single thread in the application calling LOG macros
+   * **/
+  std::atomic<uint64_t> _ts;
+};
+
+/***/
+TEST_CASE("default_logger_with_custom_timestamp")
+{
+  // Set our timestamp to Sunday 12 June 2022
+  CustomTimestamp custom_ts;
+
+  LogManager lm;
+
+  fs::path const filename{"test_default_logger_with_custom_timestamp"};
+
+  // also change the pattern to log the date
+  Handler* handler =
+    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None);
+  handler->set_pattern("%(ascii_time) %(level_name) %(logger_name:<16) - %(message)", // format
+                       "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
+                       quill::Timezone::GmtTime); // timestamp's timezone
+
+  quill::Config cfg;
+  cfg.default_handlers.emplace_back(handler);
+  cfg.default_timestamp_clock_type = TimestampClockType::Custom;
+  cfg.default_custom_timestamp_clock = std::addressof(custom_ts);
+
+  lm.configure(cfg);
+
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  custom_ts.set_timestamp(std::chrono::seconds{1655007309});
+
+  std::thread frontend(
+    [&lm, &custom_ts]()
+    {
+      Logger* default_logger = lm.logger_collection().get_logger();
+
+      // log an array so the log message is pushed to the queue
+      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}",
+               std::array<int, 2>{1, 2});
+
+      custom_ts.set_timestamp(std::chrono::seconds{1656007309});
+
+      LOG_ERROR(default_logger,
+                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}",
+                std::array<int, 2>{3, 4});
+
+      // Let all log get flushed to the file
+      lm.flush();
+    });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"2022-06-12 04:15:09.000 INFO      root             - Lorem ipsum dolor sit amet, consectetur adipiscing elit [1, 2]"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"2022-06-23 18:01:49.000 ERROR     root             - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [3, 4]"}));
+
+  lm.stop_backend_worker();
+  quill::detail::remove_file(filename);
+}
+
 TEST_SUITE_END();
