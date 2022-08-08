@@ -11,14 +11,13 @@
 
 namespace quill
 {
-namespace detail
-{
+
 struct TransitEvent
 {
   TransitEvent() = default;
   ~TransitEvent() = default;
 
-  TransitEvent(ThreadContext* thread_context, detail::Header header,
+  TransitEvent(detail::ThreadContext* thread_context, detail::Header header,
                fmt::memory_buffer formatted_msg, std::atomic<bool>* flush_flag)
     : thread_id(thread_context->thread_id()),
       thread_name(thread_context->thread_name()),
@@ -29,7 +28,9 @@ struct TransitEvent
   }
 
   TransitEvent(TransitEvent const& other)
-    : thread_id(other.thread_id),
+    : structured_keys(other.structured_keys),
+      structured_values(other.structured_values),
+      thread_id(other.thread_id),
       thread_name(other.thread_name),
       header(other.header),
       flush_flag(other.flush_flag)
@@ -43,6 +44,8 @@ struct TransitEvent
   {
     if (this != &other)
     {
+      structured_keys = other.structured_keys;
+      structured_values = other.structured_values;
       thread_id = other.thread_id;
       thread_name = other.thread_name;
       header = other.header;
@@ -55,7 +58,9 @@ struct TransitEvent
   }
 
   TransitEvent(TransitEvent&& other) noexcept
-    : thread_id(std::move(other.thread_id)),
+    : structured_keys(std::move(other.structured_keys)),
+      structured_values(std::move(other.structured_values)),
+      thread_id(std::move(other.thread_id)),
       thread_name(std::move(other.thread_name)),
       header(other.header),
       formatted_msg(std::move(other.formatted_msg)),
@@ -67,6 +72,8 @@ struct TransitEvent
   {
     if (this != &other)
     {
+      structured_keys = std::move(other.structured_keys);
+      structured_values = std::move(other.structured_values);
       thread_id = std::move(other.thread_id);
       thread_name = std::move(other.thread_name);
       header = other.header;
@@ -81,6 +88,8 @@ struct TransitEvent
    * Need to take a copy of thread_id and thread_name here as the thread that logged can terminate
    * before we flush the backtrace.
    */
+  std::vector<std::string> structured_keys;
+  std::vector<std::string> structured_values;
   std::string thread_id;
   std::string thread_name;
   detail::Header header;
@@ -96,5 +105,4 @@ public:
     return lhs->header.timestamp > rhs->header.timestamp;
   }
 };
-} // namespace detail
 } // namespace quill

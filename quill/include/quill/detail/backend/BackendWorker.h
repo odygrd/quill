@@ -128,6 +128,14 @@ private:
   QUILL_ATTRIBUTE_HOT static void _check_dropped_messages(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts) noexcept;
 
+  /**
+   * Process a structured log template message
+   * @param input a structured log template message containing named arguments
+   * @return first: fmt string without the named arguments, second: a vector extracted keys
+   */
+  QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_structured_log_template(
+    std::string_view fmt_template) noexcept;
+
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
@@ -147,6 +155,8 @@ private:
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
   FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
+
+  std::unordered_map<quill::Metadata const*, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
 
   /** Id of the current running process **/
   std::string _process_id;
@@ -341,18 +351,54 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
                               transit_event->header.metadata->macro_metadata.wmessage_format());
 
         read_buffer = transit_event->header.metadata->format_to_fn(
-          format_str, read_buffer, transit_event->formatted_msg, _args);
+          format_str, read_buffer, transit_event->formatted_msg, _args,
+          transit_event->header.metadata->macro_metadata.is_structured_log_template());
       }
       else
       {
-        read_buffer = transit_event->header.metadata->format_to_fn(
-          transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
-          transit_event->formatted_msg, _args);
+#endif
+        if (transit_event->header.metadata->macro_metadata.is_structured_log_template())
+        {
+          // for messages containing named arguments threat them as structured logs
+          auto const search = _slog_templates.find(transit_event->header.metadata);
+          if (search != std::cend(_slog_templates))
+          {
+            auto const& [fmt_str, structured_keys] = search->second;
+
+            transit_event->structured_keys = structured_keys;
+
+            read_buffer = transit_event->header.metadata->format_to_fn(
+              fmt_str, read_buffer, transit_event->formatted_msg, _args);
+          }
+          else
+          {
+            auto [fmt_str, structured_keys] = _process_structured_log_template(
+              transit_event->header.metadata->macro_metadata.message_format());
+
+            // insert the results
+            _slog_templates[transit_event->header.metadata] = std::make_pair(fmt_str, structured_keys);
+
+            transit_event->structured_keys = std::move(structured_keys);
+
+            read_buffer = transit_event->header.metadata->format_to_fn(
+              fmt_str, read_buffer, transit_event->formatted_msg, _args);
+          }
+
+          // formatted values for any given keys
+          for (auto const& arg : _args)
+          {
+            transit_event->structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
+          }
+        }
+        else
+        {
+          // regular logs
+          read_buffer = transit_event->header.metadata->format_to_fn(
+            transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
+            transit_event->formatted_msg, _args);
+        }
+#if defined(_WIN32)
       }
-#else
-      read_buffer = transit_event->header.metadata->format_to_fn(
-        transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
-        transit_event->formatted_msg, _args);
 #endif
     }
     else
@@ -368,7 +414,6 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
     // Finish reading
     spsc_queue.finish_read(static_cast<uint64_t>(read_buffer - read_begin));
 
-    // We have the timestamp and the data node ptr, we can construct a transit event out of them
     _transit_events.emplace(transit_event);
   }
 }
@@ -426,7 +471,7 @@ void BackendWorker::_process_transit_event()
     {
       _force_flush();
 
-      // this is a flush event so we need to notify the caller to continue now
+      // this is a flush event, so we need to notify the caller to continue now
       transit_event->flush_flag->store(true);
     }
 
@@ -479,8 +524,7 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
     {
       // log to the handler, also pass the log_message_timestamp this is only needed in some
       // cases like daily file rotation
-      handler->write(formatted_log_message_buffer, std::chrono::nanoseconds{transit_event.header.timestamp},
-                     transit_event.header.metadata->macro_metadata.level());
+      handler->write(formatted_log_message_buffer, transit_event);
     }
   }
 }

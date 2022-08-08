@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "quill/detail/backend/TransitEvent.h"
+#include "quill/TransitEvent.h"
 #include <cstdint>
 #include <functional>
 #include <memory>

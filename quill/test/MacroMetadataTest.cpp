@@ -14,7 +14,7 @@ TEST_CASE("construct")
   {
     constexpr MacroMetadata log_line_info{
       QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "Test fmt {}", quill::LogLevel::Debug,
-      MacroMetadata::Event::Log};
+      MacroMetadata::Event::Log, true};
 
     REQUIRE_STREQ(log_line_info.message_format().data(), "Test fmt {}");
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Debug);
@@ -27,7 +27,8 @@ TEST_CASE("construct")
                                           __FUNCTION__,
                                           "Test another fmt {}",
                                           quill::LogLevel::Info,
-                                          MacroMetadata::Event::Log};
+                                          MacroMetadata::Event::Log,
+                                          true};
 
     REQUIRE_STREQ(log_line_info.message_format().data(), "Test another fmt {}");
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Info);

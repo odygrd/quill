@@ -15,8 +15,7 @@ public:
    * @param formatted_log_message input message to write
    * @param log_message_timestamp log timestamp
    */
-  void write(fmt::memory_buffer const& formatted_log_message,
-             std::chrono::nanoseconds log_message_timestamp, quill::LogLevel log_message_severity) override
+  void write(fmt::memory_buffer const& formatted_log_message, quill::TransitEvent const& log_event) override
   {
     // write a formatted log
     std::string log{formatted_log_message.data(), formatted_log_message.size()};

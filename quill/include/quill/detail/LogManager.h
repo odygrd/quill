@@ -147,8 +147,8 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          QUILL_STRINGIFY(__LINE__),         __FILE__, __FUNCTION__, "", LogLevel::Critical,
-          quill::MacroMetadata::Event::Flush};
+          QUILL_STRINGIFY(__LINE__),          __FILE__, __FUNCTION__, "", LogLevel::Critical,
+          quill::MacroMetadata::Event::Flush, false};
       }
     } anonymous_log_message_info;
 

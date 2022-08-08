@@ -29,14 +29,15 @@ public:
   };
 
   constexpr MacroMetadata(const char* lineno, std::string_view pathname, std::string_view func,
-                          std::string_view message_format, LogLevel level, Event event)
+                          std::string_view message_format, LogLevel level, Event event, bool is_structured_log_template)
     : _func(func),
       _pathname(pathname),
       _filename(_extract_source_file_name(_pathname)),
       _message_format(message_format),
       _lineno(lineno),
       _level(level),
-      _event(event)
+      _event(event),
+      _is_structured_log_template(is_structured_log_template)
   {
   }
 
@@ -106,6 +107,11 @@ public:
 
   QUILL_NODISCARD constexpr Event event() const noexcept { return _event; }
 
+  QUILL_NODISCARD constexpr bool is_structured_log_template() const noexcept
+  {
+    return _is_structured_log_template;
+  }
+
 #if defined(_WIN32)
   /**
    * @return true if the user provided a wide char format string
@@ -162,6 +168,7 @@ private:
   std::string_view _lineno;
   LogLevel _level{LogLevel::None};
   Event _event{Event::Log};
+  bool _is_structured_log_template{false};
 
 #if defined(_WIN32)
   bool _has_wide_char{false};

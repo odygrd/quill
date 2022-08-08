@@ -104,7 +104,15 @@ public:
   template <typename TMacroMetadata, typename TFormatString, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
   {
-    fmt::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
+    if constexpr (TMacroMetadata{}().is_structured_log_template())
+    {
+      // if the format statement has named args then we perform our own compile time check
+    }
+    else
+    {
+      // fallback to libfmt check
+      fmt::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
+    }
 
     detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
 
@@ -186,8 +194,13 @@ public:
     {
       constexpr quill::MacroMetadata operator()() const noexcept
       {
-        return quill::MacroMetadata{
-          QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace};
+        return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__),
+                                    __FILE__,
+                                    __FUNCTION__,
+                                    "{}",
+                                    LogLevel::Critical,
+                                    quill::MacroMetadata::Event::InitBacktrace,
+                                    false};
       }
     } anonymous_log_message_info;
 
@@ -209,7 +222,7 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace};
+          QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace, false};
       }
     } anonymous_log_message_info;
 
