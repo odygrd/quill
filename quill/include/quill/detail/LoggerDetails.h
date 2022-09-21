@@ -20,6 +20,9 @@ class Handler;
 
 namespace detail
 {
+
+class LoggerCollection;
+
 class LoggerDetails
 {
 public:
@@ -91,6 +94,8 @@ public:
   }
 
 private:
+  friend class detail::LoggerCollection;
+
   std::string _name;
   std::vector<Handler*> _handlers;
   std::atomic<LogLevel> _backtrace_flush_level{LogLevel::None}; /** Updated by the caller thread and read by the backend worker thread */

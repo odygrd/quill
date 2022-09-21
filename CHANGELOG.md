@@ -1,3 +1,4 @@
+- [v2.1.0](#v2.1.1)
 - [v2.1.0](#v2.1.0)
 - [v2.0.2](#v2.0.2)
 - [v2.0.1](#v2.0.1)
@@ -25,6 +26,14 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.1.1
+
+**Improvements**
+
+- Previously storing the default root logger by calling `quill::get_logger()` followed by `quill::configure(cfg)`
+  would invalidate the pointer to the default root logger returned by the former function. This has now been fixed and
+  the obtained `Logger*` pointer is still valid.
 
 ## v2.1.0
 
@@ -60,7 +69,7 @@ For example `quill::set_default_logger_handler(...)` has been removed. To set a 
 
 - Removed some API functions from `Quill.h` that were previously used for configuration. Instead, `quill::Config` object
   has to be created. For example `quill::config::set_backend_thread_cpu_affinity(1);` has been removed and instead the following code is needed :
-  
+
 ```cpp
   quill::Config cfg;
   cfg.backend_thread_cpu_affinity = 1;
