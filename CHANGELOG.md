@@ -35,6 +35,8 @@
   would invalidate the pointer to the default root logger returned by the former function. This has now been fixed and
   the obtained `Logger*` pointer is still valid.
 
+- Disable `fmt::streamed()`. ([#189](https://github.com/odygrd/quill/issues/189))
+
 ## v2.1.0
 
 **Improvements**
