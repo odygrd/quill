@@ -104,6 +104,25 @@ public:
   template <typename TMacroMetadata, typename TFormatString, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
   {
+#if FMT_VERSION >= 90000
+    static_assert(
+      !detail::has_fmt_stream_view_v<FmtArgs...>,
+      "fmt::streamed(...) is not supported. In order to make a type formattable via std::ostream "
+      "you should provide a formatter specialization inherited from ostream_formatter. "
+      "`template <> struct fmt::formatter<T> : ostream_formatter {};");
+#endif
+
+#if !defined(QUILL_MODE_UNSAFE)
+    {
+      // not allowing unsafe copies
+      static_assert(detail::are_copyable_v<FmtArgs...>,
+                    "Trying to copy an unsafe to copy type. Tag or specialize the type as "
+                    "`copy_loggable` or explicitly format the type to string on the caller thread"
+                    "prior to logging. See "
+                    "https://github.com/odygrd/quill/wiki/8.-User-Defined-Types for more info.");
+    }
+#endif
+
     fmt::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
 
     detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
@@ -125,17 +144,6 @@ public:
 
     // request this size from the queue
     std::byte* write_buffer = thread_context->spsc_queue().prepare_write(total_size);
-
-#if !defined(QUILL_MODE_UNSAFE)
-    {
-      // not allowing unsafe copies
-      static_assert(detail::are_copyable_v<FmtArgs...>,
-                    "Trying to copy an unsafe to copy type. Tag or specialize the type as "
-                    "`copy_loggable` or explicitly format the type to string on the caller thread"
-                    "prior to logging. See "
-                    "https://github.com/odygrd/quill/wiki/8.-User-Defined-Types for more info.");
-    }
-#endif
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)
     if (QUILL_UNLIKELY(write_buffer == nullptr))
