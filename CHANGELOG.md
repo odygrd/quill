@@ -34,9 +34,9 @@
 - Previously storing the default root logger by calling `quill::get_logger()` followed by `quill::configure(cfg)`
   would invalidate the pointer to the default root logger returned by the former function. This has now been fixed and
   the obtained `Logger*` pointer is still valid.
-
 - Disable `fmt::streamed()`. ([#189](https://github.com/odygrd/quill/issues/189))
-
+- Update bundled fmt to 9.1.0
+ 
 ## v2.1.0
 
 **Improvements**
