@@ -1,4 +1,4 @@
-- [v2.1.0](#v2.1.1)
+- [v2.2.0](#v2.2.0)
 - [v2.1.0](#v2.1.0)
 - [v2.0.2](#v2.0.2)
 - [v2.0.1](#v2.0.1)
@@ -27,7 +27,7 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
-## v2.1.1
+## v2.2.0
 
 **Improvements**
 
@@ -36,6 +36,8 @@
   the obtained `Logger*` pointer is still valid.
 - Disable `fmt::streamed()`. ([#189](https://github.com/odygrd/quill/issues/189))
 - Update bundled fmt to 9.1.0
+- `logger->should_log(level)` is removed. A compile time check was added to `logger->should_log<level>()`
+  . ([#187](https://github.com/odygrd/quill/issues/187))
  
 ## v2.1.0
 
