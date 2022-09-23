@@ -74,22 +74,17 @@ public:
 
   /**
    * Checks if the given log_statement_level can be logged by this logger
-   * @param log_statement_level The log level of the log statement to be logged
-   * @return bool if a message can be logged based on the current log level
-   */
-  QUILL_NODISCARD bool should_log(LogLevel log_statement_level) const noexcept
-  {
-    return log_statement_level >= log_level();
-  }
-
-  /**
-   * Checks if the given log_statement_level can be logged by this logger
    * @tparam log_statement_level The log level of the log statement to be logged
    * @return bool if a message can be logged based on the current log level
    */
   template <LogLevel log_statement_level>
   QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log() const noexcept
   {
+    if constexpr (QUILL_ACTIVE_LOG_LEVEL > static_cast<uint8_t>(log_statement_level))
+    {
+      return false;
+    }
+
     return log_statement_level >= log_level();
   }
 
