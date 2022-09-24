@@ -11,6 +11,17 @@
 #include <sstream>
 #include <string>
 
+// Config Options
+#define QUILL_LOG_LEVEL_TRACE_L3 0
+#define QUILL_LOG_LEVEL_TRACE_L2 1
+#define QUILL_LOG_LEVEL_TRACE_L1 2
+#define QUILL_LOG_LEVEL_DEBUG 3
+#define QUILL_LOG_LEVEL_INFO 4
+#define QUILL_LOG_LEVEL_WARNING 5
+#define QUILL_LOG_LEVEL_ERROR 6
+#define QUILL_LOG_LEVEL_CRITICAL 7
+#define QUILL_LOG_LEVEL_NONE 8
+
 /**
  * Common type definitions etc
  */

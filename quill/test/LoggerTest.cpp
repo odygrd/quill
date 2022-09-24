@@ -70,46 +70,19 @@ TEST_CASE("logger_should_log")
   QUILL_MAYBE_UNUSED Logger* logger_1 =
     logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
 
-  {
-    LogLevel log_statement_level{LogLevel::Debug};
-    REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
-  }
-
-  {
-    LogLevel log_statement_level{LogLevel::Info};
-    REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
-  }
-
-  {
-    LogLevel log_statement_level{LogLevel::Error};
-      REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
-  }
+  REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log<LogLevel::Debug>());
+  REQUIRE(logger_collection.get_logger("logger_1")->should_log<LogLevel::Info>());
+  REQUIRE(logger_collection.get_logger("logger_1")->should_log<LogLevel::Error>());
 
   // change log level
   logger_collection.get_logger("logger_1")->set_log_level(LogLevel::TraceL3);
-
-  {
-    LogLevel log_statement_level{LogLevel::TraceL3};
-      REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
-  }
-
-  {
-    LogLevel log_statement_level{LogLevel::Critical};
-      REQUIRE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
-  }
+  REQUIRE(logger_collection.get_logger("logger_1")->should_log<LogLevel::TraceL3>());
+  REQUIRE(logger_collection.get_logger("logger_1")->should_log<LogLevel::Critical>());
 
   // change log level
   logger_collection.get_logger("logger_1")->set_log_level(LogLevel::None);
-
-  {
-    LogLevel log_statement_level{LogLevel::TraceL3};
-      REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
-  }
-
-  {
-    LogLevel log_statement_level{LogLevel::Critical};
-      REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log(log_statement_level));
-  }
+  REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log<LogLevel::TraceL3>());
+  REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log<LogLevel::Critical>());
 }
 
 TEST_SUITE_END();
