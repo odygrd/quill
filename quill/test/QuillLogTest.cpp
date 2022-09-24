@@ -16,43 +16,26 @@ TEST_SUITE_BEGIN("QuillLog");
 // singleton all the time during testing
 
 void test_quill_log(char const* test_id, std::string const& filename, uint16_t number_of_threads,
-                    uint32_t number_of_messages, bool json)
+                    uint32_t number_of_messages)
 {
   // Start the logging backend thread
   quill::start();
 
   std::vector<std::thread> threads;
 
+  // Set writing logging to a file
+  quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
+
   for (int i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back(
-      [filename, number_of_messages, test_id, i, json]()
+      [log_from_one_thread_file, number_of_messages, test_id, i]()
       {
         // Also use preallocate
         quill::preallocate();
 
-        quill::Handler* log_from_one_thread_file;
-        std::string logger_name;
-        if (!json)
-        {
-          // Set writing logging to a file
-          log_from_one_thread_file = quill::file_handler(filename, "w");
-
-          logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
-        }
-        else
-        {
-          // log to json
-          log_from_one_thread_file =
-            quill::create_handler<quill::JsonFileHandler>(filename, "w", quill::FilenameAppend::None);
-          log_from_one_thread_file->set_pattern("", std::string{"%Y-%m-%d %H:%M:%S.%Qus"});
-          logger_name = "jlogger_" + std::string{test_id} + "_" + std::to_string(i);
-        }
-
+        std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(logger_name.data(), log_from_one_thread_file);
-
-        // Change the LogLevel to print everything
-        logger->set_log_level(quill::LogLevel::TraceL3);
 
         for (uint32_t j = 0; j < number_of_messages; ++j)
         {
@@ -79,28 +62,12 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
     // for each thread
     for (uint32_t j = 0; j < number_of_messages; ++j)
     {
-      if (!json)
-      {
-        std::string expected_logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
+      std::string expected_logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
 
-        std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
-          std::to_string(i) + " this is message " + std::to_string(j);
+      std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
+        std::to_string(i) + " this is message " + std::to_string(j);
 
-        REQUIRE(quill::testing::file_contains(file_contents, expected_string));
-      }
-      else
-      {
-        std::string expected_logger_name = "jlogger_" + std::string{test_id} + "_" + std::to_string(i);
-
-        std::string expected_string = std::string{"\"logger\": \""} + expected_logger_name +
-          std::string{
-            "\", \"level\": \"Info\", \"message\": \"Hello from thread {thread_index} this is "
-            "message {message_num}\", "} +
-          std::string{"\"thread_index\": \""} + std::to_string(i) +
-          std::string{"\", \"message_num\": \""} + std::to_string(j) + std::string{"\""};
-
-        REQUIRE(quill::testing::file_contains(file_contents, expected_string));
-      }
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
     }
   }
 
@@ -115,7 +82,7 @@ TEST_CASE("log_from_one_thread")
   static constexpr char const* test_id = "single";
 
   static constexpr char const* filename = "log_from_one_thread.log";
-  test_quill_log(test_id, filename, number_of_threads, number_of_messages, false);
+  test_quill_log(test_id, filename, number_of_threads, number_of_messages);
 }
 
 /***/
@@ -126,18 +93,7 @@ TEST_CASE("log_from_multiple_threads")
   static constexpr char const* test_id = "multi";
 
   static constexpr char const* filename = "log_from_multiple_threads.log";
-  test_quill_log(test_id, filename, number_of_threads, number_of_messages, false);
-}
-
-/***/
-TEST_CASE("log_json_from_multiple_threads")
-{
-  static constexpr size_t number_of_messages = 500u;
-  static constexpr size_t number_of_threads = 5;
-  static constexpr char const* test_id = "multi";
-
-  static constexpr char const* filename = "log_json_from_multiple_threads.log";
-  test_quill_log(test_id, filename, number_of_threads, number_of_messages, true);
+  test_quill_log(test_id, filename, number_of_threads, number_of_messages);
 }
 
 /**
@@ -352,8 +308,6 @@ TEST_CASE("log_using_daily_file_handler")
 
   // Remove filenames
   quill::detail::remove_file(base_filename);
-  quill::detail::remove_file(base_filename);
-  quill::detail::remove_file(base_filename);
 }
 
 /***/
@@ -399,7 +353,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:376         LOG_INFO      root         - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:330         LOG_INFO      root         - Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -409,7 +363,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     else
     {
       std::string expected_string =
-        "custom - Hello log num " + std::to_string(i) + " (DOCTEST_ANON_FUNC_17)";
+        "custom - Hello log num " + std::to_string(i) + " (DOCTEST_ANON_FUNC_15)";
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -439,8 +393,8 @@ TEST_CASE("log_using_stderr")
   std::string results = quill::testing::GetCapturedStderr();
 
   REQUIRE_EQ(results,
-             "log_using_stderr - Hello log stderr (DOCTEST_ANON_FUNC_21)\n"
-             "log_using_stderr - Hello log stderr again (DOCTEST_ANON_FUNC_21)\n");
+             "log_using_stderr - Hello log stderr (DOCTEST_ANON_FUNC_19)\n"
+             "log_using_stderr - Hello log stderr again (DOCTEST_ANON_FUNC_19)\n");
 }
 
 /***/
@@ -469,9 +423,9 @@ TEST_CASE("log_to_multiple_handlers_from_same_logger")
   std::string results_handler_2 = quill::testing::GetCapturedStdout();
 
   REQUIRE_EQ(results_handler_1,
-             "log_multi_handlers - Hello log multiple handlers (DOCTEST_ANON_FUNC_23)\n");
+             "log_multi_handlers - Hello log multiple handlers (DOCTEST_ANON_FUNC_21)\n");
   REQUIRE_EQ(results_handler_2,
-             "log_multi_handlers - Hello log multiple handlers (DOCTEST_ANON_FUNC_23)\n");
+             "log_multi_handlers - Hello log multiple handlers (DOCTEST_ANON_FUNC_21)\n");
 }
 
 /***/

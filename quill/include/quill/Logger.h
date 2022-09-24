@@ -128,8 +128,6 @@ public:
       fmt::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
     }
 
-    fmt::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
-
     detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
 
     // For windows also take wide strings into consideration.

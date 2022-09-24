@@ -43,7 +43,7 @@ public:
 
 #if defined(_WIN32)
   constexpr MacroMetadata(const char* lineno, std::string_view pathname, std::string_view func,
-                          std::wstring_view message_format, LogLevel level, Event event)
+                          std::wstring_view message_format, LogLevel level, Event event, bool is_structured_log_template)
     : _func(func),
       _pathname(pathname),
       _filename(_extract_source_file_name(_pathname)),
@@ -51,7 +51,8 @@ public:
       _level(level),
       _event(event),
       _has_wide_char{true},
-      _wmessage_format(message_format)
+      _wmessage_format(message_format),
+      _is_structured_log_template(is_structured_log_template)
   {
   }
 #endif

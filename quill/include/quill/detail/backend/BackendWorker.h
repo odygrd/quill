@@ -350,9 +350,11 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
         wide_string_to_narrow(format_str.data(), size_needed,
                               transit_event->header.metadata->macro_metadata.wmessage_format());
 
+        assert(!transit_event->header.metadata->macro_metadata.is_structured_log_template() &&
+               "structured log templates are not supported for wide characters");
+
         read_buffer = transit_event->header.metadata->format_to_fn(
-          format_str, read_buffer, transit_event->formatted_msg, _args,
-          transit_event->header.metadata->macro_metadata.is_structured_log_template());
+            format_str, read_buffer, transit_event->formatted_msg, _args);
       }
       else
       {

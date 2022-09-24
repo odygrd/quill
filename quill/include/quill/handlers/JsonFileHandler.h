@@ -16,6 +16,7 @@ public:
   JsonFileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename)
     : FileHandler(filename, mode, append_to_filename)
   {
+    // JsonFileHandler requires an empty pattern
     set_pattern("");
   };
 

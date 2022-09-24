@@ -80,7 +80,7 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
   // Iterates the format string and checks if any characters are contained inside `{}`
   while (pos < fmt.length())
   {
-    if (fmt[pos] == '{')
+    if (fmt[pos] == '{') 
     {
       ++pos; // consume {
       if (pos >= fmt.length())
@@ -89,7 +89,7 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
       }
 
       // first character after the {
-      char fc = fmt[pos];
+      auto fc = fmt[pos];
       if (fc == '{')
       {
         // this means first '{' was escaped, so we ignore both of them
@@ -136,6 +136,13 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
   }
 
   return found_named_arg;
+}
+
+constexpr bool detect_structured_log_template(std::wstring_view fmt)
+{ 
+    // structured log for wide chars is not supported. We always return false here, if the user provides a structured log with wide characters
+    // we expected the fmt compile time format check to fail
+    return false;
 }
 } // namespace detail
 

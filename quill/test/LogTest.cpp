@@ -1297,4 +1297,145 @@ TEST_CASE("default_logger_with_custom_timestamp")
   quill::detail::remove_file(filename);
 }
 
+/***/
+TEST_CASE("log_configure_default_logger_single_handler")
+{
+  // configure a custom handler to the default logger and check it works
+  fs::path const filename = "log_configure_default_logger_single_handler.log";
+
+  LogManager lm;
+
+  // first obtain the pointer before configure
+  Logger* default_logger = lm.logger_collection().get_logger();
+
+  // Config using the custom ts class and the stdout handler
+  // this should not invalidate the default logger
+  quill::Config cfg;
+  Handler* handler =
+    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None);
+  cfg.default_handlers.emplace_back(handler);
+  cfg.default_logger_name = "root_test";
+  lm.configure(cfg);
+
+  // Start the backend logging thread
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::thread frontend(
+    [&lm, &default_logger, &cfg]()
+    {
+      // check that we did update the default logger
+      auto all_loggers = lm.logger_collection().get_all_loggers();
+      REQUIRE_EQ(all_loggers.size(), 1u);
+      REQUIRE_NE(all_loggers.find(cfg.default_logger_name), all_loggers.end());
+
+      // Log using the default logger pointer we obtained before the configure step
+      // We expect the pointer to be valid after quill::configure(...)
+      LOG_INFO(default_logger, "Hello from log_configure_default_logger test");
+      LOG_INFO(default_logger, "The root logger pointer is valid");
+    });
+
+  frontend.join();
+
+  lm.stop_backend_worker();
+
+  // Read file and check
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  {
+    std::string const expected_string =
+      "LOG_INFO      root_test    - Hello from log_configure_default_logger test";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+
+  {
+    std::string const expected_string =
+      "LOG_INFO      root_test    - The root logger pointer is valid";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+
+  quill::detail::remove_file(filename);
+}
+
+/***/
+TEST_CASE("log_configure_default_logger_multi_handler")
+{
+  // configure multiple handlers to the default logger and check it works
+  fs::path const filename_1 = "log_configure_default_logger_multi_handler1.log";
+  fs::path const filename_2 = "log_configure_default_logger_multi_handler2.log";
+
+  LogManager lm;
+
+  // First obtain the pointer before configure
+  Logger* default_logger = lm.logger_collection().get_logger();
+
+  // Config using the custom ts class and the stdout handler
+  // this should not invalidate the default logger
+  quill::Config cfg;
+  quill::Handler* file_handler_1 =
+    lm.handler_collection().create_handler<FileHandler>(filename_1.string(), "w", FilenameAppend::None);
+  quill::Handler* file_handler_2 =
+    lm.handler_collection().create_handler<FileHandler>(filename_2.string(), "w", FilenameAppend::None);
+  cfg.default_handlers.emplace_back(file_handler_1);
+  cfg.default_handlers.emplace_back(file_handler_2);
+  cfg.default_logger_name = "root_test";
+  lm.configure(cfg);
+
+  // Start the backend logging thread
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::thread frontend(
+    [&lm, &default_logger, &cfg]()
+    {
+      // check that we did update the default logger
+      auto all_loggers = lm.logger_collection().get_all_loggers();
+      REQUIRE_EQ(all_loggers.size(), 1u);
+      REQUIRE_NE(all_loggers.find(cfg.default_logger_name), all_loggers.end());
+
+      // Log using the default logger pointer we obtained before the configure step
+      // We expect the pointer to be valid after quill::configure(...)
+      LOG_INFO(default_logger, "Hello from log_configure_default_logger test");
+      LOG_INFO(default_logger, "The root logger pointer is valid");
+    });
+
+  frontend.join();
+  
+  lm.stop_backend_worker();
+
+  // Read file and check
+  {
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_1);
+
+    {
+      std::string const expected_string =
+        "LOG_INFO      root_test    - Hello from log_configure_default_logger test";
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+    }
+
+    {
+      std::string const expected_string =
+        "LOG_INFO      root_test    - The root logger pointer is valid";
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+    }
+  }
+
+  {
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_2);
+
+    {
+      std::string const expected_string =
+        "LOG_INFO      root_test    - Hello from log_configure_default_logger test";
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+    }
+
+    {
+      std::string const expected_string =
+        "LOG_INFO      root_test    - The root logger pointer is valid";
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+    }
+  }
+
+  quill::detail::remove_file(filename_1);
+  quill::detail::remove_file(filename_2);
+}
+
 TEST_SUITE_END();

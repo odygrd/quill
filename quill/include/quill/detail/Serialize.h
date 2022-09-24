@@ -289,11 +289,11 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
 /**
  * Format function
  */
-using FormatToFn = std::byte* (*)(fmt::string_view format, std::byte* data, fmt::memory_buffer& out,
+using FormatToFn = std::byte* (*)(std::string_view format, std::byte* data, fmt::memory_buffer& out,
                                   std::vector<fmt::basic_format_arg<fmt::format_context>>& args);
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(fmt::string_view format, std::byte* data,
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(std::string_view format, std::byte* data,
                                                          fmt::memory_buffer& out,
                                                          std::vector<fmt::basic_format_arg<fmt::format_context>>& args)
 {
