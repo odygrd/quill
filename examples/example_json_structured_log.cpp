@@ -14,7 +14,8 @@ int main()
   quill::Handler* json_handler =
     quill::create_handler<quill::JsonFileHandler>("json_output.log", "w", quill::FilenameAppend::DateTime);
 
-  // set a custom data output
+  // Change how the date is formatted in the structured log.
+  // JsonFileHandler must always have an empty pattern "" as the first argument.
   json_handler->set_pattern("", std::string{"%Y-%m-%d %H:%M:%S.%Qus"});
 
   // set this handler as the default for any new logger we are creating
