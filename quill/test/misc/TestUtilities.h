@@ -19,7 +19,7 @@ namespace testing
 std::vector<std::string> file_contents(fs::path const& filename);
 std::vector<std::wstring> wfile_contents(fs::path const& filename);
 
-  // Search a vector for the given string
-bool file_contains(std::vector<std::string> const& file_vector, std::string search_string);
+// Search a vector for the given string
+bool file_contains(std::vector<std::string> const& file_vector, std::string const& search_string);
 } // namespace testing
 } // namespace quill

@@ -138,11 +138,11 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
   return found_named_arg;
 }
 
-constexpr bool detect_structured_log_template(std::wstring_view fmt)
-{ 
-    // structured log for wide chars is not supported. We always return false here, if the user provides a structured log with wide characters
-    // we expected the fmt compile time format check to fail
-    return false;
+constexpr bool detect_structured_log_template(std::wstring_view)
+{
+  // structured log for wide chars is not supported. We always return false here, if the user provides a structured log with wide characters
+  // we expected the fmt compile time format check to fail
+  return false;
 }
 } // namespace detail
 

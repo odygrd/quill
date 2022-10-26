@@ -8,9 +8,7 @@
 #include <utility>                          // for move, pair
 #include <vector>                           // for vector
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /***/
 LoggerCollection::LoggerCollection(Config const& config, ThreadContextCollection& thread_context_collection,
@@ -249,5 +247,4 @@ void LoggerCollection::create_default_logger()
     }
   }
 }
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

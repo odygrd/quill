@@ -13,9 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 /**
@@ -89,5 +87,4 @@ private:
   /** A map where we store a vector of stored records for each logger name. We use the vectors like a ring buffer and loop around */
   std::unordered_map<std::string, StoredRecordInfo> _stored_records_map;
 };
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

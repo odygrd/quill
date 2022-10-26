@@ -18,9 +18,7 @@ std::array<char const*, 4> specifier_name{"", "%Qms", "%Qus", "%Qns"};
 constexpr size_t specifier_length = 4;
 } // namespace
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 /***/
@@ -155,5 +153,4 @@ void TimestampFormatter::_append_fractional_seconds(uint32_t extracted_fractiona
          extracted_ms_string.data(), extracted_ms_string.size());
 }
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

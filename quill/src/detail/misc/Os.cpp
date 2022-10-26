@@ -48,19 +48,18 @@
   #include <unistd.h>
 #endif
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 #if defined(_WIN32)
 /***/
 size_t get_wide_string_encoding_size(std::wstring_view s)
 {
-  return static_cast<size_t>(::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0, nullptr, nullptr));
+  return static_cast<size_t>(::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
+                                                   nullptr, 0, nullptr, nullptr));
 }
 
 /***/
-void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s) 
+void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s)
 {
   ::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
                         reinterpret_cast<char*>(dest), static_cast<int>(required_bytes), NULL, NULL);
@@ -382,5 +381,4 @@ bool is_in_terminal(FILE* file) noexcept
 #endif
 }
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

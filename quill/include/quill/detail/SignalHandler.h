@@ -9,9 +9,7 @@
 #include <cstdint>
 #include <initializer_list>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /**
  * Setup a signal handler to handle fatal signals
@@ -28,5 +26,4 @@ void init_exception_handler();
 void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals = {
                            SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV});
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

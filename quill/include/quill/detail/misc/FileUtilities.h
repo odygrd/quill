@@ -13,9 +13,7 @@
 #include <string>  // for string
 #include <utility> // for pair
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 /**
@@ -87,5 +85,4 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_date_to_filename(
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_index_to_filename(fs::path const& filename,
                                                                                     uint32_t index) noexcept;
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

@@ -16,21 +16,19 @@
 /** forward declarations **/
 struct tm;
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 #if defined(_WIN32)
 /**
  * Return the size required to encode a wide string
  * @param s wide string to be encoded
- * @return required size for encoding 
+ * @return required size for encoding
  */
 size_t get_wide_string_encoding_size(std::wstring_view s);
 
 /**
-* Converts a wide string to a narrow string
-*/
+ * Converts a wide string to a narrow string
+ */
 void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s);
 #endif
 
@@ -129,5 +127,4 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_colour_terminal() noexcept;
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_in_terminal(FILE* file) noexcept;
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

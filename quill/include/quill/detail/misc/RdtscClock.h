@@ -9,9 +9,7 @@
 #include <chrono>                         // for nanoseconds, milliseconds
 #include <cstdint>                        // for int64_t, uint64_t
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /**
  * Converts tsc ticks to nanoseconds since epoch
@@ -31,7 +29,7 @@ class RdtscClock
     }
 
     /***/
-    double ns_per_tick() const noexcept { return _ns_per_tick; }
+    QUILL_NODISCARD double ns_per_tick() const noexcept { return _ns_per_tick; }
 
   private:
     /**
@@ -75,5 +73,4 @@ private:
   int64_t _resync_interval_original{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
   double _ns_per_tick{0};
 };
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

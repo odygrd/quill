@@ -38,13 +38,13 @@ public:
    * @param formatted_log_message input log message to write
    * @param log_event log_event
    */
-  QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_message,
-                                         quill::TransitEvent const& log_event) override;
+  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_message,
+                                 quill::TransitEvent const& log_event) override;
 
   /**
    * Flushes the stream
    */
-  QUILL_ATTRIBUTE_HOT virtual void flush() noexcept override;
+  QUILL_ATTRIBUTE_HOT void flush() noexcept override;
 
   /**
    * @return return the name of the file

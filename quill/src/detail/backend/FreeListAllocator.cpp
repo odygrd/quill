@@ -68,7 +68,7 @@ void FreeListAllocator::reserve(size_t new_capacity)
   else
   {
     // we need to add a new vector and we add to the sorted vector
-    auto inserted_it = _free_list.insert(
+    auto inserted_it = _free_list.emplace(
       std::upper_bound(_free_list.begin(), _free_list.end(), block->header.size,
                        [](size_t s, size_blocks_pair_t const& elem) { return s < elem.first; }),
       std::make_pair(block->header.size, _get_cached_vector()));
@@ -134,7 +134,7 @@ void* FreeListAllocator::allocate(size_t s)
 void FreeListAllocator::deallocate(void* p)
 {
   // Given the pointer we know we had constructed a Block earlier if we subtract the BlockHeader
-  Block* block = reinterpret_cast<Block*>(static_cast<unsigned char*>(p) - sizeof(BlockHeader));
+  auto* block = reinterpret_cast<Block*>(static_cast<unsigned char*>(p) - sizeof(BlockHeader));
 
   // Check if we can coalesce with the next block or the previous block
   block = _coalesce_with_next(block);
@@ -156,7 +156,7 @@ void FreeListAllocator::deallocate(void* p)
   else
   {
     // we need to add a new vector and we add to the sorted vector
-    auto inserted_it = _free_list.insert(
+    auto inserted_it = _free_list.emplace(
       std::upper_bound(_free_list.begin(), _free_list.end(), block->header.size,
                        [](size_t s, size_blocks_pair_t const& elem) { return s < elem.first; }),
       std::make_pair(block->header.size, _get_cached_vector()));
@@ -229,7 +229,7 @@ FreeListAllocator::Block* FreeListAllocator::_slice(Block* block, size_t request
   void* free_part = reinterpret_cast<unsigned char*>(block->data) + requested_size;
 
   // Now in that memory we will construct a new block
-  Block* free_block = new (free_part) Block;
+  auto* free_block = new (free_part) Block;
 
   // The size of the new block will be the remaining size excluding the header size
   free_block->header.size = block->header.size - requested_size - sizeof(BlockHeader);
@@ -267,7 +267,7 @@ FreeListAllocator::Block* FreeListAllocator::_slice(Block* block, size_t request
   else
   {
     // we need to add a new vector and we add to the sorted vector
-    auto inserted_it = _free_list.insert(
+    auto inserted_it = _free_list.emplace(
       std::upper_bound(_free_list.begin(), _free_list.end(), free_block->header.size,
                        [](size_t s, size_blocks_pair_t const& elem) { return s < elem.first; }),
       std::make_pair(free_block->header.size, _get_cached_vector()));
@@ -425,7 +425,7 @@ FreeListAllocator::Block* FreeListAllocator::_request_from_os(size_t size)
   void* buffer = aligned_alloc(alignof(Block), total_size);
 
   // in the returned pointer create a block*
-  Block* block = new (buffer) Block;
+  auto* block = new (buffer) Block;
 
   // Set the size, we do not include the header size here
   block->header.size = size;

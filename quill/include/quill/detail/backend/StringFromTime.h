@@ -12,9 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /**
  * A class that converts a timestamp to a string based on the given format.
@@ -114,5 +112,4 @@ private:
   /** gmtime or localtime */
   Timezone _time_zone;
 };
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

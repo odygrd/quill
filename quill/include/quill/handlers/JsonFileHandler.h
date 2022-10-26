@@ -27,8 +27,8 @@ public:
    * @param formatted_log_message input log message to write
    * @param log_event log_event
    */
-  QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_message,
-                                         quill::TransitEvent const& log_event) override;
+  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_message,
+                                 quill::TransitEvent const& log_event) override;
 
 private:
   fmt::memory_buffer _json_message;

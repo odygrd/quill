@@ -7,9 +7,7 @@
 #include <cstddef>                    // for size_t
 #include <iostream>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 namespace
@@ -132,5 +130,4 @@ bool RdtscClock::resync(uint32_t lag) const noexcept
   _resync_interval_ticks = _resync_interval_ticks * 2;
   return false;
 }
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

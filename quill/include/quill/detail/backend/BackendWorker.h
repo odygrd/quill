@@ -37,9 +37,7 @@
 #include <utility>                  // for move
 #include <vector>                   // for vector
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 class BackendWorker
@@ -631,5 +629,4 @@ void BackendWorker::_exit()
     }
   }
 }
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail
