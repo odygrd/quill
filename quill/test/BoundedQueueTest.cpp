@@ -21,8 +21,8 @@ TEST_CASE("read_write_buffer")
   }
 
   {
-    auto [res, avail_bytes] = buffer.prepare_read();
-    REQUIRE_EQ(avail_bytes, 32);
+    auto const res = buffer.prepare_read();
+    REQUIRE_EQ(res.second, 32);
     buffer.finish_read(32u);
   }
 
@@ -34,8 +34,8 @@ TEST_CASE("read_write_buffer")
 
   {
     // Nothing to read but consumer will also wrap
-    auto [res, avail_bytes] = buffer.prepare_read();
-    REQUIRE_EQ(avail_bytes, 0);
+    auto const res = buffer.prepare_read();
+    REQUIRE_EQ(res.second, 0);
   }
 
   {
