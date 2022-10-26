@@ -319,9 +319,9 @@ struct Metadata
 {
   /**
    * Creates and/or returns a pointer to Metadata with static lifetime
-   * @tparam MacroMetadataFun
-   * @tparam Args
-   * @return
+   * @tparam MacroMetadataFun MacroMetadataFun
+   * @tparam Args Args
+   * @return Metadata pointer
    */
   template <typename MacroMetadataFun, typename... Args>
   [[nodiscard]] static Metadata const* get() noexcept

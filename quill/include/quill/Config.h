@@ -70,7 +70,6 @@ struct Config
   /**
    * Sets a custom clock that will be used to obtain the timestamp
    * This is useful for example during simulations where you would need to simulate time
-   * @param timestamp_clock a custom class deriving from TimestampClock
    */
   TimestampClock* default_custom_timestamp_clock = nullptr;
 

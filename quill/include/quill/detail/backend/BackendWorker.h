@@ -99,7 +99,7 @@ private:
   /**
    * Populate our local priority queue
    * @param cached_thread_contexts local thread context cache
-   * @param is_terminating
+   * @param is_terminating backend worker is terminating
    */
   QUILL_ATTRIBUTE_HOT inline void _populate_priority_queue(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts, bool is_terminating);
@@ -130,7 +130,7 @@ private:
 
   /**
    * Process a structured log template message
-   * @param input a structured log template message containing named arguments
+   * @param fmt_template a structured log template message containing named arguments
    * @return first: fmt string without the named arguments, second: a vector extracted keys
    */
   QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_structured_log_template(

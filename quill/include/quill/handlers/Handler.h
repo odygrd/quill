@@ -71,8 +71,7 @@ public:
    * Logs a formatted log message to the handler
    * @note: Accessor for backend processing
    * @param formatted_log_message input log message to write
-   * @param log_message_timestamp log message timestamp
-   * @param log_message_severity the severity of the log message
+   * @param log_event transit event
    */
   QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_message,
                                          quill::TransitEvent const& log_event) = 0;

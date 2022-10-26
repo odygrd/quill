@@ -28,7 +28,6 @@ class LoggerDetails
 public:
   /**
    * Constructor
-   * @param name
    */
   LoggerDetails(std::string name, Handler* handler, TimestampClockType timestamp_clock_type)
     : _name(std::move(name)), _timestamp_clock_type(timestamp_clock_type)
@@ -38,7 +37,6 @@ public:
 
   /**
    * Constructor
-   * @param name
    */
   LoggerDetails(std::string name, std::vector<Handler*> handlers, TimestampClockType timestamp_clock_type)
     : _name(std::move(name)), _timestamp_clock_type(timestamp_clock_type)

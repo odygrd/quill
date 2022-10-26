@@ -36,7 +36,7 @@ public:
   /**
    * Write a formatted log message to the stream
    * @param formatted_log_message input log message to write
-   * @param log_message_timestamp log message timestamp
+   * @param log_event log_event
    */
   QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_message,
                                          quill::TransitEvent const& log_event) override;

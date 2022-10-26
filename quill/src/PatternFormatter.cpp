@@ -41,10 +41,10 @@ constexpr void _store_named_args(std::array<fmt::detail::named_arg_info<char>, P
  *  i: 8 order idx[i] is: 1 - %(thread)
  *  i: 9 order idx[i] is: 10 - empty
  *  i: 10 order idx[i] is: 10 - empty
- * @tparam Args
- * @param pattern
- * @param args
- * @return
+ * @tparam Args Args
+ * @param pattern pattern
+ * @param args args
+ * @return processed pattern
  */
 template <typename... Args>
 QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attribute::ATTR_NR_ITEMS>> _generate_fmt_format_string(

@@ -40,9 +40,7 @@ public:
 
   /**
    * Stores an object to a vector that maps to logger_name
-   * @param logger_name the logger name to store the record
-   * @param thread_id the thread id of this record
-   * @param record the record to store
+   * @param transit_event transit_event
    */
   void store(TransitEvent transit_event);
 

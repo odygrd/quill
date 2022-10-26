@@ -83,8 +83,8 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
 
 /**
  * Convert tsc cycles to nanoseconds
- * @param tsc
- * @return
+ * @param rdtsc_value rdtsc_value
+ * @return system clock time
  */
 uint64_t RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
