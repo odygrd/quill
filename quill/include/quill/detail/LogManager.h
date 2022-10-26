@@ -16,6 +16,7 @@
 #include "quill/detail/SignalHandler.h" // for init_signal_handler
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/backend/BackendWorker.h"
+#include <cassert>
 #include <mutex> // for call_once, once_flag
 #include <optional>
 
@@ -175,6 +176,8 @@ public:
     std::memcpy(write_buffer, &flush_ptr, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
+    assert((write_buffer >= write_begin) &&
+           "write_buffer should be greater or equal to write_begin");
     thread_context->spsc_queue().commit_write(static_cast<size_t>(write_buffer - write_begin));
 
     // The caller thread keeps checking the flag until the backend thread flushes
