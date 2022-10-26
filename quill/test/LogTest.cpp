@@ -1299,11 +1299,34 @@ TEST_CASE("default_logger_with_custom_timestamp")
   quill::detail::remove_file(filename);
 }
 
+std::vector<std::string> gen_random_strings(size_t n, int min_len, int max_len)
+{
+  // Generate random strings
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_int_distribution<int> dist_chars(32, 126);
+
+  // length of strings
+  std::uniform_int_distribution<int> dist_len(min_len, max_len);
+
+  // Generate a vector of random strings of dist_len
+  std::vector<std::string> random_strings_vec;
+  random_strings_vec.reserve(n);
+
+  std::string result;
+  for (size_t i = 0; i < n; ++i)
+  {
+    std::generate_n(std::back_inserter(result), dist_len(mt), [&] { return dist_chars(mt); });
+    random_strings_vec.emplace_back(std::move(result));
+  }
+  return random_strings_vec;
+}
+
 /***/
 TEST_CASE("default_logger_with_random_strings")
 {
   LogManager lm;
-  fs::path const filename{"test_default_logger__random_strings"};
+  fs::path const filename{"test_default_logger_with_random_strings"};
 
   // Set a file handler as the custom logger handler and log to it
   quill::Config cfg;
@@ -1313,24 +1336,7 @@ TEST_CASE("default_logger_with_random_strings")
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  // Generate random strings
-  std::random_device rd;
-  std::mt19937 mt(rd());
-  std::uniform_int_distribution<int> dist_chars(32, 126);
-
-  // length of strings
-  std::uniform_int_distribution<int> dist_len(2000, 4000);
-
-  // Generate a vector of random strings of dist_len
-  constexpr size_t max_range = 50'000;
-  std::vector<std::string> random_strings_vec;
-  random_strings_vec.reserve(max_range);
-  std::string result;
-  for (size_t i = 0; i < max_range; ++i)
-  {
-    std::generate_n(std::back_inserter(result), dist_len(mt), [&] { return dist_chars(mt); });
-    random_strings_vec.emplace_back(std::move(result));
-  }
+  std::vector<std::string> const random_strings_vec = gen_random_strings(20'000, 2'000, 4'000);
 
   std::thread frontend(
     [&lm, &random_strings_vec]()
@@ -1397,6 +1403,195 @@ TEST_CASE("default_logger_with_random_strings")
 
   // Check we logged everything
   REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 12);
+
+  lm.stop_backend_worker();
+  quill::detail::remove_file(filename);
+}
+
+/***/
+TEST_CASE("default_logger_with_small_random_strings")
+{
+  LogManager lm;
+  fs::path const filename{"test_default_logger_with_small_random_strings"};
+
+  // Set a file handler as the custom logger handler and log to it
+  quill::Config cfg;
+  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None));
+  lm.configure(cfg);
+
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::vector<std::string> const random_strings_vec = gen_random_strings(100'000, 50, 500);
+
+  std::thread frontend(
+    [&lm, &random_strings_vec]()
+    {
+      Logger* default_logger = lm.logger_collection().get_logger();
+
+      // First push in sequence
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem);
+        LOG_INFO(default_logger, "{}", elem.c_str());
+        LOG_INFO(default_logger, "{}", std::string_view{elem});
+        lm.flush();
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem);
+        lm.flush();
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem.c_str());
+        lm.flush();
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", std::string_view{elem});
+        lm.flush();
+      }
+
+      // Then also try to push all
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem);
+        LOG_INFO(default_logger, "{}", elem.c_str());
+        LOG_INFO(default_logger, "{}", std::string_view{elem});
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem);
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem.c_str());
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", std::string_view{elem});
+      }
+
+      // Let all log get flushed to the file
+      lm.flush();
+    });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  // Check we logged everything
+  REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 12);
+
+  lm.stop_backend_worker();
+  quill::detail::remove_file(filename);
+}
+
+/***/
+TEST_CASE("default_logger_with_very_large_random_strings")
+{
+  LogManager lm;
+  fs::path const filename{"test_default_logger_with_very_large_random_strings"};
+
+  // Set a file handler as the custom logger handler and log to it
+  quill::Config cfg;
+  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None));
+  lm.configure(cfg);
+
+  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+  std::vector<std::string> const random_strings_vec = gen_random_strings(2'000, 10'000, 20'000);
+
+  std::thread frontend(
+    [&lm, &random_strings_vec]()
+    {
+      Logger* default_logger = lm.logger_collection().get_logger();
+
+      int32_t i = 0;
+      // First push in sequence
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem);
+        LOG_INFO(default_logger, "{}", elem.c_str());
+        LOG_INFO(default_logger, "{}", std::string_view{elem});
+        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+        ++i;
+        lm.flush();
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem);
+        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+        ++i;
+        lm.flush();
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem.c_str());
+        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+        ++i;
+        lm.flush();
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", std::string_view{elem});
+        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+        ++i;
+        lm.flush();
+      }
+
+      // Then also try to push all
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem);
+        LOG_INFO(default_logger, "{}", elem.c_str());
+        LOG_INFO(default_logger, "{}", std::string_view{elem});
+        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+        ++i;
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem);
+        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+        ++i;
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", elem.c_str());
+        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+        ++i;
+      }
+
+      for (auto const& elem : random_strings_vec)
+      {
+        LOG_INFO(default_logger, "{}", std::string_view{elem});
+        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+        ++i;
+      }
+
+      // Let all log get flushed to the file
+      lm.flush();
+    });
+
+  frontend.join();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  // Check we logged everything
+  REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 20);
 
   lm.stop_backend_worker();
   quill::detail::remove_file(filename);
