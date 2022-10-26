@@ -167,7 +167,7 @@ public:
    * Consumes the next nbytes in the buffer and frees it back
    * for the producer to reuse.
    */
-  QUILL_ALWAYS_INLINE_HOT void finish_read(uint64_t nbytes)
+  QUILL_ALWAYS_INLINE_HOT void finish_read(size_t nbytes)
   {
     _consumer->bounded_queue.finish_read(nbytes);
   }

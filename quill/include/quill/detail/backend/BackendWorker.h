@@ -366,7 +366,8 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool i
     }
 
     // Finish reading
-    spsc_queue.finish_read(static_cast<uint64_t>(read_buffer - read_begin));
+    assert((read_buffer >= read_begin) && "read_buffer should be greater or equal to read_begin");
+    spsc_queue.finish_read(static_cast<size_t>(read_buffer - read_begin));
 
     // We have the timestamp and the data node ptr, we can construct a transit event out of them
     _transit_events.emplace(transit_event);

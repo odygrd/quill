@@ -172,6 +172,8 @@ public:
     write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
     assert(total_size >= (static_cast<size_t>(write_buffer - write_begin)) &&
            "The committed write bytes can not be greater than the requested bytes");
+    assert((write_buffer >= write_begin) &&
+           "write_buffer should be greater or equal to write_begin");
     thread_context->spsc_queue().commit_write(static_cast<size_t>(write_buffer - write_begin));
   }
 

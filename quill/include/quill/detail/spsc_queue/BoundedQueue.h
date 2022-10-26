@@ -181,7 +181,7 @@ public:
    * for the producer to reuse.
    * nbytes must be less or equal than what is returned by prepare_read().
    */
-  QUILL_ALWAYS_INLINE_HOT void finish_read(uint64_t nbytes) noexcept
+  QUILL_ALWAYS_INLINE_HOT void finish_read(size_t nbytes) noexcept
   {
     _min_avail_bytes -= nbytes;
     _consumer_pos.store(_consumer_pos.load(std::memory_order_relaxed) + nbytes, std::memory_order_release);
