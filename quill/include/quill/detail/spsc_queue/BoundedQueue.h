@@ -32,6 +32,7 @@ public:
 
     _end_of_recorded_space = _storage + capacity();
     _min_free_space = capacity();
+    _min_avail_bytes = 0;
     _producer_pos.store(_storage);
     _consumer_pos.store(_storage);
   }
@@ -60,17 +61,17 @@ public:
 
     // Since consumerPos can be updated in a different thread, we
     // save a consistent copy of it here to do calculations on
-    std::byte* producer_pos = _producer_pos.load(std::memory_order_relaxed);
-    std::byte* consumer_pos = _consumer_pos.load(std::memory_order_acquire);
+    std::byte* const producer_pos = _producer_pos.load(std::memory_order_relaxed);
+    std::byte* const consumer_pos = _consumer_pos.load(std::memory_order_acquire);
 
     if (producer_pos >= consumer_pos)
     {
       // producer is ahead of the consumer
       // cxxxxxxxxxp0000EOB
-      std::byte* endOfBuffer = _storage + capacity();
+      // end_of_buffer = _storage + capacity();
 
       // remaining space to the end of the buffer
-      _min_free_space = static_cast<size_t>(endOfBuffer - producer_pos);
+      _min_free_space = static_cast<size_t>(_storage + capacity() - producer_pos);
 
       if (_min_free_space > nbytes)
       {
@@ -78,14 +79,14 @@ public:
         return producer_pos;
       }
 
-      // Not enough space at the end of the buffer; wrap around
-      // Set the end of the buffer
-      _end_of_recorded_space = producer_pos;
-
       // Prevent the wrap around if it overlaps the two positions because
       // that would imply the buffer is completely empty when it's not.
       if (QUILL_LIKELY(consumer_pos != _storage))
       {
+        // Not enough space at the end of the buffer; wrap around
+        // Set the end of the buffer
+        _end_of_recorded_space = producer_pos;
+
         // prevents producerPos from updating before endOfRecordedSpace
         // NOTE: we want to release the value of endOfRecordedSpace to the consumer thread
         _producer_pos.store(_storage, std::memory_order_release);
@@ -135,33 +136,44 @@ public:
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT std::pair<std::byte*, size_t> prepare_read() noexcept
   {
+    if (_min_avail_bytes > 0)
+    {
+      // fast read path
+      return std::pair<std::byte*, size_t>{_consumer_pos.load(std::memory_order_relaxed), _min_avail_bytes};
+    }
+
     // Save a consistent copy of producerPos
     // Prevent reading new producerPos but old endOf...
-    std::byte* producer_pos = _producer_pos.load(std::memory_order_acquire);
-    std::byte* consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
+    std::byte* const consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
+    std::byte* const producer_pos = _producer_pos.load(std::memory_order_acquire);
 
-    size_t bytes_available;
-
-    if (consumer_pos > producer_pos)
+    if (producer_pos >= consumer_pos)
+    {
+      // here the consumer is behind the producer
+      _min_avail_bytes = static_cast<size_t>(producer_pos - consumer_pos);
+      return std::pair<std::byte*, size_t>{consumer_pos, _min_avail_bytes};
+    }
+    else
     {
       // consumer is ahead of the producer
       // xxxp0000cxxxEOB
-      bytes_available = static_cast<size_t>(_end_of_recorded_space - consumer_pos);
+      // _end_of_recorded_space is only set when the producer wraps by the producer, here we
+      // already know that the producer has wrapped around therefore the _end_of_recorded_space
+      // has been set
+      _min_avail_bytes = static_cast<size_t>(_end_of_recorded_space - consumer_pos);
 
-      if (bytes_available > 0)
+      if (_min_avail_bytes > 0)
       {
-        return std::pair<std::byte*, size_t>{consumer_pos, bytes_available};
+        return std::pair<std::byte*, size_t>{consumer_pos, _min_avail_bytes};
       }
-
-      // Roll over because there is nothing to read until end of buffer
-      _consumer_pos.store(_storage, std::memory_order_release);
+      else
+      {
+        // Roll over because there is nothing to read until end of buffer
+        _consumer_pos.store(_storage, std::memory_order_release);
+        _min_avail_bytes = static_cast<size_t>(producer_pos - _storage);
+        return std::pair<std::byte*, size_t>{_storage, _min_avail_bytes};
+      }
     }
-
-    // here the consumer is behind the producer
-    consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
-    bytes_available = static_cast<size_t>(producer_pos - consumer_pos);
-
-    return std::pair<std::byte*, size_t>{consumer_pos, bytes_available};
   }
 
   /**
@@ -171,6 +183,7 @@ public:
    */
   QUILL_ALWAYS_INLINE_HOT void finish_read(uint64_t nbytes) noexcept
   {
+    _min_avail_bytes -= nbytes;
     _consumer_pos.store(_consumer_pos.load(std::memory_order_relaxed) + nbytes, std::memory_order_release);
   }
 
@@ -196,12 +209,15 @@ protected:
   /** Position within storage[] where the producer may place new data **/
   alignas(CACHELINE_SIZE) std::atomic<std::byte*> _producer_pos;
 
-  /**  Marks the end of valid data for the consumer. Set by the producer on a roll-over **/
+  /**  Marks the end of valid data for the consumer. Set by the producer on a roll-over read by the consumer **/
   std::byte* _end_of_recorded_space;
 
   /** Lower bound on the number of bytes the producer can allocate w/o rolling over the
-   * producerPos or stalling behind the consumer **/
-  size_t _min_free_space;
+   * producerPos or stalling behind the consumer. Only used by the producer **/
+  alignas(CACHELINE_SIZE) size_t _min_free_space;
+
+  /** Min value on the number of bytes the consumer can read **/
+  alignas(CACHELINE_SIZE) size_t _min_avail_bytes;
 
   /**
    * Position within the storage buffer where the consumer will consume

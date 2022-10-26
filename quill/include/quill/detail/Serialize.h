@@ -98,7 +98,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
   else if constexpr (is_type_of_string<Arg>())
   {
     // for std::string we first need to retrieve the length
-    in = detail::align_pointer<alignof(Arg), std::byte>(in);
+    in = detail::align_pointer<alignof(size_t), std::byte>(in);
     size_t len{0};
     std::memcpy(&len, in, sizeof(size_t));
     in += sizeof(size_t);
@@ -113,7 +113,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
   else if constexpr (is_type_of_wide_c_string<Arg>() || is_type_of_wide_string<Arg>())
   {
     // for std::wstring we first need to retrieve the length
-    in = detail::align_pointer<alignof(Arg), std::byte>(in);
+    in = detail::align_pointer<alignof(size_t), std::byte>(in);
     size_t len{0};
     std::memcpy(&len, in, sizeof(size_t));
     in += sizeof(size_t);
@@ -233,7 +233,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
   else if constexpr (is_type_of_string<Arg>())
   {
     // for std::string we store the size first, in order to correctly retrieve it
-    out = detail::align_pointer<alignof(Arg), std::byte>(out);
+    out = detail::align_pointer<alignof(size_t), std::byte>(out);
     size_t const len = arg.length();
     std::memcpy(out, &len, sizeof(size_t));
     out += sizeof(size_t);
@@ -245,7 +245,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
 #if defined(_WIN32)
   else if constexpr (is_type_of_wide_c_string<Arg>())
   {
-    out = detail::align_pointer<alignof(Arg), std::byte>(out);
+    out = detail::align_pointer<alignof(size_t), std::byte>(out);
     size_t const len = c_string_sizes[CstringIdx];
     std::memcpy(out, &len, sizeof(size_t));
 
@@ -257,7 +257,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
   else if constexpr (is_type_of_wide_string<Arg>())
   {
     // for std::wstring we store the size first, in order to correctly retrieve it
-    out = detail::align_pointer<alignof(Arg), std::byte>(out);
+    out = detail::align_pointer<alignof(size_t), std::byte>(out);
     size_t const len = c_string_sizes[CstringIdx];
     std::memcpy(out, &len, sizeof(size_t));
     out += sizeof(size_t);
