@@ -35,7 +35,7 @@
 - Cache the available bytes for reading in the logging queue. This is meant to offer some minor performance
   improvement to the backend logging thread. [#185](https://github.com/odygrd/quill/issues/185)
 
-- Fixed clang '-Wdocumentation' warnings.
+- Fixed static code analysis and clang '-Wdocumentation' warnings.
 
 - The `Handler.h` API has changed in this version to support structured logs. If you have implemented your own custom
   `Handler` you will have to change it to follow the new API.
