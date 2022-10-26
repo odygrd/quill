@@ -10,6 +10,42 @@ TEST_SUITE_BEGIN("BoundedQueue");
 
 using namespace quill::detail;
 
+TEST_CASE("read_write_buffer")
+{
+  BoundedQueue<64u> buffer;
+
+  {
+    std::byte* write_buf = buffer.prepare_write(32u);
+    REQUIRE_NE(write_buf, nullptr);
+    buffer.commit_write(32u);
+  }
+
+  {
+    auto const res = buffer.prepare_read();
+    REQUIRE_EQ(res.second, 32);
+    buffer.finish_read(32u);
+  }
+
+  {
+    // now we try to add another 32
+    std::byte* write_buf = buffer.prepare_write(32u);
+    REQUIRE_EQ(write_buf, nullptr);
+  }
+
+  {
+    // Nothing to read but consumer will also wrap
+    auto const res = buffer.prepare_read();
+    REQUIRE_EQ(res.second, 0);
+  }
+
+  {
+    // now we try to add another 32, it should be possible after the consumer wrapped
+    std::byte* write_buf = buffer.prepare_write(32u);
+    REQUIRE_NE(write_buf, nullptr);
+    buffer.commit_write(32u);
+  }
+}
+
 TEST_CASE("read_write_multithreaded_plain_ints")
 {
   BoundedQueue<QUILL_QUEUE_CAPACITY> buffer;
