@@ -1336,7 +1336,7 @@ TEST_CASE("default_logger_with_random_strings")
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::vector<std::string> const random_strings_vec = gen_random_strings(20'000, 2'000, 4'000);
+  std::vector<std::string> const random_strings_vec = gen_random_strings(5'000, 2'000, 4'000);
 
   std::thread frontend(
     [&lm, &random_strings_vec]()
@@ -1422,7 +1422,7 @@ TEST_CASE("default_logger_with_small_random_strings")
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::vector<std::string> const random_strings_vec = gen_random_strings(100'000, 50, 500);
+  std::vector<std::string> const random_strings_vec = gen_random_strings(10'000, 50, 500);
 
   std::thread frontend(
     [&lm, &random_strings_vec]()
@@ -1508,7 +1508,7 @@ TEST_CASE("default_logger_with_very_large_random_strings")
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::vector<std::string> const random_strings_vec = gen_random_strings(2'000, 10'000, 20'000);
+  std::vector<std::string> const random_strings_vec = gen_random_strings(1'000, 10'000, 20'000);
 
   std::thread frontend(
     [&lm, &random_strings_vec]()
