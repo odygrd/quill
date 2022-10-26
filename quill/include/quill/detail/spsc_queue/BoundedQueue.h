@@ -189,7 +189,7 @@ public:
 
   /**
    * Gives a pointer to producer pos
-   * @return
+   * @return producer position
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* producer_pos() const noexcept
   {

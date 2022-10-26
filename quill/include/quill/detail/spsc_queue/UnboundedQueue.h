@@ -51,8 +51,8 @@ private:
 
     /**
      * Alignment requirement as we have bounded_queue as member
-     * @param i
-     * @return
+     * @param i i
+     * @return allocated memory pointer
      */
     void* operator new(size_t i) { return aligned_alloc(CACHELINE_SIZE, i); }
     void operator delete(void* p) { aligned_free(p); }
@@ -66,7 +66,6 @@ private:
 public:
   /**
    * Constructor
-   * @param capacity The starting capacity
    */
   UnboundedQueue() : _producer(new Node()), _consumer(_producer) {}
 
@@ -174,7 +173,7 @@ public:
 
   /**
    * Return the current buffer's capacity
-   * @return
+   * @return capacity
    */
   QUILL_NODISCARD std::size_t capacity() const noexcept
   {
@@ -183,7 +182,7 @@ public:
 
   /**
    * checks if the queue is empty
-   * @return
+   * @return true if empty, false otherwise
    */
   QUILL_NODISCARD bool empty() const noexcept
   {
@@ -192,7 +191,7 @@ public:
 
   /**
    * Gives a pointer to producer pos
-   * @return
+   * @return producer pos
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* producer_pos() const noexcept
   {

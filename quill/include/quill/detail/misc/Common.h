@@ -7,6 +7,7 @@
 
 #include "quill/Fmt.h"
 #include "quill/TweakMe.h"
+#include <functional>
 #include <sstream>
 #include <string>
 
@@ -70,6 +71,79 @@ namespace detail
  * Cache line size
  */
 static constexpr size_t CACHELINE_SIZE{64u};
+
+constexpr bool detect_structured_log_template(std::string_view fmt)
+{
+  uint32_t pos{0};
+  bool found_named_arg{false};
+
+  // Iterates the format string and checks if any characters are contained inside `{}`
+  while (pos < fmt.length())
+  {
+    if (fmt[pos] == '{') 
+    {
+      ++pos; // consume {
+      if (pos >= fmt.length())
+      {
+        break;
+      }
+
+      // first character after the {
+      auto fc = fmt[pos];
+      if (fc == '{')
+      {
+        // this means first '{' was escaped, so we ignore both of them
+        ++pos;
+        continue;
+      }
+
+      // else look for the next '}'
+      uint32_t char_cnt{0};
+      while (pos < fmt.length())
+      {
+        if (fmt[pos] == '}')
+        {
+          ++pos; // consume }
+          if (pos >= fmt.length())
+          {
+            break;
+          }
+
+          if (fmt[pos] == '}')
+          {
+            // this means first '}', was escaped ignore it
+            ++pos;
+            ++char_cnt;
+            continue;
+          }
+          else
+          {
+            // we found '{' match, we can break
+            break;
+          }
+        }
+
+        ++pos;
+        ++char_cnt;
+      }
+
+      if ((char_cnt != 0) && ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z')))
+      {
+        found_named_arg = true;
+      }
+    }
+    ++pos;
+  }
+
+  return found_named_arg;
+}
+
+constexpr bool detect_structured_log_template(std::wstring_view)
+{
+  // structured log for wide chars is not supported. We always return false here, if the user provides a structured log with wide characters
+  // we expected the fmt compile time format check to fail
+  return false;
+}
 } // namespace detail
 
 /**
@@ -91,6 +165,9 @@ enum TimestampClockType : uint8_t
   Custom
 };
 
+/**
+ * backend worker thread error handler type
+ */
 using backend_worker_error_handler_t = std::function<void(std::string const&)>;
 
 } // namespace quill

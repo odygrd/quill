@@ -13,9 +13,7 @@
 #include <string>  // for string
 #include <utility> // for pair
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 /**
@@ -39,7 +37,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD FILE* open_file(fs::path const& filename,
 
 /**
  * Calculates the size of a file
- * @param file a valid pointer to the file
+ * @param filename a valid pointer to the file
  * @return the size of the file
  * @throws std::runtime_error on failure
  */
@@ -48,14 +46,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t file_size(fs::path const& filename);
 /**
  * Removes a file
  * @param filename the name of the file to remove_file
- * @return ​Zero​ upon success or non-zero value on error.
+ * @return True if the file is removed, false otherwise
  */
 QUILL_ATTRIBUTE_COLD bool remove_file(fs::path const& filename) noexcept;
 
 /**
  * Renames a file
- * @param filename
- * @return
+ * @param previous_file the old name of the file
+ * @param new_file the new name of the file
  */
 void rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept;
 
@@ -87,5 +85,4 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_date_to_filename(
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_index_to_filename(fs::path const& filename,
                                                                                     uint32_t index) noexcept;
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

@@ -55,6 +55,9 @@ target_link_libraries(example_filters quill)
 add_executable(example_handler_log_levels example_handler_log_levels.cpp)
 target_link_libraries(example_handler_log_levels quill)
 
+add_executable(example_json_structured_log example_json_structured_log.cpp)
+target_link_libraries(example_json_structured_log quill)
+
 add_executable(example_trivial_system_clock example_trivial_system_clock.cpp)
 target_link_libraries(example_trivial_system_clock quill)
 

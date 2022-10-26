@@ -74,12 +74,12 @@ The old library (v1.7.x) still remains there and there will be releases only for
 
 The main goals of the library are:
 
-- **Simplicity** A small example code snippet should be enough to get started and use most of features.
+- **Simplicity** A small example code snippet should be enough to get started and use most of the features.
 - **Performance** Ultra low latency. No formatting on the hot-path, asynchronous only mode. No hot-path allocations for
   fundamental types, enums and strings (including `std::string` and `std::string_view`). Any other custom or user
   defined type gets copy constructed with the formatting done on a backend worker thread.
 - **Convenience** Ease application monitoring/debugging. Latency is equal to latencies of binary loggers, but the
-  produced log is in human readable form.
+  produced log is in human-readable form.
 
 ## Features
 
@@ -96,13 +96,15 @@ The main goals of the library are:
     -  File Logging
     -  Rotating log files
     -  Time rotating log files
+    -  JSON logging
     -  Custom Handlers
  -  Filters for filtering log messages. See [Filters](https://github.com/odygrd/quill/wiki/3.-Filters).
+- Ability to produce structured log. See [Structured-Log](https://github.com/odygrd/quill/wiki/10.-Structured-Log)
 - `guaranteed non-blocking` or `non-guaranteed` logging. In `non-guaranteed` mode there is no heap allocation of a new
   queue but log messages can be dropped. See [FAQ](https://github.com/odygrd/quill/wiki/7.-FAQ#guaranteed-logging-mode).
 - Support for wide character logging and wide character filenames (Windows and v1.7.x only).
-- Log statements in timestamp order even when produced by different threads. This makes debugging easier in
-  multi-threaded applications.
+- Log statements in timestamp order even when produced by different threads. This makes debugging
+  multithreading applications easier.
  -  Log levels can be completely stripped out at compile time reducing `if` branches.
  -  Clean warning-free codebase even on high warning levels.
  -  Crash safe behaviour with a build-in signal handler.

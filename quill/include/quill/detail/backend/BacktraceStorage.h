@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "quill/detail/backend/TransitEvent.h"
+#include "quill/TransitEvent.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -13,9 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 /**
@@ -40,9 +38,7 @@ public:
 
   /**
    * Stores an object to a vector that maps to logger_name
-   * @param logger_name the logger name to store the record
-   * @param thread_id the thread id of this record
-   * @param record the record to store
+   * @param transit_event transit_event
    */
   void store(TransitEvent transit_event);
 
@@ -91,5 +87,4 @@ private:
   /** A map where we store a vector of stored records for each logger name. We use the vectors like a ring buffer and loop around */
   std::unordered_map<std::string, StoredRecordInfo> _stored_records_map;
 };
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

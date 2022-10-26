@@ -16,9 +16,7 @@
 #include <string>                         // for string, wstring
 #include <vector>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /**
  * Check if a number is a power of 2
@@ -122,5 +120,4 @@ QUILL_NODISCARD std::vector<char> safe_strftime(char const* format_string, time_
  * @return returns a vector of tokens
  */
 QUILL_NODISCARD std::vector<std::string> split(std::string const& s, char delimiter);
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

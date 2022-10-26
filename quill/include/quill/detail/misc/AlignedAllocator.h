@@ -8,9 +8,7 @@
 #include "Os.h"
 #include "Utilities.h"
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /**
  * An allocator class to allocate aligned memory
@@ -57,5 +55,4 @@ bool operator!=(CacheAlignedAllocator<T> const& x, CacheAlignedAllocator<U> cons
   return !(x == y);
 }
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

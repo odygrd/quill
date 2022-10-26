@@ -8,6 +8,8 @@
 #include "quill/Fmt.h"
 #include "quill/MacroMetadata.h"
 #include "quill/PatternFormatter.h"
+#include "quill/TransitEvent.h"
+#include "quill/detail/Serialize.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/filters/FilterBase.h"
@@ -69,12 +71,10 @@ public:
    * Logs a formatted log message to the handler
    * @note: Accessor for backend processing
    * @param formatted_log_message input log message to write
-   * @param log_message_timestamp log message timestamp
-   * @param log_message_severity the severity of the log message
+   * @param log_event transit event
    */
   QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_message,
-                                         std::chrono::nanoseconds log_message_timestamp,
-                                         LogLevel log_message_severity) = 0;
+                                         quill::TransitEvent const& log_event) = 0;
 
   /**
    * Flush the handler synchronising the associated handler with its controlled output sequence.
@@ -116,11 +116,12 @@ public:
   QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
                                      MacroMetadata const& metadata, fmt::memory_buffer const& formatted_record);
 
-private:
+protected:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter
    * must not be moved or copied. We create the default pattern formatter always on init */
   std::unique_ptr<PatternFormatter> _formatter = std::make_unique<PatternFormatter>();
 
+private:
   /** Local Filters for this handler **/
   std::vector<FilterBase*> _local_filters;
 

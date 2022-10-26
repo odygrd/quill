@@ -7,6 +7,7 @@
 
 #include "quill/TweakMe.h"
 
+#include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 #include <exception>
 #include <string>
@@ -34,7 +35,8 @@ public:
   explicit QuillError(std::string s) : _error(std::move(s)) {}
   explicit QuillError(char const* s) : _error(s) {}
 
-  char const* what() const noexcept override { return _error.data(); }
+  QUILL_NODISCARD char const* what() const noexcept override { return _error.data(); }
+
 private:
   std::string _error;
 };

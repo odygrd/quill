@@ -20,9 +20,7 @@
 #include <mutex> // for call_once, once_flag
 #include <optional>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /**
  * Provides access to common collection class that are used by both the frontend and the backend
@@ -82,8 +80,8 @@ public:
                                         std::optional<TimestampClock*> timestamp_clock)
   {
     return _logger_collection.create_logger(
-      logger_name, timestamp_clock_type.has_value() ? timestamp_clock_type.value() : _config.default_timestamp_clock_type,
-      timestamp_clock.has_value() ? timestamp_clock.value() : _config.default_custom_timestamp_clock);
+      logger_name, timestamp_clock_type.has_value() ? *timestamp_clock_type : _config.default_timestamp_clock_type,
+      timestamp_clock.has_value() ? *timestamp_clock : _config.default_custom_timestamp_clock);
   }
 
   /***/
@@ -93,8 +91,8 @@ public:
   {
     return _logger_collection.create_logger(
       logger_name, handler,
-      timestamp_clock_type.has_value() ? timestamp_clock_type.value() : _config.default_timestamp_clock_type,
-      timestamp_clock.has_value() ? timestamp_clock.value() : _config.default_custom_timestamp_clock);
+      timestamp_clock_type.has_value() ? *timestamp_clock_type : _config.default_timestamp_clock_type,
+      timestamp_clock.has_value() ? *timestamp_clock : _config.default_custom_timestamp_clock);
   }
 
   /***/
@@ -104,8 +102,8 @@ public:
   {
     return _logger_collection.create_logger(
       logger_name, handlers,
-      timestamp_clock_type.has_value() ? timestamp_clock_type.value() : _config.default_timestamp_clock_type,
-      timestamp_clock.has_value() ? timestamp_clock.value() : _config.default_custom_timestamp_clock);
+      timestamp_clock_type.has_value() ? *timestamp_clock_type : _config.default_timestamp_clock_type,
+      timestamp_clock.has_value() ? *timestamp_clock : _config.default_custom_timestamp_clock);
   }
 
   /***/
@@ -115,8 +113,8 @@ public:
   {
     return _logger_collection.create_logger(
       logger_name, handlers,
-      timestamp_clock_type.has_value() ? timestamp_clock_type.value() : _config.default_timestamp_clock_type,
-      timestamp_clock.has_value() ? timestamp_clock.value() : _config.default_custom_timestamp_clock);
+      timestamp_clock_type.has_value() ? *timestamp_clock_type : _config.default_timestamp_clock_type,
+      timestamp_clock.has_value() ? *timestamp_clock : _config.default_custom_timestamp_clock);
   }
 
   /**
@@ -148,8 +146,8 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          QUILL_STRINGIFY(__LINE__),         __FILE__, __FUNCTION__, "", LogLevel::Critical,
-          quill::MacroMetadata::Event::Flush};
+          QUILL_STRINGIFY(__LINE__),          __FILE__, __FUNCTION__, "", LogLevel::Critical,
+          quill::MacroMetadata::Event::Flush, false};
       }
     } anonymous_log_message_info;
 
@@ -300,5 +298,4 @@ private:
 private:
   detail::LogManager _log_manager;
 };
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

@@ -16,9 +16,7 @@
 /** forward declarations **/
 struct tm;
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 /**
@@ -84,5 +82,4 @@ private:
   AdditionalSpecifier _additional_format_specifier{AdditionalSpecifier::None};
 };
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

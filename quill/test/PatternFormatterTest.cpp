@@ -21,8 +21,8 @@ TEST_CASE("default_pattern_formatter")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),  __FILE__,       __func__,
-    "This the {} formatter {}", LogLevel::Info, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {} formatter {}", LogLevel::Info,
+    MacroMetadata::Event::Log, false};
 
   // Format to a buffer
   fmt::memory_buffer mbuff;
@@ -52,8 +52,8 @@ TEST_CASE("custom_pattern_message_only")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   // Format to a buffer
   fmt::memory_buffer mbuff;
@@ -84,8 +84,8 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   // Format to a buffer
   fmt::memory_buffer mbuff;
@@ -117,8 +117,8 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   // Format to a buffer
   fmt::memory_buffer mbuff;
@@ -150,8 +150,8 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   // Format to a buffer
   fmt::memory_buffer mbuff;
@@ -183,8 +183,8 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   // Format to a buffer
   fmt::memory_buffer mbuff;
@@ -217,8 +217,8 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   for (size_t i = 0; i < 5; ++i)
   {
@@ -254,8 +254,8 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   for (size_t i = 0; i < 5; ++i)
   {
@@ -282,14 +282,6 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
 #ifndef QUILL_NO_EXCEPTIONS
 TEST_CASE("invalid_pattern")
 {
-  // missing %(message)
-  REQUIRE_THROWS_AS(
-    PatternFormatter(
-      "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - "
-      "[%(function_name)]",
-      "%H:%M:%S.%Qns", Timezone::GmtTime),
-    quill::QuillError);
-
   // missing %)
   REQUIRE_THROWS_AS(
     PatternFormatter(
@@ -319,8 +311,8 @@ TEST_CASE("custom_pattern")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   // Format to a buffer
   fmt::memory_buffer mbuff;
@@ -334,7 +326,7 @@ TEST_CASE("custom_pattern")
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:322 LOG_DEBUG     test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:314 LOG_DEBUG     test_logger "
     "- This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -353,8 +345,8 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
   MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__),    __FILE__,        __func__,
-    "This the {1} formatter {0}", LogLevel::Debug, MacroMetadata::Event::Log};
+    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
+    MacroMetadata::Event::Log, false};
 
   // Format to a buffer
   fmt::memory_buffer mbuff;

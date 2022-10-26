@@ -15,14 +15,12 @@
   #include <unistd.h>
 #endif
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 namespace
 {
 // std::atomic is also safe here to use instead, as long as it is lock-free
-volatile static std::sig_atomic_t lock{0};
+volatile std::sig_atomic_t lock{0};
 
 #if defined(_WIN32)
 /***/
@@ -174,7 +172,7 @@ void on_signal(int32_t signal_number)
 }
 
 #else
-volatile static std::sig_atomic_t signal_number_{0};
+volatile std::sig_atomic_t signal_number_{0};
 
 /***/
 void on_alarm(int32_t signal_number)
@@ -304,5 +302,4 @@ void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals
   }
 }
 #endif
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

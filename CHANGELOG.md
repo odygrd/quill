@@ -1,3 +1,4 @@
+- [v2.3.0](#v2.3.0)
 - [v2.2.0](#v2.2.0)
 - [v2.1.0](#v2.1.0)
 - [v2.0.2](#v2.0.2)
@@ -27,6 +28,56 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
+## v2.3.0
+
+**Improvements**
+
+- Cache the available bytes for reading in the logging queue. This is meant to offer some minor performance
+  improvement to the backend logging thread. [#185](https://github.com/odygrd/quill/issues/185)
+
+- Fixed static code analysis and clang '-Wdocumentation' warnings.
+
+- The `Handler.h` API has changed in this version to support structured logs. If you have implemented your own custom
+  `Handler` you will have to change it to follow the new API.
+
+- This version adds support for writing structured logs. Structured logs provide easier search through events.
+  Structured logging is automatically enabled when named arguments are provided to the format string. Structured logs
+  are only supported by the new `quill::JsonFileHandler` handler. The already existing `FileHandler` and
+  `ConsoleHandler` are compatible with named arguments, but they will ignore them and output the log in its
+  original format, as defined by the pattern formatter.
+  Structured logs are not supported for wide characters at the moment.
+  See [example_json_structured_log.cpp](https://github.com/odygrd/quill/blob/master/examples/example_json_structured_log.cpp)
+
+For example :
+
+```c++
+  quill::start();
+
+  quill::Handler* json_handler =
+    quill::create_handler<quill::JsonFileHandler>("json_output.log", "w");
+
+  // create another logger tha logs e.g. to stdout and to the json file at the same time
+  quill::Logger* logger = quill::create_logger("dual_logger", {quill::stdout_handler(), json_handler});
+  for (int i = 2; i < 4; ++i)
+  {
+    LOG_INFO(logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
+  }
+```
+
+1) Will write to stdout (stdout_handler) :
+
+````
+23:37:19.850432433 [11811] example_json_structured_log.cpp:39 LOG_INFO      dual_logger  - POST to http:// took 20 ms
+23:37:19.850440154 [11811] example_json_structured_log.cpp:39 LOG_INFO      dual_logger  - POST to http:// took 30 ms
+````
+
+2) Will produce a JSON file (json_handler) :
+
+```
+{ "timestamp": "23:37:19.850432433", "file": "example_json_structured_log.cpp", "line": "39", "thread_id": "11811", "logger": "dual_logger", "level": "Info", "message": "{method} to {endpoint} took {elapsed} ms", "method": "POST", "endpoint": "http://", "elapsed": "20" }
+{ "timestamp": "23:37:19.850440154", "file": "example_json_structured_log.cpp", "line": "39", "thread_id": "11811", "logger": "dual_logger", "level": "Info", "message": "{method} to {endpoint} took {elapsed} ms", "method": "POST", "endpoint": "http://", "elapsed": "30" }
+```
+
 ## v2.2.0
 
 **Improvements**
@@ -38,7 +89,7 @@
 - Update bundled fmt to 9.1.0
 - `logger->should_log(level)` is removed. A compile time check was added to `logger->should_log<level>()`
   . ([#187](https://github.com/odygrd/quill/issues/187))
- 
+
 ## v2.1.0
 
 **Improvements**

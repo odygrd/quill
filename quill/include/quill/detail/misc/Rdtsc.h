@@ -20,9 +20,7 @@
   #endif
 #endif
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 #if defined(__aarch64__)
 // arm64
@@ -79,5 +77,4 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept { return __rdtsc(); }
 #endif
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

@@ -27,6 +27,6 @@ public:
   /**
    * Returns time since epoch in nanoseconds
    */
-  QUILL_ATTRIBUTE_HOT virtual uint64_t now() const = 0;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT virtual uint64_t now() const = 0;
 };
 } // namespace quill

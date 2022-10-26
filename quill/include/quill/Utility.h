@@ -13,9 +13,7 @@
 /**
  * Contains useful utilities to assist with logging
  */
-namespace quill
-{
-namespace utility
+namespace quill::utility
 {
 /**
  * Formats the given buffer to hex
@@ -57,5 +55,4 @@ QUILL_NODISCARD std::string to_string(T const& obj) noexcept
   ss << obj;
   return ss.str();
 }
-} // namespace utility
-} // namespace quill
+} // namespace quill::utility

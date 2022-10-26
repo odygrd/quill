@@ -3,6 +3,7 @@
 #include "misc/TestUtilities.h"
 #include "quill/Quill.h"
 #include "quill/detail/misc/FileUtilities.h"
+#include "quill/handlers/JsonFileHandler.h"
 #include <cstdio>
 #include <string>
 
@@ -22,26 +23,23 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 
   std::vector<std::thread> threads;
 
+  // Set writing logging to a file
+  quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
+
   for (int i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back(
-      [filename, number_of_messages, test_id, i]()
+      [log_from_one_thread_file, number_of_messages, test_id, i]()
       {
         // Also use preallocate
         quill::preallocate();
 
-        // Set writing logging to a file
-        quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
-
         std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(logger_name.data(), log_from_one_thread_file);
 
-        // Change the LogLevel to print everything
-        logger->set_log_level(quill::LogLevel::TraceL3);
-
         for (uint32_t j = 0; j < number_of_messages; ++j)
         {
-          LOG_INFO(logger, "Hello from thread {} this is message {}", i, j);
+          LOG_INFO(logger, "Hello from thread {thread_index} this is message {message_num}", i, j);
         }
       });
   }
@@ -62,10 +60,10 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
   for (int i = 0; i < number_of_threads; ++i)
   {
     // for each thread
-    std::string expected_logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
-
     for (uint32_t j = 0; j < number_of_messages; ++j)
     {
+      std::string expected_logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
+
       std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
         std::to_string(i) + " this is message " + std::to_string(j);
 
@@ -310,8 +308,6 @@ TEST_CASE("log_using_daily_file_handler")
 
   // Remove filenames
   quill::detail::remove_file(base_filename);
-  quill::detail::remove_file(base_filename);
-  quill::detail::remove_file(base_filename);
 }
 
 /***/
@@ -357,7 +353,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:334         LOG_INFO      root         - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:330         LOG_INFO      root         - Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -523,7 +519,10 @@ std::ostream& operator<<(std::ostream& os, const RawEnum& raw_enum)
   return os;
 }
 
-template <> struct fmt::formatter<RawEnum> : ostream_formatter {};
+template <>
+struct fmt::formatter<RawEnum> : ostream_formatter
+{
+};
 
 enum class EnumClass : int
 {
@@ -552,7 +551,10 @@ std::ostream& operator<<(std::ostream& os, const EnumClass& enum_class)
   return os;
 }
 
-template <> struct fmt::formatter<EnumClass> : ostream_formatter {};
+template <>
+struct fmt::formatter<EnumClass> : ostream_formatter
+{
+};
 
 /***/
 TEST_CASE("log_enums_with_overloaded_insertion_operator")

@@ -7,9 +7,7 @@
 #include <cstddef>                    // for size_t
 #include <iostream>
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 namespace
@@ -83,8 +81,8 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
 
 /**
  * Convert tsc cycles to nanoseconds
- * @param tsc
- * @return
+ * @param rdtsc_value rdtsc_value
+ * @return system clock time
  */
 uint64_t RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
@@ -132,5 +130,4 @@ bool RdtscClock::resync(uint32_t lag) const noexcept
   _resync_interval_ticks = _resync_interval_ticks * 2;
   return false;
 }
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

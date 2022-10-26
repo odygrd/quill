@@ -13,7 +13,6 @@ set(HEADER_FILES
         include/quill/detail/backend/FreeListAllocator.h
         include/quill/detail/backend/StringFromTime.h
         include/quill/detail/backend/TimestampFormatter.h
-        include/quill/detail/backend/TransitEvent.h
         include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
@@ -42,6 +41,7 @@ set(HEADER_FILES
         include/quill/handlers/ConsoleHandler.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
+        include/quill/handlers/JsonFileHandler.h
         include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
         include/quill/handlers/TimeRotatingFileHandler.h
@@ -54,6 +54,7 @@ set(HEADER_FILES
         include/quill/PatternFormatter.h
         include/quill/Quill.h
         include/quill/QuillError.h
+        include/quill/TransitEvent.h
         include/quill/TweakMe.h
         include/quill/Utility.h
         )
@@ -77,6 +78,7 @@ set(SOURCE_FILES
         src/handlers/ConsoleHandler.cpp
         src/handlers/FileHandler.cpp
         src/handlers/Handler.cpp
+        src/handlers/JsonFileHandler.cpp
         src/handlers/RotatingFileHandler.cpp
         src/handlers/StreamHandler.cpp
         src/handlers/TimeRotatingFileHandler.cpp

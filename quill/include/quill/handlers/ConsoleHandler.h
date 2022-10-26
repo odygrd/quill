@@ -194,11 +194,10 @@ public:
   /**
    * Write a formatted log message to the stream
    * @param formatted_log_message input log message to write
-   * @param log_message_timestamp log message timestamp
+   * @param transit_Event transit_Event
    */
   QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_message,
-                                 std::chrono::nanoseconds log_message_timestamp,
-                                 LogLevel log_message_severity) override;
+                                 TransitEvent const& transit_Event) override;
 
   /**
    * Used internally to enable the console colours on "stdout" handler which is already

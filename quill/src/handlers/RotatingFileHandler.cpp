@@ -42,7 +42,7 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
       if (found != std::string::npos)
       {
         // stem will be something like `logfile.1`
-        size_t pos = entry.path().stem().string().find_last_of(".");
+        size_t pos = entry.path().stem().string().find_last_of('.');
         if (pos != std::string::npos)
         {
           std::string index = entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
@@ -50,7 +50,7 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
           // Attempt to convert the index to a number
           QUILL_TRY
           {
-            uint32_t index_num = static_cast<uint32_t>(std::stoul(index));
+            auto index_num = static_cast<uint32_t>(std::stoul(index));
             _current_index = (std::max)(_current_index, index_num);
             if (_current_index > (_backup_count - 1))
             {
@@ -72,8 +72,7 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
 }
 
 /***/
-void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_message,
-                                std::chrono::nanoseconds log_message_timestamp, LogLevel log_message_severity)
+void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_message, quill::TransitEvent const& log_event)
 {
   _current_size += formatted_log_message.size();
 
@@ -84,7 +83,7 @@ void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_message,
   }
 
   // write to file
-  StreamHandler::write(formatted_log_message, log_message_timestamp, log_message_severity);
+  StreamHandler::write(formatted_log_message, log_event);
 }
 
 /***/

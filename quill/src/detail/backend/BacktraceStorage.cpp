@@ -4,9 +4,7 @@
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 
 /***/
@@ -85,8 +83,7 @@ void BacktraceStorage::process(std::string const& logger_name,
 /***/
 void BacktraceStorage::set_capacity(std::string const& logger_name, uint32_t capacity)
 {
-  auto inserted_it =
-    _stored_records_map.insert(std::make_pair(std::string{logger_name}, StoredRecordInfo{capacity}));
+  auto inserted_it = _stored_records_map.emplace(std::string{logger_name}, StoredRecordInfo{capacity});
 
   if (!inserted_it.second)
   {
@@ -115,5 +112,4 @@ void BacktraceStorage::clear(std::string const& logger_name)
   }
 }
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

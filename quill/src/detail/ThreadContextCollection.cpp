@@ -5,9 +5,7 @@
 #include <mutex>                        // for lock_guard
 #include <type_traits>                  // for remove_extent<>::type
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /***/
 ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection)
@@ -189,5 +187,4 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
                    });
   }
 }
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

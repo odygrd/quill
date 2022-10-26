@@ -6,9 +6,7 @@
 #include <cstdio>                                   // for stdout,stderr
 #include <utility>                                  // for pair
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /***/
 StreamHandler* HandlerCollection::stdout_console_handler(std::string const& stdout_handler_name /* = std::string{"stdout"} */,
@@ -101,5 +99,4 @@ StreamHandler* HandlerCollection::_create_console_handler(std::string const& str
 
   return reinterpret_cast<StreamHandler*>((*emplace_result.first).second.get());
 }
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail
