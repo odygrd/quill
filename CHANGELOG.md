@@ -32,10 +32,13 @@
 
 **Improvements**
 
-- The `Handler.h` API has changed in this version to support structured logs. If you have implemented a custom
+- Cache the available bytes for reading in the logging queue. This is meant to offer some minor performance 
+improvement to the backend logging thread. [#185](https://github.com/odygrd/quill/issues/185)
+
+- The `Handler.h` API has changed in this version to support structured logs. If you have implemented your own custom
   `Handler` you will have to change it to follow the new API.
 
-- This version adds initial support for writing structured logs. Structured logs provide easier search through events.
+- This version adds support for writing structured logs. Structured logs provide easier search through events.
   Structured logging is automatically enabled when named arguments are provided to the format string. Structured logs
   are only supported by the new `quill::JsonFileHandler` handler. The already existing `FileHandler` and
   `ConsoleHandler` are compatible with named arguments, but they will ignore them and output the log in its
