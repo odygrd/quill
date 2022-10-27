@@ -1,3 +1,4 @@
+- [v2.3.2](#v2.3.2)
 - [v2.3.1](#v2.3.1)
 - [v2.3.0](#v2.3.0)
 - [v2.2.0](#v2.2.0)
@@ -28,6 +29,12 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.3.2
+
+**Fixes**
+
+- Fix code not compiling with treat warnings as errors set on Windows. ([#198](https://github.com/odygrd/quill/pull/198))
 
 ## v2.3.1
 
