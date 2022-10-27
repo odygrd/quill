@@ -50,9 +50,9 @@ public:
       _lineno(lineno),
       _level(level),
       _event(event),
+      _is_structured_log_template(is_structured_log_template),
       _has_wide_char{true},
-      _wmessage_format(message_format),
-      _is_structured_log_template(is_structured_log_template)
+      _wmessage_format(message_format)
   {
   }
 #endif
