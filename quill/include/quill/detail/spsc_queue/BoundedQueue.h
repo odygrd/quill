@@ -214,16 +214,17 @@ protected:
 
   /** Lower bound on the number of bytes the producer can allocate w/o rolling over the
    * producerPos or stalling behind the consumer. Only used by the producer **/
-  alignas(CACHELINE_SIZE) size_t _min_free_space;
-
-  /** Min value on the number of bytes the consumer can read **/
-  alignas(CACHELINE_SIZE) size_t _min_avail_bytes;
+  size_t _min_free_space;
 
   /**
    * Position within the storage buffer where the consumer will consume
    * the next bytes from. This value is only updated by the consumer.
    */
   alignas(CACHELINE_SIZE) std::atomic<std::byte*> _consumer_pos;
-  char _pad0[CACHELINE_SIZE - sizeof(std::atomic<std::byte*>)] = "\0";
+  
+  /** Min value on the number of bytes the consumer can read **/
+  size_t _min_avail_bytes;
+  
+  char _pad0[CACHELINE_SIZE - sizeof(std::atomic<std::byte*>) - sizeof(size_t)] = "\0";
 };
 } // namespace quill::detail
