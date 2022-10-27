@@ -70,7 +70,7 @@ namespace detail
 /**
  * Cache line size
  */
-static constexpr size_t CACHELINE_SIZE{64u};
+static constexpr size_t CACHELINE_SIZE{128u};
 
 constexpr bool detect_structured_log_template(std::string_view fmt)
 {

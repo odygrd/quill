@@ -1,3 +1,4 @@
+- [v2.3.1](#v2.3.1)
 - [v2.3.0](#v2.3.0)
 - [v2.2.0](#v2.2.0)
 - [v2.1.0](#v2.1.0)
@@ -27,6 +28,12 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.3.1
+
+**Fixes**
+
+- Optimise logging queue cache alignment of variables. It seems that v2.3.0 made the hot path slower by ~5 ns per message. This has been fixed in this version and the performance is now the same as in the previous versions.
 
 ## v2.3.0
 
