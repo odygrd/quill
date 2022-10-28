@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-10.15, macos-11 ]
+        os: [ macos-11 ]
         build_type: [ Debug, Release ]
         std: [ 17, 20 ]
 
