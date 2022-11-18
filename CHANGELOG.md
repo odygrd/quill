@@ -1,3 +1,4 @@
+- [v2.3.3](#v2.3.3)
 - [v2.3.2](#v2.3.2)
 - [v2.3.1](#v2.3.1)
 - [v2.3.0](#v2.3.0)
@@ -30,11 +31,21 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
+## v2.3.3
+
+**Fixes**
+
+- Previously when multiple threads were loggin, Quill backend logging thread would first try reading the log messages of
+  one thread until the queue was completely empty before reading the log messages of the next thread.
+  When one of the threads was logging a lot, it could result in only displaying the log of that thread, hiding the
+  logs of the other threads. This has now been fixed and all log messages from all threads are read fairly.
+
 ## v2.3.2
 
 **Fixes**
 
-- Fix code not compiling with treat warnings as errors set on Windows. ([#198](https://github.com/odygrd/quill/pull/198))
+- Fix code not compiling with treat warnings as errors set on
+  Windows. ([#198](https://github.com/odygrd/quill/pull/198))
 
 ## v2.3.1
 
