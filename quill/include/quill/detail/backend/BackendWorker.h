@@ -105,7 +105,7 @@ private:
   /**
    * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
    */
-  QUILL_ATTRIBUTE_HOT inline void _read_queue_and_decode(ThreadContext* thread_context, bool is_terminating);
+  QUILL_ATTRIBUTE_HOT inline bool _read_queue_and_decode(ThreadContext* thread_context);
 
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
@@ -268,155 +268,167 @@ void BackendWorker::run()
 void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
                                              bool is_terminating)
 {
-  // copy everything to a priority queue
-  for (ThreadContext* thread_context : cached_thread_contexts)
+  while (true)
   {
-    _read_queue_and_decode(thread_context, is_terminating);
+    uint16_t empty{0};
+    for (ThreadContext* thread_context : cached_thread_contexts)
+    {
+      if (!is_terminating && (_transit_events.size() >= _max_transit_events))
+      {
+        // transit events queue is full
+        return;
+      }
+
+      // copy everything to a priority queue
+      if (!_read_queue_and_decode(thread_context))
+      {
+        // _read_queue_and_decode returns false for an empty queue
+        ++empty;
+      }
+    }
+
+    if (empty == cached_thread_contexts.size())
+    {
+      // all queues are empty we are done
+      return;
+    }
   }
 }
 
 /***/
-void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, bool is_terminating)
+bool BackendWorker::_read_queue_and_decode(ThreadContext* thread_context)
 {
-  // Read the fast queue
   ThreadContext::SPSCQueueT& spsc_queue = thread_context->spsc_queue();
 
-  while (true)
+  // Note: The producer will commit to this queue when one complete message is written.
+  // This means that if we can read something from the queue it will be a full message
+  // The producer will add items to the buffer :
+  // |timestamp|metadata*|logger_details*|args...|
+
+  auto read = spsc_queue.prepare_read();
+  std::byte* read_buffer = read.first;
+  size_t bytes_available = read.second;
+  std::byte* const read_begin = read_buffer;
+
+  if (bytes_available == 0)
   {
-    if (!is_terminating && (_transit_events.size() >= _max_transit_events))
+    // the queue is empty
+    return false;
+  }
+
+  // The queue is empty. First we want to allocate a new TransitEvent to store the message
+  // from the queue
+  void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
+  auto* transit_event = new (transit_event_buffer) TransitEvent{};
+  transit_event->thread_id = thread_context->thread_id();
+  transit_event->thread_name = thread_context->thread_name();
+
+  // read the header first, and take copy of the header
+  read_buffer = detail::align_pointer<alignof(Header), std::byte>(read_buffer);
+  transit_event->header = *(reinterpret_cast<detail::Header*>(read_buffer));
+  read_buffer += sizeof(detail::Header);
+
+  // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
+  // doing the conversion here ensures that every transit that is inserted in the priority queue
+  // below has a header timestamp of nanoseconds since epoch and makes it even possible to
+  // have Logger objects using different clocks
+  if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc)
+  {
+    if (!_rdtsc_clock)
     {
-      // transit events queue is full
-      break;
+      // Here we lazy initialise rdtsc clock on the backend thread only if the user decides to use it
+      // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
+      // taking samples first
+      _rdtsc_clock = std::make_unique<RdtscClock>(_config.rdtsc_resync_interval);
     }
 
-    // Note: The producer will commit a write to this queue when one complete message is written.
-    // This means that if we can read something from the queue it will be a full message
-    // The producer will add items to the buffer :
-    // |timestamp|metadata*|logger_details*|args...|
+    // convert the rdtsc value to nanoseconds since epoch
+    transit_event->header.timestamp = _rdtsc_clock->time_since_epoch(transit_event->header.timestamp);
+  }
 
-    auto read = spsc_queue.prepare_read();
-    std::byte* read_buffer = read.first;
-    size_t bytes_available = read.second;
-    std::byte* const read_begin = read_buffer;
-
-    if (bytes_available == 0)
-    {
-      // keep reading until the queue is empty or we reached the transit events limit
-      break;
-    }
-
-    // The queue is empty. First we want to allocate a new TransitEvent to store the message
-    // from the queue
-    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
-    auto* transit_event = new (transit_event_buffer) TransitEvent{};
-    transit_event->thread_id = thread_context->thread_id();
-    transit_event->thread_name = thread_context->thread_name();
-
-    // read the header first, and take copy of the header
-    read_buffer = detail::align_pointer<alignof(Header), std::byte>(read_buffer);
-    transit_event->header = *(reinterpret_cast<detail::Header*>(read_buffer));
-    read_buffer += sizeof(detail::Header);
-
-    // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
-    // doing the conversion here ensures that every transit that is inserted in the priority queue
-    // below has a header timestamp of nanoseconds since epoch and makes it even possible to
-    // have Logger objects using different clocks
-    if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc)
-    {
-      if (!_rdtsc_clock)
-      {
-        // Here we lazy initialise rdtsc clock on the backend thread only if the user decides to use it
-        // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
-        // taking samples first
-        _rdtsc_clock = std::make_unique<RdtscClock>(_config.rdtsc_resync_interval);
-      }
-
-      // convert the rdtsc value to nanoseconds since epoch
-      transit_event->header.timestamp = _rdtsc_clock->time_since_epoch(transit_event->header.timestamp);
-    }
-
-    // we need to check and do not try to format the flush events as that wouldn't be valid
-    if (transit_event->header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
-    {
+  // we need to check and do not try to format the flush events as that wouldn't be valid
+  if (transit_event->header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
+  {
 #if defined(_WIN32)
-      if (transit_event->header.metadata->macro_metadata.has_wide_char())
-      {
-        // convert the format string to a narrow string
-        size_t const size_needed =
-          get_wide_string_encoding_size(transit_event->header.metadata->macro_metadata.wmessage_format());
-        std::string format_str(size_needed, 0);
-        wide_string_to_narrow(format_str.data(), size_needed,
-                              transit_event->header.metadata->macro_metadata.wmessage_format());
+    if (transit_event->header.metadata->macro_metadata.has_wide_char())
+    {
+      // convert the format string to a narrow string
+      size_t const size_needed =
+        get_wide_string_encoding_size(transit_event->header.metadata->macro_metadata.wmessage_format());
+      std::string format_str(size_needed, 0);
+      wide_string_to_narrow(format_str.data(), size_needed,
+                            transit_event->header.metadata->macro_metadata.wmessage_format());
 
-        assert(!transit_event->header.metadata->macro_metadata.is_structured_log_template() &&
-               "structured log templates are not supported for wide characters");
+      assert(!transit_event->header.metadata->macro_metadata.is_structured_log_template() &&
+             "structured log templates are not supported for wide characters");
 
-        read_buffer = transit_event->header.metadata->format_to_fn(
-            format_str, read_buffer, transit_event->formatted_msg, _args);
-      }
-      else
-      {
-#endif
-        if (transit_event->header.metadata->macro_metadata.is_structured_log_template())
-        {
-          // for messages containing named arguments threat them as structured logs
-          auto const search = _slog_templates.find(transit_event->header.metadata);
-          if (search != std::cend(_slog_templates))
-          {
-            auto const& [fmt_str, structured_keys] = search->second;
-
-            transit_event->structured_keys = structured_keys;
-
-            read_buffer = transit_event->header.metadata->format_to_fn(
-              fmt_str, read_buffer, transit_event->formatted_msg, _args);
-          }
-          else
-          {
-            auto [fmt_str, structured_keys] = _process_structured_log_template(
-              transit_event->header.metadata->macro_metadata.message_format());
-
-            // insert the results
-            _slog_templates[transit_event->header.metadata] = std::make_pair(fmt_str, structured_keys);
-
-            transit_event->structured_keys = std::move(structured_keys);
-
-            read_buffer = transit_event->header.metadata->format_to_fn(
-              fmt_str, read_buffer, transit_event->formatted_msg, _args);
-          }
-
-          // formatted values for any given keys
-          for (auto const& arg : _args)
-          {
-            transit_event->structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
-          }
-        }
-        else
-        {
-          // regular logs
-          read_buffer = transit_event->header.metadata->format_to_fn(
-            transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
-            transit_event->formatted_msg, _args);
-        }
-#if defined(_WIN32)
-      }
-#endif
+      read_buffer = transit_event->header.metadata->format_to_fn(
+        format_str, read_buffer, transit_event->formatted_msg, _args);
     }
     else
     {
-      // if this is a flush event then we do not need to format anything for the
-      // transit_event, but we need to set the transit event's flush_flag pointer instead
-      uintptr_t flush_flag_tmp;
-      std::memcpy(&flush_flag_tmp, read_buffer, sizeof(uintptr_t));
-      transit_event->flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
-      read_buffer += sizeof(uintptr_t);
+#endif
+      if (transit_event->header.metadata->macro_metadata.is_structured_log_template())
+      {
+        // for messages containing named arguments threat them as structured logs
+        auto const search = _slog_templates.find(transit_event->header.metadata);
+        if (search != std::cend(_slog_templates))
+        {
+          auto const& [fmt_str, structured_keys] = search->second;
+
+          transit_event->structured_keys = structured_keys;
+
+          read_buffer = transit_event->header.metadata->format_to_fn(
+            fmt_str, read_buffer, transit_event->formatted_msg, _args);
+        }
+        else
+        {
+          auto [fmt_str, structured_keys] = _process_structured_log_template(
+            transit_event->header.metadata->macro_metadata.message_format());
+
+          // insert the results
+          _slog_templates[transit_event->header.metadata] = std::make_pair(fmt_str, structured_keys);
+
+          transit_event->structured_keys = std::move(structured_keys);
+
+          read_buffer = transit_event->header.metadata->format_to_fn(
+            fmt_str, read_buffer, transit_event->formatted_msg, _args);
+        }
+
+        // formatted values for any given keys
+        for (auto const& arg : _args)
+        {
+          transit_event->structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
+        }
+      }
+      else
+      {
+        // regular logs
+        read_buffer = transit_event->header.metadata->format_to_fn(
+          transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
+          transit_event->formatted_msg, _args);
+      }
+#if defined(_WIN32)
     }
-
-    // Finish reading
-    assert((read_buffer >= read_begin) && "read_buffer should be greater or equal to read_begin");
-    spsc_queue.finish_read(static_cast<size_t>(read_buffer - read_begin));
-
-    _transit_events.emplace(transit_event);
+#endif
   }
+  else
+  {
+    // if this is a flush event then we do not need to format anything for the
+    // transit_event, but we need to set the transit event's flush_flag pointer instead
+    uintptr_t flush_flag_tmp;
+    std::memcpy(&flush_flag_tmp, read_buffer, sizeof(uintptr_t));
+    transit_event->flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
+    read_buffer += sizeof(uintptr_t);
+  }
+
+  // Finish reading
+  assert((read_buffer >= read_begin) && "read_buffer should be greater or equal to read_begin");
+  spsc_queue.finish_read(static_cast<size_t>(read_buffer - read_begin));
+
+  _transit_events.emplace(transit_event);
+
+  return true;
 }
 
 /***/
