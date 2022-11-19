@@ -643,9 +643,19 @@ void BackendWorker::_exit()
     }
     else
     {
-      _check_dropped_messages(cached_thread_contexts);
-      _force_flush();
-      break;
+      bool all_empty{true};
+      for (ThreadContext* thread_context : cached_thread_contexts)
+      {
+        all_empty &= thread_context->spsc_queue().empty();
+      }
+
+      if (all_empty)
+      {
+        // we are done, all queues are now empty
+        _check_dropped_messages(cached_thread_contexts);
+        _force_flush();
+        break;
+      }
     }
   }
 }
