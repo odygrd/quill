@@ -60,7 +60,7 @@ struct Config
    *
    * Enabling this option might delaying popping messages from the SPSC queues.
    */
-  bool backend_thread_strict_log_timestamp_order = false;
+  bool backend_thread_strict_log_timestamp_order = true;
 
   /**
    * Pins the backend thread to the given CPU
