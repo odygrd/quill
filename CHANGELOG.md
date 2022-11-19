@@ -1,3 +1,4 @@
+- [v2.4.0](#v2.4.0)
 - [v2.3.4](#v2.3.4)
 - [v2.3.3](#v2.3.3)
 - [v2.3.2](#v2.3.2)
@@ -31,6 +32,19 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.4.0
+
+**Improvements**
+
+- Added a config option `backend_thread_strict_log_timestamp_order`. This option enables an extra timestamp
+  check on the backend logging thread when each message is popped from the queues. It prevents a rare
+  situation where log messages from different threads could appear in the log file in the wrong order. This flag
+  is now enabled by default.
+
+- Added a config option `backend_thread_empty_all_queues_before_exit`. This option makes the backend logging thread
+  to wait until all the queues are empty before exiting. This ensures no log messages are lost when the application
+  exists. This flag is now enabled by default.
 
 ## v2.3.4
 

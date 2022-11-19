@@ -104,7 +104,7 @@ private:
   /**
    * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
    */
-  QUILL_ATTRIBUTE_HOT inline void _read_queue_and_decode(ThreadContext* thread_context);
+  QUILL_ATTRIBUTE_HOT inline void _read_queue_and_decode(ThreadContext* thread_context, uint64_t ts_now);
 
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
@@ -159,6 +159,8 @@ private:
   std::string _process_id;
 
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
+  bool _strict_log_timestamp_order{true};
+  bool _empty_all_queues_before_exit{true};
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
 
 #if !defined(QUILL_NO_EXCEPTIONS)
@@ -180,6 +182,8 @@ void BackendWorker::run()
   // enforce the user to configure a variable before the thread has started
   _backend_thread_sleep_duration = _config.backend_thread_sleep_duration;
   _max_transit_events = _config.backend_thread_max_transit_events;
+  _empty_all_queues_before_exit = _config.backend_thread_empty_all_queues_before_exit;
+  _strict_log_timestamp_order = _config.backend_thread_strict_log_timestamp_order;
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   if (_config.backend_thread_error_handler)
@@ -266,15 +270,21 @@ void BackendWorker::run()
 /***/
 void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
+  uint64_t const ts_now = _strict_log_timestamp_order
+    ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                              std::chrono::system_clock::now().time_since_epoch())
+                              .count())
+    : 0;
+
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
     // copy everything to a priority queue
-    _read_queue_and_decode(thread_context);
+    _read_queue_and_decode(thread_context, ts_now);
   }
 }
 
 /***/
-void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context)
+void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, uint64_t ts_now)
 {
   ThreadContext::SPSCQueueT& spsc_queue = thread_context->spsc_queue();
 
@@ -318,7 +328,34 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context)
 
       // convert the rdtsc value to nanoseconds since epoch
       transit_event->header.timestamp = _rdtsc_clock->time_since_epoch(transit_event->header.timestamp);
+
+      // Now check if the message has a timestamp greater than our ts_now
+      if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
+      {
+        // We are reading the queues sequentially and to be fair when ordering the messages
+        // we are trying to avoid the situation when we already read the first queue,
+        // and then we missed it when reading the last queue
+
+        // if the message timestamp is greater than our timestamp then we stop reading this queue
+        // for now and we will continue in the next circle
+        return;
+      }
     }
+    else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::System)
+    {
+      if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
+      {
+        // We are reading the queues sequentially and to be fair when ordering the messages
+        // we are trying to avoid the situation when we already read the first queue,
+        // and then we missed it when reading the last queue
+
+        // if the message timestamp is greater than our timestamp then we stop reading this queue
+        // for now and we will continue in the next circle
+        return;
+      }
+    }
+    // else we skip that check, we can not compare a custom timestamp by
+    // the user (TimestampClockType::Custom) against ours
 
     // we need to check and do not try to format the flush events as that wouldn't be valid
     if (transit_event->header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
@@ -610,9 +647,23 @@ void BackendWorker::_exit()
     }
     else
     {
-      _check_dropped_messages(cached_thread_contexts);
-      _force_flush();
-      break;
+      bool all_empty{true};
+
+      if (_empty_all_queues_before_exit)
+      {
+        for (ThreadContext* thread_context : cached_thread_contexts)
+        {
+          all_empty &= thread_context->spsc_queue().empty();
+        }
+      }
+
+      if (all_empty)
+      {
+        // we are done, all queues are now empty
+        _check_dropped_messages(cached_thread_contexts);
+        _force_flush();
+        break;
+      }
     }
   }
 }

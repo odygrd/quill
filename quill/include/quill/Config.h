@@ -32,14 +32,50 @@ struct Config
   std::chrono::nanoseconds backend_thread_sleep_duration = std::chrono::nanoseconds{300};
 
   /**
-   * The backend worker thread gives priority to reading the messages from SPSC queues from all the hot threads first,
-   * and storing them temporarily as transit events.
-   * However if the hot threads keep pushing messages to the queues e.g logging in a loop then no logs can ever be
-   * processed
-   * This variable sets the maximum transit events number. When that number is reached then half of them will get
-   * flushed to the log files before continuing reading the SPSC queues
+   * The backend worker thread gives priority to reading the messages from SPSC queues from all
+   * the hot threads first and buffers them temporarily.
+   *
+   * However if the hot threads keep pushing messages to the queues
+   * e.g logging in a loop then no logs can ever be processed.
+   *
+   * This variable sets the maximum transit events number.
+   * When that number is reached then half of them will get flushed to the log files before
+   * continuing reading the SPSC queues
    */
   size_t backend_thread_max_transit_events = 800;
+
+  /**
+   * The backend worker thread iterates all the active SPSC queues in order and pops all the messages
+   * from each queue. Then it sorts them by timestamp and logs them.
+   *
+   * Each active queue corresponds to a thread and when multiple threads are logging at the same time
+   * it is possible to read a timestamp from the last queue in the iteration but miss that
+   * timestamp when the first queue was read because it was not there yet at the time we were reading.
+   *
+   * When this is enabled the backend worker thread will take a timestamp `now()` before reading
+   * the queues. Then it will use that to check each log message timestamp from the active queues is
+   * less or equal to the stored 'now()' timestamp ensuring they are ordered by timestamp.
+   *
+   * Messages that fail the above check are not logged and remain in the queue.
+   * They are checked again at the next iteration. Messages are checked on microsecond precision.
+   *
+   * Enabling this option might delaying popping messages from the SPSC queues.
+   */
+  bool backend_thread_strict_log_timestamp_order = true;
+
+  /**
+   * When this option is enabled and the application is terminating the backend worker thread
+   * will not exit until all the SPSC queues are empty. This ensures all messages are logged.
+   *
+   * However, if during application's destruction there is a thread that keeps trying to log for
+   * ever it means that the backend worker thread will have to keep popping log messages and
+   * will not be able to exit.
+   *
+   * When this option is disabled the backend worker thread will try to read the queues once
+   * and then exit. Trying only read the queues only once means that some log messages can be
+   * dropped especially when backend_thread_strict_log_timestamp_order is set to true.
+   */
+  bool backend_thread_empty_all_queues_before_exit = true;
 
   /**
    * Pins the backend thread to the given CPU
