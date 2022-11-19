@@ -43,7 +43,7 @@
 
 **Fixes**
 
-- Previously when multiple threads were login, Quill backend logging thread would first try reading the log messages of
+- Previously when multiple threads were logging, Quill backend logging thread would first try reading the log messages of
   one thread until the queue was completely empty before reading the log messages of the next thread.
   When one of the threads was logging a lot, it could result in only displaying the log of that thread, hiding the
   logs of the other threads. This has now been fixed and all log messages from all threads are read fairly.
