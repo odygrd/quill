@@ -1,3 +1,4 @@
+- [v2.3.5](#v2.3.5)
 - [v2.3.4](#v2.3.4)
 - [v2.3.3](#v2.3.3)
 - [v2.3.2](#v2.3.2)
@@ -31,6 +32,13 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.3.5
+
+**Improvements**
+
+- Add an extra timestamp check to the backend logging thread to avoid a rare situation where log messages from
+  different threads could appear in the log file in the wrong order.
 
 ## v2.3.4
 

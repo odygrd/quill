@@ -104,7 +104,7 @@ private:
   /**
    * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
    */
-  QUILL_ATTRIBUTE_HOT inline void _read_queue_and_decode(ThreadContext* thread_context);
+  QUILL_ATTRIBUTE_HOT inline void _read_queue_and_decode(ThreadContext* thread_context, uint64_t ts_now);
 
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
@@ -266,15 +266,17 @@ void BackendWorker::run()
 /***/
 void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
+  uint64_t const ts_now = static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
     // copy everything to a priority queue
-    _read_queue_and_decode(thread_context);
+    _read_queue_and_decode(thread_context, ts_now);
   }
 }
 
 /***/
-void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context)
+void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, uint64_t ts_now)
 {
   ThreadContext::SPSCQueueT& spsc_queue = thread_context->spsc_queue();
 
@@ -318,7 +320,34 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context)
 
       // convert the rdtsc value to nanoseconds since epoch
       transit_event->header.timestamp = _rdtsc_clock->time_since_epoch(transit_event->header.timestamp);
+
+      // Now check if the message has a timestamp greater than our ts_now
+      if QUILL_UNLIKELY (transit_event->header.timestamp > ts_now)
+      {
+        // We are reading the queues sequentially and to be fair when ordering the messages
+        // we are trying to avoid the situation when we already read the first queue,
+        // and then we missed it when reading the last queue
+
+        // if the message timestamp is greater than our timestamp then we stop reading this queue
+        // for now and we will continue in the next circle
+        return;
+      }
     }
+    else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::System)
+    {
+      if QUILL_UNLIKELY (transit_event->header.timestamp > ts_now)
+      {
+        // We are reading the queues sequentially and to be fair when ordering the messages
+        // we are trying to avoid the situation when we already read the first queue,
+        // and then we missed it when reading the last queue
+
+        // if the message timestamp is greater than our timestamp then we stop reading this queue
+        // for now and we will continue in the next circle
+        return;
+      }
+    }
+    // else we skip that check, we can not compare a custom timestamp by
+    // the user (TimestampClockType::Custom) against ours
 
     // we need to check and do not try to format the flush events as that wouldn't be valid
     if (transit_event->header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
