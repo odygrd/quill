@@ -266,7 +266,9 @@ void BackendWorker::run()
 /***/
 void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
-  uint64_t const ts_now = static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+  uint64_t const ts_now = _config.backend_thread_strict_log_timestamp_order
+    ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
+    : 0;
 
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
@@ -322,7 +324,7 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, uint64
       transit_event->header.timestamp = _rdtsc_clock->time_since_epoch(transit_event->header.timestamp);
 
       // Now check if the message has a timestamp greater than our ts_now
-      if QUILL_UNLIKELY (transit_event->header.timestamp > ts_now)
+      if QUILL_UNLIKELY ((ts_now != 0) && (transit_event->header.timestamp > ts_now))
       {
         // We are reading the queues sequentially and to be fair when ordering the messages
         // we are trying to avoid the situation when we already read the first queue,
@@ -335,7 +337,7 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, uint64
     }
     else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::System)
     {
-      if QUILL_UNLIKELY (transit_event->header.timestamp > ts_now)
+      if QUILL_UNLIKELY ((ts_now != 0) && (transit_event->header.timestamp > ts_now))
       {
         // We are reading the queues sequentially and to be fair when ordering the messages
         // we are trying to avoid the situation when we already read the first queue,

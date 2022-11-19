@@ -37,8 +37,9 @@
 
 **Improvements**
 
-- Add an extra timestamp check to the backend logging thread to avoid a rare situation where log messages from
-  different threads could appear in the log file in the wrong order.
+- Added a config option `backend_thread_strict_log_timestamp_order`. This option enables an extra timestamp
+  check on the backend logging thread when each message is popped from the queues. It can prevent a rare
+  situation where log messages from different threads can appear in the log file in the wrong order.
 
 ## v2.3.4
 
