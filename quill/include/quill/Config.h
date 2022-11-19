@@ -33,7 +33,8 @@ struct Config
 
   /**
    * The backend worker thread gives priority to reading the messages from SPSC queues from all
-   * the hot threads first and stores them temporarily as transit events.
+   * the hot threads first and buffers them temporarily.
+   *
    * However if the hot threads keep pushing messages to the queues
    * e.g logging in a loop then no logs can ever be processed.
    *
@@ -56,11 +57,25 @@ struct Config
    * less or equal to the stored 'now()' timestamp ensuring they are ordered by timestamp.
    *
    * Messages that fail the above check are not logged and remain in the queue.
-   * They are checked again at the next iteration.
+   * They are checked again at the next iteration. Messages are checked on microsecond precision.
    *
    * Enabling this option might delaying popping messages from the SPSC queues.
    */
   bool backend_thread_strict_log_timestamp_order = true;
+
+  /**
+   * When this option is enabled and the application is terminating the backend worker thread
+   * will not exit until all the SPSC queues are empty. This ensures all messages are logged.
+   *
+   * However, if during application's destruction there is a thread that keeps trying to log for
+   * ever it means that the backend worker thread will have to keep popping log messages and
+   * will not be able to exit.
+   *
+   * When this option is disabled the backend worker thread will try to read the queues once
+   * and then exit. Trying only read the queues only once means that some log messages can be
+   * dropped especially when backend_thread_strict_log_timestamp_order is set to true.
+   */
+  bool backend_thread_empty_all_queues_before_exit = true;
 
   /**
    * Pins the backend thread to the given CPU
