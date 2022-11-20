@@ -156,7 +156,7 @@ private:
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
 
-  std::priority_queue<TransitEvent*, std::vector<TransitEvent*>, TransitEventComparator> _transit_events;
+  std::priority_queue<std::pair<uint64_t, TransitEvent*>, std::vector<std::pair<uint64_t, TransitEvent*>>, TransitEventComparator> _transit_events;
 
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
 
@@ -471,7 +471,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     queue.finish_read(read_size);
     bytes_available -= read_size;
 
-    _transit_events.emplace(transit_event);
+    _transit_events.emplace(std::make_pair(transit_event->header.timestamp, transit_event));
   }
 
   // read everything
@@ -481,7 +481,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 /***/
 void BackendWorker::_process_transit_event()
 {
-  TransitEvent const* transit_event = _transit_events.top();
+  TransitEvent const* transit_event = _transit_events.top().second;
 
   // If backend_process(...) throws we want to skip this event and move to the next so we catch the
   // error here instead of catching it in the parent try/catch block of main_loop

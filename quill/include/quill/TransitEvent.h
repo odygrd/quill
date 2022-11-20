@@ -100,9 +100,9 @@ struct TransitEvent
 class TransitEventComparator
 {
 public:
-  bool operator()(TransitEvent const* lhs, TransitEvent const* rhs)
+  bool operator()(std::pair<uint64_t, TransitEvent*> const& lhs, std::pair<uint64_t, TransitEvent*> const& rhs)
   {
-    return lhs->header.timestamp > rhs->header.timestamp;
+    return lhs.first > rhs.first;
   }
 };
 } // namespace quill
