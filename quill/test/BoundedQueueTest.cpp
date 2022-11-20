@@ -22,7 +22,7 @@ TEST_CASE("read_write_buffer")
 
   {
     auto const res = buffer.prepare_read();
-    REQUIRE_EQ(res.second, 32);
+    REQUIRE_EQ(std::get<1>(res), 32);
     buffer.finish_read(32u);
   }
 
@@ -35,7 +35,7 @@ TEST_CASE("read_write_buffer")
   {
     // Nothing to read but consumer will also wrap
     auto const res = buffer.prepare_read();
-    REQUIRE_EQ(res.second, 0);
+    REQUIRE_EQ(std::get<1>(res), 0);
   }
 
   {
@@ -78,11 +78,11 @@ TEST_CASE("read_write_multithreaded_plain_ints")
       {
         for (uint32_t i = 0; i < 8192; ++i)
         {
-          auto [read_buffer, bytes] = buffer.prepare_read();
+          auto [read_buffer, bytes, has_more] = buffer.prepare_read();
           while (bytes == 0)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
-            std::tie(read_buffer, bytes) = buffer.prepare_read();
+            std::tie(read_buffer, bytes, has_more) = buffer.prepare_read();
           }
 
           auto value = reinterpret_cast<uint32_t const*>(read_buffer);

@@ -45,11 +45,11 @@ TEST_CASE("read_write_multithreaded_plain_ints")
       {
         for (uint32_t i = 0; i < 8192; ++i)
         {
-          auto [read_buffer, bytes] = buffer.prepare_read();
+          auto [read_buffer, bytes, has_more] = buffer.prepare_read();
           while (bytes == 0)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
-            std::tie(read_buffer, bytes) = buffer.prepare_read();
+            std::tie(read_buffer, bytes, has_more) = buffer.prepare_read();
           }
 
           auto value = reinterpret_cast<uint32_t const*>(read_buffer);
