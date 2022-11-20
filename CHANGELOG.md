@@ -1,3 +1,4 @@
+- [v2.4.2](#v2.4.2)
 - [v2.4.1](#v2.4.1)
 - [v2.4.0](#v2.4.0)
 - [v2.3.4](#v2.3.4)
@@ -33,6 +34,12 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.4.1
+
+**Fixes**
+
+- Fixes an assertion that was triggered in debug mode due to changes in v2.4.1
 
 ## v2.4.1
 

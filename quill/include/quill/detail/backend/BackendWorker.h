@@ -315,9 +315,9 @@ void BackendWorker::_read_from_queue(ThreadContext* thread_context, uint64_t ts_
     // and we will perform one more read
     std::tie(read_buffer, bytes_available, has_more) = spsc_queue.prepare_read();
     _read_queue_messages_and_decode(thread_context, spsc_queue, read_buffer, bytes_available, ts_now);
-  }
 
-  assert(!has_more && "It is not possible to have more bytes to read");
+    assert(!has_more && "It is not possible to have more bytes to read");
+  }
 
   // Note: If the bounded queue gets filled it will allocate a new bounded queue and will have
   // more bytes to read. The case where the queue gets reallocated is not handled and we will
