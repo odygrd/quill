@@ -134,9 +134,9 @@ public:
    * Prepare to read from the buffer
    * @return a pair of the buffer location to read and the number of available bytes
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::pair<std::byte*, std::size_t> prepare_read()
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::tuple<std::byte*, std::size_t, bool> prepare_read()
   {
-    auto [read_pos, available_bytes] = _consumer->bounded_queue.prepare_read();
+    auto [read_pos, available_bytes, has_more] = _consumer->bounded_queue.prepare_read();
 
     if (available_bytes == 0)
     {
@@ -148,18 +148,18 @@ public:
         // a new buffer was added by the producer, this happens only when we have allocated a new queue
 
         // try the existing buffer once more
-        std::tie(read_pos, available_bytes) = _consumer->bounded_queue.prepare_read();
+        std::tie(read_pos, available_bytes, has_more) = _consumer->bounded_queue.prepare_read();
 
         if (available_bytes == 0)
         {
           // switch to the new buffer, existing one is deleted
           delete _consumer;
           _consumer = next_node;
-          std::tie(read_pos, available_bytes) = _consumer->bounded_queue.prepare_read();
+          std::tie(read_pos, available_bytes, has_more) = _consumer->bounded_queue.prepare_read();
         }
       }
     }
-    return std::pair<std::byte*, std::size_t>{read_pos, available_bytes};
+    return std::tuple<std::byte*, std::size_t, bool>{read_pos, available_bytes, has_more};
   }
 
   /**

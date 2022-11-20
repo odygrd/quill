@@ -1,3 +1,4 @@
+- [v2.4.1](#v2.4.1)
 - [v2.4.0](#v2.4.0)
 - [v2.3.4](#v2.3.4)
 - [v2.3.3](#v2.3.3)
@@ -32,6 +33,15 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.4.1
+
+**Improvements**
+
+- Previously the backend worker thread would read all the log messages from the queue but not read the log messages when
+  the buffer had wrapped around. It will now read all the messages.
+- Removed the `min_available_bytes` cache from the SPSC queue as an optimisation. It is not needed anymore as we now
+  read all messages at once instead of reading message by message.
 
 ## v2.4.0
 

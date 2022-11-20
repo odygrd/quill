@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <tuple>
 #include <utility>
 
 #include "quill/detail/misc/Attributes.h"
@@ -32,7 +33,6 @@ public:
 
     _end_of_recorded_space = _storage + capacity();
     _min_free_space = capacity();
-    _min_avail_bytes = 0;
     _producer_pos.store(_storage);
     _consumer_pos.store(_storage);
   }
@@ -134,46 +134,38 @@ public:
    * Prepare to read from the buffer
    * @return a pair of the buffer location to read and the number of available bytes
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::pair<std::byte*, size_t> prepare_read() noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::tuple<std::byte*, size_t, bool> prepare_read() noexcept
   {
-    if (_min_avail_bytes > 0)
-    {
-      // fast read path
-      return std::pair<std::byte*, size_t>{_consumer_pos.load(std::memory_order_relaxed), _min_avail_bytes};
-    }
-
     // Save a consistent copy of producerPos
     // Prevent reading new producerPos but old endOf...
-    std::byte* const consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
-    std::byte* const producer_pos = _producer_pos.load(std::memory_order_acquire);
+    std::byte* consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
+    std::byte* producer_pos = _producer_pos.load(std::memory_order_acquire);
 
-    if (producer_pos >= consumer_pos)
-    {
-      // here the consumer is behind the producer
-      _min_avail_bytes = static_cast<size_t>(producer_pos - consumer_pos);
-      return std::pair<std::byte*, size_t>{consumer_pos, _min_avail_bytes};
-    }
-    else
+    size_t bytes_available;
+
+    if (consumer_pos > producer_pos)
     {
       // consumer is ahead of the producer
       // xxxp0000cxxxEOB
-      // _end_of_recorded_space is only set when the producer wraps by the producer, here we
-      // already know that the producer has wrapped around therefore the _end_of_recorded_space
-      // has been set
-      _min_avail_bytes = static_cast<size_t>(_end_of_recorded_space - consumer_pos);
+      bytes_available = static_cast<size_t>(_end_of_recorded_space - consumer_pos);
 
-      if (_min_avail_bytes > 0)
+      if (bytes_available > 0)
       {
-        return std::pair<std::byte*, size_t>{consumer_pos, _min_avail_bytes};
+        // There are bytes to read until the end of the buffer, and we also want to notify the
+        // use that there are more to read
+        return std::tuple<std::byte*, size_t, bool>{consumer_pos, bytes_available, true};
       }
-      else
-      {
-        // Roll over because there is nothing to read until end of buffer
-        _consumer_pos.store(_storage, std::memory_order_release);
-        _min_avail_bytes = static_cast<size_t>(producer_pos - _storage);
-        return std::pair<std::byte*, size_t>{_storage, _min_avail_bytes};
-      }
+
+      // Roll over because there is nothing to read until end of buffer
+      _consumer_pos.store(_storage, std::memory_order_release);
     }
+
+    // here the consumer is behind the producer
+    consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
+    bytes_available = static_cast<size_t>(producer_pos - consumer_pos);
+
+    // there won't be more bytes to read as we haven't wrapped around
+    return std::tuple<std::byte*, size_t, bool>{consumer_pos, bytes_available, false};
   }
 
   /**
@@ -183,7 +175,6 @@ public:
    */
   QUILL_ALWAYS_INLINE_HOT void finish_read(size_t nbytes) noexcept
   {
-    _min_avail_bytes -= nbytes;
     _consumer_pos.store(_consumer_pos.load(std::memory_order_relaxed) + nbytes, std::memory_order_release);
   }
 
@@ -221,10 +212,6 @@ protected:
    * the next bytes from. This value is only updated by the consumer.
    */
   alignas(CACHELINE_SIZE) std::atomic<std::byte*> _consumer_pos;
-  
-  /** Min value on the number of bytes the consumer can read **/
-  size_t _min_avail_bytes;
-  
   char _pad0[CACHELINE_SIZE - sizeof(std::atomic<std::byte*>) - sizeof(size_t)] = "\0";
 };
 } // namespace quill::detail

@@ -102,9 +102,19 @@ private:
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   /**
+   * Reads all available bytes from the queue
+   * @param thread_context
+   * @param ts_now
+   */
+  QUILL_ATTRIBUTE_HOT inline void _read_from_queue(ThreadContext* thread_context, uint64_t ts_now);
+
+  /**
    * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
    */
-  QUILL_ATTRIBUTE_HOT inline void _read_queue_and_decode(ThreadContext* thread_context, uint64_t ts_now);
+  QUILL_ATTRIBUTE_HOT inline void _read_queue_messages_and_decode(ThreadContext* thread_context,
+                                                                  ThreadContext::SPSCQueueT& queue,
+                                                                  std::byte* read_buffer,
+                                                                  size_t bytes_available, uint64_t ts_now);
 
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
@@ -279,12 +289,12 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
     // copy everything to a priority queue
-    _read_queue_and_decode(thread_context, ts_now);
+    _read_from_queue(thread_context, ts_now);
   }
 }
 
 /***/
-void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, uint64_t ts_now)
+void BackendWorker::_read_from_queue(ThreadContext* thread_context, uint64_t ts_now)
 {
   ThreadContext::SPSCQueueT& spsc_queue = thread_context->spsc_queue();
 
@@ -293,10 +303,31 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, uint64
   // The producer will add items to the buffer :
   // |timestamp|metadata*|logger_details*|args...|
 
-  auto read = spsc_queue.prepare_read();
-  std::byte* read_buffer = read.first;
-  size_t bytes_available = read.second;
+  auto [read_buffer, bytes_available, has_more] = spsc_queue.prepare_read();
 
+  // here we read all the messages until the end of the buffer
+  _read_queue_messages_and_decode(thread_context, spsc_queue, read_buffer, bytes_available, ts_now);
+
+  if (has_more)
+  {
+    // if there are more bytes to read it is because we need to wrap around the ring buffer,
+    // and we will perform one more read
+    std::tie(read_buffer, bytes_available, has_more) = spsc_queue.prepare_read();
+    _read_queue_messages_and_decode(thread_context, spsc_queue, read_buffer, bytes_available, ts_now);
+  }
+
+  assert(!has_more && "It is not possible to have more bytes to read");
+
+  // Note: If the bounded queue gets filled it will allocate a new bounded queue and will have
+  // more bytes to read. The case where the queue gets reallocated is not handled and we will
+  // read the new queue the next time we call this function
+}
+
+/***/
+void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_context,
+                                                    ThreadContext::SPSCQueueT& queue, std::byte* read_buffer,
+                                                    size_t bytes_available, uint64_t ts_now)
+{
   while (bytes_available > 0)
   {
     std::byte* const read_begin = read_buffer;
@@ -436,7 +467,7 @@ void BackendWorker::_read_queue_and_decode(ThreadContext* thread_context, uint64
     // Finish reading
     assert((read_buffer >= read_begin) && "read_buffer should be greater or equal to read_begin");
     auto const read_size = static_cast<size_t>(read_buffer - read_begin);
-    spsc_queue.finish_read(read_size);
+    queue.finish_read(read_size);
     bytes_available -= read_size;
 
     _transit_events.emplace(transit_event);
