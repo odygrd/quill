@@ -111,7 +111,7 @@ private:
   /**
    * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
    */
-  QUILL_ATTRIBUTE_HOT inline void _read_queue_messages_and_decode(ThreadContext* thread_context,
+  QUILL_ATTRIBUTE_HOT inline bool _read_queue_messages_and_decode(ThreadContext* thread_context,
                                                                   ThreadContext::SPSCQueueT& queue,
                                                                   std::byte* read_buffer,
                                                                   size_t bytes_available, uint64_t ts_now);
@@ -306,9 +306,10 @@ void BackendWorker::_read_from_queue(ThreadContext* thread_context, uint64_t ts_
   auto [read_buffer, bytes_available, has_more] = spsc_queue.prepare_read();
 
   // here we read all the messages until the end of the buffer
-  _read_queue_messages_and_decode(thread_context, spsc_queue, read_buffer, bytes_available, ts_now);
+  bool const read_all =
+    _read_queue_messages_and_decode(thread_context, spsc_queue, read_buffer, bytes_available, ts_now);
 
-  if (has_more)
+  if (read_all && has_more)
   {
     // if there are more bytes to read it is because we need to wrap around the ring buffer,
     // and we will perform one more read
@@ -324,7 +325,7 @@ void BackendWorker::_read_from_queue(ThreadContext* thread_context, uint64_t ts_
 }
 
 /***/
-void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_context,
+bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_context,
                                                     ThreadContext::SPSCQueueT& queue, std::byte* read_buffer,
                                                     size_t bytes_available, uint64_t ts_now)
 {
@@ -369,7 +370,7 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
-        return;
+        return false;
       }
     }
     else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::System)
@@ -382,7 +383,7 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
-        return;
+        return false;
       }
     }
     // else we skip that check, we can not compare a custom timestamp by
@@ -472,6 +473,9 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
     _transit_events.emplace(transit_event);
   }
+
+  // read everything
+  return true;
 }
 
 /***/
