@@ -13,6 +13,7 @@ set(HEADER_FILES
         include/quill/detail/backend/FreeListAllocator.h
         include/quill/detail/backend/StringFromTime.h
         include/quill/detail/backend/TimestampFormatter.h
+        include/quill/detail/backend/TransitEventBuffer.h
         include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
@@ -66,6 +67,7 @@ set(SOURCE_FILES
         src/detail/backend/FreeListAllocator.cpp
         src/detail/backend/TimestampFormatter.cpp
         src/detail/backend/StringFromTime.cpp
+        src/detail/backend/TransitEventBuffer.cpp
         src/detail/misc/FileUtilities.cpp
         src/detail/misc/Os.cpp
         src/detail/misc/RdtscClock.cpp

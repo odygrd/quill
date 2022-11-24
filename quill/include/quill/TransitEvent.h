@@ -7,7 +7,6 @@
 
 #include "quill/Fmt.h"
 #include "quill/detail/Serialize.h"
-#include "quill/detail/ThreadContext.h"
 
 namespace quill
 {
@@ -17,10 +16,10 @@ struct TransitEvent
   TransitEvent() = default;
   ~TransitEvent() = default;
 
-  TransitEvent(detail::ThreadContext* thread_context, detail::Header header,
+  TransitEvent(std::string thread_id, std::string thread_name, detail::Header header,
                fmt::memory_buffer formatted_msg, std::atomic<bool>* flush_flag)
-    : thread_id(thread_context->thread_id()),
-      thread_name(thread_context->thread_name()),
+    : thread_id(std::move(thread_id)),
+      thread_name(std::move(thread_name)),
       header(header),
       formatted_msg(std::move(formatted_msg)),
       flush_flag(flush_flag)
