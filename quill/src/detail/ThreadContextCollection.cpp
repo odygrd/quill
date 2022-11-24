@@ -144,7 +144,7 @@ void ThreadContextCollection::_remove_shared_invalidated_thread_context(ThreadCo
   assert(thread_context_it->get()->spsc_queue().empty() &&
          "Attempting to remove_file a thread context with a non empty queue");
 
-  assert((thread_context_it->get()->spsc_queue().transit_buffer().size() == 0) &&
+  assert((thread_context_it->get()->transit_buffer().size() == 0) &&
          "Attempting to remove_file a thread context with a non empty transit event buffer");
 
   _thread_contexts.erase(thread_context_it);
