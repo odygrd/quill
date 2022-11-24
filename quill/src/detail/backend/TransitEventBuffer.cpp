@@ -74,7 +74,8 @@ TransitEvent* UnboundedTransitEventBuffer::prepare_push()
 
   if (!writeable)
   {
-    _writer->next = std::make_shared<Node>(_writer->transit_event_buffer.capacity() * 2);
+    auto next_node = std::make_shared<Node>(_writer->transit_event_buffer.capacity() * 2);
+    _writer->next = next_node;
     _writer = _writer->next;
 
     writeable = _writer->transit_event_buffer.prepare_push();
@@ -113,12 +114,12 @@ uint32_t UnboundedTransitEventBuffer::size()
   uint32_t s{0};
   s = _reader->transit_event_buffer.size();
 
-  Node* next = _reader->next.get();
+  Node* next = _reader->next ? _reader->next.get() : nullptr;
   while (next != nullptr)
   {
     // there is another buffer
     s += _reader->next->transit_event_buffer.size();
-    next = next->next.get();
+    next = _reader->next ? _reader->next.get() : nullptr;
   }
 
   return s;
