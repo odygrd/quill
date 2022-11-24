@@ -9,18 +9,18 @@ namespace quill::detail
 class TransitEventBuffer
 {
 public:
-  TransitEventBuffer(uint32_t capacity) { _buffer.resize(capacity); }
+  explicit TransitEventBuffer(uint32_t capacity) { _buffer.resize(capacity); }
 
-  TransitEvent* prepare_push();
-  void push();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* prepare_push();
+  QUILL_ATTRIBUTE_HOT void push();
 
-  TransitEvent* front();
-  void pop();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* front();
+  QUILL_ATTRIBUTE_HOT void pop();
 
-  uint32_t capacity();
-  uint32_t size();
-  bool empty();
-  bool full();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint32_t capacity();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint32_t size();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool empty();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool full();
 
 private:
   std::vector<TransitEvent> _buffer;
@@ -39,15 +39,16 @@ private:
   };
 
 public:
-  UnboundedTransitEventBuffer(uint32_t initial_capacity)
+  explicit UnboundedTransitEventBuffer(uint32_t initial_capacity)
     : _writer(std::make_shared<Node>(initial_capacity)), _reader(_writer){};
-  TransitEvent* prepare_push();
-  void push();
 
-  TransitEvent* front();
-  void pop();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* prepare_push();
+  QUILL_ATTRIBUTE_HOT void push();
 
-  uint32_t size();
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* front();
+  QUILL_ATTRIBUTE_HOT void pop();
+
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint32_t size();
 
 private:
   std::shared_ptr<Node> _writer{nullptr};

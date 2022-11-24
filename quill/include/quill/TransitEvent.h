@@ -26,35 +26,8 @@ struct TransitEvent
   {
   }
 
-  TransitEvent(TransitEvent const& other)
-    : structured_keys(other.structured_keys),
-      structured_values(other.structured_values),
-      thread_id(other.thread_id),
-      thread_name(other.thread_name),
-      header(other.header),
-      flush_flag(other.flush_flag)
-
-  {
-    formatted_msg.clear();
-    formatted_msg.append(other.formatted_msg.begin(), other.formatted_msg.end());
-  }
-
-  TransitEvent& operator=(TransitEvent const& other)
-  {
-    if (this != &other)
-    {
-      structured_keys = other.structured_keys;
-      structured_values = other.structured_values;
-      thread_id = other.thread_id;
-      thread_name = other.thread_name;
-      header = other.header;
-      formatted_msg.clear();
-      formatted_msg.append(other.formatted_msg.begin(), other.formatted_msg.end());
-      flush_flag = other.flush_flag;
-    }
-
-    return *this;
-  }
+  TransitEvent(TransitEvent const& other) = delete;
+  TransitEvent& operator=(TransitEvent const& other) = delete;
 
   TransitEvent(TransitEvent&& other) noexcept
     : structured_keys(std::move(other.structured_keys)),
@@ -94,14 +67,5 @@ struct TransitEvent
   detail::Header header;
   fmt::memory_buffer formatted_msg;       /** buffer for message **/
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
-};
-
-class TransitEventComparator
-{
-public:
-  bool operator()(std::pair<uint64_t, TransitEvent*> const& lhs, std::pair<uint64_t, TransitEvent*> const& rhs)
-  {
-    return lhs.first > rhs.first;
-  }
 };
 } // namespace quill

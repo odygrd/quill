@@ -93,10 +93,11 @@ private:
   QUILL_ATTRIBUTE_COLD inline void _exit();
 
   /**
-   * Populate our local priority queue
+   * Populate transit event buffers. This buffers the events to a local buffer keeping the spsc
+   * queues as empty as possible
    * @param cached_thread_contexts local thread context cache
    */
-  QUILL_ATTRIBUTE_HOT inline void _populate_priority_queue(
+  QUILL_ATTRIBUTE_HOT inline void _populate_transit_event_buffer(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   /**
@@ -107,7 +108,7 @@ private:
   QUILL_ATTRIBUTE_HOT inline void _read_from_queue(ThreadContext* thread_context, uint64_t ts_now);
 
   /**
-   * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
+   * Deserialize an log message from the raw SPSC queue
    */
   QUILL_ATTRIBUTE_HOT inline bool _read_queue_messages_and_decode(ThreadContext* thread_context,
                                                                   ThreadContext::SPSCQueueT& queue,
@@ -267,7 +268,7 @@ void BackendWorker::run()
 }
 
 /***/
-void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
+void BackendWorker::_populate_transit_event_buffer(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
   uint64_t const ts_now = _strict_log_timestamp_order
     ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
@@ -277,7 +278,6 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
 
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    // copy everything to a priority queue
     _read_from_queue(thread_context, ts_now);
   }
 }
@@ -335,8 +335,8 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     read_buffer += sizeof(detail::Header);
 
     // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
-    // doing the conversion here ensures that every transit that is inserted in the priority queue
-    // below has a header timestamp of nanoseconds since epoch and makes it even possible to
+    // doing the conversion here ensures that every transit that is inserted in the transit event
+    // buffer below has a header timestamp of nanoseconds since epoch and makes it even possible to
     // have Logger objects using different clocks
     if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc)
     {
@@ -472,11 +472,11 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
   // we want to get the transit event with the smallest timestamp
-  std::pair<ThreadContext*, TransitEvent const*> min_ts_transit{nullptr, nullptr};
+  std::pair<ThreadContext*, TransitEvent*> min_ts_transit{nullptr, nullptr};
 
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    TransitEvent const* current = thread_context->transit_buffer().front();
+    TransitEvent* current = thread_context->transit_buffer().front();
 
     if (!current)
     {
@@ -524,7 +524,7 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
       else
       {
         // this is a backtrace log and we will store it
-        _backtrace_log_message_storage.store(*min_ts_transit.second);
+        _backtrace_log_message_storage.store(std::move(*min_ts_transit.second));
       }
     }
     else if (min_ts_transit.second->header.metadata->macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
@@ -624,7 +624,7 @@ void BackendWorker::_main_loop()
   ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
-  _populate_priority_queue(cached_thread_contexts);
+  _populate_transit_event_buffer(cached_thread_contexts);
 
   uint32_t transit_events{0};
   for (ThreadContext* thread_context : cached_thread_contexts)
@@ -645,7 +645,7 @@ void BackendWorker::_main_loop()
     }
     else
     {
-      // process a single transit event, then populate priority queue again. This gives priority
+      // process a single transit event. This gives priority
       // to emptying the spsc queue from the hot threads as soon as possible
       _process_transit_event(cached_thread_contexts);
     }
@@ -661,7 +661,7 @@ void BackendWorker::_main_loop()
     // check for any dropped messages by the threads
     _check_dropped_messages(cached_thread_contexts);
 
-    // We can also clear any invalidated or empty thread contexts now that our priority queue was empty
+    // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
 
     // Sleep for the specified duration as we found no events in any of the queues to process
@@ -678,7 +678,7 @@ void BackendWorker::_exit()
 
   while (true)
   {
-    _populate_priority_queue(cached_thread_contexts);
+    _populate_transit_event_buffer(cached_thread_contexts);
 
     uint32_t transit_events{0};
     for (ThreadContext* thread_context : cached_thread_contexts)
@@ -699,7 +699,7 @@ void BackendWorker::_exit()
       }
       else
       {
-        // process a single transit event, then populate priority queue again. This gives priority
+        // process a single transit event. This gives priority
         // to emptying the spsc queue from the hot threads as soon as possible
         _process_transit_event(cached_thread_contexts);
       }

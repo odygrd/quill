@@ -2,6 +2,7 @@
 
 namespace quill::detail
 {
+/***/
 TransitEvent* TransitEventBuffer::prepare_push()
 {
   if ((capacity() - size()) > 1)
@@ -12,6 +13,7 @@ TransitEvent* TransitEventBuffer::prepare_push()
   return nullptr;
 }
 
+/***/
 void TransitEventBuffer::push()
 {
   ++_write_index;
@@ -21,6 +23,7 @@ void TransitEventBuffer::push()
   }
 }
 
+/***/
 TransitEvent* TransitEventBuffer::front()
 {
   if (size() > 0)
@@ -32,6 +35,7 @@ TransitEvent* TransitEventBuffer::front()
   return nullptr;
 }
 
+/***/
 void TransitEventBuffer::pop()
 {
   ++_read_index;
@@ -41,8 +45,10 @@ void TransitEventBuffer::pop()
   }
 }
 
+/***/
 uint32_t TransitEventBuffer::capacity() { return static_cast<uint32_t>(_buffer.capacity()); }
 
+/***/
 uint32_t TransitEventBuffer::size()
 {
   if (_write_index >= _read_index)
@@ -55,10 +61,13 @@ uint32_t TransitEventBuffer::size()
   }
 }
 
+/***/
 bool TransitEventBuffer::empty() { return size() == 0; }
 
+/***/
 bool TransitEventBuffer::full() { return size() == capacity() - 1; }
 
+/***/
 TransitEvent* UnboundedTransitEventBuffer::prepare_push()
 {
   TransitEvent* writeable = _writer->transit_event_buffer.prepare_push();
@@ -75,8 +84,10 @@ TransitEvent* UnboundedTransitEventBuffer::prepare_push()
   return writeable;
 }
 
+/***/
 void UnboundedTransitEventBuffer::push() { _writer->transit_event_buffer.push(); }
 
+/***/
 TransitEvent* UnboundedTransitEventBuffer::front()
 {
   TransitEvent* readable = _reader->transit_event_buffer.front();
@@ -93,8 +104,10 @@ TransitEvent* UnboundedTransitEventBuffer::front()
   return readable;
 }
 
+/***/
 void UnboundedTransitEventBuffer::pop() { _reader->transit_event_buffer.pop(); }
 
+/***/
 uint32_t UnboundedTransitEventBuffer::size()
 {
   uint32_t s{0};
