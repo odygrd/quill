@@ -73,7 +73,7 @@ public:
    * @param formatted_log_message input log message to write
    * @param log_event transit event
    */
-  QUILL_ATTRIBUTE_HOT virtual void write(fmt::memory_buffer const& formatted_log_message,
+  QUILL_ATTRIBUTE_HOT virtual void write(fmt_buffer_t const& formatted_log_message,
                                          quill::TransitEvent const& log_event) = 0;
 
   /**
@@ -114,7 +114,7 @@ public:
    * @return result of all filters
    */
   QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
-                                     MacroMetadata const& metadata, fmt::memory_buffer const& formatted_record);
+                                     MacroMetadata const& metadata, fmt_buffer_t const& formatted_record);
 
 protected:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter

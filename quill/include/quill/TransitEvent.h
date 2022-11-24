@@ -17,7 +17,7 @@ struct TransitEvent
   ~TransitEvent() = default;
 
   TransitEvent(std::string thread_id, std::string thread_name, detail::Header header,
-               fmt::memory_buffer formatted_msg, std::atomic<bool>* flush_flag)
+               fmt_buffer_t formatted_msg, std::atomic<bool>* flush_flag)
     : thread_id(std::move(thread_id)),
       thread_name(std::move(thread_name)),
       header(header),
@@ -65,7 +65,7 @@ struct TransitEvent
   std::string thread_id;
   std::string thread_name;
   detail::Header header;
-  fmt::memory_buffer formatted_msg;       /** buffer for message **/
+  fmt_buffer_t formatted_msg;             /** buffer for message **/
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
 } // namespace quill

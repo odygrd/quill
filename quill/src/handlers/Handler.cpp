@@ -31,7 +31,7 @@ void Handler::add_filter(std::unique_ptr<FilterBase> filter)
 
 /***/
 QUILL_NODISCARD bool Handler::apply_filters(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
-                                            MacroMetadata const& metadata, fmt::memory_buffer const& formatted_record)
+                                            MacroMetadata const& metadata, fmt_buffer_t const& formatted_record)
 {
   if (metadata.level() < _log_level.load(std::memory_order_relaxed))
   {
