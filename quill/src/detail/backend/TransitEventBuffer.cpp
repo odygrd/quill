@@ -119,7 +119,7 @@ uint32_t UnboundedTransitEventBuffer::size()
   {
     // there is another buffer
     s += _reader->next->transit_event_buffer.size();
-    next = _reader->next ? _reader->next.get() : nullptr;
+    next = next->next ? next->next.get() : nullptr;
   }
 
   return s;
