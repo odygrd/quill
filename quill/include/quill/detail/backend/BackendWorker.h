@@ -143,6 +143,12 @@ private:
   QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_structured_log_template(
     std::string_view fmt_template) noexcept;
 
+  /**
+   * Gets or creates a new TransitEvent
+   * @return
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline TransitEvent* _get_transit_event();
+
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
@@ -162,6 +168,7 @@ private:
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
   FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
+  std::vector<TransitEvent*> _transit_event_factory; /** Stores transit events to reuse them **/
 
   std::unordered_map<quill::Metadata const*, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
 
@@ -232,12 +239,32 @@ void BackendWorker::run()
       // Cache this thread's id
       _backend_worker_thread_id = get_thread_id();
 
+      auto next_pow2 = [](size_t x)
+      {
+        size_t p = 1;
+        while (p < x)
+        {
+          p *= 2;
+        }
+        return p;
+      };
+
       // Initialise memory for our free list allocator. We reserve the same size as a full
       // size of 1 caller thread queue
-      _free_list_allocator.reserve(QUILL_QUEUE_CAPACITY);
+      _free_list_allocator.reserve(next_pow2(sizeof(TransitEvent) * _max_transit_events * 2));
 
       // Also configure our allocator to request bigger chunks from os
-      _free_list_allocator.set_minimum_allocation(QUILL_QUEUE_CAPACITY);
+      _free_list_allocator.set_minimum_allocation(next_pow2(sizeof(TransitEvent) * _max_transit_events * 2));
+
+      // Reverse some TransitEvents in advance
+      _transit_event_factory.reserve(_max_transit_events * 2);
+
+      for (uint32_t i = 0; i < _max_transit_events * 2; ++i)
+      {
+        void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
+        auto* transit_event = new (transit_event_buffer) TransitEvent{};
+        _transit_event_factory.emplace_back(transit_event);
+      }
 
       // All okay, set the backend worker thread running flag
       _is_running.store(true, std::memory_order_seq_cst);
@@ -333,9 +360,9 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
   {
     std::byte* const read_begin = read_buffer;
 
-    // First we want to allocate a new TransitEvent to store the message from the queue
-    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
-    auto* transit_event = new (transit_event_buffer) TransitEvent{};
+    // First we want to allocate a new TransitEvent or use an existing one
+    // to store the message from the queue
+    auto* transit_event = _get_transit_event();
     transit_event->thread_id = thread_context->thread_id();
     transit_event->thread_name = thread_context->thread_name();
 
@@ -370,6 +397,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
+        _transit_event_factory.emplace_back(transit_event);
         return false;
       }
     }
@@ -383,6 +411,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
+        _transit_event_factory.emplace_back(transit_event);
         return false;
       }
     }
@@ -439,6 +468,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
           }
 
           // formatted values for any given keys
+          transit_event->structured_values.clear();
           for (auto const& arg : _args)
           {
             transit_event->structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
@@ -538,8 +568,9 @@ void BackendWorker::_process_transit_event()
     // Remove this event and move to the next. We also need to remove that event from the
     // free list allocator
     _transit_events.pop();
-    const_cast<TransitEvent*>(transit_event)->~TransitEvent();
-    _free_list_allocator.deallocate(const_cast<TransitEvent*>(transit_event));
+
+    // we will reuse this transit event later, we do not delete it
+    _transit_event_factory.emplace_back(transit_event);
 
     // Since after processing an event we never force flush but leave it up to the OS instead,
     // set this to true to keep track of unflushed messages we have
@@ -552,6 +583,9 @@ void BackendWorker::_process_transit_event()
 
     // Remove this event and move to the next
     _transit_events.pop();
+
+    // we will reuse this transit event later, we do not delete it
+    _transit_event_factory.emplace_back(transit_event);
   }
   QUILL_CATCH_ALL()
   {
@@ -559,6 +593,9 @@ void BackendWorker::_process_transit_event()
 
     // Remove this event and move to the next
     _transit_events.pop();
+
+    // we will reuse this transit event later, we do not delete it
+    _transit_event_factory.emplace_back(transit_event);
   } // clang-format on
 #endif
 }
@@ -701,5 +738,29 @@ void BackendWorker::_exit()
       }
     }
   }
+
+  // Finally clear the transit event factor memory
+  for (TransitEvent* transit_event : _transit_event_factory)
+  {
+    transit_event->~TransitEvent();
+    _free_list_allocator.deallocate(transit_event);
+  }
+}
+
+/***/
+TransitEvent* BackendWorker::_get_transit_event()
+{
+  if (_transit_event_factory.empty())
+  {
+    // we do not have anything to reuse, we will create a new one
+    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
+    auto* transit_event = new (transit_event_buffer) TransitEvent{};
+    return transit_event;
+  }
+
+  auto* transit_event = _transit_event_factory.back();
+  _transit_event_factory.pop_back();
+  transit_event->flush_flag = nullptr;
+  return transit_event;
 }
 } // namespace quill::detail

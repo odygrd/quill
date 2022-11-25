@@ -1,3 +1,4 @@
+- [v2.5.1](#v2.5.1)
 - [v2.5.0](#v2.5.0)
 - [v2.4.2](#v2.4.2)
 - [v2.4.1](#v2.4.1)
@@ -35,6 +36,47 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.5.1
+
+**Improvements**
+
+- Reduced the allocations performed by the backend worker thread as the same objects are now being reused rather than
+  destroyed.
+
+**Summary of changes since v2.3.2**
+
+In version `2.3.2` when multiple threads performed heavy logging, the backend logging thread incorrectly gave
+priority to the logs of the same threads. That made logs from the remaining threads to appear much later or sometimes
+never in the log files.
+
+There was a series of fixes and releases to address this.
+
+Below is the summary of the changes from `v2.3.2`
+
+- Previously when multiple threads were logging, the backend logging thread would first try to read the log messages of
+  the same thread until its queue was completely empty before reading the log messages of the next thread.
+  When one of the threads was logging a lot, it could result in only displaying the log of that thread, hiding the
+  logs of the other threads. This has now been fixed and all log messages from all threads are read fairly.
+
+- Optimise the backend logging thread to read all log messages from each queue. Ensure all queues
+  from all active threads are fairly read.
+
+- `fmt::basic_memory_buffer` buffer stack size has been reduced. The backend thread shows better performance with
+  a reduced stack size. This also reduces the risk of a stack overflow when too many log messages are cached.lllllllllll
+
+- Reduced the allocations performed by the backend worker thread as the same objects are now being reused rather than
+  destroyed.
+
+- Added a config option `backend_thread_strict_log_timestamp_order`. This option enables an extra timestamp
+  check on the backend logging thread when each message is popped from the queues. It prevents a rare
+  situation where log messages from different threads could appear in the log file in the wrong order. This flag
+  is now enabled by default.
+
+- Added a config option `backend_thread_empty_all_queues_before_exit`. This option makes the backend logging thread
+  to wait until all the queues are empty before exiting. This ensures no log messages are lost when the application
+  exists. This flag is now enabled by default.
+-
 
 ## v2.5.0
 
