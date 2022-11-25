@@ -456,6 +456,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
           }
 
           // formatted values for any given keys
+          transit_event->structured_values.clear();
           for (auto const& arg : _args)
           {
             transit_event->structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
