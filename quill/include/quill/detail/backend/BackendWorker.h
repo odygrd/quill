@@ -239,9 +239,9 @@ void BackendWorker::run()
       // Cache this thread's id
       _backend_worker_thread_id = get_thread_id();
 
-      auto next_pow2 = [](uint64_t x)
+      auto next_pow2 = [](size_t x)
       {
-        uint64_t p = 1;
+        size_t p = 1;
         while (p < x)
         {
           p *= 2;
