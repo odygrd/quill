@@ -98,7 +98,7 @@ public:
   QUILL_ATTRIBUTE_HOT void format(std::chrono::nanoseconds timestamp, std::string_view thread_id,
                                   std::string_view thread_name, std::string_view process_id,
                                   std::string_view logger_name, MacroMetadata const& macro_metadata,
-                                  fmt::memory_buffer const& log_msg);
+                                  fmt_buffer_t const& log_msg);
 
   QUILL_ATTRIBUTE_HOT std::string_view format_timestamp(std::chrono::nanoseconds timestamp);
 
@@ -106,7 +106,7 @@ public:
    * Returns the stored formatted record, to be called after format(...) is called
    * @return Returns the stored formatted record
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt::memory_buffer const& formatted_log_message() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt_buffer_t const& formatted_log_message() const noexcept
   {
     return _formatted_log_message;
   }
@@ -163,6 +163,6 @@ private:
 
   /** The buffer where we store each formatted string, also stored as class member to avoid
    * re-allocations. This is mutable so we can have a format() const function **/
-  fmt::memory_buffer _formatted_log_message;
+  fmt_buffer_t _formatted_log_message;
 };
 } // namespace quill

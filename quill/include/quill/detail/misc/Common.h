@@ -146,6 +146,8 @@ constexpr bool detect_structured_log_template(std::wstring_view)
 }
 } // namespace detail
 
+using fmt_buffer_t = fmt::basic_memory_buffer<char, 64>;
+
 /**
  * Enum to select a timezone
  */

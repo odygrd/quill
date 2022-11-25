@@ -30,7 +30,7 @@ void BacktraceStorage::store(TransitEvent transit_event)
   else
   {
     // Store the object in the vector
-    stored_object_info.stored_records_collection[stored_object_info.index] = transit_event;
+    stored_object_info.stored_records_collection[stored_object_info.index] = std::move(transit_event);
 
     // Update the index wrapping around the vector capacity
     if (stored_object_info.index < stored_object_info.capacity - 1)

@@ -1054,7 +1054,7 @@ public:
 
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
                               quill::MacroMetadata const& metadata,
-                              fmt::memory_buffer const& formatted_record) noexcept override
+                              fmt_buffer_t const& formatted_record) noexcept override
   {
     if (metadata.level() < quill::LogLevel::Warning)
     {
@@ -1074,7 +1074,7 @@ public:
 
   QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
                               quill::MacroMetadata const& metadata,
-                              fmt::memory_buffer const& formatted_record) noexcept override
+                              fmt_buffer_t const& formatted_record) noexcept override
   {
     if (metadata.level() >= quill::LogLevel::Warning)
     {

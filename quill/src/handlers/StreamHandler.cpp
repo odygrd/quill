@@ -21,7 +21,7 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */)
 }
 
 /***/
-void StreamHandler::write(fmt::memory_buffer const& formatted_log_message, quill::TransitEvent const& log_event)
+void StreamHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
   detail::fwrite_fully(formatted_log_message.data(), sizeof(char), formatted_log_message.size(), _file);
 }

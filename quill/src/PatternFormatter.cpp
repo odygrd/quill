@@ -179,7 +179,7 @@ void PatternFormatter::_set_pattern(std::string const& format_pattern)
 /***/
 void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_view thread_id,
                               std::string_view thread_name, std::string_view process_id, std::string_view logger_name,
-                              MacroMetadata const& macro_metadata, fmt::memory_buffer const& log_msg)
+                              MacroMetadata const& macro_metadata, fmt_buffer_t const& log_msg)
 {
   if (_format.empty())
   {
