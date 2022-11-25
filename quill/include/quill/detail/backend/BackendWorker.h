@@ -202,16 +202,6 @@ void BackendWorker::run()
   _empty_all_queues_before_exit = _config.backend_thread_empty_all_queues_before_exit;
   _strict_log_timestamp_order = _config.backend_thread_strict_log_timestamp_order;
 
-  // Reverse some TransitEvents in advance
-  _transit_event_factory.reserve(_max_transit_events);
-
-  for (uint32_t i = 0; i < _max_transit_events; ++i)
-  {
-    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
-    auto* transit_event = new (transit_event_buffer) TransitEvent{};
-    _transit_event_factory.emplace_back(transit_event);
-  }
-
 #if !defined(QUILL_NO_EXCEPTIONS)
   if (_config.backend_thread_error_handler)
   {
@@ -249,12 +239,32 @@ void BackendWorker::run()
       // Cache this thread's id
       _backend_worker_thread_id = get_thread_id();
 
+      auto next_pow2 = [](uint64_t x)
+      {
+        uint64_t p = 1;
+        while (p < x)
+        {
+          p *= 2;
+        }
+        return p;
+      };
+
       // Initialise memory for our free list allocator. We reserve the same size as a full
       // size of 1 caller thread queue
-      _free_list_allocator.reserve(QUILL_QUEUE_CAPACITY);
+      _free_list_allocator.reserve(next_pow2(sizeof(TransitEvent) * _max_transit_events * 2));
 
       // Also configure our allocator to request bigger chunks from os
-      _free_list_allocator.set_minimum_allocation(QUILL_QUEUE_CAPACITY);
+      _free_list_allocator.set_minimum_allocation(next_pow2(sizeof(TransitEvent) * _max_transit_events * 2));
+
+      // Reverse some TransitEvents in advance
+      _transit_event_factory.reserve(_max_transit_events * 2);
+
+      for (uint32_t i = 0; i < _max_transit_events * 2; ++i)
+      {
+        void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
+        auto* transit_event = new (transit_event_buffer) TransitEvent{};
+        _transit_event_factory.emplace_back(transit_event);
+      }
 
       // All okay, set the backend worker thread running flag
       _is_running.store(true, std::memory_order_seq_cst);
