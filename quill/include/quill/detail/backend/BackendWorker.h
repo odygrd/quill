@@ -15,10 +15,10 @@
 #include "quill/detail/ThreadContext.h"            // for ThreadContext, Thr...
 #include "quill/detail/ThreadContextCollection.h"  // for ThreadContextColle...
 #include "quill/detail/backend/BacktraceStorage.h" // for BacktraceStorage
-#include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_HOT
-#include "quill/detail/misc/Common.h"     // for QUILL_LIKELY
-#include "quill/detail/misc/Os.h"         // for set_cpu_affinity, get_thread_id
-#include "quill/detail/misc/RdtscClock.h" // for RdtscClock
+#include "quill/detail/misc/Attributes.h"          // for QUILL_ATTRIBUTE_HOT
+#include "quill/detail/misc/Common.h"              // for QUILL_LIKELY
+#include "quill/detail/misc/Os.h"                  // for set_cpu_affinity, get_thread_id
+#include "quill/detail/misc/RdtscClock.h"          // for RdtscClock
 #include "quill/detail/misc/Utilities.h"
 #include "quill/detail/spsc_queue/UnboundedQueue.h"
 #include "quill/handlers/Handler.h" // for Handler
@@ -32,8 +32,9 @@
 #include <memory>                   // for unique_ptr, make_u...
 #include <string>                   // for allocator, string
 #include <thread>                   // for sleep_for, thread
-#include <utility>                  // for move
-#include <vector>                   // for vector
+#include <unordered_map>
+#include <utility> // for move
+#include <vector>  // for vector
 
 namespace quill::detail
 {
@@ -118,8 +119,7 @@ private:
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
    */
-  QUILL_ATTRIBUTE_HOT inline void _process_transit_event(
-    ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
+  QUILL_ATTRIBUTE_HOT inline void _process_transit_event();
 
   QUILL_ATTRIBUTE_HOT inline void _write_transit_event(TransitEvent const& transit_event);
 
@@ -143,6 +143,8 @@ private:
   QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_structured_log_template(
     std::string_view fmt_template) noexcept;
 
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline UnboundedTransitEventBuffer& _get_transit_event_buffer(ThreadContext* thread_context);
+
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
@@ -159,6 +161,8 @@ private:
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
+
+  std::unordered_map<ThreadContext*, std::pair<bool, std::unique_ptr<UnboundedTransitEventBuffer>>> _transit_buffer;
 
   std::unordered_map<quill::Metadata const*, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
 
@@ -318,7 +322,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
                                                     ThreadContext::SPSCQueueT& queue, std::byte* read_buffer,
                                                     size_t bytes_available, uint64_t ts_now)
 {
-  UnboundedTransitEventBuffer& transit_buffer = thread_context->transit_buffer();
+  UnboundedTransitEventBuffer& transit_buffer = _get_transit_event_buffer(thread_context);
 
   while (bytes_available > 0)
   {
@@ -469,14 +473,14 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 }
 
 /***/
-void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
+void BackendWorker::_process_transit_event()
 {
   // we want to get the transit event with the smallest timestamp
-  std::pair<ThreadContext*, TransitEvent*> min_ts_transit{nullptr, nullptr};
+  std::pair<UnboundedTransitEventBuffer*, TransitEvent*> min_ts_transit{nullptr, nullptr};
 
-  for (ThreadContext* thread_context : cached_thread_contexts)
+  for (auto& [thread_context, transit_buffer] : _transit_buffer)
   {
-    TransitEvent* current = thread_context->transit_buffer().front();
+    TransitEvent* current = transit_buffer.second->front();
 
     if (!current)
     {
@@ -487,7 +491,7 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
     if (!min_ts_transit.second || (current->header.timestamp < min_ts_transit.second->header.timestamp))
     {
       // there isn't another transit event or this is now the one with the smallest timestamp
-      min_ts_transit.first = thread_context;
+      min_ts_transit.first = transit_buffer.second.get();
       min_ts_transit.second = current;
     }
   }
@@ -551,7 +555,7 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
     }
 
     // Now we can pop the event from our buffer
-    min_ts_transit.first->transit_buffer().pop();
+    min_ts_transit.first->pop();
 
     // Since after processing an event we never force flush but leave it up to the OS instead,
     // set this to true to keep track of unflushed messages we have
@@ -563,14 +567,14 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
     _error_handler(e.what());
 
     // Remove this event and move to the next
-    min_ts_transit.first->transit_buffer().pop();
+    min_ts_transit.first->pop();
   }
   QUILL_CATCH_ALL()
   {
     _error_handler(std::string{"Caught unhandled exception."});
 
     // Remove this event and move to the next
-    min_ts_transit.first->transit_buffer().pop();
+    min_ts_transit.first->pop();
   } // clang-format on
 #endif
 }
@@ -627,9 +631,9 @@ void BackendWorker::_main_loop()
   _populate_transit_event_buffer(cached_thread_contexts);
 
   uint32_t transit_events{0};
-  for (ThreadContext* thread_context : cached_thread_contexts)
+  for (auto& [thread_context, transit_buffer] : _transit_buffer)
   {
-    transit_events += thread_context->transit_buffer().size();
+    transit_events += transit_buffer.second->size();
   }
 
   if (QUILL_LIKELY(transit_events != 0))
@@ -640,14 +644,14 @@ void BackendWorker::_main_loop()
       // process half transit events
       for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
       {
-        _process_transit_event(cached_thread_contexts);
+        _process_transit_event();
       }
     }
     else
     {
       // process a single transit event. This gives priority
       // to emptying the spsc queue from the hot threads as soon as possible
-      _process_transit_event(cached_thread_contexts);
+      _process_transit_event();
     }
   }
   else
@@ -662,7 +666,31 @@ void BackendWorker::_main_loop()
     _check_dropped_messages(cached_thread_contexts);
 
     // We can also clear any invalidated or empty thread contexts
-    _thread_context_collection.clear_invalid_and_empty_thread_contexts();
+    std::vector<ThreadContext*> removed_contexts =
+      _thread_context_collection.clear_invalid_and_empty_thread_contexts();
+
+    // invalidate transit buffers
+    for (auto* thread_context : removed_contexts)
+    {
+      auto search_buffer = _transit_buffer.find(thread_context);
+      if (search_buffer != _transit_buffer.end())
+      {
+        search_buffer->second.first = true;
+      }
+    }
+
+    // clear empty and invalidated transit buffers
+    for (auto it = _transit_buffer.begin(); it != _transit_buffer.end();)
+    {
+      if (it->second.first && (it->second.second->size() == 0))
+      {
+        it = _transit_buffer.erase(it);
+      }
+      else
+      {
+        ++it;
+      }
+    }
 
     // Sleep for the specified duration as we found no events in any of the queues to process
     std::this_thread::sleep_for(_backend_thread_sleep_duration);
@@ -681,9 +709,9 @@ void BackendWorker::_exit()
     _populate_transit_event_buffer(cached_thread_contexts);
 
     uint32_t transit_events{0};
-    for (ThreadContext* thread_context : cached_thread_contexts)
+    for (auto& [thread_context, transit_buffer] : _transit_buffer)
     {
-      transit_events += thread_context->transit_buffer().size();
+      transit_events += transit_buffer.second->size();
     }
 
     if (transit_events != 0)
@@ -694,14 +722,14 @@ void BackendWorker::_exit()
         // process half transit events
         for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
         {
-          _process_transit_event(cached_thread_contexts);
+          _process_transit_event();
         }
       }
       else
       {
         // process a single transit event. This gives priority
         // to emptying the spsc queue from the hot threads as soon as possible
-        _process_transit_event(cached_thread_contexts);
+        _process_transit_event();
       }
     }
     else
@@ -725,5 +753,21 @@ void BackendWorker::_exit()
       }
     }
   }
+}
+
+/***/
+UnboundedTransitEventBuffer& BackendWorker::_get_transit_event_buffer(ThreadContext* thread_context)
+{
+  auto search_transit_buffer = _transit_buffer.find(thread_context);
+
+  if (search_transit_buffer == _transit_buffer.end())
+  {
+    // need to add a new buffer for this thread context
+    auto [emplaced, ok] = _transit_buffer.emplace(std::make_pair(
+      thread_context, std::make_pair(false, std::make_unique<UnboundedTransitEventBuffer>(QUILL_QUEUE_CAPACITY))));
+    return *(emplaced->second.second);
+  }
+
+  return *(search_transit_buffer->second.second);
 }
 } // namespace quill::detail

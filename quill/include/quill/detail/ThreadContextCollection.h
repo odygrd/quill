@@ -137,7 +137,7 @@ public:
   /**
    * Clears thread context cache from invalid and empty thread contexts
    */
-  QUILL_ATTRIBUTE_HOT void clear_invalid_and_empty_thread_contexts();
+  QUILL_ATTRIBUTE_HOT std::vector<ThreadContext*> clear_invalid_and_empty_thread_contexts();
 
 private:
   /**
@@ -186,7 +186,7 @@ private:
    *
    * @note Only called by the backend thread
    */
-  void _find_and_remove_invalidated_thread_contexts();
+  std::vector<ThreadContext*> _find_and_remove_invalidated_thread_contexts();
 
 private:
   std::mutex _mutex; /**< Protect access when register contexts or removing contexts */

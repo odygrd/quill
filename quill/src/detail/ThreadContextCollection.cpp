@@ -71,13 +71,14 @@ ThreadContextCollection::backend_thread_contexts_cache_t const& ThreadContextCol
 }
 
 /***/
-void ThreadContextCollection::clear_invalid_and_empty_thread_contexts()
+std::vector<ThreadContext*> ThreadContextCollection::clear_invalid_and_empty_thread_contexts()
 {
   if (QUILL_UNLIKELY(_has_invalid_thread_context()))
   {
     // Remove any invalidated contexts, this can happen only when a thread is terminating
-    _find_and_remove_invalidated_thread_contexts();
+    return _find_and_remove_invalidated_thread_contexts();
   }
+  return std::vector<ThreadContext*>{};
 }
 
 /***/
@@ -144,9 +145,6 @@ void ThreadContextCollection::_remove_shared_invalidated_thread_context(ThreadCo
   assert(thread_context_it->get()->spsc_queue().empty() &&
          "Attempting to remove_file a thread context with a non empty queue");
 
-  assert((thread_context_it->get()->transit_buffer().size() == 0) &&
-         "Attempting to remove_file a thread context with a non empty transit event buffer");
-
   _thread_contexts.erase(thread_context_it);
 
   // we don't set changed here as this is called only by the backend thread and it updates
@@ -154,8 +152,10 @@ void ThreadContextCollection::_remove_shared_invalidated_thread_context(ThreadCo
 }
 
 /***/
-void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
+std::vector<ThreadContext*> ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
 {
+  std::vector<ThreadContext*> results;
+
   // First we iterate our existing cache and we look for any invalidated contexts
   auto found_invalid_and_empty_thread_context =
     std::find_if(_thread_context_cache.begin(), _thread_context_cache.end(),
@@ -163,9 +163,7 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
                  {
                    // If the thread context is invalid it means the thread that created it has now died.
                    // We also want to empty the queue from all LogRecords before removing the thread context
-
-                   return !thread_context->is_valid() && thread_context->spsc_queue().empty() &&
-                     (thread_context->transit_buffer().size() == 0);
+                   return !thread_context->is_valid() && thread_context->spsc_queue().empty();
                  });
 
   while (QUILL_UNLIKELY(found_invalid_and_empty_thread_context != _thread_context_cache.cend()))
@@ -179,6 +177,7 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
     _remove_shared_invalidated_thread_context(*found_invalid_and_empty_thread_context);
 
     // We also need to remove_file this from _thread_context_cache, that is used only by the backend
+    results.emplace_back(*found_invalid_and_empty_thread_context);
     _thread_context_cache.erase(found_invalid_and_empty_thread_context);
 
     // And then look again
@@ -188,10 +187,10 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
                    {
                      // If the thread context is invalid it means the thread that created it has now died.
                      // We also want to empty the queue from all LogRecords before removing the thread context
-
-                     return !thread_context->is_valid() && thread_context->spsc_queue().empty() &&
-                       (thread_context->transit_buffer().size() == 0);
+                     return !thread_context->is_valid() && thread_context->spsc_queue().empty();
                    });
   }
+
+  return results;
 }
 } // namespace quill::detail
