@@ -397,6 +397,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
+        _transit_event_factory.emplace_back(transit_event);
         return false;
       }
     }
@@ -410,6 +411,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
+        _transit_event_factory.emplace_back(transit_event);
         return false;
       }
     }
@@ -581,6 +583,9 @@ void BackendWorker::_process_transit_event()
 
     // Remove this event and move to the next
     _transit_events.pop();
+
+    // we will reuse this transit event later, we do not delete it
+    _transit_event_factory.emplace_back(transit_event);
   }
   QUILL_CATCH_ALL()
   {
@@ -588,6 +593,9 @@ void BackendWorker::_process_transit_event()
 
     // Remove this event and move to the next
     _transit_events.pop();
+
+    // we will reuse this transit event later, we do not delete it
+    _transit_event_factory.emplace_back(transit_event);
   } // clang-format on
 #endif
 }
