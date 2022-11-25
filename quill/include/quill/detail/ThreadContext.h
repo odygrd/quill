@@ -75,22 +75,6 @@ public:
   }
 
   /**
-   * @return A reference to the transit buffer
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT UnboundedTransitEventBuffer& transit_buffer() noexcept
-  {
-    return _transit_buffer;
-  }
-
-  /**
-   * @return A reference to the transit buffer
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT UnboundedTransitEventBuffer const& transit_buffer() const noexcept
-  {
-    return _transit_buffer;
-  }
-
-  /**
    * @return The cached thread id value
    */
   QUILL_NODISCARD char const* thread_id() const noexcept { return _thread_id.data(); }
@@ -138,7 +122,6 @@ public:
 
 private:
   SPSCQueueT _spsc_queue; /** queue for this thread, events are pushed here */
-  UnboundedTransitEventBuffer _transit_buffer{QUILL_QUEUE_CAPACITY};
   std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                    /**< cache this thread name */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
