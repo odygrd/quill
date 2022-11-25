@@ -433,6 +433,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
           }
 
           // formatted values for any given keys
+          transit_event->structured_values.clear();
           for (auto const& arg : _args)
           {
             transit_event->structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
@@ -555,6 +556,7 @@ void BackendWorker::_process_transit_event()
     }
 
     // Now we can pop the event from our buffer
+    min_ts_transit.second->flush_flag = nullptr; // reset flush flag
     min_ts_transit.first->pop();
 
     // Since after processing an event we never force flush but leave it up to the OS instead,
