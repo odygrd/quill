@@ -752,7 +752,7 @@ TransitEvent* BackendWorker::_get_transit_event()
 
   auto* transit_event = _transit_event_factory.back();
   _transit_event_factory.pop_back();
-  transit_event->flush_flag->store(false);
+  transit_event->flush_flag = nullptr;
   return transit_event;
 }
 } // namespace quill::detail
