@@ -481,7 +481,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 /***/
 void BackendWorker::_process_transit_event()
 {
-  TransitEvent const* transit_event = _transit_events.top().second;
+  TransitEvent* transit_event = _transit_events.top().second;
 
   // If backend_process(...) throws we want to skip this event and move to the next so we catch the
   // error here instead of catching it in the parent try/catch block of main_loop
@@ -509,7 +509,7 @@ void BackendWorker::_process_transit_event()
       else
       {
         // this is a backtrace log and we will store it
-        _backtrace_log_message_storage.store(*transit_event);
+        _backtrace_log_message_storage.store(std::move(*transit_event));
       }
     }
     else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
