@@ -30,9 +30,9 @@ public:
    * @param timezone if true gmt time then UTC times are used instead
    * @param at_time used when 'daily' is specified
    */
-  TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode,
-                          std::string when, uint32_t interval, uint32_t backup_count,
-                          Timezone timezone, std::string const& at_time);
+  TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode, std::string when,
+                          uint32_t interval, uint32_t backup_count, Timezone timezone,
+                          std::string const& at_time);
 
   ~TimeRotatingFileHandler() override = default;
 
