@@ -25,7 +25,7 @@ TEST_CASE("default_pattern_formatter")
     MacroMetadata::Event::Log, false};
 
   // Format to a buffer
-  fmt::memory_buffer mbuff;
+  fmt_buffer_t mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   default_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                    log_line_info, mbuff);
@@ -56,7 +56,7 @@ TEST_CASE("custom_pattern_message_only")
     MacroMetadata::Event::Log, false};
 
   // Format to a buffer
-  fmt::memory_buffer mbuff;
+  fmt_buffer_t mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 12.34);
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
@@ -88,7 +88,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
     MacroMetadata::Event::Log, false};
 
   // Format to a buffer
-  fmt::memory_buffer mbuff;
+  fmt_buffer_t mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
@@ -121,7 +121,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
     MacroMetadata::Event::Log, false};
 
   // Format to a buffer
-  fmt::memory_buffer mbuff;
+  fmt_buffer_t mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
@@ -154,7 +154,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
     MacroMetadata::Event::Log, false};
 
   // Format to a buffer
-  fmt::memory_buffer mbuff;
+  fmt_buffer_t mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
@@ -187,7 +187,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
     MacroMetadata::Event::Log, false};
 
   // Format to a buffer
-  fmt::memory_buffer mbuff;
+  fmt_buffer_t mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
@@ -223,7 +223,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
   for (size_t i = 0; i < 5; ++i)
   {
     // Format to a buffer
-    fmt::memory_buffer mbuff;
+    fmt_buffer_t mbuff;
     fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()),
                    "pattern", 1234);
     custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
@@ -260,7 +260,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
   for (size_t i = 0; i < 5; ++i)
   {
     // Format to a buffer
-    fmt::memory_buffer mbuff;
+    fmt_buffer_t mbuff;
     fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()),
                    "pattern", 1234);
     custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
@@ -315,7 +315,7 @@ TEST_CASE("custom_pattern")
     MacroMetadata::Event::Log, false};
 
   // Format to a buffer
-  fmt::memory_buffer mbuff;
+  fmt_buffer_t mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);
@@ -349,7 +349,7 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
     MacroMetadata::Event::Log, false};
 
   // Format to a buffer
-  fmt::memory_buffer mbuff;
+  fmt_buffer_t mbuff;
   fmt::format_to(std::back_inserter(mbuff), fmt::runtime(log_line_info.message_format()), "pattern", 1234);
   custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name.data(),
                                   log_line_info, mbuff);

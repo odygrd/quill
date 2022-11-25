@@ -1,3 +1,4 @@
+- [v2.4.3](#v2.4.3)
 - [v2.4.2](#v2.4.2)
 - [v2.4.1](#v2.4.1)
 - [v2.4.0](#v2.4.0)
@@ -34,6 +35,12 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.4.3
+
+**Improvements**
+
+- Performance improvements for the backend logging thread
 
 ## v2.4.2
 

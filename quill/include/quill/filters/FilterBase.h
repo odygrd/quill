@@ -39,7 +39,7 @@ public:
    */
   QUILL_NODISCARD virtual bool filter(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
                                       MacroMetadata const& metadata,
-                                      fmt::memory_buffer const& formatted_record) noexcept = 0;
+                                      fmt_buffer_t const& formatted_record) noexcept = 0;
 
   /**
    * Gets the name of the filter. Only useful if an existing filter is needed to be looked up

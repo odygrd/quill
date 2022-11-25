@@ -196,7 +196,7 @@ public:
    * @param formatted_log_message input log message to write
    * @param transit_Event transit_Event
    */
-  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_message,
+  QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message,
                                  TransitEvent const& transit_Event) override;
 
   /**

@@ -172,7 +172,7 @@ ConsoleHandler::ConsoleHandler(std::string stream, FILE* file, ConsoleColours co
 }
 
 /***/
-void ConsoleHandler::write(fmt::memory_buffer const& formatted_log_message, quill::TransitEvent const& log_event)
+void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
 #if defined(_WIN32)
   if (_console_colours.using_colours())

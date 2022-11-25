@@ -72,7 +72,7 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
 }
 
 /***/
-void RotatingFileHandler::write(fmt::memory_buffer const& formatted_log_message, quill::TransitEvent const& log_event)
+void RotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
   _current_size += formatted_log_message.size();
 
