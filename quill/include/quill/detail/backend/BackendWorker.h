@@ -143,6 +143,12 @@ private:
   QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_structured_log_template(
     std::string_view fmt_template) noexcept;
 
+  /**
+   * Gets or creates a new TransitEvent
+   * @return
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline TransitEvent* _get_transit_event();
+
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
@@ -162,6 +168,7 @@ private:
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
   FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
+  std::vector<TransitEvent*> _transit_event_factory; /** Stores transit events to reuse them **/
 
   std::unordered_map<quill::Metadata const*, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
 
@@ -194,6 +201,16 @@ void BackendWorker::run()
   _max_transit_events = _config.backend_thread_max_transit_events;
   _empty_all_queues_before_exit = _config.backend_thread_empty_all_queues_before_exit;
   _strict_log_timestamp_order = _config.backend_thread_strict_log_timestamp_order;
+
+  // Reverse some TransitEvents in advance
+  _transit_event_factory.reserve(_max_transit_events);
+
+  for (uint32_t i = 0; i < _max_transit_events; ++i)
+  {
+    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
+    auto* transit_event = new (transit_event_buffer) TransitEvent{};
+    _transit_event_factory.emplace_back(transit_event);
+  }
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   if (_config.backend_thread_error_handler)
@@ -333,9 +350,9 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
   {
     std::byte* const read_begin = read_buffer;
 
-    // First we want to allocate a new TransitEvent to store the message from the queue
-    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
-    auto* transit_event = new (transit_event_buffer) TransitEvent{};
+    // First we want to allocate a new TransitEvent or use an existing one
+    // to store the message from the queue
+    auto* transit_event = _get_transit_event();
     transit_event->thread_id = thread_context->thread_id();
     transit_event->thread_name = thread_context->thread_name();
 
@@ -538,8 +555,9 @@ void BackendWorker::_process_transit_event()
     // Remove this event and move to the next. We also need to remove that event from the
     // free list allocator
     _transit_events.pop();
-    const_cast<TransitEvent*>(transit_event)->~TransitEvent();
-    _free_list_allocator.deallocate(const_cast<TransitEvent*>(transit_event));
+
+    // we will reuse this transit event later, we do not delete it
+    _transit_event_factory.emplace_back(transit_event);
 
     // Since after processing an event we never force flush but leave it up to the OS instead,
     // set this to true to keep track of unflushed messages we have
@@ -701,5 +719,28 @@ void BackendWorker::_exit()
       }
     }
   }
+
+  // Finally clear the transit event factor memory
+  for (TransitEvent* transit_event : _transit_event_factory)
+  {
+    transit_event->~TransitEvent();
+    _free_list_allocator.deallocate(transit_event);
+  }
+}
+
+/***/
+TransitEvent* BackendWorker::_get_transit_event()
+{
+  if (_transit_event_factory.empty())
+  {
+    // we do not have anything to reuse, we will create a new one
+    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
+    auto* transit_event = new (transit_event_buffer) TransitEvent{};
+    return transit_event;
+  }
+
+  auto* transit_event = _transit_event_factory.back();
+  _transit_event_factory.pop_back();
+  return transit_event;
 }
 } // namespace quill::detail
