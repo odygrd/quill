@@ -135,7 +135,8 @@ private:
     char const* file = path;
     while (*path)
     {
-      if (*path++ == fs::path::preferred_separator)
+      char cur = *path++;
+      if (cur == '/' || cur == fs::path::preferred_separator)
       {
         file = path;
       }
