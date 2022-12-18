@@ -1,3 +1,4 @@
+- [v2.5.2](#v2.5.2)
 - [v2.5.1](#v2.5.1)
 - [v2.5.0](#v2.5.0)
 - [v2.4.2](#v2.4.2)
@@ -36,6 +37,11 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.5.2
+
+**Fixes**
+- Fix filepath on Windows when MinGW is used. ([#212](https://github.com/odygrd/quill/pull/212))
 
 ## v2.5.1
 
