@@ -6,13 +6,13 @@
 
   <div>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Alinux">
-      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/linux?label=linux&logo=linux&style=flat-square" alt="linux-ci" />
+      <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/linux.yml?branch=master&label=linux&logo=linux&style=flat-square" alt="linux-ci" />
     </a>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Amacos">
-      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/macos?label=macos&logo=apple&logoColor=white&style=flat-square" alt="macos-ci" />
+      <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/macos.yml?branch=master&label=macos&logo=apple&logoColor=white&style=flat-square" alt="macos-ci" />
     </a>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Awindows">
-      <img src="https://img.shields.io/github/workflow/status/odygrd/quill/windows?label=windows&logo=windows&logoColor=blue&style=flat-square" alt="windows-ci" />
+      <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/windows.yml?branch=master&label=windows&logo=windows&logoColor=blue&style=flat-square" alt="windows-ci" />
     </a>
     <a href="https://cloud.drone.io/odygrd/quill">
       <img src="https://img.shields.io/drone/build/odygrd/quill/master?label=ARM&logo=drone&style=flat-square" alt="drone-ci" />
