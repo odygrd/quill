@@ -226,7 +226,9 @@ Quill v1.7.x requires a C++14 compiler. Minimum required versions of supported c
 
 int main()
 {
-  quill::enable_console_colours();
+  quill::Config cfg;
+  cfg.enable_console_colours = true;
+  quill::configure(cfg);
   quill::start();
 
   quill::Logger* logger = quill::get_logger();
