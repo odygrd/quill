@@ -6,15 +6,16 @@ namespace quill
 /***/
 void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
+  auto const [macro_metadata, format_to_fn] = log_event.header.metadata_and_format_fn();
+
   _json_message.clear();
 
   _json_message.append(fmt::format(
     R"({{ "timestamp": "{}", "file": "{}", "line": "{}", "thread_id": "{}", "logger": "{}", "level": "{}", "message": "{}")",
     _formatter->format_timestamp(std::chrono::nanoseconds{log_event.header.timestamp}),
-    log_event.header.metadata->macro_metadata.filename(), log_event.header.metadata->macro_metadata.lineno(),
-    log_event.thread_id, log_event.header.logger_details->name(),
-    quill::to_string(log_event.header.metadata->macro_metadata.level()),
-    log_event.header.metadata->macro_metadata.message_format()));
+    macro_metadata.filename(), macro_metadata.lineno(), log_event.thread_id,
+    log_event.header.logger_details->name(), quill::to_string(macro_metadata.level()),
+    macro_metadata.message_format()));
 
   for (size_t i = 0; i < log_event.structured_keys.size(); ++i)
   {

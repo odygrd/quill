@@ -174,10 +174,12 @@ ConsoleHandler::ConsoleHandler(std::string stream, FILE* file, ConsoleColours co
 /***/
 void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
+  auto const [macro_metadata, format_to_fn] = log_event.header.metadata_and_format_fn();
+
 #if defined(_WIN32)
   if (_console_colours.using_colours())
   {
-    WORD const colour_code = _console_colours.colour_code(log_event.header.metadata->macro_metadata.level());
+    WORD const colour_code = _console_colours.colour_code(macro_metadata.level());
 
     // Set foreground colour and store the original attributes
     WORD const orig_attribs = _set_foreground_colour(colour_code);
@@ -218,8 +220,7 @@ void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tra
   if (_console_colours.can_use_colours())
   {
     // Write colour code
-    std::string const& colour_code =
-      _console_colours.colour_code(log_event.header.metadata->macro_metadata.level());
+    std::string const& colour_code = _console_colours.colour_code(macro_metadata.level());
 
     detail::fwrite_fully(colour_code.data(), sizeof(char), colour_code.size(), _file);
   }

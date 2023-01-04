@@ -310,40 +310,20 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(std::string_view format
 
   return ret;
 }
-} // namespace detail
 
 /**
- * Stores the source metadata and additionally a span of TypeDescriptors
+ * This function pointer is used to store and pass the template parameters to the backend worker
+ * thread
  */
-struct Metadata
+using MetadataFormatFn = std::pair<MacroMetadata, detail::FormatToFn> (*)();
+
+template <typename TAnonymousStruct, typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<MacroMetadata, detail::FormatToFn> get_metadata_and_format_fn()
 {
-  /**
-   * Creates and/or returns a pointer to Metadata with static lifetime
-   * @tparam MacroMetadataFun MacroMetadataFun
-   * @tparam Args Args
-   * @return Metadata pointer
-   */
-  template <typename MacroMetadataFun, typename... Args>
-  [[nodiscard]] static Metadata const* get() noexcept
-  {
-    static constexpr Metadata metadata{MacroMetadataFun{}(), detail::format_to<Args...>};
-    return std::addressof(metadata);
-  }
+  return std::make_pair(TAnonymousStruct{}(), detail::format_to<Args...>);
+}
 
-  constexpr Metadata(MacroMetadata macro_metadata, detail::FormatToFn format_to)
-    : macro_metadata(macro_metadata), format_to_fn(format_to)
-  {
-  }
-
-  MacroMetadata macro_metadata;
-  detail::FormatToFn format_to_fn;
-};
-
-/**
- * A variable template that will call Metadata::get() during the program initialisation time
- */
-template <typename MacroMetadataFun, typename... Args>
-Metadata const* get_metadata_ptr{Metadata::get<MacroMetadataFun, Args...>()};
+} // namespace detail
 
 namespace detail
 {
@@ -351,10 +331,10 @@ struct Header
 {
 public:
   Header() = default;
-  Header(Metadata const* metadata, detail::LoggerDetails const* logger_details, uint64_t timestamp)
-    : metadata(metadata), logger_details(logger_details), timestamp(timestamp){};
+  Header(MetadataFormatFn metadata_and_format_fn, detail::LoggerDetails const* logger_details, uint64_t timestamp)
+    : metadata_and_format_fn(metadata_and_format_fn), logger_details(logger_details), timestamp(timestamp){};
 
-  Metadata const* metadata{nullptr};
+  MetadataFormatFn metadata_and_format_fn{nullptr};
   detail::LoggerDetails const* logger_details{nullptr};
   uint64_t timestamp{0};
 };
