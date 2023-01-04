@@ -141,7 +141,8 @@ private:
         file = path;
       }
     }
-    return file;  }
+    return file;
+  }
 
   QUILL_NODISCARD static constexpr std::string_view _log_level_to_string(LogLevel log_level)
   {

@@ -174,6 +174,7 @@ private:
 
   /** Id of the current running process **/
   std::string _process_id;
+  std::string _structured_fmt_str; /** to avoid allocation each time **/
 
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   bool _strict_log_timestamp_order{true};
@@ -444,30 +445,32 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 #endif
         if (macro_metadata.is_structured_log_template())
         {
-          // TODO ODY
-          //          // for messages containing named arguments threat them as structured logs
-          //          auto const search = _slog_templates.find(transit_event->header.metadata);
-          //          if (search != std::cend(_slog_templates))
-          //          {
-          //            auto const& [fmt_str, structured_keys] = search->second;
-          //
-          //            transit_event->structured_keys = structured_keys;
-          //
-          //            read_buffer = transit_event->header.metadata->format_to_fn(
-          //              fmt_str, read_buffer, transit_event->formatted_msg, _args);
-          //          }
-          //          else
-          //          {
-          auto [fmt_str, structured_keys] =
-            _process_structured_log_template(macro_metadata.message_format());
+          // using the message_format as key for lookups
+          _structured_fmt_str.assign(macro_metadata.message_format().data(),
+                                     macro_metadata.message_format().size());
 
-          // insert the results
-          //_slog_templates[transit_event->header.metadata] = std::make_pair(fmt_str, structured_keys);
+          // for messages containing named arguments threat them as structured logs
+          auto const search = _slog_templates.find(_structured_fmt_str);
+          if (search != std::cend(_slog_templates))
+          {
+            auto const& [fmt_str, structured_keys] = search->second;
 
-          transit_event->structured_keys = std::move(structured_keys);
+            transit_event->structured_keys = structured_keys;
 
-          read_buffer = format_to_fn(fmt_str, read_buffer, transit_event->formatted_msg, _args);
-          //}
+            read_buffer = format_to_fn(fmt_str, read_buffer, transit_event->formatted_msg, _args);
+          }
+          else
+          {
+            auto [fmt_str, structured_keys] =
+              _process_structured_log_template(macro_metadata.message_format());
+
+            // insert the results
+            _slog_templates[_structured_fmt_str] = std::make_pair(fmt_str, structured_keys);
+
+            transit_event->structured_keys = std::move(structured_keys);
+
+            read_buffer = format_to_fn(fmt_str, read_buffer, transit_event->formatted_msg, _args);
+          }
 
           // formatted values for any given keys
           transit_event->structured_values.clear();

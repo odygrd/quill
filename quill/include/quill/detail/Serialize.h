@@ -318,9 +318,10 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(std::string_view format
 using MetadataFormatFn = std::pair<MacroMetadata, detail::FormatToFn> (*)();
 
 template <typename TAnonymousStruct, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<MacroMetadata, detail::FormatToFn> get_metadata_and_format_fn()
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::pair<MacroMetadata, detail::FormatToFn> get_metadata_and_format_fn()
 {
-  return std::make_pair(TAnonymousStruct{}(), detail::format_to<Args...>);
+  constexpr auto ret = std::make_pair(TAnonymousStruct{}(), detail::format_to<Args...>);
+  return ret;
 }
 
 } // namespace detail
