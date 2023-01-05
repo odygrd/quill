@@ -425,20 +425,20 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     if (macro_metadata.event() != MacroMetadata::Event::Flush)
     {
 #if defined(_WIN32)
-      if (transit_event->header.metadata->macro_metadata.has_wide_char())
+      if (macro_metadata.has_wide_char())
       {
         // convert the format string to a narrow string
         size_t const size_needed =
-          get_wide_string_encoding_size(transit_event->header.metadata->macro_metadata.wmessage_format());
+          get_wide_string_encoding_size(macro_metadata.wmessage_format());
         std::string format_str(size_needed, 0);
         wide_string_to_narrow(format_str.data(), size_needed,
-                              transit_event->header.metadata->macro_metadata.wmessage_format());
+                              macro_metadata.wmessage_format());
 
-        assert(!transit_event->header.metadata->macro_metadata.is_structured_log_template() &&
+        assert(!macro_metadata.is_structured_log_template() &&
                "structured log templates are not supported for wide characters");
 
-        read_buffer = transit_event->header.metadata->format_to_fn(
-          format_str, read_buffer, transit_event->formatted_msg, _args);
+        read_buffer = format_to_fn(format_str, read_buffer, 
+                                   transit_event->formatted_msg, _args);
       }
       else
       {
