@@ -170,10 +170,11 @@ private:
   FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
   std::vector<TransitEvent*> _transit_event_factory; /** Stores transit events to reuse them **/
 
-  std::unordered_map<quill::Metadata const*, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
+  std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
 
   /** Id of the current running process **/
   std::string _process_id;
+  std::string _structured_fmt_str; /** to avoid allocation each time **/
 
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   bool _strict_log_timestamp_order{true};
@@ -419,52 +420,56 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     // the user (TimestampClockType::Custom) against ours
 
     // we need to check and do not try to format the flush events as that wouldn't be valid
-    if (transit_event->header.metadata->macro_metadata.event() != MacroMetadata::Event::Flush)
+    auto const [macro_metadata, format_to_fn] = transit_event->header.metadata_and_format_fn();
+
+    if (macro_metadata.event() != MacroMetadata::Event::Flush)
     {
 #if defined(_WIN32)
-      if (transit_event->header.metadata->macro_metadata.has_wide_char())
+      if (macro_metadata.has_wide_char())
       {
         // convert the format string to a narrow string
         size_t const size_needed =
-          get_wide_string_encoding_size(transit_event->header.metadata->macro_metadata.wmessage_format());
+          get_wide_string_encoding_size(macro_metadata.wmessage_format());
         std::string format_str(size_needed, 0);
         wide_string_to_narrow(format_str.data(), size_needed,
-                              transit_event->header.metadata->macro_metadata.wmessage_format());
+                              macro_metadata.wmessage_format());
 
-        assert(!transit_event->header.metadata->macro_metadata.is_structured_log_template() &&
+        assert(!macro_metadata.is_structured_log_template() &&
                "structured log templates are not supported for wide characters");
 
-        read_buffer = transit_event->header.metadata->format_to_fn(
-          format_str, read_buffer, transit_event->formatted_msg, _args);
+        read_buffer = format_to_fn(format_str, read_buffer, 
+                                   transit_event->formatted_msg, _args);
       }
       else
       {
 #endif
-        if (transit_event->header.metadata->macro_metadata.is_structured_log_template())
+        if (macro_metadata.is_structured_log_template())
         {
+          // using the message_format as key for lookups
+          _structured_fmt_str.assign(macro_metadata.message_format().data(),
+                                     macro_metadata.message_format().size());
+
           // for messages containing named arguments threat them as structured logs
-          auto const search = _slog_templates.find(transit_event->header.metadata);
+          auto const search = _slog_templates.find(_structured_fmt_str);
           if (search != std::cend(_slog_templates))
           {
             auto const& [fmt_str, structured_keys] = search->second;
 
             transit_event->structured_keys = structured_keys;
 
-            read_buffer = transit_event->header.metadata->format_to_fn(
-              fmt_str, read_buffer, transit_event->formatted_msg, _args);
+            read_buffer = format_to_fn(fmt_str, read_buffer, transit_event->formatted_msg, _args);
           }
           else
           {
-            auto [fmt_str, structured_keys] = _process_structured_log_template(
-              transit_event->header.metadata->macro_metadata.message_format());
+            auto [fmt_str, structured_keys] =
+              _process_structured_log_template(macro_metadata.message_format());
 
             // insert the results
-            _slog_templates[transit_event->header.metadata] = std::make_pair(fmt_str, structured_keys);
+            _slog_templates[_structured_fmt_str] = std::make_pair(fmt_str, structured_keys);
 
             transit_event->structured_keys = std::move(structured_keys);
 
-            read_buffer = transit_event->header.metadata->format_to_fn(
-              fmt_str, read_buffer, transit_event->formatted_msg, _args);
+            read_buffer = format_to_fn(fmt_str, read_buffer, transit_event->formatted_msg, _args);
           }
 
           // formatted values for any given keys
@@ -477,9 +482,8 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
         else
         {
           // regular logs
-          read_buffer = transit_event->header.metadata->format_to_fn(
-            transit_event->header.metadata->macro_metadata.message_format(), read_buffer,
-            transit_event->formatted_msg, _args);
+          read_buffer = format_to_fn(macro_metadata.message_format(), read_buffer,
+                                     transit_event->formatted_msg, _args);
         }
 #if defined(_WIN32)
       }
@@ -513,13 +517,15 @@ void BackendWorker::_process_transit_event()
 {
   TransitEvent* transit_event = _transit_events.top().second;
 
-  // If backend_process(...) throws we want to skip this event and move to the next so we catch the
+  auto const [macro_metadata, format_to_fn] = transit_event->header.metadata_and_format_fn();
+
+  // If backend_process(...) throws we want to skip this event and move to the next, so we catch the
   // error here instead of catching it in the parent try/catch block of main_loop
   QUILL_TRY
   {
-    if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::Log)
+    if (macro_metadata.event() == MacroMetadata::Event::Log)
     {
-      if (transit_event->header.metadata->macro_metadata.level() != LogLevel::Backtrace)
+      if (macro_metadata.level() != LogLevel::Backtrace)
       {
         _write_transit_event(*transit_event);
 
@@ -528,8 +534,7 @@ void BackendWorker::_process_transit_event()
         // After we forwarded the message we will check the severity of this message for this logger
         // If the severity of the message is higher than the backtrace flush severity we will also
         // flush the backtrace of the logger
-        if (QUILL_UNLIKELY(transit_event->header.metadata->macro_metadata.level() >=
-                           transit_event->header.logger_details->backtrace_flush_level()))
+        if (QUILL_UNLIKELY(macro_metadata.level() >= transit_event->header.logger_details->backtrace_flush_level()))
         {
           _backtrace_log_message_storage.process(transit_event->header.logger_details->name(),
                                                  [this](TransitEvent const& transit_event)
@@ -542,7 +547,7 @@ void BackendWorker::_process_transit_event()
         _backtrace_log_message_storage.store(std::move(*transit_event));
       }
     }
-    else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
+    else if (macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
     {
       // we can just convert the capacity back to int here and use it
       _backtrace_log_message_storage.set_capacity(
@@ -550,14 +555,14 @@ void BackendWorker::_process_transit_event()
         static_cast<uint32_t>(std::stoul(
           std::string{transit_event->formatted_msg.begin(), transit_event->formatted_msg.end()})));
     }
-    else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::FlushBacktrace)
+    else if (macro_metadata.event() == MacroMetadata::Event::FlushBacktrace)
     {
       // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
       _backtrace_log_message_storage.process(transit_event->header.logger_details->name(),
                                              [this](TransitEvent const& transit_event)
                                              { _write_transit_event(transit_event); });
     }
-    else if (transit_event->header.metadata->macro_metadata.event() == MacroMetadata::Event::Flush)
+    else if (macro_metadata.event() == MacroMetadata::Event::Flush)
     {
       _force_flush();
 
@@ -604,20 +609,22 @@ void BackendWorker::_process_transit_event()
 void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
 {
   // Forward the record to all the logger handlers
+  auto const [macro_metadata, format_to_fn] = transit_event.header.metadata_and_format_fn();
+
   for (auto& handler : transit_event.header.logger_details->handlers())
   {
-    handler->formatter().format(
-      std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id.data(),
-      transit_event.thread_name.data(), _process_id, transit_event.header.logger_details->name(),
-      transit_event.header.metadata->macro_metadata, transit_event.formatted_msg);
+    handler->formatter().format(std::chrono::nanoseconds{transit_event.header.timestamp},
+                                transit_event.thread_id.data(), transit_event.thread_name.data(),
+                                _process_id, transit_event.header.logger_details->name(),
+                                macro_metadata, transit_event.formatted_msg);
 
     // After calling format on the formatter we have to request the formatter record
     auto const& formatted_log_message_buffer = handler->formatter().formatted_log_message();
 
     // If all filters are okay we write this message to the file
-    if (handler->apply_filters(
-          transit_event.thread_id.data(), std::chrono::nanoseconds{transit_event.header.timestamp},
-          transit_event.header.metadata->macro_metadata, formatted_log_message_buffer))
+    if (handler->apply_filters(transit_event.thread_id.data(),
+                               std::chrono::nanoseconds{transit_event.header.timestamp},
+                               macro_metadata, formatted_log_message_buffer))
     {
       // log to the handler, also pass the log_message_timestamp this is only needed in some
       // cases like daily file rotation

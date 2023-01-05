@@ -41,7 +41,12 @@
 ## v2.5.2
 
 **Fixes**
+
 - Fix filepath on Windows when MinGW is used. ([#212](https://github.com/odygrd/quill/pull/212))
+
+**Improvements**
+
+- Removed the creation of `static Metadata` objects during initialisation time.
 
 ## v2.5.1
 
