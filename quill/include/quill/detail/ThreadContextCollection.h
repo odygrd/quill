@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/Config.h"
 #include "quill/detail/misc/AlignedAllocator.h" // for CacheAlignedAllocator
 #include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_HOT
 #include "quill/detail/misc/Common.h"           // for CACHELINE_SIZE
@@ -50,7 +51,7 @@ private:
      * Creates a new context and then registers it to the context collection sharing ownership
      * of the ThreadContext
      */
-    explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection);
+    explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection, size_t default_queue_capacity);
 
     /**
      * Deleted
@@ -94,7 +95,7 @@ public:
   /**
    * Constructor
    */
-  ThreadContextCollection() = default;
+  ThreadContextCollection(Config const& config) : _config(config) {}
 
   /**
    * Destructor
@@ -114,7 +115,7 @@ public:
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
-    static thread_local ThreadContextWrapper thread_context_wrapper{*this};
+    static thread_local ThreadContextWrapper thread_context_wrapper{*this, _config.default_queue_capacity};
     return thread_context_wrapper.thread_context();
   }
 
@@ -189,6 +190,7 @@ private:
   void _find_and_remove_invalidated_thread_contexts();
 
 private:
+  Config const& _config;
   std::mutex _mutex; /**< Protect access when register contexts or removing contexts */
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 

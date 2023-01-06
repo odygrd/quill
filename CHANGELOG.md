@@ -1,4 +1,4 @@
-- [v2.5.2](#v2.5.2)
+- [v2.5.2](#v2.6.0)
 - [v2.5.1](#v2.5.1)
 - [v2.5.0](#v2.5.0)
 - [v2.4.2](#v2.4.2)
@@ -38,7 +38,7 @@
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
 
-## v2.5.2
+## v2.6.0
 
 **Fixes**
 
@@ -47,6 +47,10 @@
 **Improvements**
 
 - Removed the creation of `static Metadata` objects during initialisation time.
+- `#define QUILL_QUEUE_CAPACITY` has been removed.
+- Added Config option `default_queue_capacity` that can be used to specify the initial capacity of the queue.
+- When Unbounded queue is used the newly allocated queue will now have enough space to fit any
+  object. ([#215](https://github.com/odygrd/quill/pull/215))
 
 ## v2.5.1
 

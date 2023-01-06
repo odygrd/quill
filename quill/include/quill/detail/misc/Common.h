@@ -29,10 +29,6 @@
   #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 #endif
 
-#if !defined(QUILL_QUEUE_CAPACITY)
-  #define QUILL_QUEUE_CAPACITY 131'072
-#endif
-
 /**
  * Convert number to string
  */

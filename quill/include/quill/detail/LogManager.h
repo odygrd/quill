@@ -256,7 +256,7 @@ private:
 private:
   Config _config;
   HandlerCollection _handler_collection;
-  ThreadContextCollection _thread_context_collection{};
+  ThreadContextCollection _thread_context_collection{_config};
   LoggerCollection _logger_collection{_config, _thread_context_collection, _handler_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */

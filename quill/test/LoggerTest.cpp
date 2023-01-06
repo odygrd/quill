@@ -15,7 +15,7 @@ using namespace quill::detail;
 TEST_CASE("log_level")
 {
   Config cfg;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
   LoggerCollection logger_collection{cfg, tc, hc};
@@ -35,7 +35,7 @@ TEST_CASE("log_level")
 TEST_CASE("get_non_existent_logger")
 {
   Config cfg;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
   LoggerCollection logger_collection{cfg, tc, hc};
@@ -47,7 +47,7 @@ TEST_CASE("get_non_existent_logger")
 TEST_CASE("throw_if_backtrace_log_level_is_used")
 {
   Config cfg;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
   LoggerCollection logger_collection{cfg, tc, hc};
@@ -62,7 +62,7 @@ TEST_CASE("throw_if_backtrace_log_level_is_used")
 TEST_CASE("logger_should_log")
 {
   Config cfg;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   HandlerCollection hc;
 
   LoggerCollection logger_collection{cfg, tc, hc};

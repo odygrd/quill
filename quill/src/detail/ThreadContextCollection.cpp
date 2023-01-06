@@ -8,9 +8,10 @@
 namespace quill::detail
 {
 /***/
-ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection)
+ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection,
+                                                                    size_t default_queue_capacity)
   : _thread_context_collection(thread_context_collection),
-    _thread_context(std::shared_ptr<ThreadContext>(new ThreadContext()))
+    _thread_context(std::shared_ptr<ThreadContext>(new ThreadContext(default_queue_capacity)))
 {
   // We can not use std::make_shared above.
   // Explanation :
