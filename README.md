@@ -112,7 +112,7 @@ The main goals of the library are:
 
 ## Performance 
 
-:fire: ** Updated December 2022 ** :fire:
+:fire: ** Updated January 2023 ** :fire:
 
 ### Log Numbers
 The following message is logged 100'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.
@@ -123,7 +123,7 @@ The results in the tables below are in nanoseconds (ns).
 
 | Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
 |--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
-| [Quill v2.5.2 Unbounded Queue](https://github.com/odygrd/quill)                     |  18  |  21  |  24  |  25  |  27  |  33  |  49  |
+| [Quill v2.6.0 Unbounded Queue](https://github.com/odygrd/quill)                     |  18  |  21  |  24  |  25  |  27  |  33  |  53  |
 | [Quill v1.7 Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)   |  16  |  18  |  20  |  22  |  26  |  32  |  55  |
 | [Quill v1.7 Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)  |  15  |  17  |  19  |  21  |  26  |  36  |  51  |
 | [Quill v1.7 Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)     |  16  |  17  |  19  |  20  |  25  |  29  |  47  |
@@ -139,7 +139,7 @@ The results in the tables below are in nanoseconds (ns).
 
 | Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
 |--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
-| [Quill v2.5.2 Unbounded Queue](https://github.com/odygrd/quill)                     |  18  |  21  |  23  |  25  |  28  |  32  |  60  |
+| [Quill v2.6.0 Unbounded Queue](https://github.com/odygrd/quill)                     |  18  |  21  |  23  |  25  |  28  |  32  |  60  |
 | [Quill v1.7 Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)   |  16  |  19  |  22  |  24  |  32  |  45  |  59  |
 | [Quill v1.7 Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)  |  15  |  18  |  21  |  23  |  30  |  40  |  57  |
 | [Quill v1.7 Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)     |  16  |  18  |  21  |  23  |  29  |  42  |  61  |
@@ -159,7 +159,7 @@ The large string is over 35 characters to avoid short string optimisation of `st
 
 | Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
 |--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
-| [Quill v2.5.2 Unbounded Queue](https://github.com/odygrd/quill)                      |  32  |  33  |  35  |  37  |  40  |  44  |  70  | 
+| [Quill v2.6.0 Unbounded Queue](https://github.com/odygrd/quill)                      |  32  |  33  |  35  |  37  |  40  |  44  |  70  | 
 | [Quill v1.7 Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)    |  26  |  28  |  29  |  31  |  35  |  45  |  68  |
 | [Quill v1.7 Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)   |  122  |  136  |  148  |  156  |  170  |  187  |  223  |
 | [Quill v1.7 Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)      |  27  |  29  |  31  |  32  |  36  |  44  |  64  |
@@ -175,7 +175,7 @@ The large string is over 35 characters to avoid short string optimisation of `st
 
 | Library                                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th | Worst |
 |--------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|:-----:|
-| [Quill v2.5.2 Unbounded Queue](https://github.com/odygrd/quill)                       |  31  |  33  |  36  |  37  |  41  |  47  |  81  |
+| [Quill v2.6.0 Unbounded Queue](https://github.com/odygrd/quill)                       |  31  |  33  |  36  |  37  |  41  |  47  |  81  |
 | [Quill v1.7 Dual Queue Enabled, Unbounded Queue](https://github.com/odygrd/quill)     |  27  |  29  |  31  |  32  |  37  |  47  |  75  |
 | [Quill v1.7 Dual Queue Disabled, Unbounded Queue](https://github.com/odygrd/quill)    |  127  |  141  |  157  |  168  |  185  |  203  |  227  |
 | [Quill v1.7 Dual Queue Enabled, Bounded Queue](https://github.com/odygrd/quill)       |  27  |  29  |  31  |  32  |  39  |  51  |  100  |
