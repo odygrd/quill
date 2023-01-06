@@ -29,11 +29,10 @@ namespace quill::detail
  * buffer is created from the producer the consumer first consumes everything in the old
  * buffer and then moves to the new buffer.
  */
-template <size_t Capacity>
 class UnboundedQueue
 {
 public:
-  using bounded_queue_t = BoundedQueue<Capacity>;
+  using bounded_queue_t = BoundedQueue;
 
 private:
   /** Private Definitions **/
@@ -47,7 +46,7 @@ private:
      * Constructor
      * @param capacity the capacity of the fixed buffer
      */
-    Node() = default;
+    explicit Node(size_t bounded_queue_capacity) : bounded_queue(bounded_queue_capacity) {}
 
     /**
      * Alignment requirement as we have bounded_queue as member
@@ -58,16 +57,18 @@ private:
     void operator delete(void* p) { aligned_free(p); }
 
     /** members */
+    std::atomic<Node*> next{nullptr};
     bounded_queue_t bounded_queue;
-    alignas(CACHELINE_SIZE) std::atomic<Node*> next{nullptr};
-    char _pad1[CACHELINE_SIZE - sizeof(std::atomic<Node*>)] = "\0";
   };
 
 public:
   /**
    * Constructor
    */
-  UnboundedQueue() : _producer(new Node()), _consumer(_producer) {}
+  UnboundedQueue(size_t initial_bounded_queue_capacity)
+    : _producer(new Node(initial_bounded_queue_capacity)), _consumer(_producer)
+  {
+  }
 
   /**
    * Deleted
@@ -102,21 +103,30 @@ public:
     // Try to reserve the bounded queue
     std::byte* write_pos = _producer->bounded_queue.prepare_write(nbytes);
 
-    if (QUILL_UNLIKELY(!write_pos))
+    if (QUILL_LIKELY(write_pos != nullptr))
     {
-      // We failed to reserve because the queue was full, create a new node with the a new queue
-      auto next_node = new Node{};
-
-      // store the new node pointer as next in the current node
-      _producer->next.store(next_node, std::memory_order_release);
-
-      // producer is now using the next node
-      _producer = next_node;
-
-      // reserve again, this time we know we will always succeed, cast to void* to ignore
-      write_pos = _producer->bounded_queue.prepare_write(nbytes);
-      assert(write_pos && "Trying to reserve more bytes than the bounded queue capacity");
+      return write_pos;
     }
+
+    // Then it means the queue doesn't have enough size
+    size_t capacity = _producer->bounded_queue.capacity() * 2;
+    while (capacity < (nbytes + 1))
+    {
+      capacity = capacity * 2;
+    }
+
+    // We failed to reserve because the queue was full, create a new node with a new queue
+    auto next_node = new Node{capacity};
+
+    // store the new node pointer as next in the current node
+    _producer->next.store(next_node, std::memory_order_release);
+
+    // producer is now using the next node
+    _producer = next_node;
+
+    // reserve again, this time we know we will always succeed, cast to void* to ignore
+    write_pos = _producer->bounded_queue.prepare_write(nbytes);
+    assert(write_pos && "Already reserved a queue with that capacity");
 
     return write_pos;
   }

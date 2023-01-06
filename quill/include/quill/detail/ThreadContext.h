@@ -28,15 +28,15 @@ class ThreadContext
 {
 public:
 #if defined(QUILL_USE_BOUNDED_QUEUE)
-  using SPSCQueueT = BoundedQueue<QUILL_QUEUE_CAPACITY>;
+  using SPSCQueueT = BoundedQueue;
 #else
-  using SPSCQueueT = UnboundedQueue<QUILL_QUEUE_CAPACITY>;
+  using SPSCQueueT = UnboundedQueue;
 #endif
 
   /**
    * Constructor
    */
-  explicit ThreadContext() = default;
+  explicit ThreadContext(size_t default_queue_capacity) : _spsc_queue(default_queue_capacity) {}
 
   /**
    * Deleted

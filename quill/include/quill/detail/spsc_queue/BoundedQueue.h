@@ -22,17 +22,16 @@ namespace quill::detail
 /**
  * Implements a circular Single Producer Single Consumer FIFO queue
  */
-template <size_t Capacity>
 class BoundedQueue
 {
 public:
-  BoundedQueue()
+  BoundedQueue(size_t capacity) : _capacity(capacity)
   {
-    _storage = static_cast<std::byte*>(aligned_alloc(CACHELINE_SIZE, capacity()));
-    std::memset(_storage, 0, capacity());
+    _storage = static_cast<std::byte*>(aligned_alloc(CACHELINE_SIZE, _capacity));
+    std::memset(_storage, 0, _capacity);
 
-    _end_of_recorded_space = _storage + capacity();
-    _min_free_space = capacity();
+    _end_of_recorded_space = _storage + _capacity;
+    _min_free_space = _capacity;
     _producer_pos.store(_storage);
     _consumer_pos.store(_storage);
   }
@@ -68,10 +67,10 @@ public:
     {
       // producer is ahead of the consumer
       // cxxxxxxxxxp0000EOB
-      // end_of_buffer = _storage + capacity();
+      // end_of_buffer = _storage + _capacity;
 
       // remaining space to the end of the buffer
-      _min_free_space = static_cast<size_t>(_storage + capacity() - producer_pos);
+      _min_free_space = static_cast<size_t>(_storage + _capacity - producer_pos);
 
       if (_min_free_space > nbytes)
       {
@@ -192,10 +191,11 @@ public:
     return _consumer_pos.load(std::memory_order_relaxed) == _producer_pos.load(std::memory_order_relaxed);
   }
 
-  QUILL_NODISCARD static constexpr size_t capacity() noexcept { return Capacity; }
+  QUILL_NODISCARD size_t capacity() const noexcept { return _capacity; }
 
 protected:
   std::byte* _storage{nullptr};
+  size_t _capacity;
 
   /** Position within storage[] where the producer may place new data **/
   alignas(CACHELINE_SIZE) std::atomic<std::byte*> _producer_pos;

@@ -12,7 +12,7 @@ using namespace quill::detail;
 
 TEST_CASE("read_write_buffer")
 {
-  BoundedQueue<64u> buffer;
+  BoundedQueue buffer{64u};
 
   {
     std::byte* write_buf = buffer.prepare_write(32u);
@@ -48,7 +48,7 @@ TEST_CASE("read_write_buffer")
 
 TEST_CASE("read_write_multithreaded_plain_ints")
 {
-  BoundedQueue<QUILL_QUEUE_CAPACITY> buffer;
+  BoundedQueue buffer{131'072};
 
   std::thread producer_thread(
     [&buffer]()

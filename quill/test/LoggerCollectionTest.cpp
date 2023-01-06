@@ -17,7 +17,7 @@ TEST_CASE("create_get_same_logger")
   // Create and then get the same logger and check that the values we set are cached
   Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   Handler* stream_handler = hc.stdout_console_handler();
@@ -39,7 +39,7 @@ TEST_CASE("create_get_all_loggers")
   // Create and then get the same logger and check that the values we set are cached
   Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   Handler* stream_handler = hc.stdout_console_handler();
@@ -76,7 +76,7 @@ TEST_CASE("create_get_different_loggers")
   // Create and then get the same logger and check that the values we set are different
   Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   Handler* stream_handler = hc.stdout_console_handler();
@@ -101,7 +101,7 @@ TEST_CASE("get_non_existing_logger")
   // Check that we throw if we try to get a logger that was never created before
   Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   // try to get a new logger with a default log level
@@ -117,7 +117,7 @@ TEST_CASE("default_logger")
   // the values we set are cached
   Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   Logger* default_logger = logger_collection.get_logger();
@@ -141,7 +141,7 @@ TEST_CASE("create_logger_from_default_logger")
   // Create a new logger and check that the properties are the same as the default logger
   Config cfg;
   HandlerCollection hc;
-  ThreadContextCollection tc;
+  ThreadContextCollection tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   Logger* default_logger = logger_collection.create_logger("logger_test", TimestampClockType::Rdtsc, nullptr);

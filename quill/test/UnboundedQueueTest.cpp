@@ -12,7 +12,7 @@ using namespace quill::detail;
 
 TEST_CASE("read_write_multithreaded_plain_ints")
 {
-  UnboundedQueue<QUILL_QUEUE_CAPACITY> buffer;
+  UnboundedQueue buffer{2};
 
   std::thread producer_thread(
     [&buffer]()

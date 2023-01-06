@@ -160,5 +160,26 @@ struct Config
    * The value is in milliseconds and the default value is 700.
    */
   std::chrono::milliseconds rdtsc_resync_interval = std::chrono::milliseconds{700};
+
+  /**
+   * Quill uses an unbounded/bounded SPSC queue per spawned thread to
+   * forward the LogRecords to the backend thread.
+   *
+   * During very high logging activity the backend thread won't be able to consume fast enough
+   * and the queue will become full. In this scenario the caller thread will not block but instead
+   * it will allocate a new queue of the same capacity.
+   *
+   * If the backend thread is falling behind also consider reducing the sleep duration of the
+   * backend thread first or pinning it to a dedicated core. This will keep the queue more empty.
+   *
+   * The queue size can be increased or decreased based on the user needs. This queue will be shared
+   * between two threads and it should not exceed the size of LLC cache.
+   *
+   * @warning The configured queue size needs to be in bytes, it MUST be a power of two and a
+   * multiple of the page size (4096). e.g. 32'768, 65'536, 131'072, 262'144, 524'288
+   *
+   * @note This capacity automatically doubles when the unbounded queue is full
+   */
+  size_t default_queue_capacity{131'072};
 };
 } // namespace quill
