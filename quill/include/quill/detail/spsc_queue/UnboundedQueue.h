@@ -110,7 +110,7 @@ public:
 
     // Then it means the queue doesn't have enough size
     size_t capacity = _producer->bounded_queue.capacity() * 2;
-    while (capacity < nbytes)
+    while (capacity < (nbytes + 1))
     {
       capacity = capacity * 2;
     }
