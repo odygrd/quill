@@ -88,14 +88,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
 {
   using arg_t = detail::remove_cvref_t<Arg>;
 
-  if constexpr (is_type_of_c_string<arg_t>())
+  if constexpr (is_type_of_c_string<Arg>())
   {
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, strlen(str)};
     args.emplace_back(fmt::detail::make_arg<fmt::format_context>(v));
     return decode_args<DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
   }
-  else if constexpr (is_type_of_string<arg_t>())
+  else if constexpr (is_type_of_string<Arg>())
   {
     // for std::string we first need to retrieve the length
     in = detail::align_pointer<alignof(size_t), std::byte>(in);
@@ -110,7 +110,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
     return decode_args<DestructIdx, Args...>(in + v.length(), args, destruct_args);
   }
 #if defined(_WIN32)
-  else if constexpr (is_type_of_wide_c_string<arg_t>() || is_type_of_wide_string<arg_t>())
+  else if constexpr (is_type_of_wide_c_string<Arg>() || is_type_of_wide_string<Arg>())
   {
     // for std::wstring we first need to retrieve the length
     in = detail::align_pointer<alignof(size_t), std::byte>(in);
