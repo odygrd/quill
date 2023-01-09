@@ -187,13 +187,13 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline constexpr size_t get_args_size(size_t
   else if constexpr (is_type_of_wide_c_string<arg_t>())
   {
     size_t const len = get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
-    c_string_sizes[c_str_index++] = len;
+    c_string_sizes[idx] = len;
     return len + sizeof(size_t) + alignof(size_t);
   }
   else if constexpr (is_type_of_wide_string<arg_t>())
   {
     size_t const len = get_wide_string_encoding_size(arg);
-    c_string_sizes[c_str_index++] = len;
+    c_string_sizes[idx] = len;
     return len + sizeof(size_t) + alignof(size_t);
   }
 #endif
@@ -265,23 +265,23 @@ QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& out, size_t const* c_stri
   else if constexpr (is_type_of_wide_c_string<arg_t>())
   {
     out = detail::align_pointer<alignof(size_t), std::byte>(out);
-    size_t const len = c_string_sizes[c_str_index];
+    size_t const len = c_string_sizes[idx];
     std::memcpy(out, &len, sizeof(size_t));
 
     out += sizeof(size_t);
-    wide_string_to_narrow(out, c_string_sizes[c_str_index], std::wstring_view{arg, wcslen(arg)});
-    out += c_string_sizes[c_str_index++];
+    wide_string_to_narrow(out, c_string_sizes[idx], std::wstring_view{arg, wcslen(arg)});
+    out += c_string_sizes[idx];
   }
   else if constexpr (is_type_of_wide_string<arg_t>())
   {
     // for std::wstring we store the size first, in order to correctly retrieve it
     out = detail::align_pointer<alignof(size_t), std::byte>(out);
-    size_t const len = c_string_sizes[c_str_index];
+    size_t const len = c_string_sizes[idx];
     std::memcpy(out, &len, sizeof(size_t));
     out += sizeof(size_t);
 
-    wide_string_to_narrow(out, c_string_sizes[c_str_index], arg);
-    out += c_string_sizes[c_str_index++];
+    wide_string_to_narrow(out, c_string_sizes[idx], arg);
+    out += c_string_sizes[idx];
   }
 #endif
   else
