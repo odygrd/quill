@@ -151,8 +151,7 @@ public:
 
       // Need to reserve additional space as we will be aligning the pointer
       total_size = sizeof(detail::Header) + alignof(detail::Header) +
-        detail::get_args_sizes(c_string_sizes,
-                               std::make_index_sequence<sizeof...(FmtArgs)>,
+        detail::get_args_sizes(c_string_sizes, std::make_index_sequence<sizeof...(FmtArgs)>{},
                                fmt_args...);
 
       c_string_sz = &c_string_sizes[0];
@@ -198,7 +197,7 @@ public:
     if constexpr (c_string_count > 0)
     {
       write_buffer =
-        detail::encode_args(c_string_sz, write_buffer, std::make_index_sequence<sizeof...(FmtArgs)>,
+        detail::encode_args(c_string_sz, write_buffer, std::make_index_sequence<sizeof...(FmtArgs)>{},
                                          std::forward<FmtArgs>(fmt_args)...);
     }
     else
