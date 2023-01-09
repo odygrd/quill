@@ -165,7 +165,8 @@ QUILL_ATTRIBUTE_HOT inline void destruct_args(std::byte** args)
 }
 
 template <typename Arg>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t get_args_size(size_t* c_string_sizes, size_t idx, Arg&& arg)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline constexpr size_t get_args_size(size_t* c_string_sizes,
+                                                                          size_t idx, Arg&& arg)
 {
   using arg_t = detail::remove_cvref_t<Arg>;
 
@@ -206,12 +207,27 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t get_args_size(size_t* c_string
  * Get the size of all arguments
  */
 template <std::size_t... Is, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t get_args_sizes(size_t* c_string_sizes,
-                                                                 std::index_sequence<Is...>, Args&&... args)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline constexpr size_t get_args_sizes(size_t* c_string_sizes,
+                                                                           std::index_sequence<Is...>,
+                                                                           Args&&... args)
 {
   if constexpr (sizeof...(args) != 0)
   {
     return (... + get_args_size(c_string_sizes, Is, std::forward<Args>(args)));
+  }
+  else
+  {
+    // no variadic args
+    return 0;
+  }
+}
+
+template <typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t get_args_sizes(Args&&... args)
+{
+  if constexpr (sizeof...(args) != 0)
+  {
+    return (... + get_args_size(nullptr, 0, std::forward<Args>(args)));
   }
   else
   {
@@ -292,6 +308,13 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* encode_args(size_t const* 
                                                                   std::index_sequence<Is...>, Args&&... args)
 {
   (encode_arg(out, c_string_sizes, Is, std::forward<Args>(args)), ...);
+  return out;
+}
+
+template <typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* encode_args(std::byte* out, Args&&... args)
+{
+  (encode_arg(out, nullptr, 0, std::forward<Args>(args)), ...);
   return out;
 }
 
