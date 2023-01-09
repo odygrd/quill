@@ -130,20 +130,13 @@ public:
 
     detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
 
-    // For windows also take wide strings into consideration.
-#if defined(_WIN32)
-    constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>() +
-      fmt::detail::count<detail::is_type_of_wide_c_string<FmtArgs>()...>() +
-      fmt::detail::count<detail::is_type_of_wide_string<FmtArgs>()...>();
-#else
-    constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
-#endif
-
-    size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
+    // Create an array to store the c string lengths
+    constexpr size_t arr_size{(std::max)(sizeof...(FmtArgs), static_cast<size_t>(1))};
+    size_t c_string_sizes[arr_size];
 
     // Need to reserve additional space as we will be aligning the pointer
     size_t const total_size = sizeof(detail::Header) + alignof(detail::Header) +
-      detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
+      detail::get_args_sizes(c_string_sizes, std::index_sequence_for<FmtArgs...>{}, fmt_args...);
 
     // request this size from the queue
     std::byte* write_buffer = thread_context->spsc_queue().prepare_write(total_size);
@@ -177,7 +170,8 @@ public:
     write_buffer += sizeof(detail::Header);
 
     // encode remaining arguments
-    write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
+    write_buffer = detail::encode_args(c_string_sizes, write_buffer, std::index_sequence_for<FmtArgs...>{},
+                                       std::forward<FmtArgs>(fmt_args)...);
     assert(total_size >= (static_cast<size_t>(write_buffer - write_begin)) &&
            "The committed write bytes can not be greater than the requested bytes");
     assert((write_buffer >= write_begin) &&

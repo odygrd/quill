@@ -29,7 +29,7 @@ namespace quill
 /** Version Info **/
 constexpr uint32_t VersionMajor{2};
 constexpr uint32_t VersionMinor{6};
-constexpr uint32_t VersionPatch{0};
+constexpr uint32_t VersionPatch{1};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 /** forward declarations **/
