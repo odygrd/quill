@@ -141,20 +141,16 @@ public:
 #endif
 
     size_t total_size;
-    size_t* c_string_sz;
+
+    // Create an array to store the c string lengths
+    constexpr size_t arr_size{(std::max)(sizeof...(FmtArgs), static_cast<size_t>(1))};
+    size_t c_string_sizes[arr_size];
 
     if constexpr (c_string_count > 0)
     {
-      // Create an array to store the c string lengths
-      constexpr size_t arr_size{(std::max)(sizeof...(FmtArgs), static_cast<size_t>(1))};
-      size_t c_string_sizes[arr_size];
-
       // Need to reserve additional space as we will be aligning the pointer
       total_size = sizeof(detail::Header) + alignof(detail::Header) +
-        detail::get_args_sizes(c_string_sizes, std::make_index_sequence<sizeof...(FmtArgs)>{},
-                               fmt_args...);
-
-      c_string_sz = &c_string_sizes[0];
+        detail::get_args_sizes(c_string_sizes, std::make_index_sequence<sizeof...(FmtArgs)>{}, fmt_args...);
     }
     else
     {
@@ -196,8 +192,8 @@ public:
     // encode remaining arguments
     if constexpr (c_string_count > 0)
     {
-      write_buffer =
-        detail::encode_args(c_string_sz, write_buffer, std::make_index_sequence<sizeof...(FmtArgs)>{},
+      write_buffer = detail::encode_args(c_string_sizes, write_buffer,
+                                         std::make_index_sequence<sizeof...(FmtArgs)>{},
                                          std::forward<FmtArgs>(fmt_args)...);
     }
     else
