@@ -242,7 +242,7 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
 
     # Copy the headers
     if (QUILL_FMT_EXTERNAL)
-        install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR} PATTERN "bundled/fmt" EXCLUDE)
+        install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR} PATTERN "bundled" EXCLUDE)
     else ()
         install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR})
     endif ()
