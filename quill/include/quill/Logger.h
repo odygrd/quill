@@ -20,7 +20,6 @@
 #include <atomic>
 #include <cstdint>
 #include <vector>
-#include <utility>
 
 namespace quill
 {
@@ -131,7 +130,7 @@ public:
 
     detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
 
-// For windows also take wide strings into consideration.
+    // For windows also take wide strings into consideration.
 #if defined(_WIN32)
     constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>() +
       fmt::detail::count<detail::is_type_of_wide_c_string<FmtArgs>()...>() +
@@ -140,27 +139,11 @@ public:
     constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
 #endif
 
-    size_t total_size;
-    size_t* c_string_sz;
+    size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
 
-    if constexpr (c_string_count > 0)
-    {
-      // Create an array to store the c string lengths
-      constexpr size_t arr_size{(std::max)(sizeof...(FmtArgs), static_cast<size_t>(1))};
-      size_t c_string_sizes[arr_size];
-
-      // Need to reserve additional space as we will be aligning the pointer
-      total_size = sizeof(detail::Header) + alignof(detail::Header) +
-        detail::get_args_sizes(c_string_sizes, std::make_index_sequence<sizeof...(FmtArgs)>{},
-                               fmt_args...);
-
-      c_string_sz = &c_string_sizes[0];
-    }
-    else
-    {
-      // No c strings in arguments we do not need the stack array
-      total_size = sizeof(detail::Header) + alignof(detail::Header) + detail::get_args_sizes(fmt_args...);
-    }
+    // Need to reserve additional space as we will be aligning the pointer
+    size_t const total_size = sizeof(detail::Header) + alignof(detail::Header) +
+      detail::get_args_sizes(c_string_sizes, fmt_args...);
 
     // request this size from the queue
     std::byte* write_buffer = thread_context->spsc_queue().prepare_write(total_size);
@@ -194,22 +177,11 @@ public:
     write_buffer += sizeof(detail::Header);
 
     // encode remaining arguments
-    if constexpr (c_string_count > 0)
-    {
-      write_buffer =
-        detail::encode_args(c_string_sz, write_buffer, std::make_index_sequence<sizeof...(FmtArgs)>{},
-                                         std::forward<FmtArgs>(fmt_args)...);
-    }
-    else
-    {
-      write_buffer = detail::encode_args(write_buffer, std::forward<FmtArgs>(fmt_args)...);
-    }
-
+    write_buffer = detail::encode_args(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
     assert(total_size >= (static_cast<size_t>(write_buffer - write_begin)) &&
            "The committed write bytes can not be greater than the requested bytes");
     assert((write_buffer >= write_begin) &&
            "write_buffer should be greater or equal to write_begin");
-
     thread_context->spsc_queue().commit_write(static_cast<size_t>(write_buffer - write_begin));
   }
 
