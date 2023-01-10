@@ -139,7 +139,8 @@ public:
     constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
 #endif
 
-    size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
+    constexpr size_t c_string_sz{(std::max)(c_string_count, static_cast<size_t>(1))};
+    size_t c_string_sizes[c_string_sz];
 
     // Need to reserve additional space as we will be aligning the pointer
     size_t const total_size = sizeof(detail::Header) + alignof(detail::Header) +

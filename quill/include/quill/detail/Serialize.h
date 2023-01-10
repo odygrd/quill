@@ -131,7 +131,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
 
     args.emplace_back(fmt::detail::make_arg<fmt::format_context>(*reinterpret_cast<arg_t*>(in)));
 
-    if constexpr (need_call_dtor_for<arg_t>())
+    if constexpr (need_call_dtor_for<Arg>())
     {
       destruct_args[DestructIdx] = in;
       return decode_args<DestructIdx + 1, Args...>(in + sizeof(arg_t), args, destruct_args);
@@ -152,6 +152,7 @@ template <size_t DestructIdx, typename Arg, typename... Args>
 QUILL_ATTRIBUTE_HOT inline void destruct_args(std::byte** args)
 {
   using arg_t = detail::remove_cvref_t<Arg>;
+
   if constexpr (need_call_dtor_for<Arg>())
   {
     (reinterpret_cast<arg_t*>(args[DestructIdx]))->~arg_t();
@@ -168,13 +169,13 @@ QUILL_ATTRIBUTE_HOT void get_args_size(size_t& result_sum, size_t* c_string_size
 {
   using arg_t = detail::remove_cvref_t<Arg>;
 
-  if constexpr (is_type_of_c_string<arg_t>())
+  if constexpr (is_type_of_c_string<Arg>())
   {
     size_t const len = strlen(arg) + 1;
     c_string_sizes[c_str_index++] = len;
     result_sum += len;
   }
-  else if constexpr (is_type_of_string<arg_t>())
+  else if constexpr (is_type_of_string<Arg>())
   {
     // for std::string we also need to store the size in order to correctly retrieve it
     // the reason for this is that if we create e.g:
@@ -183,13 +184,13 @@ QUILL_ATTRIBUTE_HOT void get_args_size(size_t& result_sum, size_t* c_string_size
     result_sum += arg.size() + sizeof(size_t) + alignof(size_t);
   }
 #if defined(_WIN32)
-  else if constexpr (is_type_of_wide_c_string<arg_t>())
+  else if constexpr (is_type_of_wide_c_string<Arg>())
   {
     size_t const len = get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
     c_string_sizes[c_str_index++] = len;
     result_sum += len + sizeof(size_t) + alignof(size_t);
   }
-  else if constexpr (is_type_of_wide_string<arg_t>())
+  else if constexpr (is_type_of_wide_string<Arg>())
   {
     size_t const len = get_wide_string_encoding_size(arg);
     c_string_sizes[c_str_index++] = len;
@@ -229,7 +230,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_args_sizes(size_t* c_string_sizes
  * Encode args to the buffer
  */
 template <typename Arg>
-QUILL_ATTRIBUTE_HOT constexpr void encode_arg(std::byte*& out, size_t* c_string_sizes,
+QUILL_ATTRIBUTE_HOT constexpr void encode_arg(std::byte*& out, size_t const* c_string_sizes,
                                               size_t& c_str_index, Arg&& arg)
 {
   using arg_t = detail::remove_cvref_t<Arg>;
@@ -294,7 +295,8 @@ QUILL_ATTRIBUTE_HOT constexpr void encode_arg(std::byte*& out, size_t* c_string_
 }
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* encode_args(size_t* c_string_sizes, std::byte* out, Args&&... args)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* encode_args(size_t const* c_string_sizes,
+                                                           std::byte* out, Args&&... args)
 {
   size_t c_string_index{0};
   (encode_arg(out, c_string_sizes, c_string_index, std::forward<Args>(args)), ...);
@@ -308,9 +310,9 @@ using FormatToFn = std::byte* (*)(std::string_view format, std::byte* data, fmt_
                                   std::vector<fmt::basic_format_arg<fmt::format_context>>& args);
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(std::string_view format, std::byte* data,
-                                                         fmt_buffer_t& out,
-                                                         std::vector<fmt::basic_format_arg<fmt::format_context>>& args)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* format_to(
+  std::string_view format, std::byte* data, fmt_buffer_t& out,
+  std::vector<fmt::basic_format_arg<fmt::format_context>>& args)
 {
   constexpr size_t num_dtors = fmt::detail::count<need_call_dtor_for<Args>()...>();
   std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
