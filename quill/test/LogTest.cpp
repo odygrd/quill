@@ -1271,17 +1271,22 @@ TEST_CASE("default_logger_with_custom_timestamp")
     {
       Logger* default_logger = lm.logger_collection().get_logger();
 
-      // log an array so the log message is pushed to the queue
-      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}",
-               std::array<int, 2>{1, 2});
+      for (size_t i = 0; i < 10'000; ++i)
+      {
+        // log an array so the log message is pushed to the queue
+        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i);
+      }
 
       custom_ts.set_timestamp(std::chrono::seconds{1656007309});
 
-      LOG_ERROR(default_logger,
-                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}",
-                std::array<int, 2>{3, 4});
+      for (size_t i = 0; i < 10'000; ++i)
+      {
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i);
+      }
 
       // Let all log get flushed to the file
+      custom_ts.set_timestamp(std::chrono::seconds{1658007309});
       lm.flush();
     });
 
@@ -1289,11 +1294,19 @@ TEST_CASE("default_logger_with_custom_timestamp")
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), 2);
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"2022-06-12 04:15:09.000 INFO      root             - Lorem ipsum dolor sit amet, consectetur adipiscing elit [1, 2]"}));
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"2022-06-23 18:01:49.000 ERROR     root             - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [3, 4]"}));
+  REQUIRE_EQ(file_contents.size(), 20'000);
+
+  for (size_t i = 0; i < 10'000; ++i)
+  {
+    REQUIRE(quill::testing::file_contains(
+      file_contents, fmt::format("2022-06-12 04:15:09.000 INFO      root             - Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i)));
+  }
+
+  for (size_t i = 0; i < 10'000; ++i)
+  {
+    REQUIRE(quill::testing::file_contains(
+      file_contents, fmt::format("2022-06-23 18:01:49.000 ERROR     root             - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i)));
+  }
 
   lm.stop_backend_worker();
   quill::detail::remove_file(filename);
