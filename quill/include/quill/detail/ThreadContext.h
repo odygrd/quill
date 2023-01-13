@@ -99,12 +99,12 @@ public:
    * Returns the current seq num and increments it.
    * @return seq num
    */
-  QUILL_NODISCARD uint32_t get_custom_clock_seq() noexcept { return _custom_clock_seq++; }
+  QUILL_NODISCARD uint32_t get_seq_num() noexcept { return _seq_num++; }
 
   /**
    * Resets custom clock seq
    */
-  void reset_custom_clock_seq() noexcept { _custom_clock_seq = 0; }
+  void reset_seq_num() noexcept { _seq_num = 0; }
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)
   /**
@@ -134,7 +134,7 @@ private:
   SPSCQueueT _spsc_queue; /** queue for this thread, events are pushed here */
   std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                    /**< cache this thread name */
-  uint32_t _custom_clock_seq{0}; /**< used only when there is a custom clock as seq num */
+  uint32_t _seq_num{0}; /**< used by the backend thread as seq num */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)

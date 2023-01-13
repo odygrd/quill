@@ -367,6 +367,9 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     transit_event->thread_id = thread_context->thread_id();
     transit_event->thread_name = thread_context->thread_name();
 
+    // store a sequence number which is useful when the timestamps are equal
+    transit_event->seq_num = thread_context->get_seq_num();
+
     // read the header first, and take copy of the header
     read_buffer = detail::align_pointer<alignof(Header), std::byte>(read_buffer);
     transit_event->header = *(reinterpret_cast<detail::Header*>(read_buffer));
@@ -418,9 +421,6 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     }
     else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Custom)
     {
-      // store a sequence number which is useful when the timestamps are equal
-      transit_event->custom_clock_seq = thread_context->get_custom_clock_seq();
-
       // we skip checking against `ts_now`, we can not compare a custom timestamp by
       // the user (TimestampClockType::Custom) against ours
     }
@@ -696,7 +696,7 @@ void BackendWorker::_main_loop()
     // Since all the queues are empty we can also reset the sequence number
     for (auto const& th : cached_thread_contexts)
     {
-      th->reset_custom_clock_seq();
+      th->reset_seq_num();
     }
 
     // We can also clear any invalidated or empty thread contexts now that our priority queue was empty

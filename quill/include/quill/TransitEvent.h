@@ -56,7 +56,7 @@ struct TransitEvent
   std::string thread_name;
   detail::Header header;
   fmt_buffer_t formatted_msg;             /** buffer for message **/
-  uint32_t custom_clock_seq{0};           /**< used only when there is a custom clock as seq num */
+  uint32_t seq_num{0};                    /**< used as seq num when timestamps are equal */
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
 
@@ -67,8 +67,8 @@ public:
   {
     if (lhs.first == rhs.first)
     {
-      // when the timestamps are equal, compare the custom_clock_seq
-      return lhs.second->custom_clock_seq > rhs.second->custom_clock_seq;
+      // when the timestamps are equal compare the seq_num instead
+      return lhs.second->seq_num > rhs.second->seq_num;
     }
     return lhs.first > rhs.first;
   }
