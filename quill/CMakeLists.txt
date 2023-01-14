@@ -118,8 +118,12 @@ endif ()
 
 # Add as a library
 add_library(${TARGET_NAME} "")
-
 add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
+
+if (BUILD_SHARED_LIBS)
+    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_VISIBILITY_PRESET default)
+    set_property(TARGET ${TARGET_NAME} PROPERTY VISIBILITY_INLINES_HIDDEN OFF)
+endif ()
 
 if (QUILL_NO_EXCEPTIONS)
     if (NOT MSVC)

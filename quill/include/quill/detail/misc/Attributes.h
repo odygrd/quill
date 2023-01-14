@@ -95,6 +95,15 @@
   #define QUILL_ATTRIBUTE_COLD
 #endif
 
+// visibility
+#if defined(_WIN32)
+  #define QUILL_EXPORT __declspec(dllexport)
+#elif defined(__GNUC__) || defined(__clang__)
+  #define QUILL_EXPORT [[gnu::visibility("default")]]
+#else
+  #define QUILL_EXPORT
+#endif
+
 /***/
 #define QUILL_NODISCARD_ALWAYS_INLINE_HOT QUILL_NODISCARD QUILL_ALWAYS_INLINE QUILL_ATTRIBUTE_HOT
 
