@@ -274,7 +274,7 @@ public:
    * Access to singleton instance
    * @return a reference to the singleton
    */
-  static LogManagerSingleton& instance() noexcept
+  QUILL_EXPORT static LogManagerSingleton& instance() noexcept
   {
     static LogManagerSingleton instance;
     return instance;

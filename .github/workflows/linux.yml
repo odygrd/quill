@@ -31,6 +31,14 @@ jobs:
             with_tests: ON
             install: sudo apt install g++-8
 
+            # Build as shared library
+          - cxx: g++-10
+            build_type: Release
+            std: 17
+            os: ubuntu-20.04
+            with_tests: ON
+            cmake_options: -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_VISIBILITY_PRESET=hidden -DCMAKE_VISIBILITY_INLINES_HIDDEN=ON
+
             # Builds with valgrind, sanitizers
           - cxx: g++-10
             build_type: Release
@@ -47,6 +55,7 @@ jobs:
             os: ubuntu-20.04
             with_tests: ON
             cmake_options: -DQUILL_SANITIZE_ADDRESS=ON
+
           - cxx: clang++-11
             build_type: Release
             std: 20
@@ -61,6 +70,7 @@ jobs:
             os: ubuntu-20.04
             with_tests: OFF
             cmake_options: -DQUILL_USE_BOUNDED_QUEUE=ON
+
           - cxx: g++-10
             build_type: Release
             std: 17
