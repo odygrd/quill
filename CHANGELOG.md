@@ -45,6 +45,8 @@
 **Fixes**
 
 - Fix equal timestamp log messages appearing out of order ([#223](https://github.com/odygrd/quill/pull/223))
+- Remove references to build directory path from the compiled library's
+  symbols ([#221](https://github.com/odygrd/quill/pull/221))
 
 ## v2.6.0
 
