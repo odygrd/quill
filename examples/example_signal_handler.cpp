@@ -75,7 +75,7 @@ int main()
 
         // After 10 messages Crash - Uncomment any of the below :
 
-        divide_by_zero();
+        // divide_by_zero();
         // stack_overflow();
         // illegal_instruction();
         // cause_segfault();
