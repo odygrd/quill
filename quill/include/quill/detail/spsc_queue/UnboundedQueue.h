@@ -46,7 +46,7 @@ private:
      * Constructor
      * @param capacity the capacity of the fixed buffer
      */
-    explicit Node(size_t bounded_queue_capacity) : bounded_queue(bounded_queue_capacity) {}
+    explicit Node(size_t capacity) : bounded_queue(capacity) {}
 
     /**
      * Alignment requirement as we have bounded_queue as member

@@ -103,8 +103,8 @@ private:
 
   /**
    * Reads all available bytes from the queue
-   * @param thread_context
-   * @param ts_now
+   * @param thread_context thread contest
+   * @param ts_now timestamp
    */
   QUILL_ATTRIBUTE_HOT inline void _read_from_queue(ThreadContext* thread_context, uint64_t ts_now);
 
@@ -145,7 +145,7 @@ private:
 
   /**
    * Gets or creates a new TransitEvent
-   * @return
+   * @return transit event
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline TransitEvent* _get_transit_event();
 
