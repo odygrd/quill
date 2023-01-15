@@ -16,8 +16,8 @@ namespace quill
 TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode,
                                                  std::string when, uint32_t interval, uint32_t backup_count,
                                                  Timezone timezone, std::string const& at_time,
-                                                 FileEventNotifier file_event_notifier)
-  : FileHandler(base_filename, std::move(file_event_notifier)),
+                                                 FileEventNotifier file_event_notifier, bool do_fsync)
+  : FileHandler(base_filename, std::move(file_event_notifier), do_fsync),
     _when(std::move(when)),
     _interval(interval),
     _backup_count(backup_count),

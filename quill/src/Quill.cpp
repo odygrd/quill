@@ -65,9 +65,10 @@ Handler* stderr_handler(std::string const& stderr_handler_name /* = "stderr" */)
 /***/
 Handler* file_handler(fs::path const& filename, std::string const& mode, /* = std::string{} */
                       FilenameAppend append_to_filename /* = FilenameAppend::None */,
-                      FileEventNotifier file_event_notifier /* = FileEventNotifier{} */)
+                      FileEventNotifier file_event_notifier /* = FileEventNotifier{} */, bool do_fsync /* = false */)
 {
-  return create_handler<FileHandler>(filename.string(), mode, append_to_filename, std::move(file_event_notifier));
+  return create_handler<FileHandler>(filename.string(), mode, append_to_filename,
+                                     std::move(file_event_notifier), do_fsync);
 }
 
 /***/
@@ -77,29 +78,33 @@ Handler* time_rotating_file_handler(fs::path const& base_filename,
                                     uint32_t interval /* = 1 */, uint32_t backup_count /* = 0 */,
                                     Timezone timezone /* = Timezone::LocalTime */,
                                     std::string const& at_time /* = std::string{} */,
-                                    FileEventNotifier file_event_notifier /* = FileEventNotifier{} */)
+                                    FileEventNotifier file_event_notifier /* = FileEventNotifier{} */,
+                                    bool do_fsync /* = false */)
 {
-  return create_handler<TimeRotatingFileHandler>(base_filename.string(), mode, when, interval, backup_count,
-                                                 timezone, at_time, std::move(file_event_notifier));
+  return create_handler<TimeRotatingFileHandler>(base_filename.string(), mode, when, interval,
+                                                 backup_count, timezone, at_time,
+                                                 std::move(file_event_notifier), do_fsync);
 }
 
 /***/
 Handler* rotating_file_handler(fs::path const& base_filename, std::string const& mode /* = std::string {"a"} */,
                                size_t max_bytes /* = 0 */, uint32_t backup_count /* = 0 */,
                                bool overwrite_oldest_files /* = true */, bool clean_old_files /* = false */,
-                               FileEventNotifier file_event_notifier /* = FileEventNotifier{} */)
+                               FileEventNotifier file_event_notifier /* = FileEventNotifier{} */,
+                               bool do_fsync /* = false */)
 {
   return create_handler<RotatingFileHandler>(base_filename.string(), mode, max_bytes, backup_count,
                                              overwrite_oldest_files, clean_old_files,
-                                             std::move(file_event_notifier));
+                                             std::move(file_event_notifier), do_fsync);
 }
 
 /***/
 Handler* json_file_handler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,
-                           FileEventNotifier file_event_notifier /* = FileEventNotifier{} */)
+                           FileEventNotifier file_event_notifier /* = FileEventNotifier{} */,
+                           bool do_fsync /* = false */)
 {
   return create_handler<JsonFileHandler>(filename.string(), mode, append_to_filename,
-                                         std::move(file_event_notifier));
+                                         std::move(file_event_notifier), do_fsync);
 }
 
 /***/

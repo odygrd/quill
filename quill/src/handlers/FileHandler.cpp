@@ -1,6 +1,7 @@
 #include "quill/handlers/FileHandler.h"
 #include "quill/detail/misc/FileUtilities.h" // for append_date_to_filename
-#include <cstdio>                            // for fclose
+#include "quill/detail/misc/Os.h"
+#include <cstdio> // for fclose
 
 namespace
 {
@@ -26,17 +27,17 @@ QUILL_NODISCARD quill::fs::path get_filename(quill::FilenameAppend append_to_fil
 namespace quill
 {
 /***/
-FileHandler::FileHandler(fs::path const& filename, std::string const& mode,
-                         FilenameAppend append_to_filename, FileEventNotifier file_event_notifier)
-  : StreamHandler(get_filename(append_to_filename, filename), nullptr, std::move(file_event_notifier))
+FileHandler::FileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,
+                         FileEventNotifier file_event_notifier, bool do_fsync)
+  : StreamHandler(get_filename(append_to_filename, filename), nullptr, std::move(file_event_notifier)),
+    _fsync(do_fsync)
 {
   open_file(_filename, mode);
 }
 
 /***/
-FileHandler::FileHandler(fs::path const& filename,
-                         FileEventNotifier file_event_notifier /* = FileEventNotifier{} */)
-  : StreamHandler(filename, nullptr, std::move(file_event_notifier))
+FileHandler::FileHandler(fs::path const& filename, FileEventNotifier file_event_notifier, bool do_fsync)
+  : StreamHandler(filename, nullptr, std::move(file_event_notifier)), _fsync(do_fsync)
 {
 }
 
@@ -81,4 +82,16 @@ void FileHandler::close_file()
 
 /***/
 FileHandler::~FileHandler() { close_file(); }
+
+/***/
+void FileHandler::flush() noexcept
+{
+  StreamHandler::flush();
+
+  if (_fsync)
+  {
+    detail::fsync(_file);
+  }
+}
+
 } // namespace quill

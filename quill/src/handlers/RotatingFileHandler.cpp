@@ -11,9 +11,10 @@ namespace quill
 {
 /***/
 RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename, std::string const& mode,
-                                         size_t max_bytes, uint32_t backup_count, bool overwrite_oldest_files,
-                                         bool clean_old_files, FileEventNotifier file_event_notifier)
-  : FileHandler(base_filename, std::move(file_event_notifier)),
+                                         size_t max_bytes, uint32_t backup_count,
+                                         bool overwrite_oldest_files, bool clean_old_files,
+                                         FileEventNotifier file_event_notifier, bool do_fsync)
+  : FileHandler(base_filename, std::move(file_event_notifier), do_fsync),
     _max_bytes(max_bytes),
     _backup_count(backup_count),
     _overwrite_oldest_files(overwrite_oldest_files)
@@ -69,16 +70,19 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename, std::str
 /***/
 void RotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
-  _current_size += formatted_log_message.size();
+  size_t new_size = _current_size + formatted_log_message.size();
 
-  if (_current_size > _max_bytes)
+  if ((new_size > _max_bytes) && (detail::file_size(_filename) > 0))
   {
+    // rotate when the new estimated file size exceeds max size.
+    // Also check the file size is > 0  to better deal with full disk
     _rotate();
-    _current_size = formatted_log_message.size();
+    new_size = formatted_log_message.size();
   }
 
   // write to file
   StreamHandler::write(formatted_log_message, log_event);
+  _current_size = new_size;
 }
 
 /***/

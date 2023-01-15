@@ -47,11 +47,11 @@
   symbols. ([#221](https://github.com/odygrd/quill/pull/221))
 - Fix when compiled as shared library with hidden visibility. ([#222](https://github.com/odygrd/quill/pull/222))
 - Fix equal timestamp log messages appearing out of order. ([#223](https://github.com/odygrd/quill/pull/223))
-- Add missing function to create `JsonFileHandler` to `Quill.h`.
 - Reduce padding in some structs.
 
 **Improvements**
-
+- Add missing function to create a `JsonFileHandler` to `Quill.h`.
+- Added option to call `fsync()` to all file handlers.
 - Added file event notifiers, to get callbacks from Quill before/after log file has been opened or
   closed. ([#193](https://github.com/odygrd/quill/pull/193))
   This is useful for cleanup procedures or for adding something to the start/end of the log files.

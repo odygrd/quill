@@ -33,7 +33,7 @@ public:
    */
   TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode, std::string when,
                           uint32_t interval, uint32_t backup_count, Timezone timezone,
-                          std::string const& at_time, FileEventNotifier file_event_notifier);
+                          std::string const& at_time, FileEventNotifier file_event_notifier, bool do_fsync);
 
   ~TimeRotatingFileHandler() override = default;
 

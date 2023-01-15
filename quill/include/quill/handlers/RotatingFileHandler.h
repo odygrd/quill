@@ -36,7 +36,7 @@ public:
    */
   RotatingFileHandler(fs::path const& base_filename, std::string const& mode, size_t max_bytes,
                       uint32_t backup_count, bool overwrite_oldest_files, bool clean_old_files,
-                      FileEventNotifier file_event_notifier);
+                      FileEventNotifier file_event_notifier, bool do_fsync);
 
   /**
    * Destructor
