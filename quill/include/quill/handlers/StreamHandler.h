@@ -13,6 +13,20 @@
 
 namespace quill
 {
+
+/**
+ * Notifies on file events by calling the appropriate callback, the callback is executed on
+ * the backend worker thread
+ */
+struct FileEventNotifier
+{
+  std::function<void(fs::path const& filename)> before_open;
+  std::function<void(fs::path const& filename, FILE* file_stream)> after_open;
+  std::function<void(fs::path const& filename, FILE* file_stream)> before_close;
+  std::function<void(fs::path const& filename)> after_close;
+  std::function<fmt_buffer_t(fmt_buffer_t const& formatted_log_message)> before_write;
+};
+
 class StreamHandler : public Handler
 {
 public:
@@ -29,7 +43,7 @@ public:
    * @param stream only stdout or stderr
    * @throws on invalid param
    */
-  explicit StreamHandler(fs::path stream, FILE* file = nullptr);
+  explicit StreamHandler(fs::path stream, FILE* file = nullptr, FileEventNotifier = FileEventNotifier{});
 
   ~StreamHandler() override = default;
 
@@ -59,5 +73,6 @@ public:
 protected:
   fs::path _filename;
   FILE* _file{nullptr};
+  FileEventNotifier _file_event_notifier;
 };
 } // namespace quill

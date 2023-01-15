@@ -19,18 +19,6 @@ enum class FilenameAppend
 };
 
 /**
- * Notifies on file events by calling the appropriate callback, the callback is executed on
- * the backend worker thread
- */
-struct FileEventNotifier
-{
-  std::function<void(fs::path const& filename)> before_open;
-  std::function<void(fs::path const& filename, FILE* file_stream)> after_open;
-  std::function<void(fs::path const& filename, FILE* file_stream)> before_close;
-  std::function<void(fs::path const& filename)> after_close;
-};
-
-/**
  * Creates a new instance of the FileHandler class.
  * The specified file is opened and used as the stream for logging.
  * If mode is not specified, "a" is used.
@@ -63,9 +51,5 @@ protected:
 
   void open_file(fs::path const& filename, std::string const& mode);
   void close_file();
-
-protected:
-  fs::path _current_filename; /**< Includes the base filename and some additional info e.g. an appended date or an index */
-  FileEventNotifier _file_event_notifier;
 };
 } // namespace quill
