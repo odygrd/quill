@@ -56,8 +56,8 @@ struct TransitEvent
   std::string thread_name;
   detail::Header header;
   fmt_buffer_t formatted_msg;             /** buffer for message **/
-  uint32_t seq_num{0};                    /**< used as seq num when timestamps are equal */
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
+  uint32_t seq_num{0};                    /**< used as seq num when timestamps are equal */
 };
 
 class TransitEventComparator

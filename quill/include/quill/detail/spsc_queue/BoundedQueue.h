@@ -212,6 +212,6 @@ protected:
    * the next bytes from. This value is only updated by the consumer.
    */
   alignas(CACHELINE_SIZE) std::atomic<std::byte*> _consumer_pos;
-  char _pad0[CACHELINE_SIZE - sizeof(std::atomic<std::byte*>) - sizeof(size_t)] = "\0";
+  char _pad0[CACHELINE_SIZE - sizeof(std::atomic<std::byte*>)] = "\0";
 };
 } // namespace quill::detail
