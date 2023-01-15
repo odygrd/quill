@@ -72,12 +72,17 @@ void RotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, quill
 {
   size_t new_size = _current_size + formatted_log_message.size();
 
-  if ((new_size > _max_bytes) && (detail::file_size(_filename) > 0))
+  if (new_size > _max_bytes)
   {
     // rotate when the new estimated file size exceeds max size.
-    // Also check the file size is > 0  to better deal with full disk
-    _rotate();
-    new_size = formatted_log_message.size();
+    FileHandler::flush();
+
+    if (detail::file_size(_filename) > 0)
+    {
+      // Also check the file size is > 0  to better deal with full disk
+      _rotate();
+      new_size = formatted_log_message.size();
+    }
   }
 
   // write to file
