@@ -20,12 +20,13 @@
     #define NOMINMAX
   #endif
 
+  #include <windows.h>
+
   #include <fileapi.h>
   #include <io.h>
   #include <malloc.h>
   #include <processthreadsapi.h>
   #include <share.h>
-  #include <windows.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
