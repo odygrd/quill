@@ -155,7 +155,6 @@ private:
   HandlerCollection const& _handler_collection;
 
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
-  uint32_t _backend_worker_thread_id{0}; /** cached backend worker thread id */
 
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
@@ -175,6 +174,8 @@ private:
   /** Id of the current running process **/
   std::string _process_id;
   std::string _structured_fmt_str; /** to avoid allocation each time **/
+
+  uint32_t _backend_worker_thread_id{0}; /** cached backend worker thread id */
 
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   bool _strict_log_timestamp_order{true};
