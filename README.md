@@ -107,7 +107,7 @@ The main goals of the library are:
   multithreading applications easier.
  -  Log levels can be completely stripped out at compile time reducing `if` branches.
  -  Clean warning-free codebase even on high warning levels.
- -  Crash safe behaviour with a build-in signal handler.
+ -  Crash safe behaviour with a built-in signal handler.
  -  Type safe python style API with compile type checks and built-in support for logging STL types/containers by using the excellent [{fmt}](https://github.com/fmtlib/fmt) library.
  - Support for rdtsc, chrono or custom clock (usefull for simulations) for timestamp generation.
 
