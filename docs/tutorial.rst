@@ -98,6 +98,9 @@ For example when all logger objects are writing to the same file. The following 
      // Create a new logger using this handler
      quill::Logger* logger_bar = quill::create_logger("logger_bar", file_handler_2);
 
+Handler Types
+==================================
+
 ConsoleHandler
 --------------
 
