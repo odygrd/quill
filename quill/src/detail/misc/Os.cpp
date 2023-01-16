@@ -20,11 +20,13 @@
     #define NOMINMAX
   #endif
 
+  #include <windows.h>
+
+  #include <fileapi.h>
   #include <io.h>
   #include <malloc.h>
-  #include <share.h>
-  #include <windows.h>
   #include <processthreadsapi.h>
+  #include <share.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
@@ -257,26 +259,6 @@ uint32_t get_process_id() noexcept
 }
 
 /***/
-size_t get_page_size() noexcept
-{
-  // thread local to avoid race condition when more than one threads are creating the queue at the same time
-  static thread_local uint32_t page_size{0};
-  if (page_size == 0)
-  {
-#if defined(__CYGWIN__)
-    page_size = 4096;
-#elif defined(_WIN32)
-    SYSTEM_INFO system_info;
-    GetSystemInfo(&system_info);
-    page_size = std::max(system_info.dwPageSize, system_info.dwAllocationGranularity);
-#else
-    page_size = static_cast<uint32_t>(sysconf(_SC_PAGESIZE));
-#endif
-  }
-  return page_size;
-}
-
-/***/
 void* aligned_alloc(size_t alignment, size_t size)
 {
 #if defined(_WIN32)
@@ -381,4 +363,13 @@ bool is_in_terminal(FILE* file) noexcept
 #endif
 }
 
+/***/
+bool fsync(FILE* fd)
+{
+#ifdef _WIN32
+  return FlushFileBuffers(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(fd)))) != 0;
+#else
+  return ::fsync(fileno(fd)) == 0;
+#endif
+}
 } // namespace quill::detail

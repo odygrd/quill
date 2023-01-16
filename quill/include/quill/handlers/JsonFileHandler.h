@@ -13,8 +13,9 @@ namespace quill
 class JsonFileHandler : public FileHandler
 {
 public:
-  JsonFileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename)
-    : FileHandler(filename, mode, append_to_filename)
+  JsonFileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,
+                  FileEventNotifier file_event_notifier, bool do_fsync)
+    : FileHandler(filename, mode, append_to_filename, std::move(file_event_notifier), do_fsync)
   {
     // JsonFileHandler requires an empty pattern
     set_pattern("");

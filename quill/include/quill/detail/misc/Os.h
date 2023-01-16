@@ -86,12 +86,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_thread_id() noexcept;
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_process_id() noexcept;
 
 /**
- * Gets the page size
- * @return the size of the page
- */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD size_t get_page_size() noexcept;
-
-/**
  * Aligned alloc
  * @param alignment specifies the alignment. Must be a valid alignment supported by the implementation.
  * @param size number of bytes to allocate. An integral multiple of alignment
@@ -127,4 +121,9 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_colour_terminal() noexcept;
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_in_terminal(FILE* file) noexcept;
 
+/**
+ * fsync the file descriptor
+ * @param f file
+ */
+bool fsync(FILE* f);
 } // namespace quill::detail

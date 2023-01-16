@@ -13,64 +13,76 @@ static fs::path const filename{"test_time_rotating_file_handler.log"};
 TEST_CASE("construct_invalid_when")
 {
   std::string const when = "S";
-  REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", when, 1, 1, Timezone::LocalTime, "12:00"});
+  REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", when, 1, 1, Timezone::LocalTime, "12:00",
+                                         FileEventNotifier{}, false});
 }
 
 TEST_CASE("construct_invalid_at_time")
 {
   {
     std::string const at_time = "25:00";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "125:00";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "5:00";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "0:00";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = ":00";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "01:000";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "01:0";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "01:";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "0";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "a";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 
   {
     std::string const at_time = "a:b";
-    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime, at_time});
+    REQUIRE_THROWS(TimeRotatingFileHandler{filename, "a", "daily", 1, 1, Timezone::LocalTime,
+                                           at_time, FileEventNotifier{}, false});
   }
 }
 #endif

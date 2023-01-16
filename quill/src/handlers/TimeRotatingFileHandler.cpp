@@ -6,7 +6,6 @@
 #include "quill/handlers/StreamHandler.h"    // for StreamHandler
 #include <cerrno>                            // for errno
 #include <chrono>
-#include <cstdio>  // for fclose
 #include <ctime>   // for mktime, time_t
 #include <ostream> // for operator<<, basic_ostre...
 
@@ -14,11 +13,11 @@ namespace quill
 {
 
 /***/
-TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename,
-                                                 std::string const& mode, std::string when,
-                                                 uint32_t interval, uint32_t backup_count,
-                                                 Timezone timezone, std::string const& at_time)
-  : FileHandler(base_filename),
+TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode,
+                                                 std::string when, uint32_t interval, uint32_t backup_count,
+                                                 Timezone timezone, std::string const& at_time,
+                                                 FileEventNotifier file_event_notifier, bool do_fsync)
+  : FileHandler(base_filename, std::move(file_event_notifier), do_fsync),
     _when(std::move(when)),
     _interval(interval),
     _backup_count(backup_count),
@@ -75,7 +74,7 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename,
     _calculate_initial_rotation_tp(_file_creation_time, _when, timezone, at_time_hours, at_time_minutes);
 
   // Open file for logging
-  _file = detail::open_file(_filename, mode);
+  open_file(_filename, mode);
 }
 
 /***/
@@ -86,21 +85,7 @@ void TimeRotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, q
 
   if (QUILL_UNLIKELY(should_rotate))
   {
-    if (_file)
-    {
-      // close the previous file
-      int const res = fclose(_file);
-      _file = nullptr;
-
-      if (QUILL_UNLIKELY(res != 0))
-      {
-        std::ostringstream error_msg;
-        error_msg
-          << "failed to close previous log file during rotation, with error message errno: \""
-          << errno << "\"";
-        QUILL_THROW(QuillError{error_msg.str()});
-      }
-    }
+    close_file();
 
     fs::path const previous_file = _filename;
     bool const append_time_to_filename = true;
@@ -125,7 +110,7 @@ void TimeRotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, q
     _next_rotation_time = _calculate_rotation_tp(_file_creation_time, _when, _interval);
 
     // Open file for logging
-    _file = detail::open_file(_filename, "w");
+    open_file(_filename, "w");
   }
 
   // write to file

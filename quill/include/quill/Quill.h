@@ -28,8 +28,8 @@ namespace quill
 
 /** Version Info **/
 constexpr uint32_t VersionMajor{2};
-constexpr uint32_t VersionMinor{6};
-constexpr uint32_t VersionPatch{1};
+constexpr uint32_t VersionMinor{7};
+constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 /** forward declarations **/
@@ -130,15 +130,18 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* create_handler(std::string const& 
  * Creates or returns an existing handler to a file.
  * If the file is already opened the existing handler for this file is returned instead
  * @param filename the name of the file
- * @param append_to_filename additional info to append to the name of the file.
- * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
  * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
  * If no value is specified during the file creation "a" is used as default.
+ * @param append_to_filename additional info to append to the name of the file.
+ * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
+ * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
+ * @param do_fsync calls fsync in addition to fflush when flushing the file
  * @return A handler to a file
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(fs::path const& filename,
-                                                           std::string const& mode = std::string{"a"},
-                                                           FilenameAppend append_to_filename = FilenameAppend::None);
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(
+  fs::path const& filename, std::string const& mode = std::string{"a"},
+  FilenameAppend append_to_filename = FilenameAppend::None,
+  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
 
 /**
  * Creates a new instance of the TimeRotatingFileHandler class or looks up an existing instance.
@@ -163,12 +166,15 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(fs::path const& filen
  * @param backup_count maximum backup files to keep
  * @param timezone if true times in UTC will be used; otherwise local time is used
  * @param at_time specifies the time of day when rollover occurs if 'daily' is passed
+ * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
+ * @param do_fsync calls fsync in addition to fflush when flushing the file
  * @return a pointer to a time rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
   fs::path const& base_filename, std::string const& mode = std::string{"a"},
   std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
-  Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"});
+  Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"},
+  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
 
 /**
  * Creates a new instance of the RotatingFileHandler class or looks up an existing instance.
@@ -197,11 +203,36 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  * @param mode file mode to open_file file
  * @param max_bytes The max_bytes of the file, when the size is exceeded the file will rollover
  * @param backup_count The maximum number of times we want to rollover
+ * @param overwrite_oldest_files overwrite oldest files
+ * @param clean_old_files delete old files
+ * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
+ * @param do_fsync calls fsync in addition to fflush when flushing the file
  * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(
   fs::path const& base_filename, std::string const& mode = std::string{"a"}, size_t max_bytes = 0,
-  uint32_t backup_count = 0, bool overwrite_oldest_files = true);
+  uint32_t backup_count = 0, bool overwrite_oldest_files = true, bool clean_old_files = false,
+  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
+
+/**
+ * Creates a new instance of the JsonFileHandler class or looks up an existing instance.
+ * If the file is already opened the existing handler for this file is returned instead.
+ *
+ * When the JsonFileHandler is used named arguments need to be passed as the format string
+ * to the loggers. See examples/example_json_structured_log.cpp
+ *
+ * @param filename the name of the file
+ * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
+ * If no value is specified during the file creation "a" is used as default.
+ * @param append_to_filename additional info to append to the name of the file.
+ * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
+ * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
+ * @param do_fsync calls fsync in addition to fflush when flushing the file
+ * @return A handler to a file
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* json_file_handler(
+  fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,
+  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
 
 /**
  * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed
