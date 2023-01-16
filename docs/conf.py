@@ -40,7 +40,7 @@ release = 'v2.7.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["breathe"]
+extensions = ["breathe", "sphinx.ext.autosectionlabel"]
 breathe_default_project = "Quill"
 
 templates_path = ['_templates']

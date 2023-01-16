@@ -45,6 +45,7 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
         ${CMAKE_CURRENT_SOURCE_DIR}/users-api.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/install.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/usage.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/tutorial.rst
         ${DOXYGEN_INDEX_FILE}
         MAIN_DEPENDENCY ${SPHINX_SOURCE}/conf.py
         COMMENT "Generating documentation with Sphinx")

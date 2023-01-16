@@ -4,8 +4,19 @@
 User's API
 ##############################################################################
 
-.. doxygenclass:: quill::Logger
+.. doxygenstruct:: quill::Config
    :members:
 
 .. doxygenenum:: quill::LogLevel
-   :project: Quill
+
+.. doxygenclass:: quill::Logger
+   :members:
+
+.. doxygenclass:: quill::Handler
+   :members:
+
+.. doxygenclass:: quill::PatternFormatter
+   :members:
+
+.. doxygenclass:: quill::detail::HandlerCollection
+   :members:

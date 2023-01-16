@@ -14,6 +14,7 @@ Quill is an open source, cross platform C++17 logging library designed for laten
    :caption: General Information
 
    install
+   tutorial
    usage
 
 .. toctree::
