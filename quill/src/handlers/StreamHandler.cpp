@@ -26,7 +26,9 @@ void StreamHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tran
 {
   if (_file_event_notifier.before_write)
   {
-    fmt_buffer_t const modified_message = _file_event_notifier.before_write(formatted_log_message);
+    std::string const modified_message = _file_event_notifier.before_write(
+      std::string_view{formatted_log_message.data(), formatted_log_message.size()});
+
     detail::fwrite_fully(modified_message.data(), sizeof(char), modified_message.size(), _file);
   }
   else

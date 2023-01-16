@@ -10,6 +10,8 @@
 #include "quill/handlers/Handler.h"       // for Handler
 #include <chrono>                         // for nanoseconds
 #include <cstdio>                         // for FILE
+#include <string>
+#include <string_view>
 
 namespace quill
 {
@@ -21,10 +23,10 @@ namespace quill
 struct FileEventNotifier
 {
   std::function<void(fs::path const& filename)> before_open;
-  std::function<void(fs::path const& filename, FILE* file_stream)> after_open;
-  std::function<void(fs::path const& filename, FILE* file_stream)> before_close;
+  std::function<void(fs::path const& filename, FILE* f)> after_open;
+  std::function<void(fs::path const& filename, FILE* f)> before_close;
   std::function<void(fs::path const& filename)> after_close;
-  std::function<fmt_buffer_t(fmt_buffer_t const& formatted_log_message)> before_write;
+  std::function<std::string(std::string_view message)> before_write;
 };
 
 class StreamHandler : public Handler
