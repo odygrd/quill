@@ -4,7 +4,9 @@
 Quill - Asynchronous Low Latency Logging Library for C++
 ##############################################################################
 
-Quill is a C++17 logging library designed for latency sensitive applications.
+Quill is an open source, cross platform C++17 logging library designed for latency sensitive applications.
+
+`Github <http://github.com/odygrd/quill>`_
 
 .. toctree::
    :hidden:
@@ -12,6 +14,7 @@ Quill is a C++17 logging library designed for latency sensitive applications.
    :caption: General Information
 
    install
+   usage
 
 .. toctree::
    :hidden:

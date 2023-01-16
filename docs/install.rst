@@ -36,7 +36,7 @@ Building and Installing Quill as Static Library With External ``libfmt``
 
 .. code:: bash
 
-   cmake -DCMAKE_PREFIX_PATH=/my/fmt/fmt-config.cmake-directory/ -DQUILL_FMT_EXTERNAL=ON -DCMAKE_INSTALL_PREFIX=/quill/install-dir/'
+    cmake -DCMAKE_PREFIX_PATH=/my/fmt/fmt-config.cmake-directory/ -DQUILL_FMT_EXTERNAL=ON -DCMAKE_INSTALL_PREFIX=/quill/install-dir/'
 
 Then use the library from a CMake project, you can locate it directly with ``find_package()``
 
