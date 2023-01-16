@@ -43,9 +43,12 @@ public:
    * Constructor
    * Uses the default pattern formatter
    * @param stream only stdout or stderr
+   * @param file file pointer
+   * @param file_event_notifier notifies on file events
    * @throws on invalid param
    */
-  explicit StreamHandler(fs::path stream, FILE* file = nullptr, FileEventNotifier = FileEventNotifier{});
+  explicit StreamHandler(fs::path stream, FILE* file = nullptr,
+                         FileEventNotifier file_event_notifier = FileEventNotifier{});
 
   ~StreamHandler() override = default;
 

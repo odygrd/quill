@@ -194,10 +194,9 @@ public:
   /**
    * Write a formatted log message to the stream
    * @param formatted_log_message input log message to write
-   * @param transit_Event transit_Event
+   * @param log_event transit_Event
    */
-  QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message,
-                                 TransitEvent const& transit_Event) override;
+  QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event) override;
 
   /**
    * Used internally to enable the console colours on "stdout" handler which is already

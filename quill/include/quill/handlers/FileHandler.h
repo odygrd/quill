@@ -32,6 +32,7 @@ public:
    * @param filename string containing the name of the file to be opened.
    * @param mode string containing a file access mode.
    * @param append_to_filename append extra info to filename
+   * @param file_event_notifier notifies on file events
    * @param do_fsync also fsync when flushing
    */
   FileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,

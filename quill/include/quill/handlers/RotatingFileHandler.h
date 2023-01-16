@@ -32,6 +32,7 @@ public:
    * @param clean_old_files Setting this to true will also clean any previous rotated log files when
    * mode="w" is used
    * @param file_event_notifier notifies on file events
+   * @param do_fsync also fsync when flushing
    * @throws on invalid rotation values
    */
   RotatingFileHandler(fs::path const& base_filename, std::string const& mode, size_t max_bytes,

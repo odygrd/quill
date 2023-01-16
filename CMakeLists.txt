@@ -29,6 +29,8 @@ option(QUILL_ENABLE_INSTALL "Enable CMake Install when Quill is not a master pro
 
 option(QUILL_NO_THREAD_NAME_SUPPORT "Disable features that are not supported on Windows 2012/2016" OFF)
 
+option(QUILL_DOCS_GEN "Generate documentation" OFF)
+
 #-------------------------------------------------------------------------------------------------------
 # Use newer policies if possible, up to most recent tested version of CMake.
 #-------------------------------------------------------------------------------------------------------
@@ -160,3 +162,9 @@ if (QUILL_BUILD_BENCHMARKS)
 endif ()
 
 add_subdirectory(quill)
+
+if (QUILL_DOCS_GEN)
+    # Add the cmake folder so the FindSphinx module is found
+    set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+    add_subdirectory(docs)
+endif ()

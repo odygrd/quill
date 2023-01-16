@@ -265,6 +265,8 @@ QUILL_NODISCARD std::unordered_map<std::string, Logger*> get_all_loggers();
  * @note: If the user does not want to store the logger pointer, the same logger can be obtained later by calling get_logger(logger_name);
  *
  * @param logger_name The name of the logger to add
+ * @param timestamp_clock_type rdtsc, chrono or custom clock
+ * @param timestamp_clock custom user clock
  * @return A pointer to a thread-safe Logger object
  */
 QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
@@ -280,6 +282,8 @@ QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
  *
  * @param logger_name The name of the logger to add
  * @param handler A pointer the a handler for this logger
+ * @param timestamp_clock_type rdtsc, chrono or custom clock
+ * @param timestamp_clock custom user clock
  * @return A pointer to a thread-safe Logger object
  */
 QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, Handler* handler,
@@ -294,6 +298,8 @@ QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, Handler* h
  *
  * @param logger_name The name of the logger to add
  * @param handlers An initializer list of pointers to handlers for this logger
+ * @param timestamp_clock_type rdtsc, chrono or custom clock
+ * @param timestamp_clock custom user clock
  * @return A pointer to a thread-safe Logger object
  */
 QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
@@ -308,6 +314,8 @@ QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::initi
  *
  * @param logger_name The name of the logger to add
  * @param handlers A vector of pointers to handlers for this logger
+ * @param timestamp_clock_type rdtsc, chrono or custom clock
+ * @param timestamp_clock custom user clock
  * @return A pointer to a thread-safe Logger object
  */
 QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vector<Handler*> const& handlers,
