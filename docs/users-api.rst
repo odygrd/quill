@@ -15,6 +15,9 @@ User's API
 .. doxygenclass:: quill::Handler
    :members:
 
+.. doxygenclass:: quill::FilterBase
+   :members:
+
 .. doxygenclass:: quill::PatternFormatter
    :members:
 

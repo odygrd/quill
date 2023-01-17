@@ -25,7 +25,7 @@ Basic Example
 
 In the above example a default logger to ``stdout`` is created with it's name set to “root”.
 
-The default logger can be accessed easily by calling :cpp:func:`Logger* get_logger(char const* logger_name = nullptr)`
+The default logger can be accessed easily by calling :cpp:func:`Logger* quill::get_logger()`
 Any newly created logger inherits the properties of the default root logger.
 Log level is always set to :cpp:enumerator:`quill::LogLeveL::Info` by default.
 
@@ -262,3 +262,285 @@ Json log
      {
        LOG_INFO(logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
      }
+
+Filters
+==================================
+
+A Filter class that can be used for filtering log records in the backend working thread.
+
+This is a simple way to ensure that a logger or handler will only output desired log messages.
+
+One or several :cpp:class:`quill::FilterBase` can be added to a :cpp:class:`quill::Handler` instance using the :cpp:func:`void add_filter(std::unique_ptr<FilterBase> filter)`
+The handler stores all added filters in a vector. The final log message is logged if all filters of the handler return `true`.
+
+Filtering per handler
+-----------------------
+
+The below example logs all WARNING and higher log level messages to console and all INFO and lower level messages to a file.
+
+.. code:: cpp
+
+    // Filter class for our file handler
+    class FileFilter : public quill::FilterBase
+    {
+    public:
+      FileFilter() : quill::FilterBase("FileFilter"){};
+
+      QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+                                  quill::detail::LogRecordMetadata const& metadata,
+                                  fmt::memory_buffer const& formatted_record) noexcept override
+      {
+        if (metadata.level() < quill::LogLevel::Warning)
+        {
+          return true;
+        }
+        return false;
+      }
+    };
+
+    // Filter for the stdout handler
+    class StdoutFilter : public quill::FilterBase
+    {
+    public:
+      StdoutFilter() : quill::FilterBase("StdoutFilter"){};
+
+      QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_record_timestamp,
+                                  quill::detail::LogRecordMetadata const& metadata,
+                                  fmt::memory_buffer const& formatted_record) noexcept override
+      {
+        if (metadata.level() >= quill::LogLevel::Warning)
+        {
+          return true;
+        }
+        return false;
+      }
+    };
+
+    int main()
+    {
+      // Start the logging backend thread
+      quill::start();
+
+      // Get a handler to the file
+      // The first time this function is called a file handler is created for this filename.
+      // Calling the function with the same filename will return the existing handler
+      quill::Handler* file_handler = quill::file_handler("example_filters.log", "w");
+
+      // Create and add the filter to our handler
+      file_handler->add_filter(std::make_unique<FileFilter>());
+
+      // Also create an stdout handler
+      quill::Handler* stdout_handler = quill::stdout_handler("stdout_1");
+
+      // Create and add the filter to our handler
+      stdout_handler->add_filter(std::make_unique<StdoutFilter>());
+
+      // Create a logger using this handler
+      quill::Logger* logger = quill::create_logger("logger", {file_handler, stdout_handler});
+
+      // Change the LogLevel to print everything
+      logger->set_log_level(quill::LogLevel::TraceL3);
+
+      // Log any message ..
+    }
+
+Formatters
+==================================
+The :cpp:class:`quill::PatternFormatter` specifies the layout of log records in the final output.
+
+Each :cpp:class:`quill::Handler` object owns a PatternFormatter object.
+This means that each Handler can be customised to output in a different format.
+
+Customising the format output only be done prior to the creation of the
+logger by calling :cpp:func:`inline void Handler::set_pattern(std::string const &format_pattern, std::string const &timestamp_format = std::string{"%H:%M:%S.%Qns"}, Timezone timezone = Timezone::LocalTime)`.
+
+The following format is used by default :
+
+``ascii_time [thread_id] filename:line level_name logger_name - message``
+
+If no custom format is set each newly created Handler uses the same formatting as the default logger.
+
+The format output can be customised by providing a string of certain
+attributes.
+
++-------------------+----------------+---------------------------------+
+| Name              | Format         | Description                     |
++===================+================+=================================+
+| ascii_time        | %(ascii_time)  | Human-readable time when the    |
+|                   |                | LogRecord was created. By       |
+|                   |                | default this is of the form     |
+|                   |                | ‘2003-07-08 16:49:45,896’ (the  |
+|                   |                | numbers after the comma are     |
+|                   |                | millisecond portion of the      |
+|                   |                | time).                          |
++-------------------+----------------+---------------------------------+
+| filename          | %(filename)    | Filename portion of pathname.   |
++-------------------+----------------+---------------------------------+
+| function_name     | %(             | Name of function containing the |
+|                   | function_name) | logging call.                   |
++-------------------+----------------+---------------------------------+
+| level_name        | %(level_name)  | Text logging level for the      |
+|                   |                | message (‘TRACEL3’, ‘TRACEL2’,  |
+|                   |                | ‘TRACEL1’, ‘DEBUG’, ‘INFO’,     |
+|                   |                | ‘WARNING’, ‘ERROR’, ‘CRITICAL’, |
+|                   |                | ‘BACKTRACE’).                   |
++-------------------+----------------+---------------------------------+
+| level_id          | %(level_id)    | Abbreviated level name (‘T3’,   |
+|                   |                | ‘T2’, ‘T1’, ‘D’, ‘I’, ‘W’, ‘E’, |
+|                   |                | ‘C’, ‘BT’).                     |
++-------------------+----------------+---------------------------------+
+| lineno            | %(lineno)      | Source line number where the    |
+|                   |                | logging call was issued (if     |
+|                   |                | available).                     |
++-------------------+----------------+---------------------------------+
+| message           | %(message)     | The logged message, computed as |
+|                   |                | msg % args. This is set when    |
+|                   |                | Formatter.format() is invoked.  |
++-------------------+----------------+---------------------------------+
+| logger_name       | %(logger_name) | Name of the logger used to log  |
+|                   |                | the call.                       |
++-------------------+----------------+---------------------------------+
+| pathname          | %(pathname)    | Full pathname of the source     |
+|                   |                | file where the logging call was |
+|                   |                | issued (if available).          |
++-------------------+----------------+---------------------------------+
+| thread            | %(thread)      | Thread ID (if available).       |
++-------------------+----------------+---------------------------------+
+| thread name       | %(thread_name) | Thread name if set. The name of |
+|                   |                | the thread must be set prior to |
+|                   |                | issuing any log statement on    |
+|                   |                | that thread.                    |
++-------------------+----------------+---------------------------------+
+| process           | %(process)     | Process ID                      |
++-------------------+----------------+---------------------------------+
+
+Customising the timestamp
+-----------------------------
+
+The timestamp is customisable by :
+- Format. Same format specifiers as ``strftime(...)`` format without the additional ``.Qms`` ``.Qus`` ``.Qns`` arguments.
+-  Local timezone or GMT timezone. Local timezone is used by default.
+-  Fractional second precision. Using the additional fractional second specifiers in the timestamp format string.
+
+========= ============
+Specifier Description
+========= ============
+%Qms      Milliseconds
+%Qus      Microseconds
+%Qns      Nanoseconds
+========= ============
+
+By default ``"%H:%M:%S.%Qns"`` is used.
+
+.. note:: MinGW does not support all ``strftime(...)`` format specifiers and you might get a ``bad alloc`` if the format specifier is not supported
+
+Setting a default formatter for logging to stdout
+----------------------------------------------------------
+
+.. code:: cpp
+
+     // Get the stdout file handler
+     quill::Handler* console_handler = quill::stdout_handler();
+
+     // Set a custom formatter for this handler
+     console_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
+                               "%D %H:%M:%S.%Qms %z",     // timestamp format
+                               quill::Timezone::GmtTime); // timestamp's timezone
+
+     // Config using the custom ts class and the stdout handler
+     quill::Config cfg;
+     cfg.default_handlers.emplace_back(console_handler);
+     quill::configure(cfg);
+
+     // Start the backend logging thread
+     quill::start();
+
+     // Log using the default logger
+     LOG_INFO(quill::get_logger(), "The default logger is using a custom format");
+
+     // Obtain a new logger. Since no handlers were specified during the creation of the new logger. The new logger will use the default logger's handlers. In that case it will use the stdout_handler with the modified format.
+     quill::Logger* logger_foo = quill::create_logger("logger_foo");
+
+     LOG_INFO(logger_foo, "The new logger is using the custom format");
+
+Setting a default formatter on a FileHandler
+----------------------------------------------------------
+
+.. code:: cpp
+
+     // Start the logging backend thread
+     quill::start();
+
+     // Calling the function with the same filename will return the existing handler
+     quill::Handler* file_handler = quill::file_handler(filename, "w");
+
+     // Set a custom pattern to this file handler
+     file_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
+                               "%D %H:%M:%S.%Qms %z",     // timestamp format
+                               quill::Timezone::GmtTime); // timestamp's timezone
+
+     // Create a logger using this handler
+     quill::Logger* logger_foo = quill::create_logger("logger_foo", file_handler);
+
+     // Log using the logger
+     LOG_INFO(logger_foo, "Hello from {}", "library foo");
+
+Logger
+==============
+
+Quill creates a default :cpp:class:`quill::Logger` with a ``stdout`` handler with name as ``root``.
+The default logger can be accessed easily by calling :cpp:func:`Logger* quill::get_logger()`
+
+The default logger can be easily customised by replacing its instance
+with another logger. It is possible to change the handler of the default
+logger and the formatter of the default logger This however has to be
+done in the beginning before the logger is used.
+
+Logger creation
+-----------------------------
+
+New logger instances can be created by the user with the desired name, handlers and formatter.
+The logger object are never instantiated directly. Instead they first have to get created by calling
+
+Based on the create function that was used the new logger might inherit all properties of the default logger or get created with it’s own custom properties.
+
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, Handler *handler, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::initializer_list<Handler*> handlers, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::vector<Handler*> const &handlers, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+
+Logger access
+-----------------------------
+
+.. doxygenfunction:: quill::get_logger
+
+.. note:: Multiple calls to ``get_logger(name)`` will slow your code down since it will first use a lock mutex lock and then perform a look up. The advise is to store a ``quill::Logger*`` and use that pointer directly, at least in code hot paths.
+
+Create single handler logger
+-----------------------------
+
+.. code:: cpp
+
+     // Get a handler to a file
+     quill::Handler* file_handler = quill::file_handler("example.log", "w");
+
+     // Create a logger using this handler
+     quill::Logger* logger_foo = quill::create_logger("logger_foo", file_handler);
+
+     LOG_INFO(logger_foo, "Hello from {}", "library foo");
+
+Create multi handler logger
+-----------------------------
+
+.. code:: cpp
+
+     // Get a handler to a file
+     quill::Handler* file_handler = quill::file_handler(filename, "w");
+
+     // Get a handler to stdout
+     quill::Handler* stdout_handler = quill::stdout_handler();
+
+     // Create a logger using both handlers
+     quill::Logger* logger_foo = quill::create_logger("logger_foo", {file_handler, quill::stdout_handler()});
+
+     LOG_INFO(logger_foo, "Hello from {}", "library foo");
