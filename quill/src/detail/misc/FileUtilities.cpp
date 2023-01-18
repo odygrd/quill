@@ -7,6 +7,7 @@
 #include <cstring>
 #include <ctime> // for time_t
 #include <iomanip>
+#include <iostream>
 #include <sstream> // for operator<<, basic_ostream, bas...
 
 namespace quill
@@ -48,18 +49,32 @@ size_t file_size(fs::path const& filename) { return static_cast<size_t>(fs::file
 /***/
 bool remove_file(fs::path const& filename) noexcept
 {
-  QUILL_TRY
+  std::error_code ec;
+  fs::remove(filename, ec);
+
+  if (ec)
   {
-    fs::remove(filename);
-    return true;
+    std::cerr << "Failed to remove file \"" << filename << "\" error: " << ec.message() << std::endl;
+    return false;
   }
-  QUILL_CATCH(fs::filesystem_error const&) { return false; }
+
+  return true;
 }
 
 /***/
-void rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
+bool rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
 {
-  fs::rename(previous_file, new_file);
+  std::error_code ec;
+  fs::rename(previous_file, new_file, ec);
+
+  if (ec)
+  {
+    std::cerr << "Failed to rename file from \"" << previous_file << "\" to \"" << new_file
+              << "\" error: " << ec.message() << std::endl;
+    return false;
+  }
+
+  return true;
 }
 
 /***/

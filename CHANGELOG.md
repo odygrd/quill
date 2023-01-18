@@ -48,6 +48,8 @@
 - Fix when compiled as shared library with hidden visibility. ([#222](https://github.com/odygrd/quill/pull/222))
 - Fix equal timestamp log messages appearing out of order. ([#223](https://github.com/odygrd/quill/pull/223))
 - Reduce padding in some structs.
+- Fix 'rename_file' throwing an exception while being marked
+  as `noexcept` ([#230](https://github.com/odygrd/quill/pull/230))
 
 **Improvements**
 - Add missing function to create a `JsonFileHandler` to `Quill.h`.
