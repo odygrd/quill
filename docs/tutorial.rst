@@ -1,4 +1,4 @@
-.. usage:
+.. _tutorial:
 
 ##############################################################################
 Tutorial
@@ -29,7 +29,7 @@ The default logger can be accessed easily by calling :cpp:func:`Logger* quill::g
 Any newly created logger inherits the properties of the default root logger.
 Log level is always set to :cpp:enumerator:`quill::LogLeveL::Info` by default.
 
-Each :cpp:class:`quill::Logger` object contains single or multiple :cpp:class:`quill::Handler` objects. The handler
+Each :cpp:class:`quill::Logger` contains single or multiple :cpp:class:`quill::Handler` objects. The handler
 objects actually deliver the log message to their. Each handler contains a :cpp:class:`quill::PatternFormatter`
 object which is responsible for the formatting of the message.
 
@@ -418,7 +418,7 @@ Customising the timestamp
 -----------------------------
 
 The timestamp is customisable by :
-- Format. Same format specifiers as ``strftime(...)`` format without the additional ``.Qms`` ``.Qus`` ``.Qns`` arguments.
+-  Format. Same format specifiers as ``strftime(...)`` format without the additional ``.Qms`` ``.Qus`` ``.Qns`` arguments.
 -  Local timezone or GMT timezone. Local timezone is used by default.
 -  Fractional second precision. Using the additional fractional second specifiers in the timestamp format string.
 
@@ -544,3 +544,336 @@ Create multi handler logger
      quill::Logger* logger_foo = quill::create_logger("logger_foo", {file_handler, quill::stdout_handler()});
 
      LOG_INFO(logger_foo, "Hello from {}", "library foo");
+
+Backtrace Logging
+====================
+
+Backtrace logging enables log messages to be stored in a ring buffer and either
+- displayed later on demand or
+- when a high severity log message is logged
+
+Backtrace logging needs to be enabled first on the instance of :cpp:class:`quill::Logger`
+
+.. doxygenfunction:: init_backtrace
+.. doxygenfunction:: flush_backtrace
+
+.. note:: Backtrace log messages store the original timestamp of the message. Since they are kept and flushed later the timestamp in the log file will be out of order
+
+Store messages in the ring buffer and display them when ``LOG_ERROR`` is logged
+--------------------------------------------------------------------------------------------------------------------
+
+.. code:: cpp
+
+       // Loggers can store in a ring buffer messages with LOG_BACKTRACE and display later when e.g.
+       // a LOG_ERROR message was logged from this logger
+
+       quill::Logger* logger = quill::create_logger("example_1");
+
+       // Enable the backtrace with a max ring buffer size of 2 messages which will get flushed when
+       // a LOG_ERROR(...) or higher severity log message occurs via this logger.
+       // Backtrace has to be enabled only once in the beginning before calling LOG_BACKTRACE(...) for the first time.
+       logger->init_backtrace(2, quill::LogLevel::Error);
+
+       LOG_INFO(logger, "BEFORE backtrace Example {}", 1);
+       LOG_BACKTRACE(logger, "Backtrace log {}", 1);
+       LOG_BACKTRACE(logger, "Backtrace log {}", 2);
+       LOG_BACKTRACE(logger, "Backtrace log {}", 3);
+       LOG_BACKTRACE(logger, "Backtrace log {}", 4);
+
+       // Backtrace is not flushed yet as we requested to flush on errors
+       LOG_INFO(logger, "AFTER backtrace Example {}", 1);
+
+       // log message with severity error - This will also flush the backtrace which has 2 messages
+       LOG_ERROR(logger, "An error has happened, Backtrace is also flushed.");
+
+       // The backtrace is flushed again after LOG_ERROR but in this case it is empty
+       LOG_ERROR(logger, "An second error has happened, but backtrace is now empty.");
+
+       // Log more backtrace messages
+       LOG_BACKTRACE(logger, "Another Backtrace log {}", 1);
+       LOG_BACKTRACE(logger, "Another Backtrace log {}", 2);
+
+       // Nothing is logged at the moment
+       LOG_INFO(logger, "Another log info");
+
+       // Still nothing logged - the error message is on a different logger object
+       quill::Logger* logger_2 = quill::create_logger("example_1_1");
+       LOG_CRITICAL(logger_2, "A critical error from different logger.");
+
+       // The new backtrace is flushed again due to LOG_CRITICAL
+       LOG_CRITICAL(logger, "A critical error from the logger we had a backtrace.");
+
+::
+
+   13:02:03.405589220 [196635] example_backtrace.cpp:18 LOG_INFO      example_1 - BEFORE backtrace Example 1
+   13:02:03.405617051 [196635] example_backtrace.cpp:30 LOG_INFO      example_1 - AFTER backtrace Example 1
+   13:02:03.405628045 [196635] example_backtrace.cpp:33 LOG_ERROR     example_1 - An error has happened, Backtrace is also flushed.
+   13:02:03.405608746 [196635] example_backtrace.cpp:26 LOG_BACKTRACE example_1 - Backtrace log 3
+   13:02:03.405612082 [196635] example_backtrace.cpp:27 LOG_BACKTRACE example_1 - Backtrace log 4
+   13:02:03.405648711 [196635] example_backtrace.cpp:36 LOG_ERROR     example_1 - An second error has happened, but backtrace is now empty.
+   13:02:03.405662233 [196635] example_backtrace.cpp:43 LOG_INFO      example_1 - No errors so far
+   13:02:03.405694451 [196635] example_backtrace.cpp:47 LOG_CRITICAL  example_1_1 - A critical error from different logger.
+   13:02:03.405698838 [196635] example_backtrace.cpp:50 LOG_CRITICAL  example_1 - A critical error from the logger we had a backtrace.
+
+Store messages in the ring buffer and display them on demand
+--------------------------------------------------------------------------------------------------------------------
+
+.. code:: cpp
+
+       quill::Logger* logger = quill::create_logger("example_2");
+
+       // Store maximum of two log messages. By default they will never be flushed since no LogLevel severity is specified
+       logger->init_backtrace(2);
+
+       LOG_INFO(logger, "BEFORE backtrace Example {}", 2);
+
+       LOG_BACKTRACE(logger, "Backtrace log {}", 100);
+       LOG_BACKTRACE(logger, "Backtrace log {}", 200);
+       LOG_BACKTRACE(logger, "Backtrace log {}", 300);
+
+       LOG_INFO(logger, "AFTER backtrace Example {}", 2);
+
+       // an error has happened - flush the backtrace manually
+       logger->flush_backtrace();
+
+User Defined Types
+========================
+
+Quill does asynchronous logging. When a user defined type has to be logged, the copy constructor is called and the
+formatting is performed on a backend logging thread via a call to :cpp:func:`ostream& operator<<(ostream& os, T const& t)`
+
+This creates issues with user defined types that contain mutable references, raw pointers that can be mutated or for
+example a :cpp:func:`std::shared_ptr` that can be modified.
+
+By default a compile time check is performed that checks for unsafe to copy types.
+
+Many user defined types including STL containers, tuples and pairs of build in types are automatically detected in
+compile type as safe to copy and will pass the check.
+
+The following code gives a good idea of the types that by default are safe to get copied
+
+.. code:: cpp
+
+    struct filter_copyable : std::disjunction<std::is_arithmetic<T>,
+                                         is_string<T>,
+                                         std::is_trivial<T>,
+                                         is_user_defined_copyable<T>,
+                                         is_user_registered_copyable<T>,
+                                         is_copyable_pair<T>,
+                                         is_copyable_tuple<T>,
+                                         is_copyable_container<T>
+                                         >
+
+The following types is just a small example of detectable safe-to-copy types
+
+.. code:: cpp
+
+       std::vector<std::vector<std::vector<int>>>;
+       std::tuple<int,bool,double,float>>;
+       std::pair<char, double>;
+       std::tuple<std::vector<std::string>, std::map<int, std::sting>>;
+
+.. note:: Passing pointers for logging is not permitted by libfmt in compile time, with the only exception being ``void*``. Therefore they are excluded from the above check.
+
+Requirements
+-------------------
+
+To log a user defined type the following requirements must met:
+- The user defined type has to be copy constructible
+- :cpp:func:`ostream& operator<<(ostream& os, T const& t)` needs to be defined
+
+Logging user defined types in default mode
+---------------------------------------------------------
+
+In default mode copying non-trivial user defined types is *not*
+permitted unless they are tagged as safe to copy
+
+Consider the following example :
+
+.. code:: cpp
+
+       class User
+       {
+       public:
+         User(std::string name) : name(std::move(name)){};
+
+         friend std::ostream& operator<<(std::ostream& os, User2 const& obj)
+         {
+           os << "name : " << obj.name;
+           return os;
+         }
+       private:
+         std::string name;
+       };
+
+      int main()
+      {
+        User user{"Hello"};
+        LOG_INFO(quill::get_logger(), "The user is {}", usr);
+      }
+
+The above log statement would fail with a compiler error. The type is
+non-trivial, there is no way to automatically detect the type is safe to
+copy.
+
+To log this user defined type we have two options:
+ - call :cpp:func:`operator<<` on the caller hot path and pass a :cpp:func:`std::string` to the logger if the type contains mutable references and is not safe to copy
+ - mark the type as ``safe to copy`` and let the backend logger thread do the formatting if the type is safe to copy
+
+Registering or tagging user defined types as ``safe to copy``
+-------------------------------------------------------------
+
+It is possible to mark the class as safe to copy and the logger will attempt to copy it.
+In this case the user defined type will get copied.
+
+.. note:: It is the responsibility of the user to ensure that the class does not contain mutable references or pointers before tagging it as safe
+
+There are 2 different ways to do that :
+
+1) Specialize :cpp:func:`copy_loggable<T>`
+
+.. code:: cpp
+
+       class User
+       {
+       public:
+         User(std::string name) : name(std::move(name)){};
+
+         friend std::ostream& operator<<(std::ostream& os, User2 const& obj)
+         {
+           os << "name : " << obj.name;
+           return os;
+         }
+
+       private:
+         std::string name;
+       };
+
+       /** Registered as safe to copy **/
+       namespace quill {
+         template <>
+         struct copy_loggable<User> : std::true_type { };
+       }
+
+       int main()
+       {
+         User user{"Hello"};
+         LOG_INFO(quill::get_logger(), "The user is {}", usr);
+       }
+
+2) Use .. c:macro:: `QUILL_COPY_LOGGABLE` macro inside your class definition. This is not preferable as you need to edit the class to provide that
+
+.. code:: cpp
+
+       class User
+       {
+       public:
+         User(std::string name) : name(std::move(name)){};
+
+         friend std::ostream& operator<<(std::ostream& os, User2 const& obj)
+         {
+           os << "name : " << obj.name;
+           return os;
+         }
+
+         QUILL_COPY_LOGGABLE; /** Tagged as safe to copy **/
+
+       private:
+         std::string name;
+       };
+
+       int main()
+       {
+         User user{"Hello"};
+         LOG_INFO(quill::get_logger(), "The user is {}", usr);
+       }
+
+Then the following will compile, the user defined type will get copied, and :cpp:func:`ostream& operator<<(ostream& os, T const& t)` will be called in the background thread.
+
+Generally speaking, tagging functionality in this mode exists to also
+make the user thinks about the user defined type they are logging.
+It has to be maintained when a new class member is added. If the log level
+severity of the log statement is below ``INFO`` you might as well
+consider formatting the type to a string in the caller path instead of
+maintaining a safe-to-copy tag.
+
+Logging non-copy constructible or unsafe to copy user defined types
+-------------------------------------------------------------------
+
+Consider the following unsafe to copy user defined type. In this case we want to format on the caller thread.
+
+This has to be explicitly done by the user as it might be expensive.
+
+There is a utility function offered or users can write their own routine.
+
+.. doxygenfunction:: quill::utility::to_string
+
+.. code:: cpp
+
+   #include "quill/Quill.h"
+   #include "quill/Utility.h"
+
+   class User
+   {
+   public:
+     User(std::string* name) : name(name){};
+
+     friend std::ostream& operator<<(std::ostream& os, User const& obj)
+     {
+       os << "name : " << obj.name;
+       return os;
+     }
+
+   private:
+     std::string* name;
+   };
+
+   int main()
+   {
+     auto str = std::make_unique<std::string>("User A");
+     User usr{str.get()};
+
+     // We format the object in the hot path because it is not safe to copy this kind of object
+     LOG_INFO(quill::get_logger(), "The user is {}", quill::utility::to_string(usr));
+
+     // std::string* is modified - Here the backend worker receives a copy of User but the pointer to
+     // std::string* is still shared and mutated in the below line
+     str->replace(0, 1, "T");
+   }
+
+Logging in ``QUIL_MODE_UNSAFE``
+--------------------------------------------------------
+
+When QUIL_MODE_UNSAFE is enabled, Quill will *not check* in compile time for safe to copy user defined types.
+
+All types will are copied unconditionally in this mode as long as they are copy constructible. This mode is not
+recommended as the user has to be extremely careful about any user define type they are logging.
+
+However, it is there for users who don’t want to tag their types.
+
+The following example compiles and copies the user defined type even tho it is a non-trivial type.
+
+.. code:: cpp
+
+       #define QUIL_MODE_UNSAFE
+       #include "quill/Quill.h"
+
+       class User
+       {
+       public:
+         User(std::string name) : name(std::move(name)){};
+
+         friend std::ostream& operator<<(std::ostream& os, User2 const& obj)
+         {
+           os << "name : " << obj.name;
+           return os;
+         }
+       private:
+         std::string name;
+       };
+
+       int main()
+       {
+         User user{"Hello"};
+         LOG_INFO(quill::get_logger(), "The user is {}", usr);
+       }
