@@ -4,8 +4,10 @@
 #include "quill/detail/misc/Common.h" // for QUILL_UNLIKELY
 #include "quill/detail/misc/Os.h"     // for fsize, localtime_rs, remove_file
 #include <cerrno>                     // for errno
-#include <ctime>                      // for time_t
+#include <cstring>
+#include <ctime> // for time_t
 #include <iomanip>
+#include <iostream>
 #include <sstream> // for operator<<, basic_ostream, bas...
 
 namespace quill
@@ -21,7 +23,7 @@ void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream)
   {
     std::ostringstream error_msg;
     error_msg << "fwrite failed with error message "
-              << "errno: \"" << errno << "\"";
+              << "errno: \"" << errno << "\" " << strerror(errno);
     QUILL_THROW(QuillError{error_msg.str()});
   }
 }
@@ -34,35 +36,45 @@ FILE* open_file(fs::path const& filename, std::string const& mode)
   if (!fp)
   {
     std::ostringstream error_msg;
-    error_msg << "fopen failed with error message errno: \"" << errno << "\"";
+    error_msg << "fopen for \"" << filename << "\" mode \"" << mode
+              << "\" failed with error message errno: \"" << errno << "\" " << strerror(errno);
     QUILL_THROW(QuillError{error_msg.str()});
   }
   return fp;
 }
 
 /***/
-size_t file_size(fs::path const& filename)
-{
-  return static_cast<size_t>(fs::file_size(filename));
-}
+size_t file_size(fs::path const& filename) { return static_cast<size_t>(fs::file_size(filename)); }
 
 /***/
 bool remove_file(fs::path const& filename) noexcept
 {
-  QUILL_TRY
+  std::error_code ec;
+  fs::remove(filename, ec);
+
+  if (ec)
   {
-    fs::remove(filename);
-    return true;
-  }
-  QUILL_CATCH(fs::filesystem_error const&) {
+    std::cerr << "Failed to remove file \"" << filename << "\" error: " << ec.message() << std::endl;
     return false;
   }
+
+  return true;
 }
 
 /***/
-void rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
+bool rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
 {
-  fs::rename(previous_file, new_file);
+  std::error_code ec;
+  fs::rename(previous_file, new_file, ec);
+
+  if (ec)
+  {
+    std::cerr << "Failed to rename file from \"" << previous_file << "\" to \"" << new_file
+              << "\" error: " << ec.message() << std::endl;
+    return false;
+  }
+
+  return true;
 }
 
 /***/
@@ -73,10 +85,9 @@ std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& f
 }
 
 /***/
-fs::path append_date_to_filename(fs::path const& filename,
-                                              std::chrono::system_clock::time_point timestamp, /* = {} */
-                                              bool append_time, /* = false */
-                                              Timezone timezone /* = Timezone::LocalTime */) noexcept
+fs::path append_date_to_filename(fs::path const& filename, std::chrono::system_clock::time_point timestamp, /* = {} */
+                                 bool append_time, /* = false */
+                                 Timezone timezone /* = Timezone::LocalTime */) noexcept
 {
   // Get the time now as tm from user or default to now
   std::chrono::system_clock::time_point const ts_now =

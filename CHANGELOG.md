@@ -1,3 +1,4 @@
+- [v2.7.0](#v2.7.0)
 - [v2.6.0](#v2.6.0)
 - [v2.5.1](#v2.5.1)
 - [v2.5.0](#v2.5.0)
@@ -37,6 +38,55 @@
 - [v1.2.0](#v1.2.0)
 - [v1.1.0](#v1.1.0)
 - [v1.0.0](#v1.0.0)
+
+## v2.7.0
+
+**Fixes**
+
+- Remove references to build directory path from the compiled library's
+  symbols. ([#221](https://github.com/odygrd/quill/pull/221))
+- Fix when compiled as shared library with hidden visibility. ([#222](https://github.com/odygrd/quill/pull/222))
+- Fix equal timestamp log messages appearing out of order. ([#223](https://github.com/odygrd/quill/pull/223))
+- Reduce padding in some structs.
+- Fix 'rename_file' throwing an exception while being marked
+  as `noexcept` ([#230](https://github.com/odygrd/quill/pull/230))
+
+**Improvements**
+- Add missing function to create a `JsonFileHandler` to `Quill.h`.
+- Added option to call `fsync()` to all file handlers.
+- Added file event notifiers, to get callbacks from Quill before/after log file has been opened or
+  closed. ([#193](https://github.com/odygrd/quill/pull/193))
+  This is useful for cleanup procedures or for adding something to the start/end of the log files.
+
+For example :
+
+```c++
+int main()
+{
+  quill::start();
+
+  quill::FileEventNotifier fen;
+
+  fen.before_open = [](quill::fs::path const& filename)
+  { std::cout << "before opening " << filename << std::endl; };
+
+  fen.after_open = [](quill::fs::path const& filename, FILE* f)
+  { std::cout << "after opening " << filename << std::endl; };
+
+  fen.before_close = [](quill::fs::path const& filename, FILE* f)
+  { std::cout << "before closing " << filename << std::endl; };
+
+  fen.after_close = [](quill::fs::path const& filename)
+  { std::cout << "after closing " << filename << std::endl; };
+
+  quill::Handler* file_handler =
+    quill::file_handler("myfile.log", "w", quill::FilenameAppend::None, std::move(fen));
+
+  quill::Logger* mylogger = quill::create_logger("mylogger", file_handler);
+
+  LOG_INFO(mylogger, "Hello world");
+}
+```
 
 ## v2.6.0
 
@@ -91,7 +141,6 @@ Below is the summary of the changes from `v2.3.2`
 - Added a config option `backend_thread_empty_all_queues_before_exit`. This option makes the backend logging thread
   to wait until all the queues are empty before exiting. This ensures no log messages are lost when the application
   exists. This flag is now enabled by default.
--
 
 ## v2.5.0
 
@@ -138,7 +187,8 @@ Below is the summary of the changes from `v2.3.2`
 
 **Fixes**
 
-- Previously when multiple threads were logging, Quill backend logging thread would first try reading the log messages of
+- Previously when multiple threads were logging, Quill backend logging thread would first try reading the log messages
+  of
   one thread until the queue was completely empty before reading the log messages of the next thread.
   When one of the threads was logging a lot, it could result in only displaying the log of that thread, hiding the
   logs of the other threads. This has now been fixed and all log messages from all threads are read fairly.
@@ -154,7 +204,8 @@ Below is the summary of the changes from `v2.3.2`
 
 **Fixes**
 
-- Optimise logging queue cache alignment of variables. It seems that v2.3.0 made the hot path slower by ~5 ns per message. This has been fixed in this version and the performance is now the same as in the previous versions.
+- Optimise logging queue cache alignment of variables. It seems that v2.3.0 made the hot path slower by ~5 ns per
+  message. This has been fixed in this version and the performance is now the same as in the previous versions.
 
 ## v2.3.0
 
@@ -227,9 +278,11 @@ before calling `quill::start()` to start the backend thread.
 
 Check the updated [examples](https://github.com/odygrd/quill/blob/master/examples).
 
-[Config.h](https://github.com/odygrd/quill/blob/master/quill/include/quill/Config.h) - contains runtime configuration options
+[Config.h](https://github.com/odygrd/quill/blob/master/quill/include/quill/Config.h) - contains runtime configuration
+options
 
-[TweakMe.h](https://github.com/odygrd/quill/blob/master/quill/include/quill/TweakMe.h) - contains compile time configuration
+[TweakMe.h](https://github.com/odygrd/quill/blob/master/quill/include/quill/TweakMe.h) - contains compile time
+configuration
 
 For example `quill::set_default_logger_handler(...)` has been removed. To set a default filehandler :
 
@@ -251,7 +304,8 @@ For example `quill::set_default_logger_handler(...)` has been removed. To set a 
 ```
 
 - Removed some API functions from `Quill.h` that were previously used for configuration. Instead, `quill::Config` object
-  has to be created. For example `quill::config::set_backend_thread_cpu_affinity(1);` has been removed and instead the following code is needed :
+  has to be created. For example `quill::config::set_backend_thread_cpu_affinity(1);` has been removed and instead the
+  following code is needed :
 
 ```cpp
   quill::Config cfg;
@@ -259,7 +313,8 @@ For example `quill::set_default_logger_handler(...)` has been removed. To set a 
   quill::configure(cfg);
 ```
 
-- `QUILL_CHRONO_CLOCK` has been moved from `TweakMe.h` to `Config.h`. It is now possible to switch between `rdtsc` and `system`
+- `QUILL_CHRONO_CLOCK` has been moved from `TweakMe.h` to `Config.h`. It is now possible to switch between `rdtsc`
+  and `system`
   clocks without re-compiling.
   See [example_trivial_system_clock.cpp](https://github.com/odygrd/quill/blob/master/examples/example_trivial_system_clock.cpp)
 - `QUILL_RDTSC_RESYNC_INTERVAL` has been moved from `TweakMe.h` to `Config.h`.

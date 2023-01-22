@@ -26,8 +26,7 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
   quill::Handler* log_from_one_thread_file;
 
   // log to json
-  log_from_one_thread_file =
-    quill::create_handler<quill::JsonFileHandler>(filename, "w", quill::FilenameAppend::None);
+  log_from_one_thread_file = quill::json_file_handler(filename, "w", quill::FilenameAppend::None);
   log_from_one_thread_file->set_pattern("", std::string{"%Y-%m-%d %H:%M:%S.%Qus"});
 
   // log non structured file

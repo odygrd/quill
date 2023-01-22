@@ -5,16 +5,16 @@
 #include "quill/detail/misc/Os.h"            // for rename_file
 #include "quill/handlers/StreamHandler.h"    // for StreamHandler
 #include <cerrno>                            // for errno
-#include <cstdio>                            // for fclose
 #include <ostream>                           // for operator<<, basic_ostre...
 
 namespace quill
 {
 /***/
-RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
-                                         std::string const& mode, size_t max_bytes, uint32_t backup_count,
-                                         bool overwrite_oldest_files, bool clean_old_files /*=false*/)
-  : FileHandler(base_filename),
+RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename, std::string const& mode,
+                                         size_t max_bytes, uint32_t backup_count,
+                                         bool overwrite_oldest_files, bool clean_old_files,
+                                         FileEventNotifier file_event_notifier, bool do_fsync)
+  : FileHandler(base_filename, std::move(file_event_notifier), do_fsync),
     _max_bytes(max_bytes),
     _backup_count(backup_count),
     _overwrite_oldest_files(overwrite_oldest_files)
@@ -22,8 +22,7 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
   // if we are starting in w mode, then we also should clean all previous log files of the previous run
   if (clean_old_files && (mode == "w"))
   {
-    for (const auto& entry :
-         fs::directory_iterator(fs::current_path() / base_filename.parent_path()))
+    for (const auto& entry : fs::directory_iterator(fs::current_path() / base_filename.parent_path()))
     {
       std::size_t found = entry.path().string().find(base_filename.stem().string() + ".");
       if (found != std::string::npos)
@@ -35,8 +34,7 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
   else if (mode == "a")
   {
     // Since we are appending, we need to find the current index
-    for (const auto& entry :
-         fs::directory_iterator(fs::current_path() / base_filename.parent_path()))
+    for (const auto& entry : fs::directory_iterator(fs::current_path() / base_filename.parent_path()))
     {
       std::size_t found = entry.path().string().find(base_filename.stem().string() + ".");
       if (found != std::string::npos)
@@ -45,8 +43,9 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
         size_t pos = entry.path().stem().string().find_last_of('.');
         if (pos != std::string::npos)
         {
-          std::string index = entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
-          
+          std::string index =
+            entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
+
           // Attempt to convert the index to a number
           QUILL_TRY
           {
@@ -58,32 +57,37 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename,
               _current_index = (_backup_count - 1);
             }
           }
-          QUILL_CATCH_ALL()
-          {
-            continue;
-          }
+          QUILL_CATCH_ALL() { continue; }
         }
       }
     }
   }
 
-    _file = detail::open_file(_filename, mode);
+  open_file(_filename, mode);
   _current_size = detail::file_size(_filename);
 }
 
 /***/
 void RotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
-  _current_size += formatted_log_message.size();
+  size_t new_size = _current_size + formatted_log_message.size();
 
-  if (_current_size > _max_bytes)
+  if (new_size > _max_bytes)
   {
-    _rotate();
-    _current_size = formatted_log_message.size();
+    // rotate when the new estimated file size exceeds max size.
+    FileHandler::flush();
+
+    if (detail::file_size(_filename) > 0)
+    {
+      // Also check the file size is > 0  to better deal with full disk
+      _rotate();
+      new_size = formatted_log_message.size();
+    }
   }
 
   // write to file
   StreamHandler::write(formatted_log_message, log_event);
+  _current_size = new_size;
 }
 
 /***/
@@ -95,20 +99,8 @@ void RotatingFileHandler::_rotate()
     return;
   }
 
-  if (_file)
-  {
-    // close the previous file
-    int const res = fclose(_file);
-    _file = nullptr;
-
-    if (QUILL_UNLIKELY(res != 0))
-    {
-      std::ostringstream error_msg;
-      error_msg << "failed to close previous log file during rotation, with error message errno: \""
-                << errno << "\"";
-      QUILL_THROW(QuillError{error_msg.str()});
-    }
-  }
+  // close the previous file
+  close_file();
 
   // if we have more than 2 files we need to start renaming recursively
   for (uint32_t i = _current_index; i >= 1; --i)
@@ -143,6 +135,6 @@ void RotatingFileHandler::_rotate()
   }
 
   // Now reopen the base filename for writing again
-  _file = detail::open_file(_filename, "w");
+  open_file(_filename, "w");
 }
 } // namespace quill

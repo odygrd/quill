@@ -40,7 +40,7 @@ TEST_CASE("default_logger_with_filehandler_1")
   // Set a file handler as the custom logger handler and log to it
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -83,7 +83,7 @@ TEST_CASE("default_logger_with_filehandler_2")
 
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -127,7 +127,7 @@ TEST_CASE("default_logger_ints_and_large_string")
 
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -173,7 +173,7 @@ TEST_CASE("default_logger_ints_and_very_large_string")
 
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -228,7 +228,7 @@ TEST_CASE("default_logger_ints_and_wide_string")
 
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -263,10 +263,10 @@ TEST_CASE("default_logger_ints_and_very_large_wide_string")
   LogManager lm;
 
   fs::path const filename{"default_logger_ints_and_very_large_wide_string"};
-  
+
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -318,8 +318,8 @@ void custom_default_logger_same_handler(int test_case = 0)
   fs::path const filename{"test_custom_default_logger_same_handler"};
 
   // Set a file handler the custom logger handler and log to it
-  Handler* file_handler =
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None);
+  Handler* file_handler = lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
   file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
 
   quill::Config cfg;
@@ -332,8 +332,8 @@ void custom_default_logger_same_handler(int test_case = 0)
   if (test_case == 0)
   {
     // Add a second logger using the same file handler
-    Handler* file_handler_2 =
-      lm.handler_collection().create_handler<FileHandler>(filename.string(), "a", FilenameAppend::None);
+    Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false);
     QUILL_MAYBE_UNUSED Logger* logger_2 =
       lm.create_logger("custom_logger", file_handler_2, std::nullopt, std::nullopt);
   }
@@ -415,13 +415,13 @@ void test_custom_default_logger_multiple_handlers(int test_case)
   // Set a file handler the custom logger handler and log to it
 
   // First handler
-  Handler* file_handler_1 =
-    lm.handler_collection().create_handler<FileHandler>(filename_1.string(), "w", FilenameAppend::None);
+  Handler* file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
+    filename_1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
   file_handler_1->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
 
   // Second handler with different pattern
-  Handler* file_handler_2 =
-    lm.handler_collection().create_handler<FileHandler>(filename_2.string(), "w", FilenameAppend::None);
+  Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+    filename_2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
   file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
 
   quill::Config cfg;
@@ -435,10 +435,10 @@ void test_custom_default_logger_multiple_handlers(int test_case)
   if (test_case == 0)
   {
     // Add a second logger using the same file handler
-    Handler* file_handler_a =
-      lm.handler_collection().create_handler<FileHandler>(filename_1.string(), "", FilenameAppend::None);
-    Handler* file_handler_b =
-      lm.handler_collection().create_handler<FileHandler>(filename_2.string(), "", FilenameAppend::None);
+    Handler* file_handler_a = lm.handler_collection().create_handler<FileHandler>(
+      filename_1.string(), "", FilenameAppend::None, FileEventNotifier{}, false);
+    Handler* file_handler_b = lm.handler_collection().create_handler<FileHandler>(
+      filename_2.string(), "", FilenameAppend::None, FileEventNotifier{}, false);
     QUILL_MAYBE_UNUSED Logger* logger_2 =
       lm.create_logger("custom_logger", {file_handler_a, file_handler_b}, std::nullopt, std::nullopt);
   }
@@ -550,7 +550,7 @@ TEST_CASE("many_loggers_multiple_threads")
 
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "a", FilenameAppend::None));
+    filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -638,7 +638,7 @@ TEST_CASE("backend_error_handler")
 
       // Set a file handler as the custom logger handler and log to it
       cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-        filename.string(), "a", FilenameAppend::None));
+        filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
       // Start backend worker
       lm.configure(cfg);
@@ -686,7 +686,7 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
 
       // Set a file handler as the custom logger handler and log to it
       cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-        filename.string(), "a", FilenameAppend::None));
+        filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
       // Set a custom error handler to handler exceptions
       cfg.backend_thread_error_handler = [&lm](std::string const& s)
@@ -737,7 +737,7 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 
   // Set a file handler as the custom logger handler and log to it
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "a", FilenameAppend::None));
+    filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
   // Set a custom error handler to handler exceptions
   cfg.backend_thread_error_handler = [&error_handler_invoked](std::string const& s)
@@ -789,7 +789,7 @@ TEST_CASE("log_backtrace_and_flush_on_error_1")
 
   // Set a file handler as the custom logger handler and log to it
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "a", FilenameAppend::None));
+    filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
   lm.configure(cfg);
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -846,7 +846,7 @@ TEST_CASE("log_backtrace_and_flush_on_error_2")
 
   // Set a file handler as the custom logger handler and log to it
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "a", FilenameAppend::None));
+    filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
   lm.configure(cfg);
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -909,7 +909,7 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
 
   // Set a file handler as the custom logger handler and log to it
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "a", FilenameAppend::None));
+    filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
   lm.configure(cfg);
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -975,7 +975,7 @@ TEST_CASE("log_backtrace_manual_flush")
 
   // Set a file handler as the custom logger handler and log to it
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "a", FilenameAppend::None));
+    filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
   lm.configure(cfg);
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -1092,15 +1092,15 @@ TEST_CASE("logger_with_two_files_filters")
   fs::path const filename2{"logger_with_two_files_filters2"};
 
   // Set file 1
-  quill::Handler* file_handler1 =
-    lm.handler_collection().create_handler<FileHandler>(filename1.string(), "w", FilenameAppend::None);
+  quill::Handler* file_handler1 = lm.handler_collection().create_handler<FileHandler>(
+    filename1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
   // Create and add the filter to our handler
   file_handler1->add_filter(std::make_unique<FileFilter1>());
 
   // Set file 2
-  quill::Handler* file_handler2 =
-    lm.handler_collection().create_handler<FileHandler>(filename2.string(), "w", FilenameAppend::None);
+  quill::Handler* file_handler2 = lm.handler_collection().create_handler<FileHandler>(
+    filename2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
   // Create and add the filter to our handler
   file_handler2->add_filter(std::make_unique<FileFilter2>());
@@ -1149,12 +1149,12 @@ TEST_CASE("logger_with_two_files_set_log_level_on_handler")
   fs::path const filename2{"logger_with_two_files_set_log_level_on_handler2"};
 
   // Set file 1
-  quill::Handler* file_handler1 =
-    lm.handler_collection().create_handler<FileHandler>(filename1.string(), "w", FilenameAppend::None);
+  quill::Handler* file_handler1 = lm.handler_collection().create_handler<FileHandler>(
+    filename1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
   // Set file 2
-  quill::Handler* file_handler2 =
-    lm.handler_collection().create_handler<FileHandler>(filename2.string(), "w", FilenameAppend::None);
+  quill::Handler* file_handler2 = lm.handler_collection().create_handler<FileHandler>(
+    filename2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
@@ -1249,8 +1249,8 @@ TEST_CASE("default_logger_with_custom_timestamp")
   fs::path const filename{"test_default_logger_with_custom_timestamp"};
 
   // also change the pattern to log the date
-  Handler* handler =
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None);
+  Handler* handler = lm.handler_collection().create_handler<FileHandler>(
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
   handler->set_pattern("%(ascii_time) %(level_name) %(logger_name:<16) - %(message)", // format
                        "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
                        quill::Timezone::GmtTime); // timestamp's timezone
@@ -1271,17 +1271,22 @@ TEST_CASE("default_logger_with_custom_timestamp")
     {
       Logger* default_logger = lm.logger_collection().get_logger();
 
-      // log an array so the log message is pushed to the queue
-      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}",
-               std::array<int, 2>{1, 2});
+      for (size_t i = 0; i < 10'000; ++i)
+      {
+        // log an array so the log message is pushed to the queue
+        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i);
+      }
 
       custom_ts.set_timestamp(std::chrono::seconds{1656007309});
 
-      LOG_ERROR(default_logger,
-                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}",
-                std::array<int, 2>{3, 4});
+      for (size_t i = 0; i < 10'000; ++i)
+      {
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i);
+      }
 
       // Let all log get flushed to the file
+      custom_ts.set_timestamp(std::chrono::seconds{1658007309});
       lm.flush();
     });
 
@@ -1289,11 +1294,19 @@ TEST_CASE("default_logger_with_custom_timestamp")
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), 2);
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"2022-06-12 04:15:09.000 INFO      root             - Lorem ipsum dolor sit amet, consectetur adipiscing elit [1, 2]"}));
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"2022-06-23 18:01:49.000 ERROR     root             - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [3, 4]"}));
+  REQUIRE_EQ(file_contents.size(), 20'000);
+
+  for (size_t i = 0; i < 10'000; ++i)
+  {
+    REQUIRE(quill::testing::file_contains(
+      file_contents, fmt::format("2022-06-12 04:15:09.000 INFO      root             - Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i)));
+  }
+
+  for (size_t i = 0; i < 10'000; ++i)
+  {
+    REQUIRE(quill::testing::file_contains(
+      file_contents, fmt::format("2022-06-23 18:01:49.000 ERROR     root             - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i)));
+  }
 
   lm.stop_backend_worker();
   quill::detail::remove_file(filename);
@@ -1305,40 +1318,44 @@ TEST_CASE("log_configure_default_logger_single_handler")
   // configure a custom handler to the default logger and check it works
   fs::path const filename = "log_configure_default_logger_single_handler.log";
 
-  LogManager lm;
+  {
+    // LogManager needs to go out of score for the files to be closed and FileEventNotifier get
+    // called on file close
+    LogManager lm;
 
-  // first obtain the pointer before configure
-  Logger* default_logger = lm.logger_collection().get_logger();
+    // first obtain the pointer before configure
+    Logger* default_logger = lm.logger_collection().get_logger();
 
-  // Config using the custom ts class and the stdout handler
-  // this should not invalidate the default logger
-  quill::Config cfg;
-  Handler* handler =
-    lm.handler_collection().create_handler<FileHandler>(filename.string(), "w", FilenameAppend::None);
-  cfg.default_handlers.emplace_back(handler);
-  cfg.default_logger_name = "root_test";
-  lm.configure(cfg);
+    // Config using the custom ts class and the stdout handler
+    // this should not invalidate the default logger
+    quill::Config cfg;
+    Handler* handler = lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, true);
+    cfg.default_handlers.emplace_back(handler);
+    cfg.default_logger_name = "root_test";
+    lm.configure(cfg);
 
-  // Start the backend logging thread
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    // Start the backend logging thread
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm, &default_logger, &cfg]()
-    {
-      // check that we did update the default logger
-      auto all_loggers = lm.logger_collection().get_all_loggers();
-      REQUIRE_EQ(all_loggers.size(), 1u);
-      REQUIRE_NE(all_loggers.find(cfg.default_logger_name), all_loggers.end());
+    std::thread frontend(
+      [&lm, &default_logger, &cfg]()
+      {
+        // check that we did update the default logger
+        auto all_loggers = lm.logger_collection().get_all_loggers();
+        REQUIRE_EQ(all_loggers.size(), 1u);
+        REQUIRE_NE(all_loggers.find(cfg.default_logger_name), all_loggers.end());
 
-      // Log using the default logger pointer we obtained before the configure step
-      // We expect the pointer to be valid after quill::configure(...)
-      LOG_INFO(default_logger, "Hello from log_configure_default_logger test");
-      LOG_INFO(default_logger, "The root logger pointer is valid");
-    });
+        // Log using the default logger pointer we obtained before the configure step
+        // We expect the pointer to be valid after quill::configure(...)
+        LOG_INFO(default_logger, "Hello from log_configure_default_logger test");
+        LOG_INFO(default_logger, "The root logger pointer is valid");
+      });
 
-  frontend.join();
+    frontend.join();
 
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
@@ -1365,43 +1382,53 @@ TEST_CASE("log_configure_default_logger_multi_handler")
   fs::path const filename_1 = "log_configure_default_logger_multi_handler1.log";
   fs::path const filename_2 = "log_configure_default_logger_multi_handler2.log";
 
-  LogManager lm;
+  {
+    // LogManager needs to go out of score for the files to be closed and FileEventNotifier get
+    // called on file close
+    LogManager lm;
 
-  // First obtain the pointer before configure
-  Logger* default_logger = lm.logger_collection().get_logger();
+    // First obtain the pointer before configure
+    Logger* default_logger = lm.logger_collection().get_logger();
 
-  // Config using the custom ts class and the stdout handler
-  // this should not invalidate the default logger
-  quill::Config cfg;
-  quill::Handler* file_handler_1 =
-    lm.handler_collection().create_handler<FileHandler>(filename_1.string(), "w", FilenameAppend::None);
-  quill::Handler* file_handler_2 =
-    lm.handler_collection().create_handler<FileHandler>(filename_2.string(), "w", FilenameAppend::None);
-  cfg.default_handlers.emplace_back(file_handler_1);
-  cfg.default_handlers.emplace_back(file_handler_2);
-  cfg.default_logger_name = "root_test";
-  lm.configure(cfg);
+    FileEventNotifier file_event_notifier{};
+    file_event_notifier.after_open = [](fs::path const& filename, FILE* file)
+    { fprintf(file, "FILE OPENING\n"); };
+    file_event_notifier.before_close = [](fs::path const& filename, FILE* file)
+    { fprintf(file, "FILE CLOSING\n"); };
 
-  // Start the backend logging thread
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    // Config using the custom ts class and the stdout handler
+    // this should not invalidate the default logger
+    quill::Config cfg;
+    quill::Handler* file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
+      filename_1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    quill::Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+      filename_2.string(), "w", FilenameAppend::None, file_event_notifier, false);
+    cfg.default_handlers.emplace_back(file_handler_1);
+    cfg.default_handlers.emplace_back(file_handler_2);
+    cfg.default_logger_name = "root_test";
+    lm.configure(cfg);
 
-  std::thread frontend(
-    [&lm, &default_logger, &cfg]()
-    {
-      // check that we did update the default logger
-      auto all_loggers = lm.logger_collection().get_all_loggers();
-      REQUIRE_EQ(all_loggers.size(), 1u);
-      REQUIRE_NE(all_loggers.find(cfg.default_logger_name), all_loggers.end());
+    // Start the backend logging thread
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-      // Log using the default logger pointer we obtained before the configure step
-      // We expect the pointer to be valid after quill::configure(...)
-      LOG_INFO(default_logger, "Hello from log_configure_default_logger test");
-      LOG_INFO(default_logger, "The root logger pointer is valid");
-    });
+    std::thread frontend(
+      [&lm, &default_logger, &cfg]()
+      {
+        // check that we did update the default logger
+        auto all_loggers = lm.logger_collection().get_all_loggers();
+        REQUIRE_EQ(all_loggers.size(), 1u);
+        REQUIRE_NE(all_loggers.find(cfg.default_logger_name), all_loggers.end());
 
-  frontend.join();
+        // Log using the default logger pointer we obtained before the configure step
+        // We expect the pointer to be valid after quill::configure(...)
+        LOG_INFO(default_logger, "Hello from log_configure_default_logger test");
+        LOG_INFO(default_logger, "The root logger pointer is valid");
+      });
 
-  lm.stop_backend_worker();
+    frontend.join();
+
+    lm.stop_backend_worker();
+  }
 
   // Read file and check
   {
@@ -1424,6 +1451,11 @@ TEST_CASE("log_configure_default_logger_multi_handler")
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename_2);
 
     {
+      std::string const expected_string = "FILE OPENING";
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+    }
+
+    {
       std::string const expected_string =
         "LOG_INFO      root_test    - Hello from log_configure_default_logger test";
       REQUIRE(quill::testing::file_contains(file_contents, expected_string));
@@ -1432,6 +1464,11 @@ TEST_CASE("log_configure_default_logger_multi_handler")
     {
       std::string const expected_string =
         "LOG_INFO      root_test    - The root logger pointer is valid";
+      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+    }
+
+    {
+      std::string const expected_string = "FILE CLOSING";
       REQUIRE(quill::testing::file_contains(file_contents, expected_string));
     }
   }
@@ -1472,7 +1509,7 @@ TEST_CASE("default_logger_with_random_strings")
   // Set a file handler as the custom logger handler and log to it
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -1558,7 +1595,7 @@ TEST_CASE("default_logger_with_small_random_strings")
   // Set a file handler as the custom logger handler and log to it
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -1644,7 +1681,7 @@ TEST_CASE("default_logger_with_very_large_random_strings")
   // Set a file handler as the custom logger handler and log to it
   quill::Config cfg;
   cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None));
+    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
   lm.configure(cfg);
 
   lm.start_backend_worker(false, std::initializer_list<int32_t>{});

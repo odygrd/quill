@@ -94,7 +94,8 @@ public:
    * fundamental types.
    * This is the fastest way possible to log
    * @note This function is thread-safe.
-   * @param fmt_args format arguments
+   * @param format_string format
+   * @param fmt_args arguments
    */
   template <typename TMacroMetadata, typename TFormatString, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
@@ -200,13 +201,8 @@ public:
     {
       constexpr quill::MacroMetadata operator()() const noexcept
       {
-        return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__),
-                                    __FILE__,
-                                    __FUNCTION__,
-                                    "{}",
-                                    LogLevel::Critical,
-                                    quill::MacroMetadata::Event::InitBacktrace,
-                                    false};
+        return quill::MacroMetadata{
+          "", "", "", "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace, false};
       }
     } anonymous_log_message_info;
 
@@ -228,7 +224,7 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          QUILL_STRINGIFY(__LINE__), __FILE__, __FUNCTION__, "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace, false};
+          "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace, false};
       }
     } anonymous_log_message_info;
 

@@ -63,22 +63,23 @@ int main()
 #endif
 
       // sleep for 1 second so all threads are ready
-      std::this_thread::sleep_for(std::chrono::seconds{1});
+        std::this_thread::sleep_for(std::chrono::seconds{1});
 
-      for (size_t i = 0; i < 10; ++i)
-      {
-        // log 10 messages
-        LOG_INFO(quill::get_logger(), "Log from thread {}", i);
-      }
+        for (size_t i = 0; i < 10; ++i)
+        {
+          // log 10 messages
+          LOG_INFO(quill::get_logger(), "Log from thread {}", i);
+        }
 
-      LOG_INFO(quill::get_logger(), "Crash after 10 messages");
+        LOG_INFO(quill::get_logger(), "Crash after 10 messages");
 
-      // After 10 messages Crash
-      // divide_by_zero();
-      // stack_overflow();
-      // illegal_instruction();
-      // cause_segfault();
-    }));
+        // After 10 messages Crash - Uncomment any of the below :
+
+        // divide_by_zero();
+        // stack_overflow();
+        // illegal_instruction();
+        // cause_segfault();
+      }));
   }
 
   uint32_t cnt{0};

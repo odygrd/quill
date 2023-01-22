@@ -32,10 +32,18 @@ public:
    * @param filename string containing the name of the file to be opened.
    * @param mode string containing a file access mode.
    * @param append_to_filename append extra info to filename
+   * @param file_event_notifier notifies on file events
+   * @param do_fsync also fsync when flushing
    */
-  FileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename);
+  FileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,
+              FileEventNotifier file_event_notifier, bool do_fsync);
 
   ~FileHandler() override;
+
+  /**
+   * Flushes the stream and optionally fsyncs it
+   */
+  QUILL_ATTRIBUTE_HOT void flush() noexcept override;
 
 protected:
   /**
@@ -44,10 +52,15 @@ protected:
    * usually do not operate directly on the base_filename but instead they usually append
    * something to the filename and open_file it themselves
    * @param filename  string containing the base name of the files
+   * @param file_event_notifier file event notifier
+   * @param do_fsync also fsync when flushing
    */
-  explicit FileHandler(fs::path const& filename);
+  FileHandler(fs::path const& filename, FileEventNotifier file_event_notifier, bool do_fsync);
 
-protected:
-  fs::path _current_filename; /**< Includes the base filename and some additional info e.g. an appended date or an index */
+  void open_file(fs::path const& filename, std::string const& mode);
+  void close_file();
+
+private:
+  bool _fsync{false};
 };
 } // namespace quill

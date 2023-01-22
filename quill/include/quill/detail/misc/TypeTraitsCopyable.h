@@ -276,7 +276,7 @@ struct is_user_defined_copyable : std::conjunction<std::is_class<T>,
 
 /**
  * A user defined object that was tagged by the user to be copied via an external template specialisation
- * to copy_logable
+ * to copy_loggable
  */
 template <typename T>
 struct is_user_registered_copyable : std::conjunction<std::is_class<T>,

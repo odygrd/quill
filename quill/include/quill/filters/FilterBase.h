@@ -33,6 +33,8 @@ public:
 
   /**
    * Filters a log message
+   * @param thread_id thread id
+   * @param log_message_timestamp timestamp
    * @param metadata log message
    * @param formatted_record formatted log message
    * @return true if the log message should be written to the file, false otherwise

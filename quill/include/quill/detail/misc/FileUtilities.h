@@ -54,8 +54,9 @@ QUILL_ATTRIBUTE_COLD bool remove_file(fs::path const& filename) noexcept;
  * Renames a file
  * @param previous_file the old name of the file
  * @param new_file the new name of the file
+ * @return True if the file is renamed, false otherwise
  */
-void rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept;
+bool rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept;
 
 /**
  * Return the main body of the filename and it's extension

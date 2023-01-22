@@ -57,6 +57,7 @@ struct TransitEvent
   detail::Header header;
   fmt_buffer_t formatted_msg;             /** buffer for message **/
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
+  uint32_t seq_num{0};                    /**< used as seq num when timestamps are equal */
 };
 
 class TransitEventComparator
@@ -64,6 +65,11 @@ class TransitEventComparator
 public:
   bool operator()(std::pair<uint64_t, TransitEvent*> const& lhs, std::pair<uint64_t, TransitEvent*> const& rhs)
   {
+    if (lhs.first == rhs.first)
+    {
+      // when the timestamps are equal compare the seq_num instead
+      return lhs.second->seq_num > rhs.second->seq_num;
+    }
     return lhs.first > rhs.first;
   }
 };

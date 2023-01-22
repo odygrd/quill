@@ -10,9 +10,25 @@
 #include "quill/handlers/Handler.h"       // for Handler
 #include <chrono>                         // for nanoseconds
 #include <cstdio>                         // for FILE
+#include <string>
+#include <string_view>
 
 namespace quill
 {
+
+/**
+ * Notifies on file events by calling the appropriate callback, the callback is executed on
+ * the backend worker thread
+ */
+struct FileEventNotifier
+{
+  std::function<void(fs::path const& filename)> before_open;
+  std::function<void(fs::path const& filename, FILE* f)> after_open;
+  std::function<void(fs::path const& filename, FILE* f)> before_close;
+  std::function<void(fs::path const& filename)> after_close;
+  std::function<std::string(std::string_view message)> before_write;
+};
+
 class StreamHandler : public Handler
 {
 public:
@@ -27,9 +43,12 @@ public:
    * Constructor
    * Uses the default pattern formatter
    * @param stream only stdout or stderr
+   * @param file file pointer
+   * @param file_event_notifier notifies on file events
    * @throws on invalid param
    */
-  explicit StreamHandler(fs::path stream, FILE* file = nullptr);
+  explicit StreamHandler(fs::path stream, FILE* file = nullptr,
+                         FileEventNotifier file_event_notifier = FileEventNotifier{});
 
   ~StreamHandler() override = default;
 
@@ -59,5 +78,6 @@ public:
 protected:
   fs::path _filename;
   FILE* _file{nullptr};
+  FileEventNotifier _file_event_notifier;
 };
 } // namespace quill

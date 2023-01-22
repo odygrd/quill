@@ -79,11 +79,7 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
   }
 }
 
-/**
- * Convert tsc cycles to nanoseconds
- * @param rdtsc_value rdtsc_value
- * @return system clock time
- */
+/***/
 uint64_t RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
 {
   // get rtsc current value and compare the diff then add it to base wall time
@@ -99,10 +95,7 @@ uint64_t RdtscClock::time_since_epoch(uint64_t rdtsc_value) const noexcept
   return static_cast<uint64_t>(_base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
 }
 
-/**
- * Sync base wall time and base tsc.
- * @see static constexpr std::chrono::minutes resync_timer_{5};
- */
+/***/
 bool RdtscClock::resync(uint32_t lag) const noexcept
 {
   // Sometimes we might get an interrupt and might never resync so we will try again up to max_attempts

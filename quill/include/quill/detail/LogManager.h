@@ -146,8 +146,7 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          QUILL_STRINGIFY(__LINE__),          __FILE__, __FUNCTION__, "", LogLevel::Critical,
-          quill::MacroMetadata::Event::Flush, false};
+          "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::Flush, false};
       }
     } anonymous_log_message_info;
 
@@ -254,12 +253,12 @@ private:
   }
 
 private:
+  std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   Config _config;
   HandlerCollection _handler_collection;
   ThreadContextCollection _thread_context_collection{_config};
   LoggerCollection _logger_collection{_config, _thread_context_collection, _handler_collection};
   BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
-  std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
 };
 
 /**
@@ -275,7 +274,7 @@ public:
    * Access to singleton instance
    * @return a reference to the singleton
    */
-  static LogManagerSingleton& instance() noexcept
+  QUILL_EXPORT static LogManagerSingleton& instance() noexcept
   {
     static LogManagerSingleton instance;
     return instance;

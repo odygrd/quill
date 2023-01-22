@@ -31,10 +31,13 @@ public:
    * stop and the base log file will grow indefinitely
    * @param clean_old_files Setting this to true will also clean any previous rotated log files when
    * mode="w" is used
+   * @param file_event_notifier notifies on file events
+   * @param do_fsync also fsync when flushing
    * @throws on invalid rotation values
    */
   RotatingFileHandler(fs::path const& base_filename, std::string const& mode, size_t max_bytes,
-                      uint32_t backup_count, bool overwrite_oldest_files, bool clean_old_files = false);
+                      uint32_t backup_count, bool overwrite_oldest_files, bool clean_old_files,
+                      FileEventNotifier file_event_notifier, bool do_fsync);
 
   /**
    * Destructor
