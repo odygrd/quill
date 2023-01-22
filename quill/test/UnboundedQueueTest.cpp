@@ -46,7 +46,7 @@ TEST_CASE("read_write_multithreaded_plain_ints")
         for (uint32_t i = 0; i < 8192; ++i)
         {
           std::byte* read_buffer = buffer.prepare_read();
-          while (read_buffer)
+          while (!read_buffer)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
             read_buffer = buffer.prepare_read();
