@@ -63,7 +63,7 @@ public:
   /**
    * Constructor
    */
-  UnboundedQueue(int32_t initial_bounded_queue_capacity)
+  explicit UnboundedQueue(int32_t initial_bounded_queue_capacity)
     : _producer(new Node(initial_bounded_queue_capacity)), _consumer(_producer)
   {
   }
@@ -107,7 +107,7 @@ public:
     }
 
     // Then it means the queue doesn't have enough size
-    int32_t capacity = _producer->bounded_queue.capacity() * 2l;
+    int32_t capacity = _producer->bounded_queue.capacity() * 2;
     while (capacity < (nbytes + 1))
     {
       capacity = capacity * 2;
@@ -142,8 +142,7 @@ public:
   }
 
   /**
-   * Complement to reserve producer space that makes nbytes starting
-   * from the return of reserve producer space visible to the consumer.
+   * Commit the write to notify the consumer bytes are ready to read
    */
   QUILL_ALWAYS_INLINE_HOT void commit_write() { _producer->bounded_queue.commit_write(); }
 
@@ -192,8 +191,7 @@ public:
   }
 
   /**
-   * Consumes the next nbytes in the buffer and frees it back
-   * for the producer to reuse.
+   * Commit the read to indicate that the bytes are read and are now free to be reused
    */
   QUILL_ALWAYS_INLINE_HOT void commit_read() { _consumer->bounded_queue.commit_read(); }
 

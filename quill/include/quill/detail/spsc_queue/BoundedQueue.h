@@ -38,7 +38,7 @@ public:
 
 #if defined(QUILL_X86ARC)
     // eject log memory from cache
-    for (uint32_t i = 0; i < (2ul * capacity); i += CACHE_LINE_SIZE)
+    for (int32_t i = 0; i < (2 * capacity); i += CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
     }
@@ -60,11 +60,8 @@ public:
 
   ~BoundedQueue() { aligned_free(_storage); }
 
+  template <int32_t diff = 0>
   QUILL_NODISCARD_ALWAYS_INLINE_HOT int32_t get_writer_pos() const noexcept
-  {
-    return _writer_pos & _mask;
-  }
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT int32_t get_writer_pos(int32_t diff) const noexcept
   {
     return (_writer_pos + diff) & _mask;
   }
@@ -81,9 +78,10 @@ public:
     {
       // not enough space, we need to load reader and re-check
       _reader_pos_cache = _atomic_reader_pos.load(std::memory_order_acquire);
-      return ((_writer_pos - _reader_pos_cache) > (_capacity - n)) ? nullptr : _storage + get_writer_pos();
+      return ((_writer_pos - _reader_pos_cache) > (_capacity - n)) ? nullptr
+                                                                   : _storage + get_writer_pos<0>();
     }
-    return _storage + get_writer_pos();
+    return _storage + get_writer_pos<0>();
   }
 
   QUILL_ALWAYS_INLINE_HOT void finish_write(int32_t n) noexcept { _writer_pos += n; }
@@ -95,8 +93,7 @@ public:
     _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
 
     // prefetch a future cacheline
-    _mm_prefetch(_storage + get_writer_pos(CACHE_LINE_SIZE * 11), _MM_HINT_T0);
-    _mm_prefetch(_storage + get_writer_pos(CACHE_LINE_SIZE * 12), _MM_HINT_T0);
+    _mm_prefetch(_storage + get_writer_pos<CACHE_LINE_SIZE * 10>, _MM_HINT_T0);
 #endif
 
     // set the atomic flag so the reader can see write
