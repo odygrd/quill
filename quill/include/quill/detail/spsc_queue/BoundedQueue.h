@@ -1,5 +1,12 @@
 #pragma once
 
+#include "quill/QuillError.h"
+#include "quill/TweakMe.h"
+#include "quill/detail/misc/Attributes.h"
+#include "quill/detail/misc/Common.h"
+#include "quill/detail/misc/Os.h"
+#include "quill/detail/misc/Utilities.h"
+
 #include <atomic>
 #include <cstdint>
 #include <cstring>
@@ -10,12 +17,6 @@
   #include <immintrin.h>
   #include <x86intrin.h>
 #endif
-
-#include "quill/QuillError.h"
-#include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"
-#include "quill/detail/misc/Os.h"
-#include "quill/detail/misc/Utilities.h"
 
 namespace quill::detail
 {
