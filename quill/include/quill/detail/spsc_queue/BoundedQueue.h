@@ -93,7 +93,7 @@ public:
     _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
 
     // prefetch a future cacheline
-    _mm_prefetch(_storage + get_writer_pos<CACHE_LINE_SIZE * 10>, _MM_HINT_T0);
+    _mm_prefetch(_storage + get_writer_pos<CACHE_LINE_SIZE * 10>(), _MM_HINT_T0);
 #endif
 
     // set the atomic flag so the reader can see write
