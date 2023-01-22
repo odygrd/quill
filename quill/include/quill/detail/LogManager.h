@@ -176,7 +176,9 @@ public:
 
     assert((write_buffer >= write_begin) &&
            "write_buffer should be greater or equal to write_begin");
-    thread_context->spsc_queue().commit_write(static_cast<int32_t>(write_buffer - write_begin));
+
+    thread_context->spsc_queue().finish_write(static_cast<int32_t>(write_buffer - write_begin));
+    thread_context->spsc_queue().commit_write();
 
     // The caller thread keeps checking the flag until the backend thread flushes
     do

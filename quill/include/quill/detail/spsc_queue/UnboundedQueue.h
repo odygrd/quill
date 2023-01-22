@@ -38,7 +38,7 @@ private:
   /**
    * A node has a buffer and a pointer to the next node
    */
-  struct alignas(CACHELINE_SIZE) Node
+  struct alignas(CACHE_LINE_ALIGNED) Node
   {
     /**
      * Constructor
@@ -51,7 +51,7 @@ private:
      * @param i i
      * @return allocated memory pointer
      */
-    void* operator new(size_t i) { return aligned_alloc(CACHELINE_SIZE, i); }
+    void* operator new(size_t i) { return aligned_alloc(CACHE_LINE_ALIGNED, i); }
     void operator delete(void* p) { aligned_free(p); }
 
     /** members */
@@ -113,6 +113,9 @@ public:
       capacity = capacity * 2;
     }
 
+    // commit previous write to the old queue before switching
+    _producer->bounded_queue.commit_write();
+
     // We failed to reserve because the queue was full, create a new node with a new queue
     auto next_node = new Node{capacity};
 
@@ -133,10 +136,16 @@ public:
    * Complement to reserve producer space that makes nbytes starting
    * from the return of reserve producer space visible to the consumer.
    */
-  QUILL_ALWAYS_INLINE_HOT void commit_write(int32_t nbytes)
+  QUILL_ALWAYS_INLINE_HOT void finish_write(int32_t nbytes)
   {
-    _producer->bounded_queue.commit_write(nbytes);
+    _producer->bounded_queue.finish_write(nbytes);
   }
+
+  /**
+   * Complement to reserve producer space that makes nbytes starting
+   * from the return of reserve producer space visible to the consumer.
+   */
+  QUILL_ALWAYS_INLINE_HOT void commit_write() { _producer->bounded_queue.commit_write(); }
 
   /**
    * Prepare to read from the buffer
@@ -160,6 +169,9 @@ public:
 
         if (!read_pos)
         {
+          // commit the previous reads before deleting the queue
+          _consumer->bounded_queue.commit_read();
+
           // switch to the new buffer, existing one is deleted
           delete _consumer;
           _consumer = next_node;
@@ -180,6 +192,12 @@ public:
   }
 
   /**
+   * Consumes the next nbytes in the buffer and frees it back
+   * for the producer to reuse.
+   */
+  QUILL_ALWAYS_INLINE_HOT void commit_read() { _consumer->bounded_queue.commit_read(); }
+
+  /**
    * Return the current buffer's capacity
    * @return capacity
    */
@@ -196,9 +214,8 @@ public:
 
 private:
   /** Modified by either the producer or consumer but never both */
-  alignas(CACHELINE_SIZE) Node* _producer{nullptr};
-  alignas(CACHELINE_SIZE) Node* _consumer{nullptr};
-  char _pad0[CACHELINE_SIZE - sizeof(Node*)] = "\0";
+  alignas(CACHE_LINE_ALIGNED) Node* _producer{nullptr};
+  alignas(CACHE_LINE_ALIGNED) Node* _consumer{nullptr};
 };
 
 } // namespace quill::detail

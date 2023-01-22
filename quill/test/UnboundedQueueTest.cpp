@@ -30,7 +30,8 @@ TEST_CASE("read_write_multithreaded_plain_ints")
           }
 
           std::memcpy(write_buffer, &i, sizeof(uint32_t));
-          buffer.commit_write(sizeof(uint32_t));
+          buffer.finish_write(sizeof(uint32_t));
+          buffer.commit_write();
         }
       }
     });
@@ -55,6 +56,7 @@ TEST_CASE("read_write_multithreaded_plain_ints")
           auto value = reinterpret_cast<uint32_t const*>(read_buffer);
           REQUIRE_EQ(*value, i);
           buffer.finish_read(sizeof(uint32_t));
+          buffer.commit_read();
         }
       }
     });

@@ -34,7 +34,7 @@ class LogManager;
  * Thread safe logger.
  * Logger must be obtained from LoggerCollection get_logger(), therefore constructors are private
  */
-class alignas(detail::CACHELINE_SIZE) Logger
+class alignas(detail::CACHE_LINE_ALIGNED) Logger
 {
 public:
   /**
@@ -47,7 +47,7 @@ public:
    * We align the logger object to it's own cache line. It shouldn't make much difference as the
    * logger object size is exactly 1 cache line
    */
-  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHELINE_SIZE, i); }
+  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHE_LINE_ALIGNED, i); }
   void operator delete(void* p) { detail::aligned_free(p); }
 
   /**
@@ -184,7 +184,8 @@ public:
            "The committed write bytes can not be greater than the requested bytes");
     assert((write_buffer >= write_begin) &&
            "write_buffer should be greater or equal to write_begin");
-    thread_context->spsc_queue().commit_write(static_cast<int32_t>(write_buffer - write_begin));
+    thread_context->spsc_queue().finish_write(static_cast<int32_t>(write_buffer - write_begin));
+    thread_context->spsc_queue().commit_write();
   }
 
   /**

@@ -19,13 +19,15 @@ TEST_CASE("read_write_buffer")
     {
       std::byte* write_buf = buffer.prepare_write(32u);
       REQUIRE_NE(write_buf, nullptr);
-      buffer.commit_write(32u);
+      buffer.finish_write(32u);
+      buffer.commit_write();
     }
 
     {
       std::byte* res = buffer.prepare_read();
       REQUIRE(res);
       buffer.finish_read(32u);
+      buffer.commit_read();
 
       res = buffer.prepare_read();
       REQUIRE_FALSE(res);
@@ -57,7 +59,8 @@ TEST_CASE("read_write_multithreaded_plain_ints")
           }
 
           std::memcpy(write_buffer, &i, sizeof(uint32_t));
-          buffer.commit_write(sizeof(uint32_t));
+          buffer.finish_write(sizeof(uint32_t));
+          buffer.commit_write();
         }
       }
     });
@@ -79,6 +82,7 @@ TEST_CASE("read_write_multithreaded_plain_ints")
           auto value = reinterpret_cast<uint32_t const*>(read_buffer);
           REQUIRE_EQ(*value, i);
           buffer.finish_read(sizeof(uint32_t));
+          buffer.commit_read();
         }
       }
     });

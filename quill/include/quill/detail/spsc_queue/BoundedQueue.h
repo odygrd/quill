@@ -8,6 +8,7 @@
 #include "quill/detail/misc/Utilities.h"
 
 #include <atomic>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
@@ -26,7 +27,7 @@ public:
   BoundedQueue(int32_t capacity)
     : _capacity(capacity),
       _mask(_capacity - 1),
-      _storage(static_cast<std::byte*>(aligned_alloc(CACHELINE_SIZE, static_cast<size_t>(2ll * capacity))))
+      _storage(static_cast<std::byte*>(aligned_alloc(CACHE_LINE_ALIGNED, static_cast<size_t>(2ll * capacity))))
   {
     if (!is_pow_of_two(static_cast<size_t>(capacity)))
     {
@@ -37,15 +38,22 @@ public:
 
 #if defined(QUILL_X86ARC)
     // eject log memory from cache
-    for (uint32_t i = 0; i < (2ul * capacity); i += CACHELINE_SIZE)
+    for (uint32_t i = 0; i < (2ul * capacity); i += CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
     }
 
-    // load first 16 cache lines into memory
-    for (int i = 0; i < 16; ++i)
+    // load cache lines into memory
+    if (capacity < 1024)
     {
-      _mm_prefetch(_storage + (i * CACHELINE_SIZE), _MM_HINT_T0);
+      QUILL_THROW(std::runtime_error{"Capacity must be at least 1024"});
+    }
+
+    uint32_t const cache_lines = (capacity >= 2048) ? 32 : 16;
+
+    for (uint32_t i = 0; i < cache_lines; ++i)
+    {
+      _mm_prefetch(_storage + (CACHE_LINE_SIZE * i), _MM_HINT_T0);
     }
 #endif
   }
@@ -78,16 +86,17 @@ public:
     return _storage + get_writer_pos();
   }
 
-  QUILL_ALWAYS_INLINE_HOT void commit_write(int32_t n) noexcept
-  {
-    _writer_pos += n;
+  QUILL_ALWAYS_INLINE_HOT void finish_write(int32_t n) noexcept { _writer_pos += n; }
 
+  QUILL_ALWAYS_INLINE_HOT void commit_write() noexcept
+  {
 #if defined(QUILL_X86ARC)
     // flush writen cache lines
     _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
 
     // prefetch a future cacheline
-    _mm_prefetch(_storage + get_writer_pos(CACHELINE_SIZE * 8), _MM_HINT_T0);
+    _mm_prefetch(_storage + get_writer_pos(CACHE_LINE_SIZE * 11), _MM_HINT_T0);
+    _mm_prefetch(_storage + get_writer_pos(CACHE_LINE_SIZE * 12), _MM_HINT_T0);
 #endif
 
     // set the atomic flag so the reader can see write
@@ -105,10 +114,10 @@ public:
     return _storage + get_reader_pos();
   }
 
-  QUILL_ALWAYS_INLINE_HOT void finish_read(int32_t n) noexcept
-  {
-    _reader_pos += n;
+  QUILL_ALWAYS_INLINE_HOT void finish_read(int32_t n) noexcept { _reader_pos += n; }
 
+  QUILL_ALWAYS_INLINE_HOT void commit_read() noexcept
+  {
 #if defined(QUILL_X86ARC)
     _flush_cachelines(_last_flushed_reader_pos, _reader_pos);
 #endif
@@ -134,25 +143,25 @@ private:
     while (cur_diff > last_diff)
     {
       _mm_clflushopt(_storage + (last_diff & _mask));
-      last_diff += CACHELINE_SIZE;
+      last_diff += CACHE_LINE_SIZE;
       last = last_diff;
     }
   }
 #endif
 
 private:
-  static constexpr int32_t CACHELINE_MASK{CACHELINE_SIZE - 1};
+  static constexpr int32_t CACHELINE_MASK{CACHE_LINE_SIZE - 1};
 
   int32_t const _capacity;
   int32_t const _mask;
   std::byte* const _storage{nullptr};
 
-  alignas(CACHELINE_SIZE) std::atomic<int32_t> _atomic_writer_pos{0};
+  alignas(CACHE_LINE_ALIGNED) std::atomic<int32_t> _atomic_writer_pos{0};
   int32_t _writer_pos{0};
   int32_t _last_flushed_writer_pos{0};
   int32_t _reader_pos_cache{0};
 
-  alignas(CACHELINE_SIZE) std::atomic<int32_t> _atomic_reader_pos{0};
+  alignas(CACHE_LINE_ALIGNED) std::atomic<int32_t> _atomic_reader_pos{0};
   int32_t _reader_pos{0};
   int32_t _last_flushed_reader_pos{0};
   int32_t _writer_pos_cache{0};

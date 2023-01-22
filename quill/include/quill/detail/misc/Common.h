@@ -66,7 +66,8 @@ namespace detail
 /**
  * Cache line size
  */
-static constexpr size_t CACHELINE_SIZE{128u};
+static constexpr size_t CACHE_LINE_SIZE{64u};
+static constexpr size_t CACHE_LINE_ALIGNED{2 * CACHE_LINE_SIZE};
 
 constexpr bool detect_structured_log_template(std::string_view fmt)
 {
@@ -76,7 +77,7 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
   // Iterates the format string and checks if any characters are contained inside `{}`
   while (pos < fmt.length())
   {
-    if (fmt[pos] == '{') 
+    if (fmt[pos] == '{')
     {
       ++pos; // consume {
       if (pos >= fmt.length())

@@ -323,6 +323,7 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
   // The producer will add items to the buffer :
   // |timestamp|metadata*|logger_details*|args...|
 
+  bool read_one{false};
   std::byte* read_pos = queue.prepare_read();
 
   while (read_pos)
@@ -477,13 +478,18 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     auto const read_size = static_cast<int32_t>(read_pos - read_begin);
     queue.finish_read(read_size);
 
+    read_one = true;
     _transit_events.emplace(transit_event->header.timestamp, transit_event);
 
     // read again
     read_pos = queue.prepare_read();
   }
 
-  // read everything the queue of this thread should be empty
+  if (read_one)
+  {
+    // read everything the queue of this thread should be empty
+    queue.commit_read();
+  }
 }
 
 /***/
