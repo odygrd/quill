@@ -167,7 +167,7 @@ public:
         ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
         : default_logger->_custom_timestamp_clock->now());
 
-    write_buffer += sizeof(detail::Header);
+    write_buffer += static_cast<int32_t>(sizeof(detail::Header));
 
     // encode the pointer to atomic bool
     std::atomic<bool>* flush_ptr = std::addressof(backend_thread_flushed);
@@ -176,7 +176,7 @@ public:
 
     assert((write_buffer >= write_begin) &&
            "write_buffer should be greater or equal to write_begin");
-    thread_context->spsc_queue().commit_write(static_cast<size_t>(write_buffer - write_begin));
+    thread_context->spsc_queue().commit_write(static_cast<int32_t>(write_buffer - write_begin));
 
     // The caller thread keeps checking the flag until the backend thread flushes
     do

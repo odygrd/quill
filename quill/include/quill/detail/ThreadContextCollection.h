@@ -51,7 +51,7 @@ private:
      * Creates a new context and then registers it to the context collection sharing ownership
      * of the ThreadContext
      */
-    explicit ThreadContextWrapper(ThreadContextCollection& thread_context_collection, size_t default_queue_capacity);
+    ThreadContextWrapper(ThreadContextCollection& thread_context_collection, int32_t default_queue_capacity);
 
     /**
      * Deleted

@@ -1,217 +1,159 @@
-/**
- * Copyright(c) 2020-present, Odysseas Georgoudis & quill contributors.
- * Distributed under the MIT License (http://opensource.org/licenses/MIT)
- */
-
 #pragma once
 
 #include <atomic>
-#include <cassert>
-#include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <tuple>
-#include <utility>
+#include <stdexcept>
 
+#if defined(QUILL_X86ARC)
+  #include <emmintrin.h>
+  #include <immintrin.h>
+  #include <x86intrin.h>
+#endif
+
+#include "quill/QuillError.h"
 #include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
+#include "quill/detail/misc/Utilities.h"
 
 namespace quill::detail
 {
-/**
- * Implements a circular Single Producer Single Consumer FIFO queue
- */
 class BoundedQueue
 {
 public:
-  BoundedQueue(size_t capacity) : _capacity(capacity)
+  BoundedQueue(int32_t capacity)
+    : _capacity(capacity),
+      _mask(_capacity - 1),
+      _storage(static_cast<std::byte*>(aligned_alloc(CACHELINE_SIZE, 2ul * capacity)))
   {
-    _storage = static_cast<std::byte*>(aligned_alloc(CACHELINE_SIZE, _capacity));
-    std::memset(_storage, 0, _capacity);
+    if (!is_pow_of_two(capacity))
+    {
+      QUILL_THROW(std::runtime_error{"Capacity must be a power of two"});
+    }
 
-    _end_of_recorded_space = _storage + _capacity;
-    _min_free_space = _capacity;
-    _producer_pos.store(_storage);
-    _consumer_pos.store(_storage);
+    std::memset(_storage, 0, 2ul * capacity);
+
+#if defined(QUILL_X86ARC)
+    // eject log memory from cache
+    for (uint32_t i = 0; i < (2ul * capacity); i += CACHELINE_SIZE)
+    {
+      _mm_clflush(_storage + i);
+    }
+
+    // load first 16 cache lines into memory
+    for (int i = 0; i < 16; ++i)
+    {
+      _mm_prefetch(_storage + (i * CACHELINE_SIZE), _MM_HINT_T0);
+    }
+#endif
   }
 
   ~BoundedQueue() { aligned_free(_storage); }
 
-  /**
-   * Attempt to reserve contiguous space for the producer without
-   * making it visible to the consumer.
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(size_t nbytes) noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT int32_t get_writer_pos() const noexcept
   {
-    // Fast in-line path
-    if (_min_free_space > nbytes)
-    {
-      // There's a subtle point here, all the checks for remaining
-      // space are strictly < or >, not <= or => because if we allow
-      // the record and print positions to overlap, we can't tell
-      // if the buffer either completely full or completely empty.
-      // Doing this check here ensures that == means completely empty.
-
-      return _producer_pos.load(std::memory_order_relaxed);
-    }
-
-    // Slow allocation
-
-    // Since consumerPos can be updated in a different thread, we
-    // save a consistent copy of it here to do calculations on
-    std::byte* const producer_pos = _producer_pos.load(std::memory_order_relaxed);
-    std::byte* const consumer_pos = _consumer_pos.load(std::memory_order_acquire);
-
-    if (producer_pos >= consumer_pos)
-    {
-      // producer is ahead of the consumer
-      // cxxxxxxxxxp0000EOB
-      // end_of_buffer = _storage + _capacity;
-
-      // remaining space to the end of the buffer
-      _min_free_space = static_cast<size_t>(_storage + _capacity - producer_pos);
-
-      if (_min_free_space > nbytes)
-      {
-        // we have enough space
-        return producer_pos;
-      }
-
-      // Prevent the wrap around if it overlaps the two positions because
-      // that would imply the buffer is completely empty when it's not.
-      if (QUILL_LIKELY(consumer_pos != _storage))
-      {
-        // Not enough space at the end of the buffer; wrap around
-        // Set the end of the buffer
-        _end_of_recorded_space = producer_pos;
-
-        // prevents producerPos from updating before endOfRecordedSpace
-        // NOTE: we want to release the value of endOfRecordedSpace to the consumer thread
-        _producer_pos.store(_storage, std::memory_order_release);
-
-        // now we wrapped around here, so the remaining space will be from consumer pos until start of buffer
-        _min_free_space = static_cast<size_t>(consumer_pos - _storage);
-
-        if (_min_free_space > nbytes)
-        {
-          // we have enough space and the producer is at the start of the buffer
-          return _storage;
-        }
-      }
-    }
-    else
-    {
-      // cachedProducerPos < cachedConsumerPos
-      // The consumer pos is in front of the producer, we only have limited space in the buffer
-      // we can not check until the end of the buffer
-      // xxxp000cxxxx
-      _min_free_space = static_cast<size_t>(consumer_pos - producer_pos);
-
-      if (_min_free_space > nbytes)
-      {
-        // we have enough space
-        return producer_pos;
-      }
-    }
-
-    // we do not have enough space
-    return nullptr;
+    return _writer_pos & _mask;
+  }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT int32_t get_writer_pos(int32_t diff) const noexcept
+  {
+    return (_writer_pos + diff) & _mask;
   }
 
-  /**
-   * Complement to reserve producer space that makes nbytes starting
-   * from the return of reserve producer space visible to the consumer.
-   */
-  QUILL_ALWAYS_INLINE_HOT void commit_write(size_t nbytes) noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT int32_t get_reader_pos() const noexcept
   {
-    _min_free_space -= nbytes;
-    _producer_pos.store(_producer_pos.load(std::memory_order_relaxed) + nbytes, std::memory_order_release);
+    return _reader_pos & _mask;
   }
 
-  /**
-   * Prepare to read from the buffer
-   * @return a pair of the buffer location to read and the number of available bytes
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::tuple<std::byte*, size_t, bool> prepare_read() noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(int32_t n) noexcept
   {
-    // Save a consistent copy of producerPos
-    // Prevent reading new producerPos but old endOf...
-    std::byte* consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
-    std::byte* producer_pos = _producer_pos.load(std::memory_order_acquire);
-
-    size_t bytes_available;
-
-    if (consumer_pos > producer_pos)
+    // check occupied (writer - reader) > _capacity - n_requested
+    if ((_writer_pos - _reader_pos_cache) > (_capacity - n))
     {
-      // consumer is ahead of the producer
-      // xxxp0000cxxxEOB
-      bytes_available = static_cast<size_t>(_end_of_recorded_space - consumer_pos);
-
-      if (bytes_available > 0)
-      {
-        // There are bytes to read until the end of the buffer, and we also want to notify the
-        // use that there are more to read
-        return std::tuple<std::byte*, size_t, bool>{consumer_pos, bytes_available, true};
-      }
-
-      // Roll over because there is nothing to read until end of buffer
-      _consumer_pos.store(_storage, std::memory_order_release);
+      // not enough space, we need to load reader and re-check
+      _reader_pos_cache = _atomic_reader_pos.load(std::memory_order_acquire);
+      return ((_writer_pos - _reader_pos_cache) > (_capacity - n)) ? nullptr : _storage + get_writer_pos();
     }
-
-    // here the consumer is behind the producer
-    consumer_pos = _consumer_pos.load(std::memory_order_relaxed);
-    bytes_available = static_cast<size_t>(producer_pos - consumer_pos);
-
-    // there won't be more bytes to read as we haven't wrapped around
-    return std::tuple<std::byte*, size_t, bool>{consumer_pos, bytes_available, false};
+    return _storage + get_writer_pos();
   }
 
-  /**
-   * Consumes the next nbytes in the buffer and frees it back
-   * for the producer to reuse.
-   * nbytes must be less or equal than what is returned by prepare_read().
-   */
-  QUILL_ALWAYS_INLINE_HOT void finish_read(size_t nbytes) noexcept
+  QUILL_ALWAYS_INLINE_HOT void commit_write(int32_t n) noexcept
   {
-    _consumer_pos.store(_consumer_pos.load(std::memory_order_relaxed) + nbytes, std::memory_order_release);
+    _writer_pos += n;
+
+#if defined(QUILL_X86ARC)
+    // flush writen cache lines
+    _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
+
+    // prefetch a future cacheline
+    _mm_prefetch(_storage + get_writer_pos(CACHELINE_SIZE * 8), _MM_HINT_T0);
+#endif
+
+    // set the atomic flag so the reader can see write
+    _atomic_writer_pos.store(_writer_pos, std::memory_order_release);
   }
 
-  /**
-   * Gives a pointer to producer pos
-   * @return producer position
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* producer_pos() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_read() noexcept
   {
-    return _producer_pos.load(std::memory_order_relaxed);
+    if ((_writer_pos_cache - _reader_pos) < 1)
+    {
+      // nothing to read, try to load the writer_pos again
+      _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
+      return (_writer_pos_cache - _reader_pos) < 1 ? nullptr : _storage + get_reader_pos();
+    }
+    return _storage + get_reader_pos();
+  }
+
+  QUILL_ALWAYS_INLINE_HOT void finish_read(int32_t n) noexcept
+  {
+    _reader_pos += n;
+
+#if defined(QUILL_X86ARC)
+    _flush_cachelines(_last_flushed_reader_pos, _reader_pos);
+#endif
+
+    _atomic_reader_pos.store(_reader_pos, std::memory_order_release);
   }
 
   QUILL_NODISCARD bool empty() const noexcept
   {
-    return _consumer_pos.load(std::memory_order_relaxed) == _producer_pos.load(std::memory_order_relaxed);
+    return _atomic_reader_pos.load(std::memory_order_relaxed) ==
+      _atomic_writer_pos.load(std::memory_order_relaxed);
   }
 
-  QUILL_NODISCARD size_t capacity() const noexcept { return _capacity; }
+  QUILL_NODISCARD int32_t capacity() const noexcept { return _capacity; }
 
-protected:
-  std::byte* _storage{nullptr};
-  size_t _capacity;
+#if defined(QUILL_X86ARC)
+private:
+  QUILL_ALWAYS_INLINE_HOT void _flush_cachelines(int32_t& last, int32_t offset)
+  {
+    int32_t last_diff = last - (last & CACHELINE_MASK);
+    int32_t const cur_diff = offset - (offset & CACHELINE_MASK);
 
-  /** Position within storage[] where the producer may place new data **/
-  alignas(CACHELINE_SIZE) std::atomic<std::byte*> _producer_pos;
+    while (cur_diff > last_diff)
+    {
+      _mm_clflushopt(_storage + (last_diff & _mask));
+      last_diff += CACHELINE_SIZE;
+      last = last_diff;
+    }
+  }
+#endif
 
-  /**  Marks the end of valid data for the consumer. Set by the producer on a roll-over read by the consumer **/
-  std::byte* _end_of_recorded_space;
+private:
+  static constexpr int32_t CACHELINE_MASK{CACHELINE_SIZE - 1};
 
-  /** Lower bound on the number of bytes the producer can allocate w/o rolling over the
-   * producerPos or stalling behind the consumer. Only used by the producer **/
-  size_t _min_free_space;
+  int32_t const _capacity;
+  int32_t const _mask;
+  std::byte* const _storage{nullptr};
 
-  /**
-   * Position within the storage buffer where the consumer will consume
-   * the next bytes from. This value is only updated by the consumer.
-   */
-  alignas(CACHELINE_SIZE) std::atomic<std::byte*> _consumer_pos;
-  char _pad0[CACHELINE_SIZE - sizeof(std::atomic<std::byte*>) - sizeof(size_t)] = "\0";
+  alignas(CACHELINE_SIZE) std::atomic<int32_t> _atomic_writer_pos{0};
+  int32_t _writer_pos{0};
+  int32_t _last_flushed_writer_pos{0};
+  int32_t _reader_pos_cache{0};
+
+  alignas(CACHELINE_SIZE) std::atomic<int32_t> _atomic_reader_pos{0};
+  int32_t _reader_pos{0};
+  int32_t _last_flushed_reader_pos{0};
+  int32_t _writer_pos_cache{0};
 };
 } // namespace quill::detail

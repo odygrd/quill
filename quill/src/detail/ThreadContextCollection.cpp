@@ -9,7 +9,7 @@ namespace quill::detail
 {
 /***/
 ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection,
-                                                                    size_t default_queue_capacity)
+                                                                    int32_t default_queue_capacity)
   : _thread_context_collection(thread_context_collection),
     _thread_context(std::shared_ptr<ThreadContext>(new ThreadContext(default_queue_capacity)))
 {

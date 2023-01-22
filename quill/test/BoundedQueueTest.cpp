@@ -14,36 +14,27 @@ TEST_CASE("read_write_buffer")
 {
   BoundedQueue buffer{64u};
 
+  for (uint32_t i = 0; i < 128; ++i)
   {
-    std::byte* write_buf = buffer.prepare_write(32u);
-    REQUIRE_NE(write_buf, nullptr);
-    buffer.commit_write(32u);
+    {
+      std::byte* write_buf = buffer.prepare_write(32u);
+      REQUIRE_NE(write_buf, nullptr);
+      buffer.commit_write(32u);
+    }
+
+    {
+      std::byte* res = buffer.prepare_read();
+      REQUIRE(res);
+      buffer.finish_read(32u);
+
+      res = buffer.prepare_read();
+      REQUIRE_FALSE(res);
+    }
   }
 
-  {
-    auto const res = buffer.prepare_read();
-    REQUIRE_EQ(std::get<1>(res), 32);
-    buffer.finish_read(32u);
-  }
-
-  {
-    // now we try to add another 32
-    std::byte* write_buf = buffer.prepare_write(32u);
-    REQUIRE_EQ(write_buf, nullptr);
-  }
-
-  {
-    // Nothing to read but consumer will also wrap
-    auto const res = buffer.prepare_read();
-    REQUIRE_EQ(std::get<1>(res), 0);
-  }
-
-  {
-    // now we try to add another 32, it should be possible after the consumer wrapped
-    std::byte* write_buf = buffer.prepare_write(32u);
-    REQUIRE_NE(write_buf, nullptr);
-    buffer.commit_write(32u);
-  }
+  std::byte* res = buffer.prepare_read();
+  REQUIRE_FALSE(res);
+  REQUIRE(buffer.empty());
 }
 
 TEST_CASE("read_write_multithreaded_plain_ints")
@@ -57,7 +48,7 @@ TEST_CASE("read_write_multithreaded_plain_ints")
       {
         for (uint32_t i = 0; i < 8192; ++i)
         {
-          auto* write_buffer = buffer.prepare_write(sizeof(uint32_t));
+          std::byte* write_buffer = buffer.prepare_write(sizeof(uint32_t));
 
           while (!write_buffer)
           {
@@ -78,11 +69,11 @@ TEST_CASE("read_write_multithreaded_plain_ints")
       {
         for (uint32_t i = 0; i < 8192; ++i)
         {
-          auto [read_buffer, bytes, has_more] = buffer.prepare_read();
-          while (bytes == 0)
+          std::byte* read_buffer = buffer.prepare_read();
+          while (!read_buffer)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
-            std::tie(read_buffer, bytes, has_more) = buffer.prepare_read();
+            read_buffer = buffer.prepare_read();
           }
 
           auto value = reinterpret_cast<uint32_t const*>(read_buffer);
@@ -95,4 +86,5 @@ TEST_CASE("read_write_multithreaded_plain_ints")
   producer_thread.join();
   consumer_thread.join();
 }
+
 TEST_SUITE_END();
