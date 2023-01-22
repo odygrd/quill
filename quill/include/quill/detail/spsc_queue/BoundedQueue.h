@@ -25,14 +25,14 @@ public:
   BoundedQueue(int32_t capacity)
     : _capacity(capacity),
       _mask(_capacity - 1),
-      _storage(static_cast<std::byte*>(aligned_alloc(CACHELINE_SIZE, 2ul * capacity)))
+      _storage(static_cast<std::byte*>(aligned_alloc(CACHELINE_SIZE, static_cast<size_t>(2ll * capacity))))
   {
-    if (!is_pow_of_two(capacity))
+    if (!is_pow_of_two(static_cast<size_t>(capacity)))
     {
       QUILL_THROW(std::runtime_error{"Capacity must be a power of two"});
     }
 
-    std::memset(_storage, 0, 2ul * capacity);
+    std::memset(_storage, 0, static_cast<size_t>(2ll * capacity));
 
 #if defined(QUILL_X86ARC)
     // eject log memory from cache
