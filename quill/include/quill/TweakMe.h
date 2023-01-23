@@ -76,10 +76,19 @@
 // #define QUILL_MODE_UNSAFE
 
 /**
- * When QUILL_DISABLE_NON_PREFIXED_MACROS is removes `LOG_*` macros and only `QUILL_LOG_*` is available.
+ * When QUILL_DISABLE_NON_PREFIXED_MACROS is defined it removes `LOG_*` macros and only
+ * `QUILL_LOG_*` macros are available.
  * This is only required in case the original macro names collide with an existing logging library
  */
 // #define QUILL_DISABLE_NON_PREFIXED_MACROS
+
+/**
+ * When the application doesn't want to use use multiple Logger objects and the root logger is
+ * enough, then passing a Logger* to the macros each time is inconvenient.
+ * Define QUILL_ROOT_LOGGER_ONLY to simply log as without passing any Logger* to the macro
+ * LOG_INFO("Hello {}", "world");
+ */
+// #define QUILL_ROOT_LOGGER_ONLY
 
 /**
  * Enables use of _mm_prefetch, _mm_clflush and _mm_clflushopt on the ringbuffer to further

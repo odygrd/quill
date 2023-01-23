@@ -86,7 +86,7 @@ struct Config
   uint16_t backend_thread_cpu_affinity = (std::numeric_limits<uint16_t>::max)();
 
   /**
-   * Sets the name of the default logger
+   * Sets the name of the root logger
    */
   std::string default_logger_name = "root";
 
@@ -132,10 +132,9 @@ struct Config
   TimestampClockType default_timestamp_clock_type = TimestampClockType::Rdtsc;
 
   /**
-   * Resets the default logger and re-creates the logger with the given handler
-   * * This function can also be used to change the format pattern of the logger
-   * * When the vector is empty then stdout handler is used
-   * Any loggers that are created by using create_logger(std::string logger_name) use the same handler by default
+   * Resets the root logger and re-creates the logger with the given handler
+   * This function can also be used to change the format pattern of the logger
+   * When the vector is empty then stdout handler is used
    */
   std::vector<Handler*> default_handlers = {};
 

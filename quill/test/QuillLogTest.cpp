@@ -376,7 +376,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
 /***/
 TEST_CASE("log_using_stderr")
 {
-  // Tests the logging in stdcout and also multiple stdcout formats. Also tests changing the default logger
+  // Tests the logging in stdcout and also multiple stdcout formats. Also tests changing the root logger
   quill::start();
 
   quill::testing::CaptureStderr();

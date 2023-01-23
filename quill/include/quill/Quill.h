@@ -235,23 +235,32 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* json_file_handler(
   FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
 
 /**
- * Returns an existing logger given the logger name or the default logger if no arguments logger_name is passed
+ * Returns an existing logger given the logger name or the root logger if no arguments logger_name is passed.
+ * This function is also thread safe.
  *
  * @warning the logger MUST have been created first by a call to create_logger.
  *
- * It is safe calling create_logger("my_logger) and get_logger("my_logger"); in different threads but the user has
+ * It is safe calling create_logger("my_logger) and get_logger("my_logger") in different threads but the user has
  * to make sure that the call to create_logger has returned in thread A before calling get_logger in thread B
  *
- * It is safe calling get_logger(...) in multiple threads as the same time
+ * @note: for efficiency prefer storing the returned Logger* when get_logger("...") is used. Multiple calls to ``get_logger(name)`` will slow your code down since it will first use a lock mutex lock and then perform a look up. The advise is to store a ``quill::Logger*`` and use that pointer directly, at least in code hot paths.
  *
- * @note: for efficiency prefer storing the returned Logger object pointer
+ * @note: safe to call even before even calling `quill:start()` unlike using `get_root_logger()`
  *
  * @throws when the requested logger does not exist
  *
- * @param logger_name The name of the logger, or no argument for the default logger
+ * @param logger_name The name of the logger, or no argument for the root logger
  * @return A pointer to a thread-safe Logger object
  */
 QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr);
+
+/**
+ * Provides fast access to the root logger.
+ * @note: This function can be used in the hot path and is more efficient than calling get_logger(nullptr)
+ * @warning This should be used only after calling quill::start(); if you need the root logger earlier then call get_logger() instead
+ * @return pointer to the root logger
+ */
+QUILL_NODISCARD Logger* get_root_logger() noexcept;
 
 /**
  * Returns all existing loggers and the pointers to them
@@ -260,7 +269,7 @@ QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr);
 QUILL_NODISCARD std::unordered_map<std::string, Logger*> get_all_loggers();
 
 /**
- * Creates a new Logger using the existing default logger's handler and formatter pattern
+ * Creates a new Logger using the existing root logger's handler and formatter pattern
  *
  * @note: If the user does not want to store the logger pointer, the same logger can be obtained later by calling get_logger(logger_name);
  *

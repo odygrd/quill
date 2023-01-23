@@ -132,7 +132,7 @@ public:
       return;
     }
 
-    // get the default logger - this is needed for the logger_details struct, in order to figure out
+    // get the root logger - this is needed for the logger_details struct, in order to figure out
     // the clock type later on the backend thread
     Logger* default_logger = logger_collection().get_logger(nullptr);
     LoggerDetails* logger_details = std::addressof(default_logger->_logger_details);
@@ -251,8 +251,8 @@ public:
 private:
   void _configure()
   {
-    // re-create the default logger with the given config
-    _logger_collection.create_default_logger();
+    // re-create the root logger with the given config
+    _logger_collection.create_root_logger();
   }
 
 private:

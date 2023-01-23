@@ -99,7 +99,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
 {
   if (signal == CTRL_C_EVENT || signal == CTRL_BREAK_EVENT)
   {
-    // This means signal handler is running a caller thread, we can log from the default logger
+    // This means signal handler is running a caller thread, we can log from the root logger
     LOG_INFO(quill::get_logger(), "Interrupted by Ctrl+C:");
 
     quill::flush();
@@ -121,7 +121,7 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
   }
   else
   {
-    // This means signal handler is running a caller thread, we can log from the default logger
+    // This means signal handler is running a caller thread, we can log from the root logger
     LOG_INFO(quill::get_logger(), "Received exception code: {}",
              get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
@@ -170,7 +170,7 @@ void on_signal(int32_t signal_number)
   }
   else
   {
-    // This means signal handler is running a caller thread, we can log from the default logger
+    // This means signal handler is running a caller thread, we can log from the root logger
     LOG_INFO(quill::get_logger(), "Received signal: {}", signal_number);
 
     if (signal_number == SIGINT || signal_number == SIGTERM)
@@ -249,7 +249,7 @@ void on_signal(int32_t signal_number)
   }
   else
   {
-    // This means signal handler is running a caller thread, we can log from the default logger
+    // This means signal handler is running a caller thread, we can log from the root logger
     QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Info, "Received signal: {}",
                        ::strsignal(signal_number));
 

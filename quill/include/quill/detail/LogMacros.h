@@ -177,7 +177,7 @@
 #define QUILL_LOG_BACKTRACE(logger, fmt, ...)                                                      \
   QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ##__VA_ARGS__)
 
-#if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS)
+#if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS) && !defined(QUILL_ROOT_LOGGER_ONLY)
   #define LOG_TRACE_L3(logger, fmt, ...) QUILL_LOG_TRACE_L3(logger, fmt, ##__VA_ARGS__)
   #define LOG_TRACE_L2(logger, fmt, ...) QUILL_LOG_TRACE_L2(logger, fmt, ##__VA_ARGS__)
   #define LOG_TRACE_L1(logger, fmt, ...) QUILL_LOG_TRACE_L1(logger, fmt, ##__VA_ARGS__)
@@ -196,4 +196,30 @@
   #define LOG_WARNING_NOFN(logger, fmt, ...) QUILL_LOG_WARNING_NOFN(logger, fmt, ##__VA_ARGS__)
   #define LOG_ERROR_NOFN(logger, fmt, ...) QUILL_LOG_ERROR_NOFN(logger, fmt, ##__VA_ARGS__)
   #define LOG_CRITICAL_NOFN(logger, fmt, ...) QUILL_LOG_CRITICAL_NOFN(logger, fmt, ##__VA_ARGS__)
+#elif !defined(QUILL_DISABLE_NON_PREFIXED_MACROS) && defined(QUILL_ROOT_LOGGER_ONLY)
+  #define LOG_TRACE_L3(fmt, ...) QUILL_LOG_TRACE_L3(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2(fmt, ...) QUILL_LOG_TRACE_L2(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1(fmt, ...) QUILL_LOG_TRACE_L1(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG(fmt, ...) QUILL_LOG_DEBUG(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_INFO(fmt, ...) QUILL_LOG_INFO(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_WARNING(fmt, ...) QUILL_LOG_WARNING(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_ERROR(fmt, ...) QUILL_LOG_ERROR(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL(fmt, ...) QUILL_LOG_CRITICAL(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_BACKTRACE(fmt, ...) QUILL_LOG_BACKTRACE(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_NOFN(fmt, ...)                                                              \
+    QUILL_LOG_TRACE_L3_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_NOFN(fmt, ...)                                                              \
+    QUILL_LOG_TRACE_L2_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_NOFN(fmt, ...)                                                              \
+    QUILL_LOG_TRACE_L1_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_NOFN(fmt, ...)                                                                 \
+    QUILL_LOG_DEBUG_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_INFO_NOFN(fmt, ...) QUILL_LOG_INFO_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_NOFN(fmt, ...)                                                               \
+    QUILL_LOG_WARNING_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_NOFN(fmt, ...)                                                                 \
+    QUILL_LOG_ERROR_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_NOFN(fmt, ...)                                                              \
+    QUILL_LOG_CRITICAL_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)
 #endif

@@ -15,6 +15,9 @@
 
 namespace quill
 {
+
+Logger* _g_root_logger = nullptr;
+
 /***/
 void preallocate()
 {
@@ -110,7 +113,27 @@ Handler* json_file_handler(fs::path const& filename, std::string const& mode, Fi
 /***/
 Logger* get_logger(char const* logger_name /* = nullptr */)
 {
+  if (!logger_name)
+  {
+    if (!_g_root_logger)
+    {
+      // this means the LoggerCollection has not been constructed yet, someone called this
+      // before quill::start();
+      return detail::LogManagerSingleton::instance().log_manager().logger_collection().get_logger(logger_name);
+    }
+
+    return _g_root_logger;
+  }
+
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().get_logger(logger_name);
+}
+
+/***/
+Logger* get_root_logger() noexcept
+{
+  assert(_g_root_logger &&
+         "_g_root_logger is nullptr, this function must be called after quill::start()");
+  return _g_root_logger;
 }
 
 /***/

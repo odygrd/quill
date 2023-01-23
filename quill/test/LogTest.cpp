@@ -339,7 +339,7 @@ void custom_default_logger_same_handler(int test_case = 0)
   }
   else if (test_case == 1)
   {
-    // Add the other logger by using the default logger params - which is the same as obtaining the file handler above
+    // Add the other logger by using the root logger params - which is the same as obtaining the file handler above
     QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
   }
   // Thread for default pattern
@@ -444,7 +444,7 @@ void test_custom_default_logger_multiple_handlers(int test_case)
   }
   else if (test_case == 1)
   {
-    // Add the second logger constructing it from the params of the default logger
+    // Add the second logger constructing it from the params of the root logger
     QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
   }
 
@@ -1315,7 +1315,7 @@ TEST_CASE("default_logger_with_custom_timestamp")
 /***/
 TEST_CASE("log_configure_default_logger_single_handler")
 {
-  // configure a custom handler to the default logger and check it works
+  // configure a custom handler to the root logger and check it works
   fs::path const filename = "log_configure_default_logger_single_handler.log";
 
   {
@@ -1327,7 +1327,7 @@ TEST_CASE("log_configure_default_logger_single_handler")
     Logger* default_logger = lm.logger_collection().get_logger();
 
     // Config using the custom ts class and the stdout handler
-    // this should not invalidate the default logger
+    // this should not invalidate the root logger
     quill::Config cfg;
     Handler* handler = lm.handler_collection().create_handler<FileHandler>(
       filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, true);
@@ -1341,12 +1341,12 @@ TEST_CASE("log_configure_default_logger_single_handler")
     std::thread frontend(
       [&lm, &default_logger, &cfg]()
       {
-        // check that we did update the default logger
+        // check that we did update the root logger
         auto all_loggers = lm.logger_collection().get_all_loggers();
         REQUIRE_EQ(all_loggers.size(), 1u);
         REQUIRE_NE(all_loggers.find(cfg.default_logger_name), all_loggers.end());
 
-        // Log using the default logger pointer we obtained before the configure step
+        // Log using the root logger pointer we obtained before the configure step
         // We expect the pointer to be valid after quill::configure(...)
         LOG_INFO(default_logger, "Hello from log_configure_default_logger test");
         LOG_INFO(default_logger, "The root logger pointer is valid");
@@ -1378,7 +1378,7 @@ TEST_CASE("log_configure_default_logger_single_handler")
 /***/
 TEST_CASE("log_configure_default_logger_multi_handler")
 {
-  // configure multiple handlers to the default logger and check it works
+  // configure multiple handlers to the root logger and check it works
   fs::path const filename_1 = "log_configure_default_logger_multi_handler1.log";
   fs::path const filename_2 = "log_configure_default_logger_multi_handler2.log";
 
@@ -1397,7 +1397,7 @@ TEST_CASE("log_configure_default_logger_multi_handler")
     { fprintf(file, "FILE CLOSING\n"); };
 
     // Config using the custom ts class and the stdout handler
-    // this should not invalidate the default logger
+    // this should not invalidate the root logger
     quill::Config cfg;
     quill::Handler* file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
       filename_1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
@@ -1414,12 +1414,12 @@ TEST_CASE("log_configure_default_logger_multi_handler")
     std::thread frontend(
       [&lm, &default_logger, &cfg]()
       {
-        // check that we did update the default logger
+        // check that we did update the root logger
         auto all_loggers = lm.logger_collection().get_all_loggers();
         REQUIRE_EQ(all_loggers.size(), 1u);
         REQUIRE_NE(all_loggers.find(cfg.default_logger_name), all_loggers.end());
 
-        // Log using the default logger pointer we obtained before the configure step
+        // Log using the root logger pointer we obtained before the configure step
         // We expect the pointer to be valid after quill::configure(...)
         LOG_INFO(default_logger, "Hello from log_configure_default_logger test");
         LOG_INFO(default_logger, "The root logger pointer is valid");

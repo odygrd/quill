@@ -28,6 +28,9 @@ target_link_libraries(example_logging_to_file quill)
 add_executable(example_multiple_handlers example_multiple_handlers.cpp)
 target_link_libraries(example_multiple_handlers quill)
 
+add_executable(example_quick_start example_quick_start.cpp)
+target_link_libraries(example_quick_start quill)
+
 add_executable(example_signal_handler example_signal_handler.cpp)
 target_link_libraries(example_signal_handler quill)
 

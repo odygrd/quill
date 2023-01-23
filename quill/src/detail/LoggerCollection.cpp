@@ -8,7 +8,11 @@
 #include <utility>                          // for move, pair
 #include <vector>                           // for vector
 
-namespace quill::detail
+namespace quill
+{
+extern Logger* _g_root_logger;
+
+namespace detail
 {
 /***/
 LoggerCollection::LoggerCollection(Config const& config, ThreadContextCollection& thread_context_collection,
@@ -17,7 +21,7 @@ LoggerCollection::LoggerCollection(Config const& config, ThreadContextCollection
 {
   // Pre-allocate early to a reasonable size
   _logger_name_map.reserve(16);
-  create_default_logger();
+  create_root_logger();
 }
 
 /***/
@@ -40,7 +44,7 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
   }
   else
   {
-    return _default_logger;
+    return _root_logger;
   }
 }
 
@@ -63,8 +67,8 @@ QUILL_NODISCARD std::unordered_map<std::string, Logger*> LoggerCollection::get_a
 Logger* LoggerCollection::create_logger(std::string const& logger_name, TimestampClockType timestamp_clock_type,
                                         TimestampClock* timestamp_clock)
 {
-  // Get a copy of the default logger handlers
-  std::vector<Handler*> handlers = _default_logger->_logger_details.handlers();
+  // Get a copy of the root logger handlers
+  std::vector<Handler*> handlers = _root_logger->_logger_details.handlers();
 
   // Register the handlers, even if they already exist
   for (auto& handler : handlers)
@@ -147,19 +151,19 @@ void LoggerCollection::enable_console_colours() noexcept
 }
 
 /***/
-Logger* LoggerCollection::default_logger() const noexcept { return _default_logger; }
+Logger* LoggerCollection::root_logger() const noexcept { return _root_logger; }
 
 /***/
-void LoggerCollection::create_default_logger()
+void LoggerCollection::create_root_logger()
 {
   std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
-  if (!_default_logger)
+  if (!_root_logger)
   {
     // initial root logger creation once
     if (_config.default_handlers.empty())
     {
-      // Add the default console handler to the default logger
+      // Add the default console handler to the root logger
       Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
 
       if (_config.enable_console_colours)
@@ -167,25 +171,25 @@ void LoggerCollection::create_default_logger()
         static_cast<ConsoleHandler*>(stdout_stream_handler)->enable_console_colours();
       }
 
-      _default_logger =
-        create_logger(_config.default_logger_name, stdout_stream_handler,
-                      _config.default_timestamp_clock_type, _config.default_custom_timestamp_clock);
+      _root_logger = create_logger(_config.default_logger_name, stdout_stream_handler,
+                                   _config.default_timestamp_clock_type, _config.default_custom_timestamp_clock);
     }
     else
     {
-      _default_logger =
-        create_logger(_config.default_logger_name, _config.default_handlers,
-                      _config.default_timestamp_clock_type, _config.default_custom_timestamp_clock);
+      _root_logger = create_logger(_config.default_logger_name, _config.default_handlers,
+                                   _config.default_timestamp_clock_type, _config.default_custom_timestamp_clock);
     }
+
+    _g_root_logger = _root_logger;
   }
   else
   {
-    // this will update the default logger after it is created.
-    // we do not invalidate the initial _default_logger pointer, instead we update the logger
-    // if configure is called again, we do not want to invalidate the pointer to the default logger
+    // this will update the root logger after it is created.
+    // we do not invalidate the initial _root_logger pointer, instead we update the logger
+    // if configure is called again, we do not want to invalidate the pointer to the root logger
     if (_config.default_handlers.empty())
     {
-      // Add the default console handler to the default logger
+      // Add the default console handler to the root logger
       Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
 
       if (_config.enable_console_colours)
@@ -197,9 +201,9 @@ void LoggerCollection::create_default_logger()
       _handler_collection.subscribe_handler(stdout_stream_handler);
 
       // get the pointer to the existing logger
-      auto search = _logger_name_map.find(_default_logger->_logger_details.name());
+      auto search = _logger_name_map.find(_root_logger->_logger_details.name());
       assert(search != _logger_name_map.end() &&
-             "we must always find the previous default logger in the map");
+             "we must always find the previous root logger in the map");
 
       // get the owning pointer to the logger
       std::unique_ptr<Logger> logger = std::move(search->second);
@@ -207,7 +211,7 @@ void LoggerCollection::create_default_logger()
       // now we can erase the logger from the map in case the name is different
       _logger_name_map.erase(search);
 
-      // update the default logger
+      // update the root logger
       logger->_logger_details._name = _config.default_logger_name;
       logger->_logger_details._handlers.clear();
       logger->_logger_details._handlers.push_back(stdout_stream_handler);
@@ -226,9 +230,9 @@ void LoggerCollection::create_default_logger()
       }
 
       // get the pointer to the existing logger
-      auto search = _logger_name_map.find(_default_logger->_logger_details.name());
+      auto search = _logger_name_map.find(_root_logger->_logger_details.name());
       assert(search != _logger_name_map.end() &&
-             "we must always find the previous default logger in the map");
+             "we must always find the previous root logger in the map");
 
       // get the owning pointer to the logger
       std::unique_ptr<Logger> logger = std::move(search->second);
@@ -236,7 +240,7 @@ void LoggerCollection::create_default_logger()
       // now we can erase the logger from the map in case the name is different
       _logger_name_map.erase(search);
 
-      // update the default logger
+      // update the root logger
       logger->_logger_details._name = _config.default_logger_name;
       logger->_logger_details._handlers = _config.default_handlers;
       logger->_logger_details._timestamp_clock_type = _config.default_timestamp_clock_type;
@@ -247,4 +251,5 @@ void LoggerCollection::create_default_logger()
     }
   }
 }
-} // namespace quill::detail
+} // namespace detail
+} // namespace quill

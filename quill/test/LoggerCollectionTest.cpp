@@ -111,9 +111,9 @@ TEST_CASE("get_non_existing_logger")
 }
 
 /***/
-TEST_CASE("default_logger")
+TEST_CASE("root_logger")
 {
-  // Get the default logger and change the log level, then get the default logger again and check
+  // Get the root logger and change the log level, then get the root logger again and check
   // the values we set are cached
   Config cfg;
   HandlerCollection hc;
@@ -130,7 +130,7 @@ TEST_CASE("default_logger")
   Logger* default_logger_2 = logger_collection.get_logger();
   REQUIRE_EQ(default_logger_2->log_level(), LogLevel::TraceL2);
 
-  // Get the default logger by name
+  // Get the root logger by name
   Logger* default_logger_3 = logger_collection.get_logger("root");
   REQUIRE_EQ(default_logger_3->log_level(), LogLevel::TraceL2);
 }
@@ -138,7 +138,7 @@ TEST_CASE("default_logger")
 /***/
 TEST_CASE("create_logger_from_default_logger")
 {
-  // Create a new logger and check that the properties are the same as the default logger
+  // Create a new logger and check that the properties are the same as the root logger
   Config cfg;
   HandlerCollection hc;
   ThreadContextCollection tc{cfg};
