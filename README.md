@@ -121,6 +121,7 @@ The results in the tables below are in nanoseconds (ns).
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
 | [Quill v2.7.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  20  |  21  |  24  |  25  |  27  |   34   |
+| [Quill v2.7.0 Bounded Queue](http://github.com/odygrd/quill)                      |  17  |  19  |  21  |  22  |  26  |   36   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                                        |  16  |  19  |  21  |  22  |  27  |   40   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                              |  41  |  43  |  44  |  46  |  66  |  118   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)                      |  53  |  66  |  75  |  80  |  92  |  106   |
@@ -134,6 +135,7 @@ The results in the tables below are in nanoseconds (ns).
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
 | [Quill v2.7.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  20  |  22  |  24  |  26  |  28  |   35   |
+| [Quill v2.7.0 Bounded Queue](http://github.com/odygrd/quill)                      |  17  |  19  |  21  |  22  |  26  |   36   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                                        |  16  |  19  |  21  |  23  |  26  |   35   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                              |  42  |  44  |  46  |  48  |  76  |  118   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)                      |  56  |  67  |  77  |  82  |  95  |  159   |
@@ -151,6 +153,7 @@ The large string is over 35 characters to avoid short string optimisation of `st
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
 | [Quill v2.7.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  31  |  33  |  35  |  36  |  39  |   48   |
+| [Quill v2.7.0 Bounded Queue](http://github.com/odygrd/quill)                      |  30  |  32  |  33  |  35  |  43  |   51   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                                        |  29  |  31  |  34  |  37  |  44  |   53   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                              |  50  |  51  |  53  |  56  |  77  |  127   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)                      |  71  |  86  | 105  | 117  | 136  |  158   |
@@ -164,6 +167,7 @@ The large string is over 35 characters to avoid short string optimisation of `st
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
 | [Quill v2.7.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  31  |  33  |  35  |  37  |  40  |   48   |
+| [Quill v2.7.0 Bounded Queue](http://github.com/odygrd/quill)                      |  29  |  31  |  33  |  35  |  41  |   49   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                                        |  29  |  31  |  35  |  37  |  44  |   54   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                              |  50  |  52  |  54  |  58  |  86  |  130   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)                      |  69  |  82  |  99  | 111  | 134  |  194   |
