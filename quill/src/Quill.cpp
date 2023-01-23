@@ -11,7 +11,8 @@
 #include "quill/handlers/RotatingFileHandler.h"     // for RotatingFileHandler
 #include "quill/handlers/StreamHandler.h"           // for StreamHandler
 #include "quill/handlers/TimeRotatingFileHandler.h" // for TimeRotatingFileHandler
-#include <utility>                                  // for move
+#include <cassert>
+#include <utility> // for move
 
 namespace quill
 {

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "quill/TweakMe.h"
+
 #include "quill/Fmt.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
