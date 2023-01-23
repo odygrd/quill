@@ -102,19 +102,11 @@ private:
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   /**
-   * Reads all available bytes from the queue
-   * @param thread_context thread contest
-   * @param ts_now timestamp
-   */
-  QUILL_ATTRIBUTE_HOT inline void _read_from_queue(ThreadContext* thread_context, uint64_t ts_now);
-
-  /**
    * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
    */
-  QUILL_ATTRIBUTE_HOT inline bool _read_queue_messages_and_decode(ThreadContext* thread_context,
+  QUILL_ATTRIBUTE_HOT inline void _read_queue_messages_and_decode(ThreadContext* thread_context,
                                                                   ThreadContext::SPSCQueueT& queue,
-                                                                  std::byte* read_buffer,
-                                                                  size_t bytes_available, uint64_t ts_now);
+                                                                  uint64_t ts_now);
 
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
@@ -318,49 +310,25 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
     // copy everything to a priority queue
-    _read_from_queue(thread_context, ts_now);
+    _read_queue_messages_and_decode(thread_context, thread_context->spsc_queue(), ts_now);
   }
 }
 
 /***/
-void BackendWorker::_read_from_queue(ThreadContext* thread_context, uint64_t ts_now)
+void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_context,
+                                                    ThreadContext::SPSCQueueT& queue, uint64_t ts_now)
 {
-  ThreadContext::SPSCQueueT& spsc_queue = thread_context->spsc_queue();
-
   // Note: The producer will commit to this queue when one complete message is written.
   // This means that if we can read something from the queue it will be a full message
   // The producer will add items to the buffer :
   // |timestamp|metadata*|logger_details*|args...|
 
-  auto [read_buffer, bytes_available, has_more] = spsc_queue.prepare_read();
+  bool read_one{false};
+  std::byte* read_pos = queue.prepare_read();
 
-  // here we read all the messages until the end of the buffer
-  bool const read_all =
-    _read_queue_messages_and_decode(thread_context, spsc_queue, read_buffer, bytes_available, ts_now);
-
-  if (read_all && has_more)
+  while (read_pos)
   {
-    // if there are more bytes to read it is because we need to wrap around the ring buffer,
-    // and we will perform one more read
-    std::tie(read_buffer, bytes_available, has_more) = spsc_queue.prepare_read();
-    _read_queue_messages_and_decode(thread_context, spsc_queue, read_buffer, bytes_available, ts_now);
-
-    assert(!has_more && "It is not possible to have more bytes to read");
-  }
-
-  // Note: If the bounded queue gets filled it will allocate a new bounded queue and will have
-  // more bytes to read. The case where the queue gets reallocated is not handled and we will
-  // read the new queue the next time we call this function
-}
-
-/***/
-bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_context,
-                                                    ThreadContext::SPSCQueueT& queue, std::byte* read_buffer,
-                                                    size_t bytes_available, uint64_t ts_now)
-{
-  while (bytes_available > 0)
-  {
-    std::byte* const read_begin = read_buffer;
+    std::byte* const read_begin = read_pos;
 
     // First we want to allocate a new TransitEvent or use an existing one
     // to store the message from the queue
@@ -372,9 +340,9 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     transit_event->seq_num = thread_context->get_seq_num();
 
     // read the header first, and take copy of the header
-    read_buffer = detail::align_pointer<alignof(Header), std::byte>(read_buffer);
-    transit_event->header = *(reinterpret_cast<detail::Header*>(read_buffer));
-    read_buffer += sizeof(detail::Header);
+    read_pos = detail::align_pointer<alignof(Header), std::byte>(read_pos);
+    transit_event->header = *(reinterpret_cast<detail::Header*>(read_pos));
+    read_pos += sizeof(detail::Header);
 
     // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
     // doing the conversion here ensures that every transit that is inserted in the priority queue
@@ -403,7 +371,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
         _transit_event_factory.emplace_back(transit_event);
-        return false;
+        return;
       }
     }
     else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::System)
@@ -417,7 +385,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
         _transit_event_factory.emplace_back(transit_event);
-        return false;
+        return;
       }
     }
     else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Custom)
@@ -444,8 +412,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
         assert(!macro_metadata.is_structured_log_template() &&
                "structured log templates are not supported for wide characters");
 
-        read_buffer = format_to_fn(format_str, read_buffer, 
-                                   transit_event->formatted_msg, _args);
+        read_pos = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
       }
       else
       {
@@ -464,7 +431,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
             transit_event->structured_keys = structured_keys;
 
-            read_buffer = format_to_fn(fmt_str, read_buffer, transit_event->formatted_msg, _args);
+            read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
           }
           else
           {
@@ -476,7 +443,7 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
             transit_event->structured_keys = std::move(structured_keys);
 
-            read_buffer = format_to_fn(fmt_str, read_buffer, transit_event->formatted_msg, _args);
+            read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
           }
 
           // formatted values for any given keys
@@ -489,8 +456,8 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
         else
         {
           // regular logs
-          read_buffer = format_to_fn(macro_metadata.message_format(), read_buffer,
-                                     transit_event->formatted_msg, _args);
+          read_pos =
+            format_to_fn(macro_metadata.message_format(), read_pos, transit_event->formatted_msg, _args);
         }
 #if defined(_WIN32)
       }
@@ -501,22 +468,28 @@ bool BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
       // if this is a flush event then we do not need to format anything for the
       // transit_event, but we need to set the transit event's flush_flag pointer instead
       uintptr_t flush_flag_tmp;
-      std::memcpy(&flush_flag_tmp, read_buffer, sizeof(uintptr_t));
+      std::memcpy(&flush_flag_tmp, read_pos, sizeof(uintptr_t));
       transit_event->flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
-      read_buffer += sizeof(uintptr_t);
+      read_pos += sizeof(uintptr_t);
     }
 
     // Finish reading
-    assert((read_buffer >= read_begin) && "read_buffer should be greater or equal to read_begin");
-    auto const read_size = static_cast<size_t>(read_buffer - read_begin);
+    assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
+    auto const read_size = static_cast<int32_t>(read_pos - read_begin);
     queue.finish_read(read_size);
-    bytes_available -= read_size;
 
-    _transit_events.emplace(std::make_pair(transit_event->header.timestamp, transit_event));
+    read_one = true;
+    _transit_events.emplace(transit_event->header.timestamp, transit_event);
+
+    // read again
+    read_pos = queue.prepare_read();
   }
 
-  // read everything
-  return true;
+  if (read_one)
+  {
+    // read everything the queue of this thread should be empty
+    queue.commit_read();
+  }
 }
 
 /***/

@@ -36,11 +36,13 @@ char const* to_string(LogLevel log_level)
 LogLevel from_string(std::string log_level)
 {
   static const std::unordered_map<std::string, LogLevel> log_levels_map = {
-    {"tracel3", LogLevel::TraceL3},     {"tracel2", LogLevel::TraceL2},
-    {"tracel1", LogLevel::TraceL1},     {"debug", LogLevel::Debug},
-    {"info", LogLevel::Info},           {"warning", LogLevel::Warning},
-    {"error", LogLevel::Error},         {"critical", LogLevel::Critical},
-    {"backtrace", LogLevel::Backtrace}, {"none", LogLevel::None}};
+    {"tracel3", LogLevel::TraceL3},   {"trace_l3", LogLevel::TraceL3},
+    {"tracel2", LogLevel::TraceL2},   {"trace_l2", LogLevel::TraceL2},
+    {"tracel1", LogLevel::TraceL1},   {"trace_l1", LogLevel::TraceL1},
+    {"debug", LogLevel::Debug},       {"info", LogLevel::Info},
+    {"warning", LogLevel::Warning},   {"error", LogLevel::Error},
+    {"critical", LogLevel::Critical}, {"backtrace", LogLevel::Backtrace},
+    {"none", LogLevel::None}};
 
   // parse log level
   std::transform(log_level.begin(), log_level.end(), log_level.begin(),

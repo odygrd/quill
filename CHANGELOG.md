@@ -52,41 +52,83 @@
   as `noexcept` ([#230](https://github.com/odygrd/quill/pull/230))
 
 **Improvements**
-- Add missing function to create a `JsonFileHandler` to `Quill.h`.
-- Added option to call `fsync()` to all file handlers.
-- Added file event notifiers, to get callbacks from Quill before/after log file has been opened or
+- Add missing `quill::json_file_handler(...)` that creates a `JsonFileHandler` in `Quill.h`.
+- Simplified and refactored the logic in `BoundedQueue`
+- Added the option `do_fsync` which also calls `fsync()` during the handler flush to all file handlers.
+- Added file event notifiers, to get callbacks from quill before/after log file has been opened or
   closed. ([#193](https://github.com/odygrd/quill/pull/193))
   This is useful for cleanup procedures or for adding something to the start/end of the log files.
+  for example
 
-For example :
+  ```c++
+  int main()
+  {
+    quill::start();
+  
+    quill::FileEventNotifier fen;
+  
+    fen.before_open = [](quill::fs::path const& filename)
+    { std::cout << "before opening " << filename << std::endl; };
+  
+    fen.after_open = [](quill::fs::path const& filename, FILE* f)
+    { std::cout << "after opening " << filename << std::endl; };
+  
+    fen.before_close = [](quill::fs::path const& filename, FILE* f)
+    { std::cout << "before closing " << filename << std::endl; };
+  
+    fen.after_close = [](quill::fs::path const& filename)
+    { std::cout << "after closing " << filename << std::endl; };
+  
+    quill::Handler* file_handler =
+      quill::file_handler("myfile.log", "w", quill::FilenameAppend::None, std::move(fen));
+  
+    quill::Logger* mylogger = quill::create_logger("mylogger", file_handler);
+  
+    LOG_INFO(mylogger, "Hello world");
+  }
+  ```
 
-```c++
-int main()
-{
-  quill::start();
+- Added `QUILL_X86ARCH` in `Tweakme.h`. When enabled it will attempt to minimize the cache pollution on x86 cpus that
+  support the instructions `_mm_prefetch `, `_mm_clflush` and `_mm_clflushopt`.
 
-  quill::FileEventNotifier fen;
+  To compile when this flag is enabled you should also pass `-march` to the compiler which is required,
+  you can set this to your oldest cpu architecture among your systems.
 
-  fen.before_open = [](quill::fs::path const& filename)
-  { std::cout << "before opening " << filename << std::endl; };
+  To enable this option, `DQUILL_X86ARCH` must always be defined in quill library and also in your executable,
+  for example
 
-  fen.after_open = [](quill::fs::path const& filename, FILE* f)
-  { std::cout << "after opening " << filename << std::endl; };
+  ```shell
+  cmake -DCMAKE_CXX_FLAGS:STRING="-DQUILL_X86ARCH -march=native"
+  ```
 
-  fen.before_close = [](quill::fs::path const& filename, FILE* f)
-  { std::cout << "before closing " << filename << std::endl; };
+- Added `quill:get_root_logger()` which gives quick access to the root logger object and can be used directly in the hot
+  path.
+  This gives applications that only wish to use the root logger the convenience of not having to store and
+  pass `Logger*` objects anymore.
+  for example quill existing log macros can be overwritten to not require a `Logger*` anymore
 
-  fen.after_close = [](quill::fs::path const& filename)
-  { std::cout << "after closing " << filename << std::endl; };
+  ```c++
+  #define MY_LOG_INFO(fmt, ...) QUILL_LOG_INFO(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  ``````
 
-  quill::Handler* file_handler =
-    quill::file_handler("myfile.log", "w", quill::FilenameAppend::None, std::move(fen));
+- Added `QUILL_ROOT_LOGGER_ONLY` in `Tweakme.h`. Define ths if you only plan to use the single `root` logger object,
+  When this is defined it will replace the LOG_ macros with the equivalent LOG_ macros but without the need of
+  passing `Logger*` objects anymore.
+  for example
 
-  quill::Logger* mylogger = quill::create_logger("mylogger", file_handler);
-
-  LOG_INFO(mylogger, "Hello world");
-}
-```
+  ```c++
+  #define QUILL_ROOT_LOGGER_ONLY
+  #include "quill/Quill.h"
+  
+  int main()
+  {
+    quill::start();
+  
+    // because we defined QUILL_ROOT_LOGGER_ONLY we do not have to pass a logger* anymore, the root logger is always used
+    LOG_INFO("Hello {}", "world");
+    LOG_ERROR("This is a log error example {}", 7);
+  }
+  ```
 
 ## v2.6.0
 

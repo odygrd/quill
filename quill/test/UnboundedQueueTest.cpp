@@ -30,7 +30,8 @@ TEST_CASE("read_write_multithreaded_plain_ints")
           }
 
           std::memcpy(write_buffer, &i, sizeof(uint32_t));
-          buffer.commit_write(sizeof(uint32_t));
+          buffer.finish_write(sizeof(uint32_t));
+          buffer.commit_write();
         }
       }
     });
@@ -45,16 +46,17 @@ TEST_CASE("read_write_multithreaded_plain_ints")
       {
         for (uint32_t i = 0; i < 8192; ++i)
         {
-          auto [read_buffer, bytes, has_more] = buffer.prepare_read();
-          while (bytes == 0)
+          std::byte* read_buffer = buffer.prepare_read();
+          while (!read_buffer)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
-            std::tie(read_buffer, bytes, has_more) = buffer.prepare_read();
+            read_buffer = buffer.prepare_read();
           }
 
           auto value = reinterpret_cast<uint32_t const*>(read_buffer);
           REQUIRE_EQ(*value, i);
           buffer.finish_read(sizeof(uint32_t));
+          buffer.commit_read();
         }
       }
     });

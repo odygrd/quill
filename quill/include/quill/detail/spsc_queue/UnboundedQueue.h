@@ -8,8 +8,6 @@
 #include <atomic>
 #include <cassert>
 #include <cstddef>
-#include <iostream>
-#include <tuple>
 
 #include "BoundedQueue.h"
 
@@ -40,20 +38,20 @@ private:
   /**
    * A node has a buffer and a pointer to the next node
    */
-  struct alignas(CACHELINE_SIZE) Node
+  struct alignas(CACHE_LINE_ALIGNED) Node
   {
     /**
      * Constructor
      * @param capacity the capacity of the fixed buffer
      */
-    explicit Node(size_t capacity) : bounded_queue(capacity) {}
+    explicit Node(int32_t bounded_queue_capacity) : bounded_queue(bounded_queue_capacity) {}
 
     /**
      * Alignment requirement as we have bounded_queue as member
      * @param i i
      * @return allocated memory pointer
      */
-    void* operator new(size_t i) { return aligned_alloc(CACHELINE_SIZE, i); }
+    void* operator new(size_t i) { return aligned_alloc(CACHE_LINE_ALIGNED, i); }
     void operator delete(void* p) { aligned_free(p); }
 
     /** members */
@@ -65,7 +63,7 @@ public:
   /**
    * Constructor
    */
-  UnboundedQueue(size_t initial_bounded_queue_capacity)
+  explicit UnboundedQueue(int32_t initial_bounded_queue_capacity)
     : _producer(new Node(initial_bounded_queue_capacity)), _consumer(_producer)
   {
   }
@@ -98,7 +96,7 @@ public:
    * making it visible to the consumer.
    * @return a valid point to the buffer
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(size_t nbytes)
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(int32_t nbytes)
   {
     // Try to reserve the bounded queue
     std::byte* write_pos = _producer->bounded_queue.prepare_write(nbytes);
@@ -109,11 +107,14 @@ public:
     }
 
     // Then it means the queue doesn't have enough size
-    size_t capacity = _producer->bounded_queue.capacity() * 2;
+    int32_t capacity = _producer->bounded_queue.capacity() * 2;
     while (capacity < (nbytes + 1))
     {
       capacity = capacity * 2;
     }
+
+    // commit previous write to the old queue before switching
+    _producer->bounded_queue.commit_write();
 
     // We failed to reserve because the queue was full, create a new node with a new queue
     auto next_node = new Node{capacity};
@@ -135,20 +136,25 @@ public:
    * Complement to reserve producer space that makes nbytes starting
    * from the return of reserve producer space visible to the consumer.
    */
-  QUILL_ALWAYS_INLINE_HOT void commit_write(size_t nbytes)
+  QUILL_ALWAYS_INLINE_HOT void finish_write(int32_t nbytes)
   {
-    _producer->bounded_queue.commit_write(nbytes);
+    _producer->bounded_queue.finish_write(nbytes);
   }
+
+  /**
+   * Commit the write to notify the consumer bytes are ready to read
+   */
+  QUILL_ALWAYS_INLINE_HOT void commit_write() { _producer->bounded_queue.commit_write(); }
 
   /**
    * Prepare to read from the buffer
    * @return a pair of the buffer location to read and the number of available bytes
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::tuple<std::byte*, std::size_t, bool> prepare_read()
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_read()
   {
-    auto [read_pos, available_bytes, has_more] = _consumer->bounded_queue.prepare_read();
+    std::byte* read_pos = _consumer->bounded_queue.prepare_read();
 
-    if (available_bytes == 0)
+    if (!read_pos)
     {
       // the buffer is empty check if another buffer exists
       Node* const next_node = _consumer->next.load(std::memory_order_acquire);
@@ -158,37 +164,42 @@ public:
         // a new buffer was added by the producer, this happens only when we have allocated a new queue
 
         // try the existing buffer once more
-        std::tie(read_pos, available_bytes, has_more) = _consumer->bounded_queue.prepare_read();
+        read_pos = _consumer->bounded_queue.prepare_read();
 
-        if (available_bytes == 0)
+        if (!read_pos)
         {
+          // commit the previous reads before deleting the queue
+          _consumer->bounded_queue.commit_read();
+
           // switch to the new buffer, existing one is deleted
           delete _consumer;
           _consumer = next_node;
-          std::tie(read_pos, available_bytes, has_more) = _consumer->bounded_queue.prepare_read();
+          read_pos = _consumer->bounded_queue.prepare_read();
         }
       }
     }
-    return std::tuple<std::byte*, std::size_t, bool>{read_pos, available_bytes, has_more};
+    return read_pos;
   }
 
   /**
    * Consumes the next nbytes in the buffer and frees it back
    * for the producer to reuse.
    */
-  QUILL_ALWAYS_INLINE_HOT void finish_read(size_t nbytes)
+  QUILL_ALWAYS_INLINE_HOT void finish_read(int32_t nbytes)
   {
     _consumer->bounded_queue.finish_read(nbytes);
   }
 
   /**
+   * Commit the read to indicate that the bytes are read and are now free to be reused
+   */
+  QUILL_ALWAYS_INLINE_HOT void commit_read() { _consumer->bounded_queue.commit_read(); }
+
+  /**
    * Return the current buffer's capacity
    * @return capacity
    */
-  QUILL_NODISCARD std::size_t capacity() const noexcept
-  {
-    return _producer->bounded_queue.capacity();
-  }
+  QUILL_NODISCARD int32_t capacity() const noexcept { return _producer->bounded_queue.capacity(); }
 
   /**
    * checks if the queue is empty
@@ -199,20 +210,10 @@ public:
     return _consumer->bounded_queue.empty() && (_consumer->next.load(std::memory_order_relaxed) == nullptr);
   }
 
-  /**
-   * Gives a pointer to producer pos
-   * @return producer pos
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* producer_pos() const noexcept
-  {
-    return _producer->bounded_queue.producer_pos();
-  }
-
 private:
   /** Modified by either the producer or consumer but never both */
-  alignas(CACHELINE_SIZE) Node* _producer{nullptr};
-  alignas(CACHELINE_SIZE) Node* _consumer{nullptr};
-  char _pad0[CACHELINE_SIZE - sizeof(Node*)] = "\0";
+  alignas(CACHE_LINE_ALIGNED) Node* _producer{nullptr};
+  alignas(CACHE_LINE_ALIGNED) Node* _consumer{nullptr};
 };
 
 } // namespace quill::detail

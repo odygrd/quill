@@ -513,8 +513,7 @@ Logger access
 -----------------------------
 
 .. doxygenfunction:: quill::get_logger
-
-.. note:: Multiple calls to ``get_logger(name)`` will slow your code down since it will first use a lock mutex lock and then perform a look up. The advise is to store a ``quill::Logger*`` and use that pointer directly, at least in code hot paths.
+.. doxygenfunction:: quill::get_root_logger
 
 Create single handler logger
 -----------------------------
@@ -544,6 +543,33 @@ Create multi handler logger
      quill::Logger* logger_foo = quill::create_logger("logger_foo", {file_handler, quill::stdout_handler()});
 
      LOG_INFO(logger_foo, "Hello from {}", "library foo");
+
+Avoiding the use of Logger objects
+---------------------------------------
+For some applications the use of the single root logger might be enough. In that case passing the logger everytime
+to the macro becomes inconvenient. The solution is to overwrite the quill macros with your own macros.
+
+.. code:: cpp
+
+    #define MY_LOG_INFO(fmt, ...) QUILL_LOG_INFO(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+
+Or you can simply define
+
+.. c:macro:: QUILL_ROOT_LOGGER_ONLY
+
+.. code:: cpp
+
+    #define QUILL_ROOT_LOGGER_ONLY
+    #include "quill/Quill.h"
+
+    int main()
+    {
+      quill::start();
+
+      // because we defined QUILL_ROOT_LOGGER_ONLY we do not have to pass a logger* anymore, the root logger is always used
+      LOG_INFO("Hello {}", "world");
+      LOG_ERROR("This is a log error example {}", 7);
+  }
 
 Backtrace Logging
 ====================

@@ -11,6 +11,8 @@ option(QUILL_NO_EXCEPTIONS "Build without exceptions with -fno-exceptions flag" 
 
 option(QUILL_USE_BOUNDED_QUEUE "Build with bounded queue instead of unbounded" OFF)
 
+option(QUILL_X86ARCH "Enables x86 optimisations, needs to be combined with -march" OFF)
+
 option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
 option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
@@ -117,6 +119,10 @@ endif ()
 #-------------------------------------------------------------------------------------------------------
 if (QUILL_NO_EXCEPTIONS)
     add_definitions(-DQUILL_NO_EXCEPTIONS)
+endif ()
+
+if (QUILL_X86ARCH)
+    add_definitions(-DQUILL_X86ARCH)
 endif ()
 
 if (QUILL_USE_BOUNDED_QUEUE)
