@@ -53,6 +53,7 @@
 
 **Improvements**
 - Add missing function to create a `JsonFileHandler` to `Quill.h`.
+- Simplified the logic in `BoundedQueue`
 - Added option to call `fsync()` to all file handlers.
 - Added file event notifiers, to get callbacks from Quill before/after log file has been opened or
   closed. ([#193](https://github.com/odygrd/quill/pull/193))
@@ -86,6 +87,19 @@ int main()
 
   LOG_INFO(mylogger, "Hello world");
 }
+```
+
+- Added `QUILL_X86ARCH` in `Tweakme.h`. When enabled it will attempt to minimize the cache pollution on x86 cpus that
+  support the instructions `_mm_prefetch `, `_mm_clflush` and `_mm_clflushopt`.
+
+To compile when this flag is enabled you should also pass `-march` to the compiler which is required,
+you can set this to your oldest cpu architecture among your systems.
+
+To enable this option, `DQUILL_X86ARCH` must always be defined in quill library and also in your executable, for
+example:
+
+```shell
+cmake -DCMAKE_CXX_FLAGS:STRING="-DQUILL_X86ARCH -march=native"
 ```
 
 ## v2.6.0

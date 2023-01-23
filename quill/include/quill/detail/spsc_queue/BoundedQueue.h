@@ -13,7 +13,7 @@
 #include <cstring>
 #include <stdexcept>
 
-#if defined(QUILL_X86ARC)
+#if defined(QUILL_X86ARCH)
   #include <emmintrin.h>
   #include <immintrin.h>
   #include <x86intrin.h>
@@ -21,10 +21,13 @@
 
 namespace quill::detail
 {
+/**
+ * A bounded single producer single consumer ring buffer.
+ */
 class BoundedQueue
 {
 public:
-  BoundedQueue(int32_t capacity)
+  QUILL_ALWAYS_INLINE explicit BoundedQueue(int32_t capacity)
     : _capacity(capacity),
       _mask(_capacity - 1),
       _storage(static_cast<std::byte*>(aligned_alloc(CACHE_LINE_ALIGNED, static_cast<size_t>(2ll * capacity))))
@@ -36,7 +39,7 @@ public:
 
     std::memset(_storage, 0, static_cast<size_t>(2ll * capacity));
 
-#if defined(QUILL_X86ARC)
+#if defined(QUILL_X86ARCH)
     // eject log memory from cache
     for (int32_t i = 0; i < (2 * capacity); i += CACHE_LINE_SIZE)
     {
@@ -88,7 +91,7 @@ public:
 
   QUILL_ALWAYS_INLINE_HOT void commit_write() noexcept
   {
-#if defined(QUILL_X86ARC)
+#if defined(QUILL_X86ARCH)
     // flush writen cache lines
     _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
 
@@ -115,7 +118,7 @@ public:
 
   QUILL_ALWAYS_INLINE_HOT void commit_read() noexcept
   {
-#if defined(QUILL_X86ARC)
+#if defined(QUILL_X86ARCH)
     _flush_cachelines(_last_flushed_reader_pos, _reader_pos);
 #endif
 
@@ -130,8 +133,8 @@ public:
 
   QUILL_NODISCARD int32_t capacity() const noexcept { return _capacity; }
 
-#if defined(QUILL_X86ARC)
 private:
+#if defined(QUILL_X86ARCH)
   QUILL_ALWAYS_INLINE_HOT void _flush_cachelines(int32_t& last, int32_t offset)
   {
     int32_t last_diff = last - (last & CACHELINE_MASK);

@@ -81,6 +81,17 @@
  */
 // #define QUILL_DISABLE_NON_PREFIXED_MACROS
 
+/**
+ * Enables use of _mm_prefetch, _mm_clflush and _mm_clflushopt on the ringbuffer to further
+ * improve performance on x86
+ *
+ * When this option is enabled you should also pass your oldest target architecture to the compiler
+ * with -march="..."
+ *
+ * target_compile_definitions(<target> PUBLIC -DQUILL_X86ARCH)
+ */
+// #define QUILL_X86ARCH
+
 /**************************************************************************************************/
 /* Anything after this point requires the whole library to be recompiled with the desired option. */
 /**************************************************************************************************/
@@ -120,12 +131,3 @@
  * QUILL_USE_BOUNDED_QUEUE mode seems to be faster in `quill_hot_path_rdtsc_clock` benchmark by a few nanoseconds.
  */
 // #define QUILL_USE_BOUNDED_QUEUE
-
-/**
- * Enables use of _mm_prefetch, _mm_clflush and _mm_clflushopt on the ringbuffer to further
- * improve performance on x86
- *
- * When this option is enabled you should also pass your lowest target architecture to the compiler
- * e.g. cmake -DQUILL_X86ARC:BOOL=ON -DCMAKE_CXX_FLAGS:STRING="-march=skylake" ..
- */
-// #define QUILL_X86ARC
