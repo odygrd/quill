@@ -151,7 +151,7 @@ public:
     } anonymous_log_message_info;
 
     detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
-    uint32_t total_size = sizeof(detail::Header) + sizeof(uintptr_t);
+    size_t const total_size = sizeof(detail::Header) + sizeof(uintptr_t);
 
     std::byte* write_buffer = thread_context->spsc_queue().prepare_write(static_cast<uint32_t>(total_size));
     std::byte* const write_begin = write_buffer;
