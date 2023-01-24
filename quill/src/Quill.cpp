@@ -22,7 +22,7 @@ Logger* _g_root_logger = nullptr;
 /***/
 void preallocate()
 {
-  QUILL_MAYBE_UNUSED int32_t const volatile x = detail::LogManagerSingleton::instance()
+  QUILL_MAYBE_UNUSED uint32_t const volatile x = detail::LogManagerSingleton::instance()
                                                   .log_manager()
                                                   .thread_context_collection()
                                                   .local_thread_context()
