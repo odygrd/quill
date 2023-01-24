@@ -38,7 +38,7 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContext(int32_t default_queue_capacity) : _spsc_queue(default_queue_capacity) {}
+  explicit ThreadContext(uint32_t default_queue_capacity) : _spsc_queue(default_queue_capacity) {}
 
   /**
    * Deleted
