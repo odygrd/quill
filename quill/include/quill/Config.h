@@ -179,6 +179,6 @@ struct Config
    *
    * @note This capacity automatically doubles when the unbounded queue is full
    */
-  int32_t default_queue_capacity{131'072};
+  uint32_t default_queue_capacity{131'072};
 };
 } // namespace quill

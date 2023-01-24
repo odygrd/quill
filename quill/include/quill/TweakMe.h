@@ -97,6 +97,8 @@
  * When this option is enabled you should also pass your oldest target architecture to the compiler
  * with -march="..."
  *
+ * -DCMAKE_CXX_FLAGS:STRING="-DQUILL_X86ARCH -march=native"
+ * or
  * target_compile_definitions(<target> PUBLIC -DQUILL_X86ARCH)
  */
 // #define QUILL_X86ARCH

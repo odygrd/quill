@@ -44,7 +44,7 @@ private:
      * Constructor
      * @param capacity the capacity of the fixed buffer
      */
-    explicit Node(int32_t bounded_queue_capacity) : bounded_queue(bounded_queue_capacity) {}
+    explicit Node(uint32_t bounded_queue_capacity) : bounded_queue(bounded_queue_capacity) {}
 
     /**
      * Alignment requirement as we have bounded_queue as member
@@ -63,7 +63,7 @@ public:
   /**
    * Constructor
    */
-  explicit UnboundedQueue(int32_t initial_bounded_queue_capacity)
+  explicit UnboundedQueue(uint32_t initial_bounded_queue_capacity)
     : _producer(new Node(initial_bounded_queue_capacity)), _consumer(_producer)
   {
   }
@@ -96,7 +96,7 @@ public:
    * making it visible to the consumer.
    * @return a valid point to the buffer
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(int32_t nbytes)
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(uint32_t nbytes)
   {
     // Try to reserve the bounded queue
     std::byte* write_pos = _producer->bounded_queue.prepare_write(nbytes);
@@ -107,7 +107,7 @@ public:
     }
 
     // Then it means the queue doesn't have enough size
-    int32_t capacity = _producer->bounded_queue.capacity() * 2;
+    uint32_t capacity = _producer->bounded_queue.capacity() * 2;
     while (capacity < (nbytes + 1))
     {
       capacity = capacity * 2;
@@ -136,7 +136,7 @@ public:
    * Complement to reserve producer space that makes nbytes starting
    * from the return of reserve producer space visible to the consumer.
    */
-  QUILL_ALWAYS_INLINE_HOT void finish_write(int32_t nbytes)
+  QUILL_ALWAYS_INLINE_HOT void finish_write(uint32_t nbytes)
   {
     _producer->bounded_queue.finish_write(nbytes);
   }
@@ -185,7 +185,7 @@ public:
    * Consumes the next nbytes in the buffer and frees it back
    * for the producer to reuse.
    */
-  QUILL_ALWAYS_INLINE_HOT void finish_read(int32_t nbytes)
+  QUILL_ALWAYS_INLINE_HOT void finish_read(uint32_t nbytes)
   {
     _consumer->bounded_queue.finish_read(nbytes);
   }
@@ -199,7 +199,7 @@ public:
    * Return the current buffer's capacity
    * @return capacity
    */
-  QUILL_NODISCARD int32_t capacity() const noexcept { return _producer->bounded_queue.capacity(); }
+  QUILL_NODISCARD uint32_t capacity() const noexcept { return _producer->bounded_queue.capacity(); }
 
   /**
    * checks if the queue is empty
