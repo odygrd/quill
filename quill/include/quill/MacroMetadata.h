@@ -93,7 +93,7 @@ public:
   /**
    * @return  The log level of this logging event as a string
    */
-  QUILL_NODISCARD constexpr std::string_view level_as_str() const noexcept
+  QUILL_NODISCARD std::string_view level_as_str() const noexcept
   {
     return _log_level_to_string(_level);
   }
@@ -101,7 +101,7 @@ public:
   /**
    * @return  The log level of this logging event as a string
    */
-  QUILL_NODISCARD constexpr std::string_view level_id_as_str() const noexcept
+  QUILL_NODISCARD std::string_view level_id_as_str() const noexcept
   {
     return _log_level_id_to_string(_level);
   }
@@ -144,9 +144,9 @@ private:
     return file;
   }
 
-  QUILL_NODISCARD static constexpr std::string_view _log_level_to_string(LogLevel log_level)
+  QUILL_NODISCARD static std::string_view _log_level_to_string(LogLevel log_level)
   {
-    constexpr std::array<std::string_view, 10> log_levels_strings = {
+    static constexpr std::array<std::string_view, 10> log_levels_strings = {
       {"TRACE_L3 ", "TRACE_L2 ", "TRACE_L1 ", "DEBUG    ", "INFO     ", "WARNING  ", "ERROR    ",
        "CRITICAL ", "BACKTRACE", "NONE"}};
 
@@ -154,9 +154,9 @@ private:
     return log_levels_strings[static_cast<log_lvl_t>(log_level)];
   }
 
-  QUILL_NODISCARD static constexpr std::string_view _log_level_id_to_string(LogLevel log_level)
+  QUILL_NODISCARD static std::string_view _log_level_id_to_string(LogLevel log_level)
   {
-    constexpr std::array<std::string_view, 10> log_levels_strings = {
+    static constexpr std::array<std::string_view, 10> log_levels_strings = {
       {"T3", "T2", "T1", "D", "I", "W", "E", "C", "BT", "N"}};
 
     using log_lvl_t = std::underlying_type<LogLevel>::type;

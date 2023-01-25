@@ -4,10 +4,17 @@
  * Trivial logging example
  */
 
+/**
+ * If you do not wish to pass Logger* objects around you can just create your own macros likes this
+ */
+#define MY_LOG_INFO(fmt, ...) QUILL_LOG_INFO(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+
 int main()
 {
   // Start the logging backend thread
   quill::start();
+
+  MY_LOG_INFO("Hello quill!");
 
   // a) We can use the default logger like this
   {

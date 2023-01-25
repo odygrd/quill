@@ -496,7 +496,8 @@ void BackendWorker::_process_transit_event()
 {
   TransitEvent* transit_event = _transit_events.top().second;
 
-  auto const [macro_metadata, format_to_fn] = transit_event->header.metadata_and_format_fn();
+  std::pair<MacroMetadata, detail::FormatToFn> const mf = transit_event->header.metadata_and_format_fn();
+  MacroMetadata const& macro_metadata = mf.first;
 
   // If backend_process(...) throws we want to skip this event and move to the next, so we catch the
   // error here instead of catching it in the parent try/catch block of main_loop
@@ -588,7 +589,8 @@ void BackendWorker::_process_transit_event()
 void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
 {
   // Forward the record to all the logger handlers
-  auto const [macro_metadata, format_to_fn] = transit_event.header.metadata_and_format_fn();
+  std::pair<MacroMetadata, detail::FormatToFn> const mf = transit_event.header.metadata_and_format_fn();
+  MacroMetadata const& macro_metadata = mf.first;
 
   for (auto& handler : transit_event.header.logger_details->handlers())
   {

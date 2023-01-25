@@ -6,7 +6,8 @@ namespace quill
 /***/
 void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
-  auto const [macro_metadata, format_to_fn] = log_event.header.metadata_and_format_fn();
+  std::pair<MacroMetadata, detail::FormatToFn> const mf = log_event.header.metadata_and_format_fn();
+  MacroMetadata const& macro_metadata = mf.first;
 
   _json_message.clear();
 
