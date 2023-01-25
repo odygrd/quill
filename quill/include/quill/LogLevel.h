@@ -7,6 +7,7 @@
 
 #include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
 #include <string>                         // for string
+#include <string_view>                    // for string_view
 
 namespace quill
 {
@@ -32,7 +33,7 @@ enum class LogLevel : uint8_t
  * @param log_level LogLevel
  * @return the corresponding string value
  */
-QUILL_NODISCARD char const* to_string(LogLevel log_level);
+QUILL_NODISCARD std::string_view to_string(LogLevel log_level);
 
 /**
  * Converts a string to a LogLevel enum value

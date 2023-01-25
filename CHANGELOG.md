@@ -49,12 +49,13 @@
 - Fix equal timestamp log messages appearing out of order. ([#223](https://github.com/odygrd/quill/pull/223))
 - Reduce padding in some structs.
 - Fix 'rename_file' throwing an exception while being marked
-  as `noexcept` ([#230](https://github.com/odygrd/quill/pull/230))
-- Fix crash with `std::bad_alloc` in gcc `7.3.1`
+  as `noexcept`. ([#230](https://github.com/odygrd/quill/pull/230))
+- Fix crash with `std::bad_alloc` and compiler warnings in gcc `7.3.1`.
 
 **Improvements**
+
 - Add missing `quill::json_file_handler(...)` that creates a `JsonFileHandler` in `Quill.h`.
-- Simplified and refactored the logic in `BoundedQueue`
+- Simplified and refactored the logic in `BoundedQueue`.
 - Added the option `do_fsync` which also calls `fsync()` during the handler flush to all file handlers.
 - Added file event notifiers, to get callbacks from quill before/after log file has been opened or
   closed. ([#193](https://github.com/odygrd/quill/pull/193))

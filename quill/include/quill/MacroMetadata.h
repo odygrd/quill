@@ -60,22 +60,31 @@ public:
   /**
    * @return The function name
    */
-  QUILL_NODISCARD constexpr std::string_view func() const noexcept { return _func; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view func() const noexcept
+  {
+    return _func;
+  }
 
   /**
    * @return The full pathname of the source file where the logging call was made.
    */
-  QUILL_NODISCARD constexpr std::string_view pathname() const noexcept { return _pathname; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view pathname() const noexcept
+  {
+    return _pathname;
+  }
 
   /**
    * @return Short portion of the path name
    */
-  QUILL_NODISCARD constexpr std::string_view filename() const noexcept { return _filename; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view filename() const noexcept
+  {
+    return _filename;
+  }
 
   /**
    * @return The user provided format
    */
-  QUILL_NODISCARD constexpr std::string_view message_format() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view message_format() const noexcept
   {
     return _message_format;
   }
@@ -83,17 +92,20 @@ public:
   /**
    * @return The line number
    */
-  QUILL_NODISCARD constexpr std::string_view lineno() const noexcept { return _lineno; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view lineno() const noexcept
+  {
+    return _lineno;
+  }
 
   /**
    * @return The log level of this logging event as an enum
    */
-  QUILL_NODISCARD constexpr LogLevel level() const noexcept { return _level; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr LogLevel level() const noexcept { return _level; }
 
   /**
    * @return  The log level of this logging event as a string
    */
-  QUILL_NODISCARD std::string_view level_as_str() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::string_view level_as_str() const noexcept
   {
     return _log_level_to_string(_level);
   }
@@ -101,14 +113,14 @@ public:
   /**
    * @return  The log level of this logging event as a string
    */
-  QUILL_NODISCARD std::string_view level_id_as_str() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::string_view level_id_as_str() const noexcept
   {
     return _log_level_id_to_string(_level);
   }
 
-  QUILL_NODISCARD constexpr Event event() const noexcept { return _event; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr Event event() const noexcept { return _event; }
 
-  QUILL_NODISCARD constexpr bool is_structured_log_template() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr bool is_structured_log_template() const noexcept
   {
     return _is_structured_log_template;
   }
@@ -117,19 +129,22 @@ public:
   /**
    * @return true if the user provided a wide char format string
    */
-  QUILL_NODISCARD constexpr bool has_wide_char() const noexcept { return _has_wide_char; }
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr bool has_wide_char() const noexcept
+  {
+    return _has_wide_char;
+  }
 
   /**
    * @return The user provided wide character format
    */
-  QUILL_NODISCARD constexpr std::wstring_view wmessage_format() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::wstring_view wmessage_format() const noexcept
   {
     return _wmessage_format;
   }
 #endif
 
 private:
-  QUILL_NODISCARD static constexpr std::string_view _extract_source_file_name(std::string_view pathname) noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT static constexpr std::string_view _extract_source_file_name(std::string_view pathname) noexcept
   {
     char const* path = pathname.data();
     char const* file = path;
@@ -144,7 +159,7 @@ private:
     return file;
   }
 
-  QUILL_NODISCARD static std::string_view _log_level_to_string(LogLevel log_level)
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT static std::string_view _log_level_to_string(LogLevel log_level)
   {
     static constexpr std::array<std::string_view, 10> log_levels_strings = {
       {"TRACE_L3 ", "TRACE_L2 ", "TRACE_L1 ", "DEBUG    ", "INFO     ", "WARNING  ", "ERROR    ",
@@ -154,7 +169,7 @@ private:
     return log_levels_strings[static_cast<log_lvl_t>(log_level)];
   }
 
-  QUILL_NODISCARD static std::string_view _log_level_id_to_string(LogLevel log_level)
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT static std::string_view _log_level_id_to_string(LogLevel log_level)
   {
     static constexpr std::array<std::string_view, 10> log_levels_strings = {
       {"T3", "T2", "T1", "D", "I", "W", "E", "C", "BT", "N"}};

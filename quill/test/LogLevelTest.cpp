@@ -14,59 +14,59 @@ TEST_CASE("to_string")
 {
   {
     LogLevel log_level{LogLevel::None};
-    REQUIRE_STREQ(to_string(log_level), "None");
+    REQUIRE_STREQ(to_string(log_level).data(), "None");
   }
 
   {
     LogLevel log_level{LogLevel::Backtrace};
-    REQUIRE_STREQ(to_string(log_level), "Backtrace");
+    REQUIRE_STREQ(to_string(log_level).data(), "Backtrace");
   }
 
   {
     LogLevel log_level{LogLevel::Critical};
-    REQUIRE_STREQ(to_string(log_level), "Critical");
+    REQUIRE_STREQ(to_string(log_level).data(), "Critical");
   }
 
   {
     LogLevel log_level{LogLevel::Error};
-    REQUIRE_STREQ(to_string(log_level), "Error");
+    REQUIRE_STREQ(to_string(log_level).data(), "Error");
   }
 
   {
     LogLevel log_level{LogLevel::Warning};
-    REQUIRE_STREQ(to_string(log_level), "Warning");
+    REQUIRE_STREQ(to_string(log_level).data(), "Warning");
   }
 
   {
     LogLevel log_level{LogLevel::Info};
-    REQUIRE_STREQ(to_string(log_level), "Info");
+    REQUIRE_STREQ(to_string(log_level).data(), "Info");
   }
 
   {
     LogLevel log_level{LogLevel::Debug};
-    REQUIRE_STREQ(to_string(log_level), "Debug");
+    REQUIRE_STREQ(to_string(log_level).data(), "Debug");
   }
 
   {
     LogLevel log_level{LogLevel::TraceL1};
-    REQUIRE_STREQ(to_string(log_level), "TraceL1");
+    REQUIRE_STREQ(to_string(log_level).data(), "TraceL1");
   }
 
   {
     LogLevel log_level{LogLevel::TraceL2};
-    REQUIRE_STREQ(to_string(log_level), "TraceL2");
+    REQUIRE_STREQ(to_string(log_level).data(), "TraceL2");
   }
 
   {
     LogLevel log_level{LogLevel::TraceL3};
-    REQUIRE_STREQ(to_string(log_level), "TraceL3");
+    REQUIRE_STREQ(to_string(log_level).data(), "TraceL3");
   }
 
   {
 #ifndef QUILL_NO_EXCEPTIONS
     LogLevel log_level;
     log_level = static_cast<LogLevel>(-1);
-    REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s = to_string(log_level), quill::QuillError);
+    REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s = to_string(log_level).data(), quill::QuillError);
 #endif
   }
 }
