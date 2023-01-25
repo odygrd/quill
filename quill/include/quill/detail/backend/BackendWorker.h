@@ -475,8 +475,7 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
     // Finish reading
     assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
-    auto const read_size = static_cast<int32_t>(read_pos - read_begin);
-    queue.finish_read(read_size);
+    queue.finish_read(static_cast<uint32_t>(read_pos - read_begin));
 
     read_one = true;
     _transit_events.emplace(transit_event->header.timestamp, transit_event);

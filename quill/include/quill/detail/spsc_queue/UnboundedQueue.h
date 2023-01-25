@@ -20,7 +20,7 @@ namespace quill::detail
  *
  * Production is wait free.
  *
- * When the internal circlular buffer becomes full a new one will be created and the production
+ * When the internal circular buffer becomes full a new one will be created and the production
  * will continue in the new buffer.
  *
  * Consumption is wait free. If not data is available a special value is returned. If a new
@@ -29,16 +29,11 @@ namespace quill::detail
  */
 class UnboundedQueue
 {
-public:
-  using bounded_queue_t = BoundedQueue;
-
 private:
-  /** Private Definitions **/
-
   /**
    * A node has a buffer and a pointer to the next node
    */
-  struct alignas(CACHE_LINE_ALIGNED) Node
+  struct Node
   {
     /**
      * Constructor
@@ -46,17 +41,9 @@ private:
      */
     explicit Node(uint32_t bounded_queue_capacity) : bounded_queue(bounded_queue_capacity) {}
 
-    /**
-     * Alignment requirement as we have bounded_queue as member
-     * @param i i
-     * @return allocated memory pointer
-     */
-    void* operator new(size_t i) { return aligned_alloc(CACHE_LINE_ALIGNED, i); }
-    void operator delete(void* p) { aligned_free(p); }
-
     /** members */
     std::atomic<Node*> next{nullptr};
-    bounded_queue_t bounded_queue;
+    BoundedQueue bounded_queue;
   };
 
 public:
@@ -212,8 +199,8 @@ public:
 
 private:
   /** Modified by either the producer or consumer but never both */
-  alignas(CACHE_LINE_ALIGNED) Node* _producer{nullptr};
-  alignas(CACHE_LINE_ALIGNED) Node* _consumer{nullptr};
+  Node* _producer{nullptr};
+  Node* _consumer{nullptr};
 };
 
 } // namespace quill::detail

@@ -63,6 +63,12 @@ public:
 
   ~BoundedQueue() { aligned_free(_storage); }
 
+  /**
+   * Deleted
+   */
+  BoundedQueue(BoundedQueue const&) = delete;
+  BoundedQueue& operator=(BoundedQueue const&) = delete;
+
   QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(uint32_t n) noexcept
   {
     if ((_capacity - (_writer_pos - _reader_pos_cache)) >= n)

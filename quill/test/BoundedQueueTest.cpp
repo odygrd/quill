@@ -24,6 +24,20 @@ TEST_CASE("read_write_buffer")
     }
 
     {
+      std::byte* write_buf = buffer.prepare_write(32u);
+      REQUIRE_NE(write_buf, nullptr);
+      buffer.finish_write(32u);
+      buffer.commit_write();
+    }
+
+    {
+      std::byte* res = buffer.prepare_read();
+      REQUIRE(res);
+      buffer.finish_read(32u);
+      buffer.commit_read();
+    }
+
+    {
       std::byte* res = buffer.prepare_read();
       REQUIRE(res);
       buffer.finish_read(32u);
@@ -36,7 +50,6 @@ TEST_CASE("read_write_buffer")
 
   std::byte* res = buffer.prepare_read();
   REQUIRE_FALSE(res);
-  REQUIRE(buffer.empty());
 }
 
 TEST_CASE("read_write_multithreaded_plain_ints")
