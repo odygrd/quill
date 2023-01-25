@@ -30,18 +30,18 @@ public:
   QUILL_ALWAYS_INLINE explicit BoundedQueue(uint32_t capacity)
     : _capacity(capacity),
       _mask(_capacity - 1),
-      _storage(static_cast<std::byte*>(aligned_alloc(CACHE_LINE_ALIGNED, 2 * capacity)))
+      _storage(static_cast<std::byte*>(aligned_alloc(CACHE_LINE_ALIGNED, 2ull * capacity)))
   {
     if (!is_pow_of_two(static_cast<size_t>(capacity)))
     {
       QUILL_THROW(std::runtime_error{"Capacity must be a power of two"});
     }
 
-    std::memset(_storage, 0, 2 * capacity);
+    std::memset(_storage, 0, 2ull * capacity);
 
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
-    for (uint64_t i = 0; i < (2 * capacity); i += CACHE_LINE_SIZE)
+    for (uint64_t i = 0; i < (2ull * capacity); i += CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
     }
