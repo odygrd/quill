@@ -203,7 +203,7 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_vi
   _set_arg_val<Attribute::Thread>(thread_id);
   _set_arg_val<Attribute::ThreadName>(thread_name);
   _set_arg_val<Attribute::Process>(process_id);
-  _set_arg_val<Attribute::FileLine>(std::string_view{fileline});
+  _set_arg_val<Attribute::FileLine>(std::string_view{fileline.data(), fileline.size()});
   _set_arg_val<Attribute::Message>(std::string_view{log_msg.begin(), log_msg.size()});
 
   fmt::vformat_to(std::back_inserter(_formatted_log_message), _format,
