@@ -418,9 +418,10 @@ Customising the timestamp
 -----------------------------
 
 The timestamp is customisable by :
--  Format. Same format specifiers as ``strftime(...)`` format without the additional ``.Qms`` ``.Qus`` ``.Qns`` arguments.
--  Local timezone or GMT timezone. Local timezone is used by default.
--  Fractional second precision. Using the additional fractional second specifiers in the timestamp format string.
+
+- Format. Same format specifiers as ``strftime(...)`` format without the additional ``.Qms`` ``.Qus`` ``.Qns`` arguments.
+- Local timezone or GMT timezone. Local timezone is used by default.
+- Fractional second precision. Using the additional fractional second specifiers in the timestamp format string.
 
 ========= ============
 Specifier Description
@@ -575,6 +576,7 @@ Backtrace Logging
 ====================
 
 Backtrace logging enables log messages to be stored in a ring buffer and either
+
 - displayed later on demand or
 - when a high severity log message is logged
 
@@ -705,8 +707,9 @@ Requirements
 -------------------
 
 To log a user defined type the following requirements must met:
-- The user defined type has to be copy constructible
-- :cpp:func:`ostream& operator<<(ostream& os, T const& t)` needs to be defined
+
+- The type has to be copy constructible
+- Specialize `fmt::formatter<T>` and implement parse and format methods (`see here <http://fmt.dev/latest/api.html#formatting-user-defined-types>`_) or provide an overloaded insertion operator (`see here <https://fmt.dev/latest/api.html#std-ostream-support>`_)
 
 Logging user defined types in default mode
 ---------------------------------------------------------
