@@ -100,11 +100,17 @@ endif ()
 #-------------------------------------------------------------------------------------------------------
 # Log Info
 #-------------------------------------------------------------------------------------------------------
+message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
+message(STATUS "QUILL_X86ARCH: " ${QUILL_X86ARCH})
+message(STATUS "QUILL_USE_BOUNDED_QUEUE: " ${QUILL_USE_BOUNDED_QUEUE})
+message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
+message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
+
 if (QUILL_MASTER_PROJECT)
     option(QUILL_VERBOSE_MAKEFILE "Verbose make output" OFF)
 
-    message(STATUS "Build Type: " ${CMAKE_BUILD_TYPE})
-    message(STATUS "Quill Version: ${QUILL_VERSION}")
+    message(STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
+    message(STATUS "QUILL_VERSION: ${QUILL_VERSION}")
 endif ()
 
 #---------------------------------------------------------------------------------------
@@ -113,34 +119,6 @@ endif ()
 if (QUILL_VERBOSE_MAKEFILE)
     set(CMAKE_VERBOSE_MAKEFILE TRUE CACHE BOOL "Verbose output" FORCE)
 endif ()
-
-#-------------------------------------------------------------------------------------------------------
-# Additional Compiler Options
-#-------------------------------------------------------------------------------------------------------
-if (QUILL_NO_EXCEPTIONS)
-    add_definitions(-DQUILL_NO_EXCEPTIONS)
-endif ()
-
-if (QUILL_X86ARCH)
-    add_definitions(-DQUILL_X86ARCH)
-endif ()
-
-if (QUILL_USE_BOUNDED_QUEUE)
-    add_definitions(-DQUILL_USE_BOUNDED_QUEUE)
-endif ()
-
-if (QUILL_FMT_EXTERNAL)
-    add_definitions(-DQUILL_FMT_EXTERNAL)
-endif ()
-
-if (QUILL_NO_THREAD_NAME_SUPPORT)
-    add_definitions(-DQUILL_NO_THREAD_NAME_SUPPORT)
-endif ()
-
-message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
-message(STATUS "QUILL_USE_BOUNDED_QUEUE: " ${QUILL_USE_BOUNDED_QUEUE})
-message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
-message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
 
 # address sanitizer flags
 if (QUILL_SANITIZE_ADDRESS)

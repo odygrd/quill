@@ -50,7 +50,8 @@
 - Reduce padding in some structs.
 - Fix 'rename_file' throwing an exception while being marked
   as `noexcept`. ([#230](https://github.com/odygrd/quill/pull/230))
-- Fix crash with `std::bad_alloc` and compiler warnings in gcc `7.3.1`.
+- Fix crash with `std::bad_alloc` and compiler warnings in gcc `7.3.1`. ([#235](https://github.com/odygrd/quill/pull/235))
+- The additional compiler definitions will now be propagated to the parent targets when enabling options in CMake. ([#235](https://github.com/odygrd/quill/pull/235))
 
 **Improvements**
 
@@ -678,4 +679,3 @@ This version is a major refactor.
 
 - Initial release.
 - Using `libfmt` to `6.1.2`.
-

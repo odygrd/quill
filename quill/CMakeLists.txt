@@ -126,9 +126,23 @@ if (BUILD_SHARED_LIBS)
 endif ()
 
 if (QUILL_NO_EXCEPTIONS)
+    target_compile_definitions(${TARGET_NAME} PUBLIC -DQUILL_NO_EXCEPTIONS)
+
     if (NOT MSVC)
         target_compile_options(${TARGET_NAME} PRIVATE -fno-exceptions)
     endif ()
+endif ()
+
+if (QUILL_X86ARCH)
+    target_compile_definitions(${TARGET_NAME} PUBLIC -DQUILL_X86ARCH)
+endif ()
+
+if (QUILL_USE_BOUNDED_QUEUE)
+    target_compile_definitions(${TARGET_NAME} PUBLIC -DQUILL_USE_BOUNDED_QUEUE)
+endif ()
+
+if (QUILL_NO_THREAD_NAME_SUPPORT)
+    target_compile_definitions(${TARGET_NAME} PUBLIC -DQUILL_NO_THREAD_NAME_SUPPORT)
 endif ()
 
 # Add target sources
@@ -283,4 +297,3 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
     set(CPACK_RPM_PACKAGE_DESCRIPTION "Asynchronous Low Latency C++ Logging Library")
     include(CPack)
 endif ()
-
