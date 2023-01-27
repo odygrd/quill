@@ -1,7 +1,7 @@
 #include "quill/Quill.h"
 #include <chrono>
 
-static constexpr size_t total_iterations = 2'000'000;
+static constexpr size_t total_iterations = 4'000'000;
 
 /**
  * The backend worker just spins, so we just measure the total time elapsed for total_iterations

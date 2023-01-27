@@ -107,30 +107,34 @@ The [examples](http://github.com/odygrd/quill/tree/master/examples) folder is al
 - Type safe python style API with compile type checks and built-in support for logging STL types/containers by using the
   excellent [{fmt}](http://github.com/fmtlib/fmt) library.
 
-## Performance 
+## Performance
 
 :fire: ** Updated January 2023 ** :fire:
 
-### Log Numbers
-The following message is logged 100'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.
+### Latency
+
+#### Log Numbers
+
+The following message is logged 100'000 times per
+thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.
 
 The results in the tables below are in nanoseconds (ns).
 
-#### 1 Thread
+##### 1 Thread
 
-| Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
-|-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v2.7.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  20  |  21  |  24  |  25  |  27  |   34   |
-| [Quill v2.7.0 Bounded Queue](http://github.com/odygrd/quill)                      |  17  |  19  |  21  |  22  |  26  |   36   |
-| [fmtlog](http://github.com/MengRao/fmtlog)                                        |  16  |  19  |  21  |  22  |  27  |   40   |
-| [MS BinLog](http://github.com/Morgan-Stanley/binlog)                              |  41  |  43  |  44  |  46  |  66  |  118   |
-| [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)                      |  53  |  66  |  75  |  80  |  92  |  106   |
-| [Reckless](http://github.com/mattiasflodin/reckless)                              |  62  |  75  |  79  |  84  |  94  |  103   |
-| [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)                           | 164  | 186  | 213  | 232  | 305  |  389   |         
-| [spdlog](http://github.com/gabime/spdlog)                                         | 694  | 761  | 838  | 887  | 996  |  1143  |    
-| [g3log](http://github.com/KjellKod/g3log)                                         | 5398 | 5639 | 5875 | 6025 | 6327 |  6691  |             
+| Library                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th |
+|----------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
+| [Quill v2.7.0 Unbounded Queue](http://github.com/odygrd/quill) |  20  |  21  |  24  |  25  |  27  |   34   |
+| [Quill v2.7.0 Bounded Queue](http://github.com/odygrd/quill)   |  17  |  19  |  21  |  22  |  26  |   36   |
+| [fmtlog](http://github.com/MengRao/fmtlog)                     |  16  |  19  |  21  |  22  |  27  |   40   |
+| [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  41  |  43  |  44  |  46  |  66  |  118   |
+| [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  53  |  66  |  75  |  80  |  92  |  106   |
+| [Reckless](http://github.com/mattiasflodin/reckless)           |  62  |  75  |  79  |  84  |  94  |  103   |
+| [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        | 164  | 186  | 213  | 232  | 305  |  389   |         
+| [spdlog](http://github.com/gabime/spdlog)                      | 694  | 761  | 838  | 887  | 996  |  1143  |    
+| [g3log](http://github.com/KjellKod/g3log)                      | 5398 | 5639 | 5875 | 6025 | 6327 |  6691  |             
 
-#### 4 Threads
+##### 4 Threads
 
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
@@ -144,11 +148,11 @@ The results in the tables below are in nanoseconds (ns).
 | [spdlog](http://github.com/gabime/spdlog)                                         | 728  | 828  | 907  | 959  | 1140 |  1424  |
 | [g3log](http://github.com/KjellKod/g3log)                                         | 5103 | 5318 | 5525 | 5657 | 5927 |  6279  |
 
-### Log Numbers and Large Strings
+#### Log Numbers and Large Strings
 The following message is logged 100'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, string: {}", i, j, large_string)```.
 The large string is over 35 characters to avoid short string optimisation of `std::string`
 
-#### 1 Thread
+##### 1 Thread
 
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
@@ -162,7 +166,7 @@ The large string is over 35 characters to avoid short string optimisation of `st
 | [spdlog](http://github.com/gabime/spdlog)                                         | 653  | 708  | 770  | 831  | 950  |  1083  |    
 | [g3log](http://github.com/KjellKod/g3log)                                         | 4802 | 4998 | 5182 | 5299 | 5535 |  5825  |
 
-#### 4 Threads
+##### 4 Threads
 
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
@@ -184,14 +188,41 @@ If the backend logging thread is run in the same CPU as the caller hot-path thre
 Continuously logging messages in a loop makes the consumer (backend logging thread) unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog.
 
 Therefore, a different approach was followed that suits more to a real time application:
+
 1. 20 messages are logged in a loop.
 2. calculate/store the average latency for those messages.
 3. wait between 1-2 ms.
 4. repeat for n iterations.
 
-I run each logger benchmark 4 times and the above latencies are the second best result.
+I run each logger benchmark 4 times and the above latencies are the second-best result.
 
 The benchmark code and results can be found [here](http://github.com/odygrd/logger_benchmarks).
+
+### Throughput
+
+The main focus of the library is not throughput. The backend logging thread is a single thread responsible for
+formatting, ordering the log messages from multiple hot threads and finally writing everything to files.
+The logging thread always empties all the queues of the hot threads on the highest priority (to avoid allocating a new
+queue or dropping messages on the hot path). To achieve that, it internally buffers the log messages and then
+writes them later when the hot thread queues are empty or when a limit is reached `backend_thread_max_transit_events`.
+
+I haven't found an easy way to compare the throughput against other logging libraries while doing asynchronous logging.
+For example some libraries will drop the log messages ending in producing much smaller log files than the expected,
+other libraries only offer an async flush meaning that you never really know when the logging thread has finished
+processing everything.
+
+Quill has a blocking `flush()` guaranteeing every single log message from the hot threads up to that point is flushed to
+the file.
+The maximum throughput is measured as the max log messages number the backend logging thread can write to the file per
+second.
+The code can be
+found [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throughput/quill_backend_throughput.cpp)
+
+Measured on the same system as the latency benchmarks above for 4 million messages produces a log file of 476 mb
+
+```
+1.32 million msgs/sec average, total time elapsed 3041 ms, total log messages 4 million
+```
 
 ## Basic usage
 
