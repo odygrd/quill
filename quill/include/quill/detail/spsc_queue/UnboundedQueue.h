@@ -186,7 +186,7 @@ public:
    * Return the current buffer's capacity
    * @return capacity
    */
-  QUILL_NODISCARD uint32_t capacity() const noexcept { return _producer->bounded_queue.capacity(); }
+  QUILL_NODISCARD uint32_t capacity() const noexcept { return _consumer->bounded_queue.capacity(); }
 
   /**
    * checks if the queue is empty

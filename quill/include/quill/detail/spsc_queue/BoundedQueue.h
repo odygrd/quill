@@ -39,6 +39,9 @@ public:
 
     std::memset(_storage, 0, 2ull * capacity);
 
+    _atomic_writer_pos.store(0);
+    _atomic_reader_pos.store(0);
+    
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
     for (uint64_t i = 0; i < (2ull * capacity); i += CACHE_LINE_SIZE)
