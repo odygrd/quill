@@ -318,25 +318,26 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
 void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_context,
                                                     ThreadContext::SPSCQueueT& queue, uint64_t ts_now)
 {
-    // Note: The producer will commit to this queue when one complete message is written.
-    // This means that if we can read something from the queue it will be a full message
-    // The producer will add items to the buffer :
-    // |timestamp|metadata*|logger_details*|args...|
+  // Note: The producer will commit to this queue when one complete message is written.
+  // This means that if we can read something from the queue it will be a full message
+  // The producer will add items to the buffer :
+  // |timestamp|metadata*|logger_details*|args...|
 
-    std::byte *read_pos = queue.prepare_read();
-    uint32_t total_bytes_read{0};
+  std::byte* read_pos = queue.prepare_read();
+  uint32_t total_bytes_read{0};
 
-    // read max of a full queue otherwise we can get stuck here forever
-    while (read_pos && (total_bytes_read < queue.capacity())) {
-        std::byte *const read_begin = read_pos;
+  // read max of a full queue otherwise we can get stuck here forever
+  while (read_pos && (total_bytes_read < queue.capacity()))
+  {
+    std::byte* const read_begin = read_pos;
 
-        // First we want to allocate a new TransitEvent or use an existing one
-        // to store the message from the queue
-        auto *transit_event = _get_transit_event();
-        transit_event->thread_id = thread_context->thread_id();
-        transit_event->thread_name = thread_context->thread_name();
+    // First we want to allocate a new TransitEvent or use an existing one
+    // to store the message from the queue
+    auto* transit_event = _get_transit_event();
+    transit_event->thread_id = thread_context->thread_id();
+    transit_event->thread_name = thread_context->thread_name();
 
-        // store a sequence number which is useful when the timestamps are equal
+    // store a sequence number which is useful when the timestamps are equal
     transit_event->seq_num = thread_context->get_seq_num();
 
     // read the header first, and take copy of the header
@@ -475,8 +476,8 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
     // Finish reading
     assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
-        queue.finish_read(static_cast<uint32_t>(read_pos - read_begin));
-        total_bytes_read += static_cast<uint32_t>(read_pos - read_begin);
+    queue.finish_read(static_cast<uint32_t>(read_pos - read_begin));
+    total_bytes_read += static_cast<uint32_t>(read_pos - read_begin);
 
     _transit_events.emplace(transit_event->header.timestamp, transit_event);
 
@@ -484,10 +485,11 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     read_pos = queue.prepare_read();
   }
 
-    if (total_bytes_read != 0) {
-        // we read something from the queue, we commit all the reads together at the end
-        queue.commit_read();
-    }
+  if (total_bytes_read != 0)
+  {
+    // we read something from the queue, we commit all the reads together at the end
+    queue.commit_read();
+  }
 }
 
 /***/
