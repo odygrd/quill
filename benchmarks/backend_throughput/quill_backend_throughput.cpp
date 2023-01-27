@@ -1,5 +1,4 @@
 #include "quill/Quill.h"
-#include "quill/detail/misc/RdtscClock.h"
 #include <chrono>
 
 static constexpr size_t total_iterations = 2'000'000;
@@ -9,12 +8,9 @@ static constexpr size_t total_iterations = 2'000'000;
  */
 int main()
 {
-  quill::detail::RdtscClock rdtsc_clock{std::chrono::minutes{30}};
-
   // main thread affinity
   quill::detail::set_cpu_affinity(0);
 
-  /** - Setup Quill **/
   quill::Config cfg;
   cfg.backend_thread_sleep_duration = std::chrono::nanoseconds{0};
   cfg.backend_thread_cpu_affinity = 1;
@@ -27,30 +23,29 @@ int main()
 
   // Create a file handler to write to a file
   quill::Handler* file_handler = quill::file_handler("quill_backend_total_time.log", "w");
-
+  file_handler->set_pattern("%(ascii_time) [%(thread)] %(fileline) %(level_name) %(message)");
   quill::Logger* logger = quill::create_logger("bench_logger", file_handler);
-
   quill::preallocate();
 
   // start counting the time until backend worker finishes
-  unsigned int aux;
-  auto const start = __rdtscp(&aux);
-
+  auto const start_time = std::chrono::steady_clock::now();
   for (size_t iteration = 0; iteration < total_iterations; ++iteration)
   {
-    LOG_INFO(logger, "Iteration: {}, int: {}, double: {}", iteration, iteration * 2,
+    LOG_INFO(logger, "Iteration: {} int: {} double: {}", iteration, iteration * 2,
              static_cast<double>(iteration) / 2);
   }
 
   // block until all messages are flushed
   quill::flush();
-  auto const end = __rdtscp(&aux);
 
-  uint64_t const latency{static_cast<uint64_t>((end - start) * rdtsc_clock.nanoseconds_per_tick())};
-  std::chrono::nanoseconds latency_ns = std::chrono::nanoseconds{latency};
+  auto const end_time = std::chrono::steady_clock::now();
+  auto const delta = end_time - start_time;
+  auto delta_d = std::chrono::duration_cast<std::chrono::duration<double>>(delta).count();
 
-  std::cout << "Iterations: " << total_iterations << "\nTotal time elapsed: " << latency_ns.count()
-            << " ns, " << std::chrono::duration_cast<std::chrono::microseconds>(latency_ns).count()
-            << " us, " << std::chrono::duration_cast<std::chrono::milliseconds>(latency_ns).count()
-            << " ms" << std::endl;
+  std::cout << fmt::format(
+                 "Throughput  is {:.2f} million msgs/sec average, total time elapsed: {} ms for {} "
+                 "log messages \n",
+                 total_iterations / delta_d / 1e6,
+                 std::chrono::duration_cast<std::chrono::milliseconds>(delta).count(), total_iterations)
+            << std::endl;
 }

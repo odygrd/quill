@@ -1,2 +1,2 @@
 add_subdirectory(hot_path_latency)
-add_subdirectory(backend_total_time)
+add_subdirectory(backend_throughput)

@@ -1,0 +1,2 @@
+add_executable(BENCHMARK_quill_backend_throughput quill_backend_throughput.cpp)
+target_link_libraries(BENCHMARK_quill_backend_throughput quill)

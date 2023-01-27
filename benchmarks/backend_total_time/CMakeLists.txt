@@ -1,2 +1,0 @@
-add_executable(BENCHMARK_quill_backend_total_time quill_backend_total_time.cpp)
-target_link_libraries(BENCHMARK_quill_backend_total_time quill)
