@@ -201,7 +201,7 @@ The benchmark code and results can be found [here](http://github.com/odygrd/logg
 ### Throughput
 
 The main focus of the library is not throughput. The backend logging thread is a single thread responsible for
-formatting, ordering the log messages from multiple hot threads and finally writing everything to files.
+formatting, ordering the log messages from multiple hot threads and finally outputing everything as human readable text.
 The logging thread always empties all the queues of the hot threads on the highest priority (to avoid allocating a new
 queue or dropping messages on the hot path). To achieve that, it internally buffers the log messages and then
 writes them later when the hot thread queues are empty or when a limit is reached `backend_thread_max_transit_events`.
