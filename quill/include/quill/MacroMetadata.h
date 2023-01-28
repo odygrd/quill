@@ -162,8 +162,8 @@ private:
   QUILL_NODISCARD_ALWAYS_INLINE_HOT static std::string_view _log_level_to_string(LogLevel log_level)
   {
     static constexpr std::array<std::string_view, 10> log_levels_strings = {
-      {"TRACE_L3 ", "TRACE_L2 ", "TRACE_L1 ", "DEBUG    ", "INFO     ", "WARNING  ", "ERROR    ",
-       "CRITICAL ", "BACKTRACE", "NONE"}};
+      {"TRACE_L3", "TRACE_L2", "TRACE_L1", "DEBUG", "INFO", "WARNING", "ERROR",
+       "CRITICAL", "BACKTRACE", "NONE"}};
 
     using log_lvl_t = std::underlying_type<LogLevel>::type;
     return log_levels_strings[static_cast<log_lvl_t>(log_level)];
