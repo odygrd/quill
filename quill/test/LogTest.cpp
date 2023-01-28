@@ -431,7 +431,6 @@ void test_custom_default_logger_multiple_handlers(int test_case)
   fs::path const filename_1{"test_custom_default_logger_multiple_handlers_1"};
   fs::path const filename_2{"test_custom_default_logger_multiple_handlers_2"};
   {
-
     LogManager lm;
 
     // Set a file handler the custom logger handler and log to it
