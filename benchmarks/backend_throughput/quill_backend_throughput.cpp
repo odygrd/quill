@@ -12,7 +12,7 @@ int main()
   quill::detail::set_cpu_affinity(0);
 
   quill::Config cfg;
-  cfg.backend_thread_sleep_duration = std::chrono::nanoseconds{0};
+  cfg.backend_thread_yield = false;
   cfg.backend_thread_cpu_affinity = 1;
 
   quill::configure(cfg);
