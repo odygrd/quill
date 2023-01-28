@@ -144,7 +144,7 @@ private:
 
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
-  std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
+  bool _backend_thread_yield; /** backend_thread_yield from config **/
   size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
 
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
@@ -177,10 +177,10 @@ bool BackendWorker::is_running() const noexcept
 /***/
 void BackendWorker::run()
 {
-  // We store the configuration here on our local variable since the config flag is not atomic
+  // We store the configuration here on our local variables since the config flag is not atomic,
   // and we don't want it to change after we have started - This is just for safety and to
   // enforce the user to configure a variable before the thread has started
-  _backend_thread_sleep_duration = _config.backend_thread_sleep_duration;
+  _backend_thread_yield = _config.backend_thread_yield;
   _max_transit_events = _config.backend_thread_max_transit_events;
   _empty_all_queues_before_exit = _config.backend_thread_empty_all_queues_before_exit;
   _strict_log_timestamp_order = _config.backend_thread_strict_log_timestamp_order;
@@ -648,8 +648,10 @@ void BackendWorker::_main_loop()
     // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
 
-    // Sleep for the specified duration as we found no events in any of the queues to process
-    std::this_thread::sleep_for(_backend_thread_sleep_duration);
+    if (_backend_thread_yield)
+    {
+      std::this_thread::yield();
+    }
   }
 }
 

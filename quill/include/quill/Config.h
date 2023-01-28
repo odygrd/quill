@@ -25,11 +25,12 @@ struct Config
   std::string backend_thread_name = "Quill_Backend";
 
   /**
-   * The backend thread will always "busy wait" spinning around every caller thread's local spsc queue.
-   * To reduce the OS scheduler priority when the backend worker thread is running on a shared cpu, they thread will attempt a periodic call to sleep().
-   * Each time the backend thread sees that there are no remaining logs to process in the queues it will sleep.
+   * The backend thread will always "busy wait" spinning around every caller thread's local
+   * spsc queue.
+   * This option can be enabled to reduce the OS scheduler priority when the backend worker thread
+   * is running on a shared cpu. The thread will yield when there is no remaining work to do.
    */
-  std::chrono::nanoseconds backend_thread_sleep_duration = std::chrono::nanoseconds{300};
+  bool backend_thread_yield = true;
 
   /**
    * The backend worker thread gives priority to reading the messages from SPSC queues from all
