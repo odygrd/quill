@@ -34,187 +34,197 @@ using namespace quill::detail;
 /***/
 TEST_CASE("default_logger_with_filehandler_1")
 {
-  LogManager lm;
   fs::path const filename{"test_default_logger_with_filehandler_1"};
+  {
+    LogManager lm;
 
-  // Set a file handler as the custom logger handler and log to it
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    // Set a file handler as the custom logger handler and log to it
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
+    std::thread frontend(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-      // log using the raw selialization queue
-      std::string s = "adipiscing";
-      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur {} {} {} {}", s, "elit", 1, 3.14);
-      LOG_ERROR(default_logger,
-                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {} {}", 2, true);
+        // log using the raw selialization queue
+        std::string s = "adipiscing";
+        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur {} {} {} {}", s, "elit", 1, 3.14);
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {} {}", 2, true);
 
-      // Let all log get flushed to the file
-      lm.flush();
-    });
+        // Let all log get flushed to the file
+        lm.flush();
+      });
 
-  frontend.join();
+    frontend.join();
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), 2);
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit 1 3.14"}));
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true"}));
+    REQUIRE_EQ(file_contents.size(), 2);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit 1 3.14"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true"}));
 
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("default_logger_with_filehandler_2")
 {
-  LogManager lm;
-
   fs::path const filename{"test_default_logger_with_filehandler_2"};
+  {
+    LogManager lm;
 
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
+    std::thread frontend(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-      // log an array so the log message is pushed to the queue
-      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}",
-               std::array<int, 2>{1, 2});
-      LOG_ERROR(default_logger,
-                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}",
-                std::array<int, 2>{3, 4});
+        // log an array so the log message is pushed to the queue
+        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}",
+                 std::array<int, 2>{1, 2});
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}",
+                  std::array<int, 2>{3, 4});
 
-      // Let all log get flushed to the file
-      lm.flush();
-    });
+        // Let all log get flushed to the file
+        lm.flush();
+      });
 
-  frontend.join();
+    frontend.join();
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), 2);
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit [1, 2]"}));
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [3, 4]"}));
+    REQUIRE_EQ(file_contents.size(), 2);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         - Lorem ipsum dolor sit amet, consectetur adipiscing elit [1, 2]"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_ERROR     root         - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [3, 4]"}));
 
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
+
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("default_logger_ints_and_large_string")
 {
-  LogManager lm;
-
   fs::path const filename{"test_default_logger_ints_and_large_string"};
+  {
+    LogManager lm;
 
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      // log an array so the log message is pushed to the queue
-      for (int i = 0; i < 2000; ++i)
+    std::thread frontend(
+      [&lm]()
       {
-        std::string v{"Lorem ipsum dolor sit amet, consectetur "};
-        v += std::to_string(i);
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-        LOG_INFO(default_logger, "Logging int: {}, int: {}, string: {}, char: {}", i, i * 10, v, v.c_str());
-      }
+        // log an array so the log message is pushed to the queue
+        for (int i = 0; i < 2000; ++i)
+        {
+          std::string v{"Lorem ipsum dolor sit amet, consectetur "};
+          v += std::to_string(i);
 
-      // Let all log get flushed to the file
-      lm.flush();
-    });
+          LOG_INFO(default_logger, "Logging int: {}, int: {}, string: {}, char: {}", i, i * 10, v, v.c_str());
+        }
 
-  frontend.join();
+        // Let all log get flushed to the file
+        lm.flush();
+      });
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+    frontend.join();
 
-  REQUIRE_EQ(file_contents.size(), 2000);
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      root         - Logging int: 0, int: 0, string: Lorem ipsum dolor sit amet, consectetur 0, char: Lorem ipsum dolor sit amet, consectetur 0"}));
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      root         - Logging int: 1999, int: 19990, string: Lorem ipsum dolor sit amet, consectetur 1999, char: Lorem ipsum dolor sit amet, consectetur 1999"}));
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  lm.stop_backend_worker();
+    REQUIRE_EQ(file_contents.size(), 2000);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         - Logging int: 0, int: 0, string: Lorem ipsum dolor sit amet, consectetur 0, char: Lorem ipsum dolor sit amet, consectetur 0"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         - Logging int: 1999, int: 19990, string: Lorem ipsum dolor sit amet, consectetur 1999, char: Lorem ipsum dolor sit amet, consectetur 1999"}));
+
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("default_logger_ints_and_very_large_string")
 {
-  LogManager lm;
-
   fs::path const filename{"test_default_logger_ints_and_very_large_string"};
+  {
+    LogManager lm;
 
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      // log an array so the log message is pushed to the queue
-      for (int i = 0; i < 100; ++i)
+    std::thread frontend(
+      [&lm]()
       {
-        std::string v{
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
-          "incididunt ut labore et dolore magna aliqua. Dui accumsan sit amet nulla facilisi morbi "
-          "tempus. Diam ut venenatis tellus in metus vulputate eu scelerisque felis. Lorem mollis "
-          "aliquam ut porttitor leo a. Posuere urna nec tincidunt praesent semper feugiat nibh "
-          "sed. Auctor urna nunc id cursus metus aliquam eleifend mi. Et ultrices neque ornare "
-          "aenean euismod elementum nisi quis. Phasellus vestibulum lorem sed risus ultricies "
-          "tristique nulla. Porta nibh venenatis cras sed felis eget velit aliquet sagittis. Eget "
-          "arcu dictum varius duis at consectetur lorem. Diam quam nulla porttitor massa id neque "
-          "aliquam vestibulum morbi. Sed euismod nisi porta lorem mollis aliquam. Arcu felis "
-          "bibendum ut tristique. Lorem ipsum dolor sit amet consectetur adipiscing elit "
-          "pellentesque habitant. Mauris augue neque gravida in. Dictum fusce ut placerat orci "
-          "nulla pellentesque dignissim "};
-        v += std::to_string(i);
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-        LOG_INFO(default_logger, "Logging int: {}, int: {}, string: {}, string: {}", i, i * 10, v, v);
-      }
+        // log an array so the log message is pushed to the queue
+        for (int i = 0; i < 100; ++i)
+        {
+          std::string v{
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
+            "incididunt ut labore et dolore magna aliqua. Dui accumsan sit amet nulla facilisi "
+            "morbi "
+            "tempus. Diam ut venenatis tellus in metus vulputate eu scelerisque felis. Lorem "
+            "mollis "
+            "aliquam ut porttitor leo a. Posuere urna nec tincidunt praesent semper feugiat nibh "
+            "sed. Auctor urna nunc id cursus metus aliquam eleifend mi. Et ultrices neque ornare "
+            "aenean euismod elementum nisi quis. Phasellus vestibulum lorem sed risus ultricies "
+            "tristique nulla. Porta nibh venenatis cras sed felis eget velit aliquet sagittis. "
+            "Eget "
+            "arcu dictum varius duis at consectetur lorem. Diam quam nulla porttitor massa id "
+            "neque "
+            "aliquam vestibulum morbi. Sed euismod nisi porta lorem mollis aliquam. Arcu felis "
+            "bibendum ut tristique. Lorem ipsum dolor sit amet consectetur adipiscing elit "
+            "pellentesque habitant. Mauris augue neque gravida in. Dictum fusce ut placerat orci "
+            "nulla pellentesque dignissim "};
+          v += std::to_string(i);
 
-      // Let all log get flushed to the file
-      lm.flush();
-    });
+          LOG_INFO(default_logger, "Logging int: {}, int: {}, string: {}, string: {}", i, i * 10, v, v);
+        }
 
-  frontend.join();
+        // Let all log get flushed to the file
+        lm.flush();
+      });
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+    frontend.join();
 
-  REQUIRE_EQ(file_contents.size(), 100);
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  lm.stop_backend_worker();
+    REQUIRE_EQ(file_contents.size(), 100);
+
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
@@ -222,178 +232,188 @@ TEST_CASE("default_logger_ints_and_very_large_string")
 /***/
 TEST_CASE("default_logger_ints_and_wide_string")
 {
-  LogManager lm;
-
   fs::path const filename{"default_logger_ints_and_wide_string"};
+  {
+    LogManager lm;
 
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
+    std::thread frontend(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-      std::wstring s1{L"μιλάμε ελληνικά"};
-      LOG_INFO(default_logger, L"καλημέρα, {}", s1);
+        std::wstring s1{L"μιλάμε ελληνικά"};
+        LOG_INFO(default_logger, L"καλημέρα, {}", s1);
 
-      wchar_t const* s2{L"Λορεμ ιπσθμ δολορ σιτ αμετ, αδμοδθμ δελενιτι ηενδρεριτ"};
-      LOG_INFO(default_logger, L"{}", s2);
+        wchar_t const* s2{L"Λορεμ ιπσθμ δολορ σιτ αμετ, αδμοδθμ δελενιτι ηενδρεριτ"};
+        LOG_INFO(default_logger, L"{}", s2);
 
-      lm.flush();
-    });
+        lm.flush();
+      });
 
-  frontend.join();
+    frontend.join();
 
-  std::vector<std::wstring> const file_contents = quill::testing::wfile_contents(filename);
+    std::vector<std::wstring> const file_contents = quill::testing::wfile_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), 2);
+    REQUIRE_EQ(file_contents.size(), 2);
 
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("default_logger_ints_and_very_large_wide_string")
 {
-  LogManager lm;
-
   fs::path const filename{"default_logger_ints_and_very_large_wide_string"};
+  {
+    LogManager lm;
 
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      // log an array so the log message is pushed to the queue
-      for (int i = 0; i < 100; ++i)
+    std::thread frontend(
+      [&lm]()
       {
-        std::wstring v{
-          L"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
-          "incididunt ut labore et dolore magna aliqua. Dui accumsan sit amet nulla facilisi morbi "
-          "tempus. Diam ut venenatis tellus in metus vulputate eu scelerisque felis. Lorem mollis "
-          "aliquam ut porttitor leo a. Posuere urna nec tincidunt praesent semper feugiat nibh "
-          "sed. Auctor urna nunc id cursus metus aliquam eleifend mi. Et ultrices neque ornare "
-          "aenean euismod elementum nisi quis. Phasellus vestibulum lorem sed risus ultricies "
-          "tristique nulla. Porta nibh venenatis cras sed felis eget velit aliquet sagittis. Eget "
-          "arcu dictum varius duis at consectetur lorem. Diam quam nulla porttitor massa id neque "
-          "aliquam vestibulum morbi. Sed euismod nisi porta lorem mollis aliquam. Arcu felis "
-          "bibendum ut tristique. Lorem ipsum dolor sit amet consectetur adipiscing elit "
-          "pellentesque habitant. Mauris augue neque gravida in. Dictum fusce ut placerat orci "
-          "nulla pellentesque dignissim "};
-        v += std::to_wstring(i);
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-        LOG_INFO(default_logger, L"Logging int: {}, int: {}, string: {}, string: {}", i, i * 10, v, v);
-      }
+        // log an array so the log message is pushed to the queue
+        for (int i = 0; i < 100; ++i)
+        {
+          std::wstring v{
+            L"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
+            "incididunt ut labore et dolore magna aliqua. Dui accumsan sit amet nulla facilisi "
+            "morbi "
+            "tempus. Diam ut venenatis tellus in metus vulputate eu scelerisque felis. Lorem "
+            "mollis "
+            "aliquam ut porttitor leo a. Posuere urna nec tincidunt praesent semper feugiat nibh "
+            "sed. Auctor urna nunc id cursus metus aliquam eleifend mi. Et ultrices neque ornare "
+            "aenean euismod elementum nisi quis. Phasellus vestibulum lorem sed risus ultricies "
+            "tristique nulla. Porta nibh venenatis cras sed felis eget velit aliquet sagittis. "
+            "Eget "
+            "arcu dictum varius duis at consectetur lorem. Diam quam nulla porttitor massa id "
+            "neque "
+            "aliquam vestibulum morbi. Sed euismod nisi porta lorem mollis aliquam. Arcu felis "
+            "bibendum ut tristique. Lorem ipsum dolor sit amet consectetur adipiscing elit "
+            "pellentesque habitant. Mauris augue neque gravida in. Dictum fusce ut placerat orci "
+            "nulla pellentesque dignissim "};
+          v += std::to_wstring(i);
 
-      // Let all log get flushed to the file
-      lm.flush();
-    });
+          LOG_INFO(default_logger, L"Logging int: {}, int: {}, string: {}, string: {}", i, i * 10, v, v);
+        }
 
-  frontend.join();
+        // Let all log get flushed to the file
+        lm.flush();
+      });
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+    frontend.join();
 
-  REQUIRE_EQ(file_contents.size(), 100);
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  lm.stop_backend_worker();
+    REQUIRE_EQ(file_contents.size(), 100);
+
+    lm.stop_backend_worker();
+  }
+
   quill::detail::remove_file(filename);
 }
 #endif
 
 void custom_default_logger_same_handler(int test_case = 0)
 {
-  LogManager lm;
   fs::path const filename{"test_custom_default_logger_same_handler"};
-
-  // Set a file handler the custom logger handler and log to it
-  Handler* file_handler = lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
-  file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
-
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(file_handler);
-  lm.configure(cfg);
-
-  // Start logging
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
-
-  if (test_case == 0)
   {
-    // Add a second logger using the same file handler
-    Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
-      filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false);
-    QUILL_MAYBE_UNUSED Logger* logger_2 =
-      lm.create_logger("custom_logger", file_handler_2, std::nullopt, std::nullopt);
-  }
-  else if (test_case == 1)
-  {
-    // Add the other logger by using the root logger params - which is the same as obtaining the file handler above
-    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
-  }
-  // Thread for default pattern
-  std::thread frontend_default(
-    [&lm]()
+    LogManager lm;
+
+    // Set a file handler the custom logger handler and log to it
+    Handler* file_handler = lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
+
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(file_handler);
+    lm.configure(cfg);
+
+    // Start logging
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    if (test_case == 0)
     {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      LOG_INFO(default_logger, "Default Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(default_logger,
-                "Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
-
-      lm.flush();
-    });
-
-  // Thread for custom pattern
-  std::thread frontend_custom(
-    [&lm]()
+      // Add a second logger using the same file handler
+      Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+        filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false);
+      QUILL_MAYBE_UNUSED Logger* logger_2 =
+        lm.create_logger("custom_logger", file_handler_2, std::nullopt, std::nullopt);
+    }
+    else if (test_case == 1)
     {
-      Logger* logger_2 = lm.logger_collection().get_logger("custom_logger");
+      // Add the other logger by using the root logger params - which is the same as obtaining the file handler above
+      QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
+    }
+    // Thread for default pattern
+    std::thread frontend_default(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-      LOG_INFO(logger_2, "Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(logger_2,
-                "Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+        LOG_INFO(default_logger, "Default Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(default_logger,
+                  "Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-      lm.flush();
-    });
+        lm.flush();
+      });
 
-  frontend_custom.join();
-  frontend_default.join();
+    // Thread for custom pattern
+    std::thread frontend_custom(
+      [&lm]()
+      {
+        Logger* logger_2 = lm.logger_collection().get_logger("custom_logger");
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+        LOG_INFO(logger_2, "Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(logger_2,
+                  "Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-  REQUIRE_EQ(file_contents.size(), 4);
+        lm.flush();
+      });
 
-  std::string const first_log_line_default =
-    "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-  std::string const second_log_line_default =
-    "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus "
-    "ante";
+    frontend_custom.join();
+    frontend_default.join();
 
-  std::string const first_log_line_custom =
-    "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit "
-    "[I]";
-  std::string const second_log_line_custom =
-    "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
-    "[E]";
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
-  REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
-  REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
-  REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    REQUIRE_EQ(file_contents.size(), 4);
 
-  lm.stop_backend_worker();
+    std::string const first_log_line_default =
+      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+    std::string const second_log_line_default =
+      "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus "
+      "ante";
+
+    std::string const first_log_line_custom =
+      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit "
+      "[I]";
+    std::string const second_log_line_custom =
+      "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
+      "ante "
+      "[E]";
+
+    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
@@ -408,124 +428,127 @@ TEST_CASE("custom_default_logger_same_file_from_default_logger")
 
 void test_custom_default_logger_multiple_handlers(int test_case)
 {
-  LogManager lm;
   fs::path const filename_1{"test_custom_default_logger_multiple_handlers_1"};
   fs::path const filename_2{"test_custom_default_logger_multiple_handlers_2"};
-
-  // Set a file handler the custom logger handler and log to it
-
-  // First handler
-  Handler* file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
-    filename_1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
-  file_handler_1->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
-
-  // Second handler with different pattern
-  Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
-    filename_2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
-  file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
-
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(file_handler_1);
-  cfg.default_handlers.emplace_back(file_handler_2);
-  lm.configure(cfg);
-
-  // Start logging
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
-
-  if (test_case == 0)
   {
-    // Add a second logger using the same file handler
-    Handler* file_handler_a = lm.handler_collection().create_handler<FileHandler>(
-      filename_1.string(), "", FilenameAppend::None, FileEventNotifier{}, false);
-    Handler* file_handler_b = lm.handler_collection().create_handler<FileHandler>(
-      filename_2.string(), "", FilenameAppend::None, FileEventNotifier{}, false);
-    QUILL_MAYBE_UNUSED Logger* logger_2 =
-      lm.create_logger("custom_logger", {file_handler_a, file_handler_b}, std::nullopt, std::nullopt);
-  }
-  else if (test_case == 1)
-  {
-    // Add the second logger constructing it from the params of the root logger
-    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
-  }
+    LogManager lm;
 
-  // Thread for default pattern
-  std::thread frontend_default(
-    [&lm]()
+    // Set a file handler the custom logger handler and log to it
+
+    // First handler
+    Handler* file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
+      filename_1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    file_handler_1->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
+
+    // Second handler with different pattern
+    Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+      filename_2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
+
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(file_handler_1);
+    cfg.default_handlers.emplace_back(file_handler_2);
+    lm.configure(cfg);
+
+    // Start logging
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    if (test_case == 0)
     {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      LOG_INFO(default_logger, "Default Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(default_logger,
-                "Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
-
-      lm.flush();
-    });
-
-  // Thread for custom pattern
-  std::thread frontend_custom(
-    [&lm]()
+      // Add a second logger using the same file handler
+      Handler* file_handler_a = lm.handler_collection().create_handler<FileHandler>(
+        filename_1.string(), "", FilenameAppend::None, FileEventNotifier{}, false);
+      Handler* file_handler_b = lm.handler_collection().create_handler<FileHandler>(
+        filename_2.string(), "", FilenameAppend::None, FileEventNotifier{}, false);
+      QUILL_MAYBE_UNUSED Logger* logger_2 =
+        lm.create_logger("custom_logger", {file_handler_a, file_handler_b}, std::nullopt, std::nullopt);
+    }
+    else if (test_case == 1)
     {
-      Logger* logger_2 = lm.logger_collection().get_logger("custom_logger");
+      // Add the second logger constructing it from the params of the root logger
+      QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
+    }
 
-      LOG_INFO(logger_2, "Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(logger_2,
-                "Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+    // Thread for default pattern
+    std::thread frontend_default(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-      lm.flush();
-    });
+        LOG_INFO(default_logger, "Default Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(default_logger,
+                  "Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-  frontend_custom.join();
-  frontend_default.join();
+        lm.flush();
+      });
 
-  {
-    // Validate handler 1
-    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_1);
+    // Thread for custom pattern
+    std::thread frontend_custom(
+      [&lm]()
+      {
+        Logger* logger_2 = lm.logger_collection().get_logger("custom_logger");
 
-    REQUIRE_EQ(file_contents.size(), 4);
+        LOG_INFO(logger_2, "Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(logger_2,
+                  "Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-    std::string const first_log_line_default =
-      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit [I]";
-    std::string const second_log_line_default =
-      "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
-      "[E]";
+        lm.flush();
+      });
 
-    std::string const first_log_line_custom =
-      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit "
-      "[I]";
-    std::string const second_log_line_custom =
-      "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
-      "ante [E]";
+    frontend_custom.join();
+    frontend_default.join();
 
-    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
-    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
-    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
-    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    {
+      // Validate handler 1
+      std::vector<std::string> const file_contents = quill::testing::file_contents(filename_1);
+
+      REQUIRE_EQ(file_contents.size(), 4);
+
+      std::string const first_log_line_default =
+        "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit [I]";
+      std::string const second_log_line_default =
+        "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante "
+        "[E]";
+
+      std::string const first_log_line_custom =
+        "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit "
+        "[I]";
+      std::string const second_log_line_custom =
+        "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
+        "ante [E]";
+
+      REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+      REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+      REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+      REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    }
+
+    {
+      // Validate handler 2
+      std::vector<std::string> const file_contents = quill::testing::file_contents(filename_2);
+
+      REQUIRE_EQ(file_contents.size(), 4);
+
+      std::string const first_log_line_default =
+        "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+      std::string const second_log_line_default =
+        "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante";
+
+      std::string const first_log_line_custom =
+        "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+      std::string const second_log_line_custom =
+        "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
+        "ante";
+
+      REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+      REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+      REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+      REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    }
+
+    lm.stop_backend_worker();
   }
 
-  {
-    // Validate handler 2
-    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_2);
-
-    REQUIRE_EQ(file_contents.size(), 4);
-
-    std::string const first_log_line_default =
-      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    std::string const second_log_line_default =
-      "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante";
-
-    std::string const first_log_line_custom =
-      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    std::string const second_log_line_custom =
-      "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
-      "ante";
-
-    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
-    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
-    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
-    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
-  }
-
-  lm.stop_backend_worker();
   quill::detail::remove_file(filename_1);
   quill::detail::remove_file(filename_2);
 }
@@ -545,66 +568,68 @@ TEST_CASE("custom_default_logger_multiple_handlers_from_default_logger")
 /***/
 TEST_CASE("many_loggers_multiple_threads")
 {
-  LogManager lm;
   fs::path const filename{"test_many_loggers_multiple_threads"};
-
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
-
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
-
-  // Spawn many threads
-  std::vector<std::thread> threads;
-  static constexpr size_t thread_count = 100;
-  static constexpr size_t message_count = 120;
-
-  for (size_t i = 0; i < thread_count; ++i)
   {
-    threads.emplace_back(
-      [&lm, i]()
-      {
-        // Create a logger in this thread
-        std::string logger_name = "logger_" + std::to_string(i);
-        Logger* logger = lm.create_logger(logger_name.data(), std::nullopt, std::nullopt);
+    LogManager lm;
 
-        for (size_t j = 0; j < message_count; ++j)
-        {
-          LOG_INFO(logger, "Hello from thread {} this is message {}", i, j);
-        }
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-        // Let all log get flushed to the file
-        lm.flush();
-      });
-  }
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  for (auto& elem : threads)
-  {
-    elem.join();
-  }
+    // Spawn many threads
+    std::vector<std::thread> threads;
+    static constexpr size_t thread_count = 100;
+    static constexpr size_t message_count = 120;
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
-  REQUIRE_EQ(file_contents.size(), thread_count * message_count);
-
-  for (size_t i = 0; i < thread_count; ++i)
-  {
-    // for each thread
-    std::string expected_logger_name = "logger_" + std::to_string(i);
-
-    for (size_t j = 0; j < message_count; ++j)
+    for (size_t i = 0; i < thread_count; ++i)
     {
-      size_t num = 13 - expected_logger_name.length();
-      std::string const white_spaces(num, ' ');
-      std::string expected_string = expected_logger_name + white_spaces + "- " +
-        "Hello from thread " + std::to_string(i) + " this is message " + std::to_string(j);
+      threads.emplace_back(
+        [&lm, i]()
+        {
+          // Create a logger in this thread
+          std::string logger_name = "logger_" + std::to_string(i);
+          Logger* logger = lm.create_logger(logger_name.data(), std::nullopt, std::nullopt);
 
-      REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+          for (size_t j = 0; j < message_count; ++j)
+          {
+            LOG_INFO(logger, "Hello from thread {} this is message {}", i, j);
+          }
+
+          // Let all log get flushed to the file
+          lm.flush();
+        });
     }
-  }
 
-  lm.stop_backend_worker();
+    for (auto& elem : threads)
+    {
+      elem.join();
+    }
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+    REQUIRE_EQ(file_contents.size(), thread_count * message_count);
+
+    for (size_t i = 0; i < thread_count; ++i)
+    {
+      // for each thread
+      std::string expected_logger_name = "logger_" + std::to_string(i);
+
+      for (size_t j = 0; j < message_count; ++j)
+      {
+        size_t num = 13 - expected_logger_name.length();
+        std::string const white_spaces(num, ' ');
+        std::string expected_string = expected_logger_name + white_spaces + "- " +
+          "Hello from thread " + std::to_string(i) + " this is message " + std::to_string(j);
+
+        REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+      }
+    }
+
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
@@ -612,55 +637,57 @@ TEST_CASE("many_loggers_multiple_threads")
 /***/
 TEST_CASE("backend_error_handler")
 {
-  LogManager lm;
   fs::path const filename{"test_backend_error_handler"};
+  {
+    LogManager lm;
 
-  // counter to check our error handler was invoked
-  // atomic because we check this value on this thread, but the backend worker thread updates it
-  std::atomic<size_t> error_handler_invoked{0};
+    // counter to check our error handler was invoked
+    // atomic because we check this value on this thread, but the backend worker thread updates it
+    std::atomic<size_t> error_handler_invoked{0};
 
-  std::thread frontend(
-    [&lm, &filename, &error_handler_invoked]()
-    {
-      quill::Config cfg;
+    std::thread frontend(
+      [&lm, &filename, &error_handler_invoked]()
+      {
+        quill::Config cfg;
 
-      // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
-      cfg.backend_thread_cpu_affinity = static_cast<uint16_t>(321312);
+        // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
+        cfg.backend_thread_cpu_affinity = static_cast<uint16_t>(321312);
 
-      // Set invalid thread name
-      cfg.backend_thread_name =
-        "Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_"
-        "ut_labore_et_dolore_magna_aliqua";
+        // Set invalid thread name
+        cfg.backend_thread_name =
+          "Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_"
+          "ut_labore_et_dolore_magna_aliqua";
 
-      // Set a custom error handler to handler exceptions
-      cfg.backend_thread_error_handler = [&error_handler_invoked](std::string const& s)
-      { ++error_handler_invoked; };
+        // Set a custom error handler to handler exceptions
+        cfg.backend_thread_error_handler = [&error_handler_invoked](std::string const& s)
+        { ++error_handler_invoked; };
 
-      // Set a file handler as the custom logger handler and log to it
-      cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-        filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
+        // Set a file handler as the custom logger handler and log to it
+        cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+          filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
-      // Start backend worker
-      lm.configure(cfg);
-      lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+        // Start backend worker
+        lm.configure(cfg);
+        lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-      Logger* default_logger = lm.logger_collection().get_logger();
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(default_logger,
-                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-      // Let all log get flushed to the file - this waits for the backend to actually start and
-      // thy to do something
-      lm.flush();
-    });
+        // Let all log get flushed to the file - this waits for the backend to actually start and
+        // thy to do something
+        lm.flush();
+      });
 
-  frontend.join();
+    frontend.join();
 
-  // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
-  REQUIRE(error_handler_invoked.load() != 0);
+    // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
+    REQUIRE(error_handler_invoked.load() != 0);
 
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
 
   quill::detail::remove_file(filename);
 }
@@ -668,112 +695,115 @@ TEST_CASE("backend_error_handler")
 /***/
 TEST_CASE("backend_error_handler_log_from_backend_thread")
 {
-  LogManager lm;
   fs::path const filename{"test_backend_error_handler_log_from_backend_thread"};
+  {
+    LogManager lm;
 
-  std::thread frontend(
-    [&lm, &filename]()
-    {
-      quill::Config cfg;
-
-      // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
-      cfg.backend_thread_cpu_affinity = static_cast<uint16_t>(321312);
-
-      // Set invalid thread name
-      cfg.backend_thread_name =
-        "Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_"
-        "ut_labore_et_dolore_magna_aliqua";
-
-      // Set a file handler as the custom logger handler and log to it
-      cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-        filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
-
-      // Set a custom error handler to handler exceptions
-      cfg.backend_thread_error_handler = [&lm](std::string const& s)
+    std::thread frontend(
+      [&lm, &filename]()
       {
-        LOG_WARNING(lm.logger_collection().get_logger(), "error handler invoked");
-        lm.flush(); // this will be called by the backend but do nothing
-      };
+        quill::Config cfg;
 
-      lm.configure(cfg);
+        // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
+        cfg.backend_thread_cpu_affinity = static_cast<uint16_t>(321312);
 
-      // Start backend worker
-      lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+        // Set invalid thread name
+        cfg.backend_thread_name =
+          "Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_"
+          "ut_labore_et_dolore_magna_aliqua";
 
-      Logger* default_logger = lm.logger_collection().get_logger();
+        // Set a file handler as the custom logger handler and log to it
+        cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+          filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
-      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(default_logger,
-                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+        // Set a custom error handler to handler exceptions
+        cfg.backend_thread_error_handler = [&lm](std::string const& s)
+        {
+          LOG_WARNING(lm.logger_collection().get_logger(), "error handler invoked");
+          lm.flush(); // this will be called by the backend but do nothing
+        };
 
-      // Let all log get flushed to the file - this waits for the backend to actually start and
-      // thy to do something
-      lm.flush();
-    });
+        lm.configure(cfg);
 
-  frontend.join();
+        // Start backend worker
+        lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE(quill::testing::file_contains(file_contents,
-                                        "LOG_WARNING   root         - error handler invoked"));
-  REQUIRE_EQ(file_contents.size(), 3);
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-  lm.stop_backend_worker();
+        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
+        // Let all log get flushed to the file - this waits for the backend to actually start and
+        // thy to do something
+        lm.flush();
+      });
+
+    frontend.join();
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+    REQUIRE(quill::testing::file_contains(file_contents,
+                                          "LOG_WARNING   root         - error handler invoked"));
+    REQUIRE_EQ(file_contents.size(), 3);
+
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 {
-  LogManager lm;
   fs::path const filename{"test_backend_error_handler_error_throw_while_in_backend_process"};
+  {
+    LogManager lm;
 
-  // counter to check our error handler was invoked
-  // atomic because we check this value on this thread, but the backend worker thread updates it
-  std::atomic<size_t> error_handler_invoked{0};
+    // counter to check our error handler was invoked
+    // atomic because we check this value on this thread, but the backend worker thread updates it
+    std::atomic<size_t> error_handler_invoked{0};
 
-  quill::Config cfg;
+    quill::Config cfg;
 
-  // Set a file handler as the custom logger handler and log to it
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
+    // Set a file handler as the custom logger handler and log to it
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
-  // Set a custom error handler to handler exceptions
-  cfg.backend_thread_error_handler = [&error_handler_invoked](std::string const& s)
-  { ++error_handler_invoked; };
+    // Set a custom error handler to handler exceptions
+    cfg.backend_thread_error_handler = [&error_handler_invoked](std::string const& s)
+    { ++error_handler_invoked; };
 
-  lm.configure(cfg);
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.configure(cfg);
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm]()
-    {
-      Logger* logger = lm.logger_collection().get_logger();
-
-      // Here we will call LOG_BACKTRACE(...) without calling init_backtrace(...) first
-      // We expect an error to be thrown and reported to our error handler backend_thread_error_handler
-
-      LOG_INFO(logger, "Before backtrace.");
-      for (uint32_t i = 0; i < 4; ++i)
+    std::thread frontend(
+      [&lm]()
       {
+        Logger* logger = lm.logger_collection().get_logger();
+
+        // Here we will call LOG_BACKTRACE(...) without calling init_backtrace(...) first
+        // We expect an error to be thrown and reported to our error handler backend_thread_error_handler
+
+        LOG_INFO(logger, "Before backtrace.");
+        for (uint32_t i = 0; i < 4; ++i)
+        {
   #if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
-        // On ARM we add a small delay because log messages can get the same timestamp from rdtsc
-        // when in this loop and make the test unstable
-        std::this_thread::sleep_for(std::chrono::microseconds{200});
+          // On ARM we add a small delay because log messages can get the same timestamp from rdtsc
+          // when in this loop and make the test unstable
+          std::this_thread::sleep_for(std::chrono::microseconds{200});
   #endif
-        LOG_BACKTRACE(logger, "Backtrace message {}.", i);
-      }
-      LOG_ERROR(logger, "After Error.");
+          LOG_BACKTRACE(logger, "Backtrace message {}.", i);
+        }
+        LOG_ERROR(logger, "After Error.");
 
-      // Let all log get flushed to the file
-      lm.flush();
-    });
+        // Let all log get flushed to the file
+        lm.flush();
+      });
 
-  frontend.join();
+    frontend.join();
 
-  // Check that the backend worker thread called our error handler 4 times - the number of LOG_BACKTRACE calls
-  REQUIRE_EQ(error_handler_invoked.load(), 4);
+    // Check that the backend worker thread called our error handler 4 times - the number of LOG_BACKTRACE calls
+    REQUIRE_EQ(error_handler_invoked.load(), 4);
+  }
 
   quill::detail::remove_file(filename);
 }
@@ -782,8 +812,9 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
 /***/
 TEST_CASE("log_backtrace_and_flush_on_error_1")
 {
-  LogManager lm;
   fs::path filename{"test_log_backtrace_and_flush_on_error_1"};
+  {
+  LogManager lm;
 
   quill::Config cfg;
 
@@ -833,14 +864,16 @@ TEST_CASE("log_backtrace_and_flush_on_error_1")
     file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 11."}));
 
   lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("log_backtrace_and_flush_on_error_2")
 {
-  LogManager lm;
   fs::path const filename{"test_log_backtrace_and_flush_on_error_2"};
+  {
+  LogManager lm;
 
   quill::Config cfg;
 
@@ -894,16 +927,18 @@ TEST_CASE("log_backtrace_and_flush_on_error_2")
     file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 11."}));
 
   lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
 {
+  fs::path const filename{"test_log_backtrace_terminate_thread_then_and_flush_on_error"};
+  {
   // In this test we store in backtrace from one thread that terminates
   // and then we log that backtrace from a different thread
   LogManager lm;
-  fs::path const filename{"test_log_backtrace_terminate_thread_then_and_flush_on_error"};
 
   quill::Config cfg;
 
@@ -962,14 +997,16 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
     file_contents, std::string{"LOG_BACKTRACE root         - Backtrace message 11."}));
 
   lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("log_backtrace_manual_flush")
 {
-  LogManager lm;
   fs::path const filename{"test_log_backtrace_manual_flush"};
+  {
+  LogManager lm;
 
   quill::Config cfg;
 
@@ -1041,6 +1078,7 @@ TEST_CASE("log_backtrace_manual_flush")
     file_contents_2, std::string{"LOG_BACKTRACE root         - Backtrace message 11."}));
 
   lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
@@ -1087,55 +1125,57 @@ public:
 /***/
 TEST_CASE("logger_with_two_files_filters")
 {
-  LogManager lm;
   fs::path const filename1{"logger_with_two_files_filters1"};
   fs::path const filename2{"logger_with_two_files_filters2"};
+  {
+    LogManager lm;
 
-  // Set file 1
-  quill::Handler* file_handler1 = lm.handler_collection().create_handler<FileHandler>(
-    filename1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    // Set file 1
+    quill::Handler* file_handler1 = lm.handler_collection().create_handler<FileHandler>(
+      filename1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
-  // Create and add the filter to our handler
-  file_handler1->add_filter(std::make_unique<FileFilter1>());
+    // Create and add the filter to our handler
+    file_handler1->add_filter(std::make_unique<FileFilter1>());
 
-  // Set file 2
-  quill::Handler* file_handler2 = lm.handler_collection().create_handler<FileHandler>(
-    filename2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    // Set file 2
+    quill::Handler* file_handler2 = lm.handler_collection().create_handler<FileHandler>(
+      filename2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
-  // Create and add the filter to our handler
-  file_handler2->add_filter(std::make_unique<FileFilter2>());
+    // Create and add the filter to our handler
+    file_handler2->add_filter(std::make_unique<FileFilter2>());
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  Logger* default_logger =
-    lm.create_logger("logger", {file_handler1, file_handler2}, std::nullopt, std::nullopt);
+    Logger* default_logger =
+      lm.create_logger("logger", {file_handler1, file_handler2}, std::nullopt, std::nullopt);
 
-  std::thread frontend(
-    [&lm, default_logger]()
-    {
-      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(default_logger,
-                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+    std::thread frontend(
+      [&lm, default_logger]()
+      {
+        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-      // Let all log get flushed to the file
-      lm.flush();
-    });
+        // Let all log get flushed to the file
+        lm.flush();
+      });
 
-  frontend.join();
+    frontend.join();
 
-  // File 1 only log info
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename1);
-  REQUIRE_EQ(file_contents.size(), 1);
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      logger       - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    // File 1 only log info
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename1);
+    REQUIRE_EQ(file_contents.size(), 1);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      logger       - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
 
-  // file 2 only log error
-  std::vector<std::string> const file_contents2 = quill::testing::file_contents(filename2);
-  REQUIRE_EQ(file_contents2.size(), 1);
-  REQUIRE(quill::testing::file_contains(
-    file_contents2, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    // file 2 only log error
+    std::vector<std::string> const file_contents2 = quill::testing::file_contents(filename2);
+    REQUIRE_EQ(file_contents2.size(), 1);
+    REQUIRE(quill::testing::file_contains(
+      file_contents2, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
 
   quill::detail::remove_file(filename1);
   quill::detail::remove_file(filename2);
@@ -1144,64 +1184,65 @@ TEST_CASE("logger_with_two_files_filters")
 /***/
 TEST_CASE("logger_with_two_files_set_log_level_on_handler")
 {
-  LogManager lm;
   fs::path const filename1{"logger_with_two_files_set_log_level_on_handler1"};
   fs::path const filename2{"logger_with_two_files_set_log_level_on_handler2"};
+  {
+    LogManager lm;
 
-  // Set file 1
-  quill::Handler* file_handler1 = lm.handler_collection().create_handler<FileHandler>(
-    filename1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    // Set file 1
+    quill::Handler* file_handler1 = lm.handler_collection().create_handler<FileHandler>(
+      filename1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
-  // Set file 2
-  quill::Handler* file_handler2 = lm.handler_collection().create_handler<FileHandler>(
-    filename2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    // Set file 2
+    quill::Handler* file_handler2 = lm.handler_collection().create_handler<FileHandler>(
+      filename2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  Logger* default_logger =
-    lm.create_logger("logger", {file_handler1, file_handler2}, std::nullopt, std::nullopt);
+    Logger* default_logger =
+      lm.create_logger("logger", {file_handler1, file_handler2}, std::nullopt, std::nullopt);
 
-  // Check log levels on the handlers
-  REQUIRE_EQ(file_handler1->get_log_level(), LogLevel::TraceL3);
-  REQUIRE_EQ(file_handler2->get_log_level(), LogLevel::TraceL3);
+    // Check log levels on the handlers
+    REQUIRE_EQ(file_handler1->get_log_level(), LogLevel::TraceL3);
+    REQUIRE_EQ(file_handler2->get_log_level(), LogLevel::TraceL3);
 
-  // Set filters to our handlers
-  file_handler1->set_log_level(LogLevel::Info);
-  file_handler2->set_log_level(LogLevel::Error);
+    // Set filters to our handlers
+    file_handler1->set_log_level(LogLevel::Info);
+    file_handler2->set_log_level(LogLevel::Error);
 
-  std::thread frontend(
-    [&lm, default_logger]()
-    {
-      LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(default_logger,
-                "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+    std::thread frontend(
+      [&lm, default_logger]()
+      {
+        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-      // Let all log get flushed to the file
-      lm.flush();
-    });
+        // Let all log get flushed to the file
+        lm.flush();
+      });
 
-  frontend.join();
+    frontend.join();
 
-  // Check log levels on the handlers
-  REQUIRE_EQ(file_handler1->get_log_level(), LogLevel::Info);
-  REQUIRE_EQ(file_handler2->get_log_level(), LogLevel::Error);
+    // Check log levels on the handlers
+    REQUIRE_EQ(file_handler1->get_log_level(), LogLevel::Info);
+    REQUIRE_EQ(file_handler2->get_log_level(), LogLevel::Error);
 
-  // File 1 has everything
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename1);
-  REQUIRE_EQ(file_contents.size(), 2);
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      logger       - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    // File 1 has everything
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename1);
+    REQUIRE_EQ(file_contents.size(), 2);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      logger       - Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
-  // file 2 only log error
-  std::vector<std::string> const file_contents2 = quill::testing::file_contents(filename2);
-  REQUIRE_EQ(file_contents2.size(), 1);
-  REQUIRE(quill::testing::file_contains(
-    file_contents2, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    // file 2 only log error
+    std::vector<std::string> const file_contents2 = quill::testing::file_contents(filename2);
+    REQUIRE_EQ(file_contents2.size(), 1);
+    REQUIRE(quill::testing::file_contains(
+      file_contents2, std::string{"LOG_ERROR     logger       - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
 
-  lm.stop_backend_worker();
-
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename1);
   quill::detail::remove_file(filename2);
 }
@@ -1241,74 +1282,75 @@ private:
 /***/
 TEST_CASE("default_logger_with_custom_timestamp")
 {
-  // Set our timestamp to Sunday 12 June 2022
-  CustomTimestamp custom_ts;
-
-  LogManager lm;
-
   fs::path const filename{"test_default_logger_with_custom_timestamp"};
+  {
+    // Set our timestamp to Sunday 12 June 2022
+    CustomTimestamp custom_ts;
 
-  // also change the pattern to log the date
-  Handler* handler = lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
-  handler->set_pattern("%(ascii_time) %(level_name) %(logger_name:<16) - %(message)", // format
-                       "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
-                       quill::Timezone::GmtTime); // timestamp's timezone
+    LogManager lm;
 
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(handler);
-  cfg.default_timestamp_clock_type = TimestampClockType::Custom;
-  cfg.default_custom_timestamp_clock = std::addressof(custom_ts);
+    // also change the pattern to log the date
+    Handler* handler = lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
+    handler->set_pattern("%(ascii_time) %(level_name) %(logger_name:<16) - %(message)", // format
+                         "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
+                         quill::Timezone::GmtTime); // timestamp's timezone
 
-  lm.configure(cfg);
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(handler);
+    cfg.default_timestamp_clock_type = TimestampClockType::Custom;
+    cfg.default_custom_timestamp_clock = std::addressof(custom_ts);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.configure(cfg);
 
-  custom_ts.set_timestamp(std::chrono::seconds{1655007309});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::thread frontend(
-    [&lm, &custom_ts]()
+    custom_ts.set_timestamp(std::chrono::seconds{1655007309});
+
+    std::thread frontend(
+      [&lm, &custom_ts]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        for (size_t i = 0; i < 10'000; ++i)
+        {
+          // log an array so the log message is pushed to the queue
+          LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i);
+        }
+
+        custom_ts.set_timestamp(std::chrono::seconds{1656007309});
+
+        for (size_t i = 0; i < 10'000; ++i)
+        {
+          LOG_ERROR(default_logger,
+                    "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i);
+        }
+
+        // Let all log get flushed to the file
+        custom_ts.set_timestamp(std::chrono::seconds{1658007309});
+        lm.flush();
+      });
+
+    frontend.join();
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+    REQUIRE_EQ(file_contents.size(), 20'000);
+
+    for (size_t i = 0; i < 10'000; ++i)
     {
-      Logger* default_logger = lm.logger_collection().get_logger();
+      REQUIRE(quill::testing::file_contains(
+        file_contents, fmt::format("2022-06-12 04:15:09.000 INFO      root             - Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i)));
+    }
 
-      for (size_t i = 0; i < 10'000; ++i)
-      {
-        // log an array so the log message is pushed to the queue
-        LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i);
-      }
+    for (size_t i = 0; i < 10'000; ++i)
+    {
+      REQUIRE(quill::testing::file_contains(
+        file_contents, fmt::format("2022-06-23 18:01:49.000 ERROR     root             - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i)));
+    }
 
-      custom_ts.set_timestamp(std::chrono::seconds{1656007309});
-
-      for (size_t i = 0; i < 10'000; ++i)
-      {
-        LOG_ERROR(default_logger,
-                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i);
-      }
-
-      // Let all log get flushed to the file
-      custom_ts.set_timestamp(std::chrono::seconds{1658007309});
-      lm.flush();
-    });
-
-  frontend.join();
-
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
-  REQUIRE_EQ(file_contents.size(), 20'000);
-
-  for (size_t i = 0; i < 10'000; ++i)
-  {
-    REQUIRE(quill::testing::file_contains(
-      file_contents, fmt::format("2022-06-12 04:15:09.000 INFO      root             - Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i)));
+    lm.stop_backend_worker();
   }
-
-  for (size_t i = 0; i < 10'000; ++i)
-  {
-    REQUIRE(quill::testing::file_contains(
-      file_contents, fmt::format("2022-06-23 18:01:49.000 ERROR     root             - Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i)));
-  }
-
-  lm.stop_backend_worker();
   quill::detail::remove_file(filename);
 }
 
@@ -1503,275 +1545,281 @@ std::vector<std::string> gen_random_strings(size_t n, int min_len, int max_len)
 /***/
 TEST_CASE("default_logger_with_random_strings")
 {
-  LogManager lm;
   fs::path const filename{"test_default_logger_with_random_strings"};
+  {
+    LogManager lm;
 
-  // Set a file handler as the custom logger handler and log to it
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    // Set a file handler as the custom logger handler and log to it
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::vector<std::string> const random_strings_vec = gen_random_strings(5'000, 2'000, 4'000);
+    std::vector<std::string> const random_strings_vec = gen_random_strings(5'000, 2'000, 4'000);
 
-  std::thread frontend(
-    [&lm, &random_strings_vec]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      // First push in sequence
-      for (auto const& elem : random_strings_vec)
+    std::thread frontend(
+      [&lm, &random_strings_vec]()
       {
-        LOG_INFO(default_logger, "{}", elem);
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        // First push in sequence
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+          lm.flush();
+        }
+
+        // Then also try to push all
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem.c_str());
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+        }
+
+        // Let all log get flushed to the file
         lm.flush();
-      }
+      });
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-        lm.flush();
-      }
+    frontend.join();
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        lm.flush();
-      }
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-        lm.flush();
-      }
+    // Check we logged everything
+    REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 12);
 
-      // Then also try to push all
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem.c_str());
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-      }
-
-      // Let all log get flushed to the file
-      lm.flush();
-    });
-
-  frontend.join();
-
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
-  // Check we logged everything
-  REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 12);
-
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("default_logger_with_small_random_strings")
 {
-  LogManager lm;
   fs::path const filename{"test_default_logger_with_small_random_strings"};
+  {
+    LogManager lm;
 
-  // Set a file handler as the custom logger handler and log to it
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    // Set a file handler as the custom logger handler and log to it
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::vector<std::string> const random_strings_vec = gen_random_strings(10'000, 50, 500);
+    std::vector<std::string> const random_strings_vec = gen_random_strings(10'000, 50, 500);
 
-  std::thread frontend(
-    [&lm, &random_strings_vec]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      // First push in sequence
-      for (auto const& elem : random_strings_vec)
+    std::thread frontend(
+      [&lm, &random_strings_vec]()
       {
-        LOG_INFO(default_logger, "{}", elem);
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        // First push in sequence
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+          lm.flush();
+        }
+
+        // Then also try to push all
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem.c_str());
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+        }
+
+        // Let all log get flushed to the file
         lm.flush();
-      }
+      });
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-        lm.flush();
-      }
+    frontend.join();
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        lm.flush();
-      }
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-        lm.flush();
-      }
+    // Check we logged everything
+    REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 12);
 
-      // Then also try to push all
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem.c_str());
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-      }
-
-      // Let all log get flushed to the file
-      lm.flush();
-    });
-
-  frontend.join();
-
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
-  // Check we logged everything
-  REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 12);
-
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 
 /***/
 TEST_CASE("default_logger_with_very_large_random_strings")
 {
-  LogManager lm;
   fs::path const filename{"test_default_logger_with_very_large_random_strings"};
+  {
+    LogManager lm;
 
-  // Set a file handler as the custom logger handler and log to it
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
-    filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
-  lm.configure(cfg);
+    // Set a file handler as the custom logger handler and log to it
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
 
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
 
-  std::vector<std::string> const random_strings_vec = gen_random_strings(1'000, 10'000, 20'000);
+    std::vector<std::string> const random_strings_vec = gen_random_strings(1'000, 10'000, 20'000);
 
-  std::thread frontend(
-    [&lm, &random_strings_vec]()
-    {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      int32_t i = 0;
-      // First push in sequence
-      for (auto const& elem : random_strings_vec)
+    std::thread frontend(
+      [&lm, &random_strings_vec]()
       {
-        LOG_INFO(default_logger, "{}", elem);
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
-        ++i;
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        int32_t i = 0;
+        // First push in sequence
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+          LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+          ++i;
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+          ++i;
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+          ++i;
+          lm.flush();
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+          LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+          ++i;
+          lm.flush();
+        }
+
+        // Then also try to push all
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+          LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+          ++i;
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem);
+          LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+          ++i;
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", elem.c_str());
+          LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+          ++i;
+        }
+
+        for (auto const& elem : random_strings_vec)
+        {
+          LOG_INFO(default_logger, "{}", std::string_view{elem});
+          LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
+          ++i;
+        }
+
+        // Let all log get flushed to the file
         lm.flush();
-      }
+      });
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
-        ++i;
-        lm.flush();
-      }
+    frontend.join();
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
-        ++i;
-        lm.flush();
-      }
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
-        ++i;
-        lm.flush();
-      }
+    // Check we logged everything
+    REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 20);
 
-      // Then also try to push all
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
-        ++i;
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem);
-        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
-        ++i;
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", elem.c_str());
-        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
-        ++i;
-      }
-
-      for (auto const& elem : random_strings_vec)
-      {
-        LOG_INFO(default_logger, "{}", std::string_view{elem});
-        LOG_INFO(default_logger, "{} {}", i, static_cast<double>(i));
-        ++i;
-      }
-
-      // Let all log get flushed to the file
-      lm.flush();
-    });
-
-  frontend.join();
-
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
-  // Check we logged everything
-  REQUIRE_EQ(file_contents.size(), random_strings_vec.size() * 20);
-
-  lm.stop_backend_worker();
+    lm.stop_backend_worker();
+  }
   quill::detail::remove_file(filename);
 }
 

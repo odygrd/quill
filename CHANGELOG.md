@@ -58,6 +58,7 @@
 - Add missing `quill::json_file_handler(...)` that creates a `JsonFileHandler` in `Quill.h`.
 - Simplified and refactored the logic in `BoundedQueue`.
 - Added the option `do_fsync` which also calls `fsync()` during the handler flush to all file handlers.
+- Improved performance and throughput of the backend logging thread by approximately ~15%
 - Added file event notifiers, to get callbacks from quill before/after log file has been opened or
   closed. ([#193](https://github.com/odygrd/quill/pull/193))
   This is useful for cleanup procedures or for adding something to the start/end of the log files.

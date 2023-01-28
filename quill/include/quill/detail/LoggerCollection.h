@@ -9,7 +9,7 @@
 #include "quill/Logger.h" // for Logger
 #include "quill/clock/TimestampClock.h"
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD
-#include "quill/detail/misc/Common.h"     // for CACHE_LINE_ALIGNED
+#include "quill/detail/misc/Common.h"
 #include <initializer_list>               // for initializer_list
 #include <memory>                         // for unique_ptr
 #include <mutex>

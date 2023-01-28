@@ -9,9 +9,11 @@ namespace quill::detail
 {
 /***/
 ThreadContextCollection::ThreadContextWrapper::ThreadContextWrapper(ThreadContextCollection& thread_context_collection,
-                                                                    uint32_t default_queue_capacity)
+                                                                    uint32_t default_queue_capacity,
+                                                                    uint32_t initial_transit_event_buffer_capacity)
   : _thread_context_collection(thread_context_collection),
-    _thread_context(std::shared_ptr<ThreadContext>(new ThreadContext(default_queue_capacity)))
+    _thread_context(std::shared_ptr<ThreadContext>(
+      new ThreadContext(default_queue_capacity, initial_transit_event_buffer_capacity)))
 {
   // We can not use std::make_shared above.
   // Explanation :
@@ -161,7 +163,8 @@ void ThreadContextCollection::_find_and_remove_invalidated_thread_contexts()
                    // If the thread context is invalid it means the thread that created it has now died.
                    // We also want to empty the queue from all LogRecords before removing the thread context
 
-                   return !thread_context->is_valid() && thread_context->spsc_queue().empty();
+                   return !thread_context->is_valid() && thread_context->spsc_queue().empty() &&
+                     thread_context->transit_event_buffer().empty();
                  });
 
   while (QUILL_UNLIKELY(found_invalid_and_empty_thread_context != _thread_context_cache.cend()))

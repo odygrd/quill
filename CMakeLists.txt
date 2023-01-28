@@ -100,18 +100,18 @@ endif ()
 #-------------------------------------------------------------------------------------------------------
 # Log Info
 #-------------------------------------------------------------------------------------------------------
-message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
-message(STATUS "QUILL_X86ARCH: " ${QUILL_X86ARCH})
-message(STATUS "QUILL_USE_BOUNDED_QUEUE: " ${QUILL_USE_BOUNDED_QUEUE})
-message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
-message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
-
 if (QUILL_MASTER_PROJECT)
     option(QUILL_VERBOSE_MAKEFILE "Verbose make output" OFF)
 
     message(STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE})
     message(STATUS "QUILL_VERSION: ${QUILL_VERSION}")
 endif ()
+
+message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
+message(STATUS "QUILL_X86ARCH: " ${QUILL_X86ARCH})
+message(STATUS "QUILL_USE_BOUNDED_QUEUE: " ${QUILL_USE_BOUNDED_QUEUE})
+message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
+message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
 
 #---------------------------------------------------------------------------------------
 # Verbose make file option

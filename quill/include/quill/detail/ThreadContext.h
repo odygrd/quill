@@ -8,6 +8,7 @@
 #include "quill/TweakMe.h"
 
 #include "quill/Fmt.h"
+#include "quill/detail/backend/TransitEventBuffer.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/spsc_queue/UnboundedQueue.h"
@@ -38,7 +39,10 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContext(uint32_t default_queue_capacity) : _spsc_queue(default_queue_capacity) {}
+  explicit ThreadContext(uint32_t default_queue_capacity, uint32_t initial_transit_event_buffer_capacity)
+    : _spsc_queue(default_queue_capacity), _transit_event_buffer(initial_transit_event_buffer_capacity)
+  {
+  }
 
   /**
    * Deleted
@@ -66,6 +70,14 @@ public:
    * @return A reference to the generic single-producer-single-consumer queue
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT SPSCQueueT& spsc_queue() noexcept { return _spsc_queue; }
+
+  /**
+   * @return A reference to the backend's thread transit event buffer
+   */
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT detail::UnboundedTransitEventBuffer& transit_event_buffer() noexcept
+  {
+    return _transit_event_buffer;
+  }
 
   /**
    * @return A reference to the generic single-producer-single-consumer queue const overload
@@ -97,17 +109,6 @@ public:
    */
   QUILL_NODISCARD bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
 
-  /**
-   * Returns the current seq num and increments it.
-   * @return seq num
-   */
-  QUILL_NODISCARD uint32_t get_seq_num() noexcept { return _seq_num++; }
-
-  /**
-   * Resets custom clock seq
-   */
-  void reset_seq_num() noexcept { _seq_num = 0; }
-
 #if defined(QUILL_USE_BOUNDED_QUEUE)
   /**
    * Increments the dropped message counter
@@ -134,9 +135,9 @@ public:
 
 private:
   SPSCQueueT _spsc_queue; /** queue for this thread, events are pushed here */
+  UnboundedTransitEventBuffer _transit_event_buffer;               /** backend thread buffer */
   std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                    /**< cache this thread name */
-  uint32_t _seq_num{0}; /**< used by the backend thread as seq num */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
 
 #if defined(QUILL_USE_BOUNDED_QUEUE)

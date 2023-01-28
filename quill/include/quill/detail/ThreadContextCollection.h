@@ -6,13 +6,12 @@
 #pragma once
 
 #include "quill/Config.h"
-#include "quill/detail/misc/AlignedAllocator.h" // for CacheAlignedAllocator
-#include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_HOT
-#include "quill/detail/misc/Common.h"           // for CACHE_LINE_ALIGNED
-#include <atomic>                               // for atomic
-#include <cassert>                              // for assert
-#include <cstdint>                              // for uint8_t
-#include <memory>                               // for shared_ptr
+#include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_HOT
+#include "quill/detail/misc/Common.h"     // for CACHE_LINE_ALIGNED
+#include <atomic>                         // for atomic
+#include <cassert>                        // for assert
+#include <cstdint>                        // for uint8_t
+#include <memory>                         // for shared_ptr
 #include <mutex>
 #include <vector> // for vector
 
@@ -51,7 +50,8 @@ private:
      * Creates a new context and then registers it to the context collection sharing ownership
      * of the ThreadContext
      */
-    ThreadContextWrapper(ThreadContextCollection& thread_context_collection, uint32_t default_queue_capacity);
+    ThreadContextWrapper(ThreadContextCollection& thread_context_collection,
+                         uint32_t default_queue_capacity, uint32_t initial_transit_event_buffer_capacity);
 
     /**
      * Deleted
@@ -88,8 +88,7 @@ public:
   /**
    * Type definitions
    */
-  using backend_thread_contexts_cache_t =
-    std::vector<ThreadContext*, detail::CacheAlignedAllocator<ThreadContext*>>;
+  using backend_thread_contexts_cache_t = std::vector<ThreadContext*>;
 
 public:
   /**
@@ -115,7 +114,8 @@ public:
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
-    static thread_local ThreadContextWrapper thread_context_wrapper{*this, _config.default_queue_capacity};
+    static thread_local ThreadContextWrapper thread_context_wrapper{
+      *this, _config.default_queue_capacity, _config.backend_thread_initial_transit_event_buffer_capacity};
     return thread_context_wrapper.thread_context();
   }
 
