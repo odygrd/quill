@@ -42,12 +42,6 @@ public:
   Handler& operator=(Handler const&) = delete;
 
   /**
-   * Operator new to align this object to a cache line boundary as we always create it on the heap
-   */
-  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHE_LINE_ALIGNED, i); }
-  void operator delete(void* p) { detail::aligned_free(p); }
-
-  /**
    * Set a custom formatter for this handler
    * @param format_pattern format pattern see PatternFormatter
    * @param timestamp_format defaults to "%H:%M:%S.%Qns"
@@ -129,10 +123,10 @@ private:
   std::vector<std::unique_ptr<FilterBase>> _global_filters;
   std::recursive_mutex _global_filters_lock;
 
-  /** Indicator that a new filter was added **/
-  alignas(detail::CACHE_LINE_ALIGNED) std::atomic<bool> _new_filter{false};
-
   std::atomic<quill::LogLevel> _log_level{LogLevel::TraceL3};
+
+  /** Indicator that a new filter was added **/
+  std::atomic<bool> _new_filter{false};
 };
 
 } // namespace quill

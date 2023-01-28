@@ -6,7 +6,6 @@
 #pragma once
 
 #include "quill/Config.h"
-#include "quill/detail/misc/AlignedAllocator.h" // for CacheAlignedAllocator
 #include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_HOT
 #include "quill/detail/misc/Common.h"           // for CACHE_LINE_ALIGNED
 #include <atomic>                               // for atomic
@@ -88,8 +87,7 @@ public:
   /**
    * Type definitions
    */
-  using backend_thread_contexts_cache_t =
-    std::vector<ThreadContext*, detail::CacheAlignedAllocator<ThreadContext*>>;
+  using backend_thread_contexts_cache_t = std::vector<ThreadContext*>;
 
 public:
   /**

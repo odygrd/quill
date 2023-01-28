@@ -13,7 +13,6 @@ set(HEADER_FILES
         include/quill/detail/backend/FreeListAllocator.h
         include/quill/detail/backend/StringFromTime.h
         include/quill/detail/backend/TimestampFormatter.h
-        include/quill/detail/misc/AlignedAllocator.h
         include/quill/detail/misc/Attributes.h
         include/quill/detail/misc/Common.h
         include/quill/detail/misc/FileUtilities.h
