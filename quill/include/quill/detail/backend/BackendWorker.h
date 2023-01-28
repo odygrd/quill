@@ -15,7 +15,7 @@
 #include "quill/detail/ThreadContext.h"            // for ThreadContext, Thr...
 #include "quill/detail/ThreadContextCollection.h"  // for ThreadContextColle...
 #include "quill/detail/backend/BacktraceStorage.h" // for BacktraceStorage
-#include "quill/detail/backend/FreeListAllocator.h"
+#include "quill/detail/backend/TransitEventBuffer.h"
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_HOT
 #include "quill/detail/misc/Common.h"     // for QUILL_LIKELY
 #include "quill/detail/misc/Os.h"         // for set_cpu_affinity, get_thread_id
@@ -31,7 +31,6 @@
 #include <functional>               // for greater, function
 #include <limits>                   // for numeric_limits
 #include <memory>                   // for unique_ptr, make_u...
-#include <queue>                    // for priority_queue
 #include <string>                   // for allocator, string
 #include <thread>                   // for sleep_for, thread
 #include <utility>                  // for move
@@ -95,14 +94,14 @@ private:
   QUILL_ATTRIBUTE_COLD inline void _exit();
 
   /**
-   * Populate our local priority queue
+   * Populate our local transit event buffer
    * @param cached_thread_contexts local thread context cache
    */
-  QUILL_ATTRIBUTE_HOT inline void _populate_priority_queue(
+  QUILL_ATTRIBUTE_HOT inline void _populate_transit_event_buffer(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   /**
-   * Deserialize an log message from the raw SPSC queue and emplace them to priority queue
+   * Deserialize an log message from the raw SPSC queue
    */
   QUILL_ATTRIBUTE_HOT inline void _read_queue_messages_and_decode(ThreadContext* thread_context,
                                                                   ThreadContext::SPSCQueueT& queue,
@@ -111,7 +110,8 @@ private:
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
    */
-  QUILL_ATTRIBUTE_HOT inline void _process_transit_event();
+  QUILL_ATTRIBUTE_HOT inline void _process_transit_event(
+    ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   QUILL_ATTRIBUTE_HOT inline void _write_transit_event(TransitEvent const& transit_event);
 
@@ -135,12 +135,6 @@ private:
   QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_structured_log_template(
     std::string_view fmt_template) noexcept;
 
-  /**
-   * Gets or creates a new TransitEvent
-   * @return transit event
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline TransitEvent* _get_transit_event();
-
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
@@ -153,14 +147,9 @@ private:
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
 
-  std::priority_queue<std::pair<uint64_t, TransitEvent*>, std::vector<std::pair<uint64_t, TransitEvent*>>, TransitEventComparator> _transit_events;
-
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
-  FreeListAllocator _free_list_allocator; /** A free list allocator with initial capacity, we store the TransitEvents that we pop from each SPSC queue here */
-  std::vector<TransitEvent*> _transit_event_factory; /** Stores transit events to reuse them **/
-
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
 
   /** Id of the current running process **/
@@ -233,33 +222,6 @@ void BackendWorker::run()
       // Cache this thread's id
       _backend_worker_thread_id = get_thread_id();
 
-      auto next_pow2 = [](size_t x)
-      {
-        size_t p = 1;
-        while (p < x)
-        {
-          p *= 2;
-        }
-        return p;
-      };
-
-      // Initialise memory for our free list allocator. We reserve the same size as a full
-      // size of 1 caller thread queue
-      _free_list_allocator.reserve(next_pow2(sizeof(TransitEvent) * _max_transit_events * 2));
-
-      // Also configure our allocator to request bigger chunks from os
-      _free_list_allocator.set_minimum_allocation(next_pow2(sizeof(TransitEvent) * _max_transit_events * 2));
-
-      // Reverse some TransitEvents in advance
-      _transit_event_factory.reserve(_max_transit_events * 2);
-
-      for (uint32_t i = 0; i < _max_transit_events * 2; ++i)
-      {
-        void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
-        auto* transit_event = new (transit_event_buffer) TransitEvent{};
-        _transit_event_factory.emplace_back(transit_event);
-      }
-
       // All okay, set the backend worker thread running flag
       _is_running.store(true, std::memory_order_seq_cst);
 
@@ -299,7 +261,7 @@ void BackendWorker::run()
 }
 
 /***/
-void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
+void BackendWorker::_populate_transit_event_buffer(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
   uint64_t const ts_now = _strict_log_timestamp_order
     ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
@@ -309,7 +271,7 @@ void BackendWorker::_populate_priority_queue(ThreadContextCollection::backend_th
 
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    // copy everything to a priority queue
+    // copy everything from the SPSC queue to the transit event buffer to process it later
     _read_queue_messages_and_decode(thread_context, thread_context->spsc_queue(), ts_now);
   }
 }
@@ -326,19 +288,19 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
   std::byte* read_pos = queue.prepare_read();
   uint32_t total_bytes_read{0};
 
+  detail::UnboundedTransitEventBuffer& transit_event_buffer = thread_context->transit_event_buffer();
+  size_t const queue_capacity = queue.capacity();
+
   // read max of a full queue otherwise we can get stuck here forever
-  while (read_pos && (total_bytes_read < queue.capacity()))
+  while (read_pos && (total_bytes_read < queue_capacity))
   {
     std::byte* const read_begin = read_pos;
 
     // First we want to allocate a new TransitEvent or use an existing one
     // to store the message from the queue
-    auto* transit_event = _get_transit_event();
+    TransitEvent* transit_event = transit_event_buffer.back();
     transit_event->thread_id = thread_context->thread_id();
     transit_event->thread_name = thread_context->thread_name();
-
-    // store a sequence number which is useful when the timestamps are equal
-    transit_event->seq_num = thread_context->get_seq_num();
 
     // read the header first, and take copy of the header
     read_pos = detail::align_pointer<alignof(Header), std::byte>(read_pos);
@@ -346,7 +308,7 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     read_pos += sizeof(detail::Header);
 
     // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
-    // doing the conversion here ensures that every transit that is inserted in the priority queue
+    // doing the conversion here ensures that every transit that is inserted in the transit buffer
     // below has a header timestamp of nanoseconds since epoch and makes it even possible to
     // have Logger objects using different clocks
     if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc)
@@ -371,7 +333,8 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
-        _transit_event_factory.emplace_back(transit_event);
+
+        // we return here and never call transit_event_buffer.push_back();
         return;
       }
     }
@@ -385,7 +348,8 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 
         // if the message timestamp is greater than our timestamp then we stop reading this queue
         // for now and we will continue in the next circle
-        _transit_event_factory.emplace_back(transit_event);
+
+        // we return here and never call transit_event_buffer.push_back();
         return;
       }
     }
@@ -479,7 +443,8 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
     queue.finish_read(static_cast<uint32_t>(read_pos - read_begin));
     total_bytes_read += static_cast<uint32_t>(read_pos - read_begin);
 
-    _transit_events.emplace(transit_event->header.timestamp, transit_event);
+    // commit this transit event
+    transit_event_buffer.push_back();
 
     // read again
     read_pos = queue.prepare_read();
@@ -493,9 +458,25 @@ void BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_contex
 }
 
 /***/
-void BackendWorker::_process_transit_event()
+void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
-  TransitEvent* transit_event = _transit_events.top().second;
+  // Get the lowest timestamp
+  uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
+  detail::UnboundedTransitEventBuffer* transit_buffer{nullptr};
+
+  for (ThreadContext* thread_context : cached_thread_contexts)
+  {
+    TransitEvent* te = thread_context->transit_event_buffer().front();
+    if (te && min_ts > te->header.timestamp)
+    {
+      min_ts = te->header.timestamp;
+      transit_buffer = std::addressof(thread_context->transit_event_buffer());
+    }
+  }
+
+  assert(transit_buffer && "transit_buffer can never be a nullptr");
+
+  TransitEvent* transit_event = transit_buffer->front();
 
   std::pair<MacroMetadata, detail::FormatToFn> const mf = transit_event->header.metadata_and_format_fn();
   MacroMetadata const& macro_metadata = mf.first;
@@ -551,12 +532,8 @@ void BackendWorker::_process_transit_event()
       transit_event->flush_flag->store(true);
     }
 
-    // Remove this event and move to the next. We also need to remove that event from the
-    // free list allocator
-    _transit_events.pop();
-
-    // we will reuse this transit event later, we do not delete it
-    _transit_event_factory.emplace_back(transit_event);
+    // Remove this event and move to the next.
+    transit_buffer->pop_front();
 
     // Since after processing an event we never force flush but leave it up to the OS instead,
     // set this to true to keep track of unflushed messages we have
@@ -568,20 +545,14 @@ void BackendWorker::_process_transit_event()
     _error_handler(e.what());
 
     // Remove this event and move to the next
-    _transit_events.pop();
-
-    // we will reuse this transit event later, we do not delete it
-    _transit_event_factory.emplace_back(transit_event);
+    transit_buffer->pop_front();
   }
   QUILL_CATCH_ALL()
   {
     _error_handler(std::string{"Caught unhandled exception."});
 
     // Remove this event and move to the next
-    _transit_events.pop();
-
-    // we will reuse this transit event later, we do not delete it
-    _transit_event_factory.emplace_back(transit_event);
+    transit_buffer->pop_front();
   } // clang-format on
 #endif
 }
@@ -638,24 +609,29 @@ void BackendWorker::_main_loop()
   ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
-  _populate_priority_queue(cached_thread_contexts);
+  _populate_transit_event_buffer(cached_thread_contexts);
 
-  if (QUILL_LIKELY(!_transit_events.empty()))
+  size_t total_events{0};
+  for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    // the queue is not empty,
-    if (_transit_events.size() >= _max_transit_events)
+    total_events += thread_context->transit_event_buffer().size();
+  }
+
+  if (QUILL_LIKELY(total_events != 0))
+  {
+    // there are buffered events to process
+    if (total_events >= _max_transit_events)
     {
       // process half transit events
       for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
       {
-        _process_transit_event();
+        _process_transit_event(cached_thread_contexts);
       }
     }
     else
     {
-      // process a single transit event, then populate priority queue again. This gives priority
-      // to emptying the spsc queue from the hot threads as soon as possible
-      _process_transit_event();
+      // process a single transit event, then give priority to the hot thread spsc queue again
+      _process_transit_event(cached_thread_contexts);
     }
   }
   else
@@ -669,13 +645,7 @@ void BackendWorker::_main_loop()
     // check for any dropped messages by the threads
     _check_dropped_messages(cached_thread_contexts);
 
-    // Since all the queues are empty we can also reset the sequence number
-    for (auto const& th : cached_thread_contexts)
-    {
-      th->reset_seq_num();
-    }
-
-    // We can also clear any invalidated or empty thread contexts now that our priority queue was empty
+    // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
 
     // Sleep for the specified duration as we found no events in any of the queues to process
@@ -692,24 +662,29 @@ void BackendWorker::_exit()
 
   while (true)
   {
-    _populate_priority_queue(cached_thread_contexts);
+    _populate_transit_event_buffer(cached_thread_contexts);
 
-    if (!_transit_events.empty())
+    size_t total_events{0};
+    for (ThreadContext* thread_context : cached_thread_contexts)
     {
-      // the queue is not empty,
-      if (_transit_events.size() >= _max_transit_events)
+      total_events += thread_context->transit_event_buffer().size();
+    }
+
+    if (total_events != 0)
+    {
+      // there are event sto process
+      if (total_events >= _max_transit_events)
       {
         // process half transit events
         for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
         {
-          _process_transit_event();
+          _process_transit_event(cached_thread_contexts);
         }
       }
       else
       {
-        // process a single transit event, then populate priority queue again. This gives priority
-        // to emptying the spsc queue from the hot threads as soon as possible
-        _process_transit_event();
+        // process a single transit event, then give priority to the hot thread spsc queue again
+        _process_transit_event(cached_thread_contexts);
       }
     }
     else
@@ -733,29 +708,5 @@ void BackendWorker::_exit()
       }
     }
   }
-
-  // Finally clear the transit event factor memory
-  for (TransitEvent* transit_event : _transit_event_factory)
-  {
-    transit_event->~TransitEvent();
-    _free_list_allocator.deallocate(transit_event);
-  }
-}
-
-/***/
-TransitEvent* BackendWorker::_get_transit_event()
-{
-  if (_transit_event_factory.empty())
-  {
-    // we do not have anything to reuse, we will create a new one
-    void* transit_event_buffer = _free_list_allocator.allocate(sizeof(TransitEvent));
-    auto* transit_event = new (transit_event_buffer) TransitEvent{};
-    return transit_event;
-  }
-
-  auto* transit_event = _transit_event_factory.back();
-  _transit_event_factory.pop_back();
-  transit_event->flush_flag = nullptr;
-  return transit_event;
 }
 } // namespace quill::detail

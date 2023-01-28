@@ -20,12 +20,12 @@ struct TransitEvent
   TransitEvent& operator=(TransitEvent const& other) = delete;
 
   TransitEvent(TransitEvent&& other) noexcept
-    : structured_keys(std::move(other.structured_keys)),
-      structured_values(std::move(other.structured_values)),
+    : header(other.header),
       thread_id(std::move(other.thread_id)),
       thread_name(std::move(other.thread_name)),
-      header(other.header),
       formatted_msg(std::move(other.formatted_msg)),
+      structured_keys(std::move(other.structured_keys)),
+      structured_values(std::move(other.structured_values)),
       flush_flag(other.flush_flag)
   {
   }
@@ -46,31 +46,24 @@ struct TransitEvent
     return *this;
   }
 
+  void reset()
+  {
+    structured_keys.clear();
+    structured_values.clear();
+    formatted_msg.clear();
+    flush_flag = nullptr;
+  }
+
   /**
    * Need to take a copy of thread_id and thread_name here as the thread that logged can terminate
    * before we flush the backtrace.
    */
-  std::vector<std::string> structured_keys;
-  std::vector<std::string> structured_values;
+  detail::Header header;
   std::string thread_id;
   std::string thread_name;
-  detail::Header header;
-  fmt_buffer_t formatted_msg;             /** buffer for message **/
+  fmt_buffer_t formatted_msg; /** buffer for message **/
+  std::vector<std::string> structured_keys;
+  std::vector<std::string> structured_values;
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
-  uint32_t seq_num{0};                    /**< used as seq num when timestamps are equal */
-};
-
-class TransitEventComparator
-{
-public:
-  bool operator()(std::pair<uint64_t, TransitEvent*> const& lhs, std::pair<uint64_t, TransitEvent*> const& rhs)
-  {
-    if (lhs.first == rhs.first)
-    {
-      // when the timestamps are equal compare the seq_num instead
-      return lhs.second->seq_num > rhs.second->seq_num;
-    }
-    return lhs.first > rhs.first;
-  }
 };
 } // namespace quill
