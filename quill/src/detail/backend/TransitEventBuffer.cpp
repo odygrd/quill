@@ -26,7 +26,7 @@ TransitEvent* BoundedTransitEventBuffer::front() noexcept
     return nullptr;
   }
 
-  return &_storage[_reader_pos & _mask];
+  return &_storage[static_cast<uint32_t>(_reader_pos & _mask)];
 };
 
 /***/
@@ -41,8 +41,8 @@ TransitEvent* BoundedTransitEventBuffer::back() noexcept
     return nullptr;
   }
 
-  _storage[_writer_pos & _mask].reset();
-  return &_storage[_writer_pos & _mask];
+  _storage[static_cast<uint32_t>(_writer_pos & _mask)].reset();
+  return &_storage[static_cast<uint32_t>(_writer_pos & _mask)];
 }
 
 void BoundedTransitEventBuffer::push_back() noexcept { _writer_pos += 1; }
