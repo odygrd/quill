@@ -39,7 +39,10 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContext(uint32_t default_queue_capacity) : _spsc_queue(default_queue_capacity) {}
+  explicit ThreadContext(uint32_t default_queue_capacity, uint32_t initial_transit_event_buffer_capacity)
+    : _spsc_queue(default_queue_capacity), _transit_event_buffer(initial_transit_event_buffer_capacity)
+  {
+  }
 
   /**
    * Deleted
@@ -132,7 +135,7 @@ public:
 
 private:
   SPSCQueueT _spsc_queue; /** queue for this thread, events are pushed here */
-  UnboundedTransitEventBuffer _transit_event_buffer{64};           /** backend thread buffer */
+  UnboundedTransitEventBuffer _transit_event_buffer;               /** backend thread buffer */
   std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                    /**< cache this thread name */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */

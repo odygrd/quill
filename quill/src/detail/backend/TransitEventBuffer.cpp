@@ -60,8 +60,8 @@ uint32_t BoundedTransitEventBuffer::capacity() const noexcept
 }
 
 /***/
-UnboundedTransitEventBuffer::UnboundedTransitEventBuffer(uint32_t initial_bounded_queue_capacity)
-  : _writer(new Node(initial_bounded_queue_capacity)), _reader(_writer)
+UnboundedTransitEventBuffer::UnboundedTransitEventBuffer(uint32_t initial_transit_buffer_capacity)
+  : _writer(new Node(initial_transit_buffer_capacity)), _reader(_writer)
 {
 }
 

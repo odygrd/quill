@@ -50,7 +50,7 @@ public:
     BoundedTransitEventBuffer transit_buffer;
   };
 
-  explicit UnboundedTransitEventBuffer(uint32_t initial_bounded_queue_capacity);
+  explicit UnboundedTransitEventBuffer(uint32_t initial_transit_buffer_capacity);
   UnboundedTransitEventBuffer(UnboundedTransitEventBuffer const&) = delete;
   UnboundedTransitEventBuffer& operator=(UnboundedTransitEventBuffer const&) = delete;
   ~UnboundedTransitEventBuffer();

@@ -45,6 +45,15 @@ struct Config
   size_t backend_thread_max_transit_events = 800;
 
   /**
+   * The backend worker thread pops all the SPSC queues log messages and buffers them to a local
+   * ring buffer queue as transit events. The transit_event_buffer is unbounded. The initial
+   * capacity of the buffer is customisable. Each newly spawned hot thread will have his own
+   * transit_event_buffer. This capacity is not in bytes but in items.
+   * It must be a power of two.
+   */
+  uint32_t backend_thread_initial_transit_event_buffer_capacity = 64;
+
+  /**
    * The backend worker thread iterates all the active SPSC queues in order and pops all the messages
    * from each queue. Then it sorts them by timestamp and logs them.
    *
