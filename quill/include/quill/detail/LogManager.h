@@ -146,7 +146,7 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::Flush, false};
+          "", "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::Flush, false};
       }
     } anonymous_log_message_info;
 

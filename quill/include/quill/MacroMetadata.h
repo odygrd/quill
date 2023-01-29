@@ -28,11 +28,13 @@ public:
     Flush
   };
 
-  constexpr MacroMetadata(const char* lineno, std::string_view pathname, std::string_view func,
-                          std::string_view message_format, LogLevel level, Event event, bool is_structured_log_template)
+  constexpr MacroMetadata(std::string_view lineno, std::string_view pathname, std::string_view fileline,
+                          std::string_view func, std::string_view message_format, LogLevel level, 
+      Event event, bool is_structured_log_template)
     : _func(func),
       _pathname(pathname),
       _filename(_extract_source_file_name(_pathname)),
+      _fileline(_extract_source_file_name(fileline)),
       _message_format(message_format),
       _lineno(lineno),
       _level(level),
@@ -42,11 +44,13 @@ public:
   }
 
 #if defined(_WIN32)
-  constexpr MacroMetadata(const char* lineno, std::string_view pathname, std::string_view func,
-                          std::wstring_view message_format, LogLevel level, Event event, bool is_structured_log_template)
+  constexpr MacroMetadata(std::string_view lineno, std::string_view pathname, std::string_view fileline,
+                          std::string_view func, std::wstring_view message_format, LogLevel level, 
+                          Event event, bool is_structured_log_template)
     : _func(func),
       _pathname(pathname),
       _filename(_extract_source_file_name(_pathname)),
+      _fileline(_extract_source_file_name(fileline)),
       _lineno(lineno),
       _level(level),
       _event(event),
@@ -81,6 +85,14 @@ public:
     return _filename;
   }
 
+    /**
+   * @return file:line
+   */
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view fileline() const noexcept
+  {
+    return _fileline;
+
+  }
   /**
    * @return The user provided format
    */
@@ -163,6 +175,7 @@ private:
   std::string_view _func;
   std::string_view _pathname;
   std::string_view _filename;
+  std::string_view _fileline;
   std::string_view _message_format;
   std::string_view _lineno;
   LogLevel _level{LogLevel::None};

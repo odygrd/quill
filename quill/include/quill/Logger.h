@@ -202,7 +202,7 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          "", "", "", "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace, false};
+          "", "", "", "", "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace, false};
       }
     } anonymous_log_message_info;
 
@@ -224,7 +224,8 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace, false};
+          "", "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace,
+          false};
       }
     } anonymous_log_message_info;
 

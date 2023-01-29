@@ -24,6 +24,7 @@
       {                                                                                            \
         return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__),                                     \
                                     __FILE__,                                                      \
+                                    __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     "n/a",                                                         \
                                     fmt,                                                           \
                                     log_statement_level,                                           \
@@ -48,6 +49,7 @@
       {                                                                                            \
         return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__),                                     \
                                     __FILE__,                                                      \
+                                    __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     function_name,                                                 \
                                     fmt,                                                           \
                                     log_statement_level,                                           \
@@ -72,6 +74,7 @@
       {                                                                                            \
         return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__),                                     \
                                     __FILE__,                                                      \
+                                    __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     function_name,                                                 \
                                     fmt,                                                           \
                                     quill::LogLevel::Backtrace,                                    \

@@ -134,7 +134,7 @@ private:
    *
    * @throws on invalid format string
    */
-  void _set_pattern(std::string const& format_pattern);
+  void _set_pattern(std::string format_pattern);
 
   /***/
   template <size_t I, typename T>

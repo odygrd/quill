@@ -152,8 +152,10 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
 } // namespace
 
 /***/
-void PatternFormatter::_set_pattern(std::string const& format_pattern)
+void PatternFormatter::_set_pattern(std::string format_pattern)
 {
+  format_pattern += "\n";
+
   // the order we pass the arguments here must match with the order of Attribute enum
   using namespace fmt::literals;
   std::tie(_format, _order_index) = _generate_fmt_format_string(
@@ -190,8 +192,6 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_vi
   // clear out existing buffer
   _formatted_log_message.clear();
 
-  std::string const fileline = fmt::format("{}:{}", macro_metadata.filename(), macro_metadata.lineno());
-
   _set_arg_val<Attribute::AsciiTime>(_timestamp_formatter.format_timestamp(timestamp));
   _set_arg_val<Attribute::FileName>(macro_metadata.filename());
   _set_arg_val<Attribute::FunctionName>(macro_metadata.func());
@@ -203,14 +203,11 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_vi
   _set_arg_val<Attribute::Thread>(thread_id);
   _set_arg_val<Attribute::ThreadName>(thread_name);
   _set_arg_val<Attribute::Process>(process_id);
-  _set_arg_val<Attribute::FileLine>(std::string_view{fileline.data(), fileline.size()});
+  _set_arg_val<Attribute::FileLine>(macro_metadata.fileline());
   _set_arg_val<Attribute::Message>(std::string_view{log_msg.begin(), log_msg.size()});
 
   fmt::vformat_to(std::back_inserter(_formatted_log_message), _format,
                   fmt::basic_format_args(_args.data(), static_cast<int>(_args.size())));
-
-  // Append a new line
-  _formatted_log_message.push_back('\n');
 }
 
 /***/
