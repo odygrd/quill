@@ -33,7 +33,14 @@ enum class LogLevel : uint8_t
  * @param log_level LogLevel
  * @return the corresponding string value
  */
-QUILL_NODISCARD std::string_view to_string(LogLevel log_level);
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view loglevel_to_string(LogLevel log_level);
+
+/**
+ * Converts a LogLevel enum to string id
+ * @param log_level LogLevel
+ * @return the corresponding string id
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view loglevel_to_string_id(LogLevel log_level);
 
 /**
  * Converts a string to a LogLevel enum value
@@ -41,6 +48,6 @@ QUILL_NODISCARD std::string_view to_string(LogLevel log_level);
  * "tracel3", "tracel2", "tracel1", "debug", "info", "warning", "error", "backtrace", "none"
  * @return the corresponding LogLevel enum value
  */
-QUILL_NODISCARD LogLevel from_string(std::string log_level);
+QUILL_NODISCARD LogLevel loglevel_from_string(std::string log_level);
 
 } // namespace quill

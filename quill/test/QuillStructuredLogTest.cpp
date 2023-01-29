@@ -76,7 +76,7 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
 
       std::string expected_json_string = std::string{"\"logger\": \""} + expected_logger_name +
         std::string{
-          "\", \"level\": \"Info\", \"message\": \"Hello from thread {thread_index} this is "
+          "\", \"level\": \"INFO\", \"message\": \"Hello from thread {thread_index} this is "
           "message {message_num}\", "} +
         std::string{"\"thread_index\": \""} + std::to_string(i) +
         std::string{"\", \"message_num\": \""} + std::to_string(j) + std::string{"\""};
@@ -85,7 +85,7 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
 
       // check standard log
       // for each thread
-      std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
+      std::string expected_string = expected_logger_name + " Hello from thread " +
         std::to_string(i) + " this is message " + std::to_string(j);
 
       REQUIRE(quill::testing::file_contains(file_contents_s, expected_string));

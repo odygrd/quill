@@ -11,11 +11,11 @@
 namespace quill
 {
 /***/
-std::string_view to_string(LogLevel log_level)
+std::string_view loglevel_to_string(LogLevel log_level)
 {
   static constexpr std::array<std::string_view, 10> log_levels_map = {
-    {"TraceL3", "TraceL2", "TraceL1", "Debug", "Info", "Warning", "Error", "Critical", "Backtrace",
-     "None"}};
+    {"TRACE_L3", "TRACE_L2", "TRACE_L1", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL",
+     "BACKTRACE", "NONE"}};
 
   using log_lvl_t = std::underlying_type<LogLevel>::type;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
@@ -32,7 +32,27 @@ std::string_view to_string(LogLevel log_level)
 }
 
 /***/
-LogLevel from_string(std::string log_level)
+std::string_view loglevel_to_string_id(LogLevel log_level)
+{
+  static constexpr std::array<std::string_view, 10> log_levels_map = {
+    {"T3", "T2", "T1", "D", "I", "W", "E", "C", "BT", "N"}};
+
+  using log_lvl_t = std::underlying_type<LogLevel>::type;
+  auto const log_lvl = static_cast<log_lvl_t>(log_level);
+
+  if (QUILL_UNLIKELY(log_lvl > (log_levels_map.size() - 1)))
+  {
+    std::ostringstream error_msg;
+    error_msg << "Invalid log_level value "
+              << "\"" << log_lvl << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+
+  return log_levels_map[log_lvl];
+}
+
+/***/
+LogLevel loglevel_from_string(std::string log_level)
 {
   static std::unordered_map<std::string, LogLevel> const log_levels_map = {
     {"tracel3", LogLevel::TraceL3},   {"trace_l3", LogLevel::TraceL3},
@@ -59,4 +79,5 @@ LogLevel from_string(std::string log_level)
 
   return search->second;
 }
+
 } // namespace quill

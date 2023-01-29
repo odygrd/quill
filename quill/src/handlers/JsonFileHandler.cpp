@@ -15,8 +15,7 @@ void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tr
     R"({{ "timestamp": "{}", "file": "{}", "line": "{}", "thread_id": "{}", "logger": "{}", "level": "{}", "message": "{}")",
     _formatter->format_timestamp(std::chrono::nanoseconds{log_event.header.timestamp}),
     macro_metadata.filename(), macro_metadata.lineno(), log_event.thread_id,
-    log_event.header.logger_details->name(), quill::to_string(macro_metadata.level()),
-    macro_metadata.message_format()));
+    log_event.header.logger_details->name(), macro_metadata.level_as_str(), macro_metadata.message_format()));
 
   for (size_t i = 0; i < log_event.structured_keys.size(); ++i)
   {

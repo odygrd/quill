@@ -34,7 +34,7 @@ TEST_CASE("construct")
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Info);
     REQUIRE_STREQ(log_line_info.lineno().data(), "25");
     REQUIRE_STREQ(log_line_info.filename().data(), "MacroMetadataTest.cpp");
-    REQUIRE_STREQ(log_line_info.level_as_str().data(), "INFO     ");
+    REQUIRE_STREQ(log_line_info.level_as_str().data(), "INFO");
   }
 }
 

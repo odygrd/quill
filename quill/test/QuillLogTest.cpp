@@ -64,7 +64,7 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
     {
       std::string expected_logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
 
-      std::string expected_string = expected_logger_name + " - " + "Hello from thread " +
+      std::string expected_string = expected_logger_name + " Hello from thread " +
         std::to_string(i) + " this is message " + std::to_string(j);
 
       REQUIRE(quill::testing::file_contains(file_contents, expected_string));
@@ -156,7 +156,7 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
   static char const* base_filename = "rot_logger.log";
   static constexpr char const* rotated_filename_1 = "rot_logger.1.log";
   static constexpr char const* rotated_filename_2 = "rot_logger.2.log";
-  static constexpr size_t max_file_size = 1024;
+  static constexpr size_t max_file_size = 900;
 
   // Start the logging backend thread
   quill::start();
@@ -353,7 +353,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:330         LOG_INFO      root         - Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:330         LOG_INFO      root         Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
