@@ -52,8 +52,9 @@
 -  [Features](#features)
 -  [Performance](#performance)
 -  [Basic Usage](#basic-usage)
--  [CMake Integration](#cmake-integration)
--  [License](#license)
+- [CMake Integration](#cmake-integration)
+- [Design](#design)
+- [License](#license)
 
 |  homebrew             |  vcpkg                 |  conan            |
 |:---------------------:|:----------------------:|:-----------------:|
@@ -330,6 +331,10 @@ target_link_libraries(my_project PRIVATE quill::quill)
 ##### main.cpp
 
 See [basic usage](#basic-usage)
+
+## Design
+
+![design.drawio.png](docs%2Fdesign.drawio.png)
 
 ## License
 
