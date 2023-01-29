@@ -72,6 +72,14 @@ Number of Backend Threads
 
 Quill focus is on low latency and not high throughput. Therefore, there is only one backend thread that will process all logs.
 
+Latency of the first log message
+====================================
+
+A queue and an internal buffer will be allocated on the first log message of each thread. If the latency of the first
+log message is important it is recommended to call :cpp:func:`quill::preallocate()`
+
+.. doxygenfunction:: quill::preallocate()
+
 Configuration
 ======================
 

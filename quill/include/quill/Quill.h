@@ -37,9 +37,9 @@ class Handler;
 class Logger;
 
 /**
- * Pre-allocates the thread-local data structures needed for the current thread.
- * Walks and pre-fetches all allocated memory
- * Although optional, it is recommended to invoke this function during the thread initialisation phase before the first log message.
+ * Pre-allocates the thread-local data needed for the current thread.
+ * Although optional, it is recommended to invoke this function during the thread initialisation
+ * phase before the first log message.
  */
 QUILL_ATTRIBUTE_COLD void preallocate();
 
