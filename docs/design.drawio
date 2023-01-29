@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2023-01-29T14:56:51.153Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.69" etag="SKRApFD9eY0wms16jqf0" version="20.8.13" type="github">
+<mxfile host="app.diagrams.net" modified="2023-01-29T15:13:55.661Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.69" etag="aKfgq7z-3RxgHOwli1lr" version="20.8.13" type="github">
   <diagram name="Page-1" id="kLzpoFuRwS6fnHKDuZMH">
     <mxGraphModel dx="2963" dy="1640" grid="1" gridSize="12" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="1200" math="0" shadow="0">
       <root>
@@ -21,9 +21,6 @@
         </mxCell>
         <mxCell id="BmINEKKr7EmUC2mtGokD-10" value="thread local context&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=26.67;indent=5;labelPosition=center;align=center;" parent="1" vertex="1">
           <mxGeometry x="108" y="246" width="280" height="190" as="geometry" />
-        </mxCell>
-        <mxCell id="BmINEKKr7EmUC2mtGokD-68" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;dashPattern=12 12;strokeColor=default;" parent="1" source="BmINEKKr7EmUC2mtGokD-14" target="BmINEKKr7EmUC2mtGokD-10" edge="1">
-          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="BmINEKKr7EmUC2mtGokD-14" value="SPSC queue&lt;br&gt;(bounded or unbounded)" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.donut;dx=25;fillColor=#fff2cc;strokeColor=#000000;container=0;perimeterSpacing=1;labelPosition=center;align=center;whiteSpace=wrap;" parent="1" vertex="1">
           <mxGeometry x="268" y="291" width="90" height="90" as="geometry" />
