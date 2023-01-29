@@ -334,7 +334,7 @@ See [basic usage](#basic-usage)
 
 ## Design
 
-![design.drawio.png](docs%2Fdesign.drawio.png)
+![design.jpg](docs%2Fdesign.jpg)
 
 ## License
 
