@@ -69,8 +69,8 @@ public:
   {
     // Set the default pattern
     _set_pattern(
-      "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) "
-      "%(logger_name:<12) - %(message)");
+      "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) "
+      "%(logger_name:<12) %(message)");
   }
 
   /**

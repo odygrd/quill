@@ -60,6 +60,9 @@
 - Added the option `do_fsync` which also calls `fsync()` during the handler flush to all file handlers.
 - Improved performance and throughput of the backend logging thread by approximately ~15%
 - Replace `backend_thread_sleep_duration` with `backend_thread_yield` in `Config.h`
+- Remove trailing spaces in log levels strings. ([#237](https://github.com/odygrd/quill/pull/237))
+- The default log pattern has changed
+  to `"%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) %(logger_name:<12) %(message)")`
 - Added file event notifiers, to get callbacks from quill before/after log file has been opened or
   closed. ([#193](https://github.com/odygrd/quill/pull/193))
   This is useful for cleanup procedures or for adding something to the start/end of the log files.
