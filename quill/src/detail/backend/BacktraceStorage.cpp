@@ -22,15 +22,30 @@ void BacktraceStorage::store(TransitEvent transit_event)
   // we found a stored vector for this logger name and we have to update it
   StoredRecordInfo& stored_object_info = stored_records_it->second;
 
+  std::string tn = std::string{transit_event.thread_name};
+  std::string ti = std::string{transit_event.thread_id};
+
   if (stored_object_info.stored_records_collection.size() < stored_object_info.capacity)
   {
     // We are still growing the vector to max capacity
-    stored_object_info.stored_records_collection.emplace_back(std::move(transit_event));
+    auto& emplaced =
+      stored_object_info.stored_records_collection.emplace_back(tn, ti, std::move(transit_event));
+
+    // we want to point the transit event objects to ours because they can point to invalid memory
+    // if the thread is destructed
+    emplaced.transit_event.thread_name = emplaced.thread_name.data();
+    emplaced.transit_event.thread_id = emplaced.thread_id.data();
   }
   else
   {
     // Store the object in the vector
-    stored_object_info.stored_records_collection[stored_object_info.index] = std::move(transit_event);
+    StoredTransitEvent& ste = stored_object_info.stored_records_collection[stored_object_info.index];
+    ste = StoredTransitEvent{tn, ti, std::move(transit_event)};
+
+    // we want to point the transit event objects to ours because they can point to invalid memory
+    // if the thread is destructed
+    ste.transit_event.thread_name = ste.thread_name.data();
+    ste.transit_event.thread_id = ste.thread_id.data();
 
     // Update the index wrapping around the vector capacity
     if (stored_object_info.index < stored_object_info.capacity - 1)
@@ -63,7 +78,7 @@ void BacktraceStorage::process(std::string const& logger_name,
   for (uint32_t i = 0; i < stored_record_collection.size(); ++i)
   {
     // Give to the user callback the thread id and the RecordBase pointer
-    callback(stored_record_collection[index]);
+    callback(stored_record_collection[index].transit_event);
 
     // We wrap around to iterate all messages
     if (index < stored_record_collection.size() - 1)

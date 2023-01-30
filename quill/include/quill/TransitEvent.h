@@ -10,8 +10,9 @@
 #include "quill/detail/misc/Common.h"
 
 #include <atomic>
-#include <vector>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace quill
 {
@@ -29,8 +30,7 @@ struct TransitEvent
       thread_id(other.thread_id),
       thread_name(other.thread_name),
       formatted_msg(std::move(other.formatted_msg)),
-      structured_keys(std::move(other.structured_keys)),
-      structured_values(std::move(other.structured_values)),
+      structured_kvs(std::move(other.structured_kvs)),
       flush_flag(other.flush_flag)
   {
   }
@@ -39,8 +39,7 @@ struct TransitEvent
   {
     if (this != &other)
     {
-      structured_keys = std::move(other.structured_keys);
-      structured_values = std::move(other.structured_values);
+      structured_kvs = std::move(other.structured_kvs);
       thread_id = other.thread_id;
       thread_name = other.thread_name;
       header = other.header;
@@ -59,8 +58,7 @@ struct TransitEvent
   char const* thread_id;
   char const* thread_name;
   fmt_buffer_t formatted_msg; /** buffer for message **/
-  std::vector<std::string> structured_keys;
-  std::vector<std::string> structured_values;
+  std::vector<std::pair<std::string, std::string>> structured_kvs;
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
 } // namespace quill

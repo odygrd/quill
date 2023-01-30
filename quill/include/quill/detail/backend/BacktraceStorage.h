@@ -65,7 +65,25 @@ public:
   void clear(std::string const& logger_name);
 
 private:
-  using StoredRecordsCollection = std::vector<TransitEvent>;
+  /**
+   * We use this to take o copy of some objects that are out of spoce when a thread finishes but
+   * the transit events are still in the buffer
+   */
+  struct StoredTransitEvent
+  {
+    StoredTransitEvent(std::string thread_name, std::string thread_id, TransitEvent transit_event)
+      : thread_name(std::move(thread_name)),
+        thread_id(std::move(thread_id)),
+        transit_event(std::move(transit_event))
+    {
+    }
+
+    std::string thread_name;
+    std::string thread_id;
+    TransitEvent transit_event;
+  };
+
+  using StoredRecordsCollection = std::vector<StoredTransitEvent>;
 
   /**
    * We map each logger name to this type
