@@ -1,5 +1,6 @@
 #include "quill/Quill.h"
 #include <chrono>
+#include <iostream>
 
 static constexpr size_t total_iterations = 4'000'000;
 
