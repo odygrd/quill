@@ -55,7 +55,7 @@
 
 **Improvements**
 
-- Improved performance and throughput of the backend logging thread by approximately ~30%
+- Improved performance and throughput of the backend logging thread by approximately ~15%
 - Add missing `quill::json_file_handler(...)` that creates a `JsonFileHandler` in `Quill.h`.
 - Simplified and refactored the logic in `BoundedQueue`.
 - Added the option `do_fsync` which also calls `fsync()` during the handler flush to all file handlers.
