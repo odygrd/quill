@@ -19,7 +19,8 @@ namespace quill
 
 struct TransitEvent
 {
-  TransitEvent() = default;
+  TransitEvent() { formatted_msg.reserve(64); }
+
   ~TransitEvent() = default;
 
   TransitEvent(TransitEvent const& other) = delete;

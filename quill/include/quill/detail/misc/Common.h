@@ -143,7 +143,7 @@ constexpr bool detect_structured_log_template(std::wstring_view)
 }
 } // namespace detail
 
-using transit_event_fmt_buffer_t = fmt::basic_memory_buffer<char, 256>;
+using transit_event_fmt_buffer_t = fmt::basic_memory_buffer<char, 1>;
 using fmt_buffer_t = fmt::basic_memory_buffer<char, 2048>;
 
 /**

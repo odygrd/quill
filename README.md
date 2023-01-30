@@ -224,7 +224,7 @@ found [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_thro
 Measured on the same system as the latency benchmarks above for 4 million messages produces a log file of 476 mb
 
 ```
-1.56 million msgs/sec average, total time elapsed 2558 ms, total log messages 4 million
+1.76 million msgs/sec average, total time elapsed 2266 ms, total log messages 4 million
 ```
 
 ## Basic usage
