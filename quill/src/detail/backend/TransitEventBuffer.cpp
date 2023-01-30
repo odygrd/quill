@@ -27,7 +27,7 @@ TransitEvent* BoundedTransitEventBuffer::front() noexcept
   }
 
   return &_storage[static_cast<uint32_t>(_reader_pos & _mask)];
-};
+}
 
 /***/
 void BoundedTransitEventBuffer::pop_front() noexcept { _reader_pos += 1; }

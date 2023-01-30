@@ -414,9 +414,9 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_co
               _process_structured_log_template(macro_metadata.message_format());
 
             // insert the results
-            auto [it, inserted] = _slog_templates.try_emplace(
+            auto res = _slog_templates.try_emplace(
               _structured_fmt_str, std::make_pair(fmt_str, std::move(structured_keys)));
-            s_keys = &(it->second.second);
+            s_keys = &(res.first->second.second);
 
             read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
           }
