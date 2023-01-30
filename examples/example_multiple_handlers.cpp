@@ -1,5 +1,6 @@
 #include "quill/Quill.h"
 
+#include <iostream>
 #include <string>
 #include <vector>
 
