@@ -20,9 +20,14 @@ TEST_CASE("default_pattern_formatter")
   std::chrono::nanoseconds ts{1579815761000023021};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {} formatter {}", LogLevel::Info,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {} formatter {}",
+                              LogLevel::Info,
+                              MacroMetadata::Event::Log,
+                              false};
 
   // Format to a buffer
   fmt_buffer_t mbuff;
@@ -37,7 +42,7 @@ TEST_CASE("default_pattern_formatter")
 
   // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
   std::string const expected_string =
-    "[31341] PatternFormatterTest.cpp:24  LOG_INFO      test_logger  This the pattern formatter "
+    "[31341] PatternFormatterTest.cpp:25  LOG_INFO      test_logger  This the pattern formatter "
     "1234\n";
   auto const found_expected = formatted_string.find(expected_string);
   REQUIRE(found_expected != std::string::npos);
@@ -51,9 +56,14 @@ TEST_CASE("custom_pattern_message_only")
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   // Format to a buffer
   fmt_buffer_t mbuff;
@@ -83,9 +93,14 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   // Format to a buffer
   fmt_buffer_t mbuff;
@@ -99,7 +114,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:87 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:96 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_7]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -116,9 +131,14 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   std::chrono::nanoseconds ts{1579815761020123000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   // Format to a buffer
   fmt_buffer_t mbuff;
@@ -132,7 +152,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:120 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:134 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_9]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -149,9 +169,14 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   std::chrono::nanoseconds ts{1579815761099000000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   // Format to a buffer
   fmt_buffer_t mbuff;
@@ -165,7 +190,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:153 LOG_DEBUG test_logger This "
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:172 LOG_DEBUG test_logger This "
     "the 1234 formatter pattern [DOCTEST_ANON_FUNC_11]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -182,9 +207,14 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   // Format to a buffer
   fmt_buffer_t mbuff;
@@ -198,7 +228,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:186 LOG_DEBUG test_logger This the "
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:210 LOG_DEBUG test_logger This the "
     "1234 formatter pattern [DOCTEST_ANON_FUNC_13]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -216,9 +246,14 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   for (size_t i = 0; i < 5; ++i)
   {
@@ -234,7 +269,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:220 "
+      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:249 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_15]\n";
 
     REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -253,9 +288,14 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
   std::chrono::nanoseconds ts{1579815761099220000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   for (size_t i = 0; i < 5; ++i)
   {
@@ -271,7 +311,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
     std::string const formatted_string = fmt::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:257 "
+      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:291 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_17]\n";
 
     REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -286,7 +326,7 @@ TEST_CASE("invalid_pattern")
   REQUIRE_THROWS_AS(
     PatternFormatter("%(ascii_time [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) "
                      "%(message) [%(function_name)]",
-      "%H:%M:%S.%Qns", Timezone::GmtTime),
+                     "%H:%M:%S.%Qns", Timezone::GmtTime),
     quill::QuillError);
 
   // invalid attribute %(invalid)
@@ -309,9 +349,14 @@ TEST_CASE("custom_pattern")
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   // Format to a buffer
   fmt_buffer_t mbuff;
@@ -325,7 +370,7 @@ TEST_CASE("custom_pattern")
   std::string const formatted_string = fmt::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:313 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:352 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -343,9 +388,14 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
   std::chrono::nanoseconds ts{1579815761000023000};
   char const* thread_id = "31341";
   std::string const logger_name = "test_logger";
-  MacroMetadata log_line_info{
-    QUILL_STRINGIFY(__LINE__), __FILE__, __func__, "This the {1} formatter {0}", LogLevel::Debug,
-    MacroMetadata::Event::Log, false};
+  MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                              __FILE__,
+                              __FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                              __func__,
+                              "This the {1} formatter {0}",
+                              LogLevel::Debug,
+                              MacroMetadata::Event::Log,
+                              false};
 
   // Format to a buffer
   fmt_buffer_t mbuff;
