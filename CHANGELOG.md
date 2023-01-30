@@ -55,10 +55,10 @@
 
 **Improvements**
 
+- Improved performance and throughput of the backend logging thread by approximately ~25%
 - Add missing `quill::json_file_handler(...)` that creates a `JsonFileHandler` in `Quill.h`.
 - Simplified and refactored the logic in `BoundedQueue`.
 - Added the option `do_fsync` which also calls `fsync()` during the handler flush to all file handlers.
-- Improved performance and throughput of the backend logging thread by approximately ~20%
 - Replace `backend_thread_sleep_duration` with `backend_thread_yield` in `Config.h`
 - Remove trailing spaces in log levels strings. ([#237](https://github.com/odygrd/quill/pull/237))
 - The default log pattern has changed

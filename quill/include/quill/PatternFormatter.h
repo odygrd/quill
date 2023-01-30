@@ -14,16 +14,15 @@
 #include "quill/detail/misc/Common.h"                // for Timezone, Timezon...
 #include "quill/detail/misc/Utilities.h"             // for strlength
 #include <array>                                     // for array
-#include <chrono>                                    // for nanoseconds
-#include <cstddef>                                   // for size_t
-#include <functional>                                // for function
-#include <memory>                                    // for unique_ptr, make_...
-#include <string>                                    // for string
-#include <tuple>                                     // for make_tuple
-#include <utility>                                   // for move, index_sequence
-#include <vector>                                    // for vector
-
-#include <iostream>
+#include <bitset>
+#include <chrono>     // for nanoseconds
+#include <cstddef>    // for size_t
+#include <functional> // for function
+#include <memory>     // for unique_ptr, make_...
+#include <string>     // for string
+#include <tuple>      // for make_tuple
+#include <utility>    // for move, index_sequence
+#include <vector>     // for vector
 
 namespace quill
 {
@@ -95,21 +94,12 @@ public:
    */
   ~PatternFormatter() = default;
 
-  QUILL_ATTRIBUTE_HOT void format(std::chrono::nanoseconds timestamp, std::string_view thread_id,
-                                  std::string_view thread_name, std::string_view process_id,
-                                  std::string_view logger_name, MacroMetadata const& macro_metadata,
-                                  fmt_buffer_t const& log_msg);
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt_buffer_t const& format(
+    std::chrono::nanoseconds timestamp, std::string_view thread_id, std::string_view thread_name,
+    std::string_view process_id, std::string_view logger_name, MacroMetadata const& macro_metadata,
+    transit_event_fmt_buffer_t const& log_msg);
 
   QUILL_ATTRIBUTE_HOT std::string_view format_timestamp(std::chrono::nanoseconds timestamp);
-
-  /**
-   * Returns the stored formatted record, to be called after format(...) is called
-   * @return Returns the stored formatted record
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt_buffer_t const& formatted_log_message() const noexcept
-  {
-    return _formatted_log_message;
-  }
 
 private:
   /**
@@ -157,6 +147,7 @@ private:
   /** Each named argument in the format_pattern is mapped in order to this array **/
   std::array<size_t, Attribute::ATTR_NR_ITEMS> _order_index{};
   std::array<fmt::basic_format_arg<fmt::format_context>, Attribute::ATTR_NR_ITEMS> _args{};
+  std::bitset<Attribute::ATTR_NR_ITEMS> _is_set_in_pattern;
 
   /** class responsible for formatting the timestamp */
   detail::TimestampFormatter _timestamp_formatter{"%H:%M:%S.%Qns", Timezone::LocalTime};

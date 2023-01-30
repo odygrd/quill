@@ -22,7 +22,8 @@ TEST_CASE("transit_event_bounded_buffer")
     {
       TransitEvent* te1 = bte.back();
       REQUIRE(te1);
-      te1->thread_name = "test1" + std::to_string(i);
+      te1->structured_kvs.clear();
+      te1->structured_kvs.emplace_back(std::string{"test1"} + std::to_string(i), "");
       bte.push_back();
     }
 
@@ -31,7 +32,8 @@ TEST_CASE("transit_event_bounded_buffer")
     {
       TransitEvent* te2 = bte.back();
       REQUIRE(te2);
-      te2->thread_name = "test2" + std::to_string(i);
+      te2->structured_kvs.clear();
+      te2->structured_kvs.emplace_back(std::string{"test2"} + std::to_string(i), "");
       bte.push_back();
     }
 
@@ -40,7 +42,8 @@ TEST_CASE("transit_event_bounded_buffer")
     {
       TransitEvent* te3 = bte.back();
       REQUIRE(te3);
-      te3->thread_name = "test3" + std::to_string(i);
+      te3->structured_kvs.clear();
+      te3->structured_kvs.emplace_back(std::string{"test3"} + std::to_string(i), "");
       bte.push_back();
     }
 
@@ -49,7 +52,8 @@ TEST_CASE("transit_event_bounded_buffer")
     {
       TransitEvent* te4 = bte.back();
       REQUIRE(te4);
-      te4->thread_name = "test4" + std::to_string(i);
+      te4->structured_kvs.clear();
+      te4->structured_kvs.emplace_back(std::string{"test4"} + std::to_string(i), "");
       bte.push_back();
     }
 
@@ -60,7 +64,7 @@ TEST_CASE("transit_event_bounded_buffer")
       TransitEvent* te1 = bte.front();
       REQUIRE(te1);
       std::string const expected = std::string{"test1"} + std::to_string(i);
-      REQUIRE_STREQ(te1->thread_name.data(), expected.data());
+      REQUIRE_STREQ(te1->structured_kvs[0].first.data(), expected.data());
       bte.pop_front();
     }
 
@@ -70,7 +74,7 @@ TEST_CASE("transit_event_bounded_buffer")
       TransitEvent* te2 = bte.front();
       REQUIRE(te2);
       std::string const expected = std::string{"test2"} + std::to_string(i);
-      REQUIRE_STREQ(te2->thread_name.data(), expected.data());
+      REQUIRE_STREQ(te2->structured_kvs[0].first.data(), expected.data());
       bte.pop_front();
     }
 
@@ -80,7 +84,7 @@ TEST_CASE("transit_event_bounded_buffer")
       TransitEvent* te3 = bte.front();
       REQUIRE(te3);
       std::string const expected = std::string{"test3"} + std::to_string(i);
-      REQUIRE_STREQ(te3->thread_name.data(), expected.data());
+      REQUIRE_STREQ(te3->structured_kvs[0].first.data(), expected.data());
       bte.pop_front();
     }
 
@@ -90,7 +94,7 @@ TEST_CASE("transit_event_bounded_buffer")
       TransitEvent* te4 = bte.front();
       REQUIRE(te4);
       std::string const expected = std::string{"test4"} + std::to_string(i);
-      REQUIRE_STREQ(te4->thread_name.data(), expected.data());
+      REQUIRE_STREQ(te4->structured_kvs[0].first.data(), expected.data());
       bte.pop_front();
     }
 
@@ -113,7 +117,8 @@ TEST_CASE("transit_event_unbounded_buffer")
     {
       TransitEvent* te1 = bte.back();
       REQUIRE(te1);
-      te1->thread_name = "test1" + std::to_string(i);
+      te1->structured_kvs.clear();
+      te1->structured_kvs.emplace_back(std::string{"test1"} + std::to_string(i), "");
       bte.push_back();
     }
 
@@ -122,7 +127,8 @@ TEST_CASE("transit_event_unbounded_buffer")
     {
       TransitEvent* te2 = bte.back();
       REQUIRE(te2);
-      te2->thread_name = "test2" + std::to_string(i);
+      te2->structured_kvs.clear();
+      te2->structured_kvs.emplace_back(std::string{"test2"} + std::to_string(i), "");
       bte.push_back();
     }
 
@@ -131,7 +137,8 @@ TEST_CASE("transit_event_unbounded_buffer")
     {
       TransitEvent* te3 = bte.back();
       REQUIRE(te3);
-      te3->thread_name = "test3" + std::to_string(i);
+      te3->structured_kvs.clear();
+      te3->structured_kvs.emplace_back(std::string{"test3"} + std::to_string(i), "");
       bte.push_back();
     }
 
@@ -140,7 +147,8 @@ TEST_CASE("transit_event_unbounded_buffer")
     {
       TransitEvent* te4 = bte.back();
       REQUIRE(te4);
-      te4->thread_name = "test4" + std::to_string(i);
+      te4->structured_kvs.clear();
+      te4->structured_kvs.emplace_back(std::string{"test4"} + std::to_string(i), "");
       bte.push_back();
     }
 
@@ -154,7 +162,7 @@ TEST_CASE("transit_event_unbounded_buffer")
       TransitEvent* te1 = bte.front();
       REQUIRE(te1);
       std::string const expected = std::string{"test1"} + std::to_string(i);
-      REQUIRE_STREQ(te1->thread_name.data(), expected.data());
+      REQUIRE_STREQ(te1->structured_kvs[0].first.data(), expected.data());
       bte.pop_front();
     }
 
@@ -164,7 +172,7 @@ TEST_CASE("transit_event_unbounded_buffer")
       TransitEvent* te2 = bte.front();
       REQUIRE(te2);
       std::string const expected = std::string{"test2"} + std::to_string(i);
-      REQUIRE_STREQ(te2->thread_name.data(), expected.data());
+      REQUIRE_STREQ(te2->structured_kvs[0].first.data(), expected.data());
       bte.pop_front();
     }
 
@@ -174,7 +182,7 @@ TEST_CASE("transit_event_unbounded_buffer")
       TransitEvent* te3 = bte.front();
       REQUIRE(te3);
       std::string const expected = std::string{"test3"} + std::to_string(i);
-      REQUIRE_STREQ(te3->thread_name.data(), expected.data());
+      REQUIRE_STREQ(te3->structured_kvs[0].first.data(), expected.data());
       bte.pop_front();
     }
 
@@ -184,7 +192,7 @@ TEST_CASE("transit_event_unbounded_buffer")
       TransitEvent* te4 = bte.front();
       REQUIRE(te4);
       std::string const expected = std::string{"test4"} + std::to_string(i);
-      REQUIRE_STREQ(te4->thread_name.data(), expected.data());
+      REQUIRE_STREQ(te4->structured_kvs[0].first.data(), expected.data());
       bte.pop_front();
     }
 

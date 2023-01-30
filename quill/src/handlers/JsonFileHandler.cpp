@@ -17,10 +17,9 @@ void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tr
     macro_metadata.filename(), macro_metadata.lineno(), log_event.thread_id,
     log_event.header.logger_details->name(), macro_metadata.level_as_str(), macro_metadata.message_format()));
 
-  for (size_t i = 0; i < log_event.structured_keys.size(); ++i)
+  for (auto const& [key, value] : log_event.structured_kvs)
   {
-    _json_message.append(
-      fmt::format(R"(, "{}": "{}")", log_event.structured_keys[i], log_event.structured_values[i]));
+    _json_message.append(fmt::format(R"(, "{}": "{}")", key, value));
   }
 
   _json_message.append(std::string_view{" }\n"});

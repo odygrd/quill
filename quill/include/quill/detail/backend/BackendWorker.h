@@ -397,13 +397,14 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_co
           _structured_fmt_str.assign(macro_metadata.message_format().data(),
                                      macro_metadata.message_format().size());
 
+          std::vector<std::string> const* s_keys{nullptr};
+
           // for messages containing named arguments threat them as structured logs
           auto const search = _slog_templates.find(_structured_fmt_str);
           if (search != std::cend(_slog_templates))
           {
             auto const& [fmt_str, structured_keys] = search->second;
-
-            transit_event->structured_keys = structured_keys;
+            s_keys = &structured_keys;
 
             read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
           }
@@ -413,18 +414,26 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_co
               _process_structured_log_template(macro_metadata.message_format());
 
             // insert the results
-            _slog_templates[_structured_fmt_str] = std::make_pair(fmt_str, structured_keys);
-
-            transit_event->structured_keys = std::move(structured_keys);
+            auto [it, inserted] = _slog_templates.try_emplace(
+              _structured_fmt_str, std::make_pair(fmt_str, std::move(structured_keys)));
+            s_keys = &(it->second.second);
 
             read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
           }
 
-          // formatted values for any given keys
-          transit_event->structured_values.clear();
+          // format the values to strings
+          std::vector<std::string> structured_values;
+          structured_values.reserve(s_keys->size());
           for (auto const& arg : _args)
           {
-            transit_event->structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
+            structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
+          }
+
+          // store them as kv pair
+          transit_event->structured_kvs.clear();
+          for (size_t i = 0; i < s_keys->size(); ++i)
+          {
+            transit_event->structured_kvs.emplace_back((*s_keys)[i], std::move(structured_values[i]));
           }
         }
         else
@@ -541,6 +550,9 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
 
       // this is a flush event, so we need to notify the caller to continue now
       transit_event->flush_flag->store(true);
+
+      // we also need to reset the flush_flag as the TransitEvents are re-used
+      transit_event->flush_flag = nullptr;
     }
 
     // Remove this event and move to the next.
@@ -577,16 +589,13 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
 
   for (auto& handler : transit_event.header.logger_details->handlers())
   {
-    handler->formatter().format(std::chrono::nanoseconds{transit_event.header.timestamp},
-                                transit_event.thread_id.data(), transit_event.thread_name.data(),
-                                _process_id, transit_event.header.logger_details->name(),
-                                macro_metadata, transit_event.formatted_msg);
-
-    // After calling format on the formatter we have to request the formatter record
-    auto const& formatted_log_message_buffer = handler->formatter().formatted_log_message();
+    auto const& formatted_log_message_buffer = handler->formatter().format(
+      std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id,
+      transit_event.thread_name, _process_id, transit_event.header.logger_details->name(),
+      macro_metadata, transit_event.formatted_msg);
 
     // If all filters are okay we write this message to the file
-    if (handler->apply_filters(transit_event.thread_id.data(),
+    if (handler->apply_filters(transit_event.thread_id,
                                std::chrono::nanoseconds{transit_event.header.timestamp},
                                macro_metadata, formatted_log_message_buffer))
     {
