@@ -7,8 +7,11 @@
 
 #include "quill/Fmt.h"
 #include "quill/detail/Serialize.h"
+#include "quill/detail/misc/Common.h"
 
-#include <string_view>
+#include <atomic>
+#include <vector>
+#include <string>
 
 namespace quill
 {
