@@ -541,6 +541,9 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
 
       // this is a flush event, so we need to notify the caller to continue now
       transit_event->flush_flag->store(true);
+
+      // we also need to reset the flush_flag as the TransitEvents are re-used
+      transit_event->flush_flag = nullptr;
     }
 
     // Remove this event and move to the next.
@@ -578,7 +581,7 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
   for (auto& handler : transit_event.header.logger_details->handlers())
   {
     handler->formatter().format(std::chrono::nanoseconds{transit_event.header.timestamp},
-                                transit_event.thread_id.data(), transit_event.thread_name.data(),
+                                transit_event.thread_id, transit_event.thread_name,
                                 _process_id, transit_event.header.logger_details->name(),
                                 macro_metadata, transit_event.formatted_msg);
 
@@ -586,7 +589,7 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
     auto const& formatted_log_message_buffer = handler->formatter().formatted_log_message();
 
     // If all filters are okay we write this message to the file
-    if (handler->apply_filters(transit_event.thread_id.data(),
+    if (handler->apply_filters(transit_event.thread_id,
                                std::chrono::nanoseconds{transit_event.header.timestamp},
                                macro_metadata, formatted_log_message_buffer))
     {

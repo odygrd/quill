@@ -41,7 +41,6 @@ TransitEvent* BoundedTransitEventBuffer::back() noexcept
     return nullptr;
   }
 
-  _storage[static_cast<uint32_t>(_writer_pos & _mask)].reset();
   return &_storage[static_cast<uint32_t>(_writer_pos & _mask)];
 }
 

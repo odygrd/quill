@@ -8,6 +8,8 @@
 #include "quill/Fmt.h"
 #include "quill/detail/Serialize.h"
 
+#include <string_view>
+
 namespace quill
 {
 
@@ -21,8 +23,8 @@ struct TransitEvent
 
   TransitEvent(TransitEvent&& other) noexcept
     : header(other.header),
-      thread_id(std::move(other.thread_id)),
-      thread_name(std::move(other.thread_name)),
+      thread_id(other.thread_id),
+      thread_name(other.thread_name),
       formatted_msg(std::move(other.formatted_msg)),
       structured_keys(std::move(other.structured_keys)),
       structured_values(std::move(other.structured_values)),
@@ -36,8 +38,8 @@ struct TransitEvent
     {
       structured_keys = std::move(other.structured_keys);
       structured_values = std::move(other.structured_values);
-      thread_id = std::move(other.thread_id);
-      thread_name = std::move(other.thread_name);
+      thread_id = other.thread_id;
+      thread_name = other.thread_name;
       header = other.header;
       formatted_msg = std::move(other.formatted_msg);
       flush_flag = other.flush_flag;
@@ -46,21 +48,13 @@ struct TransitEvent
     return *this;
   }
 
-  void reset()
-  {
-    structured_keys.clear();
-    structured_values.clear();
-    formatted_msg.clear();
-    flush_flag = nullptr;
-  }
-
   /**
    * Need to take a copy of thread_id and thread_name here as the thread that logged can terminate
    * before we flush the backtrace.
    */
   detail::Header header;
-  std::string thread_id;
-  std::string thread_name;
+  char const* thread_id;
+  char const* thread_name;
   fmt_buffer_t formatted_msg; /** buffer for message **/
   std::vector<std::string> structured_keys;
   std::vector<std::string> structured_values;
