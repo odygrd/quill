@@ -980,6 +980,11 @@ TEST_CASE("log_backtrace_terminate_thread_then_and_flush_on_error")
     // Now check file
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
+    for (auto const& elem : file_contents)
+    {
+      std::cout << elem << std::endl;
+    }
+
     REQUIRE_EQ(file_contents.size(), 3);
     REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root         After Error."}));
     REQUIRE(quill::testing::file_contains(
