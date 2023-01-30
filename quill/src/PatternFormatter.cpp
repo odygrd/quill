@@ -217,10 +217,10 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
 }
 
 /***/
-fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
-                                             std::string_view thread_id, std::string_view thread_name,
-                                             std::string_view process_id, std::string_view logger_name,
-                                             MacroMetadata const& macro_metadata, fmt_buffer_t const& log_msg)
+fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_view thread_id,
+                                             std::string_view thread_name, std::string_view process_id,
+                                             std::string_view logger_name, MacroMetadata const& macro_metadata,
+                                             transit_event_fmt_buffer_t const& log_msg)
 {
   // clear out existing buffer
   _formatted_log_message.clear();

@@ -57,7 +57,7 @@ struct TransitEvent
   detail::Header header;
   char const* thread_id;
   char const* thread_name;
-  fmt_buffer_t formatted_msg; /** buffer for message **/
+  transit_event_fmt_buffer_t formatted_msg; /** buffer for message **/
   std::vector<std::pair<std::string, std::string>> structured_kvs;
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
