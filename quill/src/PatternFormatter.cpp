@@ -217,19 +217,20 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
 }
 
 /***/
-void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_view thread_id,
-                              std::string_view thread_name, std::string_view process_id, std::string_view logger_name,
-                              MacroMetadata const& macro_metadata, fmt_buffer_t const& log_msg)
+fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
+                                             std::string_view thread_id, std::string_view thread_name,
+                                             std::string_view process_id, std::string_view logger_name,
+                                             MacroMetadata const& macro_metadata, fmt_buffer_t const& log_msg)
 {
+  // clear out existing buffer
+  _formatted_log_message.clear();
+
   if (_format.empty())
   {
     // nothing to format when the given format is empty. This is useful e.g. in the JsonFileHandler
     // if we want to skip formatting the main message
-    return;
+    return _formatted_log_message;
   }
-
-  // clear out existing buffer
-  _formatted_log_message.clear();
 
   if (_is_set_in_pattern[Attribute::AsciiTime])
   {
@@ -295,6 +296,8 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_vi
 
   fmt::vformat_to(std::back_inserter(_formatted_log_message), _format,
                   fmt::basic_format_args(_args.data(), static_cast<int>(_args.size())));
+
+  return _formatted_log_message;
 }
 
 /***/

@@ -94,21 +94,12 @@ public:
    */
   ~PatternFormatter() = default;
 
-  QUILL_ATTRIBUTE_HOT void format(std::chrono::nanoseconds timestamp, std::string_view thread_id,
-                                  std::string_view thread_name, std::string_view process_id,
-                                  std::string_view logger_name, MacroMetadata const& macro_metadata,
-                                  fmt_buffer_t const& log_msg);
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt_buffer_t const& format(
+    std::chrono::nanoseconds timestamp, std::string_view thread_id, std::string_view thread_name,
+    std::string_view process_id, std::string_view logger_name, MacroMetadata const& macro_metadata,
+    fmt_buffer_t const& log_msg);
 
   QUILL_ATTRIBUTE_HOT std::string_view format_timestamp(std::chrono::nanoseconds timestamp);
-
-  /**
-   * Returns the stored formatted record, to be called after format(...) is called
-   * @return Returns the stored formatted record
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt_buffer_t const& formatted_log_message() const noexcept
-  {
-    return _formatted_log_message;
-  }
 
 private:
   /**

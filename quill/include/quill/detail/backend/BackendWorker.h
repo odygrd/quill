@@ -589,13 +589,10 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
 
   for (auto& handler : transit_event.header.logger_details->handlers())
   {
-    handler->formatter().format(std::chrono::nanoseconds{transit_event.header.timestamp},
-                                transit_event.thread_id, transit_event.thread_name,
-                                _process_id, transit_event.header.logger_details->name(),
-                                macro_metadata, transit_event.formatted_msg);
-
-    // After calling format on the formatter we have to request the formatter record
-    auto const& formatted_log_message_buffer = handler->formatter().formatted_log_message();
+    auto const& formatted_log_message_buffer = handler->formatter().format(
+      std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id,
+      transit_event.thread_name, _process_id, transit_event.header.logger_details->name(),
+      macro_metadata, transit_event.formatted_msg);
 
     // If all filters are okay we write this message to the file
     if (handler->apply_filters(transit_event.thread_id,
