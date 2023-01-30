@@ -1,11 +1,43 @@
 #include "quill/PatternFormatter.h"
 #include <algorithm> // for max
+#include <unordered_map>
 
 namespace quill
 {
 
 namespace
 {
+/***/
+PatternFormatter::Attribute attribute_from_string(std::string const& attribute_name)
+{
+  static std::unordered_map<std::string, PatternFormatter::Attribute> const attr_map = {
+    {"ascii_time", PatternFormatter::Attribute::AsciiTime},
+    {"filename", PatternFormatter::Attribute::FileName},
+    {"function_name", PatternFormatter::Attribute::FunctionName},
+    {"level_name", PatternFormatter::Attribute::LevelName},
+    {"level_id", PatternFormatter::Attribute::LevelId},
+    {"lineno", PatternFormatter::Attribute::LineNo},
+    {"logger_name", PatternFormatter::Attribute::LoggerName},
+    {"pathname", PatternFormatter::Attribute::PathName},
+    {"thread", PatternFormatter::Attribute::Thread},
+    {"thread_name", PatternFormatter::Attribute::ThreadName},
+    {"process", PatternFormatter::Attribute::Process},
+    {"fileline", PatternFormatter::Attribute::FileLine},
+    {"message", PatternFormatter::Attribute::Message}};
+
+  auto const search = attr_map.find(attribute_name);
+
+  if (QUILL_UNLIKELY(search == attr_map.cend()))
+  {
+    std::ostringstream error_msg;
+    error_msg << "Attribute enum value does not exist for attribute_name "
+              << "\"" << attribute_name << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+
+  return search->second;
+}
+
 /***/
 template <size_t, size_t>
 constexpr void _store_named_args(std::array<fmt::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS>&)
@@ -48,7 +80,8 @@ constexpr void _store_named_args(std::array<fmt::detail::named_arg_info<char>, P
  */
 template <typename... Args>
 QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attribute::ATTR_NR_ITEMS>> _generate_fmt_format_string(
-  std::string pattern, Args const&... args)
+  std::bitset<PatternFormatter::Attribute::ATTR_NR_ITEMS>& is_set_in_pattern, std::string pattern,
+  Args const&... args)
 {
   // Attribute enum and the args we are passing here must be in sync
   static_assert(PatternFormatter::Attribute::ATTR_NR_ITEMS == sizeof...(Args));
@@ -136,6 +169,10 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
 
       order_index[static_cast<size_t>(id)] = arg_idx++;
 
+      // Also set the value as used in the pattern in our bitset for lazy evaluation
+      PatternFormatter::Attribute const attr_enum_value = attribute_from_string(attr_name);
+      is_set_in_pattern.set(attr_enum_value);
+
       // Look for the next pattern to replace
       arg_identifier_pos = pattern.find_first_of('%');
     }
@@ -159,9 +196,10 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
   // the order we pass the arguments here must match with the order of Attribute enum
   using namespace fmt::literals;
   std::tie(_format, _order_index) = _generate_fmt_format_string(
-    std::string{format_pattern}, "ascii_time"_a = "", "filename"_a = "", "function_name"_a = "",
-    "level_name"_a = "", "level_id"_a = "", "lineno"_a = "", "logger_name"_a = "", "pathname"_a = "",
-    "thread"_a = "", "thread_name"_a = "", "process"_a = "", "fileline"_a = "", "message"_a = "");
+    _is_set_in_pattern, std::string{format_pattern}, "ascii_time"_a = "", "filename"_a = "",
+    "function_name"_a = "", "level_name"_a = "", "level_id"_a = "", "lineno"_a = "",
+    "logger_name"_a = "", "pathname"_a = "", "thread"_a = "", "thread_name"_a = "",
+    "process"_a = "", "fileline"_a = "", "message"_a = "");
 
   _set_arg<Attribute::AsciiTime>(std::string_view("ascii_time"));
   _set_arg<Attribute::FileName>(std::string_view("filename"));
@@ -189,21 +227,70 @@ void PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_vi
     // if we want to skip formatting the main message
     return;
   }
+
   // clear out existing buffer
   _formatted_log_message.clear();
 
-  _set_arg_val<Attribute::AsciiTime>(_timestamp_formatter.format_timestamp(timestamp));
-  _set_arg_val<Attribute::FileName>(macro_metadata.filename());
-  _set_arg_val<Attribute::FunctionName>(macro_metadata.func());
-  _set_arg_val<Attribute::LevelName>(macro_metadata.level_as_str());
-  _set_arg_val<Attribute::LevelId>(macro_metadata.level_id_as_str());
-  _set_arg_val<Attribute::LineNo>(macro_metadata.lineno());
-  _set_arg_val<Attribute::LoggerName>(logger_name);
-  _set_arg_val<Attribute::PathName>(macro_metadata.pathname());
-  _set_arg_val<Attribute::Thread>(thread_id);
-  _set_arg_val<Attribute::ThreadName>(thread_name);
-  _set_arg_val<Attribute::Process>(process_id);
-  _set_arg_val<Attribute::FileLine>(macro_metadata.fileline());
+  if (_is_set_in_pattern[Attribute::AsciiTime])
+  {
+    _set_arg_val<Attribute::AsciiTime>(_timestamp_formatter.format_timestamp(timestamp));
+  }
+
+  if (_is_set_in_pattern[Attribute::FileName])
+  {
+    _set_arg_val<Attribute::FileName>(macro_metadata.filename());
+  }
+
+  if (_is_set_in_pattern[Attribute::FunctionName])
+  {
+    _set_arg_val<Attribute::FunctionName>(macro_metadata.func());
+  }
+
+  if (_is_set_in_pattern[Attribute::LevelName])
+  {
+    _set_arg_val<Attribute::LevelName>(macro_metadata.level_as_str());
+  }
+
+  if (_is_set_in_pattern[Attribute::LevelId])
+  {
+    _set_arg_val<Attribute::LevelId>(macro_metadata.level_id_as_str());
+  }
+
+  if (_is_set_in_pattern[Attribute::LineNo])
+  {
+    _set_arg_val<Attribute::LineNo>(macro_metadata.lineno());
+  }
+
+  if (_is_set_in_pattern[Attribute::LoggerName])
+  {
+    _set_arg_val<Attribute::LoggerName>(logger_name);
+  }
+
+  if (_is_set_in_pattern[Attribute::PathName])
+  {
+    _set_arg_val<Attribute::PathName>(macro_metadata.pathname());
+  }
+
+  if (_is_set_in_pattern[Attribute::Thread])
+  {
+    _set_arg_val<Attribute::Thread>(thread_id);
+  }
+
+  if (_is_set_in_pattern[Attribute::ThreadName])
+  {
+    _set_arg_val<Attribute::ThreadName>(thread_name);
+  }
+
+  if (_is_set_in_pattern[Attribute::Process])
+  {
+    _set_arg_val<Attribute::Process>(process_id);
+  }
+
+  if (_is_set_in_pattern[Attribute::FileLine])
+  {
+    _set_arg_val<Attribute::FileLine>(macro_metadata.fileline());
+  }
+
   _set_arg_val<Attribute::Message>(std::string_view{log_msg.begin(), log_msg.size()});
 
   fmt::vformat_to(std::back_inserter(_formatted_log_message), _format,
