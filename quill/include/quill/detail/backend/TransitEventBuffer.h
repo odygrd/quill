@@ -12,27 +12,32 @@
 
 namespace quill::detail
 {
-class BoundedTransitEventBuffer
+template <typename T>
+class BoundedTransitEventBufferImpl
 {
 public:
-  explicit BoundedTransitEventBuffer(uint32_t capacity);
-  BoundedTransitEventBuffer(BoundedTransitEventBuffer const&) = delete;
-  BoundedTransitEventBuffer& operator=(BoundedTransitEventBuffer const&) = delete;
+  using integer_type = T;
+
+  explicit BoundedTransitEventBufferImpl(integer_type capacity);
+  BoundedTransitEventBufferImpl(BoundedTransitEventBufferImpl const&) = delete;
+  BoundedTransitEventBufferImpl& operator=(BoundedTransitEventBufferImpl const&) = delete;
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* front() noexcept;
   QUILL_ATTRIBUTE_HOT void pop_front() noexcept;
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* back() noexcept;
   QUILL_ATTRIBUTE_HOT void push_back() noexcept;
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint32_t size() const noexcept;
-  QUILL_NODISCARD uint32_t capacity() const noexcept;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT integer_type size() const noexcept;
+  QUILL_NODISCARD integer_type capacity() const noexcept;
 
 private:
-  uint64_t const _capacity;
-  uint64_t const _mask;
-  uint64_t _reader_pos{0};
-  uint64_t _writer_pos{0};
+  integer_type const _capacity;
+  integer_type const _mask;
+  integer_type _reader_pos{0};
+  integer_type _writer_pos{0};
   std::vector<TransitEvent> _storage;
 };
+
+using BoundedTransitEventBuffer = BoundedTransitEventBufferImpl<uint32_t>;
 
 class UnboundedTransitEventBuffer
 {

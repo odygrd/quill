@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstddef>
+#include <limits>
 
 #include "BoundedQueue.h"
 
@@ -94,17 +95,22 @@ public:
     }
 
     // Then it means the queue doesn't have enough size
-    uint32_t capacity = _producer->bounded_queue.capacity() * 2;
+    uint64_t capacity = static_cast<uint64_t>(_producer->bounded_queue.capacity()) * 2ull;
     while (capacity < (nbytes + 1))
     {
-      capacity = capacity * 2;
+      capacity = capacity * 2ull;
+    }
+
+    if (QUILL_UNLIKELY(capacity > std::numeric_limits<uint32_t>::max()))
+    {
+      capacity = std::numeric_limits<uint32_t>::max();
     }
 
     // commit previous write to the old queue before switching
     _producer->bounded_queue.commit_write();
 
     // We failed to reserve because the queue was full, create a new node with a new queue
-    auto next_node = new Node{capacity};
+    auto next_node = new Node{static_cast<uint32_t>(capacity)};
 
     // store the new node pointer as next in the current node
     _producer->next.store(next_node, std::memory_order_release);

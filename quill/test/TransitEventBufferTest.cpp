@@ -104,6 +104,37 @@ TEST_CASE("transit_event_bounded_buffer")
 }
 
 /***/
+TEST_CASE("transit_event_bounded_buffer_integer_overflow")
+{
+  BoundedTransitEventBufferImpl<uint8_t> bte{128};
+  size_t const iterations = static_cast<size_t>(std::numeric_limits<uint8_t>::max()) * 8ull;
+
+  for (size_t i = 0; i < iterations; ++i)
+  {
+    REQUIRE_EQ(bte.size(), 0);
+
+    {
+      TransitEvent* te = bte.back();
+      REQUIRE(te);
+      te->structured_kvs.clear();
+      te->structured_kvs.emplace_back(std::string{"test"} + std::to_string(i), "");
+      bte.push_back();
+    }
+
+    REQUIRE_EQ(bte.size(), 1);
+
+    // read
+    {
+      TransitEvent* te = bte.front();
+      REQUIRE(te);
+      std::string const expected = std::string{"test"} + std::to_string(i);
+      REQUIRE_STREQ(te->structured_kvs[0].first.data(), expected.data());
+      bte.pop_front();
+    }
+  }
+}
+
+/***/
 TEST_CASE("transit_event_unbounded_buffer")
 {
   UnboundedTransitEventBuffer bte{4};

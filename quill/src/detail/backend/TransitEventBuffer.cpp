@@ -3,10 +3,13 @@
 #include "quill/QuillError.h"
 #include "quill/detail/misc/Utilities.h"
 
+#include <limits>
+
 namespace quill::detail
 {
 /***/
-BoundedTransitEventBuffer::BoundedTransitEventBuffer(uint32_t capacity)
+template<typename T>
+BoundedTransitEventBufferImpl<T>::BoundedTransitEventBufferImpl(integer_type capacity)
   : _capacity(capacity), _mask(capacity - 1)
 {
   if (!is_pow_of_two(static_cast<size_t>(capacity)))
@@ -18,7 +21,8 @@ BoundedTransitEventBuffer::BoundedTransitEventBuffer(uint32_t capacity)
 }
 
 /***/
-TransitEvent* BoundedTransitEventBuffer::front() noexcept
+template<typename T>
+TransitEvent* BoundedTransitEventBufferImpl<T>::front() noexcept
 {
   if (_writer_pos == _reader_pos)
   {
@@ -30,12 +34,14 @@ TransitEvent* BoundedTransitEventBuffer::front() noexcept
 }
 
 /***/
-void BoundedTransitEventBuffer::pop_front() noexcept { _reader_pos += 1; }
+template<typename T>
+void BoundedTransitEventBufferImpl<T>::pop_front() noexcept { _reader_pos += 1; }
 
 /***/
-TransitEvent* BoundedTransitEventBuffer::back() noexcept
+template<typename T>
+TransitEvent* BoundedTransitEventBufferImpl<T>::back() noexcept
 {
-  if (_capacity - (_writer_pos - _reader_pos) == 0)
+  if (_capacity - size() == 0)
   {
     // is full
     return nullptr;
@@ -44,19 +50,27 @@ TransitEvent* BoundedTransitEventBuffer::back() noexcept
   return &_storage[static_cast<uint32_t>(_writer_pos & _mask)];
 }
 
-void BoundedTransitEventBuffer::push_back() noexcept { _writer_pos += 1; }
+/***/
+template<typename T>
+void BoundedTransitEventBufferImpl<T>::push_back() noexcept { _writer_pos += 1; }
 
 /***/
-uint32_t BoundedTransitEventBuffer::size() const noexcept
+template<typename T>
+typename BoundedTransitEventBufferImpl<T>::integer_type BoundedTransitEventBufferImpl<T>::size() const noexcept
 {
-  return static_cast<uint32_t>(_writer_pos - _reader_pos);
+  return static_cast<integer_type>(_writer_pos - _reader_pos);
 }
 
 /***/
-uint32_t BoundedTransitEventBuffer::capacity() const noexcept
+template<typename T>
+typename BoundedTransitEventBufferImpl<T>::integer_type BoundedTransitEventBufferImpl<T>::capacity() const noexcept
 {
-  return static_cast<uint32_t>(_capacity);
+  return static_cast<integer_type>(_capacity);
 }
+
+// Explicitly instantiate
+template class BoundedTransitEventBufferImpl<uint32_t>;
+template class BoundedTransitEventBufferImpl<uint8_t>;
 
 /***/
 UnboundedTransitEventBuffer::UnboundedTransitEventBuffer(uint32_t initial_transit_buffer_capacity)
@@ -113,7 +127,13 @@ TransitEvent* UnboundedTransitEventBuffer::back() noexcept
   if (QUILL_UNLIKELY(write_event == nullptr))
   {
     // buffer doesn't have enough space
-    auto new_node = new Node{_writer->transit_buffer.capacity() * 2};
+    uint64_t capacity = static_cast<uint64_t>(_writer->transit_buffer.capacity()) * 2ull;
+    if (QUILL_UNLIKELY(capacity > std::numeric_limits<uint32_t>::max()))
+    {
+      capacity = std::numeric_limits<uint32_t>::max();
+    }
+
+    auto new_node = new Node{static_cast<uint32_t>(capacity)};
     _writer->next = new_node;
     _writer = _writer->next;
     write_event = _writer->transit_buffer.back();
@@ -145,4 +165,5 @@ uint32_t UnboundedTransitEventBuffer::size() const noexcept
 
 /***/
 bool UnboundedTransitEventBuffer::empty() noexcept { return front() ? false : true; }
+
 } // namespace quill::detail

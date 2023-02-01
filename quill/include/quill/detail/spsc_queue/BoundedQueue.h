@@ -24,27 +24,31 @@ namespace quill::detail
 /**
  * A bounded single producer single consumer ring buffer.
  */
-class BoundedQueue
+template <typename T>
+class BoundedQueueImpl
 {
 public:
-  QUILL_ALWAYS_INLINE explicit BoundedQueue(uint32_t capacity)
+  using integer_type = T;
+
+  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity)
     : _capacity(capacity),
       _mask(_capacity - 1),
-      _storage(static_cast<std::byte*>(aligned_alloc(CACHE_LINE_ALIGNED, 2ull * capacity)))
+      _storage(static_cast<std::byte*>(
+        aligned_alloc(CACHE_LINE_ALIGNED, 2ull * static_cast<uint64_t>(capacity))))
   {
-    if (!is_pow_of_two(static_cast<size_t>(capacity)))
+    if (!is_pow_of_two(static_cast<uint64_t>(capacity)))
     {
       QUILL_THROW(std::runtime_error{"Capacity must be a power of two"});
     }
 
-    std::memset(_storage, 0, 2ull * capacity);
+    std::memset(_storage, 0, 2ull * static_cast<uint64_t>(capacity));
 
     _atomic_writer_pos.store(0);
     _atomic_reader_pos.store(0);
-    
+
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
-    for (uint64_t i = 0; i < (2ull * capacity); i += CACHE_LINE_SIZE)
+    for (uint64_t i = 0; i < (2ull * static_cast<uint64_t>(capacity)); i += CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
     }
@@ -64,27 +68,30 @@ public:
 #endif
   }
 
-  ~BoundedQueue() { aligned_free(_storage); }
+  ~BoundedQueueImpl() { aligned_free(_storage); }
 
   /**
    * Deleted
    */
-  BoundedQueue(BoundedQueue const&) = delete;
-  BoundedQueue& operator=(BoundedQueue const&) = delete;
+  BoundedQueueImpl(BoundedQueueImpl const&) = delete;
+  BoundedQueueImpl& operator=(BoundedQueueImpl const&) = delete;
 
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(uint32_t n) noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(integer_type n) noexcept
   {
-    if ((_capacity - (_writer_pos - _reader_pos_cache)) >= n)
+    if ((_capacity - static_cast<integer_type>(_writer_pos - _reader_pos_cache)) >= n)
     {
       return _storage + (_writer_pos & _mask);
     }
 
     // not enough space, we need to load reader and re-check
     _reader_pos_cache = _atomic_reader_pos.load(std::memory_order_acquire);
-    return ((_capacity - (_writer_pos - _reader_pos_cache)) >= n) ? _storage + (_writer_pos & _mask) : nullptr;
+
+    return ((_capacity - static_cast<integer_type>(_writer_pos - _reader_pos_cache)) >= n)
+      ? _storage + (_writer_pos & _mask)
+      : nullptr;
   }
 
-  QUILL_ALWAYS_INLINE_HOT void finish_write(uint32_t n) noexcept { _writer_pos += n; }
+  QUILL_ALWAYS_INLINE_HOT void finish_write(integer_type n) noexcept { _writer_pos += n; }
 
   QUILL_ALWAYS_INLINE_HOT void commit_write() noexcept
   {
@@ -102,17 +109,20 @@ public:
 
   QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_read() noexcept
   {
-    if (_writer_pos_cache > _reader_pos)
+    if (static_cast<integer_type>(_writer_pos_cache - _reader_pos) != 0)
     {
       return _storage + (_reader_pos & _mask);
     }
 
     // nothing to read, try to load the writer_pos again
     _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
-    return (_writer_pos_cache > _reader_pos) ? _storage + (_reader_pos & _mask) : nullptr;
+
+    return (static_cast<integer_type>(_writer_pos_cache - _reader_pos) != 0)
+      ? _storage + (_reader_pos & _mask)
+      : nullptr;
   }
 
-  QUILL_ALWAYS_INLINE_HOT void finish_read(uint32_t n) noexcept { _reader_pos += n; }
+  QUILL_ALWAYS_INLINE_HOT void finish_read(integer_type n) noexcept { _reader_pos += n; }
 
   QUILL_ALWAYS_INLINE_HOT void commit_read() noexcept
   {
@@ -129,14 +139,17 @@ public:
       _atomic_writer_pos.load(std::memory_order_relaxed);
   }
 
-  QUILL_NODISCARD uint32_t capacity() const noexcept { return static_cast<uint32_t> (_capacity); }
+  QUILL_NODISCARD integer_type capacity() const noexcept
+  {
+    return static_cast<integer_type>(_capacity);
+  }
 
 private:
 #if defined(QUILL_X86ARCH)
-  QUILL_ALWAYS_INLINE_HOT void _flush_cachelines(uint64_t& last, uint64_t offset)
+  QUILL_ALWAYS_INLINE_HOT void _flush_cachelines(integer_type& last, integer_type offset)
   {
-    uint64_t last_diff = last - (last & CACHELINE_MASK);
-    uint64_t const cur_diff = offset - (offset & CACHELINE_MASK);
+    integer_type last_diff = last - (last & CACHELINE_MASK);
+    integer_type const cur_diff = offset - (offset & CACHELINE_MASK);
 
     while (cur_diff > last_diff)
     {
@@ -148,20 +161,22 @@ private:
 #endif
 
 private:
-  static constexpr uint64_t CACHELINE_MASK{CACHE_LINE_SIZE - 1};
+  static constexpr integer_type CACHELINE_MASK{CACHE_LINE_SIZE - 1};
 
-  uint64_t const _capacity;
-  uint64_t const _mask;
+  integer_type const _capacity;
+  integer_type const _mask;
   std::byte* const _storage{nullptr};
 
-  alignas(CACHE_LINE_ALIGNED) std::atomic<uint64_t> _atomic_writer_pos{0};
-  uint64_t _writer_pos{0};
-  uint64_t _last_flushed_writer_pos{0};
-  uint64_t _reader_pos_cache{0};
+  alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
+  integer_type _writer_pos{0};
+  integer_type _last_flushed_writer_pos{0};
+  integer_type _reader_pos_cache{0};
 
-  alignas(CACHE_LINE_ALIGNED) std::atomic<uint64_t> _atomic_reader_pos{0};
-  uint64_t _reader_pos{0};
-  uint64_t _last_flushed_reader_pos{0};
-  uint64_t _writer_pos_cache{0};
+  alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_reader_pos{0};
+  integer_type _reader_pos{0};
+  integer_type _last_flushed_reader_pos{0};
+  integer_type _writer_pos_cache{0};
 };
+
+using BoundedQueue = BoundedQueueImpl<uint32_t>;
 } // namespace quill::detail
