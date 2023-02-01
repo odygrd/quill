@@ -48,7 +48,7 @@ public:
 
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
-    for (integer_type i = 0; i < (2ull * static_cast<uint64_t>(capacity)); i += CACHE_LINE_SIZE)
+    for (uint64_t i = 0; i < (2ull * static_cast<uint64_t>(capacity)); i += CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
     }
@@ -59,9 +59,9 @@ public:
       QUILL_THROW(std::runtime_error{"Capacity must be at least 1024"});
     }
 
-    integer_type const cache_lines = (capacity >= 2048) ? 32 : 16;
+    uint64_t const cache_lines = (capacity >= 2048) ? 32 : 16;
 
-    for (integer_type i = 0; i < cache_lines; ++i)
+    for (uint64_t i = 0; i < cache_lines; ++i)
     {
       _mm_prefetch(_storage + (CACHE_LINE_SIZE * i), _MM_HINT_T0);
     }
