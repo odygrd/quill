@@ -1,4 +1,5 @@
 #include "doctest/doctest.h"
+#include "misc/DocTestExtensions.h"
 
 #include "quill/detail/misc/Utilities.h"
 #include "quill/detail/spsc_queue/BoundedQueue.h"
@@ -102,6 +103,31 @@ TEST_CASE("read_write_multithreaded_plain_ints")
 
   producer_thread.join();
   consumer_thread.join();
+}
+
+TEST_CASE("bounded_queue_integer_overflow")
+{
+  BoundedQueueImpl<uint8_t> buffer{128};
+  size_t const iterations = std::numeric_limits<uint8_t>::max() * 8ull;
+
+  for (size_t i = 0; i < iterations; ++i)
+  {
+    std::string to_write{"test"};
+    to_write += std::to_string(i);
+    std::byte* r = buffer.prepare_write(to_write.length() + 1);
+    std::strncpy(reinterpret_cast<char*>(r), to_write.data(), to_write.length() + 1);
+    buffer.finish_write(to_write.length() + 1);
+    buffer.commit_write();
+
+    // now read
+    std::byte* w = buffer.prepare_read();
+    REQUIRE(w);
+    char result[256];
+    std::memcpy(&result[0], w, to_write.length() + 1);
+    REQUIRE_STREQ(result, to_write.data());
+    buffer.finish_read(to_write.length() + 1);
+    buffer.commit_read();
+  }
 }
 
 TEST_SUITE_END();
