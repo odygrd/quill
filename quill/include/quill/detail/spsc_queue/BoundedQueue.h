@@ -34,21 +34,21 @@ public:
     : _capacity(capacity),
       _mask(_capacity - 1),
       _storage(static_cast<std::byte*>(
-        aligned_alloc(CACHE_LINE_ALIGNED, 2ull * static_cast<integer_type>(capacity))))
+        aligned_alloc(CACHE_LINE_ALIGNED, 2ull * static_cast<uint64_t>(capacity))))
   {
-    if (!is_pow_of_two(static_cast<size_t>(capacity)))
+    if (!is_pow_of_two(static_cast<uint64_t>(capacity)))
     {
       QUILL_THROW(std::runtime_error{"Capacity must be a power of two"});
     }
 
-    std::memset(_storage, 0, 2ull * static_cast<integer_type>(capacity));
+    std::memset(_storage, 0, 2ull * static_cast<uint64_t>(capacity));
 
     _atomic_writer_pos.store(0);
     _atomic_reader_pos.store(0);
 
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
-    for (integer_type i = 0; i < (2ull * static_cast<integer_type>(capacity)); i += CACHE_LINE_SIZE)
+    for (integer_type i = 0; i < (2ull * static_cast<uint64_t>(capacity)); i += CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
     }
