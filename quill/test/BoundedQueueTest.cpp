@@ -114,18 +114,18 @@ TEST_CASE("bounded_queue_integer_overflow")
   {
     std::string to_write{"test"};
     to_write += std::to_string(i);
-    std::byte* r = buffer.prepare_write(to_write.length() + 1);
+    std::byte* r = buffer.prepare_write(static_cast<uint8_t>(to_write.length()) + 1);
     std::strncpy(reinterpret_cast<char*>(r), to_write.data(), to_write.length() + 1);
-    buffer.finish_write(to_write.length() + 1);
+    buffer.finish_write(static_cast<uint8_t>(to_write.length()) + 1);
     buffer.commit_write();
 
     // now read
     std::byte* w = buffer.prepare_read();
     REQUIRE(w);
     char result[256];
-    std::memcpy(&result[0], w, to_write.length() + 1);
+    std::memcpy(&result[0], w, static_cast<uint8_t>(to_write.length()) + 1);
     REQUIRE_STREQ(result, to_write.data());
-    buffer.finish_read(to_write.length() + 1);
+    buffer.finish_read(static_cast<uint8_t>(to_write.length()) + 1);
     buffer.commit_read();
   }
 }
