@@ -25,7 +25,7 @@ Basic Example
 
 In the above example a default logger to ``stdout`` is created with it's name set to “root”.
 
-The default logger can be accessed easily by calling :cpp:func:`Logger* quill::get_logger()`
+The default logger can be accessed easily by calling :cpp:func:`Logger* quill::get_logger()`.
 Any newly created logger inherits the properties of the default root logger.
 Log level is always set to :cpp:enumerator:`quill::LogLeveL::Info` by default.
 
@@ -369,8 +369,8 @@ attributes.
 | ascii_time        | %(ascii_time)  | Human-readable time when the    |
 |                   |                | LogRecord was created. By       |
 |                   |                | default this is of the form     |
-|                   |                | ‘2003-07-08 16:49:45,896’ (the  |
-|                   |                | numbers after the comma are     |
+|                   |                | ‘2003-07-08 16:49:45.896’ (the  |
+|                   |                | numbers after the period are    |
 |                   |                | millisecond portion of the      |
 |                   |                | time).                          |
 +-------------------+----------------+---------------------------------+
