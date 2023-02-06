@@ -35,7 +35,7 @@ The queue size if configurable in runtime in :cpp:class:`quill::Config` and appl
 Enabling non-guaranteed logging mode
 ------------------------------------
 
-If this option is enabled in ``Tweakme.h`` then the queue will never re-allocate but log messages will be dropped instead.
+If this option is enabled in ``TweakMe.h`` then the queue will never re-allocate but log messages will be dropped instead.
 If any messages are dropped then the user is notified by logging the number of dropped messages to ``stderr``
 
 Flush Policy and Force Flushing
@@ -83,9 +83,9 @@ log message is important it is recommended to call :cpp:func:`quill::preallocate
 Configuration
 ======================
 
-Quill offers a few customisation options which are also very well documented. H
+Quill offers a few customisation options which are also very well documented.
 
-ave a look at files ``Config.h`` under the namespace :cpp:func:`quill::config`
+Have a look at files ``Config.h`` under the namespace :cpp:func:`quill::config`.
 
 Ideally each hot thread runs on an isolated CPU. Then the backend
 logging thread should also be pinned to an either isolated or a junk CPU core.
