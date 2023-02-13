@@ -23,21 +23,30 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
   {
     // first attempt to create any non-existing directories
     std::error_code ec;
-    fs::create_directories(_filename.parent_path(), ec);
+    fs::path parent_path;
 
-    if (ec)
+    if (!_filename.parent_path().empty())
     {
-      QUILL_THROW(QuillError{fmt::format("cannot create directories for {}, error: {}",
-                                         _filename.parent_path(), ec.message())});
+      parent_path = _filename.parent_path();
+      fs::create_directories(parent_path, ec);
+      if (ec)
+      {
+        QUILL_THROW(QuillError{
+          fmt::format("cannot create directories for {}, error: {}", parent_path, ec.message())});
+      }
+    }
+    else
+    {
+      parent_path = fs::current_path();
     }
 
     // convert the parent path to an absolute path
-    fs::path const canonical_path = fs::canonical(_filename.parent_path(), ec);
+    fs::path const canonical_path = fs::canonical(parent_path, ec);
 
     if (ec)
     {
-      QUILL_THROW(QuillError{fmt::format("cannot make canonical path for {}, error: {}",
-                                         _filename.parent_path(), ec.message())});
+      QUILL_THROW(QuillError{
+        fmt::format("cannot make canonical path for {}, error: {}", parent_path, ec.message())});
     }
 
     // finally replace the given filename's parent_path with the equivalent canonical path
