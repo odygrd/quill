@@ -36,9 +36,10 @@ function(quill_add_test TEST_NAME SOURCES)
     set_target_properties(${TEST_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/test)
 
     # Add this target to the post build unit tests
-    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME} --duration=true)
+    doctest_discover_tests(${TEST_NAME})
 endfunction()
 
+include(${PROJECT_SOURCE_DIR}/cmake/doctest.cmake)
 quill_add_test(TEST_BoundedQueueTest.cpp BoundedQueueTest.cpp)
 quill_add_test(TEST_FileUtilities FileUtilitiesTest.cpp)
 quill_add_test(TEST_HandlerCollection HandlerCollectionTest.cpp)
@@ -63,5 +64,3 @@ quill_add_test(TEST_Utility UtilityTest.cpp)
 if (NOT QUILL_USE_VALGRIND)
     quill_add_test(TEST_RdtscClock RdtscClockTest.cpp)
 endif ()
-
-include(../cmake/CodeCoverage.cmake)
