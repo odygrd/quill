@@ -24,7 +24,7 @@ jobs:
     - name: Test
       run: |
         cd build
-        ctest --build-config Debug --verbose --parallel 2
+        ctest --build-config Debug
 
     - name: Collect code coverage
       run: bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"

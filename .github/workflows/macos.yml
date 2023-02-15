@@ -43,4 +43,4 @@ jobs:
 
     - name: Test
       working-directory: ${{runner.workspace}}/build
-      run: ctest --build-config ${{matrix.build_type}} --verbose --output-on-failure --parallel 2
+      run: ctest --build-config ${{matrix.build_type}} --output-on-failure
