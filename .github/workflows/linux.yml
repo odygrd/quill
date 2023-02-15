@@ -106,6 +106,6 @@ jobs:
 
       - name: Test
         working-directory: ${{runner.workspace}}/build
-        run: ctest --build-config ${{matrix.build_type}} ${{matrix.ctest_options}} --verbose --output-on-failure --parallel 2
+        run: ctest --build-config ${{matrix.build_type}} ${{matrix.ctest_options}} --output-on-failure
         env:
           CTEST_OUTPUT_ON_FAILURE: True
