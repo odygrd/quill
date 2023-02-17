@@ -25,7 +25,6 @@
   #include <fileapi.h>
   #include <io.h>
   #include <malloc.h>
-  #include <processthreadsapi.h>
   #include <share.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
@@ -120,6 +119,55 @@ tm* localtime_rs(time_t const* timer, tm* buf)
 #endif
 }
 
+#if defined(_WIN32)
+/***/
+template <typename ReturnT, typename Signature, typename... Args>
+ReturnT callRunTimeDynamicLinkedFunction(const std::string& dll_name,
+                                         const std::string& function_name, Args... args)
+{
+  // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreaddescription
+  // Windows Server 2016, Windows 10 LTSB 2016 and Windows 10 version 1607: e.g. GetThreadDescription is only available by Run Time Dynamic Linking in KernelBase.dll.
+
+  #ifdef UNICODE
+    HINSTANCE const hinstLibrary = LoadLibraryW(s2ws(dll_name).c_str());
+  #else
+    HINSTANCE const hinstLibrary = LoadLibraryA(dll_name.c_str());
+  #endif
+
+  if (QUILL_UNLIKELY(hinstLibrary == NULL))
+  {
+    std::ostringstream error_msg;
+    error_msg << "Failed to load library "
+              << "\"" << dll_name << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+
+  auto const callable = reinterpret_cast<Signature>(GetProcAddress(hinstLibrary, function_name.c_str()));
+
+  if (QUILL_UNLIKELY(callable == NULL))
+  {
+    std::ostringstream error_msg;
+    error_msg << "Failed to call "
+              << "\"" << function_name << "\" in "
+              << "\"" << dll_name << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+
+  ReturnT const hr = callable(std::forward<Args>(args)...);
+  BOOL const fFreeResult = FreeLibrary(hinstLibrary);
+
+  if (QUILL_UNLIKELY(!fFreeResult))
+  {
+    std::ostringstream error_msg;
+    error_msg << "Failed to free library "
+              << "\"" << dll_name << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+
+  return hr;
+}
+#endif
+
 /***/
 void set_cpu_affinity(uint16_t cpu_id)
 {
@@ -174,7 +222,11 @@ void set_thread_name(char const* name)
 #elif defined(_WIN32)
   std::wstring name_ws = s2ws(name);
   // Set the thread name
-  HRESULT hr = SetThreadDescription(GetCurrentThread(), name_ws.data());
+
+  typedef HRESULT(WINAPI * SetThreadDescriptionSignature)(HANDLE, PCWSTR);
+  HRESULT hr = callRunTimeDynamicLinkedFunction<HRESULT, SetThreadDescriptionSignature>(
+   "KernelBase.dll", "SetThreadDescription", GetCurrentThread(), name_ws.data());
+
   if (FAILED(hr))
   {
     QUILL_THROW(QuillError{"Failed to set thread name"});
@@ -205,14 +257,23 @@ std::string get_thread_name()
   // Disabled on MINGW / Cygwin.
   return std::string{};
 #elif defined(_WIN32)
-  PWSTR data;
-  HRESULT hr = GetThreadDescription(GetCurrentThread(), &data);
+  PWSTR data = nullptr;
+
+  typedef HRESULT(WINAPI * GetThreadDescriptionSignature)(HANDLE, PWSTR*);
+  HRESULT hr = callRunTimeDynamicLinkedFunction<HRESULT, GetThreadDescriptionSignature>(
+    "KernelBase.dll", "GetThreadDescription", GetCurrentThread(), &data);
+
   if (FAILED(hr))
   {
     QUILL_THROW(QuillError{"Failed to get thread name"});
   }
 
-  std::wstring tname{&data[0], wcslen(&data[0])};
+  if (QUILL_UNLIKELY(data == nullptr))
+  {
+    QUILL_THROW(QuillError{"Failed to get thread name. Invalid data."});
+  }
+
+  const std::wstring tname{&data[0], wcslen(&data[0])};
   LocalFree(data);
   return ws2s(tname);
 #else
