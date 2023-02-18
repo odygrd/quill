@@ -146,6 +146,7 @@ ReturnT callRunTimeDynamicLinkedFunction(const std::string& dll_name,
 
   if (QUILL_UNLIKELY(callable == NULL))
   {
+    FreeLibrary(hinstLibrary);
     std::ostringstream error_msg;
     error_msg << "Failed to call "
               << "\"" << function_name << "\" in "
