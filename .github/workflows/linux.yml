@@ -24,13 +24,13 @@ jobs:
         cxx: [ g++-8, g++-10 ]
         build_type: [ Debug, Release ]
         std: [ 17 ]
-        os: [ ubuntu-18.04 ]
+        os: [ ubuntu-20.04 ]
         with_tests: [ ON ]
 
         include:
           - cxx: g++-8
             std: 17
-            os: ubuntu-18.04
+            os: ubuntu-20.04
             with_tests: ON
             install: sudo apt install g++-8
 
