@@ -147,7 +147,7 @@ private:
 
   std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
-  bool _backend_thread_yield; /** backend_thread_yield from config **/
+  std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
 
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
@@ -161,6 +161,7 @@ private:
 
   uint32_t _backend_worker_thread_id{0}; /** cached backend worker thread id */
 
+  bool _backend_thread_yield; /** backend_thread_yield from config **/
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   bool _strict_log_timestamp_order{true};
   bool _empty_all_queues_before_exit{true};
@@ -183,6 +184,7 @@ void BackendWorker::run()
   // We store the configuration here on our local variables since the config flag is not atomic,
   // and we don't want it to change after we have started - This is just for safety and to
   // enforce the user to configure a variable before the thread has started
+  _backend_thread_sleep_duration = _config.backend_thread_sleep_duration;
   _backend_thread_yield = _config.backend_thread_yield;
   _max_transit_events = _config.backend_thread_max_transit_events;
   _empty_all_queues_before_exit = _config.backend_thread_empty_all_queues_before_exit;
@@ -653,7 +655,7 @@ void BackendWorker::_main_loop()
     // there was nothing to process
 
     // None of the thread local queues had any events to process, this means we have processed
-    // all messages in all queues We will force flush any unflushed messages and then sleep
+    // all messages in all queues We force flush all remaining messages
     _force_flush();
 
     // check for any dropped messages by the threads
@@ -662,7 +664,11 @@ void BackendWorker::_main_loop()
     // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
 
-    if (_backend_thread_yield)
+    if (_backend_thread_sleep_duration.count() != 0)
+    {
+      std::this_thread::sleep_for(_backend_thread_sleep_duration);
+    }
+    else if (_backend_thread_yield)
     {
       std::this_thread::yield();
     }

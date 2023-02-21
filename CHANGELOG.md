@@ -48,7 +48,8 @@
   runtime. ([#247](https://github.com/odygrd/quill/pull/247))
 - When the given output directory of a log file passed to a `Handler` does not exist, it will now get automatically
   created.
-- Support 'Windows 10 LTSB 2016, 1607 and Server 2016. ([#251](https://github.com/odygrd/quill/pull/251))
+- Support Windows 10 LTSB 2016, 1607 and Server 2016. ([#251](https://github.com/odygrd/quill/pull/251))
+- Add back `backend_thread_sleep_duration` in `Config.h` ([#256](https://github.com/odygrd/quill/pull/256))
 
 ## v2.7.0
 
