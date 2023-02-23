@@ -1,3 +1,6 @@
+cmake_minimum_required(VERSION 3.22)
+project(singleton_example)
+add_subdirectory(external_lib)
 add_executable(example_trivial example_trivial.cpp)
 target_link_libraries(example_trivial quill_wrapper)
 target_compile_definitions(example_trivial PRIVATE QUILL_ACTIVE_LOG_LEVEL=QUILL_LOG_LEVEL_WARNING)
