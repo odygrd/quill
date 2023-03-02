@@ -6,7 +6,7 @@ int main()
 {
   // Start the backend logging thread
   quill::start();
-
+ 
   // Create a rotating file handler which rotates daily at 02:00
   quill::Handler* file_handler = quill::time_rotating_file_handler(
     filename, "w", "daily", 1, 10, quill::Timezone::LocalTime, "18:30");
