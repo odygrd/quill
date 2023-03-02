@@ -11,10 +11,11 @@ namespace quill
 {
 /***/
 RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename, std::string const& mode,
+                                         FilenameAppend append_to_filename,
                                          size_t max_bytes, uint32_t backup_count,
                                          bool overwrite_oldest_files, bool clean_old_files,
                                          FileEventNotifier file_event_notifier, bool do_fsync)
-  : FileHandler(base_filename, std::move(file_event_notifier), do_fsync),
+  : FileHandler(base_filename, append_to_filename, std::move(file_event_notifier), do_fsync),
     _max_bytes(max_bytes),
     _backup_count(backup_count),
     _overwrite_oldest_files(overwrite_oldest_files)

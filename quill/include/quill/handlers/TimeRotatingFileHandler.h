@@ -24,6 +24,7 @@ public:
    * Constructor
    * @param base_filename base filename
    * @param mode mode to open_file file
+   * @param append_to_filename appends extra info to the file
    * @param when 'M', 'H' or 'daily'
    * @param interval Used when 'M' is 'H' is specified
    * @param backup_count Maximum files to keep
@@ -32,7 +33,8 @@ public:
    * @param file_event_notifier notifies on file events
    * @param do_fsync also fsync when flushing
    */
-  TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode, std::string when,
+  TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode,
+                          FilenameAppend append_to_filename, std::string when,
                           uint32_t interval, uint32_t backup_count, Timezone timezone,
                           std::string const& at_time, FileEventNotifier file_event_notifier, bool do_fsync);
 

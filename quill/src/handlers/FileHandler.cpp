@@ -36,8 +36,9 @@ FileHandler::FileHandler(fs::path const& filename, std::string const& mode, File
 }
 
 /***/
-FileHandler::FileHandler(fs::path const& filename, FileEventNotifier file_event_notifier, bool do_fsync)
-  : StreamHandler(filename, nullptr, std::move(file_event_notifier)), _fsync(do_fsync)
+FileHandler::FileHandler(fs::path const& filename, FilenameAppend append_to_filename,
+                         FileEventNotifier file_event_notifier, bool do_fsync)
+  : StreamHandler(get_filename(append_to_filename, filename), nullptr, std::move(file_event_notifier)), _fsync(do_fsync)
 {
 }
 
