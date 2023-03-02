@@ -163,7 +163,7 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
 
   // Create a rotating file handler
   QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler =
-    quill::rotating_file_handler(base_filename, "w", max_file_size, 2, true);
+    quill::rotating_file_handler(base_filename, "w", quill::FilenameAppend::None, max_file_size, 2, true);
 
   // Get the same instance back - we search it again (for testing only)
   quill::Handler* looked_up_rotating_file_handler = quill::rotating_file_handler(base_filename);
@@ -173,8 +173,8 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
   static char const* base_filename_2 = "rot_2nd_logger.log";
   static constexpr char const* rotated_filename_2nd_1 = "rot_2nd_logger.1.log";
 
-  QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler_2 =
-    quill::rotating_file_handler(base_filename_2, "w", max_file_size, 1, true);
+  QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler_2 = quill::rotating_file_handler(
+    base_filename_2, "w", quill::FilenameAppend::None, max_file_size, 1, true);
 
   quill::Logger* rotating_logger_2 = quill::create_logger("rot_2nd_logger", rotating_file_handler_2);
 
@@ -227,7 +227,7 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
 
   // Create a rotating file handler
   QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler =
-    quill::rotating_file_handler(base_filename, "w", max_file_size, 2, false);
+    quill::rotating_file_handler(base_filename, "w", quill::FilenameAppend::None, max_file_size, 2, false);
 
   // Get the same instance back - we search it again (for testing only)
   quill::Handler* looked_up_rotating_file_handler = quill::rotating_file_handler(base_filename);
@@ -236,9 +236,9 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
   // Another rotating logger to another file with max backup count 1 this time. Here we rotate only once
   static char const* base_filename_2 = "another_2nd_rot_logger.log";
   static constexpr char const* rotated_filename_2nd_1 = "another_2nd_rot_logger.1.log";
-
-  QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler_2 =
-    quill::rotating_file_handler(base_filename_2, "w", max_file_size, 1, false);
+  
+  QUILL_MAYBE_UNUSED quill::Handler* rotating_file_handler_2 = quill::rotating_file_handler(
+    base_filename_2, "w", quill::FilenameAppend::None, max_file_size, 1, false);
 
   quill::Logger* rotating_logger_2 = quill::create_logger("another_rot_2nd_logger", rotating_file_handler_2);
 
@@ -287,7 +287,7 @@ TEST_CASE("log_using_daily_file_handler")
 
   // Create the handler
   QUILL_MAYBE_UNUSED quill::Handler* time_rotating_file_handler_create =
-    quill::time_rotating_file_handler(base_filename, "w", "daily", 1, 0);
+    quill::time_rotating_file_handler(base_filename, "w", quill::FilenameAppend::None, "daily", 1, 0);
 
   // Get the same handler
   quill::Handler* time_rotating_file_handler = quill::time_rotating_file_handler(base_filename);
