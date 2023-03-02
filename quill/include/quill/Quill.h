@@ -161,6 +161,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(
  *
  * @param base_filename the filename
  * @param mode mode to open_file the file 'a' or 'w'
+ * @param append_to_filename additional info to append to the name of the file.
+ * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
  * @param when 'M' for minutes, 'H' for hours or 'daily'
  * @param interval The interval used for rotation.
  * @param backup_count maximum backup files to keep
@@ -172,6 +174,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
   fs::path const& base_filename, std::string const& mode = std::string{"a"},
+  FilenameAppend append_to_filename = FilenameAppend::None,
   std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
   Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"},
   FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
@@ -201,6 +204,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  *
  * @param base_filename the base file name
  * @param mode file mode to open_file file
+ * @param append_to_filename additional info to append to the name of the file.
+ * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
  * @param max_bytes The max_bytes of the file, when the size is exceeded the file will rollover
  * @param backup_count The maximum number of times we want to rollover
  * @param overwrite_oldest_files overwrite oldest files
@@ -210,7 +215,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
  * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(
-  fs::path const& base_filename, std::string const& mode = std::string{"a"}, size_t max_bytes = 0,
+  fs::path const& base_filename, std::string const& mode = std::string{"a"},
+  FilenameAppend append_to_filename = FilenameAppend::None, size_t max_bytes = 0,
   uint32_t backup_count = 0, bool overwrite_oldest_files = true, bool clean_old_files = false,
   FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
 
