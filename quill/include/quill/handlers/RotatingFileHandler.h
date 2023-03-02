@@ -24,6 +24,7 @@ public:
    * constructor
    * @param base_filename Base file name to be used for logs
    * @param mode the mode to open_file the file
+   * @param append_to_filename appends extra info to the file
    * @param max_bytes max size per file in bytes
    * @param backup_count maximum log files
    * @param overwrite_oldest_files if set to true, oldest logs will get overwritten when
@@ -35,7 +36,8 @@ public:
    * @param do_fsync also fsync when flushing
    * @throws on invalid rotation values
    */
-  RotatingFileHandler(fs::path const& base_filename, std::string const& mode, size_t max_bytes,
+  RotatingFileHandler(fs::path const& base_filename, std::string const& mode,
+                      FilenameAppend append_to_filename, size_t max_bytes,
                       uint32_t backup_count, bool overwrite_oldest_files, bool clean_old_files,
                       FileEventNotifier file_event_notifier, bool do_fsync);
 
