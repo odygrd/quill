@@ -687,6 +687,7 @@ void BackendWorker::_main_loop()
       if ((now - _last_rdtsc_resync) > _config.rdtsc_resync_interval)
       {
         _rdtsc_clock.load(std::memory_order_relaxed)->resync(2500);
+        _last_rdtsc_resync = now;
       }
     }
 
