@@ -246,6 +246,11 @@ public:
     return _backend_worker.is_running();
   }
 
+  QUILL_NODISCARD uint64_t time_since_epoch(uint64_t rdtsc_value) const noexcept
+  {
+    return _backend_worker.time_since_epoch(rdtsc_value);
+  }
+
 private:
   void _configure()
   {

@@ -33,6 +33,9 @@ void BackendWorker::stop() noexcept
 {
   // Stop the backend worker
   _is_running.store(false, std::memory_order_relaxed);
+  RdtscClock* rdtsc_clock{_rdtsc_clock.load(std::memory_order_relaxed)};
+  _rdtsc_clock.store(nullptr, std::memory_order_release);
+  delete rdtsc_clock;
 
   // Wait the backend thread to join, if backend thread was never started it won't be joinable so we can still
   if (_backend_worker_thread.joinable())

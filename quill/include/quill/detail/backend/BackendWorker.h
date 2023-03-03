@@ -66,6 +66,13 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline bool is_running() const noexcept;
 
   /**
+   * Access the rdtsc class to convert an rdtsc value to wall time
+   * @param rdtsc_value
+   * @return
+   */
+  QUILL_NODISCARD inline uint64_t time_since_epoch(uint64_t rdtsc_value) const noexcept;
+
+  /**
    * Get the backend worker's thread id
    * @return the backend worker's thread id
    */
@@ -145,7 +152,7 @@ private:
 
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
 
-  std::unique_ptr<RdtscClock> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
+  std::atomic<RdtscClock*> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
   size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
@@ -158,7 +165,7 @@ private:
   /** Id of the current running process **/
   std::string _process_id;
   std::string _structured_fmt_str; /** to avoid allocation each time **/
-
+  std::chrono::system_clock::time_point _last_rdtsc_resync;
   uint32_t _backend_worker_thread_id{0}; /** cached backend worker thread id */
 
   bool _backend_thread_yield; /** backend_thread_yield from config **/
@@ -176,6 +183,13 @@ private:
 bool BackendWorker::is_running() const noexcept
 {
   return _is_running.load(std::memory_order_relaxed);
+}
+
+/***/
+QUILL_NODISCARD uint64_t BackendWorker::time_since_epoch(uint64_t rdtsc_value) const noexcept
+{
+  RdtscClock const* rdtsc_clock = _rdtsc_clock.load(std::memory_order_acquire);
+  return rdtsc_clock ? rdtsc_clock->time_since_epoch_safe(rdtsc_value) : 0;
 }
 
 /***/
@@ -324,16 +338,18 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_co
     // have Logger objects using different clocks
     if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc)
     {
-      if (!_rdtsc_clock)
+      if (!_rdtsc_clock.load(std::memory_order_relaxed))
       {
         // Here we lazy initialise rdtsc clock on the backend thread only if the user decides to use it
         // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
         // taking samples first
-        _rdtsc_clock = std::make_unique<RdtscClock>(_config.rdtsc_resync_interval);
+        _rdtsc_clock.store(new RdtscClock{_config.rdtsc_resync_interval}, std::memory_order_release);
+        _last_rdtsc_resync = std::chrono::system_clock::now();
       }
 
       // convert the rdtsc value to nanoseconds since epoch
-      transit_event->header.timestamp = _rdtsc_clock->time_since_epoch(transit_event->header.timestamp);
+      transit_event->header.timestamp =
+        _rdtsc_clock.load(std::memory_order_relaxed)->time_since_epoch(transit_event->header.timestamp);
 
       // Now check if the message has a timestamp greater than our ts_now
       if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
@@ -663,6 +679,16 @@ void BackendWorker::_main_loop()
 
     // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
+
+    if (_rdtsc_clock.load(std::memory_order_relaxed))
+    {
+      // resync in rdtsc if we are not logging so that quill::time_since_epoch() still works
+      auto const now = std::chrono::system_clock::now();
+      if ((now - _last_rdtsc_resync) > _config.rdtsc_resync_interval)
+      {
+        _rdtsc_clock.load(std::memory_order_relaxed)->resync(2500);
+      }
+    }
 
     if (_backend_thread_sleep_duration.count() != 0)
     {
