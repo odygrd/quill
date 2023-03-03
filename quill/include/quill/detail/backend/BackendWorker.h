@@ -751,5 +751,9 @@ void BackendWorker::_exit()
       }
     }
   }
+
+  RdtscClock* rdtsc_clock{_rdtsc_clock.load(std::memory_order_relaxed)};
+  _rdtsc_clock.store(nullptr, std::memory_order_release);
+  delete rdtsc_clock;
 }
 } // namespace quill::detail
