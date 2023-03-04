@@ -19,9 +19,10 @@
 #include <cstddef>                              // for size_t
 #include <cstdint>                              // for uint16_t
 #include <initializer_list>                     // for initializer_list
-#include <optional>                             // for optional
-#include <string>                               // for string
-#include <unordered_map>                        // for unordered_map
+#include <limits>
+#include <optional>      // for optional
+#include <string>        // for string
+#include <unordered_map> // for unordered_map
 
 namespace quill
 {
@@ -174,8 +175,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* file_handler(
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
   fs::path const& base_filename, std::string const& mode = std::string{"a"},
-  FilenameAppend append_to_filename = FilenameAppend::None,
-  std::string const& when = std::string{"H"}, uint32_t interval = 1, uint32_t backup_count = 0,
+  FilenameAppend append_to_filename = FilenameAppend::None, std::string const& when = std::string{"H"},
+  uint32_t interval = 1, uint32_t backup_count = std::numeric_limits<std::uint32_t>::max(),
   Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"},
   FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
 
@@ -217,7 +218,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* time_rotating_file_handler(
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD Handler* rotating_file_handler(
   fs::path const& base_filename, std::string const& mode = std::string{"a"},
   FilenameAppend append_to_filename = FilenameAppend::None, size_t max_bytes = 0,
-  uint32_t backup_count = 0, bool overwrite_oldest_files = true, bool clean_old_files = false,
+  uint32_t backup_count = std::numeric_limits<std::uint32_t>::max(),
+  bool overwrite_oldest_files = true, bool clean_old_files = false,
   FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
 
 /**

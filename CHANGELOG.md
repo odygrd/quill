@@ -51,6 +51,8 @@
   created.
 - Support Windows 10 LTSB 2016, 1607 and Server 2016. ([#251](https://github.com/odygrd/quill/pull/251))
 - Add back `backend_thread_sleep_duration` in `Config.h` ([#256](https://github.com/odygrd/quill/pull/256))
+- For `quill::rotating_file_handler(...)` and  `quill::time_rotating_file_handler(...)` the `backup_count` argument is
+  now default to `std::numeric_limits<std::uint32_t>::max()`
 
 ## v2.7.0
 
