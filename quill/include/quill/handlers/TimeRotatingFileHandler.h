@@ -9,7 +9,7 @@
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
 #include "quill/handlers/FileHandler.h"   // for FileHandler
 #include <chrono>                         // for hours, minutes, nanoseconds
-#include <queue>
+#include <deque>
 
 namespace quill
 {
@@ -57,12 +57,13 @@ private:
     std::chrono::system_clock::time_point time_now, std::string const& when, uint32_t interval) noexcept;
 
 private:
-  std::queue<fs::path> _created_files; /**< We store in a queue the filenames we created, in order to remove_file them if we exceed _backup_count limit */
-  std::string _when;                                /**< 'M', 'H' or 'daily' */
+  std::deque<std::pair<uint32_t, fs::path>> _created_files; /**< We store in a queue the filenames we created, in order to remove_file them if we exceed _backup_count limit */
+  std::string _when;                                        /**< 'M', 'H' or 'daily' */
   std::chrono::system_clock::time_point _file_creation_time; /**< The time we create the file we are writing */
   std::chrono::system_clock::time_point _next_rotation_time; /**< The next rotation time point */
   uint32_t _interval;       /**< Interval when 'M' or 'H' is used */
   uint32_t _backup_count;   /**< Maximum files to keep after rotation */
   Timezone _using_timezone; /**< The timezone used */
+  FilenameAppend _append_to_filename;
 };
 } // namespace quill

@@ -11,7 +11,7 @@
 namespace quill
 {
 
-enum class FilenameAppend
+enum class FilenameAppend : uint8_t
 {
   DateTime,
   Date,
