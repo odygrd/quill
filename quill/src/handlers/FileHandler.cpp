@@ -93,6 +93,16 @@ void FileHandler::flush() noexcept
   {
     detail::fsync(_file);
   }
+  
+  if (!fs::exists(_filename))
+  {
+    // after flushing the file we can check if the file still exists. If not we reopen it.
+    // This can happen if a user deletes a file while the application is running
+    close_file();
+
+    // now reopen the file for writing again, it will be a new file
+    open_file(_filename, "w");
+  }
 }
 
 } // namespace quill
