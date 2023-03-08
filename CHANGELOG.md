@@ -53,6 +53,7 @@
 - Add back `backend_thread_sleep_duration` in `Config.h` ([#256](https://github.com/odygrd/quill/pull/256))
 - For `quill::rotating_file_handler(...)` and  `quill::time_rotating_file_handler(...)` the `backup_count` argument is
   now default to `std::numeric_limits<std::uint32_t>::max()`
+- When the logging file is deleted from the command line while the logger is still using it, then a new file will be reopened for writing.
 
 ## v2.7.0
 
