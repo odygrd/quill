@@ -38,7 +38,7 @@ public:
   {
     if (!is_pow_of_two(static_cast<uint64_t>(capacity)))
     {
-      QUILL_THROW(std::runtime_error{"Capacity must be a power of two"});
+      QUILL_THROW(QuillError{"Capacity must be a power of two"});
     }
 
     std::memset(_storage, 0, 2ull * static_cast<uint64_t>(capacity));
@@ -56,7 +56,7 @@ public:
     // load cache lines into memory
     if (capacity < 1024)
     {
-      QUILL_THROW(std::runtime_error{"Capacity must be at least 1024"});
+      QUILL_THROW(QuillError{"Capacity must be at least 1024"});
     }
 
     uint64_t const cache_lines = (capacity >= 2048) ? 32 : 16;

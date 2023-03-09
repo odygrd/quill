@@ -347,16 +347,4 @@ QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vecto
  */
 void flush();
 
-/**
- * Gives a wall clock timestamp provided an rdtsc value. The returned timestamp is calculated
- * by using the RdtscClock instance of the backend logging thread therefore it will be in sync
- * with the log timestamps.
- *
- * @note This function will only work when default_timestamp_clock_type = TimestampClockType::Rdtsc
- * and the backend worker thread has logged at least one message. Otherwise it will just return 0
- *
- * @param rdtsc_value the given rdtsc value to be converted to wall clock timestamp
- * @return a wall clock timestmap
- */
-QUILL_NODISCARD uint64_t time_since_epoch(uint64_t rdtsc_value) noexcept;
 } // namespace quill

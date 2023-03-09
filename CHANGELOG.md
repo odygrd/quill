@@ -44,13 +44,17 @@
 
 **Improvements**
 
-- Add `append_to_filename` parameter when creating `quill::time_rotating_file_handler` and `quill::rotating_file_handler`
+- Add `append_to_filename` parameter when creating `quill::time_rotating_file_handler`
+  and `quill::rotating_file_handler`
 - Fix `Handlers` failing to find the file when the working directory of the application is changed in
   runtime. ([#247](https://github.com/odygrd/quill/pull/247))
 - When the given output directory of a log file passed to a `Handler` does not exist, it will now get automatically
   created.
 - Support Windows 10 LTSB 2016, 1607 and Server 2016. ([#251](https://github.com/odygrd/quill/pull/251))
 - Add back `backend_thread_sleep_duration` in `Config.h` ([#256](https://github.com/odygrd/quill/pull/256))
+- Added `quill::Clock` which enables taking and converting TSC timestamps to system clock timestamps.
+  When `TimestampClockType::Tsc` is used as the default clock type in `Config.h` this class
+  can also be used to generate timestamps that are in sync with the timestamps in the log file
 
 ## v2.7.0
 
@@ -63,8 +67,10 @@
 - Reduce padding in some structs.
 - Fix 'rename_file' throwing an exception while being marked
   as `noexcept`. ([#230](https://github.com/odygrd/quill/pull/230))
-- Fix crash with `std::bad_alloc` and compiler warnings in gcc `7.3.1`. ([#235](https://github.com/odygrd/quill/pull/235))
-- The additional compiler definitions will now be propagated to the parent targets when enabling options in CMake. ([#235](https://github.com/odygrd/quill/pull/235))
+- Fix crash with `std::bad_alloc` and compiler warnings in
+  gcc `7.3.1`. ([#235](https://github.com/odygrd/quill/pull/235))
+- The additional compiler definitions will now be propagated to the parent targets when enabling options in
+  CMake. ([#235](https://github.com/odygrd/quill/pull/235))
 
 **Improvements**
 

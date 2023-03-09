@@ -184,10 +184,4 @@ Logger* create_logger(std::string const& logger_name, std::vector<Handler*> cons
 
 /***/
 void flush() { detail::LogManagerSingleton::instance().log_manager().flush(); }
-
-/***/
-uint64_t time_since_epoch(uint64_t rdtsc_value) noexcept
-{
-  return detail::LogManagerSingleton::instance().log_manager().time_since_epoch(rdtsc_value);
-}
 } // namespace quill

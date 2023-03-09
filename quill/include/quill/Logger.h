@@ -170,7 +170,7 @@ public:
 
     new (write_buffer) detail::Header(
       detail::get_metadata_and_format_fn<TMacroMetadata, FmtArgs...>, std::addressof(_logger_details),
-      (_logger_details.timestamp_clock_type() == TimestampClockType::Rdtsc) ? quill::detail::rdtsc()
+      (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
         : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
         ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
         : _custom_timestamp_clock->now());

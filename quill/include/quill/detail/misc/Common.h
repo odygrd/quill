@@ -160,7 +160,7 @@ enum class Timezone : uint8_t
  */
 enum TimestampClockType : uint8_t
 {
-  Rdtsc = 0,
+  Tsc = 0,
   System,
   Custom
 };

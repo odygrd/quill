@@ -160,7 +160,7 @@ public:
 
     new (write_buffer) detail::Header(
       detail::get_metadata_and_format_fn<decltype(anonymous_log_message_info)>, logger_details,
-      (logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc) ? quill::detail::rdtsc()
+      (logger_details->timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
         : (logger_details->timestamp_clock_type() == TimestampClockType::System)
         ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
         : default_logger->_custom_timestamp_clock->now());
