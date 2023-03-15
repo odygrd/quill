@@ -29,6 +29,24 @@ namespace quill
 class Clock
 {
 public:
+  class RdtscVal
+  {
+  public:
+    RdtscVal(RdtscVal const& other) = default;
+    RdtscVal(RdtscVal&& other) noexcept = default;
+    RdtscVal& operator=(RdtscVal const& other) = default;
+    RdtscVal& operator=(RdtscVal&& other) noexcept = default;
+
+    QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t value() const noexcept { return _value; }
+
+  private:
+    RdtscVal() noexcept : _value(detail::rdtsc()) {}
+    friend Clock;
+
+    uint64_t _value;
+  };
+
+public:
   using duration = std::chrono::nanoseconds;
   using rep = duration::rep;
   using period = duration::period;
@@ -57,18 +75,20 @@ public:
    * Returns the TSC counter. The return value from this function can be passed to `to_time_point`
    * @return the tsc counter
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static uint64_t rdtsc() noexcept { return detail::rdtsc(); }
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static RdtscVal rdtsc() noexcept { return RdtscVal{}; }
 
   /**
    * Converts a TSC counter value to a wall clock timestamp.
+   * @note storing an rdtsc value and then passing it to this function with a delay will
+   * result a less accurate result
    * @param rdtsc the rdtsc value to convert
    * @warning this function will return `0` when TimestampClockType::Tsc is not enabled in Config.h
    * @return time since epoch in nanoseconds
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static time_point to_time_point(uint64_t rdtsc) noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static time_point to_time_point(RdtscVal rdtsc) noexcept
   {
     return time_point{std::chrono::nanoseconds{
-      detail::LogManagerSingleton::instance().log_manager().time_since_epoch(rdtsc)}};
+      detail::LogManagerSingleton::instance().log_manager().time_since_epoch(rdtsc.value())}};
   }
 };
 } // namespace quill
