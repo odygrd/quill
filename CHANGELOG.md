@@ -53,10 +53,23 @@
 - Add back `backend_thread_sleep_duration` in `Config.h` ([#256](https://github.com/odygrd/quill/pull/256))
 - For `quill::rotating_file_handler(...)` and  `quill::time_rotating_file_handler(...)` the `backup_count` argument is
   now default to `std::numeric_limits<std::uint32_t>::max()`
-- When the logging file is deleted from the command line while the logger is still using it, then a new file will be reopened for writing.
+- When the logging file is deleted from the command line while the logger is still using it, then a new file will be
+  reopened for writing.
 - Added `quill::Clock` which enables taking and converting TSC timestamps to system clock timestamps.
   When `TimestampClockType::Tsc` is used as the default clock type in `Config.h` this class
-  can also be used to generate timestamps that are in sync with the timestamps in the log file. ([#264](https://github.com/odygrd/quill/pull/264))
+  can also be used to generate timestamps that are in sync with the timestamps in the log
+  file. ([#264](https://github.com/odygrd/quill/pull/264))
+- Both `Unbounded` and `Bounded` queue modes can now be used without having to recompile `quill` library. This is still
+  not a runtime option, you still need to recompile your target and pass `QUILL_USE_BOUNDED_QUEUE` as a flag.
+  See [example_bounded_queue_message_dropping.cpp](https://github.com/odygrd/quill/blob/master/examples/example_bounded_queue_message_dropping.cpp)
+- Added `QUILL_USE_BOUNDED_BLOCKING_QUEUE` option that makes possible to use a bounded queue which blocks the hot
+  thread rather than dropping messages ([#270](https://github.com/odygrd/quill/pull/270)).
+  See [example_bounded_queue_blocking.cpp](https://github.com/odygrd/quill/blob/master/examples/example_bounded_queue_blocking.cpp)
+- CMake: `QUILL_X86ARCH` and `QUILL_USE_BOUNDED_QUEUE` options have been removed. The users can decide on enabling these
+  options on their side and quill doesn't need to be recompiled as a library. For example :
+  ```cmake
+     target_compile_definitions(<target> PUBLIC QUILL_X86ARCH QUILL_USE_BOUNDED_QUEUE)
+  ```
 
 ## v2.7.0
 

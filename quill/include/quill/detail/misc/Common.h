@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include "quill/Fmt.h"
 #include "quill/TweakMe.h"
+
+#include "quill/Fmt.h"
 #include <functional>
 #include <sstream>
 #include <string>
@@ -21,6 +22,24 @@
 #define QUILL_LOG_LEVEL_ERROR 6
 #define QUILL_LOG_LEVEL_CRITICAL 7
 #define QUILL_LOG_LEVEL_NONE 8
+
+namespace quill::detail
+{
+enum class QueueType
+{
+  Unbounded,
+  BoundedBlocking,
+  BoundedNonBlocking
+};
+}
+
+#if defined(QUILL_USE_BOUNDED_QUEUE)
+  #define QUILL_QUEUE_TYPE quill::detail::QueueType::BoundedNonBlocking
+#elif defined(QUILL_USE_BOUNDED_BLOCKING_QUEUE)
+  #define QUILL_QUEUE_TYPE quill::detail::QueueType::BoundedBlocking
+#else
+  #define QUILL_QUEUE_TYPE quill::detail::QueueType::Unbounded
+#endif
 
 /**
  * Common type definitions etc

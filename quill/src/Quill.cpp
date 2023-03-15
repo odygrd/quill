@@ -20,17 +20,6 @@ namespace quill
 Logger* _g_root_logger = nullptr;
 
 /***/
-void preallocate()
-{
-  QUILL_MAYBE_UNUSED uint32_t const volatile x = detail::LogManagerSingleton::instance()
-                                                  .log_manager()
-                                                  .thread_context_collection()
-                                                  .local_thread_context()
-                                                  ->spsc_queue()
-                                                  .capacity();
-}
-
-/***/
 QUILL_ATTRIBUTE_COLD void configure(Config& config)
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())

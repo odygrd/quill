@@ -47,10 +47,6 @@ uint32_t BackendWorker::thread_id() const noexcept { return _backend_worker_thre
 /***/
 void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts) noexcept
 {
-  // silence warning when bounded queue not used
-  (void)cached_thread_contexts;
-
-#if defined(QUILL_USE_BOUNDED_QUEUE)
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
     size_t const dropped_messages_cnt = thread_context->get_and_reset_message_counter();
@@ -70,7 +66,6 @@ void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thr
       detail::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
     }
   }
-#endif
 }
 
 /***/

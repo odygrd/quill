@@ -15,6 +15,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include <variant>
 
 namespace quill::detail
 {
@@ -30,18 +31,20 @@ namespace quill::detail
 class ThreadContext
 {
 public:
-#if defined(QUILL_USE_BOUNDED_QUEUE)
-  using SPSCQueueT = BoundedQueue;
-#else
-  using SPSCQueueT = UnboundedQueue;
-#endif
-
   /**
    * Constructor
    */
-  explicit ThreadContext(uint32_t default_queue_capacity, uint32_t initial_transit_event_buffer_capacity)
-    : _spsc_queue(default_queue_capacity), _transit_event_buffer(initial_transit_event_buffer_capacity)
+  explicit ThreadContext(QueueType queue_type, uint32_t default_queue_capacity, uint32_t initial_transit_event_buffer_capacity)
+    : _transit_event_buffer(initial_transit_event_buffer_capacity)
   {
+    if (queue_type == QueueType::Unbounded)
+    {
+      _spsc_queue.emplace<UnboundedQueue>(default_queue_capacity);
+    }
+    else
+    {
+      _spsc_queue.emplace<BoundedQueue>(default_queue_capacity);
+    }
   }
 
   /**
@@ -67,11 +70,6 @@ public:
   void operator delete(void* p) { aligned_free(p); }
 
   /**
-   * @return A reference to the generic single-producer-single-consumer queue
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT SPSCQueueT& spsc_queue() noexcept { return _spsc_queue; }
-
-  /**
    * @return A reference to the backend's thread transit event buffer
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT detail::UnboundedTransitEventBuffer& transit_event_buffer() noexcept
@@ -80,9 +78,43 @@ public:
   }
 
   /**
+   * @return A reference to the generic single-producer-single-consumer queue
+   */
+  template <QueueType queue_type>
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::conditional_t<queue_type == QueueType::Unbounded, UnboundedQueue, BoundedQueue>& spsc_queue() noexcept
+  {
+    if constexpr (queue_type == QueueType::Unbounded)
+    {
+      return std::get<UnboundedQueue>(_spsc_queue);
+    }
+    else
+    {
+      return std::get<BoundedQueue>(_spsc_queue);
+    }
+  }
+
+  /**
    * @return A reference to the generic single-producer-single-consumer queue const overload
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT SPSCQueueT const& spsc_queue() const noexcept
+  template <QueueType queue_type>
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::conditional_t<queue_type == QueueType::Unbounded, UnboundedQueue, BoundedQueue> const& spsc_queue() const noexcept
+  {
+    if constexpr (queue_type == QueueType::Unbounded)
+    {
+      return std::get<UnboundedQueue>(_spsc_queue);
+    }
+    else
+    {
+      return std::get<BoundedQueue>(_spsc_queue);
+    }
+  }
+
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::variant<std::monostate, UnboundedQueue, BoundedQueue> const& spsc_queue_variant() const noexcept
+  {
+    return _spsc_queue;
+  }
+
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::variant<std::monostate, UnboundedQueue, BoundedQueue>& spsc_queue_variant() noexcept
   {
     return _spsc_queue;
   }
@@ -109,9 +141,9 @@ public:
    */
   QUILL_NODISCARD bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
 
-#if defined(QUILL_USE_BOUNDED_QUEUE)
   /**
    * Increments the dropped message counter
+   * @note used only for bounded queue
    */
   void increment_dropped_message_counter() noexcept
   {
@@ -121,6 +153,7 @@ public:
   /**
    * If the message counter is greater than zero, this will return the value and reset the counter
    * to 0. Called by the backend worker thread
+   * @note used only for bounded queue
    * @return current value of the dropped message counter
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_and_reset_message_counter() noexcept
@@ -131,17 +164,13 @@ public:
     }
     return _dropped_message_counter.exchange(0, std::memory_order_relaxed);
   }
-#endif
 
 private:
-  SPSCQueueT _spsc_queue; /** queue for this thread, events are pushed here */
+  std::variant<std::monostate, UnboundedQueue, BoundedQueue> _spsc_queue; /** queue for this thread, events are pushed here */
   UnboundedTransitEventBuffer _transit_event_buffer;               /** backend thread buffer */
   std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                    /**< cache this thread name */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
-
-#if defined(QUILL_USE_BOUNDED_QUEUE)
   alignas(CACHE_LINE_ALIGNED) std::atomic<size_t> _dropped_message_counter{0};
-#endif
 };
-} // namespace detail
+} // namespace quill::detail

@@ -66,14 +66,7 @@ jobs:
             with_tests: ON
             cmake_options: -DQUILL_SANITIZE_THREAD=ON
 
-            # Builds with bounded queue and no exceptions
-          - cxx: g++-10
-            build_type: Release
-            std: 17
-            os: ubuntu-20.04
-            with_tests: OFF
-            cmake_options: -DQUILL_USE_BOUNDED_QUEUE=ON
-
+            # Builds with no exceptions
           - cxx: g++-10
             build_type: Release
             std: 17

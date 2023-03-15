@@ -91,6 +91,34 @@
 // #define QUILL_ROOT_LOGGER_ONLY
 
 /**
+ * When QUILL_USE_BOUNDED_QUEUE is defined a bounded queue for passing the log messages
+ * to the backend thread, instead of the default unbounded queue is used.
+ *
+ * Bounded Queue : When full the log messages will get dropped.
+ * Unbounded Queue : When full, a new queue is allocated and no log messages are lost.
+ *
+ * The default mode is unbounded queue as the recommended option. The overhead is low.
+ * Using QUILL_USE_BOUNDED_QUEUE option is in the case when all re-allocations should be avoided.
+ * In QUILL_USE_BOUNDED_QUEUE mode the number of dropped log messages is written to stderr.
+ *
+ * @note: In both modes (unbounded or bounded) the queue size is configurable via `quill::config::set_initial_queue_capacity`.
+ *
+ * @note: You can avoid re-allocations when using the unbounded queue (default mode) by setting the initial_queue_capacity to a higher value.
+ * QUILL_USE_BOUNDED_QUEUE mode seems to be faster in `quill_hot_path_rdtsc_clock` benchmark by a few nanoseconds.
+ *
+ * @see: examples/example_bounded_queue_message_dropping.cpp
+ */
+// #define QUILL_USE_BOUNDED_QUEUE
+
+/**
+ * Similar to QUILL_USE_BOUNDED_QUEUE but the hot thread will now block instead of dropping messages.
+ * @note: This will slow down you hot thread and it should only be used in special cases
+ *
+ * @see: examples/example_bounded_queue_blocking.cpp
+ */
+// #define QUILL_USE_BOUNDED_BLOCKING_QUEUE
+
+/**
  * Enables use of _mm_prefetch, _mm_clflush and _mm_clflushopt on the ringbuffer to further
  * improve performance on x86
  *
@@ -125,20 +153,3 @@
  */
 // #define QUILL_NO_EXCEPTIONS
 
-/**
- * When QUILL_USE_BOUNDED_QUEUE is defined a bounded queue for passing the log messages
- * to the backend thread, instead of the default unbounded queue is used.
- *
- * Bounded Queue : When full the log messages will get dropped.
- * Unbounded Queue : When full, a new queue is allocated and no log messages are lost.
- *
- * The default mode is unbounded queue as the recommended option. The overhead is low.
- * Using QUILL_USE_BOUNDED_QUEUE option is in the case when all re-allocations should be avoided.
- * In QUILL_USE_BOUNDED_QUEUE mode the number of dropped log messages is written to stderr.
- *
- * @note: In both modes (unbounded or bounded) the queue size is configurable via `quill::config::set_initial_queue_capacity`.
- *
- * @note: You can avoid re-allocations when using the unbounded queue (default mode) by setting the initial_queue_capacity to a higher value.
- * QUILL_USE_BOUNDED_QUEUE mode seems to be faster in `quill_hot_path_rdtsc_clock` benchmark by a few nanoseconds.
- */
-// #define QUILL_USE_BOUNDED_QUEUE

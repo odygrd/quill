@@ -114,7 +114,8 @@ private:
    * @param ts_now timestamp now
    * @return total events stored in the transit_event_buffer
    */
-  QUILL_ATTRIBUTE_HOT inline uint32_t _read_queue_messages_and_decode(ThreadContext* thread_context,
+  template <typename QueueT>
+  QUILL_ATTRIBUTE_HOT inline uint32_t _read_queue_messages_and_decode(QueueT& queue, ThreadContext* thread_context,
                                                                       uint64_t ts_now);
 
   /**
@@ -291,25 +292,40 @@ size_t BackendWorker::_populate_transit_event_buffer(ThreadContextCollection::ba
     : 0;
 
   size_t total_events{0};
+
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    // copy everything from the SPSC queue to the transit event buffer to process it later
-    uint32_t const events = _read_queue_messages_and_decode(thread_context, ts_now);
-
-    total_events += events;
+    std::visit(
+      [&total_events, &thread_context, &ts_now, this](auto& queue)
+      {
+        using T = std::decay_t<decltype(queue)>;
+        if constexpr (std::is_same_v<T, UnboundedQueue>)
+        {
+          // copy everything from the SPSC queue to the transit event buffer to process it later
+          uint32_t const events = _read_queue_messages_and_decode(queue, thread_context, ts_now);
+          total_events += events;
+        }
+        else if constexpr (std::is_same_v<T, BoundedQueue>)
+        {
+          // copy everything from the SPSC queue to the transit event buffer to process it later
+          uint32_t const events = _read_queue_messages_and_decode(queue, thread_context, ts_now);
+          total_events += events;
+        }
+      },
+      thread_context->spsc_queue_variant());
   }
 
   return total_events;
 }
 
 /***/
-uint32_t BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_context, uint64_t ts_now)
+template <typename QueueT>
+uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadContext* thread_context, uint64_t ts_now)
 {
   // Note: The producer will commit to this queue when one complete message is written.
   // This means that if we can read something from the queue it will be a full message
   // The producer will add items to the buffer :
   // |timestamp|metadata*|logger_details*|args...|
-  ThreadContext::SPSCQueueT& queue = thread_context->spsc_queue();
   detail::UnboundedTransitEventBuffer& transit_event_buffer = thread_context->transit_event_buffer();
 
   size_t const queue_capacity = queue.capacity();
@@ -745,7 +761,20 @@ void BackendWorker::_exit()
       {
         for (ThreadContext* thread_context : cached_thread_contexts)
         {
-          all_empty &= thread_context->spsc_queue().empty();
+          std::visit(
+            [&all_empty](auto& queue)
+            {
+              using T = std::decay_t<decltype(queue)>;
+              if constexpr (std::is_same_v<T, UnboundedQueue>)
+              {
+                all_empty &= queue.empty();
+              }
+              else if constexpr (std::is_same_v<T, BoundedQueue>)
+              {
+                all_empty &= queue.empty();
+              }
+            },
+            thread_context->spsc_queue_variant());
         }
       }
 

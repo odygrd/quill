@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include "quill/Logger.h"
 #include "quill/detail/misc/Common.h"
+
+#include "quill/Logger.h"
 #include <type_traits>
 
 /**
