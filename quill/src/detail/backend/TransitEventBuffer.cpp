@@ -14,7 +14,7 @@ BoundedTransitEventBufferImpl<T>::BoundedTransitEventBufferImpl(integer_type cap
 {
   if (!is_pow_of_two(static_cast<size_t>(capacity)))
   {
-    QUILL_THROW(std::runtime_error{"Capacity must be a power of two"});
+    QUILL_THROW(QuillError{"Capacity must be a power of two"});
   }
 
   _storage.resize(capacity);

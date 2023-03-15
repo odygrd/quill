@@ -54,6 +54,9 @@
 - For `quill::rotating_file_handler(...)` and  `quill::time_rotating_file_handler(...)` the `backup_count` argument is
   now default to `std::numeric_limits<std::uint32_t>::max()`
 - When the logging file is deleted from the command line while the logger is still using it, then a new file will be reopened for writing.
+- Added `quill::Clock` which enables taking and converting TSC timestamps to system clock timestamps.
+  When `TimestampClockType::Tsc` is used as the default clock type in `Config.h` this class
+  can also be used to generate timestamps that are in sync with the timestamps in the log file. ([#264](https://github.com/odygrd/quill/pull/264))
 
 ## v2.7.0
 

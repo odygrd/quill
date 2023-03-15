@@ -348,4 +348,5 @@ QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vecto
  * @note This function will not do anything if called while the backend worker is not running
  */
 void flush();
+
 } // namespace quill

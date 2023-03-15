@@ -145,8 +145,11 @@ struct Config
    * std::chrono::system_clock:now() is used for obtaining the timestamp
    *
    * By default rdtsc mode is enabled
+   *
+   * @note You need to have invariant TSC for this mode to work correctly, otherwise please
+   * use TimestampClockType::System
    */
-  TimestampClockType default_timestamp_clock_type = TimestampClockType::Rdtsc;
+  TimestampClockType default_timestamp_clock_type = TimestampClockType::Tsc;
 
   /**
    * Resets the root logger and re-creates the logger with the given handler
@@ -172,10 +175,10 @@ struct Config
    * The TSC clock drifts slightly over time and is also not synchronised with the NTP server
    * updates Therefore the smaller this value is the more accurate the log timestamps will be.
    *
-   * It is not recommended to change the default value unless there is a real reason.
-   * The value is in milliseconds and the default value is 700.
+   * Decreasing further this value provides more accurate timestamps with the system_clock.
+   * Changing this value only affects the backend worker thread performance.
    */
-  std::chrono::milliseconds rdtsc_resync_interval = std::chrono::milliseconds{700};
+  std::chrono::milliseconds rdtsc_resync_interval = std::chrono::milliseconds{500};
 
   /**
    * Quill uses an unbounded/bounded SPSC queue per spawned thread to

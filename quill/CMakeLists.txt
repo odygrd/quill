@@ -54,6 +54,7 @@ set(HEADER_FILES
         include/quill/Quill.h
         include/quill/QuillError.h
         include/quill/TransitEvent.h
+        include/quill/Clock.h
         include/quill/TweakMe.h
         include/quill/Utility.h
         )

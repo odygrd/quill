@@ -160,7 +160,7 @@ public:
 
     new (write_buffer) detail::Header(
       detail::get_metadata_and_format_fn<decltype(anonymous_log_message_info)>, logger_details,
-      (logger_details->timestamp_clock_type() == TimestampClockType::Rdtsc) ? quill::detail::rdtsc()
+      (logger_details->timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
         : (logger_details->timestamp_clock_type() == TimestampClockType::System)
         ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
         : default_logger->_custom_timestamp_clock->now());
@@ -244,6 +244,11 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool backend_worker_is_running() noexcept
   {
     return _backend_worker.is_running();
+  }
+
+  QUILL_NODISCARD uint64_t time_since_epoch(uint64_t rdtsc_value) const noexcept
+  {
+    return _backend_worker.time_since_epoch(rdtsc_value);
   }
 
 private:

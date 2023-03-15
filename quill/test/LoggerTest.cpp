@@ -20,7 +20,7 @@ TEST_CASE("log_level")
 
   LoggerCollection logger_collection{cfg, tc, hc};
 
-  Logger* logger = logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
+  Logger* logger = logger_collection.create_logger("logger_1", TimestampClockType::Tsc, nullptr);
 
   // Check default log level
   REQUIRE_EQ(logger->log_level(), LogLevel::Info);
@@ -52,7 +52,7 @@ TEST_CASE("throw_if_backtrace_log_level_is_used")
 
   LoggerCollection logger_collection{cfg, tc, hc};
 
-  Logger* logger_1 = logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
+  Logger* logger_1 = logger_collection.create_logger("logger_1", TimestampClockType::Tsc, nullptr);
 
   REQUIRE_THROWS_AS(logger_1->set_log_level(LogLevel::Backtrace), quill::QuillError);
 }
@@ -68,7 +68,7 @@ TEST_CASE("logger_should_log")
   LoggerCollection logger_collection{cfg, tc, hc};
 
   QUILL_MAYBE_UNUSED Logger* logger_1 =
-    logger_collection.create_logger("logger_1", TimestampClockType::Rdtsc, nullptr);
+    logger_collection.create_logger("logger_1", TimestampClockType::Tsc, nullptr);
 
   REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log<LogLevel::Debug>());
   REQUIRE(logger_collection.get_logger("logger_1")->should_log<LogLevel::Info>());
