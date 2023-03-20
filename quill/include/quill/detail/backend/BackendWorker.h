@@ -671,7 +671,7 @@ void BackendWorker::_main_loop()
     if (total_events >= _max_transit_events)
     {
       // process half transit events
-      for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
+      for (size_t i = 0; i < total_events; ++i)
       {
         _process_transit_event(cached_thread_contexts);
       }
@@ -742,7 +742,7 @@ void BackendWorker::_exit()
       if (total_events >= _max_transit_events)
       {
         // process half transit events
-        for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
+        for (size_t i = 0; i < total_events; ++i)
         {
           _process_transit_event(cached_thread_contexts);
         }
