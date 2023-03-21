@@ -63,8 +63,11 @@
   not a runtime option, you still need to recompile your target and pass `QUILL_USE_BOUNDED_QUEUE` as a flag.
   See [example_bounded_queue_message_dropping.cpp](https://github.com/odygrd/quill/blob/master/examples/example_bounded_queue_message_dropping.cpp)
 - Added `QUILL_USE_BOUNDED_BLOCKING_QUEUE` option that makes possible to use a bounded queue which blocks the hot
-  thread rather than dropping messages ([#270](https://github.com/odygrd/quill/pull/270)).
+  thread rather than dropping messages ([#270](https://github.com/odygrd/quill/pull/270))
   See [example_bounded_queue_blocking.cpp](https://github.com/odygrd/quill/blob/master/examples/example_bounded_queue_blocking.cpp)
+- Renamed `backend_thread_max_transit_events` to `backend_thread_transit_events_soft_limit` in
+  Config.h ([#270](https://github.com/odygrd/quill/pull/270))
+- Added `backend_thread_transit_events_hard_limit` in Config.h ([#270](https://github.com/odygrd/quill/pull/270))
 - CMake: `QUILL_X86ARCH` and `QUILL_USE_BOUNDED_QUEUE` options have been removed. The users can decide on enabling these
   options on their side and quill doesn't need to be recompiled as a library. For example :
   ```cmake

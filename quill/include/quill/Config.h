@@ -46,11 +46,33 @@ struct Config
    * However if the hot threads keep pushing messages to the queues
    * e.g logging in a loop then no logs can ever be processed.
    *
-   * This variable sets the maximum transit events number.
-   * When that number is reached then half of them will get flushed to the log files before
-   * continuing reading the SPSC queues
+   * When the soft limit is reached then this number of events (default 800) will be logged to the
+   * log files before continuing reading the SPSC queues
+   *
+   * The SPSC queues are emptied on each iteration.
+   * This means that the actual messages from the SPSC queues can be much more
+   * than the backend_thread_transit_events_soft_limit.
+   *
+   * @note This number represents a limit across ALL hot threads
    */
-  size_t backend_thread_max_transit_events = 800;
+  size_t backend_thread_transit_events_soft_limit = 800;
+
+  /**
+   * The backend worker thread gives priority to reading the messages from SPSC queues from all
+   * the hot threads first and buffers them temporarily.
+   *
+   * However if the hot threads keep pushing messages to the queues
+   * e.g logging in a loop then no logs can ever be processed.
+   *
+   * As the backend thread is buffering messages it can keep buffering for ever if the hot
+   * threads keep pushing.
+   *
+   * This limit is the maximum size of the backend thread buffer. When reached the backend worker
+   * thread will stop reading the SPSC queues until the buffer has space again.
+   *
+   * @note This is limit PER hot thread
+   */
+  size_t backend_thread_transit_events_hard_limit = 25'000;
 
   /**
    * The backend worker thread pops all the SPSC queues log messages and buffers them to a local

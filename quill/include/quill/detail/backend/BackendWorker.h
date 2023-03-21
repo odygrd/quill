@@ -156,7 +156,8 @@ private:
   std::atomic<RdtscClock*> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
-  size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
+  size_t _transit_events_soft_limit; /** limit of transit events before start flushing, value from config */
+  size_t _thread_transit_events_hard_limit; /** limit for the transit event buffer value from config */
 
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
 
@@ -202,7 +203,8 @@ void BackendWorker::run()
   // enforce the user to configure a variable before the thread has started
   _backend_thread_sleep_duration = _config.backend_thread_sleep_duration;
   _backend_thread_yield = _config.backend_thread_yield;
-  _max_transit_events = _config.backend_thread_max_transit_events;
+  _transit_events_soft_limit = _config.backend_thread_transit_events_soft_limit;
+  _thread_transit_events_hard_limit = _config.backend_thread_transit_events_hard_limit;
   _empty_all_queues_before_exit = _config.backend_thread_empty_all_queues_before_exit;
   _strict_log_timestamp_order = _config.backend_thread_strict_log_timestamp_order;
   _rdtsc_resync_interval = _config.rdtsc_resync_interval;
@@ -333,10 +335,16 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadCon
 
   std::byte* read_pos = queue.prepare_read();
 
-  // read max of one full queue otherwise we can get stuck here forever if
-  // the producer keeps producing
+  // read max of one full queue and also max_transit events otherwise we can get stuck here forever
+  // if the producer keeps producing
   while ((total_bytes_read < queue_capacity) && read_pos)
   {
+    if (transit_event_buffer.size() == _thread_transit_events_hard_limit)
+    {
+      // stop reading the queue, we reached the transit buffer hard limit
+      return transit_event_buffer.size();
+    }
+
     std::byte* const read_begin = read_pos;
 
     // First we want to allocate a new TransitEvent or use an existing one
@@ -528,9 +536,15 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
     }
   }
 
-  assert(transit_buffer && "transit_buffer can never be a nullptr");
+  if (!transit_buffer)
+  {
+    // all buffers are empty
+    // return false, meaning we processed a message
+    return;
+  }
 
   TransitEvent* transit_event = transit_buffer->front();
+  assert(transit_event && "transit_buffer is set only when transit_event is valid");
 
   std::pair<MacroMetadata, detail::FormatToFn> const mf = transit_event->header.metadata_and_format_fn();
   MacroMetadata const& macro_metadata = mf.first;
@@ -668,10 +682,10 @@ void BackendWorker::_main_loop()
   if (QUILL_LIKELY(total_events != 0))
   {
     // there are buffered events to process
-    if (total_events >= _max_transit_events)
+    if (total_events >= _transit_events_soft_limit)
     {
-      // process half transit events
-      for (size_t i = 0; i < total_events; ++i)
+      // process max transit events
+      for (size_t i = 0; i < _transit_events_soft_limit; ++i)
       {
         _process_transit_event(cached_thread_contexts);
       }
@@ -684,8 +698,6 @@ void BackendWorker::_main_loop()
   }
   else
   {
-    // there was nothing to process
-
     // None of the thread local queues had any events to process, this means we have processed
     // all messages in all queues We force flush all remaining messages
     _force_flush();
@@ -739,17 +751,16 @@ void BackendWorker::_exit()
     if (total_events != 0)
     {
       // there are events to process
-      if (total_events >= _max_transit_events)
+      if (total_events >= _transit_events_soft_limit)
       {
-        // process half transit events
-        for (size_t i = 0; i < total_events; ++i)
+        for (size_t i = 0; i < _transit_events_soft_limit; ++i)
         {
           _process_transit_event(cached_thread_contexts);
         }
       }
       else
       {
-        // process a single transit event, then give priority to the hot thread spsc queue again
+        // process a single transit event, then give priority to the hot thread SPSC queue again
         _process_transit_event(cached_thread_contexts);
       }
     }
