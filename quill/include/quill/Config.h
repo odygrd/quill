@@ -40,6 +40,15 @@ struct Config
   std::chrono::nanoseconds backend_thread_sleep_duration = std::chrono::nanoseconds{0};
 
   /**
+   * The backend worker will drain all hot queues and buffer the messages by default.
+   * If this option is set to false then it will not buffer and simple process the message
+   * with the lowest timestamp from the SPSC queues.
+   * @note It is not recommended to set this to false, unless for example you want to limit
+   * the logging thread memory usage
+   */
+  size_t backend_thread_use_transit_buffer = true;
+
+  /**
    * The backend worker thread gives priority to reading the messages from SPSC queues from all
    * the hot threads first and buffers them temporarily.
    *
@@ -54,6 +63,7 @@ struct Config
    * than the backend_thread_transit_events_soft_limit.
    *
    * @note This number represents a limit across ALL hot threads
+   * @note applicable only when backend_thread_use_transit_buffer = true;
    */
   size_t backend_thread_transit_events_soft_limit = 800;
 
@@ -71,8 +81,9 @@ struct Config
    * thread will stop reading the SPSC queues until the buffer has space again.
    *
    * @note This is limit PER hot thread
+   * @note applicable only when backend_thread_use_transit_buffer = true;
    */
-  size_t backend_thread_transit_events_hard_limit = 25'000;
+  size_t backend_thread_transit_events_hard_limit = 100'000;
 
   /**
    * The backend worker thread pops all the SPSC queues log messages and buffers them to a local
@@ -80,6 +91,7 @@ struct Config
    * capacity of the buffer is customisable. Each newly spawned hot thread will have his own
    * transit_event_buffer. This capacity is not in bytes but in items.
    * It must be a power of two.
+   * @note applicable only when backend_thread_use_transit_buffer = true;
    */
   uint32_t backend_thread_initial_transit_event_buffer_capacity = 64;
 
@@ -99,6 +111,7 @@ struct Config
    * They are checked again at the next iteration. Messages are checked on microsecond precision.
    *
    * Enabling this option might delaying popping messages from the SPSC queues.
+   * @note applicable only when backend_thread_use_transit_buffer = true;
    */
   bool backend_thread_strict_log_timestamp_order = true;
 

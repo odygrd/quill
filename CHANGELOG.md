@@ -68,6 +68,7 @@
 - Renamed `backend_thread_max_transit_events` to `backend_thread_transit_events_soft_limit` in
   Config.h ([#270](https://github.com/odygrd/quill/pull/270))
 - Added `backend_thread_transit_events_hard_limit` in Config.h ([#270](https://github.com/odygrd/quill/pull/270))
+- Added `backend_thread_use_transit_buffer` in Config.h ([#270](https://github.com/odygrd/quill/pull/270))
 - CMake: `QUILL_X86ARCH` and `QUILL_USE_BOUNDED_QUEUE` options have been removed. The users can decide on enabling these
   options on their side and quill doesn't need to be recompiled as a library. For example :
   ```cmake
