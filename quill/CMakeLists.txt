@@ -73,7 +73,6 @@ set(SOURCE_FILES
         src/detail/HandlerCollection.cpp
         src/detail/LoggerCollection.cpp
         src/detail/SignalHandler.cpp
-        src/detail/ThreadContextCollection.cpp
 
         src/handlers/ConsoleHandler.cpp
         src/handlers/FileHandler.cpp
@@ -131,14 +130,6 @@ if (QUILL_NO_EXCEPTIONS)
     if (NOT MSVC)
         target_compile_options(${TARGET_NAME} PRIVATE -fno-exceptions)
     endif ()
-endif ()
-
-if (QUILL_X86ARCH)
-    target_compile_definitions(${TARGET_NAME} PUBLIC -DQUILL_X86ARCH)
-endif ()
-
-if (QUILL_USE_BOUNDED_QUEUE)
-    target_compile_definitions(${TARGET_NAME} PUBLIC -DQUILL_USE_BOUNDED_QUEUE)
 endif ()
 
 if (QUILL_NO_THREAD_NAME_SUPPORT)

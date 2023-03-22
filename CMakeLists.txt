@@ -9,10 +9,6 @@ option(QUILL_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
 
 option(QUILL_NO_EXCEPTIONS "Build without exceptions with -fno-exceptions flag" OFF)
 
-option(QUILL_USE_BOUNDED_QUEUE "Build with bounded queue instead of unbounded" OFF)
-
-option(QUILL_X86ARCH "Enables x86 optimisations, needs to be combined with -march" OFF)
-
 option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
 option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
@@ -108,8 +104,6 @@ if (QUILL_MASTER_PROJECT)
 endif ()
 
 message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
-message(STATUS "QUILL_X86ARCH: " ${QUILL_X86ARCH})
-message(STATUS "QUILL_USE_BOUNDED_QUEUE: " ${QUILL_USE_BOUNDED_QUEUE})
 message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
 message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
 

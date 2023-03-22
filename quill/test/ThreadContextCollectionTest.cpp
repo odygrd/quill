@@ -38,16 +38,17 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
     for (size_t i = 0; i < threads.size(); ++i)
     {
       auto& thread_terminate_flag = terminate_flag[i];
-      threads[i] = std::thread([&thread_terminate_flag, &threads_started, &thread_context_collection]() {
-        // create a context for that thread
-        QUILL_MAYBE_UNUSED auto tc = thread_context_collection.local_thread_context();
-        threads_started.fetch_add(1);
-        while (!thread_terminate_flag.load())
+      threads[i] = std::thread([&thread_terminate_flag, &threads_started, &thread_context_collection]()
         {
-          // loop waiting for main to signal
-          std::this_thread::sleep_for(std::chrono::nanoseconds{10});
-        }
-      });
+          // create a context for that thread
+          QUILL_MAYBE_UNUSED auto tc = thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
+          threads_started.fetch_add(1);
+          while (!thread_terminate_flag.load())
+          {
+            // loop waiting for main to signal
+            std::this_thread::sleep_for(std::chrono::nanoseconds{10});
+          }
+        });
     }
 
     // main wait for all of them to start
@@ -72,7 +73,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
     for (auto& thread_context : backend_thread_contexts_cache_local)
     {
       REQUIRE(thread_context->is_valid());
-      REQUIRE(thread_context->spsc_queue().empty());
+      REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
 #if defined(QUILL_USE_BOUNDED_QUEUE)
       REQUIRE(thread_context->spsc_queue().empty());
 #endif
@@ -90,7 +91,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
     for (auto* thread_context : backend_thread_contexts_cache_local)
     {
       REQUIRE_FALSE(thread_context->is_valid());
-      REQUIRE(thread_context->spsc_queue().empty());
+      REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
 #if defined(QUILL_USE_BOUNDED_QUEUE)
       REQUIRE(thread_context->spsc_queue().empty());
 #endif
@@ -129,16 +130,17 @@ TEST_CASE("add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join
     for (size_t i = 0; i < threads.size(); ++i)
     {
       auto& thread_terminate_flag = terminate_flag[i];
-      threads[i] = std::thread([&thread_terminate_flag, &threads_started, &thread_context_collection]() {
-        // create a context for that thread
-        QUILL_MAYBE_UNUSED auto tc = thread_context_collection.local_thread_context();
-        threads_started.fetch_add(1);
-        while (!thread_terminate_flag.load())
+      threads[i] = std::thread([&thread_terminate_flag, &threads_started, &thread_context_collection]()
         {
-          // loop waiting for main to signal
-          std::this_thread::sleep_for(std::chrono::nanoseconds{10});
-        }
-      });
+          // create a context for that thread
+          QUILL_MAYBE_UNUSED auto tc = thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
+          threads_started.fetch_add(1);
+          while (!thread_terminate_flag.load())
+          {
+            // loop waiting for main to signal
+            std::this_thread::sleep_for(std::chrono::nanoseconds{10});
+          }
+        });
     }
 
     // main wait for all of them to start
@@ -160,7 +162,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join
     for (auto& thread_context : thread_context_collection.backend_thread_contexts_cache())
     {
       REQUIRE(thread_context->is_valid());
-      REQUIRE(thread_context->spsc_queue().empty());
+      REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
 #if defined(QUILL_USE_BOUNDED_QUEUE)
       REQUIRE(thread_context->spsc_queue().empty());
 #endif

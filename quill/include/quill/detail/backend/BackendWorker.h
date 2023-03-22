@@ -103,27 +103,45 @@ private:
   /**
    * Populate our local transit event buffer
    * @param cached_thread_contexts local thread context cache
-   * @return total size of all transit event buffers
+   * @return total size of all transit event buffers, max of events
    */
-  QUILL_ATTRIBUTE_HOT inline size_t _populate_transit_event_buffer(
+  QUILL_ATTRIBUTE_HOT inline std::pair<size_t, size_t> _populate_transit_event_buffer(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   /**
-   * Deserialize an log message from the raw SPSC queue
+   * Deserialize messages from the raw SPSC queue
    * @param thread_context thread context
    * @param ts_now timestamp now
    * @return total events stored in the transit_event_buffer
    */
-  QUILL_ATTRIBUTE_HOT inline uint32_t _read_queue_messages_and_decode(ThreadContext* thread_context,
+  template <typename QueueT>
+  QUILL_ATTRIBUTE_HOT inline uint32_t _read_queue_messages_and_decode(QueueT& queue, ThreadContext* thread_context,
                                                                       uint64_t ts_now);
+
+  QUILL_ATTRIBUTE_HOT inline bool _get_transit_event_from_queue(std::byte*& read_pos, ThreadContext* thread_context,
+                                                                uint64_t ts_now);
 
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
    */
-  QUILL_ATTRIBUTE_HOT inline void _process_transit_event(
+  QUILL_ATTRIBUTE_HOT inline void _process_transit_events(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
+  /**
+   * Process a single trnasit event
+   */
+  QUILL_ATTRIBUTE_HOT inline void _process_transit_event(TransitEvent& transit_event);
+
+  /**
+   * Write a transit event
+   */
   QUILL_ATTRIBUTE_HOT inline void _write_transit_event(TransitEvent const& transit_event);
+
+  /**
+   * Process the lowest timestamp from the queues and write it to the log file
+   */
+  QUILL_ATTRIBUTE_HOT inline bool _process_and_write_single_message(
+    ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   /**
    * Force flush all active Handlers
@@ -155,7 +173,8 @@ private:
   std::atomic<RdtscClock*> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
   std::chrono::nanoseconds _backend_thread_sleep_duration; /** backend_thread_sleep_duration from config **/
-  size_t _max_transit_events; /** limit of transit events before start flushing, value from config */
+  size_t _transit_events_soft_limit; /** limit of transit events before start flushing, value from config */
+  size_t _thread_transit_events_hard_limit; /** limit for the transit event buffer value from config */
 
   std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
 
@@ -173,6 +192,7 @@ private:
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   bool _strict_log_timestamp_order{true};
   bool _empty_all_queues_before_exit{true};
+  bool _use_transit_buffer{true};
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
 
 #if !defined(QUILL_NO_EXCEPTIONS)
@@ -201,10 +221,12 @@ void BackendWorker::run()
   // enforce the user to configure a variable before the thread has started
   _backend_thread_sleep_duration = _config.backend_thread_sleep_duration;
   _backend_thread_yield = _config.backend_thread_yield;
-  _max_transit_events = _config.backend_thread_max_transit_events;
+  _transit_events_soft_limit = _config.backend_thread_transit_events_soft_limit;
+  _thread_transit_events_hard_limit = _config.backend_thread_transit_events_hard_limit;
   _empty_all_queues_before_exit = _config.backend_thread_empty_all_queues_before_exit;
   _strict_log_timestamp_order = _config.backend_thread_strict_log_timestamp_order;
   _rdtsc_resync_interval = _config.rdtsc_resync_interval;
+  _use_transit_buffer = _config.backend_thread_use_transit_buffer;
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   if (_config.backend_thread_error_handler)
@@ -282,7 +304,8 @@ void BackendWorker::run()
 }
 
 /***/
-size_t BackendWorker::_populate_transit_event_buffer(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
+std::pair<size_t, size_t> BackendWorker::_populate_transit_event_buffer(
+  ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
   uint64_t const ts_now = _strict_log_timestamp_order
     ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
@@ -291,25 +314,40 @@ size_t BackendWorker::_populate_transit_event_buffer(ThreadContextCollection::ba
     : 0;
 
   size_t total_events{0};
+  size_t max_events{0};
+
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    // copy everything from the SPSC queue to the transit event buffer to process it later
-    uint32_t const events = _read_queue_messages_and_decode(thread_context, ts_now);
+    std::visit(
+      [&total_events, &max_events, &thread_context, &ts_now, this](auto& queue)
+      {
+        using T = std::decay_t<decltype(queue)>;
+        if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
+        {
+          // copy everything from the SPSC queue to the transit event buffer to process it later
+          uint32_t const events = _read_queue_messages_and_decode(queue, thread_context, ts_now);
+          total_events += events;
 
-    total_events += events;
+          if (events > max_events)
+          {
+            max_events = events;
+          }
+        }
+      },
+      thread_context->spsc_queue_variant());
   }
 
-  return total_events;
+  return std::make_pair(total_events, max_events);
 }
 
 /***/
-uint32_t BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_context, uint64_t ts_now)
+template <typename QueueT>
+uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadContext* thread_context, uint64_t ts_now)
 {
   // Note: The producer will commit to this queue when one complete message is written.
   // This means that if we can read something from the queue it will be a full message
   // The producer will add items to the buffer :
   // |timestamp|metadata*|logger_details*|args...|
-  ThreadContext::SPSCQueueT& queue = thread_context->spsc_queue();
   detail::UnboundedTransitEventBuffer& transit_event_buffer = thread_context->transit_event_buffer();
 
   size_t const queue_capacity = queue.capacity();
@@ -317,170 +355,30 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_co
 
   std::byte* read_pos = queue.prepare_read();
 
-  // read max of one full queue otherwise we can get stuck here forever if
-  // the producer keeps producing
+  // read max of one full queue and also max_transit events otherwise we can get stuck here forever
+  // if the producer keeps producing
   while ((total_bytes_read < queue_capacity) && read_pos)
   {
+    if (transit_event_buffer.size() == _thread_transit_events_hard_limit)
+    {
+      // stop reading the queue, we reached the transit buffer hard limit
+      return transit_event_buffer.size();
+    }
+
     std::byte* const read_begin = read_pos;
 
-    // First we want to allocate a new TransitEvent or use an existing one
-    // to store the message from the queue
-    TransitEvent* transit_event = transit_event_buffer.back();
-    transit_event->thread_id = thread_context->thread_id();
-    transit_event->thread_name = thread_context->thread_name();
+    bool res = _get_transit_event_from_queue(read_pos, thread_context, ts_now);
 
-    // read the header first, and take copy of the header
-    read_pos = detail::align_pointer<alignof(Header), std::byte>(read_pos);
-    transit_event->header = *(reinterpret_cast<detail::Header*>(read_pos));
-    read_pos += sizeof(detail::Header);
-
-    // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
-    // doing the conversion here ensures that every transit that is inserted in the transit buffer
-    // below has a header timestamp of nanoseconds since epoch and makes it even possible to
-    // have Logger objects using different clocks
-    if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Tsc)
+    if (!res)
     {
-      if (!_rdtsc_clock.load(std::memory_order_relaxed))
-      {
-        // Here we lazy initialise rdtsc clock on the backend thread only if the user decides to use it
-        // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
-        // taking samples first
-        _rdtsc_clock.store(new RdtscClock{_rdtsc_resync_interval}, std::memory_order_release);
-        _last_rdtsc_resync = std::chrono::system_clock::now();
-      }
-
-      // convert the rdtsc value to nanoseconds since epoch
-      transit_event->header.timestamp =
-        _rdtsc_clock.load(std::memory_order_relaxed)->time_since_epoch(transit_event->header.timestamp);
-
-      // Now check if the message has a timestamp greater than our ts_now
-      if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
-      {
-        // We are reading the queues sequentially and to be fair when ordering the messages
-        // we are trying to avoid the situation when we already read the first queue,
-        // and then we missed it when reading the last queue
-
-        // if the message timestamp is greater than our timestamp then we stop reading this queue
-        // for now and we will continue in the next circle
-
-        // we return here and never call transit_event_buffer.push_back();
-        return transit_event_buffer.size();
-      }
-    }
-    else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::System)
-    {
-      if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
-      {
-        // We are reading the queues sequentially and to be fair when ordering the messages
-        // we are trying to avoid the situation when we already read the first queue,
-        // and then we missed it when reading the last queue
-
-        // if the message timestamp is greater than our timestamp then we stop reading this queue
-        // for now and we will continue in the next circle
-
-        // we return here and never call transit_event_buffer.push_back();
-        return transit_event_buffer.size();
-      }
-    }
-    else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Custom)
-    {
-      // we skip checking against `ts_now`, we can not compare a custom timestamp by
-      // the user (TimestampClockType::Custom) against ours
-    }
-
-    // we need to check and do not try to format the flush events as that wouldn't be valid
-    auto const [macro_metadata, format_to_fn] = transit_event->header.metadata_and_format_fn();
-
-    if (macro_metadata.event() != MacroMetadata::Event::Flush)
-    {
-#if defined(_WIN32)
-      if (macro_metadata.has_wide_char())
-      {
-        // convert the format string to a narrow string
-        size_t const size_needed = get_wide_string_encoding_size(macro_metadata.wmessage_format());
-        std::string format_str(size_needed, 0);
-        wide_string_to_narrow(format_str.data(), size_needed, macro_metadata.wmessage_format());
-
-        assert(!macro_metadata.is_structured_log_template() &&
-               "structured log templates are not supported for wide characters");
-
-        read_pos = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
-      }
-      else
-      {
-#endif
-        if (macro_metadata.is_structured_log_template())
-        {
-          // using the message_format as key for lookups
-          _structured_fmt_str.assign(macro_metadata.message_format().data(),
-                                     macro_metadata.message_format().size());
-
-          std::vector<std::string> const* s_keys{nullptr};
-
-          // for messages containing named arguments threat them as structured logs
-          auto const search = _slog_templates.find(_structured_fmt_str);
-          if (search != std::cend(_slog_templates))
-          {
-            auto const& [fmt_str, structured_keys] = search->second;
-            s_keys = &structured_keys;
-
-            read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
-          }
-          else
-          {
-            auto [fmt_str, structured_keys] =
-              _process_structured_log_template(macro_metadata.message_format());
-
-            // insert the results
-            auto res = _slog_templates.try_emplace(
-              _structured_fmt_str, std::make_pair(fmt_str, std::move(structured_keys)));
-            s_keys = &(res.first->second.second);
-
-            read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
-          }
-
-          // format the values to strings
-          std::vector<std::string> structured_values;
-          structured_values.reserve(s_keys->size());
-          for (auto const& arg : _args)
-          {
-            structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
-          }
-
-          // store them as kv pair
-          transit_event->structured_kvs.clear();
-          for (size_t i = 0; i < s_keys->size(); ++i)
-          {
-            transit_event->structured_kvs.emplace_back((*s_keys)[i], std::move(structured_values[i]));
-          }
-        }
-        else
-        {
-          // regular logs
-          read_pos =
-            format_to_fn(macro_metadata.message_format(), read_pos, transit_event->formatted_msg, _args);
-        }
-#if defined(_WIN32)
-      }
-#endif
-    }
-    else
-    {
-      // if this is a flush event then we do not need to format anything for the
-      // transit_event, but we need to set the transit event's flush_flag pointer instead
-      uintptr_t flush_flag_tmp;
-      std::memcpy(&flush_flag_tmp, read_pos, sizeof(uintptr_t));
-      transit_event->flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
-      read_pos += sizeof(uintptr_t);
+      // if _get_transit_event_from_queue returns false we stop reading
+      return transit_event_buffer.size();
     }
 
     // Finish reading
     assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
     queue.finish_read(static_cast<uint32_t>(read_pos - read_begin));
     total_bytes_read += static_cast<uint32_t>(read_pos - read_begin);
-
-    // commit this transit event
-    transit_event_buffer.push_back();
 
     // read again
     read_pos = queue.prepare_read();
@@ -496,7 +394,167 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(ThreadContext* thread_co
 }
 
 /***/
-void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
+bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadContext* thread_context, uint64_t ts_now)
+{
+  // First we want to allocate a new TransitEvent or use an existing one
+  // to store the message from the queue
+  detail::UnboundedTransitEventBuffer& transit_event_buffer = thread_context->transit_event_buffer();
+  TransitEvent* transit_event = transit_event_buffer.back();
+  transit_event->thread_id = thread_context->thread_id();
+  transit_event->thread_name = thread_context->thread_name();
+
+  // read the header first, and take copy of the header
+  read_pos = detail::align_pointer<alignof(Header), std::byte>(read_pos);
+  transit_event->header = *(reinterpret_cast<detail::Header*>(read_pos));
+  read_pos += sizeof(detail::Header);
+
+  // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
+  // doing the conversion here ensures that every transit that is inserted in the transit buffer
+  // below has a header timestamp of nanoseconds since epoch and makes it even possible to
+  // have Logger objects using different clocks
+  if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Tsc)
+  {
+    if (!_rdtsc_clock.load(std::memory_order_relaxed))
+    {
+      // Here we lazy initialise rdtsc clock on the backend thread only if the user decides to use it
+      // Use rdtsc clock based on config. The clock requires a few seconds to init as it is
+      // taking samples first
+      _rdtsc_clock.store(new RdtscClock{_rdtsc_resync_interval}, std::memory_order_release);
+      _last_rdtsc_resync = std::chrono::system_clock::now();
+    }
+
+    // convert the rdtsc value to nanoseconds since epoch
+    transit_event->header.timestamp =
+      _rdtsc_clock.load(std::memory_order_relaxed)->time_since_epoch(transit_event->header.timestamp);
+
+    // Now check if the message has a timestamp greater than our ts_now
+    if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
+    {
+      // We are reading the queues sequentially and to be fair when ordering the messages
+      // we are trying to avoid the situation when we already read the first queue,
+      // and then we missed it when reading the last queue
+
+      // if the message timestamp is greater than our timestamp then we stop reading this queue
+      // for now and we will continue in the next circle
+
+      // we return here and never call transit_event_buffer.push_back();
+      return false;
+    }
+  }
+  else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::System)
+  {
+    if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
+    {
+      // We are reading the queues sequentially and to be fair when ordering the messages
+      // we are trying to avoid the situation when we already read the first queue,
+      // and then we missed it when reading the last queue
+
+      // if the message timestamp is greater than our timestamp then we stop reading this queue
+      // for now and we will continue in the next circle
+
+      // we return here and never call transit_event_buffer.push_back();
+      return false;
+    }
+  }
+  else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Custom)
+  {
+    // we skip checking against `ts_now`, we can not compare a custom timestamp by
+    // the user (TimestampClockType::Custom) against ours
+  }
+
+  // we need to check and do not try to format the flush events as that wouldn't be valid
+  auto const [macro_metadata, format_to_fn] = transit_event->header.metadata_and_format_fn();
+
+  if (macro_metadata.event() != MacroMetadata::Event::Flush)
+  {
+#if defined(_WIN32)
+    if (macro_metadata.has_wide_char())
+    {
+      // convert the format string to a narrow string
+      size_t const size_needed = get_wide_string_encoding_size(macro_metadata.wmessage_format());
+      std::string format_str(size_needed, 0);
+      wide_string_to_narrow(format_str.data(), size_needed, macro_metadata.wmessage_format());
+
+      assert(!macro_metadata.is_structured_log_template() &&
+             "structured log templates are not supported for wide characters");
+
+      read_pos = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
+    }
+    else
+    {
+#endif
+      if (macro_metadata.is_structured_log_template())
+      {
+        // using the message_format as key for lookups
+        _structured_fmt_str.assign(macro_metadata.message_format().data(),
+                                   macro_metadata.message_format().size());
+
+        std::vector<std::string> const* s_keys{nullptr};
+
+        // for messages containing named arguments threat them as structured logs
+        auto const search = _slog_templates.find(_structured_fmt_str);
+        if (search != std::cend(_slog_templates))
+        {
+          auto const& [fmt_str, structured_keys] = search->second;
+          s_keys = &structured_keys;
+
+          read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+        }
+        else
+        {
+          auto [fmt_str, structured_keys] =
+            _process_structured_log_template(macro_metadata.message_format());
+
+          // insert the results
+          auto res = _slog_templates.try_emplace(
+            _structured_fmt_str, std::make_pair(fmt_str, std::move(structured_keys)));
+          s_keys = &(res.first->second.second);
+
+          read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+        }
+
+        // format the values to strings
+        std::vector<std::string> structured_values;
+        structured_values.reserve(s_keys->size());
+        for (auto const& arg : _args)
+        {
+          structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
+        }
+
+        // store them as kv pair
+        transit_event->structured_kvs.clear();
+        for (size_t i = 0; i < s_keys->size(); ++i)
+        {
+          transit_event->structured_kvs.emplace_back((*s_keys)[i], std::move(structured_values[i]));
+        }
+      }
+      else
+      {
+        // regular logs
+        read_pos = format_to_fn(macro_metadata.message_format(), read_pos, transit_event->formatted_msg, _args);
+      }
+#if defined(_WIN32)
+    }
+#endif
+  }
+  else
+  {
+    // if this is a flush event then we do not need to format anything for the
+    // transit_event, but we need to set the transit event's flush_flag pointer instead
+    uintptr_t flush_flag_tmp;
+    std::memcpy(&flush_flag_tmp, read_pos, sizeof(uintptr_t));
+    transit_event->flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
+    read_pos += sizeof(uintptr_t);
+  }
+
+  // commit this transit event
+  transit_event_buffer.push_back();
+
+  return true;
+}
+
+/***/
+void BackendWorker::_process_transit_events(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
   // Get the lowest timestamp
   uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
@@ -512,11 +570,26 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
     }
   }
 
-  assert(transit_buffer && "transit_buffer can never be a nullptr");
+  if (!transit_buffer)
+  {
+    // all buffers are empty
+    // return false, meaning we processed a message
+    return;
+  }
 
   TransitEvent* transit_event = transit_buffer->front();
+  assert(transit_event && "transit_buffer is set only when transit_event is valid");
 
-  std::pair<MacroMetadata, detail::FormatToFn> const mf = transit_event->header.metadata_and_format_fn();
+  _process_transit_event(*transit_event);
+
+  // Remove this event and move to the next.
+  transit_buffer->pop_front();
+}
+
+/***/
+void BackendWorker::_process_transit_event(TransitEvent& transit_event)
+{
+  std::pair<MacroMetadata, detail::FormatToFn> const mf = transit_event.header.metadata_and_format_fn();
   MacroMetadata const& macro_metadata = mf.first;
 
   // If backend_process(...) throws we want to skip this event and move to the next, so we catch the
@@ -527,16 +600,16 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
     {
       if (macro_metadata.level() != LogLevel::Backtrace)
       {
-        _write_transit_event(*transit_event);
+        _write_transit_event(transit_event);
 
         // We also need to check the severity of the log message here against the backtrace
         // Check if we should also flush the backtrace messages:
         // After we forwarded the message we will check the severity of this message for this logger
         // If the severity of the message is higher than the backtrace flush severity we will also
         // flush the backtrace of the logger
-        if (QUILL_UNLIKELY(macro_metadata.level() >= transit_event->header.logger_details->backtrace_flush_level()))
+        if (QUILL_UNLIKELY(macro_metadata.level() >= transit_event.header.logger_details->backtrace_flush_level()))
         {
-          _backtrace_log_message_storage.process(transit_event->header.logger_details->name(),
+          _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
                                                  [this](TransitEvent const& transit_event)
                                                  { _write_transit_event(transit_event); });
         }
@@ -544,21 +617,21 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
       else
       {
         // this is a backtrace log and we will store it
-        _backtrace_log_message_storage.store(std::move(*transit_event));
+        _backtrace_log_message_storage.store(std::move(transit_event));
       }
     }
     else if (macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
     {
       // we can just convert the capacity back to int here and use it
       _backtrace_log_message_storage.set_capacity(
-        transit_event->header.logger_details->name(),
+        transit_event.header.logger_details->name(),
         static_cast<uint32_t>(std::stoul(
-          std::string{transit_event->formatted_msg.begin(), transit_event->formatted_msg.end()})));
+          std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
     }
     else if (macro_metadata.event() == MacroMetadata::Event::FlushBacktrace)
     {
       // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
-      _backtrace_log_message_storage.process(transit_event->header.logger_details->name(),
+      _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
                                              [this](TransitEvent const& transit_event)
                                              { _write_transit_event(transit_event); });
     }
@@ -567,14 +640,11 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
       _force_flush();
 
       // this is a flush event, so we need to notify the caller to continue now
-      transit_event->flush_flag->store(true);
+      transit_event.flush_flag->store(true);
 
       // we also need to reset the flush_flag as the TransitEvents are re-used
-      transit_event->flush_flag = nullptr;
+      transit_event.flush_flag = nullptr;
     }
-
-    // Remove this event and move to the next.
-    transit_buffer->pop_front();
 
     // Since after processing an event we never force flush but leave it up to the OS instead,
     // set this to true to keep track of unflushed messages we have
@@ -584,16 +654,10 @@ void BackendWorker::_process_transit_event(ThreadContextCollection::backend_thre
   QUILL_CATCH(std::exception const& e)
   {
     _error_handler(e.what());
-
-    // Remove this event and move to the next
-    transit_buffer->pop_front();
   }
   QUILL_CATCH_ALL()
   {
     _error_handler(std::string{"Caught unhandled exception."});
-
-    // Remove this event and move to the next
-    transit_buffer->pop_front();
   } // clang-format on
 #endif
 }
@@ -625,6 +689,62 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
 }
 
 /***/
+bool BackendWorker::_process_and_write_single_message(const ThreadContextCollection::backend_thread_contexts_cache_t& cached_thread_contexts)
+{
+  ThreadContext* tc{nullptr};
+  uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
+
+  for (ThreadContext* thread_context : cached_thread_contexts)
+  {
+    std::visit(
+      [&thread_context, &min_ts, &tc](auto& queue)
+      {
+        // find the minimum timestamp accross all queues
+        using T = std::decay_t<decltype(queue)>;
+        if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
+        {
+          std::byte* read_pos = queue.prepare_read();
+          if (read_pos && (reinterpret_cast<detail::Header*>(read_pos)->timestamp < min_ts))
+          {
+            min_ts = reinterpret_cast<detail::Header*>(read_pos)->timestamp;
+            tc = thread_context;
+          }
+        }
+      },
+      thread_context->spsc_queue_variant());
+  }
+
+  if (!tc)
+  {
+    // all queues are empty
+    return false;
+  }
+
+  std::visit(
+    [this, &tc](auto& queue)
+    {
+      using T = std::decay_t<decltype(queue)>;
+      if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
+      {
+        std::byte* read_pos = queue.prepare_read();
+        assert(read_pos);
+
+        std::byte* const read_begin = read_pos;
+
+        _get_transit_event_from_queue(read_pos, tc, 0);
+
+        // Finish reading
+        assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
+        queue.finish_read(static_cast<uint32_t>(read_pos - read_begin));
+        queue.commit_read();
+      }
+    },
+    tc->spsc_queue_variant());
+
+  return true;
+}
+
+/***/
 void BackendWorker::_force_flush()
 {
   if (_has_unflushed_messages)
@@ -647,29 +767,46 @@ void BackendWorker::_main_loop()
   ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts =
     _thread_context_collection.backend_thread_contexts_cache();
 
-  size_t const total_events = _populate_transit_event_buffer(cached_thread_contexts);
+  size_t total_events{0};
 
-  if (QUILL_LIKELY(total_events != 0))
+  if (_use_transit_buffer)
   {
-    // there are buffered events to process
-    if (total_events >= _max_transit_events)
+    auto const [tevents, max_events] = _populate_transit_event_buffer(cached_thread_contexts);
+    total_events = tevents;
+
+    if ((total_events != 0))
     {
-      // process half transit events
-      for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
+      // there are buffered events to process
+      if (total_events >= _transit_events_soft_limit)
       {
-        _process_transit_event(cached_thread_contexts);
+        // we can log only up to max_events, then we want to re-read the queue to avoid
+        // logging out of order messages
+        for (size_t i = 0; i < (max_events - 1); ++i)
+        {
+          _process_transit_events(cached_thread_contexts);
+        }
       }
-    }
-    else
-    {
-      // process a single transit event, then give priority to the hot thread spsc queue again
-      _process_transit_event(cached_thread_contexts);
+      else
+      {
+        // process a single transit event, then give priority to the hot thread spsc queue again
+        _process_transit_events(cached_thread_contexts);
+      }
     }
   }
   else
   {
-    // there was nothing to process
+    bool const res = _process_and_write_single_message(cached_thread_contexts);
+    if (res)
+    {
+      total_events = 1;
 
+      // process a single transit event, then give priority to the hot thread spsc queue again
+      _process_transit_events(cached_thread_contexts);
+    }
+  }
+
+  if (total_events == 0)
+  {
     // None of the thread local queues had any events to process, this means we have processed
     // all messages in all queues We force flush all remaining messages
     _force_flush();
@@ -718,26 +855,45 @@ void BackendWorker::_exit()
 
   while (true)
   {
-    size_t const total_events = _populate_transit_event_buffer(cached_thread_contexts);
+    size_t total_events{0};
 
-    if (total_events != 0)
+    if (_use_transit_buffer)
     {
-      // there are events to process
-      if (total_events >= _max_transit_events)
+      auto const [tevents, max_events] = _populate_transit_event_buffer(cached_thread_contexts);
+      total_events = tevents;
+
+      if ((total_events != 0))
       {
-        // process half transit events
-        for (size_t i = 0; i < static_cast<size_t>(_max_transit_events / 2); ++i)
+        // there are buffered events to process
+        if (total_events >= _transit_events_soft_limit)
         {
-          _process_transit_event(cached_thread_contexts);
+          // we can log only up to max_events, then we want to re-read the queue to avoid
+          // logging out of order messages
+          for (size_t i = 0; i < (max_events - 1); ++i)
+          {
+            _process_transit_events(cached_thread_contexts);
+          }
         }
-      }
-      else
-      {
-        // process a single transit event, then give priority to the hot thread spsc queue again
-        _process_transit_event(cached_thread_contexts);
+        else
+        {
+          // process a single transit event, then give priority to the hot thread spsc queue again
+          _process_transit_events(cached_thread_contexts);
+        }
       }
     }
     else
+    {
+      bool const res = _process_and_write_single_message(cached_thread_contexts);
+      if (res)
+      {
+        total_events = 1;
+
+        // process a single transit event, then give priority to the hot thread spsc queue again
+        _process_transit_events(cached_thread_contexts);
+      }
+    }
+
+    if (total_events == 0)
     {
       bool all_empty{true};
 
@@ -745,7 +901,16 @@ void BackendWorker::_exit()
       {
         for (ThreadContext* thread_context : cached_thread_contexts)
         {
-          all_empty &= thread_context->spsc_queue().empty();
+          std::visit(
+            [&all_empty](auto& queue)
+            {
+              using T = std::decay_t<decltype(queue)>;
+              if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
+              {
+                all_empty &= queue.empty();
+              }
+            },
+            thread_context->spsc_queue_variant());
         }
       }
 

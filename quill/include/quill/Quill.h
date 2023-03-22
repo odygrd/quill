@@ -42,7 +42,15 @@ class Logger;
  * Although optional, it is recommended to invoke this function during the thread initialisation
  * phase before the first log message.
  */
-QUILL_ATTRIBUTE_COLD void preallocate();
+QUILL_ATTRIBUTE_COLD inline void preallocate()
+{
+  QUILL_MAYBE_UNUSED uint32_t const volatile x = detail::LogManagerSingleton::instance()
+                                                   .log_manager()
+                                                   .thread_context_collection()
+                                                   .local_thread_context<QUILL_QUEUE_TYPE>()
+                                                   ->spsc_queue<QUILL_QUEUE_TYPE>()
+                                                   .capacity();
+}
 
 /**
  * Applies the given config to the logger

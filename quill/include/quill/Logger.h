@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "quill/detail/misc/Common.h"
+
 #include "quill/Fmt.h"
 #include "quill/LogLevel.h"
 #include "quill/QuillError.h"
@@ -13,7 +15,6 @@
 #include "quill/detail/Serialize.h"
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
-#include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Rdtsc.h"
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 #include "quill/detail/misc/Utilities.h"
@@ -129,7 +130,8 @@ public:
       fmt::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
     }
 
-    detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
+    detail::ThreadContext* const thread_context =
+      _thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
 
     // For windows also take wide strings into consideration.
 #if defined(_WIN32)
@@ -147,16 +149,27 @@ public:
       detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
 
     // request this size from the queue
-    std::byte* write_buffer = thread_context->spsc_queue().prepare_write(static_cast<uint32_t>(total_size));
+    std::byte* write_buffer =
+      thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
 
-#if defined(QUILL_USE_BOUNDED_QUEUE)
-    if (QUILL_UNLIKELY(write_buffer == nullptr))
+    if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedNonBlocking)
     {
-      // not enough space to push to queue message is dropped
-      thread_context->increment_dropped_message_counter();
-      return;
+      if (QUILL_UNLIKELY(write_buffer == nullptr))
+      {
+        // not enough space to push to queue message is dropped
+        thread_context->increment_dropped_message_counter();
+        return;
+      }
     }
-#endif
+    else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedBlocking)
+    {
+      while (write_buffer == nullptr)
+      {
+        // not enough space to push to queue, keep trying
+        write_buffer =
+          thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
+      }
+    }
 
     // we have enough space in this buffer, and we will write to the buffer
 
@@ -183,8 +196,8 @@ public:
            "The committed write bytes can not be greater than the requested bytes");
     assert((write_buffer >= write_begin) &&
            "write_buffer should be greater or equal to write_begin");
-    thread_context->spsc_queue().finish_write(static_cast<uint32_t>(write_buffer - write_begin));
-    thread_context->spsc_queue().commit_write();
+    thread_context->spsc_queue<QUILL_QUEUE_TYPE>().finish_write(static_cast<uint32_t>(write_buffer - write_begin));
+    thread_context->spsc_queue<QUILL_QUEUE_TYPE>().commit_write();
   }
 
   /**

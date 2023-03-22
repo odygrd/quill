@@ -150,10 +150,12 @@ public:
       }
     } anonymous_log_message_info;
 
-    detail::ThreadContext* const thread_context = _thread_context_collection.local_thread_context();
+    detail::ThreadContext* const thread_context =
+      _thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
     size_t const total_size = sizeof(detail::Header) + sizeof(uintptr_t);
 
-    std::byte* write_buffer = thread_context->spsc_queue().prepare_write(static_cast<uint32_t>(total_size));
+    std::byte* write_buffer =
+      thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
     std::byte* const write_begin = write_buffer;
 
     write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
@@ -175,8 +177,8 @@ public:
     assert((write_buffer >= write_begin) &&
            "write_buffer should be greater or equal to write_begin");
 
-    thread_context->spsc_queue().finish_write(static_cast<uint32_t>(write_buffer - write_begin));
-    thread_context->spsc_queue().commit_write();
+    thread_context->spsc_queue<QUILL_QUEUE_TYPE>().finish_write(static_cast<uint32_t>(write_buffer - write_begin));
+    thread_context->spsc_queue<QUILL_QUEUE_TYPE>().commit_write();
 
     // The caller thread keeps checking the flag until the backend thread flushes
     do
