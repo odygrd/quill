@@ -32,7 +32,7 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
       if (ec)
       {
         QUILL_THROW(QuillError{
-          fmt::format("cannot create directories for {}, error: {}", parent_path, ec.message())});
+          fmt::format("cannot create directories for {}, error: {}", parent_path.c_str(), ec.message())});
       }
     }
     else
@@ -46,7 +46,7 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
     if (ec)
     {
       QUILL_THROW(QuillError{
-        fmt::format("cannot make canonical path for {}, error: {}", parent_path, ec.message())});
+        fmt::format("cannot make canonical path for {}, error: {}", parent_path.c_str(), ec.message())});
     }
 
     // finally replace the given filename's parent_path with the equivalent canonical path
