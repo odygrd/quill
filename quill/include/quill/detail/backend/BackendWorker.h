@@ -654,12 +654,10 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
   QUILL_CATCH(std::exception const& e)
   {
     _error_handler(e.what());
-
   }
   QUILL_CATCH_ALL()
   {
     _error_handler(std::string{"Caught unhandled exception."});
-
   } // clang-format on
 #endif
 }
