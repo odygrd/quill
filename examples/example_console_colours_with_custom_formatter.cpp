@@ -8,7 +8,7 @@
 int main()
 {
   // Get the stdout file handler
-  quill::Handler* stdout_handler = quill::stdout_handler();
+  std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler();
 
   // Set a custom formatter for this handler
   stdout_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
@@ -16,7 +16,7 @@ int main()
                               quill::Timezone::GmtTime); // timestamp's timezone
 
   // Enable console colours on the handler
-  static_cast<quill::ConsoleHandler*>(stdout_handler)->enable_console_colours();
+  static_cast<quill::ConsoleHandler*>(stdout_handler.get())->enable_console_colours();
 
   // Config using the custom ts class and the stdout handler
   quill::Config cfg;

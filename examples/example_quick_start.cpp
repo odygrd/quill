@@ -5,8 +5,8 @@
 
 int main()
 {
-  quill::Handler* handler = quill::stdout_handler(); /** for stdout **/
-  // quill::Handler* handler = quill::file_handler("quickstart.log", "w");  /** for writing to file **/
+  std::shared_ptr<quill::Handler> handler = quill::stdout_handler(); /** for stdout **/
+  // std::shared_ptr<quill::Handler> handler = quill::file_handler("quickstart.log", "w");  /** for writing to file **/
   handler->set_pattern("%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) %(message)");
 
   // set configuration

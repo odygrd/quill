@@ -332,7 +332,7 @@ void custom_default_logger_same_handler(int test_case = 0)
     LogManager lm;
 
     // Set a file handler the custom logger handler and log to it
-    Handler* file_handler = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler = lm.handler_collection().create_handler<FileHandler>(
       filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
     file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
 
@@ -346,7 +346,7 @@ void custom_default_logger_same_handler(int test_case = 0)
     if (test_case == 0)
     {
       // Add a second logger using the same file handler
-      Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+      std::shared_ptr<quill::Handler> file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
         filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false);
       QUILL_MAYBE_UNUSED Logger* logger_2 =
         lm.create_logger("custom_logger", file_handler_2, std::nullopt, std::nullopt);
@@ -429,12 +429,12 @@ void test_custom_default_logger_multiple_handlers(int test_case)
     // Set a file handler the custom logger handler and log to it
 
     // First handler
-    Handler* file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
       filename_1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
     file_handler_1->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
 
     // Second handler with different pattern
-    Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
       filename_2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
     file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
 
@@ -449,9 +449,9 @@ void test_custom_default_logger_multiple_handlers(int test_case)
     if (test_case == 0)
     {
       // Add a second logger using the same file handler
-      Handler* file_handler_a = lm.handler_collection().create_handler<FileHandler>(
+      std::shared_ptr<quill::Handler> file_handler_a = lm.handler_collection().create_handler<FileHandler>(
         filename_1.string(), "", FilenameAppend::None, FileEventNotifier{}, false);
-      Handler* file_handler_b = lm.handler_collection().create_handler<FileHandler>(
+      std::shared_ptr<quill::Handler> file_handler_b = lm.handler_collection().create_handler<FileHandler>(
         filename_2.string(), "", FilenameAppend::None, FileEventNotifier{}, false);
       QUILL_MAYBE_UNUSED Logger* logger_2 =
         lm.create_logger("custom_logger", {file_handler_a, file_handler_b}, std::nullopt, std::nullopt);
@@ -1122,14 +1122,14 @@ TEST_CASE("logger_with_two_files_filters")
     LogManager lm;
 
     // Set file 1
-    quill::Handler* file_handler1 = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler1 = lm.handler_collection().create_handler<FileHandler>(
       filename1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
     // Create and add the filter to our handler
     file_handler1->add_filter(std::make_unique<FileFilter1>());
 
     // Set file 2
-    quill::Handler* file_handler2 = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler2 = lm.handler_collection().create_handler<FileHandler>(
       filename2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
     // Create and add the filter to our handler
@@ -1181,11 +1181,11 @@ TEST_CASE("logger_with_two_files_set_log_level_on_handler")
     LogManager lm;
 
     // Set file 1
-    quill::Handler* file_handler1 = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler1 = lm.handler_collection().create_handler<FileHandler>(
       filename1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
     // Set file 2
-    quill::Handler* file_handler2 = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler2 = lm.handler_collection().create_handler<FileHandler>(
       filename2.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
 
     lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -1281,7 +1281,7 @@ TEST_CASE("default_logger_with_custom_timestamp")
     LogManager lm;
 
     // also change the pattern to log the date
-    Handler* handler = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> handler = lm.handler_collection().create_handler<FileHandler>(
       filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
     handler->set_pattern("%(ascii_time) %(level_name) %(logger_name:<16) %(message)", // format
                          "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
@@ -1362,7 +1362,7 @@ TEST_CASE("log_configure_default_logger_single_handler")
     // Config using the custom ts class and the stdout handler
     // this should not invalidate the root logger
     quill::Config cfg;
-    Handler* handler = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> handler = lm.handler_collection().create_handler<FileHandler>(
       filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, true);
     cfg.default_handlers.emplace_back(handler);
     cfg.default_logger_name = "root_test";
@@ -1432,9 +1432,9 @@ TEST_CASE("log_configure_default_logger_multi_handler")
     // Config using the custom ts class and the stdout handler
     // this should not invalidate the root logger
     quill::Config cfg;
-    quill::Handler* file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
       filename_1.string(), "w", FilenameAppend::None, FileEventNotifier{}, false);
-    quill::Handler* file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+    std::shared_ptr<quill::Handler> file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
       filename_2.string(), "w", FilenameAppend::None, file_event_notifier, false);
     cfg.default_handlers.emplace_back(file_handler_1);
     cfg.default_handlers.emplace_back(file_handler_2);

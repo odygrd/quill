@@ -11,10 +11,10 @@ void library_foo_create_logger_and_log()
   // Get a handler to the file
   // The first time this function is called a file handler is created for this filename.
   // Calling the function with the same filename will return the existing handler
-  quill::Handler* file_handler = quill::file_handler(filename, "w");
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler(filename, "w");
 
   // Create a logger using this handler
-  quill::Logger* logger_foo = quill::create_logger("logger_foo", file_handler);
+  quill::Logger* logger_foo = quill::create_logger("logger_foo", std::move(file_handler));
 
   LOG_INFO(logger_foo, "Hello from {}", "library foo");
 }
@@ -22,10 +22,10 @@ void library_foo_create_logger_and_log()
 void library_bar_create_logger_and_log()
 {
   // Because foo already created the handler we will get a pointer to the existing handler
-  quill::Handler* file_handler = quill::file_handler(filename, "w");
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler(filename, "w");
 
   // Create a logger using this handler
-  quill::Logger* logger_bar = quill::create_logger("logger_bar", file_handler);
+  quill::Logger* logger_bar = quill::create_logger("logger_bar", std::move(file_handler));
 
   LOG_INFO(logger_bar, "Hello from {}", "library bar");
 }

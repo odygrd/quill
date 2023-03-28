@@ -10,6 +10,7 @@
 #include "quill/Config.h"                   // for Config
 #include "quill/QuillError.h"               // for QUILL_CATCH, QUILL...
 #include "quill/detail/HandlerCollection.h" // for HandlerCollection
+#include "quill/detail/LoggerCollection.h"  // for HandlerCollection
 #include "quill/detail/LoggerDetails.h"
 #include "quill/detail/Serialize.h"
 #include "quill/detail/ThreadContext.h"            // for ThreadContext, Thr...
@@ -46,7 +47,7 @@ public:
    * Constructor
    */
   BackendWorker(Config const& config, ThreadContextCollection& thread_context_collection,
-                HandlerCollection const& handler_collection);
+                HandlerCollection& handler_collection, LoggerCollection& logger_collection);
 
   /**
    * Deleted
@@ -149,7 +150,8 @@ private:
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
-  HandlerCollection const& _handler_collection;
+  HandlerCollection& _handler_collection;
+  LoggerCollection& _logger_collection;
 
   std::thread _backend_worker_thread; /** the backend thread that is writing the log to the handlers */
 
@@ -646,10 +648,14 @@ void BackendWorker::_force_flush()
   if (_has_unflushed_messages)
   {
     // If we have buffered any messages then get all active handlers and call flush
-    std::vector<Handler*> const active_handlers = _handler_collection.active_handlers();
-    for (auto handler : active_handlers)
+    std::vector<std::weak_ptr<Handler>> const active_handlers = _handler_collection.active_handlers();
+    for (auto const& handler : active_handlers)
     {
-      handler->flush();
+      std::shared_ptr<Handler> h = handler.lock();
+      if (h)
+      {
+        h->flush();
+      }
     }
 
     _has_unflushed_messages = false;
@@ -695,6 +701,15 @@ void BackendWorker::_main_loop()
 
     // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
+
+    // since there are no messages we can check for invalidated loggers and clean them up
+    bool const loggers_removed = _logger_collection.remove_invalidated_loggers();
+    if (loggers_removed)
+    {
+      // if loggers were removed also check for Handlers to remove
+      // remove_unused_handlers is expensive and should be only called when it is needed
+      _handler_collection.remove_unused_handlers();
+    }
 
     if (_rdtsc_clock.load(std::memory_order_relaxed))
     {

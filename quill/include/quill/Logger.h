@@ -101,6 +101,8 @@ public:
   template <typename TMacroMetadata, typename TFormatString, typename... FmtArgs>
   QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
   {
+    assert(!_is_invalidated.load(std::memory_order_acquire) && "Invalidated loggers can not log");
+
 #if FMT_VERSION >= 90000
     static_assert(
       !detail::has_fmt_stream_view_v<FmtArgs...>,
@@ -209,13 +211,17 @@ public:
    */
   void init_backtrace(uint32_t capacity, LogLevel backtrace_flush_level = LogLevel::None)
   {
+    assert(!_is_invalidated.load(std::memory_order_acquire) &&
+           "Invalidated loggers can not be used");
+
     // we do not care about the other fields, except quill::MacroMetadata::Event::InitBacktrace
     struct
     {
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          "", "", "", "", "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace, false};
+          "",   "", "", "", "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace,
+          false};
       }
     } anonymous_log_message_info;
 
@@ -231,13 +237,16 @@ public:
    */
   void flush_backtrace()
   {
+    assert(!_is_invalidated.load(std::memory_order_acquire) &&
+           "Invalidated loggers can not be used");
+
     // we do not care about the other fields, except quill::MacroMetadata::Event::Flush
     struct
     {
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          "", "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace,
+          "",   "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace,
           false};
       }
     } anonymous_log_message_info;
@@ -258,9 +267,9 @@ private:
    * @param custom_timestamp_clock custom timestamp clock
    * @param thread_context_collection thread context collection reference
    */
-  Logger(std::string const& name, Handler* handler, TimestampClockType timestamp_clock_type,
+  Logger(std::string const& name, std::shared_ptr<Handler> handler, TimestampClockType timestamp_clock_type,
          TimestampClock* custom_timestamp_clock, detail::ThreadContextCollection& thread_context_collection)
-    : _logger_details(name, handler, timestamp_clock_type),
+    : _logger_details(name, std::move(handler), timestamp_clock_type),
       _custom_timestamp_clock(custom_timestamp_clock),
       _thread_context_collection(thread_context_collection)
   {
@@ -275,8 +284,9 @@ private:
   /**
    * Constructs a new logger object with multiple handlers
    */
-  Logger(std::string const& name, std::vector<Handler*> const& handlers, TimestampClockType timestamp_clock_type,
-         TimestampClock* custom_timestamp_clock, detail::ThreadContextCollection& thread_context_collection)
+  Logger(std::string const& name, std::vector<std::shared_ptr<Handler>> const& handlers,
+         TimestampClockType timestamp_clock_type, TimestampClock* custom_timestamp_clock,
+         detail::ThreadContextCollection& thread_context_collection)
     : _logger_details(name, handlers, timestamp_clock_type),
       _custom_timestamp_clock(custom_timestamp_clock),
       _thread_context_collection(thread_context_collection)
@@ -289,11 +299,19 @@ private:
     }
   }
 
+  void invalidate() { _is_invalidated.store(true, std::memory_order_release); }
+
+  QUILL_NODISCARD bool is_invalidated() const noexcept
+  {
+    return _is_invalidated.load(std::memory_order_acquire);
+  }
+
 private:
   detail::LoggerDetails _logger_details;
   TimestampClock* _custom_timestamp_clock{nullptr}; /* A non owned pointer to a custom timestamp clock, valid only when provided */
   detail::ThreadContextCollection& _thread_context_collection;
   std::atomic<LogLevel> _log_level{LogLevel::Info};
+  std::atomic<bool> _is_invalidated{false};
 };
 
 } // namespace quill

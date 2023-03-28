@@ -45,7 +45,7 @@ int main()
 {
   // we will also change the log pattern in order to also see our custom timestamp's date
   // Get the stdout file handler
-  quill::Handler* stdout_handler = quill::stdout_handler();
+  std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler();
 
   // Set a custom formatter for this handler
   stdout_handler->set_pattern(
@@ -68,15 +68,16 @@ int main()
   logger->set_log_level(quill::LogLevel::TraceL3);
 
   // create a logger that is using a custom clock
+  std::shared_ptr<quill::Handler> stdout_handler1 = stdout_handler;
   CustomTimestamp ts1;
   quill::Logger* logger_ts1 = quill::create_logger(
-    "logger_ts1", stdout_handler, quill::TimestampClockType::Custom, std::addressof(ts1));
+    "logger_ts1", std::move(stdout_handler1), quill::TimestampClockType::Custom, std::addressof(ts1));
   logger_ts1->set_log_level(quill::LogLevel::TraceL3);
   ts1.set_timestamp(std::chrono::seconds{1655007309});
 
   CustomTimestamp ts2;
   quill::Logger* logger_ts2 = quill::create_logger(
-    "logger_ts2", stdout_handler, quill::TimestampClockType::Custom, std::addressof(ts2));
+    "logger_ts2", std::move(stdout_handler), quill::TimestampClockType::Custom, std::addressof(ts2));
   logger_ts2->set_log_level(quill::LogLevel::TraceL3);
   ts2.set_timestamp(std::chrono::seconds{1685007309});
 

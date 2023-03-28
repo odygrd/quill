@@ -15,13 +15,14 @@ int main()
   // Get a handler to the file
   // The first time this function is called a file handler is created for this filename.
   // Calling the function with the same filename will return the existing handler
-  quill::Handler* file_handler = quill::file_handler("example_handler_log_levels.log", "w");
+  std::shared_ptr<quill::Handler> file_handler =
+    quill::file_handler("example_handler_log_levels.log", "w");
 
   // Everything is logged in the file
   file_handler->set_log_level(quill::LogLevel::TraceL3);
 
   // Also create an stdout handler
-  quill::Handler* stdout_handler = quill::stdout_handler("stdout_1");
+  std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler("stdout_1");
 
   // std is logging only warnings and above
   stdout_handler->set_log_level(quill::LogLevel::Warning);

@@ -44,7 +44,7 @@ int main()
 
   // we will also change the log pattern in order to also see our custom timestamp's date
   // Get the stdout file handler
-  quill::Handler* file_handler = quill::stdout_handler();
+  std::shared_ptr<quill::Handler> file_handler = quill::stdout_handler();
 
   // Set a custom formatter for this handler
   file_handler->set_pattern(
