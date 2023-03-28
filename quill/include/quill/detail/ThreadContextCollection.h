@@ -122,7 +122,7 @@ public:
   /**
    * Constructor
    */
-  ThreadContextCollection(Config const& config) : _config(config) {}
+  explicit ThreadContextCollection(Config const& config) : _config(config) {}
 
   /**
    * Destructor
@@ -144,7 +144,8 @@ public:
   QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
     static thread_local ThreadContextWrapper<queue_type> thread_context_wrapper{
-      *this, _config.default_queue_capacity, _config.backend_thread_initial_transit_event_buffer_capacity};
+      *this, _config.default_queue_capacity,
+      _config.backend_thread_use_transit_buffer ? _config.backend_thread_initial_transit_event_buffer_capacity : 1};
     return thread_context_wrapper.thread_context();
   }
 

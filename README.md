@@ -206,7 +206,8 @@ formatting, ordering the log messages from multiple hot threads and finally outp
 text.
 The logging thread always empties all the queues of the hot threads on the highest priority (to avoid allocating a new
 queue or dropping messages on the hot path). To achieve that, it internally buffers the log messages and then
-writes them later when the hot thread queues are empty or when a limit is reached `backend_thread_max_transit_events`.
+writes them later when the hot thread queues are empty or when a limit is
+reached `backend_thread_transit_events_soft_limit`.
 
 I haven't found an easy way to compare the throughput against other logging libraries while doing asynchronous logging.
 For example some libraries will drop the log messages ending in producing much smaller log files than the expected,
