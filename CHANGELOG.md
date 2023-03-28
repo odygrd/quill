@@ -45,8 +45,8 @@
 **Breaking Changes**
 (see `improvements` section for more details)
 
-- If you were previously compiling with `-DQUILL_USE_BOUNDED_QUEUE` you should now pass the flag to you target as
-  it is not propagated anymore.
+- If you were previously compiling with `-DQUILL_USE_BOUNDED_QUEUE` or `QUILL_X86ARCH` you should now pass the
+  flag to you target as it is not propagated by CMake anymore.
 - There is a change in the API in `Quill.h` instead of `quill::Handler*` you should now use
   `std::shared_ptr< quill::Handler >` and also move it to the created logger.
 
