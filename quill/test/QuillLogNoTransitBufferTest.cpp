@@ -28,18 +28,18 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
   std::vector<std::thread> threads;
 
   // Set writing logging to a file
-  quill::Handler* log_from_one_thread_file = quill::file_handler(filename, "w");
+  std::shared_ptr<quill::Handler> log_from_one_thread_file = quill::file_handler(filename, "w");
 
   for (int i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back(
-      [log_from_one_thread_file, number_of_messages, test_id, i]()
+      [log_from_one_thread_file, number_of_messages, test_id, i]() mutable
       {
         // Also use preallocate
         quill::preallocate();
 
         std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
-        quill::Logger* logger = quill::create_logger(logger_name.data(), log_from_one_thread_file);
+        quill::Logger* logger = quill::create_logger(logger_name.data(), std::move(log_from_one_thread_file));
 
         for (uint32_t j = 0; j < number_of_messages; ++j)
         {

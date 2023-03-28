@@ -145,7 +145,7 @@ QUILL_NODISCARD Logger* LoggerCollection::create_logger(std::string const& logge
 void LoggerCollection::remove_logger(Logger* logger)
 {
   logger->invalidate();
-  _has_invalidated_loggers.store(true, std::memory_order::memory_order_release);
+  _has_invalidated_loggers.store(true, std::memory_order_release);
 }
 
 /***/
