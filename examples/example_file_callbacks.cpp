@@ -4,7 +4,7 @@
 class Session
 {
 public:
-  Session(std::string unique_name)
+  explicit Session(std::string unique_name)
   {
     // Set up a FileEventNotifier so we are notified on file changes (Optional)
     quill::FileEventNotifier fen;

@@ -83,13 +83,15 @@
   ```cmake
      target_compile_definitions(<target> PUBLIC QUILL_X86ARCH QUILL_USE_BOUNDED_QUEUE)
   ```
-- `quill::remove_logger(Logger* logger)` added in `Quill.h`. This makes it possible to remove a logger in a thread safe
+- Added `quill::remove_logger(Logger* logger)` in `Quill.h`. This makes it possible to remove a logger in a thread safe
   way. When a logger is removed any associated `FileHandlers` with that logger will also be removed and the files will
   also be closed as long as they are not being used by another logger. The logger is asynchronously removed by the
   logging
   thread after all the messages are written. To achieve this the API had to change to return a
   `std::shared_ptr< quill::Handler >` instead of `quill::Handler*`. See
   [example_file_callbacks.cpp](https://github.com/odygrd/quill/blob/master/examples/example_file_callbacks.cpp)
+- Added `quill::wake_up_logging_thread()` in `Quill.h`. This thread safe function can be used to wake up the backend
+  logging thread on demand. ([#280](https://github.com/odygrd/quill/pull/280))
 
 ## v2.7.0
 

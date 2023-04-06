@@ -77,3 +77,6 @@ target_compile_definitions(example_bounded_queue_blocking PUBLIC QUILL_USE_BOUND
 
 add_executable(example_file_callbacks example_file_callbacks.cpp)
 target_link_libraries(example_file_callbacks quill)
+
+add_executable(example_wake_up_logging_thread example_wake_up_logging_thread.cpp)
+target_link_libraries(example_wake_up_logging_thread quill)

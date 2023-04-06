@@ -35,11 +35,27 @@ void BackendWorker::stop() noexcept
   // Stop the backend worker
   _is_running.store(false, std::memory_order_relaxed);
 
+  // signal wake up the backedn worker thread
+  wake_up();
+
   // Wait the backend thread to join, if backend thread was never started it won't be joinable so we can still
   if (_backend_worker_thread.joinable())
   {
     _backend_worker_thread.join();
   }
+}
+
+/***/
+void BackendWorker::wake_up()
+{
+  // Set the flag to indicate that the data is ready
+  {
+    std::lock_guard<std::mutex> lock(_wake_up_mutex);
+    _wake_up = true;
+  }
+
+  // Signal the condition variable to wake up the worker thread
+  _wake_up_cv.notify_one();
 }
 
 /***/
@@ -128,5 +144,19 @@ std::pair<std::string, std::vector<std::string>> BackendWorker::_process_structu
   return std::make_pair(fmt_str, keys);
 }
 
+/***/
+void BackendWorker::_resync_rdtsc_clock()
+{
+  if (_rdtsc_clock.load(std::memory_order_relaxed))
+  {
+    // resync in rdtsc if we are not logging so that time_since_epoch() still works
+    auto const now = std::chrono::system_clock::now();
+    if ((now - _last_rdtsc_resync) > _rdtsc_resync_interval)
+    {
+      _rdtsc_clock.load(std::memory_order_relaxed)->resync(2500);
+      _last_rdtsc_resync = now;
+    }
+  }
+}
 } // namespace detail
 } // namespace quill

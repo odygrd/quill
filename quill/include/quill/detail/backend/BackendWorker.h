@@ -27,15 +27,17 @@
 #include <atomic>                   // for atomic, memory_ord...
 #include <cassert>                  // for assert
 #include <chrono>                   // for nanoseconds, milli...
-#include <cstdint>                  // for uint16_t
-#include <exception>                // for exception
-#include <functional>               // for greater, function
-#include <limits>                   // for numeric_limits
-#include <memory>                   // for unique_ptr, make_u...
-#include <string>                   // for allocator, string
-#include <thread>                   // for sleep_for, thread
-#include <utility>                  // for move
-#include <vector>                   // for vector
+#include <condition_variable>
+#include <cstdint>    // for uint16_t
+#include <exception>  // for exception
+#include <functional> // for greater, function
+#include <limits>     // for numeric_limits
+#include <memory>     // for unique_ptr, make_u...
+#include <mutex>
+#include <string>  // for allocator, string
+#include <thread>  // for sleep_for, thread
+#include <utility> // for move
+#include <vector>  // for vector
 
 namespace quill::detail
 {
@@ -71,7 +73,7 @@ public:
    * @param rdtsc_value
    * @return
    */
-  QUILL_NODISCARD inline uint64_t time_since_epoch(uint64_t rdtsc_value) const noexcept;
+  QUILL_NODISCARD inline uint64_t time_since_epoch(uint64_t rdtsc_value) const;
 
   /**
    * Get the backend worker's thread id
@@ -89,6 +91,12 @@ public:
    * Stops the backend worker thread
    */
   QUILL_ATTRIBUTE_COLD void stop() noexcept;
+
+  /**
+   * Wakes up the backend worker thread.
+   * Thread safe to be called from any thread
+   */
+  void wake_up();
 
 private:
   /**
@@ -164,6 +172,11 @@ private:
   QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_structured_log_template(
     std::string_view fmt_template) noexcept;
 
+  /**
+   * Resyncs the rdtsc clock
+   */
+  QUILL_ATTRIBUTE_HOT void _resync_rdtsc_clock();
+
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
@@ -200,6 +213,10 @@ private:
 #if !defined(QUILL_NO_EXCEPTIONS)
   backend_worker_error_handler_t _error_handler; /** error handler for the backend thread */
 #endif
+
+  alignas(CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
+  std::condition_variable _wake_up_cv;
+  bool _wake_up{false};
 };
 
 /***/
@@ -209,8 +226,15 @@ bool BackendWorker::is_running() const noexcept
 }
 
 /***/
-QUILL_NODISCARD uint64_t BackendWorker::time_since_epoch(uint64_t rdtsc_value) const noexcept
+QUILL_NODISCARD uint64_t BackendWorker::time_since_epoch(uint64_t rdtsc_value) const
 {
+  if (QUILL_UNLIKELY(_backend_thread_sleep_duration > _rdtsc_resync_interval))
+  {
+    QUILL_THROW(
+      QuillError{"Invalid config, When TSC clock is used backend_thread_sleep_duration should "
+                 "not be higher than rdtsc_resync_interval"});
+  }
+
   RdtscClock const* rdtsc_clock = _rdtsc_clock.load(std::memory_order_acquire);
   return rdtsc_clock ? rdtsc_clock->time_since_epoch_safe(rdtsc_value) : 0;
 }
@@ -832,32 +856,27 @@ void BackendWorker::_main_loop()
       _handler_collection.remove_unused_handlers();
     }
 
-    if (_rdtsc_clock.load(std::memory_order_relaxed))
-    {
-      if (QUILL_UNLIKELY(_backend_thread_sleep_duration > _rdtsc_resync_interval))
-      {
-        QUILL_THROW(
-          QuillError{"Invalid config, When TSC clock is used backend_thread_sleep_duration should "
-                     "not be higher than rdtsc_resync_interval"});
-      }
-
-      // resync in rdtsc if we are not logging so that quill::time_since_epoch() still works
-      auto const now = std::chrono::system_clock::now();
-      if ((now - _last_rdtsc_resync) > _rdtsc_resync_interval)
-      {
-        _rdtsc_clock.load(std::memory_order_relaxed)->resync(2500);
-        _last_rdtsc_resync = now;
-      }
-    }
+    // resync rdtsc clock before going to sleep.
+    // This is useful when quill::Clock is used
+    _resync_rdtsc_clock();
 
     if (_backend_thread_sleep_duration.count() != 0)
     {
-      std::this_thread::sleep_for(_backend_thread_sleep_duration);
+      std::unique_lock<std::mutex> lock(_wake_up_mutex);
+
+      // Wait for a timeout or a notification to wake up
+      _wake_up_cv.wait_for(lock, _backend_thread_sleep_duration, [this] { return _wake_up; });
+
+      // set the flag back to false since we woke up here
+      _wake_up = false;
     }
     else if (_backend_thread_yield)
     {
       std::this_thread::yield();
     }
+
+    // After waking up resync rdtsc clock again and resume
+    _resync_rdtsc_clock();
   }
 }
 

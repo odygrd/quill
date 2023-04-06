@@ -176,4 +176,11 @@ void remove_logger(Logger* logger)
 
 /***/
 void flush() { detail::LogManagerSingleton::instance().log_manager().flush(); }
+
+/***/
+void wake_up_logging_thread()
+{
+  detail::LogManagerSingleton::instance().log_manager().wake_up_backend_worker();
+}
+
 } // namespace quill
