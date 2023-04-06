@@ -42,9 +42,18 @@
 
 ## v2.8.0
 
+**Breaking Changes**
+(see `improvements` section for more details)
+
+- If you were previously compiling with `-DQUILL_USE_BOUNDED_QUEUE` or `QUILL_X86ARCH` you should now pass the
+  flag to you target as it is not propagated by CMake anymore.
+- There is a change in the API in `Quill.h` instead of `quill::Handler*` you should now use
+  `std::shared_ptr< quill::Handler >` and also move it to the created logger.
+
 **Improvements**
 
-- Add `append_to_filename` parameter when creating `quill::time_rotating_file_handler` and `quill::rotating_file_handler`
+- Add `append_to_filename` parameter when creating `quill::time_rotating_file_handler`
+  and `quill::rotating_file_handler`
 - Fix `Handlers` failing to find the file when the working directory of the application is changed in
   runtime. ([#247](https://github.com/odygrd/quill/pull/247))
 - When the given output directory of a log file passed to a `Handler` does not exist, it will now get automatically
@@ -74,6 +83,13 @@
   ```cmake
      target_compile_definitions(<target> PUBLIC QUILL_X86ARCH QUILL_USE_BOUNDED_QUEUE)
   ```
+- `quill::remove_logger(Logger* logger)` added in `Quill.h`. This makes it possible to remove a logger in a thread safe
+  way. When a logger is removed any associated `FileHandlers` with that logger will also be removed and the files will
+  also be closed as long as they are not being used by another logger. The logger is asynchronously removed by the
+  logging
+  thread after all the messages are written. To achieve this the API had to change to return a
+  `std::shared_ptr< quill::Handler >` instead of `quill::Handler*`. See
+  [example_file_callbacks.cpp](https://github.com/odygrd/quill/blob/master/examples/example_file_callbacks.cpp)
 
 ## v2.7.0
 

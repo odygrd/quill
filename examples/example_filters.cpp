@@ -48,13 +48,13 @@ int main()
   // Get a handler to the file
   // The first time this function is called a file handler is created for this filename.
   // Calling the function with the same filename will return the existing handler
-  quill::Handler* file_handler = quill::file_handler("example_filters.log", "w");
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler("example_filters.log", "w");
 
   // Create and add the filter to our handler
   file_handler->add_filter(std::make_unique<FileFilter>());
 
   // Also create an stdout handler
-  quill::Handler* stdout_handler = quill::stdout_handler("stdout_1");
+  std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler("stdout_1");
 
   // Create and add the filter to our handler
   stdout_handler->add_filter(std::make_unique<StdoutFilter>());

@@ -29,16 +29,16 @@ public:
   /**
    * Constructor
    */
-  LoggerDetails(std::string name, Handler* handler, TimestampClockType timestamp_clock_type)
+  LoggerDetails(std::string name, std::shared_ptr<Handler> handler, TimestampClockType timestamp_clock_type)
     : _name(std::move(name)), _timestamp_clock_type(timestamp_clock_type)
   {
-    _handlers.push_back(handler);
+    _handlers.push_back(std::move(handler));
   }
 
   /**
    * Constructor
    */
-  LoggerDetails(std::string name, std::vector<Handler*> handlers, TimestampClockType timestamp_clock_type)
+  LoggerDetails(std::string name, std::vector<std::shared_ptr<Handler>> handlers, TimestampClockType timestamp_clock_type)
     : _name(std::move(name)), _timestamp_clock_type(timestamp_clock_type)
   {
     _handlers = std::move(handlers);
@@ -63,7 +63,10 @@ public:
   /**
    * @return a vector of all handlers of this logger, called by the backend worker thread
    */
-  QUILL_NODISCARD std::vector<Handler*> const& handlers() const noexcept { return _handlers; }
+  QUILL_NODISCARD std::vector<std::shared_ptr<Handler>> const& handlers() const noexcept
+  {
+    return _handlers;
+  }
 
   /**
    * @return a vector of all handlers of this logger, called by the backend worker thread
@@ -95,7 +98,7 @@ private:
   friend class detail::LoggerCollection;
 
   std::string _name;
-  std::vector<Handler*> _handlers;
+  std::vector<std::shared_ptr<Handler>> _handlers;
   std::atomic<LogLevel> _backtrace_flush_level{LogLevel::None}; /** Updated by the caller thread and read by the backend worker thread */
   TimestampClockType _timestamp_clock_type;
 };

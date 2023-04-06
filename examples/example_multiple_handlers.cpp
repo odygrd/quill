@@ -40,14 +40,15 @@ int main()
   quill::start();
 
   // Get a handler to the file
-  quill::Handler* file_handler = quill::file_handler("app.log", "w");
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler("app.log", "w");
 
   // Get the handler to console
-  quill::Handler* console_handler = quill::stdout_handler();
+  std::shared_ptr<quill::Handler> console_handler = quill::stdout_handler();
 
   // Create a logger using this handler
   // create_handler(unique handler name, constructor args...)
-  quill::Handler* vector_handler = quill::create_handler<VectorHandler>("my_vector_handler");
+  std::shared_ptr<quill::Handler> vector_handler =
+    quill::create_handler<VectorHandler>("my_vector_handler");
 
   // Customise vector_handler format
   vector_handler->set_pattern("%(level_name) %(logger_name) - %(message)");

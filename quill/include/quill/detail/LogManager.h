@@ -85,18 +85,19 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, Handler* handler,
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::shared_ptr<Handler> handler,
                                         std::optional<TimestampClockType> timestamp_clock_type,
                                         std::optional<TimestampClock*> timestamp_clock)
   {
     return _logger_collection.create_logger(
-      logger_name, handler,
+      logger_name, std::move(handler),
       timestamp_clock_type.has_value() ? *timestamp_clock_type : _config.default_timestamp_clock_type,
       timestamp_clock.has_value() ? *timestamp_clock : _config.default_custom_timestamp_clock);
   }
 
   /***/
-  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
+                                        std::initializer_list<std::shared_ptr<Handler>> handlers,
                                         std::optional<TimestampClockType> timestamp_clock_type,
                                         std::optional<TimestampClock*> timestamp_clock)
   {
@@ -107,12 +108,13 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vector<Handler*> const& handlers,
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
+                                        std::vector<std::shared_ptr<Handler>> handlers,
                                         std::optional<TimestampClockType> timestamp_clock_type,
                                         std::optional<TimestampClock*> timestamp_clock)
   {
     return _logger_collection.create_logger(
-      logger_name, handlers,
+      logger_name, std::move(handlers),
       timestamp_clock_type.has_value() ? *timestamp_clock_type : _config.default_timestamp_clock_type,
       timestamp_clock.has_value() ? *timestamp_clock : _config.default_custom_timestamp_clock);
   }
@@ -266,7 +268,7 @@ private:
   HandlerCollection _handler_collection;
   ThreadContextCollection _thread_context_collection{_config};
   LoggerCollection _logger_collection{_config, _thread_context_collection, _handler_collection};
-  BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection};
+  BackendWorker _backend_worker{_config, _thread_context_collection, _handler_collection, _logger_collection};
 };
 
 /**

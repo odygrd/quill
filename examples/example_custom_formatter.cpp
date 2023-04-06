@@ -7,7 +7,7 @@
 int main()
 {
   // Get the stdout file handler
-  quill::Handler* file_handler = quill::stdout_handler();
+  std::shared_ptr<quill::Handler> file_handler = quill::stdout_handler();
 
   // Set a custom formatter for this handler
   file_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format

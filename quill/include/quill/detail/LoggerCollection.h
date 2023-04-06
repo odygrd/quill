@@ -83,7 +83,7 @@ public:
    * @param timestamp_clock timestamp clock
    * @return a pointer to the logger
    */
-  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, Handler* handler,
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::shared_ptr<Handler> handler,
                                         TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock);
 
   /**
@@ -94,7 +94,8 @@ public:
    * @param timestamp_clock timestamp clock
    * @return a pointer to the logger
    */
-  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
+                                        std::initializer_list<std::shared_ptr<Handler>> handlers,
                                         TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock);
 
   /**
@@ -105,8 +106,14 @@ public:
    * @param timestamp_clock timestamp clock
    * @return a pointer to the logger
    */
-  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name, std::vector<Handler*> const& handlers,
+  QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
+                                        std::vector<std::shared_ptr<Handler>> handlers,
                                         TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock);
+
+  /**
+   * Marks a logger for deletion. The logger will asynchronously be removed by the logging thread
+   */
+  void remove_logger(Logger* logger);
 
   /**
    * Used internally only to enable console colours on "stdout" default console handler
@@ -127,6 +134,13 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void create_root_logger();
 
+  /**
+   * Called by the backend worker thread only to remove any loggers that are marked as
+   * invalidated
+   * @return true if loggers were removed
+   */
+  QUILL_NODISCARD bool remove_invalidated_loggers();
+
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */
@@ -134,6 +148,7 @@ private:
   Logger* _root_logger{nullptr}; /**< A pointer to the root logger to avoid lookup */
   mutable std::recursive_mutex _rmutex; /**< Thread safe access to logger map, Mutable to have a const get_logger() function  */
   std::unordered_map<std::string, std::unique_ptr<Logger>> _logger_name_map; /**< map from logger name to the actual logger */
+  std::atomic<bool> _has_invalidated_loggers{false};
 };
 
 } // namespace detail

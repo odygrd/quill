@@ -191,7 +191,7 @@ struct Config
    * This function can also be used to change the format pattern of the logger
    * When the vector is empty then stdout handler is used
    */
-  std::vector<Handler*> default_handlers = {};
+  std::vector<std::shared_ptr<Handler>> default_handlers = {};
 
   /**
    * Enables colours in the terminal.

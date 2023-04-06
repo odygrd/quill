@@ -68,7 +68,7 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name, Timestam
                                         TimestampClock* timestamp_clock)
 {
   // Get a copy of the root logger handlers
-  std::vector<Handler*> handlers = _root_logger->_logger_details.handlers();
+  std::vector<std::shared_ptr<Handler>> handlers = _root_logger->_logger_details.handlers();
 
   // Register the handlers, even if they already exist
   for (auto& handler : handlers)
@@ -90,14 +90,14 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name, Timestam
 }
 
 /***/
-Logger* LoggerCollection::create_logger(std::string const& logger_name, Handler* handler,
+Logger* LoggerCollection::create_logger(std::string const& logger_name, std::shared_ptr<Handler> handler,
                                         TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock)
 {
   // Register the handler, even if it already exists
   _handler_collection.subscribe_handler(handler);
 
   // We can't use make_unique since the constructor is private
-  std::unique_ptr<Logger> logger{new Logger(logger_name, handler, timestamp_clock_type,
+  std::unique_ptr<Logger> logger{new Logger(logger_name, std::move(handler), timestamp_clock_type,
                                             timestamp_clock, _thread_context_collection)};
 
   std::lock_guard<std::recursive_mutex> const lock{_rmutex};
@@ -109,15 +109,17 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name, Handler*
 }
 
 /***/
-Logger* LoggerCollection::create_logger(std::string const& logger_name, std::initializer_list<Handler*> handlers,
+Logger* LoggerCollection::create_logger(std::string const& logger_name,
+                                        std::initializer_list<std::shared_ptr<Handler>> handlers,
                                         TimestampClockType timestamp_clock_type, TimestampClock* timestamp_clock)
 {
-  return create_logger(logger_name, std::vector<Handler*>{handlers}, timestamp_clock_type, timestamp_clock);
+  return create_logger(logger_name, std::vector<std::shared_ptr<Handler>>{handlers},
+                       timestamp_clock_type, timestamp_clock);
 }
 
 /***/
 QUILL_NODISCARD Logger* LoggerCollection::create_logger(std::string const& logger_name,
-                                                        std::vector<Handler*> const& handlers,
+                                                        std::vector<std::shared_ptr<Handler>> handlers,
                                                         TimestampClockType timestamp_clock_type,
                                                         TimestampClock* timestamp_clock)
 {
@@ -140,13 +142,21 @@ QUILL_NODISCARD Logger* LoggerCollection::create_logger(std::string const& logge
 }
 
 /***/
+void LoggerCollection::remove_logger(Logger* logger)
+{
+  logger->invalidate();
+  _has_invalidated_loggers.store(true, std::memory_order_release);
+}
+
+/***/
 void LoggerCollection::enable_console_colours() noexcept
 {
   // Get the previous created default stdout handler
-  Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
+  std::shared_ptr<Handler> stdout_stream_handler =
+    _handler_collection.stdout_console_handler("stdout");
   assert(stdout_stream_handler && "stdout_stream_handler can not be nullptr");
 
-  auto console_handler = reinterpret_cast<ConsoleHandler*>(stdout_stream_handler);
+  auto console_handler = reinterpret_cast<ConsoleHandler*>(stdout_stream_handler.get());
   console_handler->enable_console_colours();
 }
 
@@ -164,11 +174,12 @@ void LoggerCollection::create_root_logger()
     if (_config.default_handlers.empty())
     {
       // Add the default console handler to the root logger
-      Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
+      std::shared_ptr<Handler> stdout_stream_handler =
+        _handler_collection.stdout_console_handler("stdout");
 
       if (_config.enable_console_colours)
       {
-        static_cast<ConsoleHandler*>(stdout_stream_handler)->enable_console_colours();
+        static_cast<ConsoleHandler*>(stdout_stream_handler.get())->enable_console_colours();
       }
 
       _root_logger = create_logger(_config.default_logger_name, stdout_stream_handler,
@@ -190,11 +201,12 @@ void LoggerCollection::create_root_logger()
     if (_config.default_handlers.empty())
     {
       // Add the default console handler to the root logger
-      Handler* stdout_stream_handler = _handler_collection.stdout_console_handler("stdout");
+      std::shared_ptr<Handler> stdout_stream_handler =
+        _handler_collection.stdout_console_handler("stdout");
 
       if (_config.enable_console_colours)
       {
-        static_cast<ConsoleHandler*>(stdout_stream_handler)->enable_console_colours();
+        static_cast<ConsoleHandler*>(stdout_stream_handler.get())->enable_console_colours();
       }
 
       // Register the handler, even if it already exists
@@ -250,6 +262,38 @@ void LoggerCollection::create_root_logger()
       _logger_name_map.emplace(std::string{_config.default_logger_name}, std::move(logger));
     }
   }
+}
+
+/***/
+bool LoggerCollection::remove_invalidated_loggers()
+{
+  bool has_invalidated_loggers{false};
+
+  if (_has_invalidated_loggers.load(std::memory_order_acquire))
+  {
+    has_invalidated_loggers = true;
+    _has_invalidated_loggers.store(false, std::memory_order_release);
+  }
+
+  bool loggers_removed{false};
+  if (has_invalidated_loggers)
+  {
+    std::lock_guard<std::recursive_mutex> const lock{_rmutex};
+    for (auto it = std::begin(_logger_name_map); it != std::end(_logger_name_map);)
+    {
+      if (it->second->is_invalidated())
+      {
+        loggers_removed = true;
+        it = _logger_name_map.erase(it);
+      }
+      else
+      {
+        ++it;
+      }
+    }
+  }
+
+  return loggers_removed;
 }
 } // namespace detail
 } // namespace quill

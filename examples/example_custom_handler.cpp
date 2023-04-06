@@ -37,10 +37,11 @@ int main()
   quill::start();
 
   // Because foo already created the handler we will get a pointer to the existing handler
-  quill::Handler* custom_handler = quill::create_handler<CustomHandler>("MyHandler");
+  std::shared_ptr<quill::Handler> custom_handler =
+    quill::create_handler<CustomHandler>("MyHandler");
 
   // Create a logger using this handler
-  quill::Logger* logger_bar = quill::create_logger("logger_bar", custom_handler);
+  quill::Logger* logger_bar = quill::create_logger("logger_bar", std::move(custom_handler));
 
   LOG_INFO(logger_bar, "Hello from {}", "library bar");
 }

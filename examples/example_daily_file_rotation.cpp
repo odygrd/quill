@@ -8,11 +8,11 @@ int main()
   quill::start();
  
   // Create a rotating file handler which rotates daily at 02:00
-  quill::Handler* file_handler = quill::time_rotating_file_handler(
+  std::shared_ptr<quill::Handler> file_handler = quill::time_rotating_file_handler(
     filename, "w", quill::FilenameAppend::None, "daily", 1, 10, quill::Timezone::LocalTime, "18:30");
 
   // Create a logger using this handler
-  quill::Logger* logger_bar = quill::create_logger("daily_logger", file_handler);
+  quill::Logger* logger_bar = quill::create_logger("daily_logger", std::move(file_handler));
 
   for (int i = 0; i < 5000; ++i)
   {

@@ -8,11 +8,11 @@ int main()
   quill::start();
 
   // Create a rotating file handler with a max file size per log file and maximum rotation up to 5 times
-  quill::Handler* file_handler = quill::rotating_file_handler(base_filename, "w",
-                                                              quill::FilenameAppend::None, 1024, 5);
+  std::shared_ptr<quill::Handler> file_handler =
+    quill::rotating_file_handler(base_filename, "w", quill::FilenameAppend::None, 1024, 5);
 
   // Create a logger using this handler
-  quill::Logger* logger_bar = quill::create_logger("rotating", file_handler);
+  quill::Logger* logger_bar = quill::create_logger("rotating", std::move(file_handler));
 
   for (uint32_t i = 0; i < 15; ++i)
   {

@@ -18,7 +18,7 @@ int main()
 
   // Get the stdout sink.
   // stdout_handler_name should NOT be the default "stdout" when using colours
-  quill::Handler* stdout_handler = quill::stdout_handler("stdout_colours", console_colours);
+  std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler("stdout_colours", console_colours);
 
   // set the handler as default for all loggers
   quill::Config cfg;

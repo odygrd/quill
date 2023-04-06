@@ -23,14 +23,13 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
 
   std::vector<std::thread> threads;
 
-  quill::Handler* log_from_one_thread_file;
-
   // log to json
-  log_from_one_thread_file = quill::json_file_handler(filename, "w", quill::FilenameAppend::None);
+  std::shared_ptr<quill::Handler> log_from_one_thread_file =
+    quill::json_file_handler(filename, "w", quill::FilenameAppend::None);
   log_from_one_thread_file->set_pattern("", std::string{"%Y-%m-%d %H:%M:%S.%Qus"});
 
   // log non structured file
-  quill::Handler* log_s_from_one_thread_file = quill::file_handler(filename_s, "w");
+  std::shared_ptr<quill::Handler> log_s_from_one_thread_file = quill::file_handler(filename_s, "w");
 
   for (int i = 0; i < number_of_threads; ++i)
   {
@@ -42,7 +41,9 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
 
         std::string logger_name = "jlogger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(
-          logger_name.data(), std::vector<quill::Handler*>{log_from_one_thread_file, log_s_from_one_thread_file});
+          logger_name.data(),
+          std::vector<std::shared_ptr<quill::Handler>>{std::move(log_from_one_thread_file),
+                                                       std::move(log_s_from_one_thread_file)});
 
         for (uint32_t j = 0; j < number_of_messages; ++j)
         {

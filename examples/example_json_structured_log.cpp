@@ -11,7 +11,7 @@ int main()
   quill::Config cfg;
 
   // use the json handler
-  quill::Handler* json_handler =
+  std::shared_ptr<quill::Handler> json_handler =
     quill::json_file_handler("json_output.log", "w", quill::FilenameAppend::DateTime);
 
   // Change how the date is formatted in the structured log.
