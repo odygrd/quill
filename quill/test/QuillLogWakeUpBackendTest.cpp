@@ -7,23 +7,20 @@
 #include <cstdio>
 #include <string>
 
-TEST_SUITE_BEGIN("QuillLogNoTransit");
-
-// Note: This thread is flushing using the main() gtest test thread. This means that no-other test should have used flush()
-// on the main gtest test thread as the main thread's thread context is not re-added.
-// Other tests use flush() but within their spawned threads.
-// this is never an issue in real logger as everything goes through the singleton, but we are not using the
-// singleton all the time during testing
+TEST_SUITE_BEGIN("QuillLogWakeUpBackend");
 
 void test_quill_log(char const* test_id, std::string const& filename, uint16_t number_of_threads,
                     uint32_t number_of_messages)
 {
   quill::Config cfg;
-  cfg.backend_thread_use_transit_buffer = false;
+  cfg.backend_thread_sleep_duration = std::chrono::hours{24};
   quill::configure(cfg);
 
   // Start the logging backend thread
   quill::start();
+
+  // wait for backend worker to start and go into sleep
+  std::this_thread::sleep_for(std::chrono::seconds{1});
 
   std::vector<std::thread> threads;
 
@@ -39,7 +36,7 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
         quill::preallocate();
 
         std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
-        quill::Logger* logger = quill::create_logger(logger_name.data(), std::move(log_from_one_thread_file));
+        quill::Logger* logger = quill::create_logger(logger_name, std::move(log_from_one_thread_file));
 
         for (uint32_t j = 0; j < number_of_messages; ++j)
         {
@@ -52,6 +49,12 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
   {
     elem.join();
   }
+
+  // The backend worker is still sleeping here so no file should exist
+  REQUIRE_EQ(quill::testing::file_contents(filename).size(), 0);
+
+  // wake up the backend logging thread on demand
+  quill::wake_up_logging_thread();
 
   // Flush all log
   quill::flush();
@@ -79,23 +82,23 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 }
 
 /***/
-TEST_CASE("log_from_one_thread_no_transit_buffer")
+TEST_CASE("log_from_one_thread_wake_up_logging_thread")
 {
-  static constexpr size_t number_of_messages = 10000u;
+  static constexpr size_t number_of_messages = 1000u;
   static constexpr size_t number_of_threads = 1;
   static constexpr char const* test_id = "single";
 
-  static constexpr char const* filename = "log_from_one_thread_no_transit_buffer.log";
+  static constexpr char const* filename = "log_from_one_thread_wake_up_logging_thread.log";
   test_quill_log(test_id, filename, number_of_threads, number_of_messages);
 }
 
 /***/
-TEST_CASE("log_from_multiple_threads_no_transit_buffer")
+TEST_CASE("log_from_multiple_threads_wake_up_logging_thread")
 {
   static constexpr size_t number_of_messages = 500u;
   static constexpr size_t number_of_threads = 10;
   static constexpr char const* test_id = "multi";
 
-  static constexpr char const* filename = "log_from_multiple_threads_no_transit_buffer.log";
+  static constexpr char const* filename = "log_from_multiple_threads_wake_up_logging_thread.log";
   test_quill_log(test_id, filename, number_of_threads, number_of_messages);
 }

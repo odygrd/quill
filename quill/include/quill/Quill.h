@@ -372,4 +372,14 @@ void remove_logger(Logger* logger);
  */
 void flush();
 
+/**
+ * Wakes up the backend logging thread on demand.
+ * The backend logging thread busy waits by design.
+ * A use case for this is when you do want the backend logging thread to consume too much CPU
+ * you can configure it to sleep for a long amount of time and wake it up on demand to log.
+ * (e.g. cfg.backend_thread_sleep_duration = = std::chrono::hours {240};)
+ * This is thread safe and can be called from any thread.
+ */
+void wake_up_logging_thread();
+
 } // namespace quill

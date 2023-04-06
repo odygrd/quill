@@ -52,14 +52,14 @@ jobs:
             ctest_options: -T memcheck
             install: sudo apt install valgrind
 
-          - cxx: clang++-11
+          - cxx: clang++-12
             build_type: Release
             std: 20
             os: ubuntu-20.04
             with_tests: ON
             cmake_options: -DQUILL_SANITIZE_ADDRESS=ON
 
-          - cxx: clang++-11
+          - cxx: clang++-12
             build_type: Release
             std: 20
             os: ubuntu-20.04

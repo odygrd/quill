@@ -243,6 +243,11 @@ public:
   QUILL_ATTRIBUTE_COLD void stop_backend_worker() noexcept { _backend_worker.stop(); }
 
   /**
+   * Wakes up the backend worker thread
+   */
+  QUILL_ATTRIBUTE_COLD void wake_up_backend_worker() noexcept { _backend_worker.wake_up(); }
+
+  /**
    * @return true if backend worker has started
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool backend_worker_is_running() noexcept

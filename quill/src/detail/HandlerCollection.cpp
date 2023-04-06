@@ -143,7 +143,7 @@ std::shared_ptr<Handler> HandlerCollection::_create_console_handler(std::string 
 
   // if first time add it
   auto handler_ptr = std::make_shared<ConsoleHandler>(stream, file, console_colours);
-  auto emplace_result = _handler_collection.emplace(stream, handler_ptr);
+  _handler_collection.emplace(stream, handler_ptr);
   return handler_ptr;
 }
 } // namespace quill::detail
