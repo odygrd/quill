@@ -35,9 +35,17 @@ QUILL_NODISCARD constexpr bool is_pow_of_two(uint64_t number) noexcept
  * @param number input
  * @return the next power of 2
  */
-QUILL_NODISCARD inline uint64_t next_power_of_2(uint64_t n)
+template <typename T>
+QUILL_NODISCARD inline T next_power_of_2(T n)
 {
-  return is_pow_of_two(n) ? n : static_cast<uint64_t>(std::pow(2, log2(n) + 1));
+  constexpr T max_power_of_2 = (std::numeric_limits<T>::max() >> 1) + 1;
+
+  if (n >= max_power_of_2)
+  {
+    return max_power_of_2;
+  }
+
+  return is_pow_of_two(static_cast<uint64_t>(n)) ? n : static_cast<T>(std::pow(2, log2(n) + 1));
 }
 
 /**

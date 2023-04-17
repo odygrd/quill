@@ -31,10 +31,15 @@ public:
   using integer_type = T;
 
   QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity)
-    : _capacity(static_cast<integer_type>(next_power_of_2(capacity))),
+    : _capacity(next_power_of_2(capacity)),
       _mask(_capacity - 1),
       _storage(static_cast<std::byte*>(aligned_alloc(CACHE_LINE_ALIGNED, 2ull * static_cast<uint64_t>(_capacity))))
   {
+    if (!is_pow_of_two(static_cast<uint64_t>(_capacity)))
+    {
+      QUILL_THROW(QuillError{"capacity must be a power of two. _capacity: " + std::to_string(_capacity)});
+    }
+
     std::memset(_storage, 0, 2ull * static_cast<uint64_t>(_capacity));
 
     _atomic_writer_pos.store(0);
