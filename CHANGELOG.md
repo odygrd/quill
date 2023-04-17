@@ -92,6 +92,7 @@
   [example_file_callbacks.cpp](https://github.com/odygrd/quill/blob/master/examples/example_file_callbacks.cpp)
 - Added `quill::wake_up_logging_thread()` in `Quill.h`. This thread safe function can be used to wake up the backend
   logging thread on demand. ([#280](https://github.com/odygrd/quill/pull/280))
+- Round up queue capacity to the nearest power of 2. ([#282](https://github.com/odygrd/quill/pull/282))
 
 ## v2.7.0
 
