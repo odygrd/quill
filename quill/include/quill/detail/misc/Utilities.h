@@ -10,10 +10,12 @@
 #include <algorithm>                      // for min
 #include <array>                          // for array
 #include <cassert>                        // for assert
-#include <cstdint>                        // for uint64_t, uintptr_t
-#include <cstdio>                         // for size_t
-#include <cstring>                        // for memcpy, strlen
-#include <string>                         // for string, wstring
+#include <cmath>
+#include <cstdint> // for uint64_t, uintptr_t
+#include <cstdio>  // for size_t
+#include <cstring> // for memcpy, strlen
+#include <limits>
+#include <string> // for string, wstring
 #include <vector>
 
 namespace quill::detail
@@ -27,6 +29,24 @@ namespace quill::detail
 QUILL_NODISCARD constexpr bool is_pow_of_two(uint64_t number) noexcept
 {
   return (number != 0) && ((number & (number - 1)) == 0);
+}
+
+/**
+ * Round up to the next power of 2
+ * @param number input
+ * @return the next power of 2
+ */
+template <typename T>
+QUILL_NODISCARD inline T next_power_of_2(T n)
+{
+  constexpr T max_power_of_2 = (std::numeric_limits<T>::max() >> 1) + 1;
+
+  if (n >= max_power_of_2)
+  {
+    return max_power_of_2;
+  }
+
+  return is_pow_of_two(static_cast<uint64_t>(n)) ? n : static_cast<T>(std::pow(2, log2(n) + 1));
 }
 
 /**

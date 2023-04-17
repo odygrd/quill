@@ -8,20 +8,20 @@
 namespace quill::detail
 {
 /***/
-template<typename T>
+template <typename T>
 BoundedTransitEventBufferImpl<T>::BoundedTransitEventBufferImpl(integer_type capacity)
-  : _capacity(capacity), _mask(capacity - 1)
+  : _capacity(next_power_of_2(capacity)), _mask(_capacity - 1)
 {
-  if (!is_pow_of_two(static_cast<size_t>(capacity)))
+  if (!is_pow_of_two(static_cast<uint64_t>(_capacity)))
   {
-    QUILL_THROW(QuillError{"Capacity must be a power of two"});
+    QUILL_THROW(QuillError{"capacity must be a power of two. _capacity: " + std::to_string(_capacity)});
   }
 
-  _storage.resize(capacity);
+  _storage.resize(_capacity);
 }
 
 /***/
-template<typename T>
+template <typename T>
 TransitEvent* BoundedTransitEventBufferImpl<T>::front() noexcept
 {
   if (_writer_pos == _reader_pos)
@@ -34,11 +34,14 @@ TransitEvent* BoundedTransitEventBufferImpl<T>::front() noexcept
 }
 
 /***/
-template<typename T>
-void BoundedTransitEventBufferImpl<T>::pop_front() noexcept { _reader_pos += 1; }
+template <typename T>
+void BoundedTransitEventBufferImpl<T>::pop_front() noexcept
+{
+  _reader_pos += 1;
+}
 
 /***/
-template<typename T>
+template <typename T>
 TransitEvent* BoundedTransitEventBufferImpl<T>::back() noexcept
 {
   if (_capacity - size() == 0)
@@ -51,18 +54,21 @@ TransitEvent* BoundedTransitEventBufferImpl<T>::back() noexcept
 }
 
 /***/
-template<typename T>
-void BoundedTransitEventBufferImpl<T>::push_back() noexcept { _writer_pos += 1; }
+template <typename T>
+void BoundedTransitEventBufferImpl<T>::push_back() noexcept
+{
+  _writer_pos += 1;
+}
 
 /***/
-template<typename T>
+template <typename T>
 typename BoundedTransitEventBufferImpl<T>::integer_type BoundedTransitEventBufferImpl<T>::size() const noexcept
 {
   return static_cast<integer_type>(_writer_pos - _reader_pos);
 }
 
 /***/
-template<typename T>
+template <typename T>
 typename BoundedTransitEventBufferImpl<T>::integer_type BoundedTransitEventBufferImpl<T>::capacity() const noexcept
 {
   return static_cast<integer_type>(_capacity);

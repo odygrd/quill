@@ -31,35 +31,34 @@ public:
   using integer_type = T;
 
   QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity)
-    : _capacity(capacity),
+    : _capacity(next_power_of_2(capacity)),
       _mask(_capacity - 1),
-      _storage(static_cast<std::byte*>(
-        aligned_alloc(CACHE_LINE_ALIGNED, 2ull * static_cast<uint64_t>(capacity))))
+      _storage(static_cast<std::byte*>(aligned_alloc(CACHE_LINE_ALIGNED, 2ull * static_cast<uint64_t>(_capacity))))
   {
-    if (!is_pow_of_two(static_cast<uint64_t>(capacity)))
+    if (!is_pow_of_two(static_cast<uint64_t>(_capacity)))
     {
-      QUILL_THROW(QuillError{"Capacity must be a power of two"});
+      QUILL_THROW(QuillError{"capacity must be a power of two. _capacity: " + std::to_string(_capacity)});
     }
 
-    std::memset(_storage, 0, 2ull * static_cast<uint64_t>(capacity));
+    std::memset(_storage, 0, 2ull * static_cast<uint64_t>(_capacity));
 
     _atomic_writer_pos.store(0);
     _atomic_reader_pos.store(0);
 
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
-    for (uint64_t i = 0; i < (2ull * static_cast<uint64_t>(capacity)); i += CACHE_LINE_SIZE)
+    for (uint64_t i = 0; i < (2ull * static_cast<uint64_t>(_capacity)); i += CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
     }
 
     // load cache lines into memory
-    if (capacity < 1024)
+    if (_capacity < 1024)
     {
       QUILL_THROW(QuillError{"Capacity must be at least 1024"});
     }
 
-    uint64_t const cache_lines = (capacity >= 2048) ? 32 : 16;
+    uint64_t const cache_lines = (_capacity >= 2048) ? 32 : 16;
 
     for (uint64_t i = 0; i < cache_lines; ++i)
     {
