@@ -14,7 +14,8 @@
 #include <cstdint> // for uint64_t, uintptr_t
 #include <cstdio>  // for size_t
 #include <cstring> // for memcpy, strlen
-#include <string>  // for string, wstring
+#include <limits>
+#include <string> // for string, wstring
 #include <vector>
 
 namespace quill::detail
