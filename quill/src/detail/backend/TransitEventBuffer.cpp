@@ -134,9 +134,12 @@ TransitEvent* UnboundedTransitEventBuffer::back() noexcept
   {
     // buffer doesn't have enough space
     uint64_t capacity = static_cast<uint64_t>(_writer->transit_buffer.capacity()) * 2ull;
-    if (QUILL_UNLIKELY(capacity > std::numeric_limits<uint32_t>::max()))
+    constexpr uint64_t max_bounded_queue_capacity =
+      (std::numeric_limits<BoundedTransitEventBuffer::integer_type>::max() >> 1) + 1;
+
+    if (QUILL_UNLIKELY(capacity > max_bounded_queue_capacity))
     {
-      capacity = std::numeric_limits<uint32_t>::max();
+      capacity = max_bounded_queue_capacity;
     }
 
     auto new_node = new Node{static_cast<uint32_t>(capacity)};
