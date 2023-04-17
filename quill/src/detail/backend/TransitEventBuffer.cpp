@@ -10,7 +10,7 @@ namespace quill::detail
 /***/
 template<typename T>
 BoundedTransitEventBufferImpl<T>::BoundedTransitEventBufferImpl(integer_type capacity)
-  : _capacity(static_cast<integer_type>(next_power_of_2(capacity))), _mask(capacity - 1)
+  : _capacity(static_cast<integer_type>(next_power_of_2(capacity))), _mask(_capacity - 1)
 {
   _storage.resize(_capacity);
 }
