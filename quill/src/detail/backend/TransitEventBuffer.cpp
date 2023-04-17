@@ -10,14 +10,9 @@ namespace quill::detail
 /***/
 template<typename T>
 BoundedTransitEventBufferImpl<T>::BoundedTransitEventBufferImpl(integer_type capacity)
-  : _capacity(capacity), _mask(capacity - 1)
+  : _capacity(static_cast<integer_type>(next_power_of_2(capacity))), _mask(capacity - 1)
 {
-  if (!is_pow_of_two(static_cast<size_t>(capacity)))
-  {
-    QUILL_THROW(QuillError{"Capacity must be a power of two"});
-  }
-
-  _storage.resize(capacity);
+  _storage.resize(_capacity);
 }
 
 /***/
