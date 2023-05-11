@@ -1,3 +1,4 @@
+- [v2.8.1](#v281)
 - [v2.8.0](#v280)
 - [v2.7.0](#v270)
 - [v2.6.0](#v260)
@@ -39,6 +40,12 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v2.8.1
+
+**Fixes**
+
+- Fixed a bug in TimeRotatingFileHandler ([#287](https://github.com/odygrd/quill/pull/287))
 
 ## v2.8.0
 
