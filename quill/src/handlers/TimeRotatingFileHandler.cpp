@@ -75,6 +75,7 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename, 
     _calculate_initial_rotation_tp(_file_creation_time, _when, timezone, at_time_hours, at_time_minutes);
 
   // Open file for logging
+  _created_files.emplace_front(0, _filename);
   open_file(_filename, mode);
 }
 
@@ -100,7 +101,7 @@ void TimeRotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, q
       detail::rename_file(previous_file, new_file);
 
       // Also store the file name in a queue to remove_file it later if we exceed backup count
-      _created_files.push_front(std::make_pair(0, new_file));
+      _created_files.emplace_front(0, new_file);
     }
     else if ((_append_to_filename == FilenameAppend::Date) || (_append_to_filename == FilenameAppend::DateTime))
     {
@@ -125,7 +126,7 @@ void TimeRotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, q
         quill::detail::rename_file(previous_file, new_file);
       }
 
-      _created_files.push_front(std::make_pair(0, _filename));
+      _created_files.emplace_front(0, _filename);
     }
 
     // If we have too many files in the queue remove_file the oldest one

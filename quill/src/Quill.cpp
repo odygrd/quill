@@ -69,7 +69,8 @@ std::shared_ptr<Handler> file_handler(fs::path const& filename, std::string cons
 std::shared_ptr<Handler> time_rotating_file_handler(
   fs::path const& base_filename, std::string const& mode /* = std::string{"a"} */,
   FilenameAppend append_to_filename /* = FilenameAppend::None */,
-  std::string const& when /* = std::string{"H"} */, uint32_t interval /* = 1 */, uint32_t backup_count /* = 0 */,
+  std::string const& when /* = std::string{"H"} */, uint32_t interval /* = 1 */,
+  uint32_t backup_count /* = std::numeric_limits<std::uint32_t>::max() */,
   Timezone timezone /* = Timezone::LocalTime */, std::string const& at_time /* = std::string{} */,
   FileEventNotifier file_event_notifier /* = FileEventNotifier{} */, bool do_fsync /* = false */)
 {
@@ -82,7 +83,8 @@ std::shared_ptr<Handler> time_rotating_file_handler(
 std::shared_ptr<Handler> rotating_file_handler(
   fs::path const& base_filename, std::string const& mode /* = std::string {"a"} */,
   FilenameAppend append_to_filename /* = FilenameAppend::None */, size_t max_bytes /* = 0 */,
-  uint32_t backup_count /* = 0 */, bool overwrite_oldest_files /* = true */, bool clean_old_files /* = false */,
+  uint32_t backup_count /* = std::numeric_limits<std::uint32_t>::max() */,
+  bool overwrite_oldest_files /* = true */, bool clean_old_files /* = false */,
   FileEventNotifier file_event_notifier /* = FileEventNotifier{} */, bool do_fsync /* = false */)
 {
   return create_handler<RotatingFileHandler>(base_filename.string(), mode, append_to_filename,
