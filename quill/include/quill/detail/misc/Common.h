@@ -187,7 +187,7 @@ enum TimestampClockType : uint8_t
 /**
  * backend worker thread error handler type
  */
-using backend_worker_error_handler_t = std::function<void(std::string const&)>;
+using backend_worker_notification_handler_t = std::function<void(std::string const&)>;
 
 } // namespace quill
 

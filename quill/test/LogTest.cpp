@@ -626,18 +626,18 @@ TEST_CASE("many_loggers_multiple_threads")
 
 #if !defined(QUILL_NO_EXCEPTIONS)
 /***/
-TEST_CASE("backend_error_handler")
+TEST_CASE("backend_notification_handler")
 {
-  fs::path const filename{"test_backend_error_handler"};
+  fs::path const filename{"test_backend_notification_handler"};
   {
     LogManager lm;
 
     // counter to check our error handler was invoked
     // atomic because we check this value on this thread, but the backend worker thread updates it
-    std::atomic<size_t> error_handler_invoked{0};
+    std::atomic<size_t> notification_handler_invoked{0};
 
     std::thread frontend(
-      [&lm, &filename, &error_handler_invoked]()
+      [&lm, &filename, &notification_handler_invoked]()
       {
         quill::Config cfg;
 
@@ -650,8 +650,8 @@ TEST_CASE("backend_error_handler")
           "ut_labore_et_dolore_magna_aliqua";
 
         // Set a custom error handler to handler exceptions
-        cfg.backend_thread_error_handler = [&error_handler_invoked](std::string const& s)
-        { ++error_handler_invoked; };
+        cfg.backend_thread_notification_handler = [&notification_handler_invoked](std::string const& s)
+        { ++notification_handler_invoked; };
 
         // Set a file handler as the custom logger handler and log to it
         cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
@@ -675,7 +675,7 @@ TEST_CASE("backend_error_handler")
     frontend.join();
 
     // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
-    REQUIRE(error_handler_invoked.load() != 0);
+    REQUIRE(notification_handler_invoked.load() != 0);
 
     lm.stop_backend_worker();
   }
@@ -684,9 +684,9 @@ TEST_CASE("backend_error_handler")
 }
 
 /***/
-TEST_CASE("backend_error_handler_log_from_backend_thread")
+TEST_CASE("backend_notification_handler_log_from_backend_thread")
 {
-  fs::path const filename{"test_backend_error_handler_log_from_backend_thread"};
+  fs::path const filename{"test_backend_notification_handler_log_from_backend_thread"};
   {
     LogManager lm;
 
@@ -708,7 +708,7 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
           filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
         // Set a custom error handler to handler exceptions
-        cfg.backend_thread_error_handler = [&lm](std::string const& s)
+        cfg.backend_thread_notification_handler = [&lm](std::string const& s)
         {
           LOG_WARNING(lm.logger_collection().get_logger(), "error handler invoked");
           lm.flush(); // this will be called by the backend but do nothing
@@ -743,15 +743,15 @@ TEST_CASE("backend_error_handler_log_from_backend_thread")
 }
 
 /***/
-TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
+TEST_CASE("backend_notification_handler_error_throw_while_in_backend_process")
 {
-  fs::path const filename{"test_backend_error_handler_error_throw_while_in_backend_process"};
+  fs::path const filename{"test_backend_notification_handler_error_throw_while_in_backend_process"};
   {
     LogManager lm;
 
     // counter to check our error handler was invoked
     // atomic because we check this value on this thread, but the backend worker thread updates it
-    std::atomic<size_t> error_handler_invoked{0};
+    std::atomic<size_t> notification_handler_invoked{0};
 
     quill::Config cfg;
 
@@ -760,8 +760,8 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
       filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
     // Set a custom error handler to handler exceptions
-    cfg.backend_thread_error_handler = [&error_handler_invoked](std::string const& s)
-    { ++error_handler_invoked; };
+    cfg.backend_thread_notification_handler = [&notification_handler_invoked](std::string const& s)
+    { ++notification_handler_invoked; };
 
     lm.configure(cfg);
     lm.start_backend_worker(false, std::initializer_list<int32_t>{});
@@ -772,7 +772,7 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
         Logger* logger = lm.logger_collection().get_logger();
 
         // Here we will call LOG_BACKTRACE(...) without calling init_backtrace(...) first
-        // We expect an error to be thrown and reported to our error handler backend_thread_error_handler
+        // We expect an error to be thrown and reported to our error handler backend_thread_notification_handler
 
         LOG_INFO(logger, "Before backtrace.");
         for (uint32_t i = 0; i < 4; ++i)
@@ -793,7 +793,7 @@ TEST_CASE("backend_error_handler_error_throw_while_in_backend_process")
     frontend.join();
 
     // Check that the backend worker thread called our error handler 4 times - the number of LOG_BACKTRACE calls
-    REQUIRE_EQ(error_handler_invoked.load(), 4);
+    REQUIRE_EQ(notification_handler_invoked.load(), 4);
   }
 
   quill::detail::remove_file(filename);

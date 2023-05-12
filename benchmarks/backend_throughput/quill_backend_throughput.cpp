@@ -45,7 +45,7 @@ int main()
   auto delta_d = std::chrono::duration_cast<std::chrono::duration<double>>(delta).count();
 
   std::cout << fmt::format(
-                 "Throughput  is {:.2f} million msgs/sec average, total time elapsed: {} ms for {} "
+                 "Throughput is {:.2f} million msgs/sec average, total time elapsed: {} ms for {} "
                  "log messages \n",
                  total_iterations / delta_d / 1e6,
                  std::chrono::duration_cast<std::chrono::milliseconds>(delta).count(), total_iterations)
