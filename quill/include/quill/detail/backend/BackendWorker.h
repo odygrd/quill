@@ -162,7 +162,8 @@ private:
    * @param cached_thread_contexts loaded thread contexts
    */
   QUILL_ATTRIBUTE_HOT static void _check_dropped_messages(
-    ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts) noexcept;
+    ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
+    backend_worker_notification_handler_t const& notification_handler) noexcept;
 
   /**
    * Process a structured log template message
@@ -203,16 +204,14 @@ private:
   std::chrono::system_clock::time_point _last_rdtsc_resync;
   uint32_t _backend_worker_thread_id{0}; /** cached backend worker thread id */
 
+  backend_worker_notification_handler_t _notification_handler; /** error handler for the backend thread */
+
   bool _backend_thread_yield; /** backend_thread_yield from config **/
   bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   bool _strict_log_timestamp_order{true};
   bool _empty_all_queues_before_exit{true};
   bool _use_transit_buffer{true};
   std::atomic<bool> _is_running{false}; /** The spawned backend thread status */
-
-#if !defined(QUILL_NO_EXCEPTIONS)
-  backend_worker_error_handler_t _error_handler; /** error handler for the backend thread */
-#endif
 
   alignas(CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
   std::condition_variable _wake_up_cv;
@@ -254,13 +253,13 @@ void BackendWorker::run()
   _rdtsc_resync_interval = _config.rdtsc_resync_interval;
   _use_transit_buffer = _config.backend_thread_use_transit_buffer;
 
-#if !defined(QUILL_NO_EXCEPTIONS)
-  if (_config.backend_thread_error_handler)
+  if (_config.backend_thread_notification_handler)
   {
     // set up the default error handler
-    _error_handler = _config.backend_thread_error_handler;
+    _notification_handler = _config.backend_thread_notification_handler;
   }
-#endif
+
+  assert(_notification_handler && "_notification_handler is always set");
 
   std::thread worker(
     [this]()
@@ -274,8 +273,8 @@ void BackendWorker::run()
         }
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
-      QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
-      QUILL_CATCH_ALL() { _error_handler(std::string{"Caught unhandled exception."}); }
+      QUILL_CATCH(std::exception const& e) { _notification_handler(e.what()); }
+      QUILL_CATCH_ALL() { _notification_handler(std::string{"Caught unhandled exception."}); }
 #endif
 
       QUILL_TRY
@@ -284,8 +283,8 @@ void BackendWorker::run()
         set_thread_name(_config.backend_thread_name.data());
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
-      QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
-      QUILL_CATCH_ALL() { _error_handler(std::string{"Caught unhandled exception."}); }
+      QUILL_CATCH(std::exception const& e) { _notification_handler(e.what()); }
+      QUILL_CATCH_ALL() { _notification_handler(std::string{"Caught unhandled exception."}); }
 #endif
 
       // Cache this thread's id
@@ -300,10 +299,10 @@ void BackendWorker::run()
         // main loop
         QUILL_TRY { _main_loop(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
+        QUILL_CATCH(std::exception const& e) { _notification_handler(e.what()); }
         QUILL_CATCH_ALL()
         {
-          _error_handler(std::string{"Caught unhandled exception."});
+          _notification_handler(std::string{"Caught unhandled exception."});
         } // clang-format on
 #endif
       }
@@ -311,10 +310,10 @@ void BackendWorker::run()
       // exit
       QUILL_TRY { _exit(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-      QUILL_CATCH(std::exception const& e) { _error_handler(e.what()); }
+      QUILL_CATCH(std::exception const& e) { _notification_handler(e.what()); }
       QUILL_CATCH_ALL()
       {
-        _error_handler(std::string{"Caught unhandled exception."});
+        _notification_handler(std::string{"Caught unhandled exception."});
       } // clang-format on
 #endif
     });
@@ -379,7 +378,15 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadCon
   size_t const queue_capacity = queue.capacity();
   uint32_t total_bytes_read{0};
 
-  std::byte* read_pos = queue.prepare_read();
+  std::byte* read_pos;
+  if constexpr (std::is_same_v<QueueT, UnboundedQueue>)
+  {
+    read_pos = queue.prepare_read(_notification_handler);
+  }
+  else
+  {
+    read_pos = queue.prepare_read();
+  }
 
   // read max of one full queue and also max_transit events otherwise we can get stuck here forever
   // if the producer keeps producing
@@ -407,7 +414,14 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadCon
     total_bytes_read += static_cast<uint32_t>(read_pos - read_begin);
 
     // read again
-    read_pos = queue.prepare_read();
+    if constexpr (std::is_same_v<QueueT, UnboundedQueue>)
+    {
+      read_pos = queue.prepare_read(_notification_handler);
+    }
+    else
+    {
+      read_pos = queue.prepare_read();
+    }
   }
 
   if (total_bytes_read != 0)
@@ -678,12 +692,10 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
   }
 #if !defined(QUILL_NO_EXCEPTIONS)
   QUILL_CATCH(std::exception const& e)
-  {
-    _error_handler(e.what());
-  }
+  { _notification_handler(e.what()); }
   QUILL_CATCH_ALL()
   {
-    _error_handler(std::string{"Caught unhandled exception."});
+    _notification_handler(std::string{"Caught unhandled exception."});
   } // clang-format on
 #endif
 }
@@ -723,13 +735,22 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
     std::visit(
-      [&thread_context, &min_ts, &tc](auto& queue)
+      [&thread_context, &min_ts, &tc, this](auto& queue)
       {
         // find the minimum timestamp accross all queues
         using T = std::decay_t<decltype(queue)>;
         if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
         {
-          std::byte* read_pos = queue.prepare_read();
+          std::byte* read_pos;
+          if constexpr (std::is_same_v<T, UnboundedQueue>)
+          {
+            read_pos = queue.prepare_read(_notification_handler);
+          }
+          else
+          {
+            read_pos = queue.prepare_read();
+          }
+
           if (read_pos && (reinterpret_cast<detail::Header*>(read_pos)->timestamp < min_ts))
           {
             min_ts = reinterpret_cast<detail::Header*>(read_pos)->timestamp;
@@ -752,7 +773,15 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
       using T = std::decay_t<decltype(queue)>;
       if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
       {
-        std::byte* read_pos = queue.prepare_read();
+        std::byte* read_pos;
+        if constexpr (std::is_same_v<T, UnboundedQueue>)
+        {
+          read_pos = queue.prepare_read(_notification_handler);
+        }
+        else
+        {
+          read_pos = queue.prepare_read();
+        }
         assert(read_pos);
 
         std::byte* const read_begin = read_pos;
@@ -842,7 +871,7 @@ void BackendWorker::_main_loop()
     _force_flush();
 
     // check for any dropped messages by the threads
-    _check_dropped_messages(cached_thread_contexts);
+    _check_dropped_messages(cached_thread_contexts, _notification_handler);
 
     // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
@@ -951,7 +980,7 @@ void BackendWorker::_exit()
       if (all_empty)
       {
         // we are done, all queues are now empty
-        _check_dropped_messages(cached_thread_contexts);
+        _check_dropped_messages(cached_thread_contexts, _notification_handler);
         _force_flush();
         break;
       }

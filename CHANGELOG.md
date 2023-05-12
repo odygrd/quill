@@ -1,4 +1,4 @@
-- [v2.8.1](#v281)
+- [v2.9.0](#v290)
 - [v2.8.0](#v280)
 - [v2.7.0](#v270)
 - [v2.6.0](#v260)
@@ -41,11 +41,21 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v2.8.1
+## v2.9.0
 
 **Fixes**
 
-- Fixed a bug in TimeRotatingFileHandler ([#287](https://github.com/odygrd/quill/pull/287))
+- Fixed a bug in TimeRotatingFileHandler. ([#287](https://github.com/odygrd/quill/pull/287))
+
+**Improvements**
+
+- Renamed `backend_thread_error_handler` to `backend_thread_notifications_handler` in `Config.h`. Previously this
+  handler was
+  used only to report errors from the backend worker thread to the user. This callback will also now report
+  info messages to the user.
+- Report unbounded spsc queue reallocation via
+  the `backend_thread_notifications_handler`. ([#286](https://github.com/odygrd/quill/pull/286))
+- Report bounded spsc queue dropped messages via the `backend_thread_notifications_handler`.
 
 ## v2.8.0
 

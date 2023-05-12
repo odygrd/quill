@@ -132,12 +132,4 @@ QUILL_NODISCARD time_t next_noon_or_midnight_timestamp(time_t timestamp, Timezon
  * @return the formatted string as vector of characters
  */
 QUILL_NODISCARD std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone timezone);
-
-/**
- * Split a string into tokens
- * @param s given string
- * @param delimiter delimiter
- * @return returns a vector of tokens
- */
-QUILL_NODISCARD std::vector<std::string> split(std::string const& s, char delimiter);
 } // namespace quill::detail

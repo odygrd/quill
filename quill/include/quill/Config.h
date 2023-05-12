@@ -142,18 +142,22 @@ struct Config
    */
   std::string default_logger_name = "root";
 
-#if !defined(QUILL_NO_EXCEPTIONS)
   /**
    * The background thread in very rare occasion might thrown an exception which can not be caught
    * in the user threads. In that case the backend worker thread will call this callback instead.
    *
-   * Set up a custom error handler to be used if the backend thread has any error.
+   * Set up a custom notifications handler to be used if the backend thread has any error.
    *
-   * Set an error handler callback e.g :
-   *   backend_thread_error_handler = [](std::string const& s) { std::cerr << s << std::endl; }
+   * This handler is also used to deliver messages to the user, for example when the unbounded
+   * queue reallocates or when the bounded queue gets full
+   *
+   * When not set here the default is:
+   *   backend_thread_notification_handler = [](std::string const& s) { std::cerr << s << std::endl; }
+   *
+   * If you wish to disable being notified use:
+   *   backend_thread_notification_handler = [](std::string const&) { }
    */
-  backend_worker_error_handler_t backend_thread_error_handler;
-#endif
+  backend_worker_notification_handler_t backend_thread_notification_handler;
 
   /**
    * Sets a custom clock that will be used to obtain the timestamp

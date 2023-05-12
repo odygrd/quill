@@ -16,10 +16,8 @@ BackendWorker::BackendWorker(Config const& config, ThreadContextCollection& thre
     _logger_collection(logger_collection),
     _process_id(fmt::format_int(get_process_id()).str())
 {
-#if !defined(QUILL_NO_EXCEPTIONS)
-  // set up the default error handler
-  _error_handler = [](std::string const& s) { std::cerr << s << std::endl; };
-#endif
+  // set up the default error handler. This is done here to avoid including std::cerr in a header file
+  _notification_handler = [](std::string const& s) { std::cerr << s << std::endl; };
 }
 
 /***/
@@ -62,7 +60,8 @@ void BackendWorker::wake_up()
 uint32_t BackendWorker::thread_id() const noexcept { return _backend_worker_thread_id; }
 
 /***/
-void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts) noexcept
+void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
+                                            backend_worker_notification_handler_t const& notification_handler) noexcept
 {
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
@@ -76,11 +75,9 @@ void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thr
       quill::detail::localtime_rs(std::addressof(t), std::addressof(p));
       strftime(ts, 24, "%X", std::addressof(p));
 
-      // Write to stderr that we dropped messages
-      std::string const msg = fmt::format("~ {} localtime dropped {} log messages from thread {}\n",
-                                          ts, dropped_messages_cnt, thread_context->thread_id());
-
-      detail::fwrite_fully(msg.data(), sizeof(char), msg.size(), stderr);
+      // Notify that we dropped messages
+      notification_handler(fmt::format("{} Quill INFO: dropped {} log messages from thread {}\n",
+                                       ts, dropped_messages_cnt, thread_context->thread_id()));
     }
   }
 }

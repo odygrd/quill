@@ -11,6 +11,8 @@
 #include <limits>
 
 #include "BoundedQueue.h"
+#include "quill/detail/misc/Common.h"
+#include "quill/detail/misc/Os.h"
 
 namespace quill::detail
 {
@@ -153,9 +155,11 @@ public:
 
   /**
    * Prepare to read from the buffer
+   * @notification_handler a callback used for notifications to the user
    * @return a pair of the buffer location to read and the number of available bytes
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_read()
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_read(
+    backend_worker_notification_handler_t const& notification_handler = backend_worker_notification_handler_t{})
   {
     std::byte* read_pos = _consumer->bounded_queue.prepare_read();
 
@@ -177,9 +181,26 @@ public:
           _consumer->bounded_queue.commit_read();
 
           // switch to the new buffer, existing one is deleted
+          auto const previous_capacity = _consumer->bounded_queue.capacity();
           delete _consumer;
           _consumer = next_node;
           read_pos = _consumer->bounded_queue.prepare_read();
+
+          if (notification_handler)
+          {
+            char ts[24];
+            time_t t = time(nullptr);
+            struct tm p;
+            quill::detail::localtime_rs(std::addressof(t), std::addressof(p));
+            strftime(ts, 24, "%X", std::addressof(p));
+
+            // we switched to a new here, and we also notify the user of the allocation via the
+            // notification_handler
+            notification_handler(
+              std::string{ts} + " Quill INFO: A new SPSC queue was allocated [new_capacity_bytes: " +
+              std::to_string(_consumer->bounded_queue.capacity()) +
+              ", previous_capacity_bytes: " + std::to_string(previous_capacity) + "]");
+          }
         }
       }
     }
