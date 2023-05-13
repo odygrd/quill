@@ -31,7 +31,7 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   // read at CNTFRQ special register.  We assume the OS has set up the virtual timer properly.
   int64_t virtual_timer_value;
   __asm__ volatile("mrs %0, cntvct_el0" : "=r"(virtual_timer_value));
-  return virtual_timer_value;
+  return static_cast<uint64_t>(virtual_timer_value);
 }
 #elif defined(__ARM_ARCH)
 QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
