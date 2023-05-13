@@ -1,3 +1,4 @@
+- [v2.9.1](#v291)
 - [v2.9.0](#v290)
 - [v2.8.0](#v280)
 - [v2.7.0](#v270)
@@ -40,6 +41,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v2.9.1
+
+- Removed `CMAKE_INSTALL_RPATH` from cmake. ([#284](https://github.com/odygrd/quill/pull/284))
+- Fix compile warning on Apple M1. ([#291](https://github.com/odygrd/quill/pull/291))
 
 ## v2.9.0
 
