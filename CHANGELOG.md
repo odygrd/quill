@@ -47,6 +47,7 @@
 - Removed `CMAKE_INSTALL_RPATH` from cmake. ([#284](https://github.com/odygrd/quill/pull/284))
 - Fix compile warning on Apple M1. ([#291](https://github.com/odygrd/quill/pull/291))
 - Update bundled `libfmt` to `v10.0.0`
+- Fix for CMAKE_MODULE_PATH ([#295](https://github.com/odygrd/quill/pull/295))
 
 ## v2.9.0
 
