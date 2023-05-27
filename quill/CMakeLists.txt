@@ -41,6 +41,7 @@ set(HEADER_FILES
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
         include/quill/handlers/JsonFileHandler.h
+        include/quill/handlers/NullHandler.h
         include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
         include/quill/handlers/TimeRotatingFileHandler.h

@@ -61,8 +61,10 @@ protected:
 
   void open_file(fs::path const& filename, std::string const& mode);
   void close_file();
+  bool is_null() const noexcept;
 
 private:
   bool _fsync{false};
+  bool _is_null{false};
 };
 } // namespace quill

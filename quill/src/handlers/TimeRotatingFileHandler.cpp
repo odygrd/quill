@@ -87,7 +87,8 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename, 
 void TimeRotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
   bool const should_rotate =
-    (std::chrono::nanoseconds{log_event.header.timestamp} >= _next_rotation_time.time_since_epoch());
+    (std::chrono::nanoseconds{log_event.header.timestamp} >= _next_rotation_time.time_since_epoch()) &&
+    !is_null();
 
   if (QUILL_UNLIKELY(should_rotate))
   {

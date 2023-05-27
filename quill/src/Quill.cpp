@@ -8,6 +8,7 @@
 #include "quill/handlers/ConsoleHandler.h"          // for ConsoleHandler
 #include "quill/handlers/FileHandler.h"             // for FileHandler, Filenam...
 #include "quill/handlers/JsonFileHandler.h"         // for JsonFileHandler
+#include "quill/handlers/NullHandler.h"             // for NullHandler
 #include "quill/handlers/RotatingFileHandler.h"     // for RotatingFileHandler
 #include "quill/handlers/StreamHandler.h"           // for StreamHandler
 #include "quill/handlers/TimeRotatingFileHandler.h" // for TimeRotatingFileHandler
@@ -101,6 +102,9 @@ std::shared_ptr<Handler> json_file_handler(fs::path const& filename, std::string
   return create_handler<JsonFileHandler>(filename.string(), mode, append_to_filename,
                                          std::move(file_event_notifier), do_fsync);
 }
+
+/***/
+std::shared_ptr<Handler> null_handler() { return create_handler<NullHandler>("nullhandler"); }
 
 /***/
 Logger* get_logger(char const* logger_name /* = nullptr */)

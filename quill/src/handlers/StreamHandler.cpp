@@ -19,6 +19,10 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
   {
     _file = stderr;
   }
+  else if (_filename == std::string{"/dev/null"})
+  {
+    // nothing to do
+  }
   else
   {
     // first attempt to create any non-existing directories

@@ -48,8 +48,27 @@
 - Fix compile warning on Apple M1. ([#291](https://github.com/odygrd/quill/pull/291))
 - Update bundled `libfmt` to `v10.0.0`
 - Fix for CMAKE_MODULE_PATH ([#295](https://github.com/odygrd/quill/pull/295))
-- Fixed a bug in TimeRotatingFileHandler when `quill::FilenameAppend::None` is
+- Fixed a bug in `TimeRotatingFileHandler` when `quill::FilenameAppend::None` is
   used. ([#296](https://github.com/odygrd/quill/pull/296))
+- Fixed `TimeRotatingFileHandler` and `RotatingFileHandler` to work with "
+  /dev/null" ([#297](https://github.com/odygrd/quill/pull/297))
+- Added `NullHandler` that can be used to discard the logs. For example:
+
+```c++
+int main()
+{
+  quill::start();
+  
+  std::shared_ptr<quill::Handler> file_handler =
+    quill::null_handler();
+
+  quill::Logger* logger_bar = quill::create_logger("nullhandler", std::move(file_handler));
+
+  for (uint32_t i = 0; i < 150; ++i)
+  {
+    LOG_INFO(logger_bar, "Hello");
+  }
+```
 
 ## v2.9.0
 

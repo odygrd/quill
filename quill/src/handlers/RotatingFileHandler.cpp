@@ -65,12 +65,22 @@ RotatingFileHandler::RotatingFileHandler(fs::path const& base_filename, std::str
   }
 
   open_file(_filename, mode);
-  _current_size = detail::file_size(_filename);
+
+  if (!is_null())
+  {
+    _current_size = detail::file_size(_filename);
+  }
 }
 
 /***/
 void RotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
+  if (is_null())
+  {
+    StreamHandler::write(formatted_log_message, log_event);
+    return;
+  }
+
   size_t new_size = _current_size + formatted_log_message.size();
 
   if (new_size > _max_bytes)
