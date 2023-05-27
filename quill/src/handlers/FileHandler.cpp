@@ -33,11 +33,6 @@ FileHandler::FileHandler(fs::path const& filename, std::string const& mode, File
     _fsync(do_fsync)
 {
   open_file(_filename, mode);
-
-  if (_filename == std::string{"/dev/null"})
-  {
-    _is_null = true;
-  }
 }
 
 /***/
@@ -45,10 +40,6 @@ FileHandler::FileHandler(fs::path const& filename, FilenameAppend append_to_file
                          FileEventNotifier file_event_notifier, bool do_fsync)
   : StreamHandler(get_filename(append_to_filename, filename), nullptr, std::move(file_event_notifier)), _fsync(do_fsync)
 {
-  if (_filename == std::string{"/dev/null"})
-  {
-    _is_null = true;
-  }
 }
 
 /***/
@@ -89,9 +80,6 @@ void FileHandler::close_file()
     }
   }
 }
-
-/***/
-bool FileHandler::is_null() const noexcept { return _is_null; }
 
 /***/
 FileHandler::~FileHandler() { close_file(); }

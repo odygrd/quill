@@ -254,8 +254,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> json_file_handler(
   FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
 
 /**
- * Creates a new instance of a null handler. The null handler does not give any output and
- * discards the logs
+ * Creates a new instance of a NullHandler. The null handler does not do any formatting or output.
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> null_handler();
 

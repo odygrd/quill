@@ -75,9 +75,12 @@ public:
    */
   QUILL_NODISCARD StreamHandlerType stream_handler_type() const noexcept;
 
+  QUILL_NODISCARD bool is_null() const noexcept;
+
 protected:
   fs::path _filename;
   FILE* _file{nullptr};
   FileEventNotifier _file_event_notifier;
+  bool _is_null{false};
 };
 } // namespace quill

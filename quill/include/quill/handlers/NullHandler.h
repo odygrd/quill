@@ -12,7 +12,8 @@ namespace quill
 class NullHandler : public Handler
 {
 public:
-  NullHandler() = default;
+  NullHandler() { set_pattern(""); }
+
   ~NullHandler() override = default;
 
   QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event) override

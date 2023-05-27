@@ -21,7 +21,7 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
   }
   else if (_filename == std::string{"/dev/null"})
   {
-    // nothing to do
+    _is_null = true;
   }
   else
   {
@@ -106,4 +106,7 @@ StreamHandler::StreamHandlerType StreamHandler::stream_handler_type() const noex
     return StreamHandler::StreamHandlerType::File;
   }
 }
+
+/***/
+bool StreamHandler::is_null() const noexcept { return _is_null; }
 } // namespace quill
