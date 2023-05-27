@@ -75,8 +75,12 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename, 
     _calculate_initial_rotation_tp(_file_creation_time, _when, timezone, at_time_hours, at_time_minutes);
 
   // Open file for logging
-  _created_files.emplace_front(0, _filename);
   open_file(_filename, mode);
+
+  if ((_append_to_filename == FilenameAppend::Date) || (_append_to_filename == FilenameAppend::DateTime))
+  {
+    _created_files.emplace_front(0, _filename);
+  }
 }
 
 /***/
@@ -133,7 +137,7 @@ void TimeRotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, q
     if (_created_files.size() > _backup_count)
     {
       // remove_file that file from the system and also pop it from the queue
-      detail::remove_file(_created_files.front().second);
+      detail::remove_file(_created_files.back().second);
       _created_files.pop_back();
     }
 

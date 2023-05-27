@@ -48,6 +48,8 @@
 - Fix compile warning on Apple M1. ([#291](https://github.com/odygrd/quill/pull/291))
 - Update bundled `libfmt` to `v10.0.0`
 - Fix for CMAKE_MODULE_PATH ([#295](https://github.com/odygrd/quill/pull/295))
+- Fixed a bug in TimeRotatingFileHandler when `quill::FilenameAppend::None` is
+  used. ([#296](https://github.com/odygrd/quill/pull/296))
 
 ## v2.9.0
 
@@ -58,8 +60,7 @@
 **Improvements**
 
 - Renamed `backend_thread_error_handler` to `backend_thread_notifications_handler` in `Config.h`. Previously this
-  handler was
-  used only to report errors from the backend worker thread to the user. This callback will also now report
+  handler was used only to report errors from the backend worker thread to the user. This callback will also now report
   info messages to the user.
 - Report unbounded spsc queue reallocation via
   the `backend_thread_notifications_handler`. ([#286](https://github.com/odygrd/quill/pull/286))
