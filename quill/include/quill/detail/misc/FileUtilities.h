@@ -75,8 +75,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<std::string, std::string> extract
  * @return a filepath with the date appended
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_date_to_filename(
-  fs::path const& filename, std::chrono::system_clock::time_point timestamp = {},
-  bool append_time = false, Timezone timezone = Timezone::LocalTime) noexcept;
+  fs::path const& filename, std::chrono::system_clock::time_point timestamp = {}, bool append_time = false,
+  Timezone timezone = Timezone::LocalTime, bool zero_out_seconds = false) noexcept;
 
 /**
  * Append an index to the given filename

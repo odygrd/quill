@@ -86,8 +86,9 @@ std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& f
 
 /***/
 fs::path append_date_to_filename(fs::path const& filename, std::chrono::system_clock::time_point timestamp, /* = {} */
-                                 bool append_time, /* = false */
-                                 Timezone timezone /* = Timezone::LocalTime */) noexcept
+                                 bool append_time,  /* = false */
+                                 Timezone timezone, /* = Timezone::LocalTime */
+                                 bool zero_out_seconds /* = false */) noexcept
 {
   // Get the time now as tm from user or default to now
   std::chrono::system_clock::time_point const ts_now =
@@ -103,6 +104,11 @@ fs::path append_date_to_filename(fs::path const& filename, std::chrono::system_c
   else
   {
     detail::localtime_rs(&time_now, &now_tm);
+  }
+
+  if (zero_out_seconds)
+  {
+    now_tm.tm_sec = 0;
   }
 
   // Get base file and extension
