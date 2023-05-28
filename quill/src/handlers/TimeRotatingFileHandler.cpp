@@ -96,12 +96,14 @@ void TimeRotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, q
 
     if (_append_to_filename == FilenameAppend::None)
     {
+      bool const zero_out_minutes = (_when == "H") || (_when == "daily");
+
       // when the log files don't include the date and time information as part of their name
       // we add that as part of the rotation
       fs::path const previous_file = _filename;
       bool const append_time_to_filename = true;
       fs::path const new_file = detail::append_date_to_filename(
-        _filename, _file_creation_time, append_time_to_filename, _using_timezone, true);
+        _filename, _file_creation_time, append_time_to_filename, _using_timezone, zero_out_minutes, true);
 
       detail::rename_file(previous_file, new_file);
 
