@@ -47,11 +47,9 @@
 - Removed `CMAKE_INSTALL_RPATH` from cmake. ([#284](https://github.com/odygrd/quill/pull/284))
 - Fix compile warning on Apple M1. ([#291](https://github.com/odygrd/quill/pull/291))
 - Update bundled `libfmt` to `v10.0.0`
-- Fix for CMAKE_MODULE_PATH ([#295](https://github.com/odygrd/quill/pull/295))
-- Fixed a bug in `TimeRotatingFileHandler` when `quill::FilenameAppend::None` is
-  used. ([#296](https://github.com/odygrd/quill/pull/296))
-- Fixed `TimeRotatingFileHandler` and `RotatingFileHandler` to work with "
-  /dev/null" ([#297](https://github.com/odygrd/quill/pull/297))
+- Fix for `CMAKE_MODULE_PATH` ([#295](https://github.com/odygrd/quill/pull/295))
+- Fixed a bug in `TimeRotatingFileHandler` when `quill::FilenameAppend::None` is used. ([#296](https://github.com/odygrd/quill/pull/296))
+- Fixed `TimeRotatingFileHandler` and `RotatingFileHandler` to work when `/dev/null` is used as a filename ([#297](https://github.com/odygrd/quill/pull/297))
 - Added `NullHandler` that can be used to discard the logs. For example:
 
 ```c++
