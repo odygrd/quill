@@ -34,6 +34,13 @@ jobs:
             with_tests: ON
             install: sudo apt install g++-8
 
+          - cxx: g++-12
+            build_type: Release
+            std: 23
+            os: ubuntu-22.04
+            with_tests: ON
+            cmake_options: -DCMAKE_CXX_FLAGS:STRING="-DQUILL_X86ARCH -march=native"
+
             # Build as shared library
           - cxx: g++-10
             build_type: Release
