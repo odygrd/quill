@@ -15,8 +15,11 @@
   // assume x86-64 ..
   #if defined(_WIN32)
     #include <intrin.h>
-  #else
+  #elif (defined(__GNUC__) && __GNUC__ > 10) || (defined(__clang_major__) && __clang_major__ > 11)
     #include <x86gprintrin.h>
+  #else
+    // older compiler versions do not have <x86gprintrin.h>
+    #include <immintrin.h>
   #endif
 #endif
 
