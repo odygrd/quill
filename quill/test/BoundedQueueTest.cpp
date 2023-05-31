@@ -11,6 +11,9 @@ TEST_SUITE_BEGIN("BoundedQueue");
 
 using namespace quill::detail;
 
+#if !defined(QUILL_X86ARCH)
+// QUILL_X86ARCH requires at least a queue capacity of 1024 and those tests are using a smaller number
+
 TEST_CASE("read_write_buffer")
 {
   BoundedQueue buffer{64u};
@@ -52,6 +55,32 @@ TEST_CASE("read_write_buffer")
   std::byte* res = buffer.prepare_read();
   REQUIRE_FALSE(res);
 }
+
+TEST_CASE("bounded_queue_integer_overflow")
+{
+  BoundedQueueImpl<uint8_t> buffer{128};
+  size_t const iterations = static_cast<size_t>(std::numeric_limits<uint8_t>::max()) * 8ull;
+
+  for (size_t i = 0; i < iterations; ++i)
+  {
+    std::string to_write{"test"};
+    to_write += std::to_string(i);
+    std::byte* r = buffer.prepare_write(static_cast<uint8_t>(to_write.length()) + 1);
+    std::strncpy(reinterpret_cast<char*>(r), to_write.data(), to_write.length() + 1);
+    buffer.finish_write(static_cast<uint8_t>(to_write.length()) + 1);
+    buffer.commit_write();
+
+    // now read
+    std::byte* w = buffer.prepare_read();
+    REQUIRE(w);
+    char result[256];
+    std::memcpy(&result[0], w, static_cast<uint8_t>(to_write.length()) + 1);
+    REQUIRE_STREQ(result, to_write.data());
+    buffer.finish_read(static_cast<uint8_t>(to_write.length()) + 1);
+    buffer.commit_read();
+  }
+}
+#endif
 
 TEST_CASE("read_write_multithreaded_plain_ints")
 {
@@ -103,31 +132,6 @@ TEST_CASE("read_write_multithreaded_plain_ints")
 
   producer_thread.join();
   consumer_thread.join();
-}
-
-TEST_CASE("bounded_queue_integer_overflow")
-{
-  BoundedQueueImpl<uint8_t> buffer{128};
-  size_t const iterations = static_cast<size_t>(std::numeric_limits<uint8_t>::max()) * 8ull;
-
-  for (size_t i = 0; i < iterations; ++i)
-  {
-    std::string to_write{"test"};
-    to_write += std::to_string(i);
-    std::byte* r = buffer.prepare_write(static_cast<uint8_t>(to_write.length()) + 1);
-    std::strncpy(reinterpret_cast<char*>(r), to_write.data(), to_write.length() + 1);
-    buffer.finish_write(static_cast<uint8_t>(to_write.length()) + 1);
-    buffer.commit_write();
-
-    // now read
-    std::byte* w = buffer.prepare_read();
-    REQUIRE(w);
-    char result[256];
-    std::memcpy(&result[0], w, static_cast<uint8_t>(to_write.length()) + 1);
-    REQUIRE_STREQ(result, to_write.data());
-    buffer.finish_read(static_cast<uint8_t>(to_write.length()) + 1);
-    buffer.commit_read();
-  }
 }
 
 TEST_SUITE_END();
