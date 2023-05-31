@@ -1,3 +1,4 @@
+- [v2.9.2](#v292)
 - [v2.9.1](#v291)
 - [v2.9.0](#v290)
 - [v2.8.0](#v280)
@@ -42,14 +43,21 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+## v2.9.2
+
+- Fix increased compile times due to `x86intrin` headers. ([#298](https://github.com/odygrd/quill/pull/298))
+- Fix compile error when using `QUILL_X86ARCH` on windows.
+
 ## v2.9.1
 
 - Removed `CMAKE_INSTALL_RPATH` from cmake. ([#284](https://github.com/odygrd/quill/pull/284))
 - Fix compile warning on Apple M1. ([#291](https://github.com/odygrd/quill/pull/291))
 - Update bundled `libfmt` to `v10.0.0`
 - Fix for `CMAKE_MODULE_PATH` ([#295](https://github.com/odygrd/quill/pull/295))
-- Fixed a bug in `TimeRotatingFileHandler` when `quill::FilenameAppend::None` is used. ([#296](https://github.com/odygrd/quill/pull/296))
-- Fixed `TimeRotatingFileHandler` and `RotatingFileHandler` to work when `/dev/null` is used as a filename ([#297](https://github.com/odygrd/quill/pull/297))
+- Fixed a bug in `TimeRotatingFileHandler` when `quill::FilenameAppend::None` is
+  used. ([#296](https://github.com/odygrd/quill/pull/296))
+- Fixed `TimeRotatingFileHandler` and `RotatingFileHandler` to work when `/dev/null` is used as a
+  filename ([#297](https://github.com/odygrd/quill/pull/297))
 - Added `NullHandler` that can be used to discard the logs. For example:
 
 ```c++

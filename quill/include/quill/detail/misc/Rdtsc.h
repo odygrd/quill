@@ -16,7 +16,7 @@
   #if defined(_WIN32)
     #include <intrin.h>
   #else
-    #include <x86intrin.h>
+    #include <x86gprintrin.h>
   #endif
 #endif
 

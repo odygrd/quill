@@ -183,7 +183,11 @@ target_compile_options(${TARGET_NAME} PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4324 /wd4189 /wd4996 /wd4100 /wd4127>)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(${TARGET_NAME} PRIVATE /WX /EHsc)
+    if (NOT QUILL_NO_EXCEPTIONS)
+        target_compile_options(${TARGET_NAME} PUBLIC /EHsc)
+    endif ()
+
+    target_compile_options(${TARGET_NAME} PRIVATE /WX)
     target_compile_definitions(${TARGET_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 endif ()
 
