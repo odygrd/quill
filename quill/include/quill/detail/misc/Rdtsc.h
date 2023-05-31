@@ -19,7 +19,7 @@
     #include <x86gprintrin.h>
   #else
     // older compiler versions do not have <x86gprintrin.h>
-    #include <immintrin.h>
+    #include <x86intrin.h>
   #endif
 #endif
 

@@ -14,7 +14,16 @@
 #include <stdexcept>
 
 #if defined(QUILL_X86ARCH)
-  #include <emmintrin.h>
+  #if defined(_WIN32)
+    #include <intrin.h>
+  #elif (defined(__GNUC__) && __GNUC__ > 10) || (defined(__clang_major__) && __clang_major__ > 11)
+    #include <emmintrin.h>
+    #include <x86gprintrin.h>
+  #else
+    // older compiler versions do not have <x86gprintrin.h>
+    #include <immintrin.h>
+    #include <x86intrin.h>
+  #endif
 #endif
 
 namespace quill::detail
