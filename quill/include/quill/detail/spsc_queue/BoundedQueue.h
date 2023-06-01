@@ -14,9 +14,16 @@
 #include <stdexcept>
 
 #if defined(QUILL_X86ARCH)
-  #include <emmintrin.h>
-  #include <immintrin.h>
-  #include <x86intrin.h>
+  #if defined(_WIN32)
+    #include <intrin.h>
+  #elif (defined(__GNUC__) && __GNUC__ > 10) || (defined(__clang_major__) && __clang_major__ > 11)
+    #include <emmintrin.h>
+    #include <x86gprintrin.h>
+  #else
+    // older compiler versions do not have <x86gprintrin.h>
+    #include <immintrin.h>
+    #include <x86intrin.h>
+  #endif
 #endif
 
 namespace quill::detail
@@ -62,7 +69,7 @@ public:
 
     for (uint64_t i = 0; i < cache_lines; ++i)
     {
-      _mm_prefetch(_storage + (CACHE_LINE_SIZE * i), _MM_HINT_T0);
+      _mm_prefetch(reinterpret_cast<char const*>(_storage + (CACHE_LINE_SIZE * i)), _MM_HINT_T0);
     }
 #endif
   }
@@ -99,7 +106,8 @@ public:
     _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
 
     // prefetch a future cache line
-    _mm_prefetch(_storage + ((_writer_pos + (CACHE_LINE_SIZE * 10)) & _mask), _MM_HINT_T0);
+    _mm_prefetch(reinterpret_cast<char const*>(_storage + ((_writer_pos + (CACHE_LINE_SIZE * 10)) & _mask)),
+                 _MM_HINT_T0);
 #endif
 
     // set the atomic flag so the reader can see write
