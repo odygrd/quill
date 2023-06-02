@@ -97,7 +97,11 @@
 
 // visibility
 #if defined(_WIN32)
-  #define QUILL_EXPORT __declspec(dllexport)
+  #if defined(QUILL_DLL_EXPORT)
+    #define QUILL_EXPORT __declspec(dllexport)
+  #else
+    #define QUILL_EXPORT __declspec(dllimport)
+  #endif
 #elif defined(__GNUC__) || defined(__clang__)
   #define QUILL_EXPORT [[gnu::visibility("default")]]
 #else

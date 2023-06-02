@@ -56,4 +56,7 @@ int main()
   library_foo_get_logger_and_log();
 
   library_bar_get_logger_and_log();
+
+  // quill::flush() only required when using quill as a shared library
+  quill::flush();
 }
