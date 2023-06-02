@@ -101,6 +101,8 @@
     #define QUILL_EXPORT __declspec(dllexport)
   #elif defined(QUILL_BUILD_SHARED)
     #define QUILL_EXPORT __declspec(dllimport)
+  #else
+    #define QUILL_EXPORT
   #endif
 #elif defined(__GNUC__) || defined(__clang__)
   #define QUILL_EXPORT [[gnu::visibility("default")]]
