@@ -97,9 +97,9 @@
 
 // visibility
 #if defined(_WIN32)
-  #if defined(QUILL_DLL_EXPORT)
+  #if defined(QUILL_DLL_EXPORT) && defined(QUILL_BUILD_SHARED)
     #define QUILL_EXPORT __declspec(dllexport)
-  #else
+  #elif defined(QUILL_BUILD_SHARED)
     #define QUILL_EXPORT __declspec(dllimport)
   #endif
 #elif defined(__GNUC__) || defined(__clang__)

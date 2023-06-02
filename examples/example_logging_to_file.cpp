@@ -1,3 +1,4 @@
+// #define QUILL_BUILD_SHARED // if linking against quill.dll
 #include "quill/Quill.h"
 
 static char const* filename = "example_filehandler.log";
