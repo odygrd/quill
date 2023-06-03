@@ -97,7 +97,7 @@
 
 // visibility
 #if defined(_WIN32)
-  #if defined(QUILL_DLL_EXPORT) && defined(QUILL_BUILD_SHARED)
+  #if defined(QUILL_DLL_EXPORT)
     #define QUILL_EXPORT __declspec(dllexport)
   #elif defined(QUILL_BUILD_SHARED)
     #define QUILL_EXPORT __declspec(dllimport)
