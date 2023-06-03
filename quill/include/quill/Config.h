@@ -30,14 +30,14 @@ struct Config
    * thread is running on a shared cpu. The thread will yield when there is no remaining work to do.
    * @note: When enabled this option will take effect only when backend_thread_sleep_duration is 0
    */
-  bool backend_thread_yield = true;
+  bool backend_thread_yield = false;
 
   /**
    * The backend thread will always "busy wait" spinning around every caller thread's local spsc
    * queue. If this value is set then each time the backend thread sees that there are no remaining
    * logs to process in the queues it will sleep.
    */
-  std::chrono::nanoseconds backend_thread_sleep_duration = std::chrono::nanoseconds{0};
+  std::chrono::nanoseconds backend_thread_sleep_duration = std::chrono::nanoseconds{500};
 
   /**
    * The backend worker will drain all hot queues and buffer the messages by default.
