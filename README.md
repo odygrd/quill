@@ -333,6 +333,11 @@ target_link_libraries(my_project PRIVATE quill::quill)
 
 See [basic usage](#basic-usage)
 
+#### Windows dll
+To build the library as a shared library on windows pass the following CMake flags
+
+```-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=ON```
+
 ## Design
 
 ![design.jpg](docs%2Fdesign.jpg)
