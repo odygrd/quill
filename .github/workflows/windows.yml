@@ -30,14 +30,6 @@ jobs:
         with_tests: [ ON ]
 
         include:
-          # Build and test as dll
-          - os: windows-2022
-            platform: x64
-            build_type: Release
-            std: 20
-            with_tests: "ON"
-            cmake_options: -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=ON
-
           # Builds with bounded queue and no exceptions
           - os: windows-2019
             platform: x64

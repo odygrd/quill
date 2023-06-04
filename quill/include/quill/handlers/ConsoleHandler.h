@@ -58,27 +58,27 @@ public:
    */
   QUILL_NODISCARD WORD colour_code(LogLevel log_level) const noexcept;
 
-  QUILL_EXPORT static const WORD bold;
+  QUILL_API static const WORD bold;
 
   // Foreground colors
-  QUILL_EXPORT static const WORD black;
-  QUILL_EXPORT static const WORD red;
-  QUILL_EXPORT static const WORD green;
-  QUILL_EXPORT static const WORD yellow;
-  QUILL_EXPORT static const WORD blue;
-  QUILL_EXPORT static const WORD magenta;
-  QUILL_EXPORT static const WORD cyan;
-  QUILL_EXPORT static const WORD white;
+  QUILL_API static const WORD black;
+  QUILL_API static const WORD red;
+  QUILL_API static const WORD green;
+  QUILL_API static const WORD yellow;
+  QUILL_API static const WORD blue;
+  QUILL_API static const WORD magenta;
+  QUILL_API static const WORD cyan;
+  QUILL_API static const WORD white;
 
   // Background colors
-  QUILL_EXPORT static const WORD on_black;
-  QUILL_EXPORT static const WORD on_red;
-  QUILL_EXPORT static const WORD on_green;
-  QUILL_EXPORT static const WORD on_yellow;
-  QUILL_EXPORT static const WORD on_blue;
-  QUILL_EXPORT static const WORD on_magenta;
-  QUILL_EXPORT static const WORD on_cyan;
-  QUILL_EXPORT static const WORD on_white;
+  QUILL_API static const WORD on_black;
+  QUILL_API static const WORD on_red;
+  QUILL_API static const WORD on_green;
+  QUILL_API static const WORD on_yellow;
+  QUILL_API static const WORD on_blue;
+  QUILL_API static const WORD on_magenta;
+  QUILL_API static const WORD on_cyan;
+  QUILL_API static const WORD on_white;
 
 private:
   friend class ConsoleHandler;
@@ -132,39 +132,39 @@ public:
   QUILL_NODISCARD std::string const& colour_code(LogLevel log_level) const noexcept;
 
   // Formatting codes
-  QUILL_EXPORT static const std::string reset;
-  QUILL_EXPORT static const std::string bold;
-  QUILL_EXPORT static const std::string dark;
-  QUILL_EXPORT static const std::string underline;
-  QUILL_EXPORT static const std::string blink;
-  QUILL_EXPORT static const std::string reverse;
-  QUILL_EXPORT static const std::string concealed;
-  QUILL_EXPORT static const std::string clear_line;
+  QUILL_API static const std::string reset;
+  QUILL_API static const std::string bold;
+  QUILL_API static const std::string dark;
+  QUILL_API static const std::string underline;
+  QUILL_API static const std::string blink;
+  QUILL_API static const std::string reverse;
+  QUILL_API static const std::string concealed;
+  QUILL_API static const std::string clear_line;
 
   // Foreground colors
-  QUILL_EXPORT static const std::string black;
-  QUILL_EXPORT static const std::string red;
-  QUILL_EXPORT static const std::string green;
-  QUILL_EXPORT static const std::string yellow;
-  QUILL_EXPORT static const std::string blue;
-  QUILL_EXPORT static const std::string magenta;
-  QUILL_EXPORT static const std::string cyan;
-  QUILL_EXPORT static const std::string white;
+  QUILL_API static const std::string black;
+  QUILL_API static const std::string red;
+  QUILL_API static const std::string green;
+  QUILL_API static const std::string yellow;
+  QUILL_API static const std::string blue;
+  QUILL_API static const std::string magenta;
+  QUILL_API static const std::string cyan;
+  QUILL_API static const std::string white;
 
   // Background colors
-  QUILL_EXPORT static const std::string on_black;
-  QUILL_EXPORT static const std::string on_red;
-  QUILL_EXPORT static const std::string on_green;
-  QUILL_EXPORT static const std::string on_yellow;
-  QUILL_EXPORT static const std::string on_blue;
-  QUILL_EXPORT static const std::string on_magenta;
-  QUILL_EXPORT static const std::string on_cyan;
-  QUILL_EXPORT static const std::string on_white;
+  QUILL_API static const std::string on_black;
+  QUILL_API static const std::string on_red;
+  QUILL_API static const std::string on_green;
+  QUILL_API static const std::string on_yellow;
+  QUILL_API static const std::string on_blue;
+  QUILL_API static const std::string on_magenta;
+  QUILL_API static const std::string on_cyan;
+  QUILL_API static const std::string on_white;
 
   // Bold colors
-  QUILL_EXPORT static const std::string yellow_bold;
-  QUILL_EXPORT static const std::string red_bold;
-  QUILL_EXPORT static const std::string bold_on_red;
+  QUILL_API static const std::string yellow_bold;
+  QUILL_API static const std::string red_bold;
+  QUILL_API static const std::string bold_on_red;
 
 private:
   friend class ConsoleHandler;

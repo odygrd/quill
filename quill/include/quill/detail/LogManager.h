@@ -17,6 +17,7 @@
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/backend/BackendWorker.h"
 #include <cassert>
+#include <cstdlib>
 #include <mutex> // for call_once, once_flag
 #include <optional>
 
@@ -284,7 +285,7 @@ public:
    * Access to singleton instance
    * @return a reference to the singleton
    */
-  QUILL_EXPORT static LogManagerSingleton& instance() noexcept
+  QUILL_API static LogManagerSingleton& instance() noexcept
   {
     static LogManagerSingleton instance;
     return instance;
