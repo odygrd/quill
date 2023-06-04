@@ -197,7 +197,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSI
 
 # ---- Tests ---- #
 if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
-    if (EXISTS ${CMAKE_BINARY_DIR}/quill/quill.dll)
+    if (BUILD_SHARED_LIBS AND WIN32)
         add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${CMAKE_BINARY_DIR}/quill/quill.dll"

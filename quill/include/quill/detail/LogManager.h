@@ -306,19 +306,15 @@ public:
       {
         _log_manager.start_backend_worker(with_signal_handler, catchable_signals);
 
-        // Setup a handler to call stop when the main application exists..
-        // Although we do that also the desttructor
+        // Setup a handler to call stop when the main application exits.
+        // always call stop on destruction to log everything. std::atexit seems to be working
+        // better with dll on windows compared to using ~LogManagerSingleton().
         std::atexit([]() { LogManagerSingleton::instance().log_manager().stop_backend_worker(); });
       });
   }
 
 private:
   LogManagerSingleton() = default;
-  ~LogManagerSingleton()
-  {
-    // always call stop on destruction to log everything
-    _log_manager.stop_backend_worker();
-  }
 
 private:
   detail::LogManager _log_manager;
