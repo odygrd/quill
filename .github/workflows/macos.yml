@@ -45,4 +45,6 @@ jobs:
 
     - name: Test
       working-directory: ${{runner.workspace}}/build
-      run: ctest --build-config ${{matrix.build_type}} --output-on-failure
+      run: |
+        threads=`sysctl -n hw.logicalcpu`
+        ctest --build-config ${{matrix.build_type}} --parallel $threads --output-on-failure

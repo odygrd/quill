@@ -10,7 +10,7 @@ TEST_SUITE_BEGIN("UnboundedQueue");
 
 using namespace quill::detail;
 
-TEST_CASE("read_write_multithreaded_plain_ints")
+TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
 {
   UnboundedQueue buffer{1024};
 
