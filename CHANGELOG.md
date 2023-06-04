@@ -47,7 +47,7 @@
 
 - Fix increased compile times due to `x86intrin` headers. ([#298](https://github.com/odygrd/quill/pull/298))
 - Fix compile error when using `QUILL_X86ARCH` on windows.
-- Fix `QUILL_EXPORT` when the library is used as a shared library on windows
+- Fix bugs when quill is build as a shared library on windows. ([#302](https://github.com/odygrd/quill/pull/302))
 
 ## v2.9.1
 

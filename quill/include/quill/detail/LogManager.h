@@ -17,6 +17,7 @@
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/backend/BackendWorker.h"
 #include <cassert>
+#include <cstdlib>
 #include <mutex> // for call_once, once_flag
 #include <optional>
 
@@ -192,49 +193,45 @@ public:
 
   /**
    * Starts the backend worker thread.
+   * This should only be called by the LogManagerSingleton and never directly from here
    */
   QUILL_ATTRIBUTE_COLD void inline start_backend_worker(bool with_signal_handler,
                                                         std::initializer_list<int> const& catchable_signals)
   {
-    // protect init to be called only once
-    std::call_once(_start_init_once_flag,
-                   [this, with_signal_handler, catchable_signals]()
-                   {
-                     if (with_signal_handler)
-                     {
+    if (with_signal_handler)
+    {
 #if defined(_WIN32)
-                       (void)catchable_signals;
-                       init_exception_handler();
+      (void)catchable_signals;
+      init_exception_handler();
 #else
-                       // block all signals before spawning the backend worker thread
-                       // note: we just assume that std::thread is implemented using posix threads
-                       // or this won't have any effect
-                       sigset_t mask;
-                       sigfillset(&mask);
-                       sigprocmask(SIG_SETMASK, &mask, NULL);
+      // block all signals before spawning the backend worker thread
+      // note: we just assume that std::thread is implemented using posix threads
+      // or this won't have any effect
+      sigset_t mask;
+      sigfillset(&mask);
+      sigprocmask(SIG_SETMASK, &mask, NULL);
 
-                       // Initialise our signal handler
-                       init_signal_handler(catchable_signals);
+      // Initialise our signal handler
+      init_signal_handler(catchable_signals);
 #endif
-                     }
+    }
 
-                     // Start the backend worker
-                     _backend_worker.run();
+    // Start the backend worker
+    _backend_worker.run();
 
-                     if (with_signal_handler)
-                     {
+    if (with_signal_handler)
+    {
 #if defined(_WIN32)
-        // ... ?
+      // ... ?
 #else
-                      // unblock all signals after spawning the thread
-                      // note: we just assume that std::thread is implemented using posix threads
-                      // or this won't have any effect
-                      sigset_t mask;
-                      sigemptyset(&mask);
-                      sigprocmask(SIG_SETMASK, &mask, NULL);
+      // unblock all signals after spawning the thread
+      // note: we just assume that std::thread is implemented using posix threads
+      // or this won't have any effect
+      sigset_t mask;
+      sigemptyset(&mask);
+      sigprocmask(SIG_SETMASK, &mask, NULL);
 #endif
-                     }
-                   });
+    }
   }
 
   /**
@@ -268,7 +265,6 @@ private:
   }
 
 private:
-  std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
   Config _config;
   HandlerCollection _handler_collection;
   ThreadContextCollection _thread_context_collection{_config};
@@ -285,11 +281,14 @@ private:
 class LogManagerSingleton
 {
 public:
+  LogManagerSingleton(LogManagerSingleton const&) = delete;
+  LogManagerSingleton& operator=(LogManagerSingleton const&) = delete;
+
   /**
    * Access to singleton instance
    * @return a reference to the singleton
    */
-  QUILL_EXPORT static LogManagerSingleton& instance() noexcept
+  QUILL_API static LogManagerSingleton& instance() noexcept
   {
     static LogManagerSingleton instance;
     return instance;
@@ -301,15 +300,29 @@ public:
    */
   detail::LogManager& log_manager() noexcept { return _log_manager; }
 
-private:
-  LogManagerSingleton() = default;
-  ~LogManagerSingleton()
+  QUILL_ATTRIBUTE_COLD void inline start_backend_worker(bool with_signal_handler,
+                                                        std::initializer_list<int> const& catchable_signals)
   {
-    // always call stop on destruction to log everything
-    _log_manager.stop_backend_worker();
+    // protect init to be called only once
+    std::call_once(
+      _start_init_once_flag,
+      [this, with_signal_handler, catchable_signals]()
+      {
+        _log_manager.start_backend_worker(with_signal_handler, catchable_signals);
+
+        // Setup a handler to call stop when the main application exits.
+        // always call stop on destruction to log everything. std::atexit seems to be working
+        // better with dll on windows compared to using ~LogManagerSingleton().
+        std::atexit([]() { LogManagerSingleton::instance().log_manager().stop_backend_worker(); });
+      });
   }
 
 private:
+  LogManagerSingleton() = default;
+  ~LogManagerSingleton() = default;
+
+private:
   detail::LogManager _log_manager;
+  std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
 };
 } // namespace quill::detail

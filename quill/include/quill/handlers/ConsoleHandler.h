@@ -58,27 +58,27 @@ public:
    */
   QUILL_NODISCARD WORD colour_code(LogLevel log_level) const noexcept;
 
-  static const WORD bold;
+  QUILL_API static const WORD bold;
 
   // Foreground colors
-  static const WORD black;
-  static const WORD red;
-  static const WORD green;
-  static const WORD yellow;
-  static const WORD blue;
-  static const WORD magenta;
-  static const WORD cyan;
-  static const WORD white;
+  QUILL_API static const WORD black;
+  QUILL_API static const WORD red;
+  QUILL_API static const WORD green;
+  QUILL_API static const WORD yellow;
+  QUILL_API static const WORD blue;
+  QUILL_API static const WORD magenta;
+  QUILL_API static const WORD cyan;
+  QUILL_API static const WORD white;
 
   // Background colors
-  static const WORD on_black;
-  static const WORD on_red;
-  static const WORD on_green;
-  static const WORD on_yellow;
-  static const WORD on_blue;
-  static const WORD on_magenta;
-  static const WORD on_cyan;
-  static const WORD on_white;
+  QUILL_API static const WORD on_black;
+  QUILL_API static const WORD on_red;
+  QUILL_API static const WORD on_green;
+  QUILL_API static const WORD on_yellow;
+  QUILL_API static const WORD on_blue;
+  QUILL_API static const WORD on_magenta;
+  QUILL_API static const WORD on_cyan;
+  QUILL_API static const WORD on_white;
 
 private:
   friend class ConsoleHandler;
@@ -132,39 +132,39 @@ public:
   QUILL_NODISCARD std::string const& colour_code(LogLevel log_level) const noexcept;
 
   // Formatting codes
-  static const std::string reset;
-  static const std::string bold;
-  static const std::string dark;
-  static const std::string underline;
-  static const std::string blink;
-  static const std::string reverse;
-  static const std::string concealed;
-  static const std::string clear_line;
+  QUILL_API static const std::string reset;
+  QUILL_API static const std::string bold;
+  QUILL_API static const std::string dark;
+  QUILL_API static const std::string underline;
+  QUILL_API static const std::string blink;
+  QUILL_API static const std::string reverse;
+  QUILL_API static const std::string concealed;
+  QUILL_API static const std::string clear_line;
 
   // Foreground colors
-  static const std::string black;
-  static const std::string red;
-  static const std::string green;
-  static const std::string yellow;
-  static const std::string blue;
-  static const std::string magenta;
-  static const std::string cyan;
-  static const std::string white;
+  QUILL_API static const std::string black;
+  QUILL_API static const std::string red;
+  QUILL_API static const std::string green;
+  QUILL_API static const std::string yellow;
+  QUILL_API static const std::string blue;
+  QUILL_API static const std::string magenta;
+  QUILL_API static const std::string cyan;
+  QUILL_API static const std::string white;
 
   // Background colors
-  static const std::string on_black;
-  static const std::string on_red;
-  static const std::string on_green;
-  static const std::string on_yellow;
-  static const std::string on_blue;
-  static const std::string on_magenta;
-  static const std::string on_cyan;
-  static const std::string on_white;
+  QUILL_API static const std::string on_black;
+  QUILL_API static const std::string on_red;
+  QUILL_API static const std::string on_green;
+  QUILL_API static const std::string on_yellow;
+  QUILL_API static const std::string on_blue;
+  QUILL_API static const std::string on_magenta;
+  QUILL_API static const std::string on_cyan;
+  QUILL_API static const std::string on_white;
 
   // Bold colors
-  static const std::string yellow_bold;
-  static const std::string red_bold;
-  static const std::string bold_on_red;
+  QUILL_API static const std::string yellow_bold;
+  QUILL_API static const std::string red_bold;
+  QUILL_API static const std::string bold_on_red;
 
 private:
   friend class ConsoleHandler;

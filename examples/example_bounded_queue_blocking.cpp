@@ -1,5 +1,6 @@
 // ALWAYS define QUILL_USE_BOUNDED_BLOCKING_QUEUE before including quill.
-// A better option is to ALWAYS pass this flag when you are building e.g in CMake target_compile_definitions(<target> PUBLIC QUILL_USE_BOUNDED_BLOCKING_QUEUE)
+// A better option is to ALWAYS pass this flag when you are building
+// e.g in CMake target_compile_definitions(<target> PUBLIC QUILL_USE_BOUNDED_BLOCKING_QUEUE)
 #define QUILL_USE_BOUNDED_BLOCKING_QUEUE
 
 #include "quill/Quill.h"
@@ -24,7 +25,7 @@ int main()
   quill::configure(cfg);
   quill::start();
 
-  for (size_t i = 0; i < 1000; ++i)
+  for (size_t i = 0; i < 4000; ++i)
   {
     LOG_INFO(quill::get_logger(), "Hello {} #{}", "world", i);
     LOG_ERROR(quill::get_logger(), "This is a log error example {} #{}", 7, i);

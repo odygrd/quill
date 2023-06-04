@@ -30,13 +30,7 @@ jobs:
         with_tests: [ ON ]
 
         include:
-          # Builds with bounded queue and no exceptions
-          - os: windows-2019
-            platform: x64
-            build_type: Release
-            std: 17
-            with_tests: "OFF"
-            cmake_options: -DQUILL_USE_BOUNDED_QUEUE=ON
+          # Builds with no exceptions
           - os: windows-2019
             platform: x64
             build_type: Release
@@ -73,7 +67,9 @@ jobs:
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config ${{matrix.build_type}}
+        run: |
+          $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          cmake --build . --config ${{matrix.build_type}} --parallel $threads
 
       - name: Test
         working-directory: ${{runner.workspace}}/build

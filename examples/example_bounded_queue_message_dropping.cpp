@@ -24,7 +24,9 @@ int main()
   quill::configure(cfg);
   quill::start();
 
-  for (size_t i = 0; i < 1000; ++i)
+  // In the following example you will see e.g.
+  // 10:53:03 Quill INFO: dropped 7855 log messages from thread 7104
+  for (size_t i = 0; i < 4000; ++i)
   {
     LOG_INFO(quill::get_logger(), "Hello {} #{}", "world", i);
     LOG_ERROR(quill::get_logger(), "This is a log error example {} #{}", 7, i);

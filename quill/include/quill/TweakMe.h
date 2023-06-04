@@ -136,6 +136,12 @@
 /**************************************************************************************************/
 
 /**
+ * Disables features that are not supported on Windows 2012/2016.
+ * This is also available as CMake option -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
+ */
+// #define QUILL_NO_THREAD_NAME_SUPPORT
+
+/**
  * Uses an installed version of the fmt library instead of quill's bundled copy.
  * In this case quill will try to include <fmt/format.h> so make sure to set -I directories
  * accordingly if not using CMake.

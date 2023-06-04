@@ -83,7 +83,7 @@ QUILL_ATTRIBUTE_COLD inline void start(bool with_signal_handler = false,
                                        std::initializer_list<int> catchable_signals = {
                                          SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
-  detail::LogManagerSingleton::instance().log_manager().start_backend_worker(with_signal_handler, catchable_signals);
+  detail::LogManagerSingleton::instance().start_backend_worker(with_signal_handler, catchable_signals);
 }
 
 #if defined(_WIN32)

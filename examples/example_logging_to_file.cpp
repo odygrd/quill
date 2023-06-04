@@ -1,4 +1,3 @@
-// #define QUILL_BUILD_SHARED // if linking against quill.dll
 #include "quill/Quill.h"
 
 static char const* filename = "example_filehandler.log";
@@ -57,7 +56,4 @@ int main()
   library_foo_get_logger_and_log();
 
   library_bar_get_logger_and_log();
-
-  // quill::flush() only required when using quill as a shared library
-  quill::flush();
 }
