@@ -31,9 +31,15 @@ BackendWorker::~BackendWorker()
 void BackendWorker::stop() noexcept
 {
   // Stop the backend worker
-  _is_running.store(false, std::memory_order_relaxed);
+  auto const is_running = _is_running.exchange(false);
 
-  // signal wake up the backedn worker thread
+  if (!is_running)
+  {
+    // already stopped
+    return;
+  }
+
+  // signal wake up the backend worker thread
   wake_up();
 
   // Wait the backend thread to join, if backend thread was never started it won't be joinable so we can still
