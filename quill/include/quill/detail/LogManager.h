@@ -281,6 +281,9 @@ private:
 class LogManagerSingleton
 {
 public:
+  LogManagerSingleton(LogManagerSingleton const&) = delete;
+  LogManagerSingleton& operator=(LogManagerSingleton const&) = delete;
+
   /**
    * Access to singleton instance
    * @return a reference to the singleton
@@ -316,6 +319,7 @@ public:
 
 private:
   LogManagerSingleton() = default;
+  ~LogManagerSingleton() = default;
 
 private:
   detail::LogManager _log_manager;
