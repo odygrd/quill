@@ -112,6 +112,8 @@ jobs:
 
       - name: Test
         working-directory: ${{runner.workspace}}/build
-        run: ctest --build-config ${{matrix.build_type}} ${{matrix.ctest_options}} --output-on-failure
+        run: |
+          threads=`nproc`
+          ctest --build-config ${{matrix.build_type}} ${{matrix.ctest_options}} --parallel $threads --output-on-failure
         env:
           CTEST_OUTPUT_ON_FAILURE: True

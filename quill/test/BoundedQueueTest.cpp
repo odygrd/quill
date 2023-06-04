@@ -82,7 +82,7 @@ TEST_CASE("bounded_queue_integer_overflow")
 }
 #endif
 
-TEST_CASE("read_write_multithreaded_plain_ints")
+TEST_CASE("bounded_queue_read_write_multithreaded_plain_ints")
 {
   BoundedQueue buffer{131'072};
 

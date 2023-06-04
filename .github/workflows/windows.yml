@@ -73,4 +73,6 @@ jobs:
 
       - name: Test
         working-directory: ${{runner.workspace}}/build
-        run: ctest --build-config ${{matrix.build_type}} --output-on-failure
+        run: |
+          $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          ctest --build-config ${{matrix.build_type}} --parallel $threads --output-on-failure
