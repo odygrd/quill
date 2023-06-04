@@ -551,8 +551,9 @@ TEST_CASE("custom_default_logger_multiple_handlers")
 /***/
 TEST_CASE("custom_default_logger_multiple_handlers_from_default_logger")
 {
-  test_custom_default_logger_multiple_handlers(1, "test_custom_default_logger_multiple_handlers_1",
-                                               "test_custom_default_logger_multiple_handlers_2");
+  test_custom_default_logger_multiple_handlers(
+    1, "test_custom_default_logger_multiple_handlers_from_default_logger_1",
+    "test_custom_default_logger_multiple_handlers_from_default_logger_2");
 }
 
 /***/
