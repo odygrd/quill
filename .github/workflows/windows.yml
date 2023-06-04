@@ -31,7 +31,7 @@ jobs:
 
         include:
           # Build and test as dll
-          - os: windows-2019
+          - os: windows-2022
             platform: x64
             build_type: Release
             std: 20
