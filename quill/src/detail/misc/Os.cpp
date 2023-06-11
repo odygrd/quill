@@ -323,7 +323,7 @@ uint32_t get_process_id() noexcept
 }
 
 /***/
-void* alloc_aligned(size_t size, uint64_t alignment, bool huge_pages /* = false */)
+void* alloc_aligned(size_t size, size_t alignment, bool huge_pages /* = false */)
 {
 #if defined(_WIN32)
   void* p = _aligned_malloc(size, alignment);

@@ -95,7 +95,7 @@ void safe_strncpy(std::array<char, N>& destination, char const* source) noexcept
  * @param pointer a pointer the object
  * @return an aligned pointer for the given object
  */
-template <uint64_t alignment, typename T>
+template <size_t alignment, typename T>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr T* align_pointer(void* pointer) noexcept
 {
   if constexpr (alignment == 0)
@@ -110,7 +110,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr T* align_pointer(void* pointer) no
 }
 
 template <typename T>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT T* align_pointer(void* pointer, uint64_t alignment) noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT T* align_pointer(void* pointer, size_t alignment) noexcept
 {
   if (alignment == 0)
   {

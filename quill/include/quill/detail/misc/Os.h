@@ -95,7 +95,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_process_id() noexcept;
  * @throws  std::system_error on failure
  */
 
-QUILL_NODISCARD void* alloc_aligned(size_t size, uint64_t alignment, bool huge_pages = false);
+QUILL_NODISCARD void* alloc_aligned(size_t size, size_t alignment, bool huge_pages = false);
 
 /**
  * Free aligned memory allocated with alloc_aligned
