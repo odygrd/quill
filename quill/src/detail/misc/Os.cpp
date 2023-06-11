@@ -344,10 +344,13 @@ void* alloc_aligned(size_t size, uint64_t alignment, bool huge_pages /* = false 
 
   // Allocate the memory
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+
+  #if defined(__linux__)
   if (huge_pages)
   {
     flags |= MAP_HUGETLB;
   }
+  #endif
 
   void* mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
 
