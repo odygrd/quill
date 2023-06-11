@@ -98,7 +98,26 @@ void safe_strncpy(std::array<char, N>& destination, char const* source) noexcept
 template <uint64_t alignment, typename T>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr T* align_pointer(void* pointer) noexcept
 {
-  static_assert(is_pow_of_two(alignment), "alignment must be a power of two");
+  if constexpr (alignment == 0)
+  {
+    return reinterpret_cast<T*>(pointer);
+  }
+  else
+  {
+    static_assert(is_pow_of_two(alignment), "alignment must be a power of two");
+    return reinterpret_cast<T*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) & ~(alignment - 1ul));
+  }
+}
+
+template <typename T>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT T* align_pointer(void* pointer, uint64_t alignment) noexcept
+{
+  if (alignment == 0)
+  {
+    return reinterpret_cast<T*>(pointer);
+  }
+
+  assert(is_pow_of_two(alignment) && "alignment must be a power of two");
   return reinterpret_cast<T*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) & ~(alignment - 1ul));
 }
 

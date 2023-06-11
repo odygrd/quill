@@ -60,14 +60,14 @@ public:
    * @param i size of object
    * @return a pointer to the allocated object
    */
-  void* operator new(size_t i) { return aligned_alloc(CACHE_LINE_ALIGNED, i); }
+  void* operator new(size_t i) { return alloc_aligned(i, CACHE_LINE_ALIGNED); }
 
   /**
    * Operator delete
    * @see operator new
    * @param p pointer to object
    */
-  void operator delete(void* p) { aligned_free(p); }
+  void operator delete(void* p) { free_aligned(p); }
 
   /**
    * @return A reference to the backend's thread transit event buffer

@@ -49,6 +49,8 @@
   #include <unistd.h>
 #endif
 
+#include "quill/detail/misc/Utilities.h"
+
 namespace quill::detail
 {
 #if defined(_WIN32)
@@ -129,9 +131,9 @@ ReturnT callRunTimeDynamicLinkedFunction(const std::string& dll_name,
   // Windows Server 2016, Windows 10 LTSB 2016 and Windows 10 version 1607: e.g. GetThreadDescription is only available by Run Time Dynamic Linking in KernelBase.dll.
 
   #ifdef UNICODE
-    HINSTANCE const hinstLibrary = LoadLibraryW(s2ws(dll_name).c_str());
+  HINSTANCE const hinstLibrary = LoadLibraryW(s2ws(dll_name).c_str());
   #else
-    HINSTANCE const hinstLibrary = LoadLibraryA(dll_name.c_str());
+  HINSTANCE const hinstLibrary = LoadLibraryA(dll_name.c_str());
   #endif
 
   if (QUILL_UNLIKELY(hinstLibrary == NULL))
@@ -226,7 +228,7 @@ void set_thread_name(char const* name)
 
   typedef HRESULT(WINAPI * SetThreadDescriptionSignature)(HANDLE, PCWSTR);
   HRESULT hr = callRunTimeDynamicLinkedFunction<HRESULT, SetThreadDescriptionSignature>(
-   "KernelBase.dll", "SetThreadDescription", GetCurrentThread(), name_ws.data());
+    "KernelBase.dll", "SetThreadDescription", GetCurrentThread(), name_ws.data());
 
   if (FAILED(hr))
   {
@@ -321,7 +323,7 @@ uint32_t get_process_id() noexcept
 }
 
 /***/
-void* aligned_alloc(size_t alignment, size_t size)
+void* alloc_aligned(size_t size, uint64_t alignment, bool huge_pages /* = false */)
 {
 #if defined(_WIN32)
   void* p = _aligned_malloc(size, alignment);
@@ -329,35 +331,66 @@ void* aligned_alloc(size_t alignment, size_t size)
   if (!p)
   {
     std::ostringstream error_msg;
-    error_msg << "aligned_alloc failed with error message "
+    error_msg << "alloc_aligned failed with error message "
               << "\", errno \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
 
   return p;
 #else
-  void* ret = nullptr;
+  // Calculate the total size including the metadata and alignment
+  constexpr size_t metadata_size{2u * sizeof(size_t)};
+  size_t const total_size{size + metadata_size + alignment};
 
-  auto res = posix_memalign(&ret, alignment, size);
-  if (QUILL_UNLIKELY(res == EINVAL || res == ENOMEM))
+  // Allocate the memory
+  int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+  if (huge_pages)
+  {
+    flags |= MAP_HUGETLB;
+  }
+
+  void* mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
+
+  if (mem == MAP_FAILED)
   {
     std::ostringstream error_msg;
-    error_msg << "aligned_alloc failed with error message "
-              << "\"" << strerror(res) << "\", errno \"" << res << "\"";
+    error_msg << "mmap failed with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
     QUILL_THROW(QuillError{error_msg.str()});
   }
 
-  return ret;
+  // Calculate the aligned address after the metadata
+  std::byte* aligned_address =
+    detail::align_pointer<std::byte>(static_cast<std::byte*>(mem) + metadata_size, alignment);
+
+  // Calculate the offset from the original memory location
+  auto const offset = static_cast<size_t>(aligned_address - static_cast<std::byte*>(mem));
+
+  // Store the size and offset information in the metadata
+  std::memcpy(aligned_address - sizeof(size_t), &total_size, sizeof(total_size));
+  std::memcpy(aligned_address - (2u * sizeof(size_t)), &offset, sizeof(offset));
+
+  return aligned_address;
 #endif
 }
 
 /***/
-void aligned_free(void* ptr) noexcept
+void free_aligned(void* ptr) noexcept
 {
 #if defined(_WIN32)
   _aligned_free(ptr);
 #else
-  free(ptr);
+  // Retrieve the size and offset information from the metadata
+  size_t offset;
+  std::memcpy(&offset, static_cast<std::byte*>(ptr) - (2u * sizeof(size_t)), sizeof(offset));
+
+  size_t total_size;
+  std::memcpy(&total_size, static_cast<std::byte*>(ptr) - sizeof(size_t), sizeof(total_size));
+
+  // Calculate the original memory block address
+  void* mem = static_cast<std::byte*>(ptr) - offset;
+
+  ::munmap(mem, total_size);
 #endif
 }
 

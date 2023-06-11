@@ -48,8 +48,8 @@ public:
    * We align the logger object to it's own cache line. It shouldn't make much difference as the
    * logger object size is exactly 1 cache line
    */
-  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHE_LINE_ALIGNED, i); }
-  void operator delete(void* p) { detail::aligned_free(p); }
+  void* operator new(size_t i) { return detail::alloc_aligned(i, detail::CACHE_LINE_ALIGNED); }
+  void operator delete(void* p) { detail::free_aligned(p); }
 
   /**
    * @return The log level of the logger
