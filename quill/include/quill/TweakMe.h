@@ -94,17 +94,19 @@
  * When QUILL_USE_BOUNDED_QUEUE is defined a bounded queue for passing the log messages
  * to the backend thread, instead of the default unbounded queue is used.
  *
- * Bounded Queue : When full the log messages will get dropped.
- * Unbounded Queue : When full, a new queue is allocated and no log messages are lost.
- *
  * The default mode is unbounded queue as the recommended option. The overhead is low.
  * Using QUILL_USE_BOUNDED_QUEUE option is in the case when all re-allocations should be avoided.
  * In QUILL_USE_BOUNDED_QUEUE mode the number of dropped log messages is written to stderr.
  *
- * @note: In both modes (unbounded or bounded) the queue size is configurable via `quill::config::set_initial_queue_capacity`.
+ * @note: In both modes (unbounded or bounded) the queue size is configurable via
+ * `quill::config::set_initial_queue_capacity`.
  *
- * @note: You can avoid re-allocations when using the unbounded queue (default mode) by setting the initial_queue_capacity to a higher value.
+ * @note: You can avoid re-allocations when using the unbounded queue (default mode) by setting the
+ * initial_queue_capacity to a higher value.
  * QUILL_USE_BOUNDED_QUEUE mode seems to be faster in `quill_hot_path_rdtsc_clock` benchmark by a few nanoseconds.
+ *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_QUEUE"
  *
  * @see: examples/example_bounded_queue_message_dropping.cpp
  */
@@ -114,9 +116,42 @@
  * Similar to QUILL_USE_BOUNDED_QUEUE but the hot thread will now block instead of dropping messages.
  * @note: This will slow down you hot thread and it should only be used in special cases
  *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
+ *
  * @see: examples/example_bounded_queue_blocking.cpp
  */
 // #define QUILL_USE_BOUNDED_BLOCKING_QUEUE
+
+/**
+ * The default unbounded queue will stop re-allocating and block when it reaches max capacity which
+ * is 2GB by default. There is one queue per hot thread so if e.g you have 10 hot threads logging
+ * in a loop that is 10 unbounded queues of 2 GB each which can lead you to hitting memory limits
+ *
+ * When QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE is defined additional 2Gb queues will be allocated
+ * and the hot thread will never block or drop messages
+ *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE"
+ */
+// #define QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE
+
+/**
+ * Similar to QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE but the hot thread will drop the messages instead
+ * of allocating additional 2GB queues when the max capacity of the unbounded queue is reached.
+ *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_DROPPING_QUEUE"
+ *
+ */
+// #define QUILL_USE_UNBOUNDED_DROPPING_QUEUE
+
+/**
+ * Similar to QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE but the hot thread will block instead
+ * of allocating additional 2GB queues when the max capacity of the unbounded queue is reached.
+ * That is the default behaviour
+ */
+// #define QUILL_USE_UNBOUNDED_BLOCKING_QUEUE
 
 /**
  * Enables use of _mm_prefetch, _mm_clflush and _mm_clflushopt on the ringbuffer to further

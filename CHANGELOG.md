@@ -1,3 +1,4 @@
+- [v3.0.0](#v300)
 - [v2.9.2](#v292)
 - [v2.9.1](#v291)
 - [v2.9.0](#v290)
@@ -42,6 +43,31 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v3.0.0
+
+- Previously, the unbounded queue would reallocate forever under very intensive logging from a lot of hot threads
+  which could result to the system going out of memory. The unbounded queue will now reallocate to a queue that is
+  maximum of 2 GB and if that capacity is reached it won't reallocate further and instead will block the hot thread.
+  This is now the default behaviour from this version onwards. There is no need to recompile `quill` library, those are
+  header only flags.
+
+```shell
+# re-allocates new queues for ever when max capacity is reached. Previous v2.*.* behaviour
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE"
+
+# Starts small, re-allocates up to 2GB and then hot thread blocks. Default in v3.*.*
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_BLOCKING_QUEUE"
+
+# Starts small, re-allocates up to 2GB and then hot thread drops
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_DROPPING_QUEUE"
+
+# Fixed queue size, no allocations, hot thread will drop the log message
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_QUEUE"         
+
+# Fixed queue size, no allocations, hot thread will drop the log message       
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
+```
 
 ## v2.9.2
 

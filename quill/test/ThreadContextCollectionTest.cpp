@@ -74,9 +74,6 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
     {
       REQUIRE(thread_context->is_valid());
       REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
-#if defined(QUILL_USE_BOUNDED_QUEUE)
-      REQUIRE(thread_context->spsc_queue().empty());
-#endif
     }
 
     // terminate all threads - This will invalidate all the contracts
@@ -92,9 +89,6 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
     {
       REQUIRE_FALSE(thread_context->is_valid());
       REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
-#if defined(QUILL_USE_BOUNDED_QUEUE)
-      REQUIRE(thread_context->spsc_queue().empty());
-#endif
     }
 
     // Check there is no thread context left by getting the updated cache via the call
@@ -163,9 +157,6 @@ TEST_CASE("add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join
     {
       REQUIRE(thread_context->is_valid());
       REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
-#if defined(QUILL_USE_BOUNDED_QUEUE)
-      REQUIRE(thread_context->spsc_queue().empty());
-#endif
       thread_context_collection.clear_invalid_and_empty_thread_contexts();
     }
 
