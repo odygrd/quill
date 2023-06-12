@@ -46,26 +46,27 @@
 
 ## v3.0.0
 
-- Previously, the unbounded queue would reallocate forever under very intensive logging from a lot of hot threads
-  which could result to the system going out of memory. The unbounded queue will now reallocate to a queue that is
-  maximum of 2 GB and if that capacity is reached it won't reallocate further and instead will block the hot thread.
-  This is now the default behaviour from this version onwards. There is no need to recompile `quill` library, those are
-  header only flags.
+- The previous unbounded queue constantly reallocated memory, risking system memory exhaustion, especially when handling
+  intensive logging from multiple threads. Starting from `v3.0.0`, the default behavior has been improved to limit
+  the queue capacity to 2 GB. When this limit is reached, the queue blocks the hot thread instead of further
+  reallocation.
+  To modify the default behavior, there is no need to recompile the `quill` library. Recompile your application
+  with one of the following header-only flags.
 
 ```shell
-# re-allocates new queues for ever when max capacity is reached. Previous v2.*.* behaviour
+# Previous behavior in v2.*.*: Reallocates new queues indefinitely when max capacity is reached
 -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE"
 
-# Starts small, re-allocates up to 2GB and then hot thread blocks. Default in v3.*.*
+# Default behavior in v3.*.*: Starts small, reallocates up to 2GB, then hot thread blocks
 -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_BLOCKING_QUEUE"
 
-# Starts small, re-allocates up to 2GB and then hot thread drops
+# Starts small, reallocates up to 2GB, then hot thread drops log messages
 -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_DROPPING_QUEUE"
 
-# Fixed queue size, no allocations, hot thread will drop the log message
+# Fixed queue size, no reallocations, hot thread drops log messages
 -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_QUEUE"         
 
-# Fixed queue size, no allocations, hot thread will drop the log message       
+# Fixed queue size, no reallocations, hot thread blocks
 -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
 ```
 
