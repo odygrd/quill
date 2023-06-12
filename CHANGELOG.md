@@ -69,7 +69,16 @@
 # Fixed queue size, no reallocations, hot thread blocks
 -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
 ```
+- Added support for huge pages on Linux. Enabling this feature allows bounded or unbounded queues to utilize huge pages,
+  resulting in optimized memory allocation.
 
+```c++
+  quill::Config cfg;
+  cfg.enable_huge_pages_hot_path = true;
+  
+  quill::configure(cfg);
+  quill::start();
+```
 ## v2.9.2
 
 - Fix increased compile times due to `x86intrin` headers. ([#298](https://github.com/odygrd/quill/pull/298))

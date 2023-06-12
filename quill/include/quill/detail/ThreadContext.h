@@ -34,17 +34,18 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContext(QueueType queue_type, uint32_t default_queue_capacity, uint32_t initial_transit_event_buffer_capacity)
+  explicit ThreadContext(QueueType queue_type, uint32_t default_queue_capacity,
+                         uint32_t initial_transit_event_buffer_capacity, bool huge_pages)
     : _transit_event_buffer(initial_transit_event_buffer_capacity)
   {
     if ((queue_type == QueueType::UnboundedBlocking) ||
         (queue_type == QueueType::UnboundedNoMaxLimit) || (queue_type == QueueType::UnboundedDropping))
     {
-      _spsc_queue.emplace<UnboundedQueue>(default_queue_capacity);
+      _spsc_queue.emplace<UnboundedQueue>(default_queue_capacity, huge_pages);
     }
     else
     {
-      _spsc_queue.emplace<BoundedQueue>(default_queue_capacity);
+      _spsc_queue.emplace<BoundedQueue>(default_queue_capacity, huge_pages);
     }
   }
 

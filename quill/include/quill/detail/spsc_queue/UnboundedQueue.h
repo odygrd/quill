@@ -42,7 +42,10 @@ private:
      * Constructor
      * @param capacity the capacity of the fixed buffer
      */
-    explicit Node(uint32_t bounded_queue_capacity) : bounded_queue(bounded_queue_capacity) {}
+    explicit Node(uint32_t bounded_queue_capacity, bool huge_pages)
+      : bounded_queue(bounded_queue_capacity, huge_pages)
+    {
+    }
 
     /** members */
     std::atomic<Node*> next{nullptr};
@@ -53,8 +56,8 @@ public:
   /**
    * Constructor
    */
-  explicit UnboundedQueue(uint32_t initial_bounded_queue_capacity)
-    : _producer(new Node(initial_bounded_queue_capacity)), _consumer(_producer)
+  explicit UnboundedQueue(uint32_t initial_bounded_queue_capacity, bool huge_pages = false)
+    : _producer(new Node(initial_bounded_queue_capacity, huge_pages)), _consumer(_producer), _huge_pages(huge_pages)
   {
   }
 
@@ -133,7 +136,7 @@ public:
     _producer->bounded_queue.commit_write();
 
     // We failed to reserve because the queue was full, create a new node with a new queue
-    auto next_node = new Node{static_cast<uint32_t>(capacity)};
+    auto next_node = new Node{static_cast<uint32_t>(capacity), _huge_pages};
 
     // store the new node pointer as next in the current node
     _producer->next.store(next_node, std::memory_order_release);
@@ -249,6 +252,7 @@ private:
   /** Modified by either the producer or consumer but never both */
   Node* _producer{nullptr};
   Node* _consumer{nullptr};
+  bool _huge_pages;
 };
 
 } // namespace quill::detail

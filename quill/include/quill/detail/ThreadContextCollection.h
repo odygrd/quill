@@ -51,11 +51,11 @@ private:
      * Creates a new context and then registers it to the context collection sharing ownership
      * of the ThreadContext
      */
-    ThreadContextWrapper(ThreadContextCollection& thread_context_collection,
-                         uint32_t default_queue_capacity, uint32_t initial_transit_event_buffer_capacity)
+    ThreadContextWrapper(ThreadContextCollection& thread_context_collection, uint32_t default_queue_capacity,
+                         uint32_t initial_transit_event_buffer_capacity, bool huge_pages)
       : _thread_context_collection(thread_context_collection),
         _thread_context(std::shared_ptr<ThreadContext>(new ThreadContext(
-          queue_type, default_queue_capacity, initial_transit_event_buffer_capacity)))
+          queue_type, default_queue_capacity, initial_transit_event_buffer_capacity, huge_pages)))
     {
       // We can not use std::make_shared above.
       // Explanation :
@@ -145,7 +145,8 @@ public:
   {
     static thread_local ThreadContextWrapper<queue_type> thread_context_wrapper{
       *this, _config.default_queue_capacity,
-      _config.backend_thread_use_transit_buffer ? _config.backend_thread_initial_transit_event_buffer_capacity : 1};
+      _config.backend_thread_use_transit_buffer ? _config.backend_thread_initial_transit_event_buffer_capacity : 1,
+      _config.enable_huge_pages_hot_path};
     return thread_context_wrapper.thread_context();
   }
 

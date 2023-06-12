@@ -239,5 +239,16 @@ struct Config
    * @note This capacity automatically doubles when the unbounded queue is full
    */
   uint32_t default_queue_capacity{131'072};
+
+  /**
+   * When set to true it will enable huge pages for all queue allocations on the hot path.
+   * You need to have huge pages enabled on your system for this to work
+   *
+   *   cat /proc/meminfo | grep HugePages
+   *   sudo sysctl -w vm.nr_hugepages=<number_of_hugepages>
+   *
+   * @note: This option is only supported on Linux
+   */
+  bool enable_huge_pages_hot_path{false};
 };
 } // namespace quill
