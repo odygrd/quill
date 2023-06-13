@@ -79,6 +79,7 @@
   quill::configure(cfg);
   quill::start();
 ```
+
 ## v2.9.2
 
 - Fix increased compile times due to `x86intrin` headers. ([#298](https://github.com/odygrd/quill/pull/298))
