@@ -87,9 +87,7 @@
  * When QUILL_USE_BOUNDED_QUEUE is defined, a bounded queue is used instead of the default unbounded queue.
  *
  * The default mode is unbounded queue, which is recommended. The overhead is low.
- * Use QUILL_USE_BOUN
-
-DED_QUEUE when all re-allocations should be avoided.
+ * Use QUILL_USE_BOUNDED_QUEUE when all re-allocations should be avoided.
  * In QUILL_USE_BOUNDED_QUEUE mode, the number of dropped log messages is written to stderr.
  *
  * @note: In both modes (unbounded or bounded) the queue size is configurable via
