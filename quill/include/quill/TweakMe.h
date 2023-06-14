@@ -48,15 +48,17 @@
  * By default, Quill checks at compile time if the object is safe to copy. User-defined types
  * can provide a tag or an external template specialization:
  *
- * Tagging on your class:
- * 'using copy_loggable = std::true_type` -> Indicates the object is copyable.
- * 'using copy_loggable = std::false` or missing tag -> Indicates the object is NOT copyable.
+ * 1) Tagging on your class:
  *
- * Preferred way: provide a specialization to copy_loggable without modifying your class:
- * namespace quill {
- * template <>
- * struct copy_loggable<UserDefinedType> : std::true_type { };
- * }
+ *   'using copy_loggable = std::true_type` -> Indicates the object is copyable.
+ *   'using copy_loggable = std::false` or missing tag -> Indicates the object is NOT copyable.
+ *
+ * 2) Preferred way: provide a specialization to copy_loggable without modifying your class:
+ *
+ *   namespace quill {
+ *     template <>
+ *     struct copy_loggable<UserDefinedType> : std::true_type { };
+ *   }
  *
  * If the user-defined type has shared mutable references as class members, do not provide this.
  * Formatting should be done explicitly on the caller thread side by the user.
@@ -150,9 +152,10 @@ DED_QUEUE when all re-allocations should be avoided.
  * When this option is enabled, ensure to pass the appropriate target architecture to the compiler
  * with -march="..."
  *
- * -DCMAKE_CXX_FLAGS:STRING="-DQUILL_X86ARCH -march=native"
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_X86ARCH -march=native"
  * or
- * target_compile_definitions(<target> PUBLIC -DQUILL_X86ARCH)
+ *   target_compile_definitions(<target> PUBLIC -DQUILL_X86ARCH)
  */
 // #define QUILL_X86ARCH
 
