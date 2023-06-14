@@ -87,6 +87,10 @@
            std::optional<std::string>{"hello"});
 ```
 
+- Introduced a new function `run_loop` in the `Handler` base class, which allows users to override and execute periodic
+  tasks. This enhancement provides users with the flexibility to perform various actions at regular intervals,
+  such as batch committing data to a database.
+
 ## v2.9.2
 
 - Fix increased compile times due to `x86intrin` headers. ([#298](https://github.com/odygrd/quill/pull/298))

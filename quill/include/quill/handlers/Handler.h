@@ -76,6 +76,16 @@ public:
   QUILL_ATTRIBUTE_HOT virtual void flush() noexcept = 0;
 
   /**
+   * Executes periodically by the backend thread, providing an opportunity for the user
+   * to perform custom tasks. For example, batch committing to a database, or any other
+   * desired periodic operations.
+   *
+   * @note It is recommended to avoid performing heavy operations within this function
+   *       as it may adversely affect the performance of the backend thread.
+   */
+  QUILL_ATTRIBUTE_HOT virtual void run_loop() noexcept {};
+
+  /**
    * Sets a log level filter on the handler. Log statements with higher or equal severity only will be logged
    * @note thread safe
    * @param log_level the log level severity
