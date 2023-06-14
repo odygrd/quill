@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -265,6 +266,25 @@ struct is_copyable_tuple<std::tuple<Ts...>>
 };
 
 /**
+ * check for copyable elements in optional
+ */
+template <typename T>
+struct is_copyable_optional : std::false_type
+{
+};
+
+template <typename T>
+struct is_copyable_optional<std::optional<T>> : is_copyable<remove_cvref_t<T>>
+{
+};
+
+template <typename T>
+using is_copyable_optional_t = typename is_copyable_optional<remove_cvref_t<T>>::type;
+
+template <typename T>
+constexpr bool is_copyable_optional_v = is_copyable_optional<remove_cvref_t<T>>::value;
+
+/**
  * A user defined object that was tagged by the user to be copied
  */
 template <typename T>
@@ -296,6 +316,7 @@ struct filter_copyable : std::disjunction<std::is_arithmetic<T>,
                                      is_user_registered_copyable<T>,
                                      is_copyable_pair<T>,
                                      is_copyable_tuple<T>,
+                                     is_copyable_optional<T>,
                                      is_copyable_container<T>
                                      >
 {};

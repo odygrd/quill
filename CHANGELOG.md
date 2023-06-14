@@ -80,6 +80,13 @@
   quill::start();
 ```
 
+- Added support for logging `std::optional`, which is also now supported in `libfmt` `v10.0.0`.
+
+```c++
+  LOG_INFO(default_logger, "some optionals [{}, {}]", std::optional<std::string>{},
+           std::optional<std::string>{"hello"});
+```
+
 ## v2.9.2
 
 - Fix increased compile times due to `x86intrin` headers. ([#298](https://github.com/odygrd/quill/pull/298))
