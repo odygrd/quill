@@ -81,8 +81,6 @@
 ```
 
 - Added support for logging `std::optional`, which is also now supported in `libfmt` `v10.0.0`.
-- In scenarios where a hot thread is blocked and unable to push messages to the queue in blocking mode, this situation
-  will now be reported through the `backend_thread_notifications_handler` to the standard error stream `cerr`.
 
 ```c++
   LOG_INFO(default_logger, "some optionals [{}, {}]", std::optional<std::string>{},
@@ -92,6 +90,8 @@
 - Introduced a new function `run_loop` in the `Handler` base class, which allows users to override and execute periodic
   tasks. This enhancement provides users with the flexibility to perform various actions at regular intervals,
   such as batch committing data to a database.
+- In scenarios where a hot thread is blocked and unable to push messages to the queue in blocking mode, this situation
+  will now be reported through the `backend_thread_notifications_handler` to the standard error stream `cerr`.
 
 ## v2.9.2
 
