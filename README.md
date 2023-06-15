@@ -100,7 +100,7 @@ Additionally, you can explore the [examples](http://github.com/odygrd/quill/tree
 - **Crash-Safe Behavior**: Benefit from crash-safe behavior with a built-in signal handler.
 - **Type-Safe Python-Style API**: Utilize a type-safe API inspired by Python, with compile-time checks and built-in support for logging STL types/containers using the excellent [{fmt}](http://github.com/fmtlib/fmt) library.
 - **Support for Huge Pages**: Benefit from support for huge pages on the hot path. This feature allows for improved performance and efficiency.
-- 
+  
 ## Performance
 
 ### Latency
