@@ -161,7 +161,7 @@ private:
    * Check for dropped messages - only when bounded queue is used
    * @param cached_thread_contexts loaded thread contexts
    */
-  QUILL_ATTRIBUTE_HOT static void _check_dropped_messages(
+  QUILL_ATTRIBUTE_HOT inline static void _check_message_failures(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
     backend_worker_notification_handler_t const& notification_handler) noexcept;
 
@@ -818,7 +818,7 @@ void BackendWorker::_force_flush(std::vector<std::weak_ptr<Handler>> const& acti
 }
 
 /***/
-void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
+void BackendWorker::_check_message_failures(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
                                             backend_worker_notification_handler_t const& notification_handler) noexcept
 {
   if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedNoMaxLimit)
@@ -933,8 +933,8 @@ void BackendWorker::_main_loop()
       }
     }
 
-    // check for any dropped messages by the threads
-    _check_dropped_messages(cached_thread_contexts, _notification_handler);
+    // check for any dropped messages / blocked threads
+    _check_message_failures(cached_thread_contexts, _notification_handler);
 
     // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
@@ -1043,7 +1043,7 @@ void BackendWorker::_exit()
       if (all_empty)
       {
         // we are done, all queues are now empty
-        _check_dropped_messages(cached_thread_contexts, _notification_handler);
+        _check_message_failures(cached_thread_contexts, _notification_handler);
         _force_flush(_handler_collection.active_handlers());
         break;
       }
