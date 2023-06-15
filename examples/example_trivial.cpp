@@ -66,6 +66,8 @@ int main()
 
   LOG_INFO(default_logger, "Welcome to Quill!");
   LOG_INFO(default_logger, "Print a vector {} ", std::vector<int>{1, 2, 3, 4, 5});
+  LOG_INFO(default_logger, "or some optionals [{}, {}]", std::optional<std::string>{},
+           std::optional<std::string>{"hello"});
   LOG_ERROR(default_logger, "An error message with error code {}, error message {}", 123,
             "system_error");
 

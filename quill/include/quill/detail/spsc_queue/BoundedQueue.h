@@ -37,10 +37,11 @@ class BoundedQueueImpl
 public:
   using integer_type = T;
 
-  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity)
+  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false)
     : _capacity(next_power_of_2(capacity)),
       _mask(_capacity - 1),
-      _storage(static_cast<std::byte*>(aligned_alloc(CACHE_LINE_ALIGNED, 2ull * static_cast<uint64_t>(_capacity))))
+      _storage(static_cast<std::byte*>(
+        alloc_aligned(2ull * static_cast<uint64_t>(_capacity), CACHE_LINE_ALIGNED, huge_pages)))
   {
     if (!is_pow_of_two(static_cast<uint64_t>(_capacity)))
     {
@@ -74,7 +75,7 @@ public:
 #endif
   }
 
-  ~BoundedQueueImpl() { aligned_free(_storage); }
+  ~BoundedQueueImpl() { free_aligned(_storage); }
 
   /**
    * Deleted

@@ -1,3 +1,4 @@
+- [v3.0.0](#v300)
 - [v2.9.2](#v292)
 - [v2.9.1](#v291)
 - [v2.9.0](#v290)
@@ -42,6 +43,53 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v3.0.0
+
+- The previous unbounded queue constantly reallocated memory, risking system memory exhaustion, especially when handling
+  intensive logging from multiple threads. Starting from `v3.0.0`, the default behavior has been improved to limit
+  the queue capacity to 2 GB. When this limit is reached, the queue blocks the hot thread instead of further
+  reallocation.
+  To modify the default behavior, there is no need to recompile the `quill` library. Recompile your application
+  with one of the following header-only flags.
+
+```shell
+# Previous behavior in v2.*.*: Reallocates new queues indefinitely when max capacity is reached
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE"
+
+# Default behavior in v3.*.*: Starts small, reallocates up to 2GB, then hot thread blocks
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_BLOCKING_QUEUE"
+
+# Starts small, reallocates up to 2GB, then hot thread drops log messages
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_DROPPING_QUEUE"
+
+# Fixed queue size, no reallocations, hot thread drops log messages
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_QUEUE"         
+
+# Fixed queue size, no reallocations, hot thread blocks
+-DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
+```
+- Added support for huge pages on Linux. Enabling this feature allows bounded or unbounded queues to utilize huge pages,
+  resulting in optimized memory allocation.
+
+```c++
+  quill::Config cfg;
+  cfg.enable_huge_pages_hot_path = true;
+  
+  quill::configure(cfg);
+  quill::start();
+```
+
+- Added support for logging `std::optional`, which is also now supported in `libfmt` `v10.0.0`.
+
+```c++
+  LOG_INFO(default_logger, "some optionals [{}, {}]", std::optional<std::string>{},
+           std::optional<std::string>{"hello"});
+```
+
+- Introduced a new function `run_loop` in the `Handler` base class, which allows users to override and execute periodic
+  tasks. This enhancement provides users with the flexibility to perform various actions at regular intervals,
+  such as batch committing data to a database.
 
 ## v2.9.2
 

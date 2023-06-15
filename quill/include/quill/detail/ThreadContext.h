@@ -34,16 +34,18 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContext(QueueType queue_type, uint32_t default_queue_capacity, uint32_t initial_transit_event_buffer_capacity)
+  explicit ThreadContext(QueueType queue_type, uint32_t default_queue_capacity,
+                         uint32_t initial_transit_event_buffer_capacity, bool huge_pages)
     : _transit_event_buffer(initial_transit_event_buffer_capacity)
   {
-    if (queue_type == QueueType::Unbounded)
+    if ((queue_type == QueueType::UnboundedBlocking) ||
+        (queue_type == QueueType::UnboundedNoMaxLimit) || (queue_type == QueueType::UnboundedDropping))
     {
-      _spsc_queue.emplace<UnboundedQueue>(default_queue_capacity);
+      _spsc_queue.emplace<UnboundedQueue>(default_queue_capacity, huge_pages);
     }
     else
     {
-      _spsc_queue.emplace<BoundedQueue>(default_queue_capacity);
+      _spsc_queue.emplace<BoundedQueue>(default_queue_capacity, huge_pages);
     }
   }
 
@@ -60,14 +62,14 @@ public:
    * @param i size of object
    * @return a pointer to the allocated object
    */
-  void* operator new(size_t i) { return aligned_alloc(CACHE_LINE_ALIGNED, i); }
+  void* operator new(size_t i) { return alloc_aligned(i, CACHE_LINE_ALIGNED); }
 
   /**
    * Operator delete
    * @see operator new
    * @param p pointer to object
    */
-  void operator delete(void* p) { aligned_free(p); }
+  void operator delete(void* p) { free_aligned(p); }
 
   /**
    * @return A reference to the backend's thread transit event buffer
@@ -81,9 +83,13 @@ public:
    * @return A reference to the generic single-producer-single-consumer queue
    */
   template <QueueType queue_type>
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::conditional_t<queue_type == QueueType::Unbounded, UnboundedQueue, BoundedQueue>& spsc_queue() noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedNoMaxLimit) ||
+                                                         (queue_type == QueueType::UnboundedDropping),
+                                                       UnboundedQueue, BoundedQueue>&
+  spsc_queue() noexcept
   {
-    if constexpr (queue_type == QueueType::Unbounded)
+    if constexpr ((queue_type == QueueType::UnboundedBlocking) ||
+                  (queue_type == QueueType::UnboundedNoMaxLimit) || (queue_type == QueueType::UnboundedDropping))
     {
       return std::get<UnboundedQueue>(_spsc_queue);
     }
@@ -97,9 +103,13 @@ public:
    * @return A reference to the generic single-producer-single-consumer queue const overload
    */
   template <QueueType queue_type>
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::conditional_t<queue_type == QueueType::Unbounded, UnboundedQueue, BoundedQueue> const& spsc_queue() const noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedNoMaxLimit) ||
+                                                         (queue_type == QueueType::UnboundedDropping),
+                                                       UnboundedQueue, BoundedQueue> const&
+  spsc_queue() const noexcept
   {
-    if constexpr (queue_type == QueueType::Unbounded)
+    if constexpr ((queue_type == QueueType::UnboundedBlocking) ||
+                  (queue_type == QueueType::UnboundedNoMaxLimit) || (queue_type == QueueType::UnboundedDropping))
     {
       return std::get<UnboundedQueue>(_spsc_queue);
     }

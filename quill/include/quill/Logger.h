@@ -48,8 +48,8 @@ public:
    * We align the logger object to it's own cache line. It shouldn't make much difference as the
    * logger object size is exactly 1 cache line
    */
-  void* operator new(size_t i) { return detail::aligned_alloc(detail::CACHE_LINE_ALIGNED, i); }
-  void operator delete(void* p) { detail::aligned_free(p); }
+  void* operator new(size_t i) { return detail::alloc_aligned(i, detail::CACHE_LINE_ALIGNED); }
+  void operator delete(void* p) { detail::free_aligned(p); }
 
   /**
    * @return The log level of the logger
@@ -154,7 +154,8 @@ public:
     std::byte* write_buffer =
       thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
 
-    if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedNonBlocking)
+    if constexpr ((QUILL_QUEUE_TYPE == detail::QueueType::BoundedNonBlocking) ||
+                  (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping))
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
@@ -163,7 +164,12 @@ public:
         return;
       }
     }
-    else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedBlocking)
+    else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedNoMaxLimit)
+    {
+      assert(write_buffer && "UnboundedNonBlocking will always allocate and get new space");
+    }
+    else if constexpr ((QUILL_QUEUE_TYPE == detail::QueueType::BoundedBlocking) ||
+                       (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedBlocking))
     {
       while (write_buffer == nullptr)
       {

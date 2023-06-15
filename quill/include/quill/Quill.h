@@ -29,9 +29,9 @@ namespace quill
 {
 
 /** Version Info **/
-constexpr uint32_t VersionMajor{2};
-constexpr uint32_t VersionMinor{9};
-constexpr uint32_t VersionPatch{2};
+constexpr uint32_t VersionMajor{3};
+constexpr uint32_t VersionMinor{0};
+constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 /** forward declarations **/

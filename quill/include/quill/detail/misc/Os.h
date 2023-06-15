@@ -87,19 +87,21 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD uint32_t get_process_id() noexcept;
 
 /**
  * Aligned alloc
- * @param alignment specifies the alignment. Must be a valid alignment supported by the implementation.
  * @param size number of bytes to allocate. An integral multiple of alignment
+ * @param alignment specifies the alignment. Must be a valid alignment supported by the implementation.
+ * @param huge_pages allocate huge pages, only suported on linux
  * @return On success, returns the pointer to the beginning of newly allocated memory.
- * To avoid a memory leak, the returned pointer must be deallocated with aligned_free().
+ * To avoid a memory leak, the returned pointer must be deallocated with free_aligned().
  * @throws  std::system_error on failure
  */
-QUILL_NODISCARD void* aligned_alloc(size_t alignment, size_t size);
+
+QUILL_NODISCARD void* alloc_aligned(size_t size, size_t alignment, bool huge_pages = false);
 
 /**
- * Free aligned memory allocated with aligned_alloc
+ * Free aligned memory allocated with alloc_aligned
  * @param ptr address to aligned memory
  */
-void aligned_free(void* ptr) noexcept;
+void free_aligned(void* ptr) noexcept;
 
 /**
  * inverses of gmtime

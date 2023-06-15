@@ -27,7 +27,9 @@ namespace quill::detail
 {
 enum class QueueType
 {
-  Unbounded,
+  UnboundedBlocking,
+  UnboundedDropping,
+  UnboundedNoMaxLimit,
   BoundedBlocking,
   BoundedNonBlocking
 };
@@ -37,8 +39,12 @@ enum class QueueType
   #define QUILL_QUEUE_TYPE quill::detail::QueueType::BoundedNonBlocking
 #elif defined(QUILL_USE_BOUNDED_BLOCKING_QUEUE)
   #define QUILL_QUEUE_TYPE quill::detail::QueueType::BoundedBlocking
+#elif defined(QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE)
+  #define QUILL_QUEUE_TYPE quill::detail::QueueType::UnboundedNoMaxLimit
+#elif defined(QUILL_USE_UNBOUNDED_DROPPING_QUEUE)
+  #define QUILL_QUEUE_TYPE quill::detail::QueueType::UnboundedDropping
 #else
-  #define QUILL_QUEUE_TYPE quill::detail::QueueType::Unbounded
+  #define QUILL_QUEUE_TYPE quill::detail::QueueType::UnboundedBlocking
 #endif
 
 /**

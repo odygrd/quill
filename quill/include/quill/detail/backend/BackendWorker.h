@@ -155,7 +155,7 @@ private:
   /**
    * Force flush all active Handlers
    */
-  QUILL_ATTRIBUTE_HOT inline void _force_flush();
+  QUILL_ATTRIBUTE_HOT inline void _force_flush(std::vector<std::weak_ptr<Handler>> const& active_handlers);
 
   /**
    * Check for dropped messages - only when bounded queue is used
@@ -677,7 +677,7 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
     }
     else if (macro_metadata.event() == MacroMetadata::Event::Flush)
     {
-      _force_flush();
+      _force_flush(_handler_collection.active_handlers());
 
       // this is a flush event, so we need to notify the caller to continue now
       transit_event.flush_flag->store(true);
@@ -800,12 +800,11 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
 }
 
 /***/
-void BackendWorker::_force_flush()
+void BackendWorker::_force_flush(std::vector<std::weak_ptr<Handler>> const& active_handlers)
 {
   if (_has_unflushed_messages)
   {
-    // If we have buffered any messages then get all active handlers and call flush
-    std::vector<std::weak_ptr<Handler>> const active_handlers = _handler_collection.active_handlers();
+    // If we have buffered any messages then flush all active handlers
     for (auto const& handler : active_handlers)
     {
       std::shared_ptr<Handler> h = handler.lock();
@@ -868,7 +867,18 @@ void BackendWorker::_main_loop()
   {
     // None of the thread local queues had any events to process, this means we have processed
     // all messages in all queues We force flush all remaining messages
-    _force_flush();
+    std::vector<std::weak_ptr<Handler>> const active_handlers = _handler_collection.active_handlers();
+    _force_flush(active_handlers);
+
+    // invoke the Handler's periodic loop
+    for (auto const& handler : active_handlers)
+    {
+      std::shared_ptr<Handler> h = handler.lock();
+      if (h)
+      {
+        h->run_loop();
+      }
+    }
 
     // check for any dropped messages by the threads
     _check_dropped_messages(cached_thread_contexts, _notification_handler);
@@ -981,7 +991,7 @@ void BackendWorker::_exit()
       {
         // we are done, all queues are now empty
         _check_dropped_messages(cached_thread_contexts, _notification_handler);
-        _force_flush();
+        _force_flush(_handler_collection.active_handlers());
         break;
       }
     }

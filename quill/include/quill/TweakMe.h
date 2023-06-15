@@ -6,25 +6,22 @@
 #pragma once
 
 /**
- * Edit this file to squeeze more performance, or to customise supported
- * features that are enabled/disabled in compile time
+ * Edit this file to optimize performance or customize compile-time enabled/disabled features.
  *
- * All the values below can either be passed as compiler flags or get uncommented here
+ * All the values below can be passed as compiler flags or uncommented here.
  *
  * HINT:
- * It is better passing those flags using CMake or during compilation instead of uncommenting them
- * here as this gives more flexibility invoking different builds by passing different flags rather
- * than editing this file
+ * It is better to pass these flags using CMake or during compilation for flexibility.
+ * Invoking different builds with different flags is preferable to editing this file directly.
  *
- * a) When invoking cmake : cmake . -DCMAKE_CXX_FLAGS="-DQUILL_ACTIVE_LOG_LEVEL=QUILL_LOG_LEVEL_INFO"
+ * a) When invoking cmake: cmake . -DCMAKE_CXX_FLAGS="-DQUILL_ACTIVE_LOG_LEVEL=QUILL_LOG_LEVEL_INFO"
  */
 
 /**
- * Completely compiles out log level with zero cost.
+ * Completely compiles out log levels with zero cost.
  *
- * Macros like LOG_TRACE_L3(..), LOG_TRACE_L2(..) will expand to empty statements
- * This helps reducing the number of branches in your compiled code and the number of
- * MacroMetadata constexpr instances created in compile time
+ * Macros like LOG_TRACE_L3(..), LOG_TRACE_L2(..) will expand to empty statements,
+ * reducing branches in compiled code and the number of MacroMetadata constexpr instances.
  *
  * The default value is QUILL_LOG_LEVEL_TRACE_L3
  *
@@ -42,69 +39,66 @@
 // #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
 /**
- * Quill refers all formatting to the backend thread. That means that the objects get copied to
- * a queue and later on processed on the backend thread which calls operator<< to format them.
+ * Quill defers formatting to the backend thread. Objects are copied to a queue and formatted
+ * by the backend thread using operator<<.
  *
- * In some cases when a user defined type has mutable references in the object this can be
- * problematic as they can be modified by the caller thread while they are trying to get
- * formatted on the backend logger thread.
+ * When a user-defined type has mutable references, this can be problematic if the object
+ * is modified by the caller thread during formatting on the backend logger thread.
  *
- * By default Quill checks in compile time if the object is safe to get copied. User defined
- * types can also provide a tag or an external template specialization :
+ * By default, Quill checks at compile time if the object is safe to copy. User-defined types
+ * can provide a tag or an external template specialization:
  *
- * Tagging on your class :
- * 'using copy_loggable = std::true_type` -> This will indicate that the object is copyable.
- * 'using copy_loggable = std::false` or missing tag -> This will indicate that the object is NOT copyable.
+ * 1) Tagging on your class:
  *
- * Preferred way, provide a specialization to copy_loggable without modifying your class :
- * namespace quill {
- * template <>
- * struct copy_loggable<UserDefinedType> : std::true_type { };
- * }
+ *   'using copy_loggable = std::true_type` -> Indicates the object is copyable.
+ *   'using copy_loggable = std::false` or missing tag -> Indicates the object is NOT copyable.
  *
- * If the user defined type has `shared` mutable references to other objects as class members
- * this should NOT be provided, instead the formatting should be done explicitly on the caller
- * thread side by the user.
+ * 2) Preferred way: provide a specialization to copy_loggable without modifying your class:
  *
- * MODE_UNSAFE is not recommended as the user should be never careful when logging user
- * defined types.
- * When MODE_UNSAFE is enabled quill will no longer perform any checks and will copy any user
- * defined types that are copy constructible to the queue and will format those copies later at the
- * backend logging thread.
- * If you enable MODE_UNSAFE you no longer have to tag your classes or specialize copy_loggable.
+ *   namespace quill {
+ *     template <>
+ *     struct copy_loggable<UserDefinedType> : std::true_type { };
+ *   }
+ *
+ * If the user-defined type has shared mutable references as class members, do not provide this.
+ * Formatting should be done explicitly on the caller thread side by the user.
+ *
+ * MODE_UNSAFE is not recommended as it requires careful handling when logging user-defined types.
+ * When MODE_UNSAFE is enabled, Quill copies any copy-constructible user-defined types to the queue
+ * without checks. Tagging or specialization is not required.
  */
 // #define QUILL_MODE_UNSAFE
 
 /**
- * When QUILL_DISABLE_NON_PREFIXED_MACROS is defined it removes `LOG_*` macros and only
- * `QUILL_LOG_*` macros are available.
- * This is only required in case the original macro names collide with an existing logging library
+ * When QUILL_DISABLE_NON_PREFIXED_MACROS is defined, it removes `LOG_*` macros,
+ * and only `QUILL_LOG_*` macros are available.
+ * This is useful if the original macro names collide with an existing logging library.
  */
 // #define QUILL_DISABLE_NON_PREFIXED_MACROS
 
 /**
- * When the application doesn't want to use use multiple Logger objects and the root logger is
- * enough, then passing a Logger* to the macros each time is inconvenient.
- * Define QUILL_ROOT_LOGGER_ONLY to simply log as without passing any Logger* to the macro
- * LOG_INFO("Hello {}", "world");
+ * When the application doesn't require multiple Logger objects and the root logger is enough,
+ * define QUILL_ROOT_LOGGER_ONLY to log without passing any Logger* to the macro.
+ * Example: LOG_INFO("Hello {}", "world");
  */
 // #define QUILL_ROOT_LOGGER_ONLY
 
 /**
- * When QUILL_USE_BOUNDED_QUEUE is defined a bounded queue for passing the log messages
- * to the backend thread, instead of the default unbounded queue is used.
+ * When QUILL_USE_BOUNDED_QUEUE is defined, a bounded queue is used instead of the default unbounded queue.
  *
- * Bounded Queue : When full the log messages will get dropped.
- * Unbounded Queue : When full, a new queue is allocated and no log messages are lost.
+ * The default mode is unbounded queue, which is recommended. The overhead is low.
+ * Use QUILL_USE_BOUNDED_QUEUE when all re-allocations should be avoided.
+ * In QUILL_USE_BOUNDED_QUEUE mode, the number of dropped log messages is written to stderr.
  *
- * The default mode is unbounded queue as the recommended option. The overhead is low.
- * Using QUILL_USE_BOUNDED_QUEUE option is in the case when all re-allocations should be avoided.
- * In QUILL_USE_BOUNDED_QUEUE mode the number of dropped log messages is written to stderr.
+ * @note: In both modes (unbounded or bounded) the queue size is configurable via
+ * `quill::config::set_initial_queue_capacity`.
  *
- * @note: In both modes (unbounded or bounded) the queue size is configurable via `quill::config::set_initial_queue_capacity`.
- *
- * @note: You can avoid re-allocations when using the unbounded queue (default mode) by setting the initial_queue_capacity to a higher value.
+ * @note: You can avoid re-allocations when using the unbounded queue (default mode) by setting the
+ * initial_queue_capacity to a higher value.
  * QUILL_USE_BOUNDED_QUEUE mode seems to be faster in `quill_hot_path_rdtsc_clock` benchmark by a few nanoseconds.
+ *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_QUEUE"
  *
  * @see: examples/example_bounded_queue_message_dropping.cpp
  */
@@ -114,20 +108,52 @@
  * Similar to QUILL_USE_BOUNDED_QUEUE but the hot thread will now block instead of dropping messages.
  * @note: This will slow down you hot thread and it should only be used in special cases
  *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
+ *
  * @see: examples/example_bounded_queue_blocking.cpp
  */
 // #define QUILL_USE_BOUNDED_BLOCKING_QUEUE
 
 /**
- * Enables use of _mm_prefetch, _mm_clflush and _mm_clflushopt on the ringbuffer to further
- * improve performance on x86
+ * The default unbounded queue stops re-allocating and blocks when it reaches the maximum capacity
+ * (2GB by default). If you have multiple hot threads, this can lead to memory limits.
  *
- * When this option is enabled you should also pass your oldest target architecture to the compiler
+ * When QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE is defined, additional 2GB queues are allocated,
+ * and the hot thread will never block or drop messages.
+ *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE"
+ */
+// #define QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE
+
+/**
+ * Similar to QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE, but the hot thread will drop messages instead
+ * of allocating additional 2GB queues when the maximum capacity of the unbounded queue is reached.
+ *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_DROPPING_QUEUE"
+ */
+// #define QUILL_USE_UNBOUNDED_DROPPING_QUEUE
+
+/**
+ * Similar to QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE, but the hot thread will block instead
+ * of allocating additional 2GB queues when the maximum capacity of the unbounded queue is reached.
+ * This is the default behavior.
+ */
+// #define QUILL_USE_UNBOUNDED_BLOCKING_QUEUE
+
+/**
+ * Enables the use of _mm_prefetch, _mm_clflush, and _mm_clflushopt on the ring buffer to improve
+ * performance on x86 architectures.
+ *
+ * When this option is enabled, ensure to pass the appropriate target architecture to the compiler
  * with -march="..."
  *
- * -DCMAKE_CXX_FLAGS:STRING="-DQUILL_X86ARCH -march=native"
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_X86ARCH -march=native"
  * or
- * target_compile_definitions(<target> PUBLIC -DQUILL_X86ARCH)
+ *   target_compile_definitions(<target> PUBLIC -DQUILL_X86ARCH)
  */
 // #define QUILL_X86ARCH
 
@@ -136,26 +162,27 @@
 /**************************************************************************************************/
 
 /**
- * Disables features that are not supported on Windows 2012/2016.
- * This is also available as CMake option -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
+ * Disables features not supported on Windows 2012/2016.
+ * Also available as CMake option `-DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON`
  */
 // #define QUILL_NO_THREAD_NAME_SUPPORT
 
 /**
- * Uses an installed version of the fmt library instead of quill's bundled copy.
- * In this case quill will try to include <fmt/format.h> so make sure to set -I directories
+ * Uses an installed version of the fmt library instead of Quill's bundled copy.
+ * Quill will try to include <fmt/format.h>, so make sure to set -I directories
  * accordingly if not using CMake.
  *
- * This is also available as CMake option -DQUILL_FMT_EXTERNAL=ON.
- * When -DQUILL_FMT_EXTERNAL=ON is used the below line does not need to be uncommented as CMake will
- * define it automatically.
- * Quill will look for a CMake Target with name `fmt`. If the target is not found it will
- * use find_package(fmt REQUIRED) so make sure that fmt library is installed in your system
+ * Also available as CMake option `-DQUILL_FMT_EXTERNAL=ON`
+ * When `-DQUILL_FMT_EXTERNAL=ON` is used, the below line does not need to be uncommented as CMake
+ * will define it automatically.
+ *
+ * Quill will look for a CMake Target named `fmt`. If the target is not found, it will
+ * use find_package(fmt REQUIRED), so make sure that the fmt library is installed on your system.
  */
 // #define QUILL_FMT_EXTERNAL
 
 /**
  * Disables all exceptions and replaces them with std::abort()
+ * Also available as CMake option `-DQUILL_NO_EXCEPTIONS=ON`
  */
 // #define QUILL_NO_EXCEPTIONS
-
