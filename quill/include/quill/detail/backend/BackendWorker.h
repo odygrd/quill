@@ -179,7 +179,7 @@ private:
    * @param thread_context thread context
    * @return start position of read
    */
-  QUILL_ATTRIBUTE_HOT QUILL_NODISCARD inline std::byte* _read_unbounded_queue(UnboundedQueue& queue,
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* _read_unbounded_queue(UnboundedQueue& queue,
                                                                               ThreadContext* thread_context);
 
   /**
