@@ -174,6 +174,15 @@ private:
     std::string_view fmt_template) noexcept;
 
   /**
+   * Helper function to read the unbounded queue and also report the allocation
+   * @param queue queue
+   * @param thread_context thread context
+   * @return start position of read
+   */
+  QUILL_ATTRIBUTE_HOT QUILL_NODISCARD inline std::byte* _read_unbounded_queue(UnboundedQueue& queue,
+                                                                              ThreadContext* thread_context);
+
+  /**
    * Resyncs the rdtsc clock
    */
   QUILL_ATTRIBUTE_HOT void _resync_rdtsc_clock();
@@ -381,7 +390,7 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadCon
   std::byte* read_pos;
   if constexpr (std::is_same_v<QueueT, UnboundedQueue>)
   {
-    read_pos = queue.prepare_read(_notification_handler);
+    read_pos = _read_unbounded_queue(queue, thread_context);
   }
   else
   {
@@ -416,7 +425,7 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadCon
     // read again
     if constexpr (std::is_same_v<QueueT, UnboundedQueue>)
     {
-      read_pos = queue.prepare_read(_notification_handler);
+      read_pos = _read_unbounded_queue(queue, thread_context);
     }
     else
     {
@@ -743,7 +752,7 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
           std::byte* read_pos;
           if constexpr (std::is_same_v<T, UnboundedQueue>)
           {
-            read_pos = queue.prepare_read(_notification_handler);
+            read_pos = _read_unbounded_queue(queue, thread_context);
           }
           else
           {
@@ -775,7 +784,7 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
         std::byte* read_pos;
         if constexpr (std::is_same_v<T, UnboundedQueue>)
         {
-          read_pos = queue.prepare_read(_notification_handler);
+          read_pos = _read_unbounded_queue(queue, tc);
         }
         else
         {
@@ -843,32 +852,60 @@ void BackendWorker::_check_message_failures(ThreadContextCollection::backend_thr
       {
         notification_handler(
           fmt::format("{} Quill INFO: BoundedNonBlocking queue dropped {} "
-                      "log messages from thread {}\n",
+                      "log messages from thread {}",
                       ts, failed_messages_cnt, thread_context->thread_id()));
       }
       else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping)
       {
         notification_handler(
           fmt::format("{} Quill INFO: UnboundedDropping queue dropped {} "
-                      "log messages from thread {}\n",
+                      "log messages from thread {}",
                       ts, failed_messages_cnt, thread_context->thread_id()));
       }
       else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedBlocking)
       {
         notification_handler(
           fmt::format("{} Quill INFO: BoundedBlocking queue thread {} "
-                      "experienced {} blocking occurrences\n",
+                      "experienced {} blocking occurrences",
                       ts, thread_context->thread_id(), failed_messages_cnt));
       }
       else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedBlocking)
       {
         notification_handler(
           fmt::format("{} Quill INFO: UnboundedBlocking queue thread {} "
-                      "experienced {} blocking occurrences\n",
+                      "experienced {} blocking occurrences",
                       ts, thread_context->thread_id(), failed_messages_cnt));
       }
     }
   }
+}
+
+/***/
+std::byte* BackendWorker::_read_unbounded_queue(UnboundedQueue& queue, ThreadContext* thread_context)
+{
+  auto [read_pos, allocation_info] = queue.prepare_read();
+
+  if (allocation_info)
+  {
+    // When allocation_info has a value it means that the queue has re-allocated
+    if (_notification_handler)
+    {
+      char ts[24];
+      time_t t = time(nullptr);
+      struct tm p;
+      quill::detail::localtime_rs(std::addressof(t), std::addressof(p));
+      strftime(ts, 24, "%X", std::addressof(p));
+
+      // we switched to a new here, and we also notify the user of the allocation via the
+      // notification_handler
+      _notification_handler(fmt::format(
+        "{} Quill INFO: A new SPSC queue has been allocated with a new capacity of {} bytes, and "
+        "a previous capacity of {} bytes from thread {}",
+        ts, allocation_info->first, allocation_info->second, thread_context->thread_id()));
+    }
+  }
+
+  return read_pos;
 }
 
 /***/

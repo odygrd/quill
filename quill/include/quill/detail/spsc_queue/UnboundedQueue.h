@@ -9,6 +9,8 @@
 #include <cassert>
 #include <cstddef>
 #include <limits>
+#include <optional>
+#include <utility>
 
 #include "BoundedQueue.h"
 #include "quill/detail/misc/Common.h"
@@ -168,11 +170,11 @@ public:
   /**
    * Prepare to read from the buffer
    * @notification_handler a callback used for notifications to the user
-   * @return a pair of the buffer location to read and the number of available bytes
+   * @return first: pointer to buffer or nullptr, second: a pair of new_capacity, previous_capacity if an allocation
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_read(
-    backend_worker_notification_handler_t const& notification_handler = backend_worker_notification_handler_t{})
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::pair<std::byte*, std::optional<std::pair<BoundedQueue::integer_type, BoundedQueue::integer_type>>> prepare_read()
   {
+    std::optional<std::pair<BoundedQueue::integer_type, BoundedQueue::integer_type>> allocation;
     std::byte* read_pos = _consumer->bounded_queue.prepare_read();
 
     if (!read_pos)
@@ -195,28 +197,17 @@ public:
           // switch to the new buffer, existing one is deleted
           auto const previous_capacity = _consumer->bounded_queue.capacity();
           delete _consumer;
+
           _consumer = next_node;
           read_pos = _consumer->bounded_queue.prepare_read();
 
-          if (notification_handler)
-          {
-            char ts[24];
-            time_t t = time(nullptr);
-            struct tm p;
-            quill::detail::localtime_rs(std::addressof(t), std::addressof(p));
-            strftime(ts, 24, "%X", std::addressof(p));
-
-            // we switched to a new here, and we also notify the user of the allocation via the
-            // notification_handler
-            notification_handler(
-              std::string{ts} + " Quill INFO: A new SPSC queue was allocated [new_capacity_bytes: " +
-              std::to_string(_consumer->bounded_queue.capacity()) +
-              ", previous_capacity_bytes: " + std::to_string(previous_capacity) + "]");
-          }
+          // we switched to a new here, so we store the capacity info to return it
+          allocation = std::make_pair(_consumer->bounded_queue.capacity(), previous_capacity);
         }
       }
     }
-    return read_pos;
+
+    return std::make_pair(read_pos, allocation);
   }
 
   /**

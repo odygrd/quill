@@ -1,3 +1,4 @@
+- [v3.0.1](#v301)
 - [v3.0.0](#v300)
 - [v2.9.2](#v292)
 - [v2.9.1](#v291)
@@ -43,6 +44,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v3.0.1
+
+- Enhanced the reported message for reallocation of the unbounded queue to include the thread id.
 
 ## v3.0.0
 

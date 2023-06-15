@@ -46,11 +46,11 @@ TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
       {
         for (uint32_t i = 0; i < 8192; ++i)
         {
-          std::byte* read_buffer = buffer.prepare_read();
+          auto [read_buffer, alloc] = buffer.prepare_read();
           while (!read_buffer)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
-            read_buffer = buffer.prepare_read();
+            std::tie(read_buffer, alloc) = buffer.prepare_read();
           }
 
           auto value = reinterpret_cast<uint32_t const*>(read_buffer);
