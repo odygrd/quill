@@ -62,69 +62,61 @@
 
 ## Introduction
 
-Quill is a cross-platform low latency logging library based on C++14/C++17.
+Quill is a high-performance, cross-platform logging library designed for C++14 and onwards. It provides two versions of the library:
 
-There are two versions on the library:
+- `v1.7`: This version is based on C++14 and focuses on bug fixes and stability improvements.
+- `v2` and onwards: Starting from version 2, Quill is based on C++17 and includes new features and ongoing maintenance.
 
-`v1.7` : C++14 - Bug fix only
-
-`v2` : C++17 - New features and actively maintained
+With Quill, you can easily incorporate logging functionality into your C++ applications while maintaining low latency and efficient performance.
 
 ## Documentation
 
-[ReadtheDocs](http://quillcpp.readthedocs.io/)
+For detailed documentation and usage instructions, please visit the [Quill Documentation on Read the Docs](http://quillcpp.readthedocs.io/). It provides comprehensive information on how to integrate and utilize Quill in your C++ applications.
 
-The [examples](http://github.com/odygrd/quill/tree/master/examples) folder is also a good source of documentation.
+Additionally, you can explore the [examples](http://github.com/odygrd/quill/tree/master/examples) folder in the Quill repository on GitHub. These examples serve as valuable resources to understand different usage scenarios and demonstrate the capabilities of the library.
 
 ## Features
 
-- Low latency logging See [Benchmarks](http://github.com/odygrd/quill#performance).
-- Format outside the hot-path in a backend logging thread. For `non-built-in` types `ostream::operator<<()` is called on
-  a copy of the object by the backend logging thread. Unsafe to copy `non-trivial user defined` are detected in compile
-  time. Those types can be tagged as `safe-to-copy` to avoid formatting them on the hot path.
-  See [User Defined Types](http://quillcpp.readthedocs.io/en/latest/tutorial.html#user-defined-types).
-- Custom formatters. Logs can be formatted based on a user specified pattern.
-  See [Formatters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#formatters).
-- Support for rdtsc, chrono or custom clock (usefull for simulations) for timestamp generation.
-- Support for log stack traces. Store log messages in a ring buffer and display later on a higher severity log statement
-  or on demand. See [Backtrace Logging](http://quillcpp.readthedocs.io/en/latest/tutorial.html#backtrace-logging).
-- Various logging targets. See [Handlers](http://quillcpp.readthedocs.io/en/latest/tutorial.html#handlers).
-    - Console logging with colours support.
-    - File Logging
-    - Rotating log files
-    - Time rotating log files
-    - JSON logging
-    - Custom Handlers
-- Filters for filtering log messages. See [Filters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#filters).
-- Ability to produce JSON structured log. See [Structured-Log](http://quillcpp.readthedocs.io/en/latest/tutorial.html#json-log)
-- `guaranteed non-blocking` or `non-guaranteed` logging. In `non-guaranteed` mode there is no heap allocation of a new
-  queue but log messages can be dropped. See [FAQ](http://quillcpp.readthedocs.io/en/latest/features.html#guaranteed-logging).
-- Support for wide character logging and wide character filenames (Windows and v1.7.x only).
-- Log statements in timestamp order even when produced by different threads. This makes debugging
-  multithreading applications easier.
-- Log levels can be completely stripped out at compile time reducing `if` branches.
-- Clean warning-free codebase even on high warning levels.
-- Crash safe behaviour with a built-in signal handler.
-- Type safe python style API with compile type checks and built-in support for logging STL types/containers by using the
-  excellent [{fmt}](http://github.com/fmtlib/fmt) library.
-
+- **Low Latency Logging**: Achieve fast logging performance with low latency. Refer to the [Benchmarks](http://github.com/odygrd/quill#performance) for more details.
+- **Backend Logging Thread**: Format logs outside the critical path in a backend logging thread. For `non-built-in` types, the backend logging thread invokes `ostream::operator<<()` on a copy of the object. Compile-time detection of unsafe copying for `non-trivial user defined` types is supported. To avoid formatting them on the critical path, such types can be tagged as `safe-to-copy`. See [User Defined Types](http://quillcpp.readthedocs.io/en/latest/tutorial.html#user-defined-types) for more information.
+- **Custom Formatters**: Customize log formatting based on user-defined patterns. Explore [Formatters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#formatters) for further details.
+- **Flexible Timestamp Generation**: Choose between rdtsc, chrono, or custom clocks (useful for simulations) for timestamp generation.
+- **Log Stack Traces**: Store log messages in a ring buffer and display them later in response to a higher severity log statement or on demand. Refer to [Backtrace Logging](http://quillcpp.readthedocs.io/en/latest/tutorial.html#backtrace-logging) for more information.
+- **Multiple Logging Targets**: Utilize various logging targets, including:
+    - Console logging with color support.
+    - File logging.
+    - Rotating log files.
+    - Time rotating log files.
+    - JSON logging.
+    - Custom handlers.
+- **Log Message Filtering**: Apply filters to selectively process log messages. Learn more about [Filters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#filters).
+- **Structured Logging**: Generate JSON structured logs. See [Structured-Log](http://quillcpp.readthedocs.io/en/latest/tutorial.html#json-log) for details.
+- **Blocking or Dropping Message Modes**: Choose between `blocking` or `dropping` message modes in the library. In `blocking` mode, the hot threads pause and wait when the queue is full until space becomes available, ensuring no message loss but introducing potential latency. In `dropping` mode, log messages beyond the queue's capacity may be dropped to prioritize low latency. The library provides reports on dropped messages, queue reallocations, and blocked hot threads for monitoring purposes. Refer to the [FAQ](http://quillcpp.readthedocs.io/en/latest/features.html#guaranteed-logging) for further information.
+- **Queue Types**: The library supports two types of queues for transferring logs from the hot path to the backend thread: bounded queues with a fixed capacity and unbounded queues that start small and can dynamically grow.
+- **Wide Character Support**: Log messages and filenames with wide characters are supported (Windows and v1.7.x only).
+- **Ordered Log Statements**: Log statements are ordered by timestamp even when produced by different threads, facilitating easier debugging of multithreaded applications.
+- **Compile-Time Log Level Stripping**: Completely strip out log levels at compile time, reducing `if` branches.
+- **Clean and Warning-Free Codebase**: Ensure a clean and warning-free codebase, even with high warning levels.
+- **Crash-Safe Behavior**: Benefit from crash-safe behavior with a built-in signal handler.
+- **Type-Safe Python-Style API**: Utilize a type-safe API inspired by Python, with compile-time checks and built-in support for logging STL types/containers using the excellent [{fmt}](http://github.com/fmtlib/fmt) library.
+- **Support for Huge Pages**: Benefit from support for huge pages on the hot path. This feature allows for improved performance and efficiency.
+- 
 ## Performance
 
 ### Latency
 
-#### Log Numbers
+#### Logging Numbers
 
-The following message is logged 100'000 times per
-thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)```.
+The following message is logged 100,000 times per thread: `LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)`.
 
-The results in the tables below are in nanoseconds (ns).
+The results presented in the tables below are measured in nanoseconds (ns).
 
 ##### 1 Thread
 
 | Library                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |----------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v2.8.0 Unbounded Queue](http://github.com/odygrd/quill) |  20  |  21  |  24  |  25  |  27  |   34   |
-| [Quill v2.8.0 Bounded Queue](http://github.com/odygrd/quill)   |  17  |  19  |  21  |  22  |  26  |   36   |
+| [Quill v3.0.0 Unbounded Queue](http://github.com/odygrd/quill) |  20  |  21  |  24  |  25  |  27  |   34   |
+| [Quill v3.0.0 Bounded Queue](http://github.com/odygrd/quill)   |  17  |  19  |  21  |  22  |  26  |   36   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                     |  16  |  19  |  21  |  22  |  27  |   40   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  41  |  43  |  44  |  46  |  66  |  118   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  53  |  66  |  75  |  80  |  92  |  106   |
@@ -137,8 +129,8 @@ The results in the tables below are in nanoseconds (ns).
 
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v2.8.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  20  |  22  |  24  |  26  |  28  |   35   |
-| [Quill v2.8.0 Bounded Queue](http://github.com/odygrd/quill)                      |  17  |  19  |  21  |  22  |  26  |   36   |
+| [Quill v3.0.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  20  |  22  |  24  |  26  |  28  |   35   |
+| [Quill v3.0.0 Bounded Queue](http://github.com/odygrd/quill)                      |  17  |  19  |  21  |  22  |  26  |   36   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                                        |  16  |  19  |  21  |  23  |  26  |   35   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                              |  42  |  44  |  46  |  48  |  76  |  118   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)                      |  56  |  67  |  77  |  82  |  95  |  159   |
@@ -147,16 +139,17 @@ The results in the tables below are in nanoseconds (ns).
 | [spdlog](http://github.com/gabime/spdlog)                                         | 728  | 828  | 907  | 959  | 1140 |  1424  |
 | [g3log](http://github.com/KjellKod/g3log)                                         | 5103 | 5318 | 5525 | 5657 | 5927 |  6279  |
 
-#### Log Numbers and Large Strings
-The following message is logged 100'000 times per thread  ```LOG_INFO(logger, "Logging int: {}, int: {}, string: {}", i, j, large_string)```.
-The large string is over 35 characters to avoid short string optimisation of `std::string`
+#### Logging Numbers and Large Strings
+
+The following message is logged 100,000 times per thread: `LOG_INFO(logger, "Logging int: {}, int: {}, string: {}", i, j, large_string)`.
+The large string used in the log message is over 35 characters to prevent the short string optimization of `std::string`.
 
 ##### 1 Thread
 
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v2.8.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  31  |  33  |  35  |  36  |  39  |   48   |
-| [Quill v2.8.0 Bounded Queue](http://github.com/odygrd/quill)                      |  30  |  32  |  33  |  35  |  43  |   51   |
+| [Quill v3.0.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  31  |  33  |  35  |  36  |  39  |   48   |
+| [Quill v3.0.0 Bounded Queue](http://github.com/odygrd/quill)                      |  30  |  32  |  33  |  35  |  43  |   51   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                                        |  29  |  31  |  34  |  37  |  44  |   53   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                              |  50  |  51  |  53  |  56  |  77  |  127   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)                      |  71  |  86  | 105  | 117  | 136  |  158   |
@@ -169,8 +162,8 @@ The large string is over 35 characters to avoid short string optimisation of `st
 
 | Library                                                                           | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |-----------------------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v2.8.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  31  |  33  |  35  |  37  |  40  |   48   |
-| [Quill v2.8.0 Bounded Queue](http://github.com/odygrd/quill)                      |  29  |  31  |  33  |  35  |  41  |   49   |
+| [Quill v3.0.0 Unbounded Queue](http://github.com/odygrd/quill)                    |  31  |  33  |  35  |  37  |  40  |   48   |
+| [Quill v3.0.0 Bounded Queue](http://github.com/odygrd/quill)                      |  29  |  31  |  33  |  35  |  41  |   49   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                                        |  29  |  31  |  35  |  37  |  44  |   54   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                              |  50  |  52  |  54  |  58  |  86  |  130   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)                      |  69  |  82  |  99  | 111  | 134  |  194   |
@@ -179,52 +172,27 @@ The large string is over 35 characters to avoid short string optimisation of `st
 | [spdlog](http://github.com/gabime/spdlog)                                         | 679  | 751  | 839  | 906  | 1132 |  1478  | 
 | [g3log](http://github.com/KjellKod/g3log)                                         | 4739 | 4955 | 5157 | 5284 | 5545 |  5898  |
 
-The benchmarks are done on `Ubuntu - Intel(R) Xeon(R) Gold 6254 CPU @ 3.10GHz` with GCC 12.2
+The benchmark was conducted on an Ubuntu system with an Intel Xeon Gold 6254 CPU running at 3.10GHz. The benchmark used GCC 12.2 as the compiler.
 
-Each thread is pinned on a **different** cpu. Unfortunately the cores are not isolated on this system.
-If the backend logging thread is run in the same CPU as the caller hot-path threads, that slows down the log message processing on the backend logging thread and will cause the SPSC queue to fill faster and re-allocate.
+To ensure accurate performance measurement, each thread was pinned to a different CPU. The cores are also isolated on this particular system.
 
-Continuously logging messages in a loop makes the consumer (backend logging thread) unable to follow up and the queue will have to re-allocate or block for most logging libraries expect very high throughput binary loggers like PlatformLab Nanolog.
+The benchmark methodology involved logging 20 messages in a loop, calculating and storing the average latency for those messages, waiting between 1-2 milliseconds, and repeating this process for a specified number of iterations.
 
-Therefore, a different approach was followed that suits more to a real time application:
+The benchmark was executed four times for each logging library, and the reported latencies represent the second-best result obtained.
 
-1. 20 messages are logged in a loop.
-2. calculate/store the average latency for those messages.
-3. wait between 1-2 ms.
-4. repeat for n iterations.
-
-I run each logger benchmark 4 times and the above latencies are the second-best result.
-
-The benchmark code and results can be found [here](http://github.com/odygrd/logger_benchmarks).
+You can find the benchmark code on the [logger_benchmarks](http://github.com/odygrd/logger_benchmarks) repository.
 
 ### Throughput
 
-The main focus of the library is not throughput. The backend logging thread is a single thread responsible for
-formatting, ordering the log messages from multiple hot threads and finally outputting everything as human-readable
-text.
-The logging thread always empties all the queues of the hot threads on the highest priority (to avoid allocating a new
-queue or dropping messages on the hot path). To achieve that, it internally buffers the log messages and then
-writes them later when the hot thread queues are empty or when a limit is
-reached `backend_thread_transit_events_soft_limit`.
+While the primary focus of the library is not on throughput, it does provide efficient handling of log messages across multiple threads. The backend logging thread, responsible for formatting and ordering log messages from hot threads, ensures that all queues are emptied on a high priority basis. This approach prevents the need for allocating new queues or dropping messages on the hot path. Instead, the backend thread internally buffers log messages and writes them when the hot thread queues are empty or when a predefined limit, `backend_thread_transit_events_soft_limit`, is reached.
 
-I haven't found an easy way to compare the throughput against other logging libraries while doing asynchronous logging.
-For example some libraries will drop the log messages ending in producing much smaller log files than the expected,
-other libraries only offer an async flush meaning that you never really know when the logging thread has finished
-processing everything.
+Comparing throughput with other logging libraries in an asynchronous logging scenario has proven challenging. Some libraries may drop log messages, resulting in smaller log files than expected, while others only offer asynchronous flush, making it difficult to determine when the logging thread has finished processing all messages.
 
-Quill has a blocking `flush()` guaranteeing every single log message from the hot threads up to that point is flushed to
-the file.
-The maximum throughput is measured as the max log messages number the backend logging thread can write to the file per
-second.
+In contrast, Quill provides a blocking `flush()` guarantee, ensuring that every log message from the hot threads up to that point is flushed to the file. The maximum throughput is measured by determining the maximum number of log messages the backend logging thread can write to the file per second.
 
-Benchmark code can be
-found [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throughput/quill_backend_throughput.cpp)
+For benchmarking purposes, you can find the code [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throughput/quill_backend_throughput.cpp). When measured on the same system as the latency benchmarks mentioned earlier, logging 4 million messages resulted in a log file size of 476 MB. The average throughput achieved was 1.76 million messages per second, with a total elapsed time of 2266 ms.
 
-Measured on the same system as the latency benchmarks above for 4 million messages produces a log file of 476 mb
-
-```
-1.76 million msgs/sec average, total time elapsed 2266 ms, total log messages 4 million
-```
+Please note that while Quill performs well in terms of throughput, its primary strength lies in its efficient handling of log messages across threads.
 
 ## Basic usage
 
@@ -333,10 +301,16 @@ target_link_libraries(my_project PRIVATE quill::quill)
 
 See [basic usage](#basic-usage)
 
-#### Windows dll
-To build the library as a shared library on windows pass the following CMake flags
+#### Building Quill as a Shared Library (DLL) on Windows
 
-```-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=ON```
+To build Quill as a shared library (DLL) on Windows, follow these steps:
+
+1. Add the following CMake flags when configuring the build:
+   ```
+   -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE -DBUILD_SHARED_LIBS=ON
+   ```
+
+2. Additionally, you need to define `QUILL_BUILD_SHARED` either in your code before including `Quill.h` or as a compiler flag when building outside of CMake.
 
 ## Design
 
