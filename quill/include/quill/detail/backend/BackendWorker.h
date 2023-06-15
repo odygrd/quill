@@ -899,7 +899,7 @@ std::byte* BackendWorker::_read_unbounded_queue(UnboundedQueue& queue, ThreadCon
       // we switched to a new here, and we also notify the user of the allocation via the
       // notification_handler
       _notification_handler(fmt::format(
-        "{} Quill INFO: A new SPSC queue has been allocated with a new capacity of {} bytes, and "
+        "{} Quill INFO: A new SPSC queue has been allocated with a new capacity of {} bytes and "
         "a previous capacity of {} bytes from thread {}",
         ts, allocation_info->first, allocation_info->second, thread_context->thread_id()));
     }
