@@ -153,26 +153,24 @@ public:
 
   /**
    * Increments the dropped message counter
-   * @note used only for bounded queue
    */
-  void increment_dropped_message_counter() noexcept
+  void increment_message_failure_counter() noexcept
   {
-    _dropped_message_counter.fetch_add(1, std::memory_order_relaxed);
+    _message_failure_counter.fetch_add(1, std::memory_order_relaxed);
   }
 
   /**
-   * If the message counter is greater than zero, this will return the value and reset the counter
-   * to 0. Called by the backend worker thread
-   * @note used only for bounded queue
-   * @return current value of the dropped message counter
+   * If the message failure counter is greater than zero, this will return the value and reset the
+   * counter Called by the backend worker thread
+   * @return current value of the message message counter
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_and_reset_message_counter() noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_and_reset_message_failure_counter() noexcept
   {
-    if (QUILL_LIKELY(_dropped_message_counter.load(std::memory_order_relaxed) == 0))
+    if (QUILL_LIKELY(_message_failure_counter.load(std::memory_order_relaxed) == 0))
     {
       return 0;
     }
-    return _dropped_message_counter.exchange(0, std::memory_order_relaxed);
+    return _message_failure_counter.exchange(0, std::memory_order_relaxed);
   }
 
 private:
@@ -181,6 +179,6 @@ private:
   std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                    /**< cache this thread name */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
-  alignas(CACHE_LINE_ALIGNED) std::atomic<size_t> _dropped_message_counter{0};
+  alignas(CACHE_LINE_ALIGNED) std::atomic<size_t> _message_failure_counter{0};
 };
 } // namespace quill::detail

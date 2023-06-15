@@ -154,35 +154,40 @@ public:
     std::byte* write_buffer =
       thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
 
-    if constexpr ((QUILL_QUEUE_TYPE == detail::QueueType::BoundedNonBlocking) ||
-                  (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping))
+    if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedNoMaxLimit)
+    {
+      assert(write_buffer && "UnboundedNonBlocking will always allocate and get new space");
+    }
+    else if constexpr ((QUILL_QUEUE_TYPE == detail::QueueType::BoundedNonBlocking) ||
+                       (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping))
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
         // not enough space to push to queue message is dropped
-        thread_context->increment_dropped_message_counter();
+        thread_context->increment_message_failure_counter();
         return;
       }
-    }
-    else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedNoMaxLimit)
-    {
-      assert(write_buffer && "UnboundedNonBlocking will always allocate and get new space");
     }
     else if constexpr ((QUILL_QUEUE_TYPE == detail::QueueType::BoundedBlocking) ||
                        (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedBlocking))
     {
-      while (write_buffer == nullptr)
+      if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
-        // not enough space to push to queue, keep trying
-        write_buffer =
-          thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
+        thread_context->increment_message_failure_counter();
+
+        do
+        {
+          // not enough space to push to queue, keep trying
+          write_buffer =
+            thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
+        } while (write_buffer == nullptr);
       }
     }
 
     // we have enough space in this buffer, and we will write to the buffer
 
     // Then write the pointer to the LogDataNode. The LogDataNode has all details on how to
-    // deserialize the object. We will just serialize the arguments in our queue but we need to
+    // deserialize the object. We will just serialize the arguments in our queue, but we need to
     // look up their types to deserialize them
 
     // Note: The metadata variable here is created during program init time,

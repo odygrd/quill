@@ -691,8 +691,7 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
     _has_unflushed_messages = true;
   }
 #if !defined(QUILL_NO_EXCEPTIONS)
-  QUILL_CATCH(std::exception const& e)
-  { _notification_handler(e.what()); }
+  QUILL_CATCH(std::exception const& e) { _notification_handler(e.what()); }
   QUILL_CATCH_ALL()
   {
     _notification_handler(std::string{"Caught unhandled exception."});
@@ -815,6 +814,60 @@ void BackendWorker::_force_flush(std::vector<std::weak_ptr<Handler>> const& acti
     }
 
     _has_unflushed_messages = false;
+  }
+}
+
+/***/
+void BackendWorker::_check_dropped_messages(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
+                                            backend_worker_notification_handler_t const& notification_handler) noexcept
+{
+  if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedNoMaxLimit)
+  {
+    // UnboundedNoMaxLimit does not block or drop messages
+    return;
+  }
+
+  for (ThreadContext* thread_context : cached_thread_contexts)
+  {
+    size_t const failed_messages_cnt = thread_context->get_and_reset_message_failure_counter();
+
+    if (QUILL_UNLIKELY(failed_messages_cnt > 0))
+    {
+      char ts[24];
+      time_t t = time(nullptr);
+      struct tm p;
+      quill::detail::localtime_rs(std::addressof(t), std::addressof(p));
+      strftime(ts, 24, "%X", std::addressof(p));
+
+      if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedNonBlocking)
+      {
+        notification_handler(
+          fmt::format("{} Quill INFO: BoundedNonBlocking queue dropped {} "
+                      "log messages from thread {}\n",
+                      ts, failed_messages_cnt, thread_context->thread_id()));
+      }
+      else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping)
+      {
+        notification_handler(
+          fmt::format("{} Quill INFO: UnboundedDropping queue dropped {} "
+                      "log messages from thread {}\n",
+                      ts, failed_messages_cnt, thread_context->thread_id()));
+      }
+      else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedBlocking)
+      {
+        notification_handler(
+          fmt::format("{} Quill INFO: BoundedBlocking queue thread {} "
+                      "experienced {} blocking occurrences\n",
+                      ts, thread_context->thread_id(), failed_messages_cnt));
+      }
+      else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedBlocking)
+      {
+        notification_handler(
+          fmt::format("{} Quill INFO: UnboundedBlocking queue thread {} "
+                      "experienced {} blocking occurrences\n",
+                      ts, thread_context->thread_id(), failed_messages_cnt));
+      }
+    }
   }
 }
 
