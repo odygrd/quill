@@ -96,7 +96,7 @@ Additionally, you can explore the [examples](http://github.com/odygrd/quill/tree
 - **Wide Character Support**: Log messages and filenames with wide characters are supported (Windows and v1.7.x only).
 - **Ordered Log Statements**: Log statements are ordered by timestamp even when produced by different threads, facilitating easier debugging of multithreaded applications.
 - **Compile-Time Log Level Stripping**: Completely strip out log levels at compile time, reducing `if` branches.
-- **Clean and Warning-Free Codebase**: Ensure a clean and warning-free codebase, even with high warning levels.
+- **Clean and Warning-Free Codebase**: Ensure a clean and warning-free codebase, even with high compiler warning levels.
 - **Crash-Safe Behavior**: Benefit from crash-safe behavior with a built-in signal handler.
 - **Type-Safe Python-Style API**: Utilize a type-safe API inspired by Python, with compile-time checks and built-in support for logging STL types/containers using the excellent [{fmt}](http://github.com/fmtlib/fmt) library.
 - **Support for Huge Pages**: Benefit from support for huge pages on the hot path. This feature allows for improved performance and efficiency.
