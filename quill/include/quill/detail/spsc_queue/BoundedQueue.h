@@ -16,9 +16,12 @@
 #if defined(QUILL_X86ARCH)
   #if defined(_WIN32)
     #include <intrin.h>
-  #elif (defined(__GNUC__) && __GNUC__ > 10) || (defined(__clang_major__) && __clang_major__ > 11)
+  #elif defined(__GNUC__) && __GNUC__ > 10
     #include <emmintrin.h>
     #include <x86gprintrin.h>
+  #elif defined(__clang_major__)
+    // clang needs immintrin for _mm_clflushopt
+    #include <immintrin.h>
   #else
     // older compiler versions do not have <x86gprintrin.h>
     #include <immintrin.h>
