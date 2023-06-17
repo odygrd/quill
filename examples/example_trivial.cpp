@@ -1,5 +1,8 @@
 #include "quill/Quill.h"
 
+#include <chrono>
+#include <thread>
+
 /**
  * Trivial logging example
  */
@@ -99,4 +102,11 @@ int main()
   }
 
   LOG_INFO(default_logger, "Existing logger names {}", logger_names);
+
+  for (uint64_t i = 0; i < 10; ++i)
+  {
+    LOG_INFO_LIMIT(2000, default_logger,
+                   "log in a loop with limit 1 message every 2000 micros for i {}", i);
+    std::this_thread::sleep_for(std::chrono::microseconds{1000});
+  }
 }

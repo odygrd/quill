@@ -1,3 +1,4 @@
+- [v3.1.0](#v310)
 - [v3.0.2](#v302)
 - [v3.0.1](#v301)
 - [v3.0.0](#v300)
@@ -45,6 +46,18 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v3.1.0
+
+- It is now possible to set a minimum logging interval for specific logs. For example:
+
+```c++
+  for (uint64_t i = 0; i < 10; ++i)
+  {
+    LOG_INFO_LIMIT(2000, default_logger, "log in a loop with limit 1 message every 2000 micros for i {}", i);
+    std::this_thread::sleep_for(std::chrono::microseconds{1000});
+  }
+```
 
 ## v3.0.2
 

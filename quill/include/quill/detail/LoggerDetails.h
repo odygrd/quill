@@ -69,7 +69,7 @@ public:
   }
 
   /**
-   * @return a vector of all handlers of this logger, called by the backend worker thread
+   * @return the timestamp clock time of this logger
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT TimestampClockType timestamp_clock_type() const noexcept
   {
