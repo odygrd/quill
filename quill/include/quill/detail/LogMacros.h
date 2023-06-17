@@ -65,22 +65,22 @@
     }                                                                                              \
   } while (0)
 
-#define QUILL_LOGGER_CALL_LIMIT(min_interval_us, likelyhood, logger, log_statement_level, fmt, ...)     \
-  do                                                                                                    \
-  {                                                                                                     \
-    if (likelyhood(logger->template should_log<log_statement_level>()))                                 \
-    {                                                                                                   \
-      static std::atomic<std::chrono::time_point<std::chrono::steady_clock>> limit_us;                  \
-      auto const now = std::chrono::steady_clock::now();                                                \
-                                                                                                        \
-      if (now - limit_us.load(std::memory_order_relaxed) <= std::chrono::microseconds{min_interval_us}) \
-      {                                                                                                 \
-        break;                                                                                          \
-      }                                                                                                 \
-                                                                                                        \
-      limit_us.store(now + std::chrono::microseconds{min_interval_us}, std::memory_order_relaxed);      \
-      QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ##__VA_ARGS__);                   \
-    }                                                                                                   \
+#define QUILL_LOGGER_CALL_LIMIT(min_interval_us, likelyhood, logger, log_statement_level, fmt, ...) \
+  do                                                                                                \
+  {                                                                                                 \
+    if (likelyhood(logger->template should_log<log_statement_level>()))                             \
+    {                                                                                               \
+      thread_local std::chrono::time_point<std::chrono::steady_clock> limit_us;                     \
+      auto const now = std::chrono::steady_clock::now();                                            \
+                                                                                                    \
+      if (now < limit_us)                                                                           \
+      {                                                                                             \
+        break;                                                                                      \
+      }                                                                                             \
+                                                                                                    \
+      limit_us = now + std::chrono::microseconds{min_interval_us};                                  \
+      QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ##__VA_ARGS__);               \
+    }                                                                                               \
   } while (0)
 
 #define QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval_us, likelyhood, logger, log_statement_level, fmt, ...) \
@@ -88,15 +88,15 @@
   {                                                                                                      \
     if (likelyhood(logger->template should_log<log_statement_level>()))                                  \
     {                                                                                                    \
-      static std::atomic<std::chrono::time_point<std::chrono::steady_clock>> limit_us;                   \
+      thread_local std::chrono::time_point<std::chrono::steady_clock> limit_us;                          \
       auto const now = std::chrono::steady_clock::now();                                                 \
                                                                                                          \
-      if (now - limit_us.load(std::memory_order_relaxed) <= std::chrono::microseconds{min_interval_us})  \
+      if (now < limit_us)                                                                                \
       {                                                                                                  \
         break;                                                                                           \
       }                                                                                                  \
                                                                                                          \
-      limit_us.store(now + std::chrono::microseconds{min_interval_us}, std::memory_order_relaxed);       \
+      limit_us = now + std::chrono::microseconds{min_interval_us};                                       \
       QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ##__VA_ARGS__);               \
     }                                                                                                    \
   } while (0)
