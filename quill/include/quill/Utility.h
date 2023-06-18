@@ -5,9 +5,9 @@
 
 #pragma once
 
+#include "quill/Fmt.h"
 #include "quill/detail/misc/Attributes.h"
 #include <cstddef>
-#include <sstream>
 #include <string>
 
 /**
@@ -51,8 +51,6 @@ QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
 template <typename T>
 QUILL_NODISCARD std::string to_string(T const& obj) noexcept
 {
-  std::stringstream ss;
-  ss << obj;
-  return ss.str();
+  return fmt::to_string(obj);
 }
 } // namespace quill::utility

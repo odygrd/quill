@@ -59,6 +59,8 @@
   }
 ```
 
+- `quill::utility::to_string()` now uses `fmt::to_string()`
+
 ## v3.0.2
 
 - Add missing header on clang when `QUILL_X86ARCH` is defined.
