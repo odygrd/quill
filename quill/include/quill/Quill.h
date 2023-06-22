@@ -58,7 +58,7 @@ QUILL_ATTRIBUTE_COLD inline void preallocate()
  * @param config configuration
  * @note Has to be called before quill::start()
  */
-QUILL_ATTRIBUTE_COLD void configure(Config& config);
+QUILL_ATTRIBUTE_COLD void configure(Config const& config);
 
 /**
  * Starts the backend thread to write the logs to the handlers.
