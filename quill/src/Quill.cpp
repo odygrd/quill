@@ -21,7 +21,7 @@ namespace quill
 Logger* _g_root_logger = nullptr;
 
 /***/
-QUILL_ATTRIBUTE_COLD void configure(Config& config)
+QUILL_ATTRIBUTE_COLD void configure(Config const& config)
 {
   if (detail::LogManagerSingleton::instance().log_manager().backend_worker_is_running())
   {
