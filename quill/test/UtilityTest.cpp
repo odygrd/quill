@@ -2,6 +2,7 @@
 
 #include "quill/Utility.h"
 #include <cstring>
+#include <cstdint>
 
 TEST_SUITE_BEGIN("Utility");
 
