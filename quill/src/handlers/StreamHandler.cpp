@@ -36,11 +36,11 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
       if (ec)
       {
 #if QUILL_HAS_EXPERIMENTAL_FILESYSTEM
-        QUILL_THROW(QuillError{fmt::format("cannot create directories for {}, error: {}",
-                                           parent_path.c_str(), ec.message())});
+        QUILL_THROW(QuillError{fmtquill::format("cannot create directories for {}, error: {}",
+                                                parent_path.c_str(), ec.message())});
 #else
-        QUILL_THROW(QuillError{
-          fmt::format("cannot create directories for {}, error: {}", parent_path, ec.message())});
+        QUILL_THROW(QuillError{fmtquill::format("cannot create directories for {}, error: {}",
+                                                parent_path, ec.message())});
 #endif
       }
     }
@@ -55,11 +55,11 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
     if (ec)
     {
 #if QUILL_HAS_EXPERIMENTAL_FILESYSTEM
-      QUILL_THROW(QuillError{fmt::format("cannot make canonical path for {}, error: {}",
-                                         parent_path.c_str(), ec.message())});
+      QUILL_THROW(QuillError{fmtquill::format("cannot make canonical path for {}, error: {}",
+                                              parent_path.c_str(), ec.message())});
 #else
-      QUILL_THROW(QuillError{fmt::format("cannot make canonical path for {}, error: {}",
-                                            parent_path, ec.message())});
+      QUILL_THROW(QuillError{fmtquill::format("cannot make canonical path for {}, error: {}",
+                                              parent_path, ec.message())});
 #endif
     }
 

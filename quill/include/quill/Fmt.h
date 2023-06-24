@@ -16,17 +16,25 @@
   #include <fmt/format.h>
   #include <fmt/ostream.h>
   #include <fmt/ranges.h>
+
+  #define QUILL_FMT_VERSION FMT_VERSION
+  #define QUILL_FMT_STRING FMT_STRING
+
+namespace fmtquill = fmt;
 #else
   #include "quill/bundled/fmt/chrono.h"
   #include "quill/bundled/fmt/format.h"
   #include "quill/bundled/fmt/ostream.h"
   #include "quill/bundled/fmt/ranges.h"
+
+  #define QUILL_FMT_VERSION FMTQUILL_VERSION
+  #define QUILL_FMT_STRING FMTQUILL_STRING
 #endif
 
 /**
  * Also include additional files due to recent fmt versions
  */
-#if FMT_VERSION > 70103
+#if QUILL_FMT_VERSION > 70103
   #if defined(QUILL_FMT_EXTERNAL)
     #include <fmt/args.h>
     #include <fmt/xchar.h>
@@ -39,7 +47,7 @@
 /**
  * Also include additional files due to recent fmt versions
  */
-#if FMT_VERSION >= 90000
+#if QUILL_FMT_VERSION >= 90000
   #if defined(QUILL_FMT_EXTERNAL)
     #include <fmt/std.h>
   #else

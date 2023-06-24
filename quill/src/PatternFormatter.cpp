@@ -40,14 +40,15 @@ PatternFormatter::Attribute attribute_from_string(std::string const& attribute_n
 
 /***/
 template <size_t, size_t>
-constexpr void _store_named_args(std::array<fmt::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS>&)
+constexpr void _store_named_args(std::array<fmtquill::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS>&)
 {
 }
 
 /***/
 template <size_t Idx, size_t NamedIdx, typename Arg, typename... Args>
-constexpr void _store_named_args(std::array<fmt::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS>& named_args_store,
-                                 const Arg& arg, const Args&... args)
+constexpr void _store_named_args(
+  std::array<fmtquill::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS>& named_args_store,
+  const Arg& arg, const Args&... args)
 {
   named_args_store[NamedIdx] = {arg.name, Idx};
   _store_named_args<Idx + 1, NamedIdx + 1>(named_args_store, args...);
@@ -89,7 +90,7 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
   std::array<size_t, PatternFormatter::Attribute::ATTR_NR_ITEMS> order_index{};
   order_index.fill(PatternFormatter::Attribute::ATTR_NR_ITEMS - 1);
 
-  std::array<fmt::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS> named_args{};
+  std::array<fmtquill::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS> named_args{};
   _store_named_args<0, 0>(named_args, args...);
   uint8_t arg_idx = 0;
 
@@ -194,7 +195,7 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
   format_pattern += "\n";
 
   // the order we pass the arguments here must match with the order of Attribute enum
-  using namespace fmt::literals;
+  using namespace fmtquill::literals;
   std::tie(_format, _order_index) = _generate_fmt_format_string(
     _is_set_in_pattern, std::string{format_pattern}, "ascii_time"_a = "", "filename"_a = "",
     "function_name"_a = "", "level_name"_a = "", "level_id"_a = "", "lineno"_a = "",
@@ -294,8 +295,8 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
 
   _set_arg_val<Attribute::Message>(std::string_view{log_msg.begin(), log_msg.size()});
 
-  fmt::vformat_to(std::back_inserter(_formatted_log_message), _format,
-                  fmt::basic_format_args(_args.data(), static_cast<int>(_args.size())));
+  fmtquill::vformat_to(std::back_inserter(_formatted_log_message), _format,
+                       fmtquill::basic_format_args(_args.data(), static_cast<int>(_args.size())));
 
   return _formatted_log_message;
 }

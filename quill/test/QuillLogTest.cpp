@@ -361,7 +361,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
-        FAIL(fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data());
+        FAIL(fmtquill::format("expected [{}] is not in results [{}]", expected_string, result_arr).data());
       }
     }
     else
@@ -371,7 +371,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
-        FAIL(fmt::format("expected [{}] is not in results [{}]", expected_string, result_arr).data());
+        FAIL(fmtquill::format("expected [{}] is not in results [{}]", expected_string, result_arr).data());
       }
     }
   }
@@ -524,7 +524,7 @@ std::ostream& operator<<(std::ostream& os, const RawEnum& raw_enum)
 }
 
 template <>
-struct fmt::formatter<RawEnum> : ostream_formatter
+struct fmtquill::formatter<RawEnum> : ostream_formatter
 {
 };
 
@@ -556,7 +556,7 @@ std::ostream& operator<<(std::ostream& os, const EnumClass& enum_class)
 }
 
 template <>
-struct fmt::formatter<EnumClass> : ostream_formatter
+struct fmtquill::formatter<EnumClass> : ostream_formatter
 {
 };
 

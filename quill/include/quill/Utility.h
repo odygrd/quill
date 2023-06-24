@@ -51,6 +51,6 @@ QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
 template <typename T>
 QUILL_NODISCARD std::string to_string(T const& obj) noexcept
 {
-  return fmt::to_string(obj);
+  return fmtquill::to_string(obj);
 }
 } // namespace quill::utility

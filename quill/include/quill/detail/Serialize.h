@@ -77,14 +77,14 @@ QUILL_NODISCARD inline constexpr bool need_call_dtor_for()
 
 template <size_t DestructIdx>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
-  std::byte* in, std::vector<fmt::basic_format_arg<fmt::format_context>>&, std::byte**)
+  std::byte* in, std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>&, std::byte**)
 {
   return in;
 }
 
 template <size_t DestructIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
-  std::byte* in, std::vector<fmt::basic_format_arg<fmt::format_context>>& args, std::byte** destruct_args)
+  std::byte* in, std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args, std::byte** destruct_args)
 {
   using ArgType = detail::remove_cvref_t<Arg>;
 
@@ -92,7 +92,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
   {
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, strlen(str)};
-    args.emplace_back(fmt::detail::make_arg<fmt::format_context>(v));
+    args.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(v));
     return decode_args<DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
   }
   else if constexpr (is_type_of_string<Arg>())
@@ -106,7 +106,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
     // retrieve the rest of the string
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, len};
-    args.emplace_back(fmt::detail::make_arg<fmt::format_context>(v));
+    args.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(v));
     return decode_args<DestructIdx, Args...>(in + v.length(), args, destruct_args);
   }
 #if defined(_WIN32)
@@ -120,7 +120,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
 
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, len};
-    args.emplace_back(fmt::detail::make_arg<fmt::format_context>(v));
+    args.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(v));
     return decode_args<DestructIdx, Args...>(in + v.length(), args, destruct_args);
   }
 #endif
@@ -129,7 +129,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
     // no need to align for chars, but align for any other type
     in = detail::align_pointer<alignof(Arg), std::byte>(in);
 
-    args.emplace_back(fmt::detail::make_arg<fmt::format_context>(*reinterpret_cast<ArgType*>(in)));
+    args.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(*reinterpret_cast<ArgType*>(in)));
 
     if constexpr (need_call_dtor_for<Arg>())
     {
@@ -186,7 +186,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_st
   {
     // for std::string we also need to store the size in order to correctly retrieve it
     // the reason for this is that if we create e.g:
-    // std::string msg = fmt::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
+    // std::string msg = fmtquill::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
     // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
     return (arg.size() + sizeof(size_t)) + alignof(size_t) +
       get_args_sizes<CstringIdx>(c_string_sizes, args...);
@@ -290,21 +290,22 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
  * Format function
  */
 using FormatToFn = std::byte* (*)(std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
-                                  std::vector<fmt::basic_format_arg<fmt::format_context>>& args);
+                                  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args);
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(std::string_view format, std::byte* data,
-                                                         transit_event_fmt_buffer_t& out,
-                                                         std::vector<fmt::basic_format_arg<fmt::format_context>>& args)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(
+  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
+  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args)
 {
-  constexpr size_t num_dtors = fmt::detail::count<need_call_dtor_for<Args>()...>();
+  constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
   std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
 
   args.clear();
   std::byte* ret = decode_args<0, Args...>(data, args, dtor_args);
 
   out.clear();
-  fmt::vformat_to(std::back_inserter(out), format, fmt::basic_format_args(args.data(), sizeof...(Args)));
+  fmtquill::vformat_to(std::back_inserter(out), format,
+                       fmtquill::basic_format_args(args.data(), sizeof...(Args)));
 
   destruct_args<0, Args...>(dtor_args);
 

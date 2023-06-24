@@ -21,19 +21,18 @@
     static constexpr char const* function_name = __FUNCTION__;                                     \
     struct                                                                                         \
     {                                                                                              \
-      constexpr quill::MacroMetadata operator()() const noexcept                                   \
-      {                                                                                            \
-        return quill::MacroMetadata{                                                               \
-          "~", "QuillSignalHandler.cpp", "QuillSignalHandler.cpp",         function_name,          \
-          fmt,  log_statement_level,      quill::MacroMetadata::Event::Log,                        \
-          false};                                                                                  \
-      }                                                                                            \
-    } anonymous_log_message_info;                                                                  \
-                                                                                                   \
-    if (logger->template should_log<log_statement_level>())                                        \
-    {                                                                                              \
-      logger->template log<decltype(anonymous_log_message_info)>(FMT_STRING(fmt), ##__VA_ARGS__);  \
-    }                                                                                              \
+      constexpr quill::MacroMetadata operator()() const noexcept                                        \
+      {                                                                                                 \
+        return quill::MacroMetadata{                                                                    \
+          "~", "QuillSignalHandler.cpp", "QuillSignalHandler.cpp",         function_name,               \
+          fmt, log_statement_level,      quill::MacroMetadata::Event::Log, false};                      \
+      }                                                                                                 \
+    } anonymous_log_message_info;                                                                       \
+                                                                                                        \
+    if (logger->template should_log<log_statement_level>())                                             \
+    {                                                                                                   \
+      logger->template log<decltype(anonymous_log_message_info)>(QUILL_FMT_STRING(fmt), ##__VA_ARGS__); \
+    }                                                                                                   \
   } while (0)
 
 namespace quill::detail

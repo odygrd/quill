@@ -201,7 +201,7 @@ private:
   size_t _transit_events_soft_limit; /** limit of transit events before start flushing, value from config */
   size_t _thread_transit_events_hard_limit; /** limit for the transit event buffer value from config */
 
-  std::vector<fmt::basic_format_arg<fmt::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
+  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
@@ -567,7 +567,7 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         structured_values.reserve(s_keys->size());
         for (auto const& arg : _args)
         {
-          structured_values.emplace_back(fmt::vformat("{}", fmt::basic_format_args(&arg, 1)));
+          structured_values.emplace_back(fmtquill::vformat("{}", fmtquill::basic_format_args(&arg, 1)));
         }
 
         // store them as kv pair
@@ -851,30 +851,30 @@ void BackendWorker::_check_message_failures(ThreadContextCollection::backend_thr
       if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedNonBlocking)
       {
         notification_handler(
-          fmt::format("{} Quill INFO: BoundedNonBlocking queue dropped {} "
-                      "log messages from thread {}",
-                      ts, failed_messages_cnt, thread_context->thread_id()));
+          fmtquill::format("{} Quill INFO: BoundedNonBlocking queue dropped {} "
+                           "log messages from thread {}",
+                           ts, failed_messages_cnt, thread_context->thread_id()));
       }
       else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping)
       {
         notification_handler(
-          fmt::format("{} Quill INFO: UnboundedDropping queue dropped {} "
-                      "log messages from thread {}",
-                      ts, failed_messages_cnt, thread_context->thread_id()));
+          fmtquill::format("{} Quill INFO: UnboundedDropping queue dropped {} "
+                           "log messages from thread {}",
+                           ts, failed_messages_cnt, thread_context->thread_id()));
       }
       else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedBlocking)
       {
         notification_handler(
-          fmt::format("{} Quill INFO: BoundedBlocking queue thread {} "
-                      "experienced {} blocking occurrences",
-                      ts, thread_context->thread_id(), failed_messages_cnt));
+          fmtquill::format("{} Quill INFO: BoundedBlocking queue thread {} "
+                           "experienced {} blocking occurrences",
+                           ts, thread_context->thread_id(), failed_messages_cnt));
       }
       else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedBlocking)
       {
         notification_handler(
-          fmt::format("{} Quill INFO: UnboundedBlocking queue thread {} "
-                      "experienced {} blocking occurrences",
-                      ts, thread_context->thread_id(), failed_messages_cnt));
+          fmtquill::format("{} Quill INFO: UnboundedBlocking queue thread {} "
+                           "experienced {} blocking occurrences",
+                           ts, thread_context->thread_id(), failed_messages_cnt));
       }
     }
   }
@@ -898,7 +898,7 @@ std::byte* BackendWorker::_read_unbounded_queue(UnboundedQueue& queue, ThreadCon
 
       // we switched to a new here, and we also notify the user of the allocation via the
       // notification_handler
-      _notification_handler(fmt::format(
+      _notification_handler(fmtquill::format(
         "{} Quill INFO: A new SPSC queue has been allocated with a new capacity of {} bytes and "
         "a previous capacity of {} bytes from thread {}",
         ts, allocation_info->first, allocation_info->second, thread_context->thread_id()));

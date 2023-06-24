@@ -146,7 +146,7 @@ std::string_view TimestampFormatter::format_timestamp(std::chrono::nanoseconds t
 void TimestampFormatter::_append_fractional_seconds(uint32_t extracted_fractional_seconds)
 {
   // Format the seconds and add them
-  fmt::format_int extracted_ms_string{extracted_fractional_seconds};
+  fmtquill::format_int extracted_ms_string{extracted_fractional_seconds};
 
   // _formatted_date.size() - extracted_ms_string.size() is where we want to begin placing the fractional seconds
   memcpy(&_formatted_date[_formatted_date.size() - extracted_ms_string.size()],
