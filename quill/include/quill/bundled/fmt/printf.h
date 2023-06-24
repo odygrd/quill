@@ -5,16 +5,16 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_PRINTF_H_
-#define FMT_PRINTF_H_
+#ifndef FMTQUILL_PRINTF_H_
+#define FMTQUILL_PRINTF_H_
 
 #include <algorithm>  // std::max
 #include <limits>     // std::numeric_limits
 
 #include "format.h"
 
-FMT_BEGIN_NAMESPACE
-FMT_BEGIN_EXPORT
+FMTQUILL_BEGIN_NAMESPACE
+FMTQUILL_BEGIN_EXPORT
 
 template <typename T> struct printf_formatter { printf_formatter() = delete; };
 
@@ -51,12 +51,12 @@ template <typename OutputIt, typename Char> class basic_printf_context {
 
   format_arg arg(int id) const { return args_.get(id); }
 
-  FMT_CONSTEXPR void on_error(const char* message) {
+  FMTQUILL_CONSTEXPR void on_error(const char* message) {
     detail::error_handler().on_error(message);
   }
 };
 
-FMT_BEGIN_DETAIL_NAMESPACE
+FMTQUILL_BEGIN_DETAIL_NAMESPACE
 
 // Checks if a value fits in int - used to avoid warnings about comparing
 // signed and unsigned integers.
@@ -78,14 +78,14 @@ template <> struct int_checker<true> {
 
 class printf_precision_handler {
  public:
-  template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(std::is_integral<T>::value)>
   int operator()(T value) {
     if (!int_checker<std::numeric_limits<T>::is_signed>::fits_in_int(value))
       throw_format_error("number is too big");
     return (std::max)(static_cast<int>(value), 0);
   }
 
-  template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(!std::is_integral<T>::value)>
   int operator()(T) {
     throw_format_error("precision is not integer");
     return 0;
@@ -95,12 +95,12 @@ class printf_precision_handler {
 // An argument visitor that returns true iff arg is a zero integer.
 class is_zero_int {
  public:
-  template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(std::is_integral<T>::value)>
   bool operator()(T value) {
     return value == 0;
   }
 
-  template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(!std::is_integral<T>::value)>
   bool operator()(T) {
     return false;
   }
@@ -125,7 +125,7 @@ template <typename T, typename Context> class arg_converter {
     if (type_ != 's') operator()<bool>(value);
   }
 
-  template <typename U, FMT_ENABLE_IF(std::is_integral<U>::value)>
+  template <typename U, FMTQUILL_ENABLE_IF(std::is_integral<U>::value)>
   void operator()(U value) {
     bool is_signed = type_ == 'd' || type_ == 'i';
     using target_type = conditional_t<std::is_same<T, void>::value, U, T>;
@@ -153,7 +153,7 @@ template <typename T, typename Context> class arg_converter {
     }
   }
 
-  template <typename U, FMT_ENABLE_IF(!std::is_integral<U>::value)>
+  template <typename U, FMTQUILL_ENABLE_IF(!std::is_integral<U>::value)>
   void operator()(U) {}  // No conversion needed for non-integral types.
 };
 
@@ -174,13 +174,13 @@ template <typename Context> class char_converter {
  public:
   explicit char_converter(basic_format_arg<Context>& arg) : arg_(arg) {}
 
-  template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(std::is_integral<T>::value)>
   void operator()(T value) {
     auto c = static_cast<typename Context::char_type>(value);
     arg_ = detail::make_arg<Context>(c);
   }
 
-  template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(!std::is_integral<T>::value)>
   void operator()(T) {}  // No conversion needed for non-integral types.
 };
 
@@ -200,7 +200,7 @@ template <typename Char> class printf_width_handler {
  public:
   explicit printf_width_handler(format_specs<Char>& specs) : specs_(specs) {}
 
-  template <typename T, FMT_ENABLE_IF(std::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(std::is_integral<T>::value)>
   unsigned operator()(T value) {
     auto width = static_cast<uint32_or_64_or_128_t<T>>(value);
     if (detail::is_negative(value)) {
@@ -212,7 +212,7 @@ template <typename Char> class printf_width_handler {
     return static_cast<unsigned>(width);
   }
 
-  template <typename T, FMT_ENABLE_IF(!std::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(!std::is_integral<T>::value)>
   unsigned operator()(T) {
     throw_format_error("width is not integer");
     return 0;
@@ -248,7 +248,7 @@ class printf_arg_formatter : public arg_formatter<Char> {
 
   OutputIt operator()(monostate value) { return base::operator()(value); }
 
-  template <typename T, FMT_ENABLE_IF(detail::is_integral<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(detail::is_integral<T>::value)>
   OutputIt operator()(T value) {
     // MSVC2013 fails to compile separate overloads for bool and Char so use
     // std::is_same instead.
@@ -270,7 +270,7 @@ class printf_arg_formatter : public arg_formatter<Char> {
     return base::operator()(value);
   }
 
-  template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(std::is_floating_point<T>::value)>
   OutputIt operator()(T value) {
     return base::operator()(value);
   }
@@ -558,7 +558,7 @@ void vprintf(buffer<Char>& buf, basic_string_view<Char> format,
   }
   write(out, basic_string_view<Char>(start, to_unsigned(it - start)));
 }
-FMT_END_DETAIL_NAMESPACE
+FMTQUILL_END_DETAIL_NAMESPACE
 
 template <typename Char>
 using basic_printf_context_t =
@@ -572,8 +572,8 @@ using wprintf_args = basic_format_args<wprintf_context>;
 
 /**
   \rst
-  Constructs an `~fmt::format_arg_store` object that contains references to
-  arguments and can be implicitly converted to `~fmt::printf_args`.
+  Constructs an `~fmtquill::format_arg_store` object that contains references to
+  arguments and can be implicitly converted to `~fmtquill::printf_args`.
   \endrst
  */
 template <typename... T>
@@ -584,8 +584,8 @@ inline auto make_printf_args(const T&... args)
 
 /**
   \rst
-  Constructs an `~fmt::format_arg_store` object that contains references to
-  arguments and can be implicitly converted to `~fmt::wprintf_args`.
+  Constructs an `~fmtquill::format_arg_store` object that contains references to
+  arguments and can be implicitly converted to `~fmtquill::wprintf_args`.
   \endrst
  */
 template <typename... T>
@@ -610,7 +610,7 @@ inline auto vsprintf(
 
   **Example**::
 
-    std::string message = fmt::sprintf("The answer is %d", 42);
+    std::string message = fmtquill::sprintf("The answer is %d", 42);
   \endrst
 */
 template <typename S, typename... T,
@@ -618,7 +618,7 @@ template <typename S, typename... T,
 inline auto sprintf(const S& fmt, const T&... args) -> std::basic_string<Char> {
   using context = basic_printf_context_t<Char>;
   return vsprintf(detail::to_string_view(fmt),
-                  fmt::make_format_args<context>(args...));
+                  fmtquill::make_format_args<context>(args...));
 }
 
 template <typename S, typename Char = char_t<S>>
@@ -640,14 +640,14 @@ inline auto vfprintf(
 
   **Example**::
 
-    fmt::fprintf(stderr, "Don't %s!", "panic");
+    fmtquill::fprintf(stderr, "Don't %s!", "panic");
   \endrst
  */
 template <typename S, typename... T, typename Char = char_t<S>>
 inline auto fprintf(std::FILE* f, const S& fmt, const T&... args) -> int {
   using context = basic_printf_context_t<Char>;
   return vfprintf(f, detail::to_string_view(fmt),
-                  fmt::make_format_args<context>(args...));
+                  fmtquill::make_format_args<context>(args...));
 }
 
 template <typename S, typename Char = char_t<S>>
@@ -664,17 +664,17 @@ inline auto vprintf(
 
   **Example**::
 
-    fmt::printf("Elapsed time: %.2f seconds", 1.23);
+    fmtquill::printf("Elapsed time: %.2f seconds", 1.23);
   \endrst
  */
-template <typename S, typename... T, FMT_ENABLE_IF(detail::is_string<S>::value)>
+template <typename S, typename... T, FMTQUILL_ENABLE_IF(detail::is_string<S>::value)>
 inline auto printf(const S& fmt, const T&... args) -> int {
   return vprintf(
       detail::to_string_view(fmt),
-      fmt::make_format_args<basic_printf_context_t<char_t<S>>>(args...));
+      fmtquill::make_format_args<basic_printf_context_t<char_t<S>>>(args...));
 }
 
-FMT_END_EXPORT
-FMT_END_NAMESPACE
+FMTQUILL_END_EXPORT
+FMTQUILL_END_NAMESPACE
 
-#endif  // FMT_PRINTF_H_
+#endif  // FMTQUILL_PRINTF_H_

@@ -5,8 +5,8 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_STD_H_
-#define FMT_STD_H_
+#ifndef FMTQUILL_STD_H_
+#define FMTQUILL_STD_H_
 
 #include <cstdlib>
 #include <exception>
@@ -18,34 +18,34 @@
 
 #include "ostream.h"
 
-#if FMT_HAS_INCLUDE(<version>)
+#if FMTQUILL_HAS_INCLUDE(<version>)
 #  include <version>
 #endif
-// Checking FMT_CPLUSPLUS for warning suppression in MSVC.
-#if FMT_CPLUSPLUS >= 201703L
-#  if FMT_HAS_INCLUDE(<filesystem>)
+// Checking FMTQUILL_CPLUSPLUS for warning suppression in MSVC.
+#if FMTQUILL_CPLUSPLUS >= 201703L
+#  if FMTQUILL_HAS_INCLUDE(<filesystem>)
 #    include <filesystem>
 #  endif
-#  if FMT_HAS_INCLUDE(<variant>)
+#  if FMTQUILL_HAS_INCLUDE(<variant>)
 #    include <variant>
 #  endif
-#  if FMT_HAS_INCLUDE(<optional>)
+#  if FMTQUILL_HAS_INCLUDE(<optional>)
 #    include <optional>
 #  endif
 #endif
 
-// GCC 4 does not support FMT_HAS_INCLUDE.
-#if FMT_HAS_INCLUDE(<cxxabi.h>) || defined(__GLIBCXX__)
+// GCC 4 does not support FMTQUILL_HAS_INCLUDE.
+#if FMTQUILL_HAS_INCLUDE(<cxxabi.h>) || defined(__GLIBCXX__)
 #  include <cxxabi.h>
 // Android NDK with gabi++ library on some architectures does not implement
 // abi::__cxa_demangle().
 #  ifndef __GABIXX_CXXABI_H__
-#    define FMT_HAS_ABI_CXA_DEMANGLE
+#    define FMTQUILL_HAS_ABI_CXA_DEMANGLE
 #  endif
 #endif
 
 #ifdef __cpp_lib_filesystem
-FMT_BEGIN_NAMESPACE
+FMTQUILL_BEGIN_NAMESPACE
 
 namespace detail {
 
@@ -62,7 +62,7 @@ inline void write_escaped_path<char>(memory_buffer& quoted,
   write_escaped_string<wchar_t>(std::back_inserter(buf), p.native());
   // Convert UTF-16 to UTF-8.
   if (!to_utf8<wchar_t>::convert(quoted, {buf.data(), buf.size()}))
-    FMT_THROW(std::runtime_error("invalid utf16"));
+    FMTQUILL_THROW(std::runtime_error("invalid utf16"));
 }
 #  endif
 template <>
@@ -75,11 +75,11 @@ inline void write_escaped_path<std::filesystem::path::value_type>(
 
 }  // namespace detail
 
-FMT_MODULE_EXPORT
+FMTQUILL_MODULE_EXPORT
 template <typename Char>
 struct formatter<std::filesystem::path, Char>
     : formatter<basic_string_view<Char>> {
-  template <typename ParseContext> FMT_CONSTEXPR auto parse(ParseContext& ctx) {
+  template <typename ParseContext> FMTQUILL_CONSTEXPR auto parse(ParseContext& ctx) {
     auto out = formatter<basic_string_view<Char>>::parse(ctx);
     this->set_debug_format(false);
     return out;
@@ -93,18 +93,18 @@ struct formatter<std::filesystem::path, Char>
         basic_string_view<Char>(quoted.data(), quoted.size()), ctx);
   }
 };
-FMT_END_NAMESPACE
+FMTQUILL_END_NAMESPACE
 #endif
 
-FMT_BEGIN_NAMESPACE
-FMT_MODULE_EXPORT
+FMTQUILL_BEGIN_NAMESPACE
+FMTQUILL_MODULE_EXPORT
 template <typename Char>
 struct formatter<std::thread::id, Char> : basic_ostream_formatter<Char> {};
-FMT_END_NAMESPACE
+FMTQUILL_END_NAMESPACE
 
 #ifdef __cpp_lib_optional
-FMT_BEGIN_NAMESPACE
-FMT_MODULE_EXPORT
+FMTQUILL_BEGIN_NAMESPACE
+FMTQUILL_MODULE_EXPORT
 template <typename T, typename Char>
 struct formatter<std::optional<T>, Char,
                  std::enable_if_t<is_formattable<T, Char>::value>> {
@@ -117,16 +117,16 @@ struct formatter<std::optional<T>, Char,
       detail::string_literal<Char, 'n', 'o', 'n', 'e'>{};
 
   template <class U>
-  FMT_CONSTEXPR static auto maybe_set_debug_format(U& u, bool set)
+  FMTQUILL_CONSTEXPR static auto maybe_set_debug_format(U& u, bool set)
       -> decltype(u.set_debug_format(set)) {
     u.set_debug_format(set);
   }
 
   template <class U>
-  FMT_CONSTEXPR static void maybe_set_debug_format(U&, ...) {}
+  FMTQUILL_CONSTEXPR static void maybe_set_debug_format(U&, ...) {}
 
  public:
-  template <typename ParseContext> FMT_CONSTEXPR auto parse(ParseContext& ctx) {
+  template <typename ParseContext> FMTQUILL_CONSTEXPR auto parse(ParseContext& ctx) {
     maybe_set_debug_format(underlying_, true);
     return underlying_.parse(ctx);
   }
@@ -143,15 +143,15 @@ struct formatter<std::optional<T>, Char,
     return detail::write(out, ')');
   }
 };
-FMT_END_NAMESPACE
+FMTQUILL_END_NAMESPACE
 #endif  // __cpp_lib_optional
 
 #ifdef __cpp_lib_variant
-FMT_BEGIN_NAMESPACE
-FMT_MODULE_EXPORT
+FMTQUILL_BEGIN_NAMESPACE
+FMTQUILL_MODULE_EXPORT
 template <typename Char> struct formatter<std::monostate, Char> {
   template <typename ParseContext>
-  FMT_CONSTEXPR auto parse(ParseContext& ctx) -> decltype(ctx.begin()) {
+  FMTQUILL_CONSTEXPR auto parse(ParseContext& ctx) -> decltype(ctx.begin()) {
     return ctx.begin();
   }
 
@@ -206,14 +206,14 @@ template <typename T, typename C> struct is_variant_formattable {
       detail::is_variant_formattable_<T, C>::value;
 };
 
-FMT_MODULE_EXPORT
+FMTQUILL_MODULE_EXPORT
 template <typename Variant, typename Char>
 struct formatter<
     Variant, Char,
     std::enable_if_t<std::conjunction_v<
         is_variant_like<Variant>, is_variant_formattable<Variant, Char>>>> {
   template <typename ParseContext>
-  FMT_CONSTEXPR auto parse(ParseContext& ctx) -> decltype(ctx.begin()) {
+  FMTQUILL_CONSTEXPR auto parse(ParseContext& ctx) -> decltype(ctx.begin()) {
     return ctx.begin();
   }
 
@@ -236,19 +236,19 @@ struct formatter<
     return out;
   }
 };
-FMT_END_NAMESPACE
+FMTQUILL_END_NAMESPACE
 #endif  // __cpp_lib_variant
 
-FMT_BEGIN_NAMESPACE
-FMT_MODULE_EXPORT
+FMTQUILL_BEGIN_NAMESPACE
+FMTQUILL_MODULE_EXPORT
 template <typename Char> struct formatter<std::error_code, Char> {
   template <typename ParseContext>
-  FMT_CONSTEXPR auto parse(ParseContext& ctx) -> decltype(ctx.begin()) {
+  FMTQUILL_CONSTEXPR auto parse(ParseContext& ctx) -> decltype(ctx.begin()) {
     return ctx.begin();
   }
 
   template <typename FormatContext>
-  FMT_CONSTEXPR auto format(const std::error_code& ec, FormatContext& ctx) const
+  FMTQUILL_CONSTEXPR auto format(const std::error_code& ec, FormatContext& ctx) const
       -> decltype(ctx.out()) {
     auto out = ctx.out();
     out = detail::write_bytes(out, ec.category().name(), format_specs<Char>());
@@ -258,7 +258,7 @@ template <typename Char> struct formatter<std::error_code, Char> {
   }
 };
 
-FMT_MODULE_EXPORT
+FMTQUILL_MODULE_EXPORT
 template <typename T, typename Char>
 struct formatter<
     T, Char,
@@ -267,7 +267,7 @@ struct formatter<
   bool with_typename_ = false;
 
  public:
-  FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
+  FMTQUILL_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
       -> decltype(ctx.begin()) {
     auto it = ctx.begin();
     auto end = ctx.end();
@@ -288,7 +288,7 @@ struct formatter<
       return detail::write_bytes(out, string_view(ex.what()), spec);
 
     const std::type_info& ti = typeid(ex);
-#ifdef FMT_HAS_ABI_CXA_DEMANGLE
+#ifdef FMTQUILL_HAS_ABI_CXA_DEMANGLE
     int status = 0;
     std::size_t size = 0;
     std::unique_ptr<char, decltype(&std::free)> demangled_name_ptr(
@@ -327,7 +327,7 @@ struct formatter<
       demangled_name_view = string_view(ti.name());
     }
     out = detail::write_bytes(out, demangled_name_view, spec);
-#elif FMT_MSC_VERSION
+#elif FMTQUILL_MSC_VERSION
     string_view demangled_name_view(ti.name());
     if (demangled_name_view.starts_with("class "))
       demangled_name_view.remove_prefix(6);
@@ -344,6 +344,6 @@ struct formatter<
     return out;
   }
 };
-FMT_END_NAMESPACE
+FMTQUILL_END_NAMESPACE
 
-#endif  // FMT_STD_H_
+#endif  // FMTQUILL_STD_H_
