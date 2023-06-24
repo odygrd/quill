@@ -130,23 +130,24 @@ private:
   template <size_t I, typename T>
   void _set_arg(T const& arg)
   {
-    _args[_order_index[I]] = fmt::detail::make_arg<fmt::format_context>(arg);
+    _args[_order_index[I]] = fmtquill::detail::make_arg<fmtquill::format_context>(arg);
   }
 
   template <size_t I, typename T>
   QUILL_ALWAYS_INLINE_HOT void _set_arg_val(T const& arg)
   {
-    fmt::detail::value<fmt::format_context>& value_ =
-      *(reinterpret_cast<fmt::detail::value<fmt::format_context>*>(std::addressof(_args[_order_index[I]])));
+    fmtquill::detail::value<fmtquill::format_context>& value_ =
+      *(reinterpret_cast<fmtquill::detail::value<fmtquill::format_context>*>(
+        std::addressof(_args[_order_index[I]])));
 
-    value_ = fmt::detail::arg_mapper<fmt::format_context>().map(arg);
+    value_ = fmtquill::detail::arg_mapper<fmtquill::format_context>().map(arg);
   }
 
 private:
   std::string _format;
   /** Each named argument in the format_pattern is mapped in order to this array **/
   std::array<size_t, Attribute::ATTR_NR_ITEMS> _order_index{};
-  std::array<fmt::basic_format_arg<fmt::format_context>, Attribute::ATTR_NR_ITEMS> _args{};
+  std::array<fmtquill::basic_format_arg<fmtquill::format_context>, Attribute::ATTR_NR_ITEMS> _args{};
   std::bitset<Attribute::ATTR_NR_ITEMS> _is_set_in_pattern;
 
   /** class responsible for formatting the timestamp */

@@ -103,12 +103,12 @@ public:
   {
     assert(!_is_invalidated.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 
-#if FMT_VERSION >= 90000
-    static_assert(
-      !detail::has_fmt_stream_view_v<FmtArgs...>,
-      "fmt::streamed(...) is not supported. In order to make a type formattable via std::ostream "
-      "you should provide a formatter specialization inherited from ostream_formatter. "
-      "`template <> struct fmt::formatter<T> : ostream_formatter {};");
+#if QUILL_FMT_VERSION >= 90000
+    static_assert(!detail::has_fmt_stream_view_v<FmtArgs...>,
+                  "fmtquill::streamed(...) is not supported. In order to make a type formattable "
+                  "via std::ostream "
+                  "you should provide a formatter specialization inherited from ostream_formatter. "
+                  "`template <> struct fmtquill::formatter<T> : ostream_formatter {};");
 #endif
 
 #if !defined(QUILL_MODE_UNSAFE)
@@ -129,7 +129,7 @@ public:
     else
     {
       // fallback to libfmt check
-      fmt::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
+      fmtquill::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
     }
 
     detail::ThreadContext* const thread_context =
@@ -137,11 +137,11 @@ public:
 
     // For windows also take wide strings into consideration.
 #if defined(_WIN32)
-    constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>() +
-      fmt::detail::count<detail::is_type_of_wide_c_string<FmtArgs>()...>() +
-      fmt::detail::count<detail::is_type_of_wide_string<FmtArgs>()...>();
+    constexpr size_t c_string_count = fmtquill::detail::count<detail::is_type_of_c_string<FmtArgs>()...>() +
+      fmtquill::detail::count<detail::is_type_of_wide_c_string<FmtArgs>()...>() +
+      fmtquill::detail::count<detail::is_type_of_wide_string<FmtArgs>()...>();
 #else
-    constexpr size_t c_string_count = fmt::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
+    constexpr size_t c_string_count = fmtquill::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
 #endif
 
     size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
@@ -237,7 +237,7 @@ public:
     } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_message_info)>(FMT_STRING("{}"), capacity);
+    this->template log<decltype(anonymous_log_message_info)>(QUILL_FMT_STRING("{}"), capacity);
 
     // Also store the desired flush log level
     _logger_details.set_backtrace_flush_level(backtrace_flush_level);
@@ -263,7 +263,7 @@ public:
     } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_message_info)>(FMT_STRING(""));
+    this->template log<decltype(anonymous_log_message_info)>(QUILL_FMT_STRING(""));
   }
 
 private:

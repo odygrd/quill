@@ -175,9 +175,9 @@ public:
 
 private:
   std::variant<std::monostate, UnboundedQueue, BoundedQueue> _spsc_queue; /** queue for this thread, events are pushed here */
-  UnboundedTransitEventBuffer _transit_event_buffer;               /** backend thread buffer */
-  std::string _thread_id = fmt::format_int(get_thread_id()).str(); /**< cache this thread pid */
-  std::string _thread_name = get_thread_name();                    /**< cache this thread name */
+  UnboundedTransitEventBuffer _transit_event_buffer;                    /** backend thread buffer */
+  std::string _thread_id = fmtquill::format_int(get_thread_id()).str(); /**< cache this thread pid */
+  std::string _thread_name = get_thread_name(); /**< cache this thread name */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the caller, read by the backend worker thread */
   alignas(CACHE_LINE_ALIGNED) std::atomic<size_t> _message_failure_counter{0};
 };

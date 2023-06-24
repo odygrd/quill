@@ -27,7 +27,7 @@ public:
     // Called by the logger backend worker thread
     // This is not called for each LOG_* invocation like the write function, instead it is called
     // periodically or when there are no more LOG_* writes left to process.
-    std::cout << fmt::format("VectorHandler: {}", _formatted_messages) << std::endl;
+    std::cout << fmtquill::format("VectorHandler: {}", _formatted_messages) << std::endl;
   }
 
 private:

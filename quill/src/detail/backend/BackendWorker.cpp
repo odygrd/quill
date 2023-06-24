@@ -14,7 +14,7 @@ BackendWorker::BackendWorker(Config const& config, ThreadContextCollection& thre
     _thread_context_collection(thread_context_collection),
     _handler_collection(handler_collection),
     _logger_collection(logger_collection),
-    _process_id(fmt::format_int(get_process_id()).str())
+    _process_id(fmtquill::format_int(get_process_id()).str())
 {
   // set up the default error handler. This is done here to avoid including std::cerr in a header file
   _notification_handler = [](std::string const& s) { std::cerr << s << std::endl; };

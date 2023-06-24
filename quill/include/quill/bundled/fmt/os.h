@@ -5,8 +5,8 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_OS_H_
-#define FMT_OS_H_
+#ifndef FMTQUILL_OS_H_
+#define FMTQUILL_OS_H_
 
 #include <cerrno>
 #include <cstddef>
@@ -19,59 +19,59 @@
 
 #include "format.h"
 
-#ifndef FMT_USE_FCNTL
+#ifndef FMTQUILL_USE_FCNTL
 // UWP doesn't provide _pipe.
-#  if FMT_HAS_INCLUDE("winapifamily.h")
+#  if FMTQUILL_HAS_INCLUDE("winapifamily.h")
 #    include <winapifamily.h>
 #  endif
-#  if (FMT_HAS_INCLUDE(<fcntl.h>) || defined(__APPLE__) || \
+#  if (FMTQUILL_HAS_INCLUDE(<fcntl.h>) || defined(__APPLE__) || \
        defined(__linux__)) &&                              \
       (!defined(WINAPI_FAMILY) ||                          \
        (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP))
 #    include <fcntl.h>  // for O_RDONLY
-#    define FMT_USE_FCNTL 1
+#    define FMTQUILL_USE_FCNTL 1
 #  else
-#    define FMT_USE_FCNTL 0
+#    define FMTQUILL_USE_FCNTL 0
 #  endif
 #endif
 
-#ifndef FMT_POSIX
+#ifndef FMTQUILL_POSIX
 #  if defined(_WIN32) && !defined(__MINGW32__)
 // Fix warnings about deprecated symbols.
-#    define FMT_POSIX(call) _##call
+#    define FMTQUILL_POSIX(call) _##call
 #  else
-#    define FMT_POSIX(call) call
+#    define FMTQUILL_POSIX(call) call
 #  endif
 #endif
 
-// Calls to system functions are wrapped in FMT_SYSTEM for testability.
-#ifdef FMT_SYSTEM
-#  define FMT_POSIX_CALL(call) FMT_SYSTEM(call)
+// Calls to system functions are wrapped in FMTQUILL_SYSTEM for testability.
+#ifdef FMTQUILL_SYSTEM
+#  define FMTQUILL_POSIX_CALL(call) FMTQUILL_SYSTEM(call)
 #else
-#  define FMT_SYSTEM(call) ::call
+#  define FMTQUILL_SYSTEM(call) ::call
 #  ifdef _WIN32
 // Fix warnings about deprecated symbols.
-#    define FMT_POSIX_CALL(call) ::_##call
+#    define FMTQUILL_POSIX_CALL(call) ::_##call
 #  else
-#    define FMT_POSIX_CALL(call) ::call
+#    define FMTQUILL_POSIX_CALL(call) ::call
 #  endif
 #endif
 
 // Retries the expression while it evaluates to error_result and errno
 // equals to EINTR.
 #ifndef _WIN32
-#  define FMT_RETRY_VAL(result, expression, error_result) \
+#  define FMTQUILL_RETRY_VAL(result, expression, error_result) \
     do {                                                  \
       (result) = (expression);                            \
     } while ((result) == (error_result) && errno == EINTR)
 #else
-#  define FMT_RETRY_VAL(result, expression, error_result) result = (expression)
+#  define FMTQUILL_RETRY_VAL(result, expression, error_result) result = (expression)
 #endif
 
-#define FMT_RETRY(result, expression) FMT_RETRY_VAL(result, expression, -1)
+#define FMTQUILL_RETRY(result, expression) FMTQUILL_RETRY_VAL(result, expression, -1)
 
-FMT_BEGIN_NAMESPACE
-FMT_BEGIN_EXPORT
+FMTQUILL_BEGIN_NAMESPACE
+FMTQUILL_BEGIN_EXPORT
 
 /**
   \rst
@@ -121,14 +121,14 @@ using cstring_view = basic_cstring_view<char>;
 using wcstring_view = basic_cstring_view<wchar_t>;
 
 #ifdef _WIN32
-FMT_API const std::error_category& system_category() noexcept;
+FMTQUILL_API const std::error_category& system_category() noexcept;
 
-FMT_BEGIN_DETAIL_NAMESPACE
-FMT_API void format_windows_error(buffer<char>& out, int error_code,
+FMTQUILL_BEGIN_DETAIL_NAMESPACE
+FMTQUILL_API void format_windows_error(buffer<char>& out, int error_code,
                                   const char* message) noexcept;
-FMT_END_DETAIL_NAMESPACE
+FMTQUILL_END_DETAIL_NAMESPACE
 
-FMT_API std::system_error vwindows_error(int error_code, string_view format_str,
+FMTQUILL_API std::system_error vwindows_error(int error_code, string_view format_str,
                                          format_args args);
 
 /**
@@ -154,7 +154,7 @@ FMT_API std::system_error vwindows_error(int error_code, string_view format_str,
    LPOFSTRUCT of = LPOFSTRUCT();
    HFILE file = OpenFile(filename, &of, OF_READ);
    if (file == HFILE_ERROR) {
-     throw fmt::windows_error(GetLastError(),
+     throw fmtquill::windows_error(GetLastError(),
                               "cannot open file '{}'", filename);
    }
  \endrst
@@ -162,12 +162,12 @@ FMT_API std::system_error vwindows_error(int error_code, string_view format_str,
 template <typename... Args>
 std::system_error windows_error(int error_code, string_view message,
                                 const Args&... args) {
-  return vwindows_error(error_code, message, fmt::make_format_args(args...));
+  return vwindows_error(error_code, message, fmtquill::make_format_args(args...));
 }
 
 // Reports a Windows error without throwing an exception.
 // Can be used to report errors from destructors.
-FMT_API void report_windows_error(int error_code, const char* message) noexcept;
+FMTQUILL_API void report_windows_error(int error_code, const char* message) noexcept;
 #else
 inline const std::error_category& system_category() noexcept {
   return std::system_category();
@@ -199,7 +199,7 @@ class buffered_file {
   buffered_file() noexcept : file_(nullptr) {}
 
   // Destroys the object closing the file it represents if any.
-  FMT_API ~buffered_file() noexcept;
+  FMTQUILL_API ~buffered_file() noexcept;
 
  public:
   buffered_file(buffered_file&& other) noexcept : file_(other.file_) {
@@ -214,34 +214,34 @@ class buffered_file {
   }
 
   // Opens a file.
-  FMT_API buffered_file(cstring_view filename, cstring_view mode);
+  FMTQUILL_API buffered_file(cstring_view filename, cstring_view mode);
 
   // Closes the file.
-  FMT_API void close();
+  FMTQUILL_API void close();
 
   // Returns the pointer to a FILE object representing this file.
   FILE* get() const noexcept { return file_; }
 
-  FMT_API int descriptor() const;
+  FMTQUILL_API int descriptor() const;
 
   void vprint(string_view format_str, format_args args) {
-    fmt::vprint(file_, format_str, args);
+    fmtquill::vprint(file_, format_str, args);
   }
 
   template <typename... Args>
   inline void print(string_view format_str, const Args&... args) {
-    vprint(format_str, fmt::make_format_args(args...));
+    vprint(format_str, fmtquill::make_format_args(args...));
   }
 };
 
-#if FMT_USE_FCNTL
+#if FMTQUILL_USE_FCNTL
 // A file. Closed file is represented by a file object with descriptor -1.
 // Methods that are not declared with noexcept may throw
-// fmt::system_error in case of failure. Note that some errors such as
+// fmtquill::system_error in case of failure. Note that some errors such as
 // closing the file multiple times will cause a crash on Windows rather
 // than an exception. You can get standard behavior by overriding the
 // invalid parameter handler with _set_invalid_parameter_handler.
-class FMT_API file {
+class FMTQUILL_API file {
  private:
   int fd_;  // File descriptor.
 
@@ -251,12 +251,12 @@ class FMT_API file {
  public:
   // Possible values for the oflag argument to the constructor.
   enum {
-    RDONLY = FMT_POSIX(O_RDONLY),  // Open for reading only.
-    WRONLY = FMT_POSIX(O_WRONLY),  // Open for writing only.
-    RDWR = FMT_POSIX(O_RDWR),      // Open for reading and writing.
-    CREATE = FMT_POSIX(O_CREAT),   // Create if the file doesn't exist.
-    APPEND = FMT_POSIX(O_APPEND),  // Open in append mode.
-    TRUNC = FMT_POSIX(O_TRUNC)     // Truncate the content of the file.
+    RDONLY = FMTQUILL_POSIX(O_RDONLY),  // Open for reading only.
+    WRONLY = FMTQUILL_POSIX(O_WRONLY),  // Open for writing only.
+    RDWR = FMTQUILL_POSIX(O_RDWR),      // Open for reading and writing.
+    CREATE = FMTQUILL_POSIX(O_CREAT),   // Create if the file doesn't exist.
+    APPEND = FMTQUILL_POSIX(O_APPEND),  // Open in append mode.
+    TRUNC = FMTQUILL_POSIX(O_TRUNC)     // Truncate the content of the file.
   };
 
   // Constructs a file object which doesn't represent any file.
@@ -328,7 +328,7 @@ class FMT_API file {
 // Returns the memory page size.
 long getpagesize();
 
-FMT_BEGIN_DETAIL_NAMESPACE
+FMTQUILL_BEGIN_DETAIL_NAMESPACE
 
 struct buffer_size {
   buffer_size() = default;
@@ -368,12 +368,12 @@ struct ostream_params {
 class file_buffer final : public buffer<char> {
   file file_;
 
-  FMT_API void grow(size_t) override;
+  FMTQUILL_API void grow(size_t) override;
 
  public:
-  FMT_API file_buffer(cstring_view path, const ostream_params& params);
-  FMT_API file_buffer(file_buffer&& other);
-  FMT_API ~file_buffer();
+  FMTQUILL_API file_buffer(cstring_view path, const ostream_params& params);
+  FMTQUILL_API file_buffer(file_buffer&& other);
+  FMTQUILL_API ~file_buffer();
 
   void flush() {
     if (size() == 0) return;
@@ -387,16 +387,16 @@ class file_buffer final : public buffer<char> {
   }
 };
 
-FMT_END_DETAIL_NAMESPACE
+FMTQUILL_END_DETAIL_NAMESPACE
 
 // Added {} below to work around default constructor error known to
 // occur in Xcode versions 7.2.1 and 8.2.1.
 constexpr detail::buffer_size buffer_size{};
 
 /** A fast output stream which is not thread-safe. */
-class FMT_API ostream {
+class FMTQUILL_API ostream {
  private:
-  FMT_MSC_WARNING(suppress : 4251)
+  FMTQUILL_MSC_WARNING(suppress : 4251)
   detail::file_buffer buffer_;
 
   ostream(cstring_view path, const detail::ostream_params& params)
@@ -420,7 +420,7 @@ class FMT_API ostream {
    */
   template <typename... T> void print(format_string<T...> fmt, T&&... args) {
     vformat_to(detail::buffer_appender<char>(buffer_), fmt,
-               fmt::make_format_args(args...));
+               fmtquill::make_format_args(args...));
   }
 };
 
@@ -435,7 +435,7 @@ class FMT_API ostream {
 
   **Example**::
 
-    auto out = fmt::output_file("guide.txt");
+    auto out = fmtquill::output_file("guide.txt");
     out.print("Don't {}", "Panic");
   \endrst
  */
@@ -443,9 +443,9 @@ template <typename... T>
 inline ostream output_file(cstring_view path, T... params) {
   return {path, detail::ostream_params(params...)};
 }
-#endif  // FMT_USE_FCNTL
+#endif  // FMTQUILL_USE_FCNTL
 
-FMT_END_EXPORT
-FMT_END_NAMESPACE
+FMTQUILL_END_EXPORT
+FMTQUILL_END_NAMESPACE
 
-#endif  // FMT_OS_H_
+#endif  // FMTQUILL_OS_H_

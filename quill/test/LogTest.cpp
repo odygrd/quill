@@ -1331,13 +1331,13 @@ TEST_CASE("default_logger_with_custom_timestamp")
     for (size_t i = 0; i < 10'000; ++i)
     {
       REQUIRE(quill::testing::file_contains(
-        file_contents, fmt::format("2022-06-12 04:15:09.000 INFO root             Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i)));
+        file_contents, fmtquill::format("2022-06-12 04:15:09.000 INFO root             Lorem ipsum dolor sit amet, consectetur adipiscing elit {}", i)));
     }
 
     for (size_t i = 0; i < 10'000; ++i)
     {
       REQUIRE(quill::testing::file_contains(
-        file_contents, fmt::format("2022-06-23 18:01:49.000 ERROR root             Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i)));
+        file_contents, fmtquill::format("2022-06-23 18:01:49.000 ERROR root             Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i)));
     }
 
     lm.stop_backend_worker();

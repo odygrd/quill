@@ -5,8 +5,8 @@
 //
 // For the license information refer to format.h.
 
-#ifndef FMT_OSTREAM_H_
-#define FMT_OSTREAM_H_
+#ifndef FMTQUILL_OSTREAM_H_
+#define FMTQUILL_OSTREAM_H_
 
 #include <fstream>  // std::filebuf
 
@@ -19,7 +19,7 @@
 
 #include "format.h"
 
-FMT_BEGIN_NAMESPACE
+FMTQUILL_BEGIN_NAMESPACE
 
 namespace detail {
 
@@ -33,7 +33,7 @@ class file_access {
   friend auto get_file(BufType& obj) -> FILE* { return obj.*FileMemberPtr; }
 };
 
-#if FMT_MSC_VERSION
+#if FMTQUILL_MSC_VERSION
 template class file_access<file_access_tag, std::filebuf,
                            &std::filebuf::_Myfile>;
 auto get_file(std::filebuf&) -> FILE*;
@@ -43,8 +43,8 @@ template class file_access<file_access_tag, std::__stdoutbuf<char>,
 auto get_file(std::__stdoutbuf<char>&) -> FILE*;
 #endif
 
-inline bool write_ostream_unicode(std::ostream& os, fmt::string_view data) {
-#if FMT_MSC_VERSION
+inline bool write_ostream_unicode(std::ostream& os, fmtquill::string_view data) {
+#if FMTQUILL_MSC_VERSION
   if (auto* buf = dynamic_cast<std::filebuf*>(os.rdbuf()))
     if (FILE* f = get_file(*buf)) return write_console(f, data);
 #elif defined(_WIN32) && defined(__GLIBCXX__)
@@ -66,7 +66,7 @@ inline bool write_ostream_unicode(std::ostream& os, fmt::string_view data) {
   return false;
 }
 inline bool write_ostream_unicode(std::wostream&,
-                                  fmt::basic_string_view<wchar_t>) {
+                                  fmtquill::basic_string_view<wchar_t>) {
   return false;
 }
 
@@ -91,7 +91,7 @@ void format_value(buffer<Char>& buf, const T& value,
                   locale_ref loc = locale_ref()) {
   auto&& format_buf = formatbuf<std::basic_streambuf<Char>>(buf);
   auto&& output = std::basic_ostream<Char>(&format_buf);
-#if !defined(FMT_STATIC_THOUSANDS_SEPARATOR)
+#if !defined(FMTQUILL_STATIC_THOUSANDS_SEPARATOR)
   if (loc) output.imbue(loc.get<std::locale>());
 #endif
   output << value;
@@ -135,8 +135,8 @@ struct formatter<detail::streamed_view<T>, Char>
 
   **Example**::
 
-    fmt::print("Current thread id: {}\n",
-               fmt::streamed(std::this_thread::get_id()));
+    fmtquill::print("Current thread id: {}\n",
+               fmtquill::streamed(std::this_thread::get_id()));
   \endrst
  */
 template <typename T>
@@ -155,7 +155,7 @@ inline void vprint_directly(std::ostream& os, string_view format_str,
 
 }  // namespace detail
 
-FMT_MODULE_EXPORT template <typename Char>
+FMTQUILL_MODULE_EXPORT template <typename Char>
 void vprint(std::basic_ostream<Char>& os,
             basic_string_view<type_identity_t<Char>> format_str,
             basic_format_args<buffer_context<type_identity_t<Char>>> args) {
@@ -171,39 +171,39 @@ void vprint(std::basic_ostream<Char>& os,
 
   **Example**::
 
-    fmt::print(cerr, "Don't {}!", "panic");
+    fmtquill::print(cerr, "Don't {}!", "panic");
   \endrst
  */
-FMT_MODULE_EXPORT template <typename... T>
+FMTQUILL_MODULE_EXPORT template <typename... T>
 void print(std::ostream& os, format_string<T...> fmt, T&&... args) {
-  const auto& vargs = fmt::make_format_args(args...);
+  const auto& vargs = fmtquill::make_format_args(args...);
   if (detail::is_utf8())
     vprint(os, fmt, vargs);
   else
     detail::vprint_directly(os, fmt, vargs);
 }
 
-FMT_MODULE_EXPORT
+FMTQUILL_MODULE_EXPORT
 template <typename... Args>
 void print(std::wostream& os,
            basic_format_string<wchar_t, type_identity_t<Args>...> fmt,
            Args&&... args) {
-  vprint(os, fmt, fmt::make_format_args<buffer_context<wchar_t>>(args...));
+  vprint(os, fmt, fmtquill::make_format_args<buffer_context<wchar_t>>(args...));
 }
 
-FMT_MODULE_EXPORT template <typename... T>
+FMTQUILL_MODULE_EXPORT template <typename... T>
 void println(std::ostream& os, format_string<T...> fmt, T&&... args) {
-  fmt::print(os, "{}\n", fmt::format(fmt, std::forward<T>(args)...));
+  fmtquill::print(os, "{}\n", fmtquill::format(fmt, std::forward<T>(args)...));
 }
 
-FMT_MODULE_EXPORT
+FMTQUILL_MODULE_EXPORT
 template <typename... Args>
 void println(std::wostream& os,
              basic_format_string<wchar_t, type_identity_t<Args>...> fmt,
              Args&&... args) {
-  print(os, L"{}\n", fmt::format(fmt, std::forward<Args>(args)...));
+  print(os, L"{}\n", fmtquill::format(fmt, std::forward<Args>(args)...));
 }
 
-FMT_END_NAMESPACE
+FMTQUILL_END_NAMESPACE
 
-#endif  // FMT_OSTREAM_H_
+#endif  // FMTQUILL_OSTREAM_H_

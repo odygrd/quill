@@ -61,6 +61,9 @@
 
 - `quill::utility::to_string()` now uses `fmt::to_string()`
 
+- Quill now utilizes a custom namespace (`fmtquill`) for the bundled fmt library. This enables smooth integration with
+  your own external fmt library, even if it's a different version.
+
 ## v3.0.2
 
 - Add missing header on clang when `QUILL_X86ARCH` is defined.

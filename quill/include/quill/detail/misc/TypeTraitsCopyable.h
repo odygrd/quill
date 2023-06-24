@@ -60,16 +60,16 @@ template< class T >
 using remove_cvref_t = typename remove_cvref<T>::type;
 
 /**
- * fmt::streamed detection
+ * fmtquill::streamed detection
  */
-#if FMT_VERSION >= 90000
+#if QUILL_FMT_VERSION >= 90000
 template<typename T>
 struct is_fmt_stream_view : std::false_type
 {
 };
 
 template<typename T>
-struct is_fmt_stream_view<fmt::detail::streamed_view<T>> : std::true_type
+struct is_fmt_stream_view<fmtquill::detail::streamed_view<T>> : std::true_type
 {
 };
 
