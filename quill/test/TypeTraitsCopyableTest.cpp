@@ -16,6 +16,13 @@ TEST_SUITE_BEGIN("TypeTraitsCopyable");
 
 using namespace quill::detail;
 
+struct TriviallyCopyableButNotTrivial
+{
+  TriviallyCopyableButNotTrivial(TriviallyCopyableButNotTrivial const&) = default;
+  TriviallyCopyableButNotTrivial(int x) : m(x + 1) {}
+  int m;
+};
+
 struct TaggedNonTrivial
 {
 public:
@@ -112,6 +119,7 @@ TEST_CASE("is_copyable")
   static_assert(is_copyable_v<std::string>, "_");
   static_assert(is_copyable_v<void*>, "_");
   static_assert(is_copyable_v<TaggedNonTrivial>, "_");
+  static_assert(is_copyable_v<TriviallyCopyableButNotTrivial>, "_");
 
   // built in - not copyable
   static_assert(!is_copyable_v<NonTrivial>, "_");

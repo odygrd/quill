@@ -312,6 +312,7 @@ template <typename T>
 struct filter_copyable : std::disjunction<std::is_arithmetic<T>,
                                      is_string<T>,
                                      std::is_trivial<T>,
+                                     std::is_trivially_copyable<T>,
                                      is_user_defined_copyable<T>,
                                      is_user_registered_copyable<T>,
                                      is_copyable_pair<T>,
