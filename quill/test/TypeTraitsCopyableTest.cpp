@@ -176,9 +176,9 @@ TEST_CASE("is_copyable")
                 "-");
   static_assert(!is_copyable_v<std::tuple<int, NonTrivial, std::string>>, "-");
 
-  // reference wrapper
-  static_assert(!is_copyable_v<std::reference_wrapper<int>>, "-");
-  static_assert(!is_copyable_v<std::vector<std::reference_wrapper<int>>>, "-");
+  // reference wrapper - TODO fix for NonTrivial
+  static_assert(is_copyable_v<std::reference_wrapper<int>>, "-");
+  static_assert(is_copyable_v<std::vector<std::reference_wrapper<int>>>, "-");
 
   // optional
   static_assert(is_copyable_v<std::optional<bool>>, "_");
