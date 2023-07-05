@@ -136,7 +136,8 @@ TEST_CASE("is_copyable")
   static_assert(is_copyable_v<std::pair<float, std::string>>, "_");
   static_assert(is_copyable_v<std::pair<TaggedNonTrivial, std::string>>, "_");
   static_assert(is_copyable_v<std::pair<TaggedNonTrivial, TaggedNonTrivial>>, "_");
-
+  static_assert(is_copyable_v<std::pair<TaggedNonTrivial, TriviallyCopyableButNotTrivial>>, "_");
+  
   // pairs - not copyable
   static_assert(!is_copyable_v<std::pair<NonTrivial, std::string>>, "_");
 
@@ -176,9 +177,9 @@ TEST_CASE("is_copyable")
                 "-");
   static_assert(!is_copyable_v<std::tuple<int, NonTrivial, std::string>>, "-");
 
-  // reference wrapper - TODO fix for NonTrivial
-  static_assert(is_copyable_v<std::reference_wrapper<int>>, "-");
-  static_assert(is_copyable_v<std::vector<std::reference_wrapper<int>>>, "-");
+  // reference wrapper
+  static_assert(!is_copyable_v<std::reference_wrapper<int>>, "-");
+  static_assert(!is_copyable_v<std::vector<std::reference_wrapper<int>>>, "-");
 
   // optional
   static_assert(is_copyable_v<std::optional<bool>>, "_");

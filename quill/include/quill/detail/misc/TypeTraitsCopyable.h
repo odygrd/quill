@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -167,6 +168,15 @@ template <typename T>
 constexpr bool is_string_v = is_string<remove_cvref_t<T>>::value;
 
 /**
+ * is std::reference_wrapper ?
+ */
+template <typename T>
+struct is_reference_wrapper : std::false_type {};
+
+template <typename T>
+struct is_reference_wrapper<std::reference_wrapper<T>> : std::true_type {};
+
+/**
  * Check if each element of the pair is copyable
  */
 template <typename T>
@@ -306,10 +316,10 @@ struct is_user_registered_copyable : std::conjunction<std::is_class<T>,
 {};
 
 /**
- * An object is copyable if it meets one of the following criteria
+ * An object is copyable if it meets one of the following criteria AND is not a std::reference_wrapper
  */
 template <typename T>
-struct filter_copyable : std::disjunction<std::is_arithmetic<T>,
+struct filter_copyable : std::conjunction<std::disjunction<std::is_arithmetic<T>,
                                      is_string<T>,
                                      std::is_trivial<T>,
                                      std::is_trivially_copyable<T>,
@@ -319,7 +329,7 @@ struct filter_copyable : std::disjunction<std::is_arithmetic<T>,
                                      is_copyable_tuple<T>,
                                      is_copyable_optional<T>,
                                      is_copyable_container<T>
-                                     >
+                                     >, std::negation<is_reference_wrapper<T>>>
 {};
 
 /**
