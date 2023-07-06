@@ -87,6 +87,41 @@ struct fmtquill::formatter<User3> : ostream_formatter
 {
 };
 
+class User4
+{
+public:
+  User4(std::string name, std::string surname, uint32_t age)
+    : name(std::move(name)), surname(std::move(surname)), age(age){};
+
+  friend struct fmtquill::formatter<User4>;
+
+private:
+  std::string name;
+  std::string surname;
+  uint32_t age;
+};
+
+template <>
+struct fmtquill::formatter<User4>
+{
+  template <typename FormatContext>
+  auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(User4 const& user, FormatContext& ctx)
+  {
+    return format_to(ctx.out(), "User: {} {}, Age: {}", user.name, user.surname, user.age);
+  }
+};
+
+template <>
+struct quill::copy_loggable<User4> : std::true_type
+{
+};
+
 /**
  * Specialise copy_loggable to register User3 object as safe to copy.
  */
@@ -118,4 +153,7 @@ int main()
   // The following compiles and logs, because the object is registered by the user as safe
   User3 registred_user{"James", "Bond", 42};
   LOG_INFO(quill::get_logger(), "The user is {}", registred_user);
+
+  User4 user{"Super", "User", 42};
+  LOG_INFO(quill::get_logger(), "The user is {}", user);
 }
