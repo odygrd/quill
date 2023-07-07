@@ -113,7 +113,7 @@ struct fmtquill::formatter<User4>
   template <typename FormatContext>
   auto format(User4 const& user, FormatContext& ctx)
   {
-    return format_to(ctx.out(), "User: {} {}, Age: {}", user.name, user.surname, user.age);
+    return fmtquill::format_to(ctx.out(), "User: {} {}, Age: {}", user.name, user.surname, user.age);
   }
 };
 
