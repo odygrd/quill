@@ -52,6 +52,12 @@
 
 - Addition of std::is_trivially_copyable<T> to default copy loggable
   types. ([#318](https://github.com/odygrd/quill/pull/318))
+- The `LOG_<LEVEL>_LIMIT` macros now support using `std::chrono` duration types for specifying the log interval.
+  Instead of providing a raw number, you can use:
+
+```c++
+    LOG_INFO_LIMIT(std::chrono::milliseconds {100} , quill::get_logger(), "log message");
+```
 
 ## v3.1.0
 

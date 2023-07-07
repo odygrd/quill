@@ -105,8 +105,10 @@ int main()
 
   for (uint64_t i = 0; i < 10; ++i)
   {
-    LOG_INFO_LIMIT(2000, default_logger,
-                   "log in a loop with limit 1 message every 2000 micros for i {}", i);
-    std::this_thread::sleep_for(std::chrono::microseconds{1000});
+    LOG_INFO_LIMIT(std::chrono::milliseconds{100}, default_logger,
+                   "log in a loop with limit 1 message every 100 ms for i {}", i);
+    LOG_DEBUG_LIMIT(std::chrono::seconds{1}, default_logger,
+                    "log in a loop with limit 1 message every 1 second for i {}", i);
+    std::this_thread::sleep_for(std::chrono::microseconds{30});
   }
 }
