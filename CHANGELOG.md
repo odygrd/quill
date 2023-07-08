@@ -52,6 +52,8 @@
 
 - Addition of std::is_trivially_copyable<T> to default copy loggable
   types. ([#318](https://github.com/odygrd/quill/pull/318))
+- By default, the static library now builds with '-fPIC' to generate position-independent code.
+  To disable this feature, you can use the CMake option 'QUILL_DISABLE_POSITION_INDEPENDENT_CODE'.
 - The `LOG_<LEVEL>_LIMIT` macros now support using `std::chrono` duration types for specifying the log interval.
   Instead of providing a raw number, you can use:
 

@@ -111,18 +111,23 @@ if (NOT QUILL_FMT_EXTERNAL)
             src/bundled/fmt/os.cc)
 endif ()
 
-if (BUILD_SHARED_LIBS)
-    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-endif ()
-
 # Add as a library
 add_library(${TARGET_NAME} "")
 add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
 
 if (BUILD_SHARED_LIBS)
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
     target_compile_definitions(${TARGET_NAME} PRIVATE QUILL_DLL_EXPORT INTERFACE QUILL_BUILD_SHARED)
-    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_VISIBILITY_PRESET default)
-    set_property(TARGET ${TARGET_NAME} PROPERTY VISIBILITY_INLINES_HIDDEN OFF)
+    set_target_properties(${TARGET_NAME} PROPERTIES CXX_VISIBILITY_PRESET default
+            VISIBILITY_INLINES_HIDDEN OFF
+            POSITION_INDEPENDENT_CODE TRUE)
+else ()
+    # static library
+    if (QUILL_DISABLE_POSITION_INDEPENDENT_CODE)
+        set_target_properties(${TARGET_NAME} PROPERTIES POSITION_INDEPENDENT_CODE FALSE)
+    else ()
+        set_target_properties(${TARGET_NAME} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+    endif ()
 endif ()
 
 if (QUILL_NO_EXCEPTIONS)
@@ -160,10 +165,10 @@ else ()
     set(PKG_CONFIG_REQUIRES fmt)
 endif ()
 
-if(MINGW)
+if (MINGW)
     # strftime requires this when using MinGw to correctly format the time ..
     target_link_libraries(${TARGET_NAME} PUBLIC ucrtbase)
-endif()
+endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
     target_link_libraries(${TARGET_NAME} PUBLIC stdc++fs)
