@@ -87,13 +87,13 @@ For example when all logger objects are writing to the same file. The following 
 
      // The first time this function is called a file handler is created for this filename.
      // Calling the function with the same filename will return the existing handler
-     quill::Handler* file_handler = quill::file_handler(filename, "w");
+     std::shared_ptr<quill::Handler> file_handler = quill::file_handler(filename, "w");
 
      // Create a logger using this handler
      quill::Logger* logger_foo = quill::create_logger("logger_foo", file_handler);
 
      // Because a handler already created for this filename a pointer to the existing handler is returned
-     quill::Handler* file_handler_2 = quill::file_handler(filename, "w");
+     std::shared_ptr<quill::Handler> file_handler_2 = quill::file_handler(filename, "w");
 
      // Create a new logger using this handler
      quill::Logger* logger_bar = quill::create_logger("logger_bar", file_handler_2);
@@ -123,7 +123,7 @@ This is useful for when you want to have different loggers writing to ``stdout``
 .. code:: cpp
 
      // Get the stdout file handler, with a unique name
-     quill::Handler* stdout_handler_1 = quill::stdout_handler("stdout_1");
+     std::shared_ptr<quill::Handler> stdout_handler_1 = quill::stdout_handler("stdout_1");
 
      stdout_handler_1->set_pattern(
        "%(ascii_time) [%(process)] [%(thread)] LOG_%(level_name) %(logger_name) - %(message)", // message format
@@ -133,7 +133,7 @@ This is useful for when you want to have different loggers writing to ``stdout``
      quill::Logger* logger_foo = quill::create_logger("logger_foo", stdout_handler_1);
 
      // Get the stdout file handler, with another unique name
-     quill::Handler* stdout_handler_2 = quill::stdout_handler("stdout_2");
+     std::shared_ptr<quill::Handler> stdout_handler_2 = quill::stdout_handler("stdout_2");
 
      stdout_handler_2->set_pattern("%(ascii_time) LOG_%(level_name) %(logger_name) - %(message)", // message format
                                    "%D %H:%M:%S.%Qms %z",     // timestamp format
@@ -155,7 +155,7 @@ Logging to file
     {
       quill::start();
 
-      quill::Handler* file_handler = quill::file_handler(filename, "w");
+      quill::std::shared_ptr<Handler> file_handler = quill::file_handler(filename, "w");
       quill::Logger* l = quill::create_logger("logger", file_handler);
 
       LOG_INFO(l, "Hello World");
@@ -176,7 +176,7 @@ Rotating log by size
      quill::start();
 
      // Create a rotating file handler with a max file size per log file and maximum rotation up to 5 times
-     quill::Handler* file_handler = quill::rotating_file_handler(base_filename, "w", 1024, 5);
+     quill::std::shared_ptr<Handler> file_handler = quill::rotating_file_handler(base_filename, "w", 1024, 5);
 
      // Create a logger using this handler
      quill::Logger* logger_bar = quill::create_logger("rotating", file_handler);
@@ -187,7 +187,7 @@ Rotating log by size
      }
 
      // Get an instance to the existing rotating file handler
-     quill::Handler* file_handler = quill::rotating_file_handler(base_filename);
+     quill::std::shared_ptr<Handler> file_handler = quill::rotating_file_handler(base_filename);
 
 TimeRotatingFileHandler
 -----------------------
@@ -203,7 +203,7 @@ Daily log
      quill::start();
 
      // Create a rotating file handler which rotates daily at 02:00
-     quill::Handler* file_handler =
+     quill::std::shared_ptr<Handler> file_handler =
        quill::time_rotating_file_handler(filename, "w", "daily", 1, 10, Timezone::LocalTime, "02:00");
 
      // Create a logger using this handler
@@ -220,7 +220,7 @@ Hourly log
      quill::start();
 
      // Create a rotating file handler which rotates every one hour and keep maximum 24 files
-     quill::Handler* file_handler =
+     quill::std::shared_ptr<Handler> file_handler =
        quill::time_rotating_file_handler(filename, "w", "H", 24, 10);
 
      // Create a logger using this handler
@@ -241,7 +241,7 @@ Json log
      quill::Config cfg;
 
      // use the json handler
-     quill::Handler* json_handler =
+     quill::std::shared_ptr<Handler> json_handler =
        quill::json_file_handler("json_output.log", "w", quill::FilenameAppend::DateTime);
 
      // Change how the date is formatted in the structured log.
@@ -324,13 +324,13 @@ The below example logs all WARNING and higher log level messages to console and 
       // Get a handler to the file
       // The first time this function is called a file handler is created for this filename.
       // Calling the function with the same filename will return the existing handler
-      quill::Handler* file_handler = quill::file_handler("example_filters.log", "w");
+      quill::std::shared_ptr<Handler> file_handler = quill::file_handler("example_filters.log", "w");
 
       // Create and add the filter to our handler
       file_handler->add_filter(std::make_unique<FileFilter>());
 
       // Also create an stdout handler
-      quill::Handler* stdout_handler = quill::stdout_handler("stdout_1");
+      quill::std::shared_ptr<Handler> stdout_handler = quill::stdout_handler("stdout_1");
 
       // Create and add the filter to our handler
       stdout_handler->add_filter(std::make_unique<StdoutFilter>());
@@ -441,7 +441,7 @@ Setting a default formatter for logging to stdout
 .. code:: cpp
 
      // Get the stdout file handler
-     quill::Handler* console_handler = quill::stdout_handler();
+     quill::std::shared_ptr<Handler> console_handler = quill::stdout_handler();
 
      // Set a custom formatter for this handler
      console_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
@@ -473,7 +473,7 @@ Setting a default formatter on a FileHandler
      quill::start();
 
      // Calling the function with the same filename will return the existing handler
-     quill::Handler* file_handler = quill::file_handler(filename, "w");
+     quill::std::shared_ptr<Handler> file_handler = quill::file_handler(filename, "w");
 
      // Set a custom pattern to this file handler
      file_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
@@ -507,8 +507,8 @@ Based on the create function that was used the new logger might inherit all prop
 
 .. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
 .. doxygenfunction:: quill::create_logger(std::string const &logger_name, Handler *handler, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
-.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::initializer_list<Handler*> handlers, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
-.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::vector<Handler*> const &handlers, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::initializer_list<std::shared_ptr<Handler>> handlers, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::vector<std::shared_ptr<Handler>> const &handlers, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
 
 Logger access
 -----------------------------
@@ -522,7 +522,7 @@ Create single handler logger
 .. code:: cpp
 
      // Get a handler to a file
-     quill::Handler* file_handler = quill::file_handler("example.log", "w");
+     quill::std::shared_ptr<Handler> file_handler = quill::file_handler("example.log", "w");
 
      // Create a logger using this handler
      quill::Logger* logger_foo = quill::create_logger("logger_foo", file_handler);
@@ -535,10 +535,10 @@ Create multi handler logger
 .. code:: cpp
 
      // Get a handler to a file
-     quill::Handler* file_handler = quill::file_handler(filename, "w");
+     quill::std::shared_ptr<Handler> file_handler = quill::file_handler(filename, "w");
 
      // Get a handler to stdout
-     quill::Handler* stdout_handler = quill::stdout_handler();
+     quill::std::shared_ptr<Handler> stdout_handler = quill::stdout_handler();
 
      // Create a logger using both handlers
      quill::Logger* logger_foo = quill::create_logger("logger_foo", {file_handler, quill::stdout_handler()});
