@@ -1,4 +1,4 @@
-- [v3.1.1](#v311)
+- [v3.2.0](#v320)
 - [v3.1.0](#v310)
 - [v3.0.2](#v302)
 - [v3.0.1](#v301)
@@ -48,7 +48,7 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v3.1.1
+## v3.2.0
 
 - Addition of std::is_trivially_copyable<T> to default copy loggable
   types. ([#318](https://github.com/odygrd/quill/pull/318))
