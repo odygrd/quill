@@ -170,6 +170,54 @@ TEST_CASE("default_logger_ints_and_large_string")
 }
 
 /***/
+TEST_CASE("default_logger_ints_and_large_string_dynamic_log_level")
+{
+  fs::path const filename{"test_default_logger_ints_and_large_string_dynamic_log_level"};
+  {
+    LogManager lm;
+
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
+
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    std::thread frontend(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        // log an array so the log message is pushed to the queue
+        for (int i = 0; i < 1000; ++i)
+        {
+          std::string v{"Lorem ipsum dolor sit amet, consectetur "};
+          v += std::to_string(i);
+
+          LOG_DYNAMIC(default_logger, LogLevel::Info,
+                      "Logging int: {}, int: {}, string: {}, char: {}", i, i * 10, v, v.c_str());
+        }
+
+        // Let all log get flushed to the file
+        lm.flush();
+      });
+
+    frontend.join();
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+    REQUIRE_EQ(file_contents.size(), 1000);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         Logging int: 0, int: 0, string: Lorem ipsum dolor sit amet, consectetur 0, char: Lorem ipsum dolor sit amet, consectetur 0"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         Logging int: 999, int: 9990, string: Lorem ipsum dolor sit amet, consectetur 999, char: Lorem ipsum dolor sit amet, consectetur 999"}));
+
+    lm.stop_backend_worker();
+  }
+  quill::detail::remove_file(filename);
+}
+
+/***/
 TEST_CASE("default_logger_ints_and_very_large_string")
 {
   fs::path const filename{"test_default_logger_ints_and_very_large_string"};

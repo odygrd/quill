@@ -220,7 +220,8 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
 /***/
 fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_view thread_id,
                                              std::string_view thread_name, std::string_view process_id,
-                                             std::string_view logger_name, MacroMetadata const& macro_metadata,
+                                             std::string_view logger_name, std::string_view log_level,
+                                             MacroMetadata const& macro_metadata,
                                              transit_event_fmt_buffer_t const& log_msg)
 {
   // clear out existing buffer
@@ -250,7 +251,7 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
 
   if (_is_set_in_pattern[Attribute::LevelName])
   {
-    _set_arg_val<Attribute::LevelName>(macro_metadata.level_as_str());
+    _set_arg_val<Attribute::LevelName>(log_level);
   }
 
   if (_is_set_in_pattern[Attribute::LevelId])

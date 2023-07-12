@@ -582,6 +582,17 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         // regular logs
         read_pos = format_to_fn(macro_metadata.message_format(), read_pos, transit_event->formatted_msg, _args);
       }
+
+      if (macro_metadata.level() == LogLevel::Dynamic)
+      {
+        // if this is a dynamic log level we need to read the log level from the buffer
+        LogLevel dynamic_log_level;
+        std::memcpy(&dynamic_log_level, read_pos, sizeof(LogLevel));
+        read_pos += sizeof(LogLevel);
+
+        // Also set the dynamic log level to the transit event
+        transit_event->log_level_override = dynamic_log_level;
+      }
 #if defined(_WIN32)
     }
 #endif
@@ -720,12 +731,12 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
     auto const& formatted_log_message_buffer = handler->formatter().format(
       std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id,
       transit_event.thread_name, _process_id, transit_event.header.logger_details->name(),
-      macro_metadata, transit_event.formatted_msg);
+      transit_event.log_level_as_str(), macro_metadata, transit_event.formatted_msg);
 
     // If all filters are okay we write this message to the file
     if (handler->apply_filters(transit_event.thread_id,
                                std::chrono::nanoseconds{transit_event.header.timestamp},
-                               macro_metadata, formatted_log_message_buffer))
+                               transit_event.log_level(), macro_metadata, formatted_log_message_buffer))
     {
       // log to the handler, also pass the log_message_timestamp this is only needed in some
       // cases like daily file rotation

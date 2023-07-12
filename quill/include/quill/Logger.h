@@ -90,6 +90,23 @@ public:
   }
 
   /**
+   * Checks if the given log_statement_level can be logged by this logger
+   * @param log_statement_level The log level of the log statement to be logged
+   * @return bool if a message can be logged based on the current log level
+   */
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log(LogLevel log_statement_level) const noexcept
+  {
+#if QUILL_ACTIVE_LOG_LEVEL > 0
+    if (QUILL_ACTIVE_LOG_LEVEL > static_cast<uint8_t>(log_statement_level))
+    {
+      return false;
+    }
+#endif
+
+    return log_statement_level >= log_level();
+  }
+
+  /**
    * Push a log message to the spsc queue to be logged by the backend thread.
    * One spsc queue per caller thread. This function is enabled only when all arguments are
    * fundamental types.
@@ -99,7 +116,7 @@ public:
    * @param fmt_args arguments
    */
   template <typename TMacroMetadata, typename TFormatString, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT void log(TFormatString format_string, FmtArgs&&... fmt_args)
+  QUILL_ALWAYS_INLINE_HOT void log(LogLevel dynamic_log_level, TFormatString format_string, FmtArgs&&... fmt_args)
   {
     assert(!_is_invalidated.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 
@@ -122,7 +139,8 @@ public:
     }
 #endif
 
-    if constexpr (TMacroMetadata{}().is_structured_log_template())
+    constexpr MacroMetadata macro_metadata{TMacroMetadata{}()};
+    if constexpr (macro_metadata.is_structured_log_template())
     {
       // if the format statement has named args then we perform our own compile time check
     }
@@ -147,8 +165,14 @@ public:
     size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
 
     // Need to reserve additional space as we will be aligning the pointer
-    size_t const total_size = sizeof(detail::Header) + alignof(detail::Header) +
+    size_t total_size = sizeof(detail::Header) + alignof(detail::Header) +
       detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
+
+    if constexpr (macro_metadata.level() == quill::LogLevel::Dynamic)
+    {
+      // For the dynamic log level we want to add to the total size to store the dynamic log level
+      total_size += sizeof(quill::LogLevel);
+    }
 
     // request this size from the queue
     std::byte* write_buffer =
@@ -205,6 +229,14 @@ public:
 
     // encode remaining arguments
     write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
+
+    if constexpr (macro_metadata.level() == quill::LogLevel::Dynamic)
+    {
+      // write the dynamic log level
+      std::memcpy(write_buffer, &dynamic_log_level, sizeof(quill::LogLevel));
+      write_buffer += sizeof(quill::LogLevel);
+    }
+
     assert(total_size >= (static_cast<uint32_t>(write_buffer - write_begin)) &&
            "The committed write bytes can not be greater than the requested bytes");
     assert((write_buffer >= write_begin) &&
@@ -237,7 +269,8 @@ public:
     } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_message_info)>(QUILL_FMT_STRING("{}"), capacity);
+    this->template log<decltype(anonymous_log_message_info)>(quill::LogLevel::None,
+                                                             QUILL_FMT_STRING("{}"), capacity);
 
     // Also store the desired flush log level
     _logger_details.set_backtrace_flush_level(backtrace_flush_level);
@@ -263,7 +296,7 @@ public:
     } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_message_info)>(QUILL_FMT_STRING(""));
+    this->template log<decltype(anonymous_log_message_info)>(quill::LogLevel::None, QUILL_FMT_STRING(""));
   }
 
 private:
