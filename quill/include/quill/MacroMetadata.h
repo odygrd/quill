@@ -117,14 +117,6 @@ public:
   /**
    * @return  The log level of this logging event as a string
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view level_as_str() const noexcept
-  {
-    return loglevel_to_string(_level);
-  }
-
-  /**
-   * @return  The log level of this logging event as a string
-   */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view level_id_as_str() const noexcept
   {
     return loglevel_to_string_id(_level);

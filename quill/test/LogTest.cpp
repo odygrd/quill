@@ -170,6 +170,54 @@ TEST_CASE("default_logger_ints_and_large_string")
 }
 
 /***/
+TEST_CASE("default_logger_ints_and_large_string_dynamic_log_level")
+{
+  fs::path const filename{"test_default_logger_ints_and_large_string_dynamic_log_level"};
+  {
+    LogManager lm;
+
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "w", FilenameAppend::None, FileEventNotifier{}, false));
+    lm.configure(cfg);
+
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    std::thread frontend(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        // log an array so the log message is pushed to the queue
+        for (int i = 0; i < 1000; ++i)
+        {
+          std::string v{"Lorem ipsum dolor sit amet, consectetur "};
+          v += std::to_string(i);
+
+          LOG_DYNAMIC(default_logger, LogLevel::Info,
+                      "Logging int: {}, int: {}, string: {}, char: {}", i, i * 10, v, v.c_str());
+        }
+
+        // Let all log get flushed to the file
+        lm.flush();
+      });
+
+    frontend.join();
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+    REQUIRE_EQ(file_contents.size(), 1000);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         Logging int: 0, int: 0, string: Lorem ipsum dolor sit amet, consectetur 0, char: Lorem ipsum dolor sit amet, consectetur 0"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         Logging int: 999, int: 9990, string: Lorem ipsum dolor sit amet, consectetur 999, char: Lorem ipsum dolor sit amet, consectetur 999"}));
+
+    lm.stop_backend_worker();
+  }
+  quill::detail::remove_file(filename);
+}
+
+/***/
 TEST_CASE("default_logger_ints_and_very_large_string")
 {
   fs::path const filename{"test_default_logger_ints_and_very_large_string"};
@@ -799,6 +847,66 @@ TEST_CASE("backend_notification_handler_error_throw_while_in_backend_process")
   quill::detail::remove_file(filename);
 }
 #endif
+
+/***/
+TEST_CASE("log_backtrace_dynamic_log_level_and_flush_on_error_1")
+{
+  fs::path filename{"test_log_backtrace_dynamic_log_level_and_flush_on_error_1"};
+  {
+    LogManager lm;
+
+    quill::Config cfg;
+
+    // Set a file handler as the custom logger handler and log to it
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
+
+    lm.configure(cfg);
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    std::thread frontend(
+      [&lm]()
+      {
+        // Get a logger and enable backtrace
+        Logger* logger = lm.logger_collection().get_logger();
+
+        // Enable backtrace for 2 messages
+        logger->init_backtrace(2, LogLevel::Error);
+
+        LOG_DYNAMIC(logger, quill::LogLevel::Info, "Before backtrace.");
+        for (uint32_t i = 0; i < 12; ++i)
+        {
+#if defined(__aarch64__) || ((__ARM_ARCH >= 6) || defined(_M_ARM64))
+          // On ARM we add a small delay because log messages can get the same timestamp from rdtsc
+          // when in this loop and make the test unstable
+          std::this_thread::sleep_for(std::chrono::microseconds{200});
+#endif
+          LOG_DYNAMIC(logger, quill::LogLevel::Backtrace, "Backtrace message {}.", i);
+        }
+
+        LOG_DYNAMIC(logger, quill::LogLevel::Error, "After Error.");
+
+        // Let all log get flushed to the file
+        lm.flush();
+      });
+
+    frontend.join();
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+    REQUIRE_EQ(file_contents.size(), 4);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         Before backtrace."}));
+    REQUIRE(quill::testing::file_contains(file_contents, std::string{"LOG_ERROR     root         After Error."}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_BACKTRACE root         Backtrace message 10."}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_BACKTRACE root         Backtrace message 11."}));
+
+    lm.stop_backend_worker();
+  }
+  quill::detail::remove_file(filename);
+}
 
 /***/
 TEST_CASE("log_backtrace_and_flush_on_error_1")

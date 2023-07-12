@@ -6,10 +6,13 @@
 #pragma once
 
 #include "quill/Fmt.h"
+#include "quill/LogLevel.h"
 #include "quill/detail/Serialize.h"
+#include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 
 #include <atomic>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -32,6 +35,7 @@ struct TransitEvent
       thread_name(other.thread_name),
       formatted_msg(std::move(other.formatted_msg)),
       structured_kvs(std::move(other.structured_kvs)),
+      log_level_override(other.log_level_override),
       flush_flag(other.flush_flag)
   {
   }
@@ -45,10 +49,24 @@ struct TransitEvent
       thread_name = other.thread_name;
       header = other.header;
       formatted_msg = std::move(other.formatted_msg);
+      log_level_override = other.log_level_override;
       flush_flag = other.flush_flag;
     }
 
     return *this;
+  }
+
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT LogLevel log_level() const noexcept
+  {
+    return log_level_override ? *log_level_override : header.metadata_and_format_fn().first.level();
+  }
+
+  /**
+   * @return  The log level of this logging event as a string
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view log_level_as_str() const noexcept
+  {
+    return loglevel_to_string(log_level());
   }
 
   /**
@@ -60,6 +78,7 @@ struct TransitEvent
   char const* thread_name;
   transit_event_fmt_buffer_t formatted_msg; /** buffer for message **/
   std::vector<std::pair<std::string, std::string>> structured_kvs;
+  std::optional<LogLevel> log_level_override{std::nullopt};
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
 } // namespace quill

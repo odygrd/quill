@@ -26,7 +26,8 @@ enum class LogLevel : uint8_t
   Error,
   Critical,
   Backtrace, /**< This is only used for backtrace logging. Should not be set by the user. */
-  None
+  None,
+  Dynamic /**< This is only used for dynamic logging. Should not be set by the user. */
 };
 
 /**

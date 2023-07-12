@@ -96,8 +96,8 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt_buffer_t const& format(
     std::chrono::nanoseconds timestamp, std::string_view thread_id, std::string_view thread_name,
-    std::string_view process_id, std::string_view logger_name, MacroMetadata const& macro_metadata,
-    transit_event_fmt_buffer_t const& log_msg);
+    std::string_view process_id, std::string_view logger_name, std::string_view log_level,
+    MacroMetadata const& macro_metadata, transit_event_fmt_buffer_t const& log_msg);
 
   QUILL_ATTRIBUTE_HOT std::string_view format_timestamp(std::chrono::nanoseconds timestamp);
 

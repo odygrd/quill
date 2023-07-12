@@ -118,7 +118,8 @@ public:
    * @return result of all filters
    */
   QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
-                                     MacroMetadata const& metadata, fmt_buffer_t const& formatted_record);
+                                     LogLevel log_level, MacroMetadata const& metadata,
+                                     fmt_buffer_t const& formatted_record);
 
 protected:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter

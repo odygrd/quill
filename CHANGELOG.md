@@ -1,3 +1,4 @@
+- [v3.3.0](#v330)
 - [v3.2.0](#v320)
 - [v3.1.0](#v310)
 - [v3.0.2](#v302)
@@ -47,6 +48,27 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v3.3.0
+
+- Added support for specifying a runtime log level, allowing dynamic log level configuration at runtime.
+  The new runtime log level feature provides flexibility when needed, with a minor overhead cost.
+  It is recommended to continue using the existing static log level macros for optimal
+  performance. ([#321](https://github.com/odygrd/quill/pull/321))
+
+For example
+
+```c++
+  std::array<quill::LogLevel, 4> const runtime_log_levels = {quill::LogLevel::Debug,
+                                                             quill::LogLevel::Info,
+                                                             quill::LogLevel::Warning,
+                                                             quill::LogLevel::Error};
+
+  for (auto const& log_level : runtime_log_levels)
+  {
+    LOG_DYNAMIC(default_logger, log_level, "Runtime {} {}", "log", "level");
+  }
+```
 
 ## v3.2.0
 
@@ -111,6 +133,7 @@
 # Fixed queue size, no reallocations, hot thread blocks
 -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
 ```
+
 - Added support for huge pages on Linux. Enabling this feature allows bounded or unbounded queues to utilize huge pages,
   resulting in optimized memory allocation.
 
@@ -249,8 +272,10 @@ int main()
 - Reduce padding in some structs.
 - Fix 'rename_file' throwing an exception while being marked
   as `noexcept`. ([#230](https://github.com/odygrd/quill/pull/230))
-- Fix crash with `std::bad_alloc` and compiler warnings in gcc `7.3.1`. ([#235](https://github.com/odygrd/quill/pull/235))
-- The additional compiler definitions will now be propagated to the parent targets when enabling options in CMake. ([#235](https://github.com/odygrd/quill/pull/235))
+- Fix crash with `std::bad_alloc` and compiler warnings in
+  gcc `7.3.1`. ([#235](https://github.com/odygrd/quill/pull/235))
+- The additional compiler definitions will now be propagated to the parent targets when enabling options in
+  CMake. ([#235](https://github.com/odygrd/quill/pull/235))
 
 **Improvements**
 

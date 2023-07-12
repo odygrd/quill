@@ -13,6 +13,11 @@ using namespace std::literals;
 TEST_CASE("loglevel_to_string")
 {
   {
+    LogLevel log_level{LogLevel::Dynamic};
+    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "DYNAMIC");
+  }
+
+  {
     LogLevel log_level{LogLevel::None};
     REQUIRE_STREQ(loglevel_to_string(log_level).data(), "NONE");
   }
@@ -74,6 +79,11 @@ TEST_CASE("loglevel_to_string")
 /***/
 TEST_CASE("loglevel_from_string")
 {
+  {
+    std::string log_level{"Dynamic"};
+    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Dynamic);
+  }
+
   {
     std::string log_level{"None"};
     REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::None);
