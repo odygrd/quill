@@ -81,7 +81,7 @@ public:
   template <LogLevel log_statement_level>
   QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log() const noexcept
   {
-    if constexpr (QUILL_ACTIVE_LOG_LEVEL > static_cast<uint8_t>(log_statement_level))
+    if constexpr (static_cast<LogLevel>(QUILL_ACTIVE_LOG_LEVEL) > log_statement_level)
     {
       return false;
     }
