@@ -658,7 +658,7 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
   {
     if (macro_metadata.event() == MacroMetadata::Event::Log)
     {
-      if (macro_metadata.level() != LogLevel::Backtrace)
+      if (transit_event.log_level() != LogLevel::Backtrace)
       {
         _write_transit_event(transit_event);
 
@@ -667,7 +667,7 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
         // After we forwarded the message we will check the severity of this message for this logger
         // If the severity of the message is higher than the backtrace flush severity we will also
         // flush the backtrace of the logger
-        if (QUILL_UNLIKELY(macro_metadata.level() >= transit_event.header.logger_details->backtrace_flush_level()))
+        if (QUILL_UNLIKELY(transit_event.log_level() >= transit_event.header.logger_details->backtrace_flush_level()))
         {
           _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
                                                  [this](TransitEvent const& transit_event)

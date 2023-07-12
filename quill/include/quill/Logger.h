@@ -98,7 +98,7 @@ public:
   {
     if constexpr (QUILL_ACTIVE_LOG_LEVEL > 0)
     {
-      if (QUILL_ACTIVE_LOG_LEVEL > static_cast<uint8_t>(log_statement_level))
+      if (static_cast<LogLevel>(QUILL_ACTIVE_LOG_LEVEL) > log_statement_level)
       {
         return false;
       }
