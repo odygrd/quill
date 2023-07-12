@@ -96,12 +96,13 @@ public:
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log(LogLevel log_statement_level) const noexcept
   {
-#if QUILL_ACTIVE_LOG_LEVEL > 0
-    if (QUILL_ACTIVE_LOG_LEVEL > static_cast<uint8_t>(log_statement_level))
+    if constexpr (QUILL_ACTIVE_LOG_LEVEL > 0)
     {
-      return false;
+      if (QUILL_ACTIVE_LOG_LEVEL > static_cast<uint8_t>(log_statement_level))
+      {
+        return false;
+      }
     }
-#endif
 
     return log_statement_level >= log_level();
   }

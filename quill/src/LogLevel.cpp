@@ -13,9 +13,9 @@ namespace quill
 /***/
 std::string_view loglevel_to_string(LogLevel log_level)
 {
-  static constexpr std::array<std::string_view, 10> log_levels_map = {
+  static constexpr std::array<std::string_view, 11> log_levels_map = {
     {"TRACE_L3", "TRACE_L2", "TRACE_L1", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL",
-     "BACKTRACE", "NONE"}};
+     "BACKTRACE", "NONE", "DYNAMIC"}};
 
   using log_lvl_t = std::underlying_type<LogLevel>::type;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
@@ -34,8 +34,8 @@ std::string_view loglevel_to_string(LogLevel log_level)
 /***/
 std::string_view loglevel_to_string_id(LogLevel log_level)
 {
-  static constexpr std::array<std::string_view, 10> log_levels_map = {
-    {"T3", "T2", "T1", "D", "I", "W", "E", "C", "BT", "N"}};
+  static constexpr std::array<std::string_view, 11> log_levels_map = {
+    {"T3", "T2", "T1", "D", "I", "W", "E", "C", "BT", "N", "DN"}};
 
   using log_lvl_t = std::underlying_type<LogLevel>::type;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
@@ -61,7 +61,7 @@ LogLevel loglevel_from_string(std::string log_level)
     {"debug", LogLevel::Debug},       {"info", LogLevel::Info},
     {"warning", LogLevel::Warning},   {"error", LogLevel::Error},
     {"critical", LogLevel::Critical}, {"backtrace", LogLevel::Backtrace},
-    {"none", LogLevel::None}};
+    {"none", LogLevel::None},         {"dynamic", LogLevel::Dynamic}};
 
   // parse log level
   std::transform(log_level.begin(), log_level.end(), log_level.begin(),
