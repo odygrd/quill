@@ -35,8 +35,8 @@ struct TransitEvent
       thread_name(other.thread_name),
       formatted_msg(std::move(other.formatted_msg)),
       structured_kvs(std::move(other.structured_kvs)),
-      flush_flag(other.flush_flag),
-      log_level_override(other.log_level_override)
+      log_level_override(other.log_level_override),
+      flush_flag(other.flush_flag)
   {
   }
 
@@ -49,8 +49,8 @@ struct TransitEvent
       thread_name = other.thread_name;
       header = other.header;
       formatted_msg = std::move(other.formatted_msg);
-      flush_flag = other.flush_flag;
       log_level_override = other.log_level_override;
+      flush_flag = other.flush_flag;
     }
 
     return *this;

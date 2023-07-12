@@ -295,7 +295,7 @@ public:
       }
     } anonymous_log_message_info;
 
-    // we pass this message to the queue and also pass capacity as arg
+    // we pass this message to the queue
     this->template log<decltype(anonymous_log_message_info)>(quill::LogLevel::None, QUILL_FMT_STRING(""));
   }
 
