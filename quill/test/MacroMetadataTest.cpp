@@ -24,7 +24,7 @@ TEST_CASE("construct")
 
     REQUIRE_STREQ(log_line_info.message_format().data(), "Test fmt {}");
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Debug);
-    REQUIRE_STREQ(log_line_info.lineno().data(), "16");
+    REQUIRE_STREQ(log_line_info.lineno().data(), "15");
   }
 
   {
@@ -40,7 +40,7 @@ TEST_CASE("construct")
 
     REQUIRE_STREQ(log_line_info.message_format().data(), "Test another fmt {}");
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Info);
-    REQUIRE_STREQ(log_line_info.lineno().data(), "25");
+    REQUIRE_STREQ(log_line_info.lineno().data(), "31");
     REQUIRE_STREQ(log_line_info.filename().data(), "MacroMetadataTest.cpp");
   }
 }
