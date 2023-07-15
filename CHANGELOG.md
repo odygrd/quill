@@ -66,7 +66,7 @@ For example
 
   for (auto const& log_level : runtime_log_levels)
   {
-    LOG_DYNAMIC(default_logger, log_level, "Runtime {} {}", "log", "level");
+    LOG_DYNAMIC(logger, log_level, "Runtime {} {}", "log", "level");
   }
 ```
 
