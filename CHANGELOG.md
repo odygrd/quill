@@ -82,6 +82,18 @@ For example
   LOG_INFO_CFORMAT(logger, "printf style %s supported %d %f", "also", 5, 2.32);
 ```
 
+- Added a `metadata()` member function to the `TransitEvent` class. It provides access to the `Metadata` object
+  associated with the log record, simplifying syntax for retrieving log record metadata in custom Handlers.
+
+For example
+
+```c++
+void CustomHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
+{
+  MacroMetadata const macro_metadata = log_event.metadata();
+}
+```
+
 ## v3.2.0
 
 - Addition of std::is_trivially_copyable<T> to default copy loggable
