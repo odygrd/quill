@@ -41,6 +41,18 @@ int main()
 
     std::array<uint32_t, 4> arr = {1, 2, 3, 4};
     LOG_INFO(logger, "This is a log info example {}", arr);
+
+    // Using a dynamic runtime log level
+    std::array<quill::LogLevel, 4> const runtime_log_levels = {
+      quill::LogLevel::Debug, quill::LogLevel::Info, quill::LogLevel::Warning, quill::LogLevel::Error};
+
+    for (auto const& log_level : runtime_log_levels)
+    {
+      LOG_DYNAMIC(logger, log_level, "Runtime {} {}", "log", "level");
+    }
+
+    // printf format style is also supported
+    LOG_INFO_CFORMAT(logger, "printf style %s %d %f", "example", 5, 2.31);
   }
 
   // b) Or like this
@@ -110,14 +122,5 @@ int main()
     LOG_DEBUG_LIMIT(std::chrono::seconds{1}, default_logger,
                     "log in a loop with limit 1 message every 1 second for i {}", i);
     std::this_thread::sleep_for(std::chrono::microseconds{30});
-  }
-
-  // Using a dynamic runtime log level
-  std::array<quill::LogLevel, 4> const runtime_log_levels = {
-    quill::LogLevel::Debug, quill::LogLevel::Info, quill::LogLevel::Warning, quill::LogLevel::Error};
-
-  for (auto const& log_level : runtime_log_levels)
-  {
-    LOG_DYNAMIC(default_logger, log_level, "Runtime {} {}", "log", "level");
   }
 }

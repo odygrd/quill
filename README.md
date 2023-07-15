@@ -89,25 +89,39 @@ Additionally, you can explore the [examples](http://github.com/odygrd/quill/tree
     - Time rotating log files.
     - JSON logging.
     - Custom handlers.
-- **Log Message Filtering**: Apply filters to selectively process log messages. Learn more about [Filters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#filters).
-- **Structured Logging**: Generate JSON structured logs. See [Structured-Log](http://quillcpp.readthedocs.io/en/latest/tutorial.html#json-log) for details.
-- **Blocking or Dropping Message Modes**: Choose between `blocking` or `dropping` message modes in the library. In `blocking` mode, the hot threads pause and wait when the queue is full until space becomes available, ensuring no message loss but introducing potential latency. In `dropping` mode, log messages beyond the queue's capacity may be dropped to prioritize low latency. The library provides reports on dropped messages, queue reallocations, and blocked hot threads for monitoring purposes.
-- **Queue Types**: The library supports two types of queues for transferring logs from the hot path to the backend thread: bounded queues with a fixed capacity and unbounded queues that start small and can dynamically grow.
+- **Log Message Filtering**: Apply filters to selectively process log messages. Learn more
+  about [Filters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#filters).
+- **Structured Logging**: Generate JSON structured logs.
+  See [Structured-Log](http://quillcpp.readthedocs.io/en/latest/tutorial.html#json-log) for details.
+- **Blocking or Dropping Message Modes**: Choose between `blocking` or `dropping` message modes in the library.
+  In `blocking` mode, the hot threads pause and wait when the queue is full until space becomes available, ensuring no
+  message loss but introducing potential latency. In `dropping` mode, log messages beyond the queue's capacity may be
+  dropped to prioritize low latency. The library provides reports on dropped messages, queue reallocations, and blocked
+  hot threads for monitoring purposes.
+- **Queue Types**: The library supports two types of queues for transferring logs from the hot path to the backend
+  thread: bounded queues with a fixed capacity and unbounded queues that start small and can dynamically grow.
 - **Wide Character Support**: Log messages and filenames with wide characters are supported (Windows and v1.7.x only).
-- **Ordered Log Statements**: Log statements are ordered by timestamp even when produced by different threads, facilitating easier debugging of multithreaded applications.
+- **Ordered Log Statements**: Log statements are ordered by timestamp even when produced by different threads,
+  facilitating easier debugging of multithreaded applications.
 - **Compile-Time Log Level Stripping**: Completely strip out log levels at compile time, reducing `if` branches.
 - **Clean and Warning-Free Codebase**: Ensure a clean and warning-free codebase, even with high compiler warning levels.
 - **Crash-Safe Behavior**: Benefit from crash-safe behavior with a built-in signal handler.
-- **Type-Safe Python-Style API**: Utilize a type-safe API inspired by Python, with compile-time checks and built-in support for logging STL types/containers using the excellent [{fmt}](http://github.com/fmtlib/fmt) library.
-- **Support for Huge Pages**: Benefit from support for huge pages on the hot path. This feature allows for improved performance and efficiency.
-  
+- **Type-Safe Python-Style API**: Utilize a type-safe API inspired by Python, with compile-time checks and built-in
+  support for logging STL types/containers using the excellent [{fmt}](http://github.com/fmtlib/fmt) library.
+- **Huge Pages**: Benefit from support for huge pages on the hot path. This feature allows for improved performance and
+  efficiency.
+- **Printf-style format**: The library offers support for the `printf` style format in addition to the existing `libfmt`
+  style format. This feature is particularly useful when migrating from legacy codebases that rely on the `printf` style
+  format.
+
 ## Performance
 
 ### Latency
 
 #### Logging Numbers
 
-The following message is logged 100,000 times per thread: `LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)`.
+The following message is logged 100,000 times per
+thread: `LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)`.
 
 The results presented in the tables below are measured in nanoseconds (ns).
 

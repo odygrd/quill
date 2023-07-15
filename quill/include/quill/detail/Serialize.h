@@ -13,8 +13,8 @@
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 #include <cstdint>
 #include <cstring>
-#include <string_view>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace quill
@@ -174,7 +174,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t*)
  */
 template <size_t CstringIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_string_sizes,
-                                                                  Arg const& arg, Args const&... args)
+                                                                    Arg const& arg, Args const&... args)
 {
   if constexpr (is_type_of_c_string<Arg>())
   {
@@ -194,7 +194,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_st
 #if defined(_WIN32)
   else if constexpr (is_type_of_wide_c_string<Arg>())
   {
-    size_t const len = get_wide_string_encoding_size(std::wstring_view {arg, wcslen(arg)});
+    size_t const len = get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
     c_string_sizes[CstringIdx] = len;
     return len + sizeof(size_t) + alignof(size_t) + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
   }
@@ -222,7 +222,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t*, st
 
 template <size_t CstringIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_string_sizes, std::byte* out,
-                                                                   Arg&& arg, Args&&... args)
+                                                                     Arg&& arg, Args&&... args)
 {
   if constexpr (is_type_of_c_string<Arg>())
   {
@@ -327,8 +327,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* printf_format_to(
   std::byte* ret = decode_args<fmtquill::printf_context, 0, Args...>(data, args, dtor_args);
 
   out.clear();
-  std::string const res = fmtquill::vsprintf(format, fmtquill::printf_args(args.data(), sizeof...(Args)));
-  out.append(res.data(), res.data() + res.size());
+  fmtquill::detail::vprintf(out, fmtquill::basic_string_view<char>{format.data(), format.length()},
+                            fmtquill::printf_args(args.data(), sizeof...(Args)));
 
   destruct_args<0, Args...>(dtor_args);
 

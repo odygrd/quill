@@ -70,6 +70,18 @@ For example
   }
 ```
 
+- Added support for printf-style formatting with `_CFORMAT` macros. These macros use the `printf` format string syntax,
+  simplifying the migration of codebases using `printf` statements to Quill.
+
+For example
+
+```c++
+  std::array<uint32_t, 4> arr = {1, 2, 3, 4};
+  LOG_INFO(logger, "This is a log info example using fmt format {}", arr);
+  
+  LOG_INFO_CFORMAT(logger, "printf style %s supported %d %f", "also", 5, 2.32);
+```
+
 ## v3.2.0
 
 - Addition of std::is_trivially_copyable<T> to default copy loggable
