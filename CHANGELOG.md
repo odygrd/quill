@@ -71,7 +71,7 @@ For example
 ```
 
 - Added support for printf-style formatting with `_CFORMAT` macros. These macros use the `printf` format string syntax,
-  simplifying the migration of codebases using `printf` statements to Quill.
+  simplifying the migration of legacy codebases using `printf` statements.
 
 For example
 
