@@ -16,7 +16,7 @@
 #define QUILL_COPY_LOGGABLE using copy_loggable = std::true_type
 
 // Main Log Macros
-#define QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ...)                  \
+#define QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, is_printf_fmt, fmt, ...)   \
   do                                                                                               \
   {                                                                                                \
     struct                                                                                         \
@@ -30,7 +30,8 @@
                                     fmt,                                                           \
                                     log_statement_level,                                           \
                                     quill::MacroMetadata::Event::Log,                              \
-                                    quill::detail::detect_structured_log_template(fmt)};           \
+                                    quill::detail::detect_structured_log_template(fmt),            \
+                                    is_printf_fmt};                                                \
       }                                                                                            \
     } anonymous_log_message_info;                                                                  \
                                                                                                    \
@@ -41,7 +42,7 @@
     }                                                                                              \
   } while (0)
 
-#define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ...)                       \
+#define QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, is_printf_fmt, fmt, ...)        \
   do                                                                                               \
   {                                                                                                \
     static constexpr char const* function_name = __FUNCTION__;                                     \
@@ -56,7 +57,8 @@
                                     fmt,                                                           \
                                     log_statement_level,                                           \
                                     quill::MacroMetadata::Event::Log,                              \
-                                    quill::detail::detect_structured_log_template(fmt)};           \
+                                    quill::detail::detect_structured_log_template(fmt),            \
+                                    is_printf_fmt};                                                \
       }                                                                                            \
     } anonymous_log_message_info;                                                                  \
                                                                                                    \
@@ -67,43 +69,44 @@
     }                                                                                              \
   } while (0)
 
-#define QUILL_LOGGER_CALL_LIMIT(min_interval, likelyhood, logger, log_statement_level, fmt, ...)   \
-  do                                                                                               \
-  {                                                                                                \
-    if (likelyhood(logger->template should_log<log_statement_level>()))                            \
-    {                                                                                              \
-      thread_local std::chrono::time_point<std::chrono::steady_clock> next_log_time;               \
-      auto const now = std::chrono::steady_clock::now();                                           \
-                                                                                                   \
-      if (now < next_log_time)                                                                     \
-      {                                                                                            \
-        break;                                                                                     \
-      }                                                                                            \
-                                                                                                   \
-      next_log_time = now + min_interval;                                                          \
-      QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, fmt, ##__VA_ARGS__);              \
-    }                                                                                              \
+#define QUILL_LOGGER_CALL_LIMIT(min_interval, likelyhood, logger, log_statement_level, is_printf_fmt, fmt, ...) \
+  do                                                                                                            \
+  {                                                                                                             \
+    if (likelyhood(logger->template should_log<log_statement_level>()))                                         \
+    {                                                                                                           \
+      thread_local std::chrono::time_point<std::chrono::steady_clock> next_log_time;                            \
+      auto const now = std::chrono::steady_clock::now();                                                        \
+                                                                                                                \
+      if (now < next_log_time)                                                                                  \
+      {                                                                                                         \
+        break;                                                                                                  \
+      }                                                                                                         \
+                                                                                                                \
+      next_log_time = now + min_interval;                                                                       \
+      QUILL_LOGGER_CALL(likelyhood, logger, log_statement_level, is_printf_fmt, fmt, ##__VA_ARGS__);            \
+    }                                                                                                           \
   } while (0)
 
-#define QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, likelyhood, logger, log_statement_level, fmt, ...) \
-  do                                                                                                  \
-  {                                                                                                   \
-    if (likelyhood(logger->template should_log<log_statement_level>()))                               \
-    {                                                                                                 \
-      thread_local std::chrono::time_point<std::chrono::steady_clock> next_log_time;                  \
-      auto const now = std::chrono::steady_clock::now();                                              \
-                                                                                                      \
-      if (now < next_log_time)                                                                        \
-      {                                                                                               \
-        break;                                                                                        \
-      }                                                                                               \
-                                                                                                      \
-      limit_us = now + min_interval;                                                                  \
-      QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ##__VA_ARGS__);            \
-    }                                                                                                 \
+#define QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, likelyhood, logger, log_statement_level,               \
+                                     is_printf_fmt, fmt, ...)                                             \
+  do                                                                                                      \
+  {                                                                                                       \
+    if (likelyhood(logger->template should_log<log_statement_level>()))                                   \
+    {                                                                                                     \
+      thread_local std::chrono::time_point<std::chrono::steady_clock> next_log_time;                      \
+      auto const now = std::chrono::steady_clock::now();                                                  \
+                                                                                                          \
+      if (now < next_log_time)                                                                            \
+      {                                                                                                   \
+        break;                                                                                            \
+      }                                                                                                   \
+                                                                                                          \
+      limit_us = now + min_interval;                                                                      \
+      QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, is_printf_fmt, fmt, ##__VA_ARGS__); \
+    }                                                                                                     \
   } while (0)
 
-#define QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ...)                                              \
+#define QUILL_BACKTRACE_LOGGER_CALL(logger, is_printf_fmt, fmt, ...)                               \
   do                                                                                               \
   {                                                                                                \
     static constexpr char const* function_name = __FUNCTION__;                                     \
@@ -118,7 +121,8 @@
                                     fmt,                                                           \
                                     quill::LogLevel::Backtrace,                                    \
                                     quill::MacroMetadata::Event::Log,                              \
-                                    quill::detail::detect_structured_log_template(fmt)};           \
+                                    quill::detail::detect_structured_log_template(fmt),            \
+                                    is_printf_fmt};                                                \
       }                                                                                            \
     } anonymous_log_message_info;                                                                  \
                                                                                                    \
@@ -133,7 +137,7 @@
  * Dynamic runtime log level with a tiny overhead
  * @Note: Prefer using the compile time log level macros
  */
-#define QUILL_DYNAMIC_LOG(logger, log_level, fmt, ...)                                                             \
+#define QUILL_DYNAMIC_LOG_CALL(logger, log_level, is_printf_fmt, fmt, ...)                                         \
   do                                                                                                               \
   {                                                                                                                \
     static constexpr char const* function_name = __FUNCTION__;                                                     \
@@ -148,7 +152,8 @@
                                     fmt,                                                                           \
                                     quill::LogLevel::Dynamic,                                                      \
                                     quill::MacroMetadata::Event::Log,                                              \
-                                    quill::detail::detect_structured_log_template(fmt)};                           \
+                                    quill::detail::detect_structured_log_template(fmt),                            \
+                                    is_printf_fmt};                                                                \
       }                                                                                                            \
     } anonymous_log_message_info;                                                                                  \
                                                                                                                    \
@@ -158,161 +163,310 @@
     }                                                                                                              \
   } while (0)
 
+#define QUILL_DYNAMIC_LOG(logger, log_level, fmt, ...)                                             \
+  QUILL_DYNAMIC_LOG_CALL(logger, log_level, false, fmt, ##__VA_ARGS__)
+
+#define QUILL_DYNAMIC_LOG_CFORMAT(logger, log_level, fmt, ...)                                     \
+  QUILL_DYNAMIC_LOG_CALL(logger, log_level, true, fmt, ##__VA_ARGS__)
+
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L3
   #define QUILL_LOG_TRACE_L3(logger, fmt, ...)                                                     \
-    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L3_LIMIT(min_interval, logger, fmt, ...)                                 \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L3_NOFN(logger, fmt, ...)                                                \
-    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L3_NOFN_LIMIT(min_interval, logger, fmt, ...)                            \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3,   \
+                                 false, fmt, ##__VA_ARGS__)
 
+  #define QUILL_LOG_TRACE_L3_CFORMAT(logger, fmt, ...)                                             \
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L3_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                         \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L3_NOFN_CFORMAT(logger, fmt, ...)                                        \
+    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L3_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                    \
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3,   \
+                                 true, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_TRACE_L3(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L3_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L3_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L3_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L3_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L3_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L3_NOFN_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L3_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L2
   #define QUILL_LOG_TRACE_L2(logger, fmt, ...)                                                     \
-    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L2_LIMIT(min_interval, logger, fmt, ...)                                 \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L2_NOFN(logger, fmt, ...)                                                \
-    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L2_NOFN_LIMIT(min_interval, logger, fmt, ...)                            \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2,   \
+                                 false, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L2_CFORMAT(logger, fmt, ...)                                             \
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L2_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                         \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L2_NOFN_CFORMAT(logger, fmt, ...)                                        \
+    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L2_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                    \
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2,   \
+                                 true, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_TRACE_L2(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L2_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L2_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L2_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L2_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L2_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L2_NOFN_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L2_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_TRACE_L1
   #define QUILL_LOG_TRACE_L1(logger, fmt, ...)                                                     \
-    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L1_LIMIT(min_interval, logger, fmt, ...)                                 \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L1_NOFN(logger, fmt, ...)                                                \
-    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L1_NOFN_LIMIT(min_interval, logger, fmt, ...)                            \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1,   \
+                                 false, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L1_CFORMAT(logger, fmt, ...)                                             \
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L1_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                         \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L1_NOFN_CFORMAT(logger, fmt, ...)                                        \
+    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_TRACE_L1_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                    \
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1,   \
+                                 true, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_TRACE_L1(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L1_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L1_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L1_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L1_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L1_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L1_NOFN_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L1_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_DEBUG
   #define QUILL_LOG_DEBUG(logger, fmt, ...)                                                        \
-    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_DEBUG_LIMIT(min_interval, logger, fmt, ...)                                    \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::Debug, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_DEBUG_NOFN(logger, fmt, ...)                                                   \
-    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_DEBUG_NOFN_LIMIT(min_interval, logger, fmt, ...)                               \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::Debug,     \
+                                 false, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_DEBUG_CFORMAT(logger, fmt, ...)                                                \
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_DEBUG_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                            \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::Debug, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_DEBUG_NOFN_CFORMAT(logger, fmt, ...)                                           \
+    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_DEBUG_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                       \
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::Debug,     \
+                                 true, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_DEBUG(logger, fmt, ...) (void)0
   #define QUILL_LOG_DEBUG_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_DEBUG_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_DEBUG_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_DEBUG_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_DEBUG_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_DEBUG_NOFN_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_DEBUG_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_INFO
   #define QUILL_LOG_INFO(logger, fmt, ...)                                                         \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Info, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_INFO_LIMIT(min_interval, logger, fmt, ...)                                     \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Info, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_INFO_NOFN(logger, fmt, ...)                                                    \
-    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Info, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_INFO_NOFN_LIMIT(min_interval, logger, fmt, ...)                                \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Info, false, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_INFO_CFORMAT(logger, fmt, ...)                                                 \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Info, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_INFO_LIMIT_CFORMAT(min_interval, logger, true, fmt, ...)                       \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Info, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_INFO_NOFN_CFORMAT(logger, fmt, ...)                                            \
+    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Info, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_INFO_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                        \
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Info, true, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_INFO(logger, fmt, ...) (void)0
   #define QUILL_LOG_INFO_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_INFO_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_INFO_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_INFO_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_INFO_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_INFO_NOFN_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_INFO_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_WARNING
   #define QUILL_LOG_WARNING(logger, fmt, ...)                                                      \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Warning, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_WARNING_LIMIT(min_interval, logger, fmt, ...)                                  \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Warning, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_WARNING_NOFN(logger, fmt, ...)                                                 \
-    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Warning, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_WARNING_NOFN_LIMIT(min_interval, logger, fmt, ...)                             \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Warning,     \
+                                 false, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_WARNING_CFORMAT(logger, fmt, ...)                                              \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Warning, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_WARNING_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                          \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Warning, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_WARNING_NOFN_CFORMAT(logger, fmt, ...)                                         \
+    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Warning, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_WARNING_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                     \
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Warning,     \
+                                 true, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_WARNING(logger, fmt, ...) (void)0
   #define QUILL_LOG_WARNING_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_WARNING_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_WARNING_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_WARNING_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_WARNING_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_WARNING_NOFN_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_WARNING_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_ERROR
   #define QUILL_LOG_ERROR(logger, fmt, ...)                                                        \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Error, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_ERROR_LIMIT(min_interval, logger, fmt, ...)                                    \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Error, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_ERROR_NOFN(logger, fmt, ...)                                                   \
-    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Error, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_ERROR_NOFN_LIMIT(min_interval, logger, fmt, ...)                               \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Error,       \
+                                 false, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_ERROR_CFORMAT(logger, fmt, ...)                                                \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Error, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_ERROR_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                            \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Error, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_ERROR_NOFN_CFORMAT(logger, fmt, ...)                                           \
+    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Error, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_ERROR_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                       \
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Error, true, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_ERROR(logger, fmt, ...) (void)0
   #define QUILL_LOG_ERROR_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_ERROR_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_ERROR_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_ERROR_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_ERROR_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_ERROR_NOFN_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_ERROR_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
 #endif
 
 #if QUILL_ACTIVE_LOG_LEVEL <= QUILL_LOG_LEVEL_CRITICAL
   #define QUILL_LOG_CRITICAL(logger, fmt, ...)                                                     \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Critical, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...)                                 \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Critical, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_CRITICAL_NOFN(logger, fmt, ...)                                                \
-    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Critical, false, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_CRITICAL_NOFN_LIMIT(min_interval, logger, fmt, ...)                            \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Critical,    \
+                                 false, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_CRITICAL_CFORMAT(logger, fmt, ...)                                             \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Critical, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_CRITICAL_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                         \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Critical, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_CRITICAL_NOFN_CFORMAT(logger, fmt, ...)                                        \
+    QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Critical, true, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_CRITICAL_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                    \
+    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Critical,    \
+                                 true, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_CRITICAL(logger, fmt, ...) (void)0
   #define QUILL_LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_CRITICAL_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_CRITICAL_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_CRITICAL_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_CRITICAL_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_CRITICAL_NOFN_CFORMAT(logger, fmt, ...) (void)0
+  #define QUILL_LOG_CRITICAL_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...) (void)0
 #endif
 
 #define QUILL_LOG_BACKTRACE(logger, fmt, ...)                                                      \
-  QUILL_BACKTRACE_LOGGER_CALL(logger, fmt, ##__VA_ARGS__)
+  QUILL_BACKTRACE_LOGGER_CALL(logger, false, fmt, ##__VA_ARGS__)
+
+#define QUILL_LOG_BACKTRACE_CFORMAT(logger, fmt, ...)                                              \
+  QUILL_BACKTRACE_LOGGER_CALL(logger, true, fmt, ##__VA_ARGS__)
 
 #if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS) && !defined(QUILL_ROOT_LOGGER_ONLY)
   #define LOG_TRACE_L3(logger, fmt, ...) QUILL_LOG_TRACE_L3(logger, fmt, ##__VA_ARGS__)
@@ -369,6 +523,75 @@
     QUILL_LOG_ERROR_NOFN_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOG_CRITICAL_NOFN_LIMIT(min_interval, logger, fmt, ...)                                  \
     QUILL_LOG_CRITICAL_NOFN_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_CFORMAT(logger, fmt, ...)                                                   \
+    QUILL_LOG_TRACE_L3_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_CFORMAT(logger, fmt, ...)                                                   \
+    QUILL_LOG_TRACE_L2_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_CFORMAT(logger, fmt, ...)                                                   \
+    QUILL_LOG_TRACE_L1_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_CFORMAT(logger, fmt, ...) QUILL_LOG_DEBUG_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_INFO_CFORMAT(logger, fmt, ...) QUILL_LOG_INFO_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_CFORMAT(logger, fmt, ...)                                                    \
+    QUILL_LOG_WARNING_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_CFORMAT(logger, fmt, ...) QUILL_LOG_ERROR_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_CFORMAT(logger, fmt, ...)                                                   \
+    QUILL_LOG_CRITICAL_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_BACKTRACE_CFORMAT(logger, fmt, ...)                                                  \
+    QUILL_LOG_BACKTRACE_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_DYNAMIC_CFORMAT(logger, log_level, fmt, ...)                                         \
+    QUILL_DYNAMIC_LOG_CFORMAT(logger, log_level, fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                               \
+    QUILL_LOG_TRACE_L3_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                               \
+    QUILL_LOG_TRACE_L2_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                               \
+    QUILL_LOG_TRACE_L1_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                                  \
+    QUILL_LOG_DEBUG_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_INFO_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                                   \
+    QUILL_LOG_INFO_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                                \
+    QUILL_LOG_WARNING_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                                  \
+    QUILL_LOG_ERROR_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                               \
+    QUILL_LOG_CRITICAL_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_NOFN_CFORMAT(logger, fmt, ...)                                              \
+    QUILL_LOG_TRACE_L3_NOFN_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_NOFN_CFORMAT(logger, fmt, ...)                                              \
+    QUILL_LOG_TRACE_L2_NOFN_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_NOFN_CFORMAT(logger, fmt, ...)                                              \
+    QUILL_LOG_TRACE_L1_NOFN_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_NOFN_CFORMAT(logger, fmt, ...)                                                 \
+    QUILL_LOG_DEBUG_NOFN_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_INFO_NOFN_CFORMAT(logger, fmt, ...)                                                  \
+    QUILL_LOG_INFO_NOFN_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_NOFN_CFORMAT(logger, fmt, ...)                                               \
+    QUILL_LOG_WARNING_NOFN_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_NOFN_CFORMAT(logger, fmt, ...)                                                 \
+    QUILL_LOG_ERROR_NOFN_CFORMAT(logger, fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_NOFN_CFORMAT(logger, fmt, ...)                                              \
+    QUILL_LOG_CRITICAL_NOFN_CFORMAT(logger, fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                          \
+    QUILL_LOG_TRACE_L3_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                          \
+    QUILL_LOG_TRACE_L2_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                          \
+    QUILL_LOG_TRACE_L1_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                             \
+    QUILL_LOG_DEBUG_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_INFO_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                              \
+    QUILL_LOG_INFO_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                           \
+    QUILL_LOG_WARNING_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                             \
+    QUILL_LOG_ERROR_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                          \
+    QUILL_LOG_CRITICAL_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ##__VA_ARGS__)
 #elif !defined(QUILL_DISABLE_NON_PREFIXED_MACROS) && defined(QUILL_ROOT_LOGGER_ONLY)
   #define LOG_TRACE_L3(fmt, ...) QUILL_LOG_TRACE_L3(quill::get_root_logger(), fmt, ##__VA_ARGS__)
   #define LOG_TRACE_L2(fmt, ...) QUILL_LOG_TRACE_L2(quill::get_root_logger(), fmt, ##__VA_ARGS__)
@@ -431,4 +654,76 @@
     QUILL_LOG_ERROR_NOFN_LIMIT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
   #define LOG_CRITICAL_NOFN_LIMIT(min_interval, fmt, ...)                                          \
     QUILL_LOG_CRITICAL_NOFN_LIMIT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_CFORMAT(fmt, ...)                                                           \
+    QUILL_LOG_TRACE_L3_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_CFORMAT(fmt, ...)                                                           \
+    QUILL_LOG_TRACE_L2_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_CFORMAT(fmt, ...)                                                           \
+    QUILL_LOG_TRACE_L1_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_CFORMAT(fmt, ...)                                                              \
+    QUILL_LOG_DEBUG_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_INFO_CFORMAT(fmt, ...)                                                               \
+    QUILL_LOG_INFO_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_CFORMAT(fmt, ...)                                                            \
+    QUILL_LOG_WARNING_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_CFORMAT(fmt, ...)                                                              \
+    QUILL_LOG_ERROR_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_CFORMAT(fmt, ...)                                                           \
+    QUILL_LOG_CRITICAL_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_BACKTRACE_CFORMAT(fmt, ...)                                                          \
+    QUILL_LOG_BACKTRACE_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_DYNAMIC_CFORMAT(log_level, fmt, ...)                                                 \
+    QUILL_DYNAMIC_LOG_CFORMAT(quill::get_root_logger(), , log_level, fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_LIMIT_CFORMAT(min_interval, fmt, ...)                                       \
+    QUILL_LOG_TRACE_L3_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_LIMIT_CFORMAT(min_interval, fmt, ...)                                       \
+    QUILL_LOG_TRACE_L2_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_LIMIT_CFORMAT(min_interval, fmt, ...)                                       \
+    QUILL_LOG_TRACE_L1_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_LIMIT_CFORMAT(min_interval, fmt, ...)                                          \
+    QUILL_LOG_DEBUG_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_INFO_LIMIT_CFORMAT(min_interval, fmt, ...)                                           \
+    QUILL_LOG_INFOv_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_LIMIT_CFORMAT(min_interval, fmt, ...)                                        \
+    QUILL_LOG_WARNING_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_LIMIT_CFORMAT(min_interval, fmt, ...)                                          \
+    QUILL_LOG_ERROR_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_LIMIT_CFORMAT(min_interval, fmt, ...)                                       \
+    QUILL_LOG_CRITICAL_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_NOFN_CFORMAT(fmt, ...)                                                      \
+    QUILL_LOG_TRACE_L3_NOFN_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_NOFN_CFORMAT(fmt, ...)                                                      \
+    QUILL_LOG_TRACE_L2_NOFN_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_NOFN_CFORMAT(fmt, ...)                                                      \
+    QUILL_LOG_TRACE_L1_NOFN_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_NOFN_CFORMAT(fmt, ...)                                                         \
+    QUILL_LOG_DEBUG_NOFN_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_INFO_NOFN_CFORMAT(fmt, ...)                                                          \
+    QUILL_LOG_INFO_NOFN_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_NOFN_CFORMAT(fmt, ...)                                                       \
+    QUILL_LOG_WARNING_NOFN_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_NOFN_CFORMAT(fmt, ...)                                                         \
+    QUILL_LOG_ERROR_NOFN_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_NOFN_CFORMAT(fmt, ...)                                                      \
+    QUILL_LOG_CRITICAL_NOFN_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_NOFN_LIMIT_CFORMAT(min_interval, fmt, ...)                                  \
+    QUILL_LOG_TRACE_L3_NOFN_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_NOFN_LIMIT_CFORMAT(min_interval, fmt, ...)                                  \
+    QUILL_LOG_TRACE_L2_NOFN_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_NOFN_LIMIT_CFORMAT(min_interval, fmt, ...)                                  \
+    QUILL_LOG_TRACE_L1_NOFN_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_NOFN_LIMIT_CFORMAT(min_interval, fmt, ...)                                     \
+    QUILL_LOG_DEBUG_NOFN_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_INFO_NOFN_LIMIT_CFORMAT(min_interval, fmt, ...)                                      \
+    QUILL_LOG_INFO_NOFN_LIMIT_CFORMAT(quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_NOFN_LIMIT_CFORMAT(min_interval, fmt, ...)                                   \
+    QUILL_LOG_WARNING_NOFN_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_NOFN_LIMIT_CFORMAT(min_interval, fmt, ...)                                     \
+    QUILL_LOG_ERROR_NOFN_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_NOFN_LIMIT_CFORMAT(min_interval, fmt, ...)                                  \
+    QUILL_LOG_CRITICAL_NOFN_LIMIT_CFORMAT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
 #endif

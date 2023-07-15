@@ -174,7 +174,8 @@ ConsoleHandler::ConsoleHandler(std::string stream, FILE* file, ConsoleColours co
 /***/
 void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
-  std::pair<MacroMetadata, detail::FormatToFn> const mf = log_event.header.metadata_and_format_fn();
+  std::pair<MacroMetadata, std::pair<detail::FormatToFn, detail::PrintfFormatToFn>> const mf =
+    log_event.header.metadata_and_format_fn();
 
 #if defined(_WIN32)
   if (_console_colours.using_colours())

@@ -149,7 +149,7 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          "", "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::Flush, false};
+          "", "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::Flush, false, false};
       }
     } anonymous_log_message_info;
 
@@ -164,7 +164,7 @@ public:
     write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
 
     new (write_buffer) detail::Header(
-      detail::get_metadata_and_format_fn<decltype(anonymous_log_message_info)>, logger_details,
+      detail::get_metadata_and_format_fn<false, decltype(anonymous_log_message_info)>, logger_details,
       (logger_details->timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
         : (logger_details->timestamp_clock_type() == TimestampClockType::System)
         ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())

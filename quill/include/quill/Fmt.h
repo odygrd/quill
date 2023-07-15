@@ -15,6 +15,7 @@
   #include <fmt/chrono.h>
   #include <fmt/format.h>
   #include <fmt/ostream.h>
+  #include <fmt/printf.h>
   #include <fmt/ranges.h>
 
   #define QUILL_FMT_VERSION FMT_VERSION
@@ -25,6 +26,7 @@ namespace fmtquill = fmt;
   #include "quill/bundled/fmt/chrono.h"
   #include "quill/bundled/fmt/format.h"
   #include "quill/bundled/fmt/ostream.h"
+  #include "quill/bundled/fmt/printf.h"
   #include "quill/bundled/fmt/ranges.h"
 
   #define QUILL_FMT_VERSION FMTQUILL_VERSION
