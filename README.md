@@ -137,8 +137,9 @@ the capabilities of the library.
 Quill may not work well with `fork()` since it spawns a background thread and `fork()` doesn't work well
 with multithreading.
 
-If your application uses `fork()`, you should call `quill::start()` after the `fork()` call. Additionally, you should
-ensure that you write to different files in the parent and child processes to avoid conflicts.
+If your application uses `fork()` and you want to log in the child processes as well, you should call 
+`quill::start()` after the `fork()` call. Additionally, you should ensure that you write to different 
+files in the parent and child processes to avoid conflicts.
 
 For example :
 
