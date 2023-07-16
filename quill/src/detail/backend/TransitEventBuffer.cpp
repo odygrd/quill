@@ -37,7 +37,7 @@ TransitEvent* BoundedTransitEventBufferImpl<T>::front() noexcept
 template <typename T>
 void BoundedTransitEventBufferImpl<T>::pop_front() noexcept
 {
-  _reader_pos += 1;
+  ++_reader_pos;
 }
 
 /***/
@@ -57,7 +57,7 @@ TransitEvent* BoundedTransitEventBufferImpl<T>::back() noexcept
 template <typename T>
 void BoundedTransitEventBufferImpl<T>::push_back() noexcept
 {
-  _writer_pos += 1;
+  ++_writer_pos;
 }
 
 /***/

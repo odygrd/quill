@@ -168,7 +168,7 @@ constexpr bool detect_structured_log_template(std::wstring_view)
   return false;
 }
 
-constexpr void QUILL_PRINTF_FORMAT_ATTRIBUTE(1, 2) check_printf_args(char const*, ...){};
+constexpr void QUILL_PRINTF_FORMAT_ATTRIBUTE(1, 2) check_printf_args(char const*, ...) {}
 
 template <typename... Args, typename S>
 constexpr bool check_printf_format_string(S format_str)
