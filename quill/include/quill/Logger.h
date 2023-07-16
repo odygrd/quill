@@ -141,14 +141,22 @@ public:
 #endif
 
     constexpr MacroMetadata macro_metadata{TMacroMetadata{}()};
-    if constexpr (macro_metadata.is_structured_log_template())
+    if constexpr (!macro_metadata.is_printf_format())
     {
-      // if the format statement has named args then we perform our own compile time check
+      if constexpr (macro_metadata.is_structured_log_template())
+      {
+        // if the format statement has named args then we perform our own compile time check
+      }
+      else
+      {
+        // fallback to libfmt check
+        fmtquill::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
+      }
     }
     else
     {
-      // fallback to libfmt check
-      fmtquill::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
+      // for printf_format we check earlier inside the macro
+      constexpr bool ok = detail::check_printf_format_string<FmtArgs...>(format_string);
     }
 
     detail::ThreadContext* const thread_context =

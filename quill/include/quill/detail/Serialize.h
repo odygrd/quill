@@ -8,6 +8,7 @@
 #include "misc/Utilities.h"
 #include "quill/LogLevel.h"
 #include "quill/MacroMetadata.h"
+#include "quill/QuillError.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/TypeTraitsCopyable.h"
@@ -327,8 +328,19 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* printf_format_to(
   std::byte* ret = decode_args<fmtquill::printf_context, 0, Args...>(data, args, dtor_args);
 
   out.clear();
-  fmtquill::detail::vprintf(out, fmtquill::basic_string_view<char>{format.data(), format.length()},
-                            fmtquill::printf_args(args.data(), sizeof...(Args)));
+
+  QUILL_TRY
+  {
+    fmtquill::detail::vprintf(out, fmtquill::basic_string_view<char>{format.data(), format.length()},
+                              fmtquill::printf_args(args.data(), sizeof...(Args)));
+  }
+#if !defined(QUILL_NO_EXCEPTIONS)
+  QUILL_CATCH(std::exception const& e)
+  {
+    out.clear();
+    out.append(e.what(), e.what() + strlen(e.what()));
+  }
+#endif
 
   destruct_args<0, Args...>(dtor_args);
 
