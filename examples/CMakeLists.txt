@@ -64,6 +64,9 @@ target_link_libraries(example_json_structured_log quill)
 add_executable(example_trivial_system_clock example_trivial_system_clock.cpp)
 target_link_libraries(example_trivial_system_clock quill)
 
+add_executable(example_trivial_file_logging example_trivial_file_logging.cpp)
+target_link_libraries(example_trivial_file_logging quill)
+
 add_executable(example_user_defined_types example_user_defined_types.cpp)
 target_link_libraries(example_user_defined_types quill)
 
