@@ -144,8 +144,8 @@ TEST_CASE("default_logger_with_filehandler_cformat")
 
         // log using the raw selialization queue
         std::string s = "adipiscing";
-        LOG_INFO_CFORMAT(default_logger, "Lorem ipsum dolor sit amet, consectetur %s %s %d %f", s,
-                         "elit", 1, 3.14);
+        LOG_INFO_CFORMAT(default_logger, "Lorem ipsum dolor sit amet, consectetur %s %s %d %f",
+                         s.data(), "elit", 1, 3.14);
         LOG_ERROR_CFORMAT(
           default_logger,
           "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante %d %s", 2, "true");
