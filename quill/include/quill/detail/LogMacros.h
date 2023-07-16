@@ -165,7 +165,8 @@
 #define QUILL_LOGGER_CALL_NOFN_CFORMAT(likelyhood, logger, log_statement_level, fmt, ...)          \
   do                                                                                               \
   {                                                                                                \
-    quill::detail::check_printf_format(fmt, ##__VA_ARGS__);                                        \
+    if (false)                                                                                     \
+      quill::detail::check_printf_args(fmt, ##__VA_ARGS__);                                        \
                                                                                                    \
     struct                                                                                         \
     {                                                                                              \
@@ -193,7 +194,8 @@
 #define QUILL_LOGGER_CALL_CFORMAT(likelyhood, logger, log_statement_level, fmt, ...)               \
   do                                                                                               \
   {                                                                                                \
-    quill::detail::check_printf_format(fmt, ##__VA_ARGS__);                                        \
+    if (false)                                                                                     \
+      quill::detail::check_printf_args(fmt, ##__VA_ARGS__);                                        \
                                                                                                    \
     static constexpr char const* function_name = __FUNCTION__;                                     \
     struct                                                                                         \
@@ -258,7 +260,8 @@
 #define QUILL_BACKTRACE_LOGGER_CALL_CFORMAT(logger, fmt, ...)                                      \
   do                                                                                               \
   {                                                                                                \
-    quill::detail::check_printf_format(fmt, ##__VA_ARGS__);                                        \
+    if (false)                                                                                     \
+      quill::detail::check_printf_args(fmt, ##__VA_ARGS__);                                        \
                                                                                                    \
     static constexpr char const* function_name = __FUNCTION__;                                     \
     struct                                                                                         \
@@ -291,7 +294,8 @@
 #define QUILL_DYNAMIC_LOG_CALL_CFORMAT(logger, log_level, fmt, ...)                                                \
   do                                                                                                               \
   {                                                                                                                \
-    quill::detail::check_printf_format(fmt, ##__VA_ARGS__);                                                        \
+    if (false)                                                                                                     \
+      quill::detail::check_printf_args(fmt, ##__VA_ARGS__);                                                        \
                                                                                                                    \
     static constexpr char const* function_name = __FUNCTION__;                                                     \
     struct                                                                                                         \
