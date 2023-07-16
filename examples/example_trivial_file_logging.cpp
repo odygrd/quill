@@ -11,7 +11,7 @@ int main()
   std::shared_ptr<quill::Handler> file_handler =
     quill::file_handler("example_trivial.log", "w", quill::FilenameAppend::DateTime);
 
-  // Set a custom formatter for this handler
+  // Optional - Set a custom formatter for this handler, or skip this line to use the default one
   file_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
                             "%D %H:%M:%S.%Qms %z",     // timestamp format
                             quill::Timezone::GmtTime); // timestamp's timezone
@@ -26,6 +26,10 @@ int main()
 
   // Start the backend logging thread
   quill::start();
+
+  // Log using the root logger
+  quill::Logger* root_logger = quill::get_logger();
+  QUILL_LOG_INFO(root_logger, "log something {}", 123);
 
   // Any logger created will inherit the properties of the default_handler we set above
   quill::Logger* logger_1 = quill::create_logger("logger_1");
