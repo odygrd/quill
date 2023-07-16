@@ -529,7 +529,14 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
       assert(!macro_metadata.is_structured_log_template() &&
              "structured log templates are not supported for wide characters");
 
-      read_pos = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
+      auto const [pos, error] = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
+      read_pos = pos;
+
+      if (QUILL_UNLIKELY(!error.empty()))
+      {
+        // this means that fmt::format_to threw an exception, and we report it to the user
+        _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+      }
     }
     else
     {
@@ -553,7 +560,15 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
           auto const& [fmt_str, structured_keys] = search->second;
           s_keys = &structured_keys;
 
-          read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+
+          read_pos = pos;
+
+          if (QUILL_UNLIKELY(!error.empty()))
+          {
+            // this means that fmt::format_to threw an exception, and we report it to the user
+            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          }
         }
         else
         {
@@ -565,7 +580,15 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
             _structured_fmt_str, std::make_pair(fmt_str, std::move(structured_keys)));
           s_keys = &(res.first->second.second);
 
-          read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+
+          read_pos = pos;
+
+          if (QUILL_UNLIKELY(!error.empty()))
+          {
+            // this means that fmt::format_to threw an exception, and we report it to the user
+            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          }
         }
 
         // format the values to strings
@@ -589,14 +612,30 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         if (format_to_fn)
         {
           // fmt style format
-          read_pos =
+          auto const [pos, error] =
             format_to_fn(macro_metadata.message_format(), read_pos, transit_event->formatted_msg, _args);
+
+          read_pos = pos;
+
+          if (QUILL_UNLIKELY(!error.empty()))
+          {
+            // this means that fmt::format_to threw an exception, and we report it to the user
+            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          }
         }
         else
         {
           // printf style format
-          read_pos = printf_format_to_fn(macro_metadata.message_format(), read_pos,
-                                         transit_event->formatted_msg, _printf_args);
+          auto const [pos, error] = printf_format_to_fn(macro_metadata.message_format(), read_pos,
+                                                        transit_event->formatted_msg, _printf_args);
+
+          read_pos = pos;
+
+          if (QUILL_UNLIKELY(!error.empty()))
+          {
+            // this means that fmt::format_to threw an exception, and we report it to the user
+            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          }
         }
       }
 

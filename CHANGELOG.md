@@ -56,43 +56,62 @@
   It is recommended to continue using the existing static log level macros for optimal
   performance. ([#321](https://github.com/odygrd/quill/pull/321))
 
-For example
+  For example
 
-```c++
-  std::array<quill::LogLevel, 4> const runtime_log_levels = {quill::LogLevel::Debug,
-                                                             quill::LogLevel::Info,
-                                                             quill::LogLevel::Warning,
-                                                             quill::LogLevel::Error};
-
-  for (auto const& log_level : runtime_log_levels)
-  {
-    LOG_DYNAMIC(logger, log_level, "Runtime {} {}", "log", "level");
-  }
-```
+  ```c++
+    std::array<quill::LogLevel, 4> const runtime_log_levels = {quill::LogLevel::Debug,
+                                                               quill::LogLevel::Info,
+                                                               quill::LogLevel::Warning,
+                                                               quill::LogLevel::Error};
+  
+    for (auto const& log_level : runtime_log_levels)
+    {
+      LOG_DYNAMIC(logger, log_level, "Runtime {} {}", "log", "level");
+    }
+  ```
 
 - Added support for printf-style formatting with `_CFORMAT` macros. These macros use the `printf` format string syntax,
   simplifying the migration of legacy codebases using `printf` statements.
 
-For example
+  For example
 
-```c++
-  std::array<uint32_t, 4> arr = {1, 2, 3, 4};
-  LOG_INFO(logger, "This is a log info example using fmt format {}", arr);
-  
-  LOG_INFO_CFORMAT(logger, "printf style %s supported %d %f", "also", 5, 2.32);
-```
+  ```c++
+    std::array<uint32_t, 4> arr = {1, 2, 3, 4};
+    LOG_INFO(logger, "This is a log info example using fmt format {}", arr);
+    
+    LOG_INFO_CFORMAT(logger, "printf style %s supported %d %f", "also", 5, 2.32);
+  ```
+
+- Improved exception handling on the backend thread when calling `fmt::format()`.
+
+  While compile-time checks ensure that the format string and arguments match, runtime errors can still occur.
+  Previously, such exceptions would affect and drop subsequent log records. Now, exceptions are caught and logged
+  in the log file and reported via the backend thread notification handler (default is `cerr`).
+
+  For example, if a dynamic precision is used (`LOG_INFO(logger, "Support for floats {:.{}f}", 1.23456, 3.321312)`),
+  the log file will show the following error message:
+
+  ```
+  LOG_INFO root [format: "Support for floats {:.{}f}", error: "precision is not integer"]
+  ```
+
+  Additionally, an error message will be printed to `cerr`
+
+  ```
+  Quill ERROR: [format: "Support for floats {:.{}f}", error: "precision is not integer"]
+  ```
 
 - Added a `metadata()` member function to the `TransitEvent` class. It provides access to the `Metadata` object
   associated with the log record, simplifying syntax for retrieving log record metadata in custom Handlers.
 
-For example
+  For example
 
-```c++
-void CustomHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
-{
-  MacroMetadata const macro_metadata = log_event.metadata();
-}
-```
+  ```c++
+  void CustomHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
+  {
+    MacroMetadata const macro_metadata = log_event.metadata();
+  }
+  ```
 
 ## v3.2.0
 
@@ -103,21 +122,21 @@ void CustomHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tran
 - The `LOG_<LEVEL>_LIMIT` macros now support using `std::chrono` duration types for specifying the log interval.
   Instead of providing a raw number, you can use:
 
-```c++
-    LOG_INFO_LIMIT(std::chrono::milliseconds {100} , quill::get_logger(), "log message");
-```
+  ```c++
+      LOG_INFO_LIMIT(std::chrono::milliseconds {100} , quill::get_logger(), "log message");
+  ```
 
 ## v3.1.0
 
 - It is now possible to set a minimum logging interval for specific logs. For example:
 
-```c++
-  for (uint64_t i = 0; i < 10; ++i)
-  {
-    LOG_INFO_LIMIT(2000, default_logger, "log in a loop with limit 1 message every 2000 micros for i {}", i);
-    std::this_thread::sleep_for(std::chrono::microseconds{1000});
-  }
-```
+  ```c++
+    for (uint64_t i = 0; i < 10; ++i)
+    {
+      LOG_INFO_LIMIT(2000, default_logger, "log in a loop with limit 1 message every 2000 micros for i {}", i);
+      std::this_thread::sleep_for(std::chrono::microseconds{1000});
+    }
+  ```
 
 - `quill::utility::to_string()` now uses `fmt::to_string()`
 
@@ -141,40 +160,40 @@ void CustomHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tran
   To modify the default behavior, there is no need to recompile the `quill` library. Recompile your application
   with one of the following header-only flags.
 
-```shell
-# Previous behavior in v2.*.*: Reallocates new queues indefinitely when max capacity is reached
--DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE"
-
-# Default behavior in v3.*.*: Starts small, reallocates up to 2GB, then hot thread blocks
--DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_BLOCKING_QUEUE"
-
-# Starts small, reallocates up to 2GB, then hot thread drops log messages
--DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_DROPPING_QUEUE"
-
-# Fixed queue size, no reallocations, hot thread drops log messages
--DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_QUEUE"         
-
-# Fixed queue size, no reallocations, hot thread blocks
--DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
-```
+  ```shell
+  # Previous behavior in v2.*.*: Reallocates new queues indefinitely when max capacity is reached
+  -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE"
+  
+  # Default behavior in v3.*.*: Starts small, reallocates up to 2GB, then hot thread blocks
+  -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_BLOCKING_QUEUE"
+  
+  # Starts small, reallocates up to 2GB, then hot thread drops log messages
+  -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_DROPPING_QUEUE"
+  
+  # Fixed queue size, no reallocations, hot thread drops log messages
+  -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_QUEUE"         
+  
+  # Fixed queue size, no reallocations, hot thread blocks
+  -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_BOUNDED_BLOCKING_QUEUE"
+  ```
 
 - Added support for huge pages on Linux. Enabling this feature allows bounded or unbounded queues to utilize huge pages,
   resulting in optimized memory allocation.
 
-```c++
-  quill::Config cfg;
-  cfg.enable_huge_pages_hot_path = true;
-  
-  quill::configure(cfg);
-  quill::start();
-```
+  ```c++
+    quill::Config cfg;
+    cfg.enable_huge_pages_hot_path = true;
+    
+    quill::configure(cfg);
+    quill::start();
+  ```
 
 - Added support for logging `std::optional`, which is also now supported in `libfmt` `v10.0.0`.
 
-```c++
-  LOG_INFO(default_logger, "some optionals [{}, {}]", std::optional<std::string>{},
-           std::optional<std::string>{"hello"});
-```
+  ```c++
+    LOG_INFO(default_logger, "some optionals [{}, {}]", std::optional<std::string>{},
+             std::optional<std::string>{"hello"});
+  ```
 
 - Introduced a new function `run_loop` in the `Handler` base class, which allows users to override and execute periodic
   tasks. This enhancement provides users with the flexibility to perform various actions at regular intervals,
@@ -200,21 +219,21 @@ void CustomHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tran
   filename ([#297](https://github.com/odygrd/quill/pull/297))
 - Added `NullHandler` that can be used to discard the logs. For example:
 
-```c++
-int main()
-{
-  quill::start();
-  
-  std::shared_ptr<quill::Handler> file_handler =
-    quill::null_handler();
-
-  quill::Logger* logger_bar = quill::create_logger("nullhandler", std::move(file_handler));
-
-  for (uint32_t i = 0; i < 150; ++i)
+  ```c++
+  int main()
   {
-    LOG_INFO(logger_bar, "Hello");
-  }
-```
+    quill::start();
+    
+    std::shared_ptr<quill::Handler> file_handler =
+      quill::null_handler();
+  
+    quill::Logger* logger_bar = quill::create_logger("nullhandler", std::move(file_handler));
+  
+    for (uint32_t i = 0; i < 150; ++i)
+    {
+      LOG_INFO(logger_bar, "Hello");
+    }
+  ```
 
 ## v2.9.0
 

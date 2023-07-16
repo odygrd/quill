@@ -290,17 +290,19 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
 /**
  * Format function
  */
-using FormatToFn = std::byte* (*)(std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
-                                  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args);
-using PrintfFormatToFn = std::byte* (*)(std::string_view format, std::byte* data,
-                                        transit_event_fmt_buffer_t& out,
-                                        std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args);
+using FormatToFn = std::pair<std::byte*, std::string> (*)(
+  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
+  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args);
+using PrintfFormatToFn = std::pair<std::byte*, std::string> (*)(
+  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
+  std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args);
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> format_to(
   std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
   std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args)
 {
+  std::string error;
   constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
   std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
 
@@ -308,19 +310,32 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(
   std::byte* ret = decode_args<fmtquill::format_context, 0, Args...>(data, args, dtor_args);
 
   out.clear();
-  fmtquill::vformat_to(std::back_inserter(out), format,
-                       fmtquill::basic_format_args(args.data(), sizeof...(Args)));
+
+  QUILL_TRY
+  {
+    fmtquill::vformat_to(std::back_inserter(out), format,
+                         fmtquill::basic_format_args(args.data(), sizeof...(Args)));
+  }
+#if !defined(QUILL_NO_EXCEPTIONS)
+  QUILL_CATCH(std::exception const& e)
+  {
+    out.clear();
+    error = fmtquill::format("[format: \"{}\", error: \"{}\"]", format, e.what());
+    out.append(error.data(), error.data() + error.length());
+  }
+#endif
 
   destruct_args<0, Args...>(dtor_args);
 
-  return ret;
+  return std::make_pair(ret, std::move(error));
 }
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* printf_format_to(
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> printf_format_to(
   std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
   std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args)
 {
+  std::string error;
   constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
   std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
 
@@ -338,13 +353,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* printf_format_to(
   QUILL_CATCH(std::exception const& e)
   {
     out.clear();
-    out.append(e.what(), e.what() + strlen(e.what()));
+    error = fmtquill::format("[format: \"{}\", error: \"{}\"]", format, e.what());
+    out.append(error.data(), error.data() + error.length());
   }
 #endif
 
   destruct_args<0, Args...>(dtor_args);
 
-  return ret;
+  return std::make_pair(ret, std::move(error));
 }
 
 /**

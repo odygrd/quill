@@ -98,7 +98,7 @@ int main()
   LOG_DEBUG(default_logger, "The answer is {}", 1337);
   LOG_TRACE_L1(default_logger, "{:>30}", "right aligned");
   LOG_TRACE_L2(default_logger, "Positional arguments are {1} {0} ", "too", "supported");
-  LOG_TRACE_L3(default_logger, "Support for floats {:03.2f}", 1.23456);
+  LOG_INFO(default_logger, "Support for floats {:.{}f}", 1.23456, 3.321312);
 
   // Log Nothing
   quill::Logger* logger_1 = quill::create_logger("my_logger");
