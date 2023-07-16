@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 
 #include "quill/Fmt.h"
@@ -156,7 +157,7 @@ public:
     else
     {
       // for printf_format we check earlier inside the macro
-      constexpr bool ok = detail::check_printf_format_string<FmtArgs...>(format_string);
+      QUILL_MAYBE_UNUSED constexpr bool ok = detail::check_printf_format_string<FmtArgs...>(format_string);
     }
 
     detail::ThreadContext* const thread_context =
