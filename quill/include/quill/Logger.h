@@ -141,14 +141,22 @@ public:
 #endif
 
     constexpr MacroMetadata macro_metadata{TMacroMetadata{}()};
-    if constexpr (macro_metadata.is_structured_log_template())
+    if constexpr (!macro_metadata.is_printf_format())
     {
-      // if the format statement has named args then we perform our own compile time check
+      if constexpr (macro_metadata.is_structured_log_template())
+      {
+        // if the format statement has named args then we perform our own compile time check
+      }
+      else
+      {
+        // fallback to libfmt check
+        fmtquill::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
+      }
     }
     else
     {
-      // fallback to libfmt check
-      fmtquill::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
+      // for printf_format we check earlier inside the macro
+      constexpr bool ok = detail::check_printf_format_string<FmtArgs...>(format_string);
     }
 
     detail::ThreadContext* const thread_context =
@@ -219,8 +227,11 @@ public:
     std::byte* const write_begin = write_buffer;
     write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
 
+    constexpr bool is_printf_format = macro_metadata.is_printf_format();
+
     new (write_buffer) detail::Header(
-      detail::get_metadata_and_format_fn<TMacroMetadata, FmtArgs...>, std::addressof(_logger_details),
+      detail::get_metadata_and_format_fn<is_printf_format, TMacroMetadata, FmtArgs...>,
+      std::addressof(_logger_details),
       (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
         : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
         ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
@@ -264,8 +275,8 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          "",   "", "", "", "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace,
-          false};
+          "",    "",   "", "", "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace,
+          false, false};
       }
     } anonymous_log_message_info;
 
@@ -291,8 +302,8 @@ public:
       constexpr quill::MacroMetadata operator()() const noexcept
       {
         return quill::MacroMetadata{
-          "",   "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace,
-          false};
+          "",    "",   "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace,
+          false, false};
       }
     } anonymous_log_message_info;
 

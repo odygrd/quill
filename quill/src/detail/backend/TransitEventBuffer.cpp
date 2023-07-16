@@ -10,11 +10,11 @@ namespace quill::detail
 /***/
 template <typename T>
 BoundedTransitEventBufferImpl<T>::BoundedTransitEventBufferImpl(integer_type capacity)
-  : _capacity(next_power_of_2(capacity)), _mask(_capacity - 1)
+  : _capacity(next_power_of_2(capacity)), _mask(static_cast<integer_type>(_capacity - 1u))
 {
   if (!is_pow_of_two(static_cast<uint64_t>(_capacity)))
   {
-    QUILL_THROW(QuillError{"capacity must be a power of two. _capacity: " + std::to_string(_capacity)});
+    QUILL_THROW(QuillError{"capacity must be a power of two. capacity: " + std::to_string(_capacity)});
   }
 
   _storage.resize(_capacity);
@@ -37,7 +37,7 @@ TransitEvent* BoundedTransitEventBufferImpl<T>::front() noexcept
 template <typename T>
 void BoundedTransitEventBufferImpl<T>::pop_front() noexcept
 {
-  _reader_pos += 1;
+  ++_reader_pos;
 }
 
 /***/
@@ -57,7 +57,7 @@ TransitEvent* BoundedTransitEventBufferImpl<T>::back() noexcept
 template <typename T>
 void BoundedTransitEventBufferImpl<T>::push_back() noexcept
 {
-  _writer_pos += 1;
+  ++_writer_pos;
 }
 
 /***/

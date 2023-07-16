@@ -8,13 +8,14 @@
 #include "misc/Utilities.h"
 #include "quill/LogLevel.h"
 #include "quill/MacroMetadata.h"
+#include "quill/QuillError.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
 #include "quill/detail/misc/TypeTraitsCopyable.h"
 #include <cstdint>
 #include <cstring>
-#include <string_view>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace quill
@@ -75,16 +76,16 @@ QUILL_NODISCARD inline constexpr bool need_call_dtor_for()
   return !std::is_trivially_destructible<ArgType>::value;
 }
 
-template <size_t DestructIdx>
+template <typename TFormatContext, size_t DestructIdx>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
-  std::byte* in, std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>&, std::byte**)
+  std::byte* in, std::vector<fmtquill::basic_format_arg<TFormatContext>>&, std::byte**)
 {
   return in;
 }
 
-template <size_t DestructIdx, typename Arg, typename... Args>
+template <typename TFormatContext, size_t DestructIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
-  std::byte* in, std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args, std::byte** destruct_args)
+  std::byte* in, std::vector<fmtquill::basic_format_arg<TFormatContext>>& args, std::byte** destruct_args)
 {
   using ArgType = detail::remove_cvref_t<Arg>;
 
@@ -92,8 +93,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
   {
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, strlen(str)};
-    args.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(v));
-    return decode_args<DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
+    args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
+    return decode_args<TFormatContext, DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
   }
   else if constexpr (is_type_of_string<Arg>())
   {
@@ -106,8 +107,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
     // retrieve the rest of the string
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, len};
-    args.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(v));
-    return decode_args<DestructIdx, Args...>(in + v.length(), args, destruct_args);
+    args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
+    return decode_args<TFormatContext, DestructIdx, Args...>(in + v.length(), args, destruct_args);
   }
 #if defined(_WIN32)
   else if constexpr (is_type_of_wide_c_string<Arg>() || is_type_of_wide_string<Arg>())
@@ -120,8 +121,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
 
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, len};
-    args.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(v));
-    return decode_args<DestructIdx, Args...>(in + v.length(), args, destruct_args);
+    args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
+    return decode_args<TFormatContext, DestructIdx, Args...>(in + v.length(), args, destruct_args);
   }
 #endif
   else
@@ -129,16 +130,16 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
     // no need to align for chars, but align for any other type
     in = detail::align_pointer<alignof(Arg), std::byte>(in);
 
-    args.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(*reinterpret_cast<ArgType*>(in)));
+    args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(*reinterpret_cast<ArgType*>(in)));
 
     if constexpr (need_call_dtor_for<Arg>())
     {
       destruct_args[DestructIdx] = in;
-      return decode_args<DestructIdx + 1, Args...>(in + sizeof(ArgType), args, destruct_args);
+      return decode_args<TFormatContext, DestructIdx + 1, Args...>(in + sizeof(ArgType), args, destruct_args);
     }
     else
     {
-      return decode_args<DestructIdx, Args...>(in + sizeof(ArgType), args, destruct_args);
+      return decode_args<TFormatContext, DestructIdx, Args...>(in + sizeof(ArgType), args, destruct_args);
     }
   }
 }
@@ -174,7 +175,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t*)
  */
 template <size_t CstringIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_string_sizes,
-                                                                  Arg const& arg, Args const&... args)
+                                                                    Arg const& arg, Args const&... args)
 {
   if constexpr (is_type_of_c_string<Arg>())
   {
@@ -194,7 +195,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_st
 #if defined(_WIN32)
   else if constexpr (is_type_of_wide_c_string<Arg>())
   {
-    size_t const len = get_wide_string_encoding_size(std::wstring_view {arg, wcslen(arg)});
+    size_t const len = get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
     c_string_sizes[CstringIdx] = len;
     return len + sizeof(size_t) + alignof(size_t) + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
   }
@@ -222,7 +223,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t*, st
 
 template <size_t CstringIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_string_sizes, std::byte* out,
-                                                                   Arg&& arg, Args&&... args)
+                                                                     Arg&& arg, Args&&... args)
 {
   if constexpr (is_type_of_c_string<Arg>())
   {
@@ -289,40 +290,100 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
 /**
  * Format function
  */
-using FormatToFn = std::byte* (*)(std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
-                                  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args);
+using FormatToFn = std::pair<std::byte*, std::string> (*)(
+  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
+  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args);
+using PrintfFormatToFn = std::pair<std::byte*, std::string> (*)(
+  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
+  std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args);
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* format_to(
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> format_to(
   std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
   std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args)
 {
+  std::string error;
   constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
   std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
 
   args.clear();
-  std::byte* ret = decode_args<0, Args...>(data, args, dtor_args);
+  std::byte* ret = decode_args<fmtquill::format_context, 0, Args...>(data, args, dtor_args);
 
   out.clear();
-  fmtquill::vformat_to(std::back_inserter(out), format,
-                       fmtquill::basic_format_args(args.data(), sizeof...(Args)));
+
+  QUILL_TRY
+  {
+    fmtquill::vformat_to(std::back_inserter(out), format,
+                         fmtquill::basic_format_args(args.data(), sizeof...(Args)));
+  }
+#if !defined(QUILL_NO_EXCEPTIONS)
+  QUILL_CATCH(std::exception const& e)
+  {
+    out.clear();
+    error = fmtquill::format("[format: \"{}\", error: \"{}\"]", format, e.what());
+    out.append(error.data(), error.data() + error.length());
+  }
+#endif
 
   destruct_args<0, Args...>(dtor_args);
 
-  return ret;
+  return std::make_pair(ret, std::move(error));
+}
+
+template <typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> printf_format_to(
+  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
+  std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args)
+{
+  std::string error;
+  constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
+  std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
+
+  args.clear();
+  std::byte* ret = decode_args<fmtquill::printf_context, 0, Args...>(data, args, dtor_args);
+
+  out.clear();
+
+  QUILL_TRY
+  {
+    fmtquill::detail::vprintf(out, fmtquill::basic_string_view<char>{format.data(), format.length()},
+                              fmtquill::printf_args(args.data(), sizeof...(Args)));
+  }
+#if !defined(QUILL_NO_EXCEPTIONS)
+  QUILL_CATCH(std::exception const& e)
+  {
+    out.clear();
+    error = fmtquill::format("[format: \"{}\", error: \"{}\"]", format, e.what());
+    out.append(error.data(), error.data() + error.length());
+  }
+#endif
+
+  destruct_args<0, Args...>(dtor_args);
+
+  return std::make_pair(ret, std::move(error));
 }
 
 /**
  * This function pointer is used to store and pass the template parameters to the backend worker
  * thread
  */
-using MetadataFormatFn = std::pair<MacroMetadata, detail::FormatToFn> (*)();
+using MetadataFormatFn = std::pair<MacroMetadata, std::pair<detail::FormatToFn, detail::PrintfFormatToFn>> (*)();
 
-template <typename TAnonymousStruct, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::pair<MacroMetadata, detail::FormatToFn> get_metadata_and_format_fn()
+template <bool IsPrintfFormat, typename TAnonymousStruct, typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::pair<MacroMetadata, std::pair<detail::FormatToFn, detail::PrintfFormatToFn>> get_metadata_and_format_fn()
 {
-  constexpr auto ret = std::make_pair(TAnonymousStruct{}(), detail::format_to<Args...>);
-  return ret;
+  if constexpr (!IsPrintfFormat)
+  {
+    constexpr auto ret =
+      std::make_pair(TAnonymousStruct{}(), std::make_pair(detail::format_to<Args...>, nullptr));
+    return ret;
+  }
+  else
+  {
+    constexpr auto ret =
+      std::make_pair(TAnonymousStruct{}(), std::make_pair(nullptr, detail::printf_format_to<Args...>));
+    return ret;
+  }
 }
 
 } // namespace detail

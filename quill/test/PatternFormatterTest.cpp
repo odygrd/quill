@@ -27,6 +27,7 @@ TEST_CASE("default_pattern_formatter")
                               "This the {} formatter {}",
                               LogLevel::Info,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   // Format to a buffer
@@ -63,6 +64,7 @@ TEST_CASE("custom_pattern_message_only")
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   // Format to a buffer
@@ -100,6 +102,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   // Format to a buffer
@@ -114,7 +117,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:96 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:98 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_7]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -138,6 +141,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   // Format to a buffer
@@ -152,7 +156,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:134 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:137 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_9]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -176,6 +180,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   // Format to a buffer
@@ -190,7 +195,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:172 LOG_DEBUG test_logger This "
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:176 LOG_DEBUG test_logger This "
     "the 1234 formatter pattern [DOCTEST_ANON_FUNC_11]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -214,6 +219,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   // Format to a buffer
@@ -228,7 +234,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:210 LOG_DEBUG test_logger This the "
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:215 LOG_DEBUG test_logger This the "
     "1234 formatter pattern [DOCTEST_ANON_FUNC_13]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -253,6 +259,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   for (size_t i = 0; i < 5; ++i)
@@ -269,7 +276,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:249 "
+      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:255 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_15]\n";
 
     REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -295,6 +302,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   for (size_t i = 0; i < 5; ++i)
@@ -311,7 +319,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:291 "
+      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:298 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_17]\n";
 
     REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -356,6 +364,7 @@ TEST_CASE("custom_pattern")
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   // Format to a buffer
@@ -370,7 +379,7 @@ TEST_CASE("custom_pattern")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:352 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:360 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -395,6 +404,7 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
                               "This the {1} formatter {0}",
                               LogLevel::Debug,
                               MacroMetadata::Event::Log,
+                              false,
                               false};
 
   // Format to a buffer

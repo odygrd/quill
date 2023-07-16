@@ -12,13 +12,19 @@ using namespace quill;
 TEST_CASE("construct")
 {
   {
-    constexpr MacroMetadata log_line_info{
-      QUILL_STRINGIFY(__LINE__), __FILE__, "", __FUNCTION__, "Test fmt {}", quill::LogLevel::Debug,
-      MacroMetadata::Event::Log, true};
+    constexpr MacroMetadata log_line_info{QUILL_STRINGIFY(__LINE__),
+                                          __FILE__,
+                                          "",
+                                          __FUNCTION__,
+                                          "Test fmt {}",
+                                          quill::LogLevel::Debug,
+                                          MacroMetadata::Event::Log,
+                                          true,
+                                          false};
 
     REQUIRE_STREQ(log_line_info.message_format().data(), "Test fmt {}");
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Debug);
-    REQUIRE_STREQ(log_line_info.lineno().data(), "16");
+    REQUIRE_STREQ(log_line_info.lineno().data(), "15");
   }
 
   {
@@ -29,11 +35,12 @@ TEST_CASE("construct")
                                           "Test another fmt {}",
                                           quill::LogLevel::Info,
                                           MacroMetadata::Event::Log,
-                                          true};
+                                          true,
+                                          false};
 
     REQUIRE_STREQ(log_line_info.message_format().data(), "Test another fmt {}");
     REQUIRE_EQ(log_line_info.level(), quill::LogLevel::Info);
-    REQUIRE_STREQ(log_line_info.lineno().data(), "25");
+    REQUIRE_STREQ(log_line_info.lineno().data(), "31");
     REQUIRE_STREQ(log_line_info.filename().data(), "MacroMetadataTest.cpp");
   }
 }

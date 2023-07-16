@@ -202,6 +202,7 @@ private:
   size_t _thread_transit_events_hard_limit; /** limit for the transit event buffer value from config */
 
   std::vector<fmtquill::basic_format_arg<fmtquill::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
+  std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>> _printf_args; /** Format args tmp storage as member to avoid reallocation */
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
@@ -512,7 +513,8 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
   }
 
   // we need to check and do not try to format the flush events as that wouldn't be valid
-  auto const [macro_metadata, format_to_fn] = transit_event->header.metadata_and_format_fn();
+  auto const [macro_metadata, format_fns] = transit_event->header.metadata_and_format_fn();
+  auto const [format_to_fn, printf_format_to_fn] = format_fns;
 
   if (macro_metadata.event() != MacroMetadata::Event::Flush)
   {
@@ -527,13 +529,24 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
       assert(!macro_metadata.is_structured_log_template() &&
              "structured log templates are not supported for wide characters");
 
-      read_pos = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
+      auto const [pos, error] = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
+      read_pos = pos;
+
+      if (QUILL_UNLIKELY(!error.empty()))
+      {
+        // this means that fmt::format_to threw an exception, and we report it to the user
+        _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+      }
     }
     else
     {
 #endif
       if (macro_metadata.is_structured_log_template())
       {
+        assert(format_to_fn &&
+               "format_to_fn must be set for structured log templates, printf format is not "
+               "support for structured log templates");
+
         // using the message_format as key for lookups
         _structured_fmt_str.assign(macro_metadata.message_format().data(),
                                    macro_metadata.message_format().size());
@@ -547,7 +560,15 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
           auto const& [fmt_str, structured_keys] = search->second;
           s_keys = &structured_keys;
 
-          read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+
+          read_pos = pos;
+
+          if (QUILL_UNLIKELY(!error.empty()))
+          {
+            // this means that fmt::format_to threw an exception, and we report it to the user
+            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          }
         }
         else
         {
@@ -559,7 +580,15 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
             _structured_fmt_str, std::make_pair(fmt_str, std::move(structured_keys)));
           s_keys = &(res.first->second.second);
 
-          read_pos = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+
+          read_pos = pos;
+
+          if (QUILL_UNLIKELY(!error.empty()))
+          {
+            // this means that fmt::format_to threw an exception, and we report it to the user
+            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          }
         }
 
         // format the values to strings
@@ -580,7 +609,34 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
       else
       {
         // regular logs
-        read_pos = format_to_fn(macro_metadata.message_format(), read_pos, transit_event->formatted_msg, _args);
+        if (format_to_fn)
+        {
+          // fmt style format
+          auto const [pos, error] =
+            format_to_fn(macro_metadata.message_format(), read_pos, transit_event->formatted_msg, _args);
+
+          read_pos = pos;
+
+          if (QUILL_UNLIKELY(!error.empty()))
+          {
+            // this means that fmt::format_to threw an exception, and we report it to the user
+            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          }
+        }
+        else
+        {
+          // printf style format
+          auto const [pos, error] = printf_format_to_fn(macro_metadata.message_format(), read_pos,
+                                                        transit_event->formatted_msg, _printf_args);
+
+          read_pos = pos;
+
+          if (QUILL_UNLIKELY(!error.empty()))
+          {
+            // this means that fmt::format_to threw an exception, and we report it to the user
+            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          }
+        }
       }
 
       if (macro_metadata.level() == LogLevel::Dynamic)
@@ -649,8 +705,7 @@ void BackendWorker::_process_transit_events(ThreadContextCollection::backend_thr
 /***/
 void BackendWorker::_process_transit_event(TransitEvent& transit_event)
 {
-  std::pair<MacroMetadata, detail::FormatToFn> const mf = transit_event.header.metadata_and_format_fn();
-  MacroMetadata const& macro_metadata = mf.first;
+  MacroMetadata const macro_metadata = transit_event.metadata();
 
   // If backend_process(...) throws we want to skip this event and move to the next, so we catch the
   // error here instead of catching it in the parent try/catch block of main_loop
@@ -723,8 +778,7 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
 void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
 {
   // Forward the record to all the logger handlers
-  std::pair<MacroMetadata, detail::FormatToFn> const mf = transit_event.header.metadata_and_format_fn();
-  MacroMetadata const& macro_metadata = mf.first;
+  MacroMetadata const macro_metadata = transit_event.metadata();
 
   for (auto& handler : transit_event.header.logger_details->handlers())
   {

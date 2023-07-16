@@ -115,3 +115,10 @@
 
 /***/
 #define QUILL_ALWAYS_INLINE_HOT QUILL_ALWAYS_INLINE QUILL_ATTRIBUTE_HOT
+
+#if defined(__GNUC__) || defined(__clang__)
+  #define QUILL_PRINTF_FORMAT_ATTRIBUTE(string_index, first_to_check)                              \
+    __attribute__((__format__(__printf__, string_index, first_to_check)))
+#else
+  #define QUILL_PRINTF_FORMAT_ATTRIBUTE(string_index, first_to_check)
+#endif

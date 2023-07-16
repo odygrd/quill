@@ -70,6 +70,14 @@ struct TransitEvent
   }
 
   /**
+   * @return The metadata of this logging event
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT MacroMetadata metadata() const noexcept
+  {
+    return header.metadata_and_format_fn().first;
+  }
+
+  /**
    * Need to take a copy of thread_id and thread_name here as the thread that logged can terminate
    * before we flush the backtrace.
    */
