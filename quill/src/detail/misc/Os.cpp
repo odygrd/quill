@@ -41,6 +41,7 @@
   #include <sys/stat.h>
   #include <unistd.h>
 #elif defined(__linux__)
+  #include <pthread.h>
   #include <sched.h>
   #include <sys/mman.h>
   #include <sys/prctl.h>
