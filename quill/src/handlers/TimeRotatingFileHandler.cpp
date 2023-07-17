@@ -14,11 +14,12 @@ namespace quill
 /***/
 TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename, std::string const& mode,
                                                  FilenameAppend append_to_filename, std::string when,
-                                                 uint32_t interval, uint32_t backup_count,
+                                                 uint32_t interval, size_t max_bytes, uint32_t backup_count,
                                                  Timezone timezone, std::string const& at_time,
                                                  FileEventNotifier file_event_notifier, bool do_fsync)
   : FileHandler(base_filename, append_to_filename, std::move(file_event_notifier), do_fsync),
     _when(std::move(when)),
+    _max_bytes(max_bytes),
     _interval(interval),
     _backup_count(backup_count),
     _using_timezone(timezone),
@@ -81,79 +82,31 @@ TimeRotatingFileHandler::TimeRotatingFileHandler(fs::path const& base_filename, 
   {
     _created_files.emplace_front(0, _filename);
   }
+
+  if (!is_null())
+  {
+    _current_size = detail::file_size(_filename);
+  }
 }
 
 /***/
 void TimeRotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
 {
-  bool const should_rotate =
-    (std::chrono::nanoseconds{log_event.header.timestamp} >= _next_rotation_time.time_since_epoch()) &&
-    !is_null();
-
-  if (QUILL_UNLIKELY(should_rotate))
+  if (is_null())
   {
-    close_file();
+    StreamHandler::write(formatted_log_message, log_event);
+    return;
+  }
 
-    if (_append_to_filename == FilenameAppend::None)
-    {
-      bool const zero_out_minutes = (_when == "H") || (_when == "daily");
-
-      // when the log files don't include the date and time information as part of their name
-      // we add that as part of the rotation
-      fs::path const previous_file = _filename;
-      bool const append_time_to_filename = true;
-      fs::path const new_file = detail::append_date_to_filename(
-        _filename, _file_creation_time, append_time_to_filename, _using_timezone, zero_out_minutes, true);
-
-      detail::rename_file(previous_file, new_file);
-
-      // Also store the file name in a queue to remove_file it later if we exceed backup count
-      _created_files.emplace_front(0, new_file);
-    }
-    else if ((_append_to_filename == FilenameAppend::Date) || (_append_to_filename == FilenameAppend::DateTime))
-    {
-      // else we only add an index to the file name
-      for (auto it = _created_files.rbegin(); it != _created_files.rend(); ++it)
-      {
-        // it->first: index, it->second: filename
-        fs::path previous_file;
-
-        if (it->first == 0)
-        {
-          // when the index is 0 we want to rename the latest file
-          previous_file = _filename;
-        }
-        else
-        {
-          previous_file = detail::append_index_to_filename(_filename, it->first);
-        }
-
-        fs::path const new_file = detail::append_index_to_filename(_filename, it->first + 1);
-        it->first = it->first + 1;
-        quill::detail::rename_file(previous_file, new_file);
-      }
-
-      _created_files.emplace_front(0, _filename);
-    }
-
-    // If we have too many files in the queue remove_file the oldest one
-    if (_created_files.size() > _backup_count)
-    {
-      // remove_file that file from the system and also pop it from the queue
-      detail::remove_file(_created_files.back().second);
-      _created_files.pop_back();
-    }
-
-    // Calculate next rotation time and start writing the new log
-    _file_creation_time = std::chrono::system_clock::now();
-    _next_rotation_time = _calculate_rotation_tp(_file_creation_time, _when, _interval);
-
-    // Open file for logging
-    open_file(_filename, "w");
+  if (!_time_rotation(log_event.header.timestamp))
+  {
+    // check if we need to rotate by size
+    _size_rotation(formatted_log_message.size());
   }
 
   // write to file
   StreamHandler::write(formatted_log_message, log_event);
+  _current_size += formatted_log_message.size();
 }
 
 /***/
@@ -220,4 +173,155 @@ std::chrono::system_clock::time_point TimeRotatingFileHandler::_calculate_rotati
 
   return std::chrono::system_clock::time_point{};
 }
+
+/***/
+void TimeRotatingFileHandler::_size_rotation(size_t log_msg_size)
+{
+  // Calculate the new size of the file
+  size_t new_size = _current_size + log_msg_size;
+
+  bool const should_rotate = (new_size > _max_bytes);
+
+  if (QUILL_UNLIKELY(should_rotate))
+  {
+    _rotate_files(false);
+  }
+}
+
+/***/
+bool TimeRotatingFileHandler::_time_rotation(uint64_t log_msg_ts)
+{
+  bool const should_rotate =
+    (std::chrono::nanoseconds{log_msg_ts} >= _next_rotation_time.time_since_epoch());
+
+  if (QUILL_UNLIKELY(should_rotate))
+  {
+    _rotate_files(true);
+    return true;
+  }
+
+  return false;
+}
+
+/***/
+void TimeRotatingFileHandler::_rotate_files(bool zero_minutes)
+{
+  FileHandler::flush();
+
+  if (detail::file_size(_filename) <= 0)
+  {
+    // Also check the file size is > 0  to better deal with full disk
+    return;
+  }
+
+  close_file();
+
+  if (_append_to_filename == FilenameAppend::None)
+  {
+    bool const zero_out_minutes = zero_minutes && ((_when == "H") || (_when == "daily"));
+
+    // when the log files don't include the date and time information as part of their name
+    // we add that as part of the rotation
+    fs::path const previous_file = _filename;
+    bool const append_time_to_filename = true;
+    fs::path const new_file = detail::append_date_to_filename(
+      _filename, _file_creation_time, append_time_to_filename, _using_timezone, zero_out_minutes, true);
+
+    // check the new file doesn't exist
+    for (auto it = _created_files.rbegin(); it != _created_files.rend(); ++it)
+    {
+      // it->first: index, it->second: filename
+
+      if (it->second == new_file)
+      {
+        // we already have this file
+        fs::path existing_file;
+        fs::path renamed_file;
+
+        if (it->first == 0)
+        {
+          // when the index is 0 we want to rename the latest file
+          existing_file = it->second;
+        }
+        else
+        {
+          existing_file = detail::append_index_to_filename(it->second, it->first);
+        }
+
+        renamed_file = detail::append_index_to_filename(it->second, it->first + 1);
+        it->first += 1;
+
+        quill::detail::rename_file(existing_file, renamed_file);
+      }
+    }
+
+    detail::rename_file(previous_file, new_file);
+
+    // Also store the file name in a queue to remove_file it later if we exceed backup count
+    _created_files.emplace_front(0, new_file);
+
+    // If we have too many files in the queue remove_file the oldest one
+    if (_created_files.size() > _backup_count)
+    {
+      // remove_file that file from the system and also pop it from the queue
+      fs::path erase_file;
+
+      if (_created_files.back().first == 0)
+      {
+        // when the index is 0 we want to rename the latest file
+        erase_file = _created_files.back().second;
+      }
+      else
+      {
+        erase_file =
+          detail::append_index_to_filename(_created_files.back().second, _created_files.back().first);
+      }
+
+      detail::remove_file(erase_file);
+      _created_files.pop_back();
+    }
+  }
+  else if ((_append_to_filename == FilenameAppend::Date) || (_append_to_filename == FilenameAppend::DateTime))
+  {
+    // else we only add an index to the file name
+    for (auto it = _created_files.rbegin(); it != _created_files.rend(); ++it)
+    {
+      // it->first: index, it->second: filename
+      fs::path previous_file;
+
+      if (it->first == 0)
+      {
+        // when the index is 0 we want to rename the latest file
+        previous_file = _filename;
+      }
+      else
+      {
+        previous_file = detail::append_index_to_filename(_filename, it->first);
+      }
+
+      fs::path const new_file = detail::append_index_to_filename(_filename, it->first + 1);
+      it->first = it->first + 1;
+      quill::detail::rename_file(previous_file, new_file);
+    }
+
+    _created_files.emplace_front(0, _filename);
+
+    // If we have too many files in the queue remove_file the oldest one
+    if (_created_files.size() > _backup_count)
+    {
+      // remove_file that file from the system and also pop it from the queue
+      detail::remove_file(_created_files.back().second);
+      _created_files.pop_back();
+    }
+  }
+
+  // Calculate next rotation time and start writing the new log
+  _file_creation_time = std::chrono::system_clock::now();
+  _next_rotation_time = _calculate_rotation_tp(_file_creation_time, _when, _interval);
+
+  // Open file for logging
+  open_file(_filename, "w");
+  _current_size = 0;
+}
+
 } // namespace quill
