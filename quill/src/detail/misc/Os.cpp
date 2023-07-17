@@ -234,16 +234,10 @@ void set_thread_name(char const* name)
   {
     QUILL_THROW(QuillError{"Failed to set thread name"});
   }
-#elif defined(__APPLE__)
+#else
+  // Apple, linux
   auto const res = pthread_setname_np(name);
   if (res != 0)
-  {
-    QUILL_THROW(QuillError{"Failed to set thread name. error: " + std::to_string(res)});
-  }
-#else
-  auto const err = prctl(PR_SET_NAME, reinterpret_cast<unsigned long>(name), 0, 0, 0);
-
-  if (QUILL_UNLIKELY(err == -1))
   {
     std::ostringstream error_msg;
     error_msg << "failed to call set_thread_name, with error message "
