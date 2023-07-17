@@ -803,9 +803,9 @@ TEST_CASE("backend_notification_handler_log_from_backend_thread")
           filename.string(), "a", FilenameAppend::None, FileEventNotifier{}, false));
 
         // Set a custom error handler to handler exceptions
-        cfg.backend_thread_notification_handler = [&lm](std::string const&)
+        cfg.backend_thread_notification_handler = [&lm](std::string const& error)
         {
-          LOG_WARNING(lm.logger_collection().get_logger(), "error handler invoked");
+          LOG_WARNING(lm.logger_collection().get_logger(), "error handler invoked {}", error);
           lm.flush(); // this will be called by the backend but do nothing
         };
 

@@ -247,7 +247,11 @@ void set_thread_name(char const* name)
   }
 #else
   // linux
-  auto const res = pthread_setname_np(pthread_self(), name);
+  char truncated_name[16];
+  std::strncpy(truncated_name, name, 15);
+  truncated_name[15] = '\0';
+
+  auto const res = pthread_setname_np(pthread_self(), truncated_name);
   if (res != 0)
   {
     std::ostringstream error_msg;
