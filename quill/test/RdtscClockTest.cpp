@@ -31,7 +31,7 @@ TEST_CASE("wall_time")
 
   constexpr size_t num_reps{10};
 
-  for (int i = 1; i <= num_reps; ++i)
+  for (size_t i = 1; i <= num_reps; ++i)
   {
     check_wall_time_now(tsc_clock);
     std::this_thread::sleep_for(std::chrono::milliseconds{i * 100});
