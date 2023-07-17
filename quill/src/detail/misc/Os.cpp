@@ -235,9 +235,19 @@ void set_thread_name(char const* name)
   {
     QUILL_THROW(QuillError{"Failed to set thread name"});
   }
-#else
-  // Apple, linux
+#elif defined(__APPLE__)
+  // Apple
   auto const res = pthread_setname_np(name);
+  if (res != 0)
+  {
+    std::ostringstream error_msg;
+    error_msg << "failed to call set_thread_name, with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
+  }
+#else
+  // linux
+  auto const res = pthread_setname_np(pthread_self(), name);
   if (res != 0)
   {
     std::ostringstream error_msg;
@@ -277,8 +287,7 @@ std::string get_thread_name()
 #else
   // Apple, linux
   std::array<char, 16> thread_name{'\0'};
-  pthread_t thread = pthread_self();
-  auto res = pthread_getname_np(thread, &thread_name[0], 16);
+  auto res = pthread_getname_np(pthread_self(), &thread_name[0], 16);
   if (res != 0)
   {
     QUILL_THROW(QuillError{"Failed to get thread name. error: " + std::to_string(res)});
