@@ -41,6 +41,7 @@
   #include <sys/stat.h>
   #include <unistd.h>
 #elif defined(__linux__)
+  #include <pthread.h>
   #include <sched.h>
   #include <sys/mman.h>
   #include <sys/prctl.h>
@@ -235,15 +236,23 @@ void set_thread_name(char const* name)
     QUILL_THROW(QuillError{"Failed to set thread name"});
   }
 #elif defined(__APPLE__)
+  // Apple
   auto const res = pthread_setname_np(name);
   if (res != 0)
   {
-    QUILL_THROW(QuillError{"Failed to set thread name. error: " + std::to_string(res)});
+    std::ostringstream error_msg;
+    error_msg << "failed to call set_thread_name, with error message "
+              << "\"" << strerror(errno) << "\", errno \"" << errno << "\"";
+    QUILL_THROW(QuillError{error_msg.str()});
   }
 #else
-  auto const err = prctl(PR_SET_NAME, reinterpret_cast<unsigned long>(name), 0, 0, 0);
+  // linux
+  char truncated_name[16];
+  std::strncpy(truncated_name, name, 15);
+  truncated_name[15] = '\0';
 
-  if (QUILL_UNLIKELY(err == -1))
+  auto const res = pthread_setname_np(pthread_self(), truncated_name);
+  if (res != 0)
   {
     std::ostringstream error_msg;
     error_msg << "failed to call set_thread_name, with error message "
@@ -282,8 +291,7 @@ std::string get_thread_name()
 #else
   // Apple, linux
   std::array<char, 16> thread_name{'\0'};
-  pthread_t thread = pthread_self();
-  auto res = pthread_getname_np(thread, &thread_name[0], 16);
+  auto res = pthread_getname_np(pthread_self(), &thread_name[0], 16);
   if (res != 0)
   {
     QUILL_THROW(QuillError{"Failed to get thread name. error: " + std::to_string(res)});
