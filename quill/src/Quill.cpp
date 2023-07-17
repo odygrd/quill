@@ -72,12 +72,13 @@ std::shared_ptr<Handler> time_rotating_file_handler(
   FilenameAppend append_to_filename /* = FilenameAppend::None */,
   std::string const& when /* = std::string{"H"} */, uint32_t interval /* = 1 */,
   uint32_t backup_count /* = std::numeric_limits<std::uint32_t>::max() */,
-  Timezone timezone /* = Timezone::LocalTime */, std::string const& at_time /* = std::string{} */,
-  FileEventNotifier file_event_notifier /* = FileEventNotifier{} */, bool do_fsync /* = false */)
+  Timezone timezone /* = Timezone::LocalTime */, std::string const& at_time /* = std::string{"00:00"} */,
+  FileEventNotifier file_event_notifier /* = FileEventNotifier{} */, bool do_fsync /* = false */,
+  size_t max_bytes /* = std::numeric_limits<size_t>::max() */)
 {
   return create_handler<TimeRotatingFileHandler>(base_filename.string(), mode, append_to_filename,
-                                                 when, interval, backup_count, timezone, at_time,
-                                                 std::move(file_event_notifier), do_fsync);
+                                                 when, interval, max_bytes, backup_count, timezone,
+                                                 at_time, std::move(file_event_notifier), do_fsync);
 }
 
 /***/

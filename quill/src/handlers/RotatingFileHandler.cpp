@@ -131,7 +131,7 @@ void RotatingFileHandler::_rotate()
     if (!_overwrite_oldest_files)
     {
       // always increment current index as we will break above. This is needed to avoid
-      // _backup_count - 1 contidion below when _backup_count == 1 and !_overwrite_oldest_files
+      // _backup_count - 1 condition below when _backup_count == 1 and !_overwrite_oldest_files
       ++_current_index;
     }
     else

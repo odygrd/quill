@@ -176,12 +176,13 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> file_handler(
  * @param append_to_filename additional info to append to the name of the file.
  * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
  * @param when 'M' for minutes, 'H' for hours or 'daily'
- * @param interval The interval used for rotation.
+ * @param interval The interval used for rotation, Used only when 'M' or 'H' is specified
  * @param backup_count maximum backup files to keep
  * @param timezone if true times in UTC will be used; otherwise local time is used
  * @param at_time specifies the time of day when rollover occurs if 'daily' is passed
  * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
  * @param do_fsync calls fsync in addition to fflush when flushing the file
+ * @param max_bytes The max_bytes of the file, when the size is exceeded the file will rollover
  * @return a pointer to a time rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> time_rotating_file_handler(
@@ -189,7 +190,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> time_rotating_file
   FilenameAppend append_to_filename = FilenameAppend::None, std::string const& when = std::string{"H"},
   uint32_t interval = 1, uint32_t backup_count = std::numeric_limits<std::uint32_t>::max(),
   Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"},
-  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
+  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false,
+  size_t max_bytes = std::numeric_limits<size_t>::max());
 
 /**
  * Creates a new instance of the RotatingFileHandler class or looks up an existing instance.
