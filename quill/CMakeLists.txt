@@ -259,6 +259,20 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
     install(EXPORT ${targets_export_name} DESTINATION ${QUILL_CMAKE_DIR}
             NAMESPACE quill::)
 
+    # Install the examples
+    if (QUILL_BUILD_EXAMPLES)
+        install(TARGETS example_backtrace example_configure_backend example_console_colours
+                example_console_colours_with_custom_formatter example_custom_clock example_custom_clock_advanced
+                example_custom_console_colours example_trivial example_logging_to_file example_multiple_handlers
+                example_quick_start example_signal_handler example_stdout_multiple_formatters example_custom_formatter
+                example_custom_formatter_thread_name example_custom_handler example_daily_file_rotation
+                example_file_rotation example_filters example_handler_log_levels example_json_structured_log
+                example_trivial_system_clock example_trivial_file_logging example_user_defined_types
+                example_bounded_queue_message_dropping example_bounded_queue_blocking example_file_callbacks
+                example_wake_up_logging_thread
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif ()
+
     # Copy the headers
     if (QUILL_FMT_EXTERNAL)
         install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR} PATTERN "bundled" EXCLUDE)
