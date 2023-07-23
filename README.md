@@ -426,6 +426,14 @@ To build Quill as a shared library (DLL) on Windows, follow these steps:
 2. Additionally, you need to define `QUILL_BUILD_SHARED` either in your code before including `Quill.h` or as a compiler
    flag when building outside of CMake.
 
+#### Building Quill for Android NDK
+
+To build Quill for Android NDK add the following CMake flags when configuring the build:
+
+  ```
+  -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
+  ```
+
 ## Design
 
 ![design.jpg](docs%2Fdesign.jpg)
