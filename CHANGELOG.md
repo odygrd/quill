@@ -51,6 +51,10 @@
 
 ## v3.3.0
 
+- Added a get_handler(handler_name) function in Quill.h that allows easy lookup of an existing Handler by name. This
+  function proves helpful when you want to retrieve a handler and pass it to a new logger.
+
+
 - Added support for specifying a runtime log level, allowing dynamic log level configuration at runtime.
   The new runtime log level feature provides flexibility when needed, with a minor overhead cost.
   It is recommended to continue using the existing static log level macros for optimal
@@ -112,6 +116,47 @@
     MacroMetadata const macro_metadata = log_event.metadata();
   }
   ```
+
+- Simplified file handler configuration. Now, instead of passing multiple arguments to the constructor,
+  you only need to provide a single `FileHandlerOptions` object. This change makes creating file handlers objects
+  much easier and more flexible.
+
+  For example
+
+    ```c++
+  quill::FileHandlerConfig file_handler_cfg;
+  file_handler_cfg.set_open_mode('w');
+  file_handler_cfg.set_append_to_filename(quill::FilenameAppend::StartDateTime);
+  
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler("application.log", file_handler_cfg);
+  quill::Logger* logger_foo = quill::create_logger("my_logger", std::move(file_handler));
+  
+  LOG_INFO(my_logger, "Hello from {}", "application");
+    ```
+
+- Combined the functionalities of `RotatingFileHandler` (rotating based on file size) and `TimeRotatingFileHandler`
+  (rotating on a time interval) into a single, more versatile `RotatingFileHandler`. Users can now conveniently rotate
+  logs based on both file size and time intervals simultaneously. The updated `RotatingFileHandler` offers a variety of
+  customization options for improved flexibility. For more information on available configurations,
+  refer to the `RotatingFileHandlerConfig` documentation.
+
+  For example
+
+    ```c++
+    // Create a rotating file handler which rotates daily at 18:30 or when the file size reaches 2GB
+  std::shared_ptr<quill::Handler> file_handler =
+    quill::rotating_file_handler(filename,
+                                 []()
+                                 {
+                                   quill::RotatingFileHandlerConfig cfg;
+                                   cfg.set_rotation_time_daily("18:30");
+                                   cfg.set_rotation_max_file_size(2'000'000'000);
+                                   return cfg;
+                                 }());
+
+  // Create a logger using this handler
+  quill::Logger* logger_bar = quill::create_logger("daily_logger", std::move(file_handler));
+    ```
 
 ## v3.2.0
 

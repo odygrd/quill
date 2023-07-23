@@ -58,5 +58,17 @@ bool file_contains(std::vector<std::string> const& file_vector, std::string cons
   return success;
 }
 
+void create_file(fs::path const& filename, std::string const& text)
+{
+  std::ofstream file(filename);
+  if (file.is_open())
+  {
+    if (!text.empty())
+    {
+      file << text;
+    }
+    file.close();
+  }
+}
 } // namespace testing
 } // namespace quill

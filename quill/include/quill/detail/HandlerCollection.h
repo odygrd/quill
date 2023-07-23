@@ -111,6 +111,14 @@ public:
   }
 
   /**
+   * Get an existing a handler
+   * @param handler_name the name of the handler
+   * @throws std::runtime_error if the handler does not exist
+   * @return a shared_ptr to the handler
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> get_handler(std::string const& handler_name);
+
+  /**
    * Subscribe a handler to the vector of active handlers so that the backend thread can see it
    * Called each time a new Logger instance is created. If the Handler already exists then it is not
    * added in the collection again
