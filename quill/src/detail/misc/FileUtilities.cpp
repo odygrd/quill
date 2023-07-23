@@ -88,7 +88,6 @@ fs::path append_date_time_to_filename(fs::path const& filename, bool with_time, 
                                       Timezone timezone,
                                       std::chrono::system_clock::time_point timestamp /* = {} */) noexcept
 {
-
   // Get base file and extension
   std::pair<std::string, std::string> const stem_ext = quill::detail::extract_stem_and_extension(filename);
 
