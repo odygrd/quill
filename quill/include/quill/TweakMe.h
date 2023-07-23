@@ -144,6 +144,15 @@
 // #define QUILL_USE_UNBOUNDED_BLOCKING_QUEUE
 
 /**
+ * Applies to bounded/unbounded blocking queues. When the queue is full, the active thread
+ * will sleep for a brief period and retry. The default value is 800 ns. Set to 0 to disable.
+ *
+ * For CMake:
+ *   -DCMAKE_CXX_FLAGS:INT="-DBLOCKING_QUEUE_RETRY_INTERVAL_NS=1000"
+ */
+// #define QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS 800
+
+/**
  * Enables the use of _mm_prefetch, _mm_clflush, and _mm_clflushopt on the ring buffer to improve
  * performance on x86 architectures.
  *

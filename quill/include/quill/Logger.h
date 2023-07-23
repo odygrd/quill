@@ -21,6 +21,7 @@
 #include "quill/detail/misc/Utilities.h"
 #include <atomic>
 #include <cstdint>
+#include <thread>
 #include <vector>
 
 namespace quill
@@ -211,6 +212,11 @@ public:
 
         do
         {
+          if constexpr (QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS > 0)
+          {
+            std::this_thread::sleep_for(std::chrono::nanoseconds{QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS});
+          }
+
           // not enough space to push to queue, keep trying
           write_buffer =
             thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
