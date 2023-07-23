@@ -25,7 +25,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
   ThreadContextCollection thread_context_collection{cfg};
 
   constexpr uint32_t tries = 4;
-  for (int k = 0; k < tries; ++k)
+  for (uint32_t k = 0; k < tries; ++k)
   {
     constexpr size_t num_threads{25};
     std::array<std::thread, num_threads> threads;
@@ -112,7 +112,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join
   ThreadContextCollection thread_context_collection{cfg};
 
   constexpr uint32_t tries = 4;
-  for (int k = 0; k < tries; ++k)
+  for (uint32_t k = 0; k < tries; ++k)
   {
     constexpr size_t num_threads{25};
     std::array<std::thread, num_threads> threads;

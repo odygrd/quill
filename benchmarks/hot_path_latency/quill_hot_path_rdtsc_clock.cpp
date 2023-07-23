@@ -70,7 +70,4 @@ void quill_benchmark(std::vector<int32_t> const& thread_count_array,
 }
 
 /***/
-int main(int argc, char* argv[])
-{
-  quill_benchmark(THREAD_LIST_COUNT, ITERATIONS, MESSAGES_PER_ITERATION);
-}
+int main(int, char**) { quill_benchmark(THREAD_LIST_COUNT, ITERATIONS, MESSAGES_PER_ITERATION); }

@@ -851,7 +851,7 @@ TEST_CASE("backend_notification_handler")
           "ut_labore_et_dolore_magna_aliqua";
 
         // Set a custom error handler to handler exceptions
-        cfg.backend_thread_notification_handler = [&notification_handler_invoked](std::string const& s)
+        cfg.backend_thread_notification_handler = [&notification_handler_invoked](std::string const&)
         { ++notification_handler_invoked; };
 
         // Set a file handler as the custom logger handler and log to it
@@ -923,9 +923,9 @@ TEST_CASE("backend_notification_handler_log_from_backend_thread")
           FileEventNotifier{}));
 
         // Set a custom error handler to handler exceptions
-        cfg.backend_thread_notification_handler = [&lm](std::string const& s)
+        cfg.backend_thread_notification_handler = [&lm](std::string const& error)
         {
-          LOG_WARNING(lm.logger_collection().get_logger(), "error handler invoked");
+          LOG_WARNING(lm.logger_collection().get_logger(), "error handler invoked {}", error);
           lm.flush(); // this will be called by the backend but do nothing
         };
 
@@ -982,7 +982,7 @@ TEST_CASE("backend_notification_handler_error_throw_while_in_backend_process")
       FileEventNotifier{}));
 
     // Set a custom error handler to handler exceptions
-    cfg.backend_thread_notification_handler = [&notification_handler_invoked](std::string const& s)
+    cfg.backend_thread_notification_handler = [&notification_handler_invoked](std::string const&)
     { ++notification_handler_invoked; };
 
     lm.configure(cfg);
@@ -1465,9 +1465,8 @@ class FileFilter1 : public quill::FilterBase
 public:
   FileFilter1() : quill::FilterBase("FileFilter1"){};
 
-  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
-                              quill::MacroMetadata const& metadata,
-                              fmt_buffer_t const& formatted_record) noexcept override
+  QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
+                              quill::MacroMetadata const& metadata, fmt_buffer_t const&) noexcept override
   {
     if (metadata.level() < quill::LogLevel::Warning)
     {
@@ -1485,9 +1484,8 @@ class FileFilter2 : public quill::FilterBase
 public:
   FileFilter2() : quill::FilterBase("FileFilter2"){};
 
-  QUILL_NODISCARD bool filter(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
-                              quill::MacroMetadata const& metadata,
-                              fmt_buffer_t const& formatted_record) noexcept override
+  QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
+                              quill::MacroMetadata const& metadata, fmt_buffer_t const&) noexcept override
   {
     if (metadata.level() >= quill::LogLevel::Warning)
     {
@@ -1850,9 +1848,9 @@ TEST_CASE("log_configure_default_logger_multi_handler")
     Logger* default_logger = lm.logger_collection().get_logger();
 
     FileEventNotifier file_event_notifier{};
-    file_event_notifier.after_open = [](fs::path const& filename, FILE* file)
+    file_event_notifier.after_open = [](fs::path const&, FILE* file)
     { fprintf(file, "FILE OPENING\n"); };
-    file_event_notifier.before_close = [](fs::path const& filename, FILE* file)
+    file_event_notifier.before_close = [](fs::path const&, FILE* file)
     { fprintf(file, "FILE CLOSING\n"); };
 
     // Config using the custom ts class and the stdout handler

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "doctest/doctest.h"
+#include "quill/detail/misc/Attributes.h"
 
 #include <string>
 #include <cstring>
@@ -68,8 +69,8 @@ private:
   std::string filename_; // Name of the temporary file holding the stderr output.
 };
 
-static CapturedStream* g_captured_stderr = nullptr;
-static CapturedStream* g_captured_stdout = nullptr;
+QUILL_MAYBE_UNUSED static CapturedStream* g_captured_stderr = nullptr;
+QUILL_MAYBE_UNUSED static CapturedStream* g_captured_stdout = nullptr;
 
 // Starts capturing an output stream (stdout/stderr).
 void CaptureStream(int fd, const char* stream_name, CapturedStream** stream);
