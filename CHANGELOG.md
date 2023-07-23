@@ -55,6 +55,13 @@
   function proves helpful when you want to retrieve a handler and pass it to a new logger.
 
 
+- Fix build failure of Intel Compiler Classic. ([#332](https://github.com/odygrd/quill/pull/332))
+
+
+- Improved Backendworker thread handling: Now verifies that all producer SPSC queues are empty before entering `sleep`
+  or removing loggers with `quill::remove_logger()`. Both conditions are now required for the thread to proceed.
+
+
 - Added support for specifying a runtime log level, allowing dynamic log level configuration at runtime.
   The new runtime log level feature provides flexibility when needed, with a minor overhead cost.
   It is recommended to continue using the existing static log level macros for optimal
