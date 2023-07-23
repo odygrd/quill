@@ -261,15 +261,15 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
 
     # Install the examples
     if (QUILL_BUILD_EXAMPLES)
-        install(TARGETS example_backtrace example_configure_backend example_console_colours
-                example_console_colours_with_custom_formatter example_custom_clock example_custom_clock_advanced
-                example_custom_console_colours example_trivial example_logging_to_file example_multiple_handlers
-                example_quick_start example_signal_handler example_stdout_multiple_formatters example_custom_formatter
-                example_custom_formatter_thread_name example_custom_handler example_daily_file_rotation
-                example_file_rotation example_filters example_handler_log_levels example_json_structured_log
-                example_trivial_system_clock example_trivial_file_logging example_user_defined_types
-                example_bounded_queue_message_dropping example_bounded_queue_blocking example_file_callbacks
-                example_wake_up_logging_thread
+        install(TARGETS quill_example_backtrace quill_example_configure_backend quill_example_console_colours
+                quill_example_console_colours_with_custom_formatter quill_example_custom_clock quill_example_custom_clock_advanced
+                quill_example_custom_console_colours quill_example_trivial quill_example_logging_to_file quill_example_multiple_handlers
+                quill_example_quick_start quill_example_signal_handler quill_example_stdout_multiple_formatters quill_example_custom_formatter
+                quill_example_custom_formatter_thread_name quill_example_custom_handler quill_example_daily_file_rotation
+                quill_example_file_rotation quill_example_filters quill_example_handler_log_levels quill_example_json_structured_log
+                quill_example_trivial_system_clock quill_example_trivial_file_logging quill_example_user_defined_types
+                quill_example_bounded_queue_message_dropping quill_example_bounded_queue_blocking quill_example_file_callbacks
+                quill_example_wake_up_logging_thread
                 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif ()
 
