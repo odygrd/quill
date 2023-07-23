@@ -23,10 +23,23 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
 
   std::vector<std::thread> threads;
 
+  // log to json
+  std::shared_ptr<quill::Handler> log_from_one_thread_file =
+    quill::json_file_handler(filename,
+                             []()
+                             {
+                               quill::JsonFileHandlerConfig cfg;
+                               cfg.set_open_mode('w');
+                               return cfg;
+                             }());
+
+  // It is not thread safe to call set_pattern
+  log_from_one_thread_file->set_pattern("", std::string{"%Y-%m-%d %H:%M:%S.%Qus"});
+
   for (int i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back(
-      [filename, filename_s, number_of_messages, test_id, i]()
+      [log_from_one_thread_file, filename, filename_s, number_of_messages, test_id, i]() mutable
       {
         // Also use preallocate
         quill::preallocate();
@@ -41,20 +54,9 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
                                 return cfg;
                               }());
 
-        // log to json
-        std::shared_ptr<quill::Handler> log_from_one_thread_file =
-          quill::json_file_handler(filename,
-                                   []()
-                                   {
-                                     quill::JsonFileHandlerConfig cfg;
-                                     cfg.set_open_mode('w');
-                                     return cfg;
-                                   }());
-        log_from_one_thread_file->set_pattern("", std::string{"%Y-%m-%d %H:%M:%S.%Qus"});
-
         std::string logger_name = "jlogger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(
-          logger_name.data(),
+          logger_name,
           std::vector<std::shared_ptr<quill::Handler>>{std::move(log_from_one_thread_file),
                                                        std::move(log_s_from_one_thread_file)});
 
@@ -64,6 +66,9 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
         }
       });
   }
+
+  // we can release the pointer now so the Handler is destroyed and the file is closed
+  log_from_one_thread_file.reset();
 
   for (auto& elem : threads)
   {
