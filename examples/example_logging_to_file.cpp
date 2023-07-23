@@ -11,7 +11,13 @@ void library_foo_create_logger_and_log()
   // Get a handler to the file
   // The first time this function is called a file handler is created for this filename.
   // Calling the function with the same filename will return the existing handler
-  std::shared_ptr<quill::Handler> file_handler = quill::file_handler(filename, "w");
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler(filename,
+                                                                     []()
+                                                                     {
+                                                                       quill::FileHandlerConfig cfg;
+                                                                       cfg.set_open_mode('w');
+                                                                       return cfg;
+                                                                     }());
 
   // Create a logger using this handler
   quill::Logger* logger_foo = quill::create_logger("logger_foo", std::move(file_handler));
@@ -22,7 +28,13 @@ void library_foo_create_logger_and_log()
 void library_bar_create_logger_and_log()
 {
   // Because foo already created the handler we will get a pointer to the existing handler
-  std::shared_ptr<quill::Handler> file_handler = quill::file_handler(filename, "w");
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler(filename,
+                                                                     []()
+                                                                     {
+                                                                       quill::FileHandlerConfig cfg;
+                                                                       cfg.set_open_mode('w');
+                                                                       return cfg;
+                                                                     }());
 
   // Create a logger using this handler
   quill::Logger* logger_bar = quill::create_logger("logger_bar", std::move(file_handler));

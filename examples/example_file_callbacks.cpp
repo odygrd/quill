@@ -22,8 +22,15 @@ public:
     { std::cout << "after closing " << filename << std::endl; };
 
     // Create a new log file for this session
-    std::shared_ptr<quill::Handler> file_handler =
-      quill::file_handler(unique_name + ".log", "a", quill::FilenameAppend::None, std::move(fen));
+    std::shared_ptr<quill::Handler> file_handler = quill::file_handler(
+      unique_name + ".log",
+      []()
+      {
+        quill::FileHandlerConfig cfg;
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      std::move(fen));
 
     // Create a logger for the current session
     _logger = quill::create_logger(unique_name, std::move(file_handler));

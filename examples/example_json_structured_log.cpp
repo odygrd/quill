@@ -12,7 +12,14 @@ int main()
 
   // use the json handler
   std::shared_ptr<quill::Handler> json_handler =
-    quill::json_file_handler("json_output.log", "w", quill::FilenameAppend::DateTime);
+    quill::json_file_handler("json_output.log",
+                             []()
+                             {
+                               quill::JsonFileHandlerConfig cfg;
+                               cfg.set_open_mode('w');
+                               cfg.set_append_to_filename(quill::FilenameAppend::StartDateTime);
+                               return cfg;
+                             }());
 
   // Change how the date is formatted in the structured log.
   // JsonFileHandler must always have an empty pattern "" as the first argument.

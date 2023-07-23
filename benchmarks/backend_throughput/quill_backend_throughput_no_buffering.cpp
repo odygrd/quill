@@ -24,8 +24,13 @@ int main()
   std::this_thread::sleep_for(std::chrono::milliseconds{100});
 
   // Create a file handler to write to a file
-  std::shared_ptr<quill::Handler> file_handler =
-    quill::file_handler("quill_backend_total_time.log", "w");
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler("quill_backend_total_time.log",
+                                                                     []()
+                                                                     {
+                                                                       quill::FileHandlerConfig cfg;
+                                                                       cfg.set_open_mode('w');
+                                                                       return cfg;
+                                                                     }());
   file_handler->set_pattern("%(ascii_time) [%(thread)] %(fileline) %(level_name) %(message)");
   quill::Logger* logger = quill::create_logger("bench_logger", std::move(file_handler));
   quill::preallocate();

@@ -5,7 +5,7 @@
 #include <array>                      // for array<>::iterator, array
 #include <chrono>                     // for nanoseconds, duration, operator-
 #include <cstddef>                    // for size_t
-#include <iostream>
+#include <iostream>                   // for cerr
 
 namespace quill::detail
 {

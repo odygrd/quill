@@ -1,6 +1,6 @@
 #include "quill/Quill.h"
 
-static char const* base_filename = "logfile.log";
+static char const* filename = "logfile.log";
 
 int main()
 {
@@ -9,7 +9,15 @@ int main()
 
   // Create a rotating file handler with a max file size per log file and maximum rotation up to 5 times
   std::shared_ptr<quill::Handler> file_handler =
-    quill::rotating_file_handler(base_filename, "w", quill::FilenameAppend::None, 1024, 5);
+    quill::rotating_file_handler(filename,
+                                 []()
+                                 {
+                                   quill::RotatingFileHandlerConfig cfg;
+                                   cfg.set_rotation_max_file_size(1024);
+                                   cfg.set_max_backup_files(5);
+                                   cfg.set_overwrite_rolled_files(true);
+                                   return cfg;
+                                 }());
 
   // Create a logger using this handler
   quill::Logger* logger_bar = quill::create_logger("rotating", std::move(file_handler));

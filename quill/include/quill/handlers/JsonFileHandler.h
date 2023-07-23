@@ -10,12 +10,20 @@
 namespace quill
 {
 
+/**
+ * The JsonFileHandlerConfig class holds the configuration options for the JsonFileHandler
+ */
+class JsonFileHandlerConfig : public FileHandlerConfig
+{
+public:
+  JsonFileHandlerConfig() = default;
+};
+
 class JsonFileHandler : public FileHandler
 {
 public:
-  JsonFileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,
-                  FileEventNotifier file_event_notifier, bool do_fsync)
-    : FileHandler(filename, mode, append_to_filename, std::move(file_event_notifier), do_fsync)
+  JsonFileHandler(fs::path const& filename, JsonFileHandlerConfig const& config, FileEventNotifier file_event_notifier)
+    : FileHandler(filename, static_cast<FileHandlerConfig const&>(config), std::move(file_event_notifier))
   {
     // JsonFileHandler requires an empty pattern
     set_pattern("");

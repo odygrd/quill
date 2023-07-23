@@ -15,6 +15,8 @@
 #include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_COLD
 #include "quill/detail/misc/Common.h"           // for Timezone
 #include "quill/handlers/FileHandler.h"         // for FilenameAppend, Filena...
+#include "quill/handlers/JsonFileHandler.h"     // for JsonFileHandler
+#include "quill/handlers/RotatingFileHandler.h" // for RotatingFileHandler
 #include <chrono>                               // for hours, minutes, nanose...
 #include <cstddef>                              // for size_t
 #include <cstdint>                              // for uint16_t
@@ -139,101 +141,36 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> create_handler(std
 }
 
 /**
+ * Returns an existing handler by name
+ * @param handler_name the name of the handler
+ * @throws std::runtime_error if the handler does not exist
+ * @return A pointer to the handler
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> get_handler(std::string const& handler_name);
+
+/**
  * Creates or returns an existing handler to a file.
  * If the file is already opened the existing handler for this file is returned instead
  * @param filename the name of the file
- * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
- * If no value is specified during the file creation "a" is used as default.
- * @param append_to_filename additional info to append to the name of the file.
- * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
+ * @param config configuration for the file handler
  * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
- * @param do_fsync calls fsync in addition to fflush when flushing the file
  * @return A handler to a file
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> file_handler(
-  fs::path const& filename, std::string const& mode = std::string{"a"},
-  FilenameAppend append_to_filename = FilenameAppend::None,
-  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
-
-/**
- * Creates a new instance of the TimeRotatingFileHandler class or looks up an existing instance.
- *
- * The specified file is opened and used as the stream for logging. Rotating happens based on
- * the product of when and interval. You can use the when to specify the type of interval.
- * When 'daily' is passed, the value passed for interval isn’t used.
- *
- * The system will save old log files by appending extensions to the filename. The extensions are
- * date-and-time based in the format of '%Y-%m-%d_%H-%M-%S'.
- *
- * If the timezone argument is gmt time, times in UTC will be used; otherwise local time is used
- *
- * At most backup_count files will be kept, and if more would be created when rollover occurs, the oldest one is deleted.
- *
- * at_time specifies the time of day when rollover occurs and only used when 'daily' is passed. It must be in the format HH:MM
- *
- * @param base_filename the filename
- * @param mode mode to open_file the file 'a' or 'w'
- * @param append_to_filename additional info to append to the name of the file.
- * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
- * @param when 'M' for minutes, 'H' for hours or 'daily'
- * @param interval The interval used for rotation, Used only when 'M' or 'H' is specified
- * @param backup_count maximum backup files to keep
- * @param timezone if true times in UTC will be used; otherwise local time is used
- * @param at_time specifies the time of day when rollover occurs if 'daily' is passed
- * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
- * @param do_fsync calls fsync in addition to fflush when flushing the file
- * @param max_bytes The max_bytes of the file, when the size is exceeded the file will rollover
- * @return a pointer to a time rotating file handler
- */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> time_rotating_file_handler(
-  fs::path const& base_filename, std::string const& mode = std::string{"a"},
-  FilenameAppend append_to_filename = FilenameAppend::None, std::string const& when = std::string{"H"},
-  uint32_t interval = 1, uint32_t backup_count = std::numeric_limits<std::uint32_t>::max(),
-  Timezone timezone = Timezone::LocalTime, std::string const& at_time = std::string{"00:00"},
-  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false,
-  size_t max_bytes = std::numeric_limits<size_t>::max());
+  fs::path const& filename, FileHandlerConfig const& config = FileHandlerConfig{},
+  FileEventNotifier file_event_notifier = FileEventNotifier{});
 
 /**
  * Creates a new instance of the RotatingFileHandler class or looks up an existing instance.
  *
- * If a rotating file handler with base_filename exists then the existing instance is returned.
- *
- * If a rotating file handler does not exist then the specified file is opened and used as the stream for logging.
- * By default, the file grows indefinitely. You can use the max_bytes and backup_count values to allow
- * the file to rollover at a predetermined size.
- * When the size is about to be exceeded, the file is closed and a new file is silently opened for output.
- *
- * Rollover occurs whenever the current log file is nearly max_bytes in length;
- * but if either of max_bytes or backup_count is zero, rollover never occurs,
- * so you generally want to set backup_count to at least 1, and have a non-zero maxBytes.
- *
- * When backup_count is non-zero, the system will save old log files by appending the
- * extensions ‘.1’, ‘.2’ etc., to the filename.
- *
- * For example, with a backup_count of 5 and a base file name of app.log,
- * you would get app.log, app.1.log, app.2.log, up to app.5.log
- * The file being written to is always app.log.
- * When this file is filled, it is closed and renamed to app.1.log, and if files
- * app.1.log, app.2.log, etc. exist, then they are renamed to app.2.log, app.3.log etc. respectively.
- *
  * @param base_filename the base file name
- * @param mode file mode to open_file file
- * @param append_to_filename additional info to append to the name of the file.
- * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
- * @param max_bytes The max_bytes of the file, when the size is exceeded the file will rollover
- * @param backup_count The maximum number of times we want to rollover
- * @param overwrite_oldest_files overwrite oldest files
- * @param clean_old_files delete old files
+ * @param config configuration for the rotating file handler
  * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
- * @param do_fsync calls fsync in addition to fflush when flushing the file
  * @return a pointer to a rotating file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> rotating_file_handler(
-  fs::path const& base_filename, std::string const& mode = std::string{"a"},
-  FilenameAppend append_to_filename = FilenameAppend::None, size_t max_bytes = 0,
-  uint32_t backup_count = std::numeric_limits<std::uint32_t>::max(),
-  bool overwrite_oldest_files = true, bool clean_old_files = false,
-  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
+  fs::path const& base_filename, RotatingFileHandlerConfig const& config = RotatingFileHandlerConfig{},
+  FileEventNotifier file_event_notifier = FileEventNotifier{});
 
 /**
  * Creates a new instance of the JsonFileHandler class or looks up an existing instance.
@@ -243,17 +180,13 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> rotating_file_hand
  * to the loggers. See examples/example_json_structured_log.cpp
  *
  * @param filename the name of the file
- * @param mode Used only when the file is opened for the first time. Otherwise the value is ignored
- * If no value is specified during the file creation "a" is used as default.
- * @param append_to_filename additional info to append to the name of the file.
- * FilenameAppend::None, FilenameAppend::Date, FilenameAppend::DateTime
+ * @param config configuration for the json file handler
  * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
- * @param do_fsync calls fsync in addition to fflush when flushing the file
- * @return A handler to a file
+ * @return a pointer to a json file handler
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> json_file_handler(
-  fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,
-  FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fsync = false);
+  fs::path const& filename, JsonFileHandlerConfig const& config = JsonFileHandlerConfig{},
+  FileEventNotifier file_event_notifier = FileEventNotifier{});
 
 /**
  * Creates a new instance of a NullHandler. The null handler does not do any formatting or output.

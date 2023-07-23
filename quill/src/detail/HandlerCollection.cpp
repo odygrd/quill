@@ -23,6 +23,24 @@ std::shared_ptr<Handler> HandlerCollection::stderr_console_handler(std::string c
 }
 
 /***/
+std::shared_ptr<Handler> HandlerCollection::get_handler(std::string const& handler_name)
+{
+  // Protect shared access
+  std::lock_guard<std::mutex> const lock{_mutex};
+
+  // Try to insert it unless we failed it means we already had it
+  auto const search = _handler_collection.find(handler_name);
+
+  if (search == _handler_collection.cend())
+  {
+    QUILL_THROW(QuillError{"Handler with name " + handler_name + " does not exist"});
+  }
+
+  std::shared_ptr<Handler> handler = search->second.lock();
+  return handler;
+}
+
+/***/
 void HandlerCollection::subscribe_handler(std::shared_ptr<Handler> const& handler_to_insert)
 {
   // Protect shared access

@@ -23,16 +23,23 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 
   std::vector<std::thread> threads;
 
-  // Set writing logging to a file
-  std::shared_ptr<quill::Handler> log_from_one_thread_file = quill::file_handler(filename, "w");
-
   for (int i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back(
-      [log_from_one_thread_file, number_of_messages, test_id, i]() mutable
+      [filename, number_of_messages, test_id, i]() mutable
       {
         // Also use preallocate
         quill::preallocate();
+
+        // Set writing logging to a file
+        std::shared_ptr<quill::Handler> log_from_one_thread_file =
+          quill::file_handler(filename,
+                              []()
+                              {
+                                quill::FileHandlerConfig cfg;
+                                cfg.set_open_mode('w');
+                                return cfg;
+                              }());
 
         std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(logger_name.data(), std::move(log_from_one_thread_file));
@@ -51,6 +58,11 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 
   // Flush all log
   quill::flush();
+
+  for (auto const& [key, value] : quill::get_all_loggers())
+  {
+    quill::remove_logger(value);
+  }
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
@@ -102,12 +114,20 @@ TEST_CASE("log_from_multiple_threads")
 class log_test_class
 {
 public:
-  explicit log_test_class(std::string const& filename, quill::FilenameAppend filename_append)
+  explicit log_test_class(std::string const& filename)
   {
     // create a new logger in the ctor
-    std::shared_ptr<quill::Handler> filehandler = quill::file_handler(filename, "w", filename_append);
+    std::shared_ptr<quill::Handler> filehandler = quill::file_handler(filename,
+                                                                      []()
+                                                                      {
+                                                                        quill::FileHandlerConfig cfg;
+                                                                        cfg.set_open_mode('w');
+                                                                        return cfg;
+                                                                      }());
     _logger = quill::create_logger("test_class", std::move(filehandler));
   }
+
+  ~log_test_class() { quill::remove_logger(_logger); }
 
   /**
    * Use logger in const function
@@ -131,16 +151,18 @@ TEST_CASE("log_from_const_function")
   // Start the logging backend thread
   quill::start();
 
-  // log for class a
-  log_test_class log_test_class_a{filename, quill::FilenameAppend::None};
-  log_test_class_a.use_logger_const();
-  log_test_class_a.use_logger();
+  {
+    // log for class a
+    log_test_class log_test_class_a{filename};
+    log_test_class_a.use_logger_const();
+    log_test_class_a.use_logger();
 
-  // log again for class b
-  log_test_class const log_test_class_b{filename, quill::FilenameAppend::None};
-  log_test_class_b.use_logger_const();
+    // log again for class b
+    log_test_class const log_test_class_b{filename};
+    log_test_class_b.use_logger_const();
 
-  quill::flush();
+    quill::flush();
+  }
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
@@ -163,19 +185,38 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
 
   // Create a rotating file handler
   QUILL_MAYBE_UNUSED std::shared_ptr<quill::Handler> rotating_file_handler =
-    quill::rotating_file_handler(base_filename, "w", quill::FilenameAppend::None, max_file_size, 2, true);
+    quill::rotating_file_handler(base_filename,
+                                 []()
+                                 {
+                                   quill::RotatingFileHandlerConfig rfh_cfg;
+                                   rfh_cfg.set_rotation_max_file_size(max_file_size);
+                                   rfh_cfg.set_max_backup_files(2);
+                                   rfh_cfg.set_overwrite_rolled_files(true);
+                                   rfh_cfg.set_open_mode('w');
+                                   return rfh_cfg;
+                                 }());
 
   // Get the same instance back - we search it again (for testing only)
-  std::shared_ptr<quill::Handler> looked_up_rotating_file_handler = quill::rotating_file_handler(base_filename);
+  std::shared_ptr<quill::Handler> looked_up_rotating_file_handler = quill::get_handler(base_filename);
   quill::Logger* rotating_logger =
     quill::create_logger("rot_logger", std::move(looked_up_rotating_file_handler));
+  rotating_file_handler.reset();
 
   // Another rotating logger to another file with max backup count 1 this time. Here we rotate only once
   static char const* base_filename_2 = "rot_2nd_logger.log";
   static constexpr char const* rotated_filename_2nd_1 = "rot_2nd_logger.1.log";
 
   QUILL_MAYBE_UNUSED std::shared_ptr<quill::Handler> rotating_file_handler_2 =
-    quill::rotating_file_handler(base_filename_2, "w", quill::FilenameAppend::None, max_file_size, 1, true);
+    quill::rotating_file_handler(base_filename_2,
+                                 []()
+                                 {
+                                   quill::RotatingFileHandlerConfig rfh_cfg;
+                                   rfh_cfg.set_rotation_max_file_size(max_file_size);
+                                   rfh_cfg.set_max_backup_files(1);
+                                   rfh_cfg.set_overwrite_rolled_files(true);
+                                   rfh_cfg.set_open_mode('w');
+                                   return rfh_cfg;
+                                 }());
 
   quill::Logger* rotating_logger_2 =
     quill::create_logger("rot_2nd_logger", std::move(rotating_file_handler_2));
@@ -188,6 +229,9 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
   }
 
   quill::flush();
+
+  quill::remove_logger(rotating_logger);
+  quill::remove_logger(rotating_logger_2);
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
@@ -229,19 +273,38 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
 
   // Create a rotating file handler
   QUILL_MAYBE_UNUSED std::shared_ptr<quill::Handler> rotating_file_handler =
-    quill::rotating_file_handler(base_filename, "w", quill::FilenameAppend::None, max_file_size, 2, false);
+    quill::rotating_file_handler(base_filename,
+                                 []()
+                                 {
+                                   quill::RotatingFileHandlerConfig rfh_cfg;
+                                   rfh_cfg.set_rotation_max_file_size(max_file_size);
+                                   rfh_cfg.set_max_backup_files(2);
+                                   rfh_cfg.set_overwrite_rolled_files(false);
+                                   rfh_cfg.set_open_mode('w');
+                                   return rfh_cfg;
+                                 }());
 
   // Get the same instance back - we search it again (for testing only)
-  std::shared_ptr<quill::Handler> looked_up_rotating_file_handler = quill::rotating_file_handler(base_filename);
+  std::shared_ptr<quill::Handler> looked_up_rotating_file_handler = quill::get_handler(base_filename);
   quill::Logger* rotating_logger =
     quill::create_logger("another_rot_logger", std::move(looked_up_rotating_file_handler));
+  rotating_file_handler.reset();
 
   // Another rotating logger to another file with max backup count 1 this time. Here we rotate only once
   static char const* base_filename_2 = "another_2nd_rot_logger.log";
   static constexpr char const* rotated_filename_2nd_1 = "another_2nd_rot_logger.1.log";
 
   QUILL_MAYBE_UNUSED std::shared_ptr<quill::Handler> rotating_file_handler_2 =
-    quill::rotating_file_handler(base_filename_2, "w", quill::FilenameAppend::None, max_file_size, 1, false);
+    quill::rotating_file_handler(base_filename_2,
+                                 []()
+                                 {
+                                   quill::RotatingFileHandlerConfig rfh_cfg;
+                                   rfh_cfg.set_rotation_max_file_size(max_file_size);
+                                   rfh_cfg.set_max_backup_files(1);
+                                   rfh_cfg.set_overwrite_rolled_files(false);
+                                   rfh_cfg.set_open_mode('w');
+                                   return rfh_cfg;
+                                 }());
 
   quill::Logger* rotating_logger_2 =
     quill::create_logger("another_rot_2nd_logger", std::move(rotating_file_handler_2));
@@ -254,6 +317,9 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
   }
 
   quill::flush();
+
+  quill::remove_logger(rotating_logger);
+  quill::remove_logger(rotating_logger_2);
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
@@ -291,12 +357,20 @@ TEST_CASE("log_using_daily_file_handler")
 
   // Create the handler
   QUILL_MAYBE_UNUSED std::shared_ptr<quill::Handler> time_rotating_file_handler_create =
-    quill::time_rotating_file_handler(base_filename, "w", quill::FilenameAppend::None, "daily", 1, 0);
+    quill::rotating_file_handler(base_filename,
+                                 []()
+                                 {
+                                   quill::RotatingFileHandlerConfig rfh_cfg;
+                                   rfh_cfg.set_rotation_time_daily("00:00");
+                                   rfh_cfg.set_open_mode('w');
+                                   return rfh_cfg;
+                                 }());
 
   // Get the same handler
-  std::shared_ptr<quill::Handler> time_rotating_file_handler = quill::time_rotating_file_handler(base_filename);
+  std::shared_ptr<quill::Handler> time_rotating_file_handler = quill::get_handler(base_filename);
 
   quill::Logger* daily_logger = quill::create_logger("daily_logger", std::move(time_rotating_file_handler));
+  time_rotating_file_handler_create.reset();
 
   // log a few messages
   for (uint32_t i = 0; i < 20; ++i)
@@ -305,6 +379,7 @@ TEST_CASE("log_using_daily_file_handler")
   }
 
   quill::flush();
+  quill::remove_logger(daily_logger);
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
@@ -357,7 +432,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:334         LOG_INFO      root         Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:409         LOG_INFO      root         Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -445,7 +520,13 @@ TEST_CASE("check_log_arguments_evaluation")
   static constexpr char const* filename = "check_log_arguments_evaluation.log";
 
   // create a new logger in the ctor
-  std::shared_ptr<quill::Handler> filehandler = quill::file_handler(filename, "w");
+  std::shared_ptr<quill::Handler> filehandler = quill::file_handler(filename,
+                                                                    []()
+                                                                    {
+                                                                      quill::FileHandlerConfig cfg;
+                                                                      cfg.set_open_mode('w');
+                                                                      return cfg;
+                                                                    }());
   auto logger = quill::create_logger("logger", std::move(filehandler));
 
   // Start the logging backend thread
@@ -462,6 +543,7 @@ TEST_CASE("check_log_arguments_evaluation")
   REQUIRE_EQ(cnt, 1);
 
   quill::flush();
+  quill::remove_logger(logger);
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
@@ -482,7 +564,14 @@ TEST_CASE("invalid_handlers")
   REQUIRE_THROWS_AS(auto x2 = quill::stderr_handler("stdout_handler"), quill::QuillError);
 
   static constexpr char const* filename = "invalid_handlers.log";
-  std::shared_ptr<quill::Handler> log_from_one_thread_file = quill::file_handler(filename, "w");
+  std::shared_ptr<quill::Handler> log_from_one_thread_file =
+    quill::file_handler(filename,
+                        []()
+                        {
+                          quill::FileHandlerConfig cfg;
+                          cfg.set_open_mode('w');
+                          return cfg;
+                        }());
   // using the same handler again
   REQUIRE_THROWS_AS(auto x3 = quill::stderr_handler("invalid_handlers.log"), quill::QuillError);
   REQUIRE_THROWS_AS(auto x4 = quill::stdout_handler("invalid_handlers.log"), quill::QuillError);
@@ -492,6 +581,7 @@ TEST_CASE("invalid_handlers")
   terminal_colours.set_default_colours();
   REQUIRE_THROWS_AS(auto x5 = quill::stdout_handler("stdout", terminal_colours), quill::QuillError);
 
+  log_from_one_thread_file.reset();
   // remove_file file
   quill::detail::remove_file(filename);
 }
