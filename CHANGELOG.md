@@ -51,7 +51,7 @@
 
 ## v3.3.0
 
-- Added a `quill::get_handler(handler_name)` function that allows easy lookup of an existing Handler by name. This
+- Added a `quill::get_handler(handler_name)` function that allows easy lookup of an existing `Handler` by name. This
   function proves helpful when you want to retrieve a handler and pass it to a new logger.
 
 - Fix build failure of Intel Compiler Classic. ([#332](https://github.com/odygrd/quill/pull/332))
