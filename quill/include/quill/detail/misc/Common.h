@@ -55,6 +55,10 @@ enum class QueueType
   #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 #endif
 
+#if !defined(QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS)
+  #define QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS 800
+#endif
+
 /**
  * Convert number to string
  */

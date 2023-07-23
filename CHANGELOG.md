@@ -56,6 +56,9 @@
 
 - Fix build failure of Intel Compiler Classic. ([#332](https://github.com/odygrd/quill/pull/332))
 
+- Introduced `QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS` option for user-configurable retry interval in the blocking queue.
+  Default value is 800 nanoseconds. ([#330](https://github.com/odygrd/quill/pull/330))
+
 - Improved backendworker thread handling. Now verifies that all producer SPSC queues are empty before entering `sleep`
   or removing loggers with `quill::remove_logger()`.
 
