@@ -1041,32 +1041,52 @@ void BackendWorker::_main_loop()
     // We can also clear any invalidated or empty thread contexts
     _thread_context_collection.clear_invalid_and_empty_thread_contexts();
 
-    // since there are no messages we can check for invalidated loggers and clean them up
-    bool const loggers_removed = _logger_collection.remove_invalidated_loggers();
-    if (loggers_removed)
-    {
-      // if loggers were removed also check for Handlers to remove
-      // remove_unused_handlers is expensive and should be only called when it is needed
-      _handler_collection.remove_unused_handlers();
-    }
-
     // resync rdtsc clock before going to sleep.
     // This is useful when quill::Clock is used
     _resync_rdtsc_clock();
 
-    if (_backend_thread_sleep_duration.count() != 0)
+    // Also check if all queues are empty as we need to know that to remove any unused Loggers
+    bool all_queues_empty{true};
+    for (ThreadContext* thread_context : cached_thread_contexts)
     {
-      std::unique_lock<std::mutex> lock(_wake_up_mutex);
-
-      // Wait for a timeout or a notification to wake up
-      _wake_up_cv.wait_for(lock, _backend_thread_sleep_duration, [this] { return _wake_up; });
-
-      // set the flag back to false since we woke up here
-      _wake_up = false;
+      std::visit(
+        [&all_queues_empty](auto& queue)
+        {
+          using T = std::decay_t<decltype(queue)>;
+          if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
+          {
+            all_queues_empty &= queue.empty();
+          }
+        },
+        thread_context->spsc_queue_variant());
     }
-    else if (_backend_thread_yield)
+
+    if (all_queues_empty)
     {
-      std::this_thread::yield();
+      // since there are no messages we can check for invalidated loggers and clean them up
+      bool const loggers_removed = _logger_collection.remove_invalidated_loggers();
+      if (loggers_removed)
+      {
+        // if loggers were removed also check for Handlers to remove
+        // remove_unused_handlers is expensive and should be only called when it is needed
+        _handler_collection.remove_unused_handlers();
+      }
+
+      // There is nothing left to do, and we can let this thread sleep for a while
+      if (_backend_thread_sleep_duration.count() != 0)
+      {
+        std::unique_lock<std::mutex> lock(_wake_up_mutex);
+
+        // Wait for a timeout or a notification to wake up
+        _wake_up_cv.wait_for(lock, _backend_thread_sleep_duration, [this] { return _wake_up; });
+
+        // set the flag back to false since we woke up here
+        _wake_up = false;
+      }
+      else if (_backend_thread_yield)
+      {
+        std::this_thread::yield();
+      }
     }
 
     // After waking up resync rdtsc clock again and resume
