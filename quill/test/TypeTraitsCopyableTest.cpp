@@ -18,8 +18,8 @@ using namespace quill::detail;
 
 struct TriviallyCopyableButNotTrivial
 {
-  TriviallyCopyableButNotTrivial(TriviallyCopyableButNotTrivial const&) = default;
-  TriviallyCopyableButNotTrivial(int x) : m(x + 1) {}
+  explicit TriviallyCopyableButNotTrivial(TriviallyCopyableButNotTrivial const&) = default;
+  explicit TriviallyCopyableButNotTrivial(int x) : m(x + 1) {}
   int m;
 };
 

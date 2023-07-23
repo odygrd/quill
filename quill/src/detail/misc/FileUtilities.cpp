@@ -9,9 +9,7 @@
 #include <iostream> // for cerr
 #include <sstream>  // for operator<<, basic_ostream, bas...
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /***/
 void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream)
@@ -107,7 +105,7 @@ fs::path append_date_time_to_filename(fs::path const& filename, bool with_time, 
 std::string get_datetime_string(uint64_t timestamp_ns, Timezone timezone, bool with_time)
 {
   // convert to seconds
-  time_t time_now = timestamp_ns / 1000000000;
+  time_t time_now = static_cast<uint64_t>(timestamp_ns / 1000000000);
   tm now_tm;
 
   if (timezone == Timezone::GmtTime)
@@ -170,5 +168,4 @@ fs::path append_string_to_filename(fs::path const& filename, std::string const& 
   return ss.str();
 }
 
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail
