@@ -48,7 +48,13 @@ int main()
   // Get a handler to the file
   // The first time this function is called a file handler is created for this filename.
   // Calling the function with the same filename will return the existing handler
-  std::shared_ptr<quill::Handler> file_handler = quill::file_handler("example_filters.log", "w");
+  std::shared_ptr<quill::Handler> file_handler = quill::file_handler("example_filters.log",
+                                                                     []()
+                                                                     {
+                                                                       quill::FileHandlerConfig cfg;
+                                                                       cfg.set_open_mode('w');
+                                                                       return cfg;
+                                                                     }());
 
   // Create and add the filter to our handler
   file_handler->add_filter(std::make_unique<FileFilter>());

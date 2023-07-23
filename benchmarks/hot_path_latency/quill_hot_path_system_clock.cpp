@@ -30,7 +30,13 @@ void quill_benchmark(std::vector<int32_t> const& thread_count_array,
 
   // Create a file handler to write to a file
   std::shared_ptr<quill::Handler> file_handler =
-    quill::file_handler("quill_hot_path_system_clock.log", "w");
+    quill::file_handler("quill_hot_path_system_clock.log",
+                        []()
+                        {
+                          quill::FileHandlerConfig cfg;
+                          cfg.set_open_mode('w');
+                          return cfg;
+                        }());
 
   quill::Logger* logger = quill::create_logger("bench_logger", std::move(file_handler));
 

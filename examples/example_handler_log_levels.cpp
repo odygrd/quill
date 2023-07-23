@@ -16,7 +16,13 @@ int main()
   // The first time this function is called a file handler is created for this filename.
   // Calling the function with the same filename will return the existing handler
   std::shared_ptr<quill::Handler> file_handler =
-    quill::file_handler("example_handler_log_levels.log", "w");
+    quill::file_handler("example_handler_log_levels.log",
+                        []()
+                        {
+                          quill::FileHandlerConfig cfg;
+                          cfg.set_open_mode('w');
+                          return cfg;
+                        }());
 
   // Everything is logged in the file
   file_handler->set_log_level(quill::LogLevel::TraceL3);

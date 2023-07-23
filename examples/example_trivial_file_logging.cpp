@@ -9,7 +9,14 @@ int main()
   // Get or create a handler to the file
   // quill::FilenameAppend::DateTime will append the start date and time to the provided filename
   std::shared_ptr<quill::Handler> file_handler =
-    quill::file_handler("example_trivial.log", "w", quill::FilenameAppend::DateTime);
+    quill::file_handler("example_trivial.log",
+                        []()
+                        {
+                          quill::FileHandlerConfig cfg;
+                          cfg.set_open_mode('w');
+                          cfg.set_append_to_filename(quill::FilenameAppend::StartDateTime);
+                          return cfg;
+                        }());
 
   // Optional - Set a custom formatter for this handler, or skip this line to use the default one
   file_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format

@@ -23,21 +23,34 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
 
   std::vector<std::thread> threads;
 
-  // log to json
-  std::shared_ptr<quill::Handler> log_from_one_thread_file =
-    quill::json_file_handler(filename, "w", quill::FilenameAppend::None);
-  log_from_one_thread_file->set_pattern("", std::string{"%Y-%m-%d %H:%M:%S.%Qus"});
-
-  // log non structured file
-  std::shared_ptr<quill::Handler> log_s_from_one_thread_file = quill::file_handler(filename_s, "w");
-
   for (int i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back(
-      [log_from_one_thread_file, log_s_from_one_thread_file, number_of_messages, test_id, i]()
+      [filename, filename_s, number_of_messages, test_id, i]()
       {
         // Also use preallocate
         quill::preallocate();
+
+        // log non structured file
+        std::shared_ptr<quill::Handler> log_s_from_one_thread_file =
+          quill::file_handler(filename_s,
+                              []()
+                              {
+                                quill::FileHandlerConfig cfg;
+                                cfg.set_open_mode('w');
+                                return cfg;
+                              }());
+
+        // log to json
+        std::shared_ptr<quill::Handler> log_from_one_thread_file =
+          quill::json_file_handler(filename,
+                                   []()
+                                   {
+                                     quill::JsonFileHandlerConfig cfg;
+                                     cfg.set_open_mode('w');
+                                     return cfg;
+                                   }());
+        log_from_one_thread_file->set_pattern("", std::string{"%Y-%m-%d %H:%M:%S.%Qus"});
 
         std::string logger_name = "jlogger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(
@@ -59,6 +72,11 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
 
   // Flush all log
   quill::flush();
+
+  for (auto [key, value] : quill::get_all_loggers())
+  {
+    quill::remove_logger(value);
+  }
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);

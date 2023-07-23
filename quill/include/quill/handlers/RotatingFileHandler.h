@@ -5,67 +5,197 @@
 
 #pragma once
 
-#include "quill/Fmt.h"                    // for memory_buffer
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD, QUIL...
 #include "quill/handlers/FileHandler.h"   // for FileHandler
 #include <chrono>                         // for nanoseconds
 #include <cstddef>                        // for size_t
 #include <cstdint>                        // for uint32_t
+#include <deque>
+#include <limits>
+#include <sstream>
+#include <utility>
+#include <vector>
 
 namespace quill
 {
+
 /**
- * Rotating file handler based on file size
+ * The RotatingFileHandlerConfig class holds the configuration options for the RotatingFileHandler
  */
-class RotatingFileHandler final : public FileHandler
+class RotatingFileHandlerConfig : public FileHandlerConfig
+{
+public:
+  enum class RotationFrequency : uint8_t
+  {
+    Disabled,
+    Daily,
+    Hourly,
+    Minutely
+  };
+
+  enum class RotationNamingScheme : uint8_t
+  {
+    Index,
+    Date,
+    DateAndTime
+  };
+
+  RotatingFileHandlerConfig();
+
+  /**
+   * @brief Sets the append type for the file name. Possible append types are: Date and DateAndTime.
+   * When this option is set, the file name will be appended with the start date or date and time timestamp of when the process started.
+   * @param value The append type to set. Valid options are Date and DateAndTime.
+   */
+  void set_append_to_filename(FilenameAppend value);
+
+  /**
+   * @brief Sets the maximum file size in bytes. Enabling this option will enable file rotation by file size. By default this is disabled.
+   * @param value The maximum file size in bytes per file
+   */
+  void set_rotation_max_file_size(size_t value);
+
+  /**
+   * @brief Sets the frequency and interval of file rotation.
+   * Enabling this option will enable file rotation based on a specified frequency and interval.
+   * By default, this option is disabled.
+   * Valid values for the frequency are 'M' for minutes and 'H' for hours.
+   * @param frequency The frequency of file rotation to set.
+   * @param interval The rotation interval to set.
+   */
+  void set_rotation_frequency_and_interval(char frequency, uint32_t interval);
+
+  /**
+   * @brief Sets the time of day for daily log file rotation.
+   * When this option is set, the rotation frequency is automatically set to 'daily'.
+   * By default, this option is disabled.
+   * @param time The time of day to perform the log file rotation. The value must be in the format "HH:MM".
+   */
+  void set_rotation_time_daily(std::string const& at_time);
+
+  /**
+   * @brief Sets the maximum number of log files to keep. By default, there is no limit on the number of log files.
+   * @param value The maximum number of log files to set.
+   */
+  void set_max_backup_files(uint32_t value);
+
+  /**
+   * @brief Sets whether the oldest rolled logs should be overwritten when the maximum backup count
+   * is reached. If set to false, the oldest logs will not be overwritten when the maximum backup
+   * count is reached, and log file rotation will stop. The default value is true.
+   * @param value True to overwrite the oldest logs, false otherwise.
+   */
+  void set_overwrite_rolled_files(bool value);
+
+  /**
+   * @brief Sets whether previous rotated log files should be removed on process start up.
+   * @note This option works only when using the mode="w"
+   * This is useful to avoid conflicting file names when the process restarts and
+   * FilenameAppend::DateTime was not set. The default value is true.
+   * @param value True to remove old log files, false otherwise.
+   */
+  void set_remove_old_files(bool value);
+
+  /**
+   * @brief Sets the naming scheme for the rotated files.
+   * The default value is 'Index'.
+   * @param value The naming scheme to set.
+   */
+  void set_rotation_naming_scheme(RotationNamingScheme value);
+
+  /** Getter methods **/
+  QUILL_NODISCARD size_t rotation_max_file_size() const noexcept { return _rotation_max_file_size; }
+  QUILL_NODISCARD uint32_t max_backup_files() const noexcept { return _max_backup_files; }
+  QUILL_NODISCARD bool overwrite_rolled_files() const noexcept { return _overwrite_rolled_files; }
+  QUILL_NODISCARD bool remove_old_files() const noexcept { return _remove_old_files; }
+  QUILL_NODISCARD RotationFrequency rotation_frequency() const noexcept
+  {
+    return _rotation_frequency;
+  }
+  QUILL_NODISCARD uint32_t rotation_interval() const noexcept { return _rotation_interval; }
+  QUILL_NODISCARD std::pair<std::chrono::hours, std::chrono::minutes> rotation_at_time_daily() const noexcept
+  {
+    return _rotation_at_time_daily;
+  }
+  QUILL_NODISCARD RotationNamingScheme rotation_naming_scheme() const noexcept
+  {
+    return _rotation_naming_scheme;
+  }
+
+private:
+  std::pair<std::chrono::hours, std::chrono::minutes> _rotation_at_time_daily;
+  size_t _rotation_max_file_size{0};                                // 0 means disabled
+  uint32_t _max_backup_files{std::numeric_limits<uint32_t>::max()}; // max means disabled
+  uint32_t _rotation_interval{0};                                   // 0 means disabled
+  RotationFrequency _rotation_frequency{RotationFrequency::Disabled};
+  RotationNamingScheme _rotation_naming_scheme{RotationNamingScheme::Index};
+  bool _overwrite_rolled_files{true};
+  bool _remove_old_files{true};
+};
+
+/**
+ * @brief The RotatingFileHandler class
+ */
+class RotatingFileHandler : public FileHandler
 {
 public:
   /**
-   * constructor
-   * @param base_filename Base file name to be used for logs
-   * @param mode the mode to open_file the file
-   * @param append_to_filename appends extra info to the file
-   * @param max_bytes max size per file in bytes
-   * @param backup_count maximum log files
-   * @param overwrite_oldest_files if set to true, oldest logs will get overwritten when
-   * backup_count is reached. if set to false then when backup_count is reached the rotation will
-   * stop and the base log file will grow indefinitely
-   * @param clean_old_files Setting this to true will also clean any previous rotated log files when
-   * mode="w" is used
-   * @param file_event_notifier notifies on file events
-   * @param do_fsync also fsync when flushing
-   * @throws on invalid rotation values
+   * @brief Constructor.
+   *
+   * Creates a new instance of the RotatingFileHandler class.
+   *
+   * @param filename The base file name to be used for logs.
+   * @param mode The mode to open the file.
+   * @param config The handler configuration.
    */
-  RotatingFileHandler(fs::path const& base_filename, std::string const& mode,
-                      FilenameAppend append_to_filename, size_t max_bytes,
-                      uint32_t backup_count, bool overwrite_oldest_files, bool clean_old_files,
-                      FileEventNotifier file_event_notifier, bool do_fsync);
+  RotatingFileHandler(fs::path const& filename, RotatingFileHandlerConfig const& config,
+                      FileEventNotifier file_event_notifier,
+                      std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now());
 
   /**
-   * Destructor
+   * @brief Destructor.
+   *
+   * Destroys the RotatingFileHandler object.
    */
   ~RotatingFileHandler() override = default;
 
   /**
-   * Write a formatted log message to the stream
-   * @param formatted_log_message input log message to write
-   * @param log_event transit_event
+   * @brief Write a formatted log message to the stream.
+   *
+   * This function writes a formatted log message to the file stream associated with the handler.
+   *
+   * @param formatted_log_message The formatted log message to write.
+   * @param log_event The log event associated with the message.
    */
   QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message,
                                  quill::TransitEvent const& log_event) override;
 
 private:
-  /**
-   * Rotate to a new file
-   */
-  QUILL_ATTRIBUTE_COLD void _rotate();
+  QUILL_NODISCARD bool _time_rotation(uint64_t record_timestamp_ns);
+  void _size_rotation(size_t log_msg_size, uint64_t record_timestamp_ns);
+  void _rotate_files(uint64_t record_timestamp_ns);
+  void _clean_and_recover_files(fs::path const& filename, std::string const& open_mode, uint64_t today_timestamp_ns);
 
 private:
-  size_t _current_size{0};
-  size_t _max_bytes{0};
-  uint32_t _backup_count{0};
-  uint32_t _current_index{0};
-  bool _overwrite_oldest_files{true};
+  struct FileInfo
+  {
+    FileInfo(fs::path base_filename, uint32_t index, std::string date_time)
+      : base_filename{std::move(base_filename)}, date_time{std::move(date_time)}, index{index}
+    {
+    }
+
+    fs::path base_filename;
+    std::string date_time;
+    uint32_t index;
+  };
+
+private:
+  FileEventNotifier _file_event_notifier;
+  std::deque<FileInfo> _created_files; /**< We store in a queue the filenames we created, first: index, second: date/datetime, third: base_filename */
+  uint64_t _next_rotation_time;        /**< The next rotation time point */
+  uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
+  size_t _file_size{0};                /**< The current file size */
+  RotatingFileHandlerConfig _config;
 };
 
 } // namespace quill

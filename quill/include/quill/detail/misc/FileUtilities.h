@@ -69,15 +69,24 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::pair<std::string, std::string> extract
 /**
  * Append the date to the given filename
  * @param filename the name of the file
- * @param timestamp optional, timestamp now, no timestamp gives current date
- * @param append_time also appends the time
+ * @param with_time also appends the time
  * @param timezone gmt or local time
+ * @param timestamp optional, timestamp now, no timestamp gives current date
  * @return a filepath with the date appended
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_date_to_filename(
-  fs::path const& filename, std::chrono::system_clock::time_point timestamp = {},
-  bool append_time = false, Timezone timezone = Timezone::LocalTime, bool zero_out_minutes = false,
-  bool zero_out_seconds = false) noexcept;
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_date_time_to_filename(
+  fs::path const& filename, bool with_time = false, Timezone timezone = Timezone::LocalTime,
+  std::chrono::system_clock::time_point timestamp = {}) noexcept;
+
+/**
+ * Constructs a datetime string that can be used for filename naming
+ * @param timestamp timestamp
+ * @param timezone timezone
+ * @param with_time with_time
+ * @return
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::string get_datetime_string(uint64_t timestamp_ns,
+                                                                     Timezone timezone, bool with_time);
 
 /**
  * Append an index to the given filename
@@ -86,5 +95,15 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_date_to_filename(
  * @return a filepath with the index appended
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_index_to_filename(fs::path const& filename,
-                                                                                    uint32_t index) noexcept;
+                                                                       uint32_t index) noexcept;
+
+/**
+ * Append an index to the given filename
+ * @param filename the name of the file
+ * @param text the text to append
+ * @param separator the text to append
+ * @return a filepath with the index appended
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_string_to_filename(fs::path const& filename,
+                                                                        std::string const& text) noexcept;
 } // namespace quill::detail

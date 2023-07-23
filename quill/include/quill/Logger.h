@@ -235,7 +235,9 @@ public:
       std::addressof(_logger_details),
       (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
         : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
-        ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
+        ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                  std::chrono::system_clock::now().time_since_epoch())
+                                  .count())
         : _custom_timestamp_clock->now());
 
     write_buffer += sizeof(detail::Header);

@@ -1,17 +1,13 @@
 #include "quill/Quill.h"
 #include "quill/QuillError.h"
-#include "quill/detail/HandlerCollection.h"         // for HandlerCollection
-#include "quill/detail/LogManager.h"                // for LogManagerSingleton
-#include "quill/detail/LoggerCollection.h"          // for LoggerCollection
-#include "quill/detail/ThreadContext.h"             // for ThreadContext, Thr...
-#include "quill/detail/ThreadContextCollection.h"   // for ThreadContextColle...
-#include "quill/handlers/ConsoleHandler.h"          // for ConsoleHandler
-#include "quill/handlers/FileHandler.h"             // for FileHandler, Filenam...
-#include "quill/handlers/JsonFileHandler.h"         // for JsonFileHandler
-#include "quill/handlers/NullHandler.h"             // for NullHandler
-#include "quill/handlers/RotatingFileHandler.h"     // for RotatingFileHandler
-#include "quill/handlers/StreamHandler.h"           // for StreamHandler
-#include "quill/handlers/TimeRotatingFileHandler.h" // for TimeRotatingFileHandler
+#include "quill/detail/HandlerCollection.h"       // for HandlerCollection
+#include "quill/detail/LogManager.h"              // for LogManagerSingleton
+#include "quill/detail/LoggerCollection.h"        // for LoggerCollection
+#include "quill/detail/ThreadContext.h"           // for ThreadContext, Thr...
+#include "quill/detail/ThreadContextCollection.h" // for ThreadContextColle...
+#include "quill/handlers/ConsoleHandler.h"        // for ConsoleHandler
+#include "quill/handlers/NullHandler.h"           // for NullHandler
+#include "quill/handlers/StreamHandler.h"         // for StreamHandler
 #include <cassert>
 #include <utility> // for move
 
@@ -57,51 +53,31 @@ std::shared_ptr<Handler> stderr_handler(std::string const& stderr_handler_name /
 }
 
 /***/
-std::shared_ptr<Handler> file_handler(fs::path const& filename, std::string const& mode, /* = std::string{} */
-                                      FilenameAppend append_to_filename /* = FilenameAppend::None */,
-                                      FileEventNotifier file_event_notifier /* = FileEventNotifier{} */,
-                                      bool do_fsync /* = false */)
+std::shared_ptr<Handler> get_handler(std::string const& handler_name)
 {
-  return create_handler<FileHandler>(filename.string(), mode, append_to_filename,
-                                     std::move(file_event_notifier), do_fsync);
+  return detail::LogManagerSingleton::instance().log_manager().handler_collection().get_handler(handler_name);
 }
 
 /***/
-std::shared_ptr<Handler> time_rotating_file_handler(
-  fs::path const& base_filename, std::string const& mode /* = std::string{"a"} */,
-  FilenameAppend append_to_filename /* = FilenameAppend::None */,
-  std::string const& when /* = std::string{"H"} */, uint32_t interval /* = 1 */,
-  uint32_t backup_count /* = std::numeric_limits<std::uint32_t>::max() */,
-  Timezone timezone /* = Timezone::LocalTime */, std::string const& at_time /* = std::string{"00:00"} */,
-  FileEventNotifier file_event_notifier /* = FileEventNotifier{} */, bool do_fsync /* = false */,
-  size_t max_bytes /* = std::numeric_limits<size_t>::max() */)
+std::shared_ptr<Handler> file_handler(fs::path const& filename, FileHandlerConfig const& config, /* = FileHandlerConfig{} */
+                                      FileEventNotifier file_event_notifier /* = FileEventNotifier{} */)
 {
-  return create_handler<TimeRotatingFileHandler>(base_filename.string(), mode, append_to_filename,
-                                                 when, interval, max_bytes, backup_count, timezone,
-                                                 at_time, std::move(file_event_notifier), do_fsync);
+  return create_handler<FileHandler>(filename.string(), config, std::move(file_event_notifier));
 }
 
 /***/
-std::shared_ptr<Handler> rotating_file_handler(
-  fs::path const& base_filename, std::string const& mode /* = std::string {"a"} */,
-  FilenameAppend append_to_filename /* = FilenameAppend::None */, size_t max_bytes /* = 0 */,
-  uint32_t backup_count /* = std::numeric_limits<std::uint32_t>::max() */,
-  bool overwrite_oldest_files /* = true */, bool clean_old_files /* = false */,
-  FileEventNotifier file_event_notifier /* = FileEventNotifier{} */, bool do_fsync /* = false */)
+std::shared_ptr<Handler> rotating_file_handler(fs::path const& base_filename,
+                                               RotatingFileHandlerConfig const& config, /* = RotatingFileHandlerConfig{} */
+                                               FileEventNotifier file_event_notifier /* = FileEventNotifier{} */)
 {
-  return create_handler<RotatingFileHandler>(base_filename.string(), mode, append_to_filename,
-                                             max_bytes, backup_count, overwrite_oldest_files,
-                                             clean_old_files, std::move(file_event_notifier), do_fsync);
+  return create_handler<RotatingFileHandler>(base_filename.string(), config, std::move(file_event_notifier));
 }
 
 /***/
-std::shared_ptr<Handler> json_file_handler(fs::path const& filename, std::string const& mode,
-                                           FilenameAppend append_to_filename,
-                                           FileEventNotifier file_event_notifier /* = FileEventNotifier{} */,
-                                           bool do_fsync /* = false */)
+std::shared_ptr<Handler> json_file_handler(fs::path const& filename, JsonFileHandlerConfig const& config, /* = JsonFileHandlerConfig{} */
+                                           FileEventNotifier file_event_notifier /* = FileEventNotifier{} */)
 {
-  return create_handler<JsonFileHandler>(filename.string(), mode, append_to_filename,
-                                         std::move(file_event_notifier), do_fsync);
+  return create_handler<JsonFileHandler>(filename.string(), config, std::move(file_event_notifier));
 }
 
 /***/
@@ -178,6 +154,14 @@ Logger* create_logger(std::string const& logger_name, std::vector<std::shared_pt
 /***/
 void remove_logger(Logger* logger)
 {
+  Logger* default_logger = get_logger(nullptr);
+
+  if (logger == default_logger)
+  {
+    // we do not allow removing the default logger as it is also used by the flush() function
+    return;
+  }
+
   detail::LogManagerSingleton::instance().log_manager().logger_collection().remove_logger(logger);
 }
 

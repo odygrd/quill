@@ -21,5 +21,6 @@ std::vector<std::wstring> wfile_contents(fs::path const& filename);
 
 // Search a vector for the given string
 bool file_contains(std::vector<std::string> const& file_vector, std::string const& search_string);
+void create_file(fs::path const& filename, std::string const& text = std::string{});
 } // namespace testing
 } // namespace quill

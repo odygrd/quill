@@ -44,7 +44,6 @@ set(HEADER_FILES
         include/quill/handlers/NullHandler.h
         include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
-        include/quill/handlers/TimeRotatingFileHandler.h
 
         include/quill/Config.h
         include/quill/Fmt.h
@@ -81,7 +80,6 @@ set(SOURCE_FILES
         src/handlers/JsonFileHandler.cpp
         src/handlers/RotatingFileHandler.cpp
         src/handlers/StreamHandler.cpp
-        src/handlers/TimeRotatingFileHandler.cpp
 
         src/LogLevel.cpp
         src/PatternFormatter.cpp

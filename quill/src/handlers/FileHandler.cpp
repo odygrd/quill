@@ -1,23 +1,26 @@
 #include "quill/handlers/FileHandler.h"
+#include "quill/Fmt.h"
 #include "quill/detail/misc/FileUtilities.h" // for append_date_to_filename
 #include "quill/detail/misc/Os.h"
 #include <cstdio> // for fclose
 
 namespace
 {
-QUILL_NODISCARD quill::fs::path get_filename(quill::FilenameAppend append_to_filename, quill::fs::path const& filename)
+QUILL_NODISCARD quill::fs::path get_appended_filename(quill::fs::path const& filename,
+                                                      quill::FilenameAppend append_to_filename,
+                                                      quill::Timezone timezone)
 {
   if ((append_to_filename == quill::FilenameAppend::None) || (filename == "/dev/null"))
   {
     return filename;
   }
-  else if (append_to_filename == quill::FilenameAppend::Date)
+  else if (append_to_filename == quill::FilenameAppend::StartDate)
   {
-    return quill::detail::append_date_to_filename(filename);
+    return quill::detail::append_date_time_to_filename(filename, false, timezone);
   }
-  else if (append_to_filename == quill::FilenameAppend::DateTime)
+  else if (append_to_filename == quill::FilenameAppend::StartDateTime)
   {
-    return quill::detail::append_date_to_filename(filename, std::chrono::system_clock::now(), true);
+    return quill::detail::append_date_time_to_filename(filename, true, timezone);
   }
 
   return quill::fs::path{};
@@ -27,19 +30,31 @@ QUILL_NODISCARD quill::fs::path get_filename(quill::FilenameAppend append_to_fil
 namespace quill
 {
 /***/
-FileHandler::FileHandler(fs::path const& filename, std::string const& mode, FilenameAppend append_to_filename,
-                         FileEventNotifier file_event_notifier, bool do_fsync)
-  : StreamHandler(get_filename(append_to_filename, filename), nullptr, std::move(file_event_notifier)),
-    _fsync(do_fsync)
+void FileHandlerConfig::set_append_to_filename(FilenameAppend value)
 {
-  open_file(_filename, mode);
+  _append_to_filename = value;
 }
 
 /***/
-FileHandler::FileHandler(fs::path const& filename, FilenameAppend append_to_filename,
-                         FileEventNotifier file_event_notifier, bool do_fsync)
-  : StreamHandler(get_filename(append_to_filename, filename), nullptr, std::move(file_event_notifier)), _fsync(do_fsync)
+void FileHandlerConfig::set_timezone(Timezone timezone) { _timezone_value = timezone; }
+
+/***/
+void FileHandlerConfig::set_do_fsync(bool value) { _do_fsync = value; }
+
+/***/
+void FileHandlerConfig::set_open_mode(char open_mode) { _open_mode = open_mode; }
+
+/***/
+FileHandler::FileHandler(fs::path const& filename, FileHandlerConfig config,
+                         FileEventNotifier file_event_notifier, bool do_fopen /* = true */)
+  : StreamHandler(get_appended_filename(filename, config.append_to_filename(), config.timezone()),
+                  nullptr, std::move(file_event_notifier)),
+    _config(config)
 {
+  if (do_fopen)
+  {
+    open_file(_filename, _config.open_mode());
+  }
 }
 
 /***/
@@ -89,11 +104,11 @@ void FileHandler::flush() noexcept
 {
   StreamHandler::flush();
 
-  if (_fsync)
+  if (_config.do_fsync())
   {
     detail::fsync(_file);
   }
-  
+
   if (!fs::exists(_filename))
   {
     // after flushing the file we can check if the file still exists. If not we reopen it.
