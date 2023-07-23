@@ -1638,9 +1638,9 @@ TEST_CASE("time_rotation_daily_at_time_rotation_scheme_index")
       struct tm* timeinfo;
       char buffer[80];
 
-      // Get the timeinfo struct using std::localtime#
+      // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::localtime(&timestamp);
+      timeinfo = std::gmtime(&timestamp);
 
       // Use std::strftime to format the date
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
@@ -1667,19 +1667,19 @@ TEST_CASE("time_rotation_daily_at_time_rotation_scheme_index")
 
   // Read file and check
   std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
-  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [2023-06-12 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [2023-06-12 00:16:40]"), true);
 
   std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
-  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [2023-06-13 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [2023-06-13 00:16:40]"), true);
 
   std::vector<std::string> const file_contents_3 = testing::file_contents(filename_3);
-  REQUIRE_EQ(testing::file_contains(file_contents_3, "Record [2023-06-14 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_3, "Record [2023-06-14 00:16:40]"), true);
 
   std::vector<std::string> const file_contents_4 = testing::file_contents(filename_4);
-  REQUIRE_EQ(testing::file_contains(file_contents_4, "Record [2023-06-15 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_4, "Record [2023-06-15 00:16:40]"), true);
 
   std::vector<std::string> const file_contents = testing::file_contents(filename);
-  REQUIRE_EQ(testing::file_contains(file_contents, "Record [2023-06-16 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [2023-06-16 00:16:40]"), true);
 
   remove_file(filename);
   remove_file(filename_1);
@@ -1726,9 +1726,9 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
       struct tm* timeinfo;
       char buffer[80];
 
-      // Get the timeinfo struct using std::localtime#
+      // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::localtime(&timestamp);
+      timeinfo = std::gmtime(&timestamp);
 
       // Use std::strftime to format the date
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
@@ -1744,9 +1744,9 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
       struct tm* timeinfo;
       char buffer[80];
 
-      // Get the timeinfo struct using std::localtime#
+      // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::localtime(&timestamp);
+      timeinfo = std::gmtime(&timestamp);
 
       // Use std::strftime to format the date
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
@@ -1768,9 +1768,9 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
       struct tm* timeinfo;
       char buffer[80];
 
-      // Get the timeinfo struct using std::localtime#
+      // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::localtime(&timestamp);
+      timeinfo = std::gmtime(&timestamp);
 
       // Use std::strftime to format the date
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
@@ -1787,9 +1787,9 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
       struct tm* timeinfo;
       char buffer[80];
 
-      // Get the timeinfo struct using std::localtime#
+      // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::localtime(&timestamp);
+      timeinfo = std::gmtime(&timestamp);
 
       // Use std::strftime to format the date
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
@@ -1815,19 +1815,19 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
 
   // Read file and check
   std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
-  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [0 2023-06-12 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [0 2023-06-12 00:16:40]"), true);
 
   std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
-  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [1 2023-06-12 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [1 2023-06-12 00:16:40]"), true);
 
   std::vector<std::string> const file_contents_3 = testing::file_contents(filename_3);
-  REQUIRE_EQ(testing::file_contains(file_contents_3, "Record [2 2023-06-12 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_3, "Record [2 2023-06-12 00:16:40]"), true);
 
   std::vector<std::string> const file_contents_4 = testing::file_contents(filename_4);
-  REQUIRE_EQ(testing::file_contains(file_contents_4, "Record [3 2023-06-13 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_4, "Record [3 2023-06-13 00:16:40]"), true);
 
   std::vector<std::string> const file_contents = testing::file_contents(filename);
-  REQUIRE_EQ(testing::file_contains(file_contents, "Record [4 2023-06-14 01:16:40]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [4 2023-06-14 00:16:40]"), true);
 
   remove_file(filename);
   remove_file(filename_1);
