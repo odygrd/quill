@@ -54,13 +54,29 @@
 - Added a get_handler(handler_name) function in Quill.h that allows easy lookup of an existing Handler by name. This
   function proves helpful when you want to retrieve a handler and pass it to a new logger.
 
-
 - Fix build failure of Intel Compiler Classic. ([#332](https://github.com/odygrd/quill/pull/332))
 
+- Improved Backendworker thread handling. Now verifies that all producer SPSC queues are empty before entering `sleep`
+  or removing loggers with `quill::remove_logger()`.
 
-- Improved Backendworker thread handling: Now verifies that all producer SPSC queues are empty before entering `sleep`
-  or removing loggers with `quill::remove_logger()`. Both conditions are now required for the thread to proceed.
+- Improved exception handling on the backendworker thread when calling `fmt::format()`.
 
+  While compile-time checks ensure that the format string and arguments match, runtime errors can still occur.
+  Previously, such exceptions would affect and drop subsequent log records. Now, exceptions are caught and logged
+  in the log file and reported via the backend thread notification handler (default is `cerr`).
+
+  For example, if a dynamic precision is used (`LOG_INFO(logger, "Support for floats {:.{}f}", 1.23456, 3.321312)`),
+  the log file will show the following error message:
+
+  ```
+  LOG_INFO root [format: "Support for floats {:.{}f}", error: "precision is not integer"]
+  ```
+
+  Additionally, an error message will be printed to `cerr`
+
+  ```
+  Quill ERROR: [format: "Support for floats {:.{}f}", error: "precision is not integer"]
+  ```
 
 - Added support for specifying a runtime log level, allowing dynamic log level configuration at runtime.
   The new runtime log level feature provides flexibility when needed, with a minor overhead cost.
@@ -91,25 +107,6 @@
     LOG_INFO(logger, "This is a log info example using fmt format {}", arr);
     
     LOG_INFO_CFORMAT(logger, "printf style %s supported %d %f", "also", 5, 2.32);
-  ```
-
-- Improved exception handling on the backend thread when calling `fmt::format()`.
-
-  While compile-time checks ensure that the format string and arguments match, runtime errors can still occur.
-  Previously, such exceptions would affect and drop subsequent log records. Now, exceptions are caught and logged
-  in the log file and reported via the backend thread notification handler (default is `cerr`).
-
-  For example, if a dynamic precision is used (`LOG_INFO(logger, "Support for floats {:.{}f}", 1.23456, 3.321312)`),
-  the log file will show the following error message:
-
-  ```
-  LOG_INFO root [format: "Support for floats {:.{}f}", error: "precision is not integer"]
-  ```
-
-  Additionally, an error message will be printed to `cerr`
-
-  ```
-  Quill ERROR: [format: "Support for floats {:.{}f}", error: "precision is not integer"]
   ```
 
 - Added a `metadata()` member function to the `TransitEvent` class. It provides access to the `Metadata` object
