@@ -43,13 +43,6 @@ public:
   RotatingFileHandlerConfig();
 
   /**
-   * @brief Sets the append type for the file name. Possible append types are: Date and DateAndTime.
-   * When this option is set, the file name will be appended with the start date or date and time timestamp of when the process started.
-   * @param value The append type to set. Valid options are Date and DateAndTime.
-   */
-  void set_append_to_filename(FilenameAppend value);
-
-  /**
    * @brief Sets the maximum file size in bytes. Enabling this option will enable file rotation by file size. By default this is disabled.
    * @param value The maximum file size in bytes per file
    */

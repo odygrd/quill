@@ -58,7 +58,7 @@ std::pair<std::chrono::hours, std::chrono::minutes> parse_at_time_format(std::st
 /***/
 uint64_t calculate_initial_rotation_tp(uint64_t start_time_ns, quill::RotatingFileHandlerConfig const& config)
 {
-  time_t time_now = start_time_ns / 1000000000;
+  time_t time_now = static_cast<time_t>(start_time_ns) / 1000000000;
   tm date;
 
   // here we do this because of `at_time` that might have specified the time in UTC
@@ -102,7 +102,7 @@ uint64_t calculate_initial_rotation_tp(uint64_t start_time_ns, quill::RotatingFi
     ? static_cast<uint64_t>(rotation_time)
     : static_cast<uint64_t>(rotation_time + std::chrono::seconds{std::chrono::hours{24}}.count());
 
-  return std::chrono::nanoseconds{std::chrono::seconds{rotation_time_seconds}}.count();
+  return static_cast<uint64_t>(std::chrono::nanoseconds{std::chrono::seconds{rotation_time_seconds}}.count());
 }
 
 /***/
@@ -111,12 +111,13 @@ uint64_t calculate_rotation_tp(uint64_t rotation_timestamp_ns, quill::RotatingFi
   if (config.rotation_frequency() == quill::RotatingFileHandlerConfig::RotationFrequency::Minutely)
   {
     return rotation_timestamp_ns +
-      std::chrono::nanoseconds{std::chrono::minutes{config.rotation_interval()}}.count();
+      static_cast<uint64_t>(
+             std::chrono::nanoseconds{std::chrono::minutes{config.rotation_interval()}}.count());
   }
   else if (config.rotation_frequency() == quill::RotatingFileHandlerConfig::RotationFrequency::Hourly)
   {
     return rotation_timestamp_ns +
-      std::chrono::nanoseconds{std::chrono::hours{config.rotation_interval()}}.count();
+      static_cast<uint64_t>(std::chrono::nanoseconds{std::chrono::hours{config.rotation_interval()}}.count());
   }
   else if (config.rotation_frequency() == quill::RotatingFileHandlerConfig::RotationFrequency::Daily)
   {
@@ -127,7 +128,7 @@ uint64_t calculate_rotation_tp(uint64_t rotation_timestamp_ns, quill::RotatingFi
 }
 
 /***/
-quill::fs::path get_filename(quill::fs::path filename, uint32_t index, std::string date_time)
+quill::fs::path get_filename(quill::fs::path filename, uint32_t index, std::string const& date_time)
 {
   if (!date_time.empty())
   {
@@ -140,18 +141,6 @@ quill::fs::path get_filename(quill::fs::path filename, uint32_t index, std::stri
   }
 
   return filename;
-}
-
-std::chrono::system_clock::time_point convert_to_time_point(uint64_t timestamp_ns) noexcept
-{
-#ifdef _WIN32
-  // Windows uses FILETIME (100 ns intervals) as the underlying representation
-  using SystemClockDuration = std::chrono::duration<int64_t, std::ratio<1, 10000000>>;
-#else
-  // macOS and Linux use nanoseconds as the underlying representation
-  using SystemClockDuration = std::chrono::nanoseconds;
-#endif
-  return std::chrono::time_point<std::chrono::system_clock, SystemClockDuration>(SystemClockDuration(timestamp_ns));
 }
 } // namespace
 
@@ -230,7 +219,8 @@ void RotatingFileHandlerConfig::set_rotation_naming_scheme(RotationNamingScheme 
 RotatingFileHandler::RotatingFileHandler(
   fs::path const& filename, RotatingFileHandlerConfig const& config, FileEventNotifier file_event_notifier,
   std::chrono::system_clock::time_point start_time /* = std::chrono::system_clock::now() */)
-  : FileHandler(filename, config, std::move(file_event_notifier), false), _config(config)
+  : FileHandler(filename, static_cast<FileHandlerConfig const&>(config), std::move(file_event_notifier), false),
+    _config(config)
 {
   uint64_t const today_timestamp_ns = static_cast<uint64_t>(
     std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
@@ -248,8 +238,8 @@ RotatingFileHandler::RotatingFileHandler(
 
   // Open file for logging
   open_file(_filename, _config.open_mode());
-  _open_file_timestamp =
-    std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count();
+  _open_file_timestamp = static_cast<uint64_t>(
+    std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
 
   _created_files.emplace_front(_filename, 0, std::string{});
 
@@ -352,20 +342,10 @@ void RotatingFileHandler::_rotate_files(uint64_t record_timestamp_ns)
     // increment the index if needed and rename the file
     uint32_t index_to_use = it->index;
 
-    if (_config.rotation_naming_scheme() == RotatingFileHandlerConfig::RotationNamingScheme::Index)
+    if (_config.rotation_naming_scheme() == RotatingFileHandlerConfig::RotationNamingScheme::Index ||
+        it->date_time == datetime_suffix)
     {
-      index_to_use += 1;
-
-      renamed_file = get_filename(it->base_filename, index_to_use, datetime_suffix);
-
-      it->index = index_to_use;
-      it->date_time = datetime_suffix;
-
-      quill::detail::rename_file(existing_file, renamed_file);
-    }
-    else if (it->date_time == datetime_suffix)
-    {
-      // we have another file with the same date_time suffix
+      // we are rotating and incrementing the index, or we have another file with the same date_time suffix
       index_to_use += 1;
 
       renamed_file = get_filename(it->base_filename, index_to_use, datetime_suffix);

@@ -23,7 +23,7 @@ class JsonFileHandler : public FileHandler
 {
 public:
   JsonFileHandler(fs::path const& filename, JsonFileHandlerConfig const& config, FileEventNotifier file_event_notifier)
-    : FileHandler(filename, config, std::move(file_event_notifier))
+    : FileHandler(filename, static_cast<FileHandlerConfig const&>(config), std::move(file_event_notifier))
   {
     // JsonFileHandler requires an empty pattern
     set_pattern("");
