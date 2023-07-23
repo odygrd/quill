@@ -350,7 +350,7 @@ void RotatingFileHandler::_rotate_files(uint64_t record_timestamp_ns)
     existing_file = get_filename(it->base_filename, it->index, it->date_time);
 
     // increment the index if needed and rename the file
-    size_t index_to_use = it->index;
+    uint32_t index_to_use = it->index;
 
     if (_config.rotation_naming_scheme() == RotatingFileHandlerConfig::RotationNamingScheme::Index)
     {
