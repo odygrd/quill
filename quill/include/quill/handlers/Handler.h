@@ -43,6 +43,7 @@ public:
 
   /**
    * Set a custom formatter for this handler
+   * @note This function is not thread safe and should be called before any logging to this handler happens
    * @param format_pattern format pattern see PatternFormatter
    * @param timestamp_format defaults to "%H:%M:%S.%Qns"
    * @param timezone defaults to PatternFormatter::Timezone::LocalTime

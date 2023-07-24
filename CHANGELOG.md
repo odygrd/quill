@@ -81,6 +81,9 @@
   Quill ERROR: [format: "Support for floats {:.{}f}", error: "precision is not integer"]
   ```
 
+- Fixed a bug in timestamp formatting that occasionally displayed an hour component of 24 as
+  0. ([#329](https://github.com/odygrd/quill/pull/329))
+
 - Added support for specifying a runtime log level, allowing dynamic log level configuration at runtime.
   The new runtime log level feature provides flexibility when needed, with a minor overhead cost.
   It is recommended to continue using the existing static log level macros for optimal

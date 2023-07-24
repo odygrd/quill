@@ -160,9 +160,9 @@ TEST_CASE("log_from_const_function")
     // log again for class b
     log_test_class const log_test_class_b{filename};
     log_test_class_b.use_logger_const();
-  }
 
-  quill::flush();
+    quill::flush();
+  }
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
