@@ -136,13 +136,12 @@ std::string const& StringFromTime::format_timestamp(time_t timestamp)
     _pre_formatted_ts.clear();
     _cached_indexes.clear();
 
-    // Now populate a pre formatted string for the next rec
+    // Now populate a pre-formatted string for the next rec
     _populate_pre_formatted_string_and_cached_indexes(timestamp);
 
     if (_time_zone == Timezone::LocalTime)
     {
-      // Update the timestamp to point to the next hour, here we can just add 3600 as the _next_hour_timestamp was already rounded to point to sharp minutes before
-      _next_recalculation_timestamp = timestamp + 3600;
+      _next_recalculation_timestamp = next_hour_timestamp(timestamp);
     }
     else if (_time_zone == Timezone::GmtTime)
     {
