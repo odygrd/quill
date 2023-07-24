@@ -265,7 +265,7 @@ void LoggerCollection::create_root_logger()
 }
 
 /***/
-bool LoggerCollection::remove_invalidated_loggers()
+bool LoggerCollection::remove_invalidated_loggers(std::function<bool(void)> const& check_queues_empty)
 {
   bool has_invalidated_loggers{false};
 
@@ -283,8 +283,18 @@ bool LoggerCollection::remove_invalidated_loggers()
     {
       if (it->second->is_invalidated())
       {
-        loggers_removed = true;
-        it = _logger_name_map.erase(it);
+        // check if the logger has any pending records in the queue
+        if (!check_queues_empty())
+        {
+          // we have pending records in the queue, we can not remove the logger yet
+          ++it;
+          _has_invalidated_loggers.store(true, std::memory_order_release);
+        }
+        else
+        {
+          loggers_removed = true;
+          it = _logger_name_map.erase(it);
+        }
       }
       else
       {
