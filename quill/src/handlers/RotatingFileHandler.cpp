@@ -405,7 +405,8 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
   {
     for (const auto& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
     {
-      if (entry.is_directory() || entry.path().string().find(filename.stem().string()) == std::string::npos)
+      // is_directory() does not exist in std::experimental::filesystem
+      if (entry.path().string().find(filename.stem().string()) == std::string::npos)
       {
         continue;
       }
@@ -470,7 +471,8 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
     // we need to recover the index from the existing files
     for (const auto& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
     {
-      if (entry.is_directory() || entry.path().string().find(filename.stem().string()) == std::string::npos)
+      // is_directory() does not exist in std::experimental::filesystem
+      if (entry.path().string().find(filename.stem().string()) == std::string::npos)
       {
         continue;
       }
