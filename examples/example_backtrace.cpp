@@ -19,7 +19,7 @@ int main()
     // Enable the backtrace with a ring buffer capacity of 2 messages to get flushed when
     // a LOG_ERROR(...) or higher severity log message occurs via this logger.
     // Backtrace has to be enabled only once in the beginning before calling LOG_BACKTRACE(...) for the first time.
-    logger->init_backtrace(2, quill::LogLevel::Error);
+    logger->init_backtrace(2u, quill::LogLevel::Error);
 
     LOG_INFO(logger, "BEFORE backtrace Example {}", 1);
 
@@ -59,7 +59,7 @@ int main()
     quill::Logger* logger = quill::create_logger("example_2");
     LOG_INFO(logger, "BEFORE backtrace Example {}", 2);
 
-    uint32_t backtrace_capacity = 2;
+    uint32_t backtrace_capacity = 2u;
     logger->init_backtrace(backtrace_capacity);
 
     LOG_BACKTRACE(logger, "Backtrace log {}", 100);
@@ -81,7 +81,7 @@ int main()
     quill::Logger* logger = quill::create_logger("example_3");
     LOG_INFO(logger, "BEFORE backtrace Example {}", 3);
 
-    uint32_t backtrace_capacity = 2;
+    uint32_t backtrace_capacity = 2u;
     quill::LogLevel flush_backtrace = quill::LogLevel::Error;
     logger->init_backtrace(backtrace_capacity, flush_backtrace);
 
@@ -102,7 +102,7 @@ int main()
     quill::Logger* logger = quill::create_logger("example_4");
     LOG_INFO(logger, "BEFORE backtrace Example {}", 4);
 
-    uint32_t backtrace_capacity = 2;
+    uint32_t backtrace_capacity = 2u;
     logger->init_backtrace(backtrace_capacity);
 
     LOG_BACKTRACE(logger, "Backtrace log {}", 100);

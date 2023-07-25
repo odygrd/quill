@@ -82,10 +82,9 @@ int main()
       }));
   }
 
-  uint32_t cnt{0};
-  while (true)
+  for (uint32_t cnt{0}; cnt < 1000; ++cnt)
   {
-    std::this_thread::sleep_for(std::chrono::milliseconds{100});
-    LOG_INFO(quill::get_logger(), "Log from main {}", cnt++);
+    std::this_thread::sleep_for(std::chrono::milliseconds{300});
+    LOG_INFO(quill::get_logger(), "Log from main {}", cnt);
   }
 }
