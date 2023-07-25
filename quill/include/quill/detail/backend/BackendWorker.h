@@ -1078,7 +1078,12 @@ void BackendWorker::_main_loop()
     {
       // since there are no messages we can check for invalidated loggers and clean them up
       bool const loggers_removed = _logger_collection.remove_invalidated_loggers(
-        [this, &cached_thread_contexts]() { return _check_all_queues_empty(cached_thread_contexts); });
+        [this]()
+        {
+          // we need to reload all thread contexts and check again for empty queues before remove a logger to avoid race condition
+          return _check_all_queues_empty(_thread_context_collection.backend_thread_contexts_cache());
+        });
+
       if (loggers_removed)
       {
         // if loggers were removed also check for Handlers to remove
