@@ -15,7 +15,7 @@ namespace
 std::array<char const*, 4> specifier_name{"", "%Qms", "%Qus", "%Qns"};
 
 // All special specifiers have same length at the moment
-constexpr size_t specifier_length = 4;
+constexpr size_t specifier_length = 4u;
 } // namespace
 
 namespace quill::detail
@@ -43,7 +43,7 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
   size_t search_qus = timestamp_format_string.find(specifier_name[AdditionalSpecifier::Qus]);
   if (search_qus != std::string::npos)
   {
-    if (_additional_format_specifier != AdditionalSpecifier::None)
+    if (specifier_begin != std::string::npos)
     {
       QUILL_THROW(QuillError{"format specifiers %Qms, %Qus and %Qns are mutually exclusive"});
     }
@@ -55,7 +55,7 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
   size_t search_qns = timestamp_format_string.find(specifier_name[AdditionalSpecifier::Qns]);
   if (search_qns != std::string::npos)
   {
-    if (_additional_format_specifier != AdditionalSpecifier::None)
+    if (specifier_begin != std::string::npos)
     {
       QUILL_THROW(QuillError{"format specifiers %Qms, %Qus and %Qns are mutually exclusive"});
     }
@@ -64,9 +64,10 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
     specifier_begin = search_qns;
   }
 
-  if (_additional_format_specifier == AdditionalSpecifier::None)
+  if (specifier_begin == std::string::npos)
   {
     // If no additional specifier was found then we can simply store the whole format string
+    assert(_additional_format_specifier == AdditionalSpecifier::None);
     _format_part_1 = timestamp_format_string;
   }
   else
@@ -74,7 +75,7 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
     // We now the index where the specifier begins so copy everything until there from beginning
     _format_part_1 = timestamp_format_string.substr(0, specifier_begin);
 
-    // Now copy he remaining format string, ignoring the specifier
+    // Now copy the remaining format string, ignoring the specifier
     size_t const specifier_end = specifier_begin + specifier_length;
 
     _format_part_2 =
