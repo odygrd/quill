@@ -61,7 +61,7 @@
 
 - Improved backend thread handling. Now verifies that all producer SPSC queues are empty before entering `sleep`.
 
-- Fixed race condition and potential crash in quill::remove_logger(Logger*) when called without prior quill::flush().
+- Fixed a race condition and potential crash in `quill::remove_logger(Logger*)` when called without prior `quill::flush()`.
 
 - Added protection to prevent removal of the root logger with `quill::remove_logger(Logger*)`.
 
@@ -84,8 +84,8 @@
   Quill ERROR: [format: "Support for floats {:.{}f}", error: "precision is not integer"]
   ```
 
-- Fixed a bug in timestamp formatting that occasionally displayed an hour component of 24 as
-  0. ([#329](https://github.com/odygrd/quill/pull/329))
+- Fixed a bug in timestamp formatting that occasionally displayed an hour component of 0 as
+  24. ([#329](https://github.com/odygrd/quill/pull/329))
 
 - Added support for specifying a runtime log level, allowing dynamic log level configuration at runtime.
   The new runtime log level feature provides flexibility when needed, with a minor overhead cost.
@@ -131,12 +131,12 @@
   ```
 
 - Simplified file handler configuration. Now, instead of passing multiple arguments to the constructor,
-  you only need to provide a single `FileHandlerOptions` object. This change makes creating file handlers objects
+  you only need to provide a single `FileHandlerConfig` object. This change makes creating file handlers objects
   much easier and more flexible.
 
   For example
 
-    ```c++
+  ```c++
   quill::FileHandlerConfig file_handler_cfg;
   file_handler_cfg.set_open_mode('w');
   file_handler_cfg.set_append_to_filename(quill::FilenameAppend::StartDateTime);
@@ -145,7 +145,7 @@
   quill::Logger* logger_foo = quill::create_logger("my_logger", std::move(file_handler));
   
   LOG_INFO(my_logger, "Hello from {}", "application");
-    ```
+  ```
 
 - Combined the functionalities of `RotatingFileHandler` (rotating based on file size) and `TimeRotatingFileHandler`
   (rotating on a time interval) into a single, more versatile `RotatingFileHandler`. Users can now conveniently rotate
@@ -155,7 +155,7 @@
 
   For example
 
-    ```c++
+  ```c++
     // Create a rotating file handler which rotates daily at 18:30 or when the file size reaches 2GB
   std::shared_ptr<quill::Handler> file_handler =
     quill::rotating_file_handler(filename,
@@ -169,7 +169,7 @@
 
   // Create a logger using this handler
   quill::Logger* logger_bar = quill::create_logger("daily_logger", std::move(file_handler));
-    ```
+  ```
 
 ## v3.2.0
 
