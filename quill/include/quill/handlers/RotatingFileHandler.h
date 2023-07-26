@@ -46,7 +46,7 @@ public:
    * @brief Sets the maximum file size in bytes. Enabling this option will enable file rotation by file size. By default this is disabled.
    * @param value The maximum file size in bytes per file
    */
-  void set_rotation_max_file_size(size_t value);
+  QUILL_ATTRIBUTE_COLD void set_rotation_max_file_size(size_t value);
 
   /**
    * @brief Sets the frequency and interval of file rotation.
@@ -56,7 +56,7 @@ public:
    * @param frequency The frequency of file rotation to set.
    * @param interval The rotation interval to set.
    */
-  void set_rotation_frequency_and_interval(char frequency, uint32_t interval);
+  QUILL_ATTRIBUTE_COLD void set_rotation_frequency_and_interval(char frequency, uint32_t interval);
 
   /**
    * @brief Sets the time of day for daily log file rotation.
@@ -64,13 +64,13 @@ public:
    * By default, this option is disabled.
    * @param time The time of day to perform the log file rotation. The value must be in the format "HH:MM".
    */
-  void set_rotation_time_daily(std::string const& at_time);
+  QUILL_ATTRIBUTE_COLD void set_rotation_time_daily(std::string const& at_time);
 
   /**
    * @brief Sets the maximum number of log files to keep. By default, there is no limit on the number of log files.
    * @param value The maximum number of log files to set.
    */
-  void set_max_backup_files(uint32_t value);
+  QUILL_ATTRIBUTE_COLD void set_max_backup_files(uint32_t value);
 
   /**
    * @brief Sets whether the oldest rolled logs should be overwritten when the maximum backup count
@@ -78,7 +78,7 @@ public:
    * count is reached, and log file rotation will stop. The default value is true.
    * @param value True to overwrite the oldest logs, false otherwise.
    */
-  void set_overwrite_rolled_files(bool value);
+  QUILL_ATTRIBUTE_COLD void set_overwrite_rolled_files(bool value);
 
   /**
    * @brief Sets whether previous rotated log files should be removed on process start up.
@@ -87,14 +87,14 @@ public:
    * FilenameAppend::DateTime was not set. The default value is true.
    * @param value True to remove old log files, false otherwise.
    */
-  void set_remove_old_files(bool value);
+  QUILL_ATTRIBUTE_COLD void set_remove_old_files(bool value);
 
   /**
    * @brief Sets the naming scheme for the rotated files.
    * The default value is 'Index'.
    * @param value The naming scheme to set.
    */
-  void set_rotation_naming_scheme(RotationNamingScheme value);
+  QUILL_ATTRIBUTE_COLD void set_rotation_naming_scheme(RotationNamingScheme value);
 
   /** Getter methods **/
   QUILL_NODISCARD size_t rotation_max_file_size() const noexcept { return _rotation_max_file_size; }

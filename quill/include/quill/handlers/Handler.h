@@ -43,16 +43,17 @@ public:
 
   /**
    * Set a custom formatter for this handler
-   * @note This function is not thread safe and should be called before any logging to this handler happens
-   * @param format_pattern format pattern see PatternFormatter
-   * @param timestamp_format defaults to "%H:%M:%S.%Qns"
+   * @warning This function is not thread safe and should be called before any logging to this handler happens
+   * Prefer to set the formatter in the constructor when possible via the FileHandlerConfig
+   * @param log_pattern format pattern see PatternFormatter
+   * @param time_format defaults to "%H:%M:%S.%Qns"
    * @param timezone defaults to PatternFormatter::Timezone::LocalTime
    */
   QUILL_ATTRIBUTE_COLD void set_pattern(
-    std::string const& format_pattern, std::string const& timestamp_format = std::string{"%H:%M:%S.%Qns"},
+    std::string const& log_pattern, std::string const& time_format = std::string{"%H:%M:%S.%Qns"},
     Timezone timezone = Timezone::LocalTime)
   {
-    _formatter = std::make_unique<PatternFormatter>(format_pattern, timestamp_format, timezone);
+    _formatter = std::make_unique<PatternFormatter>(log_pattern, time_format, timezone);
   }
 
   /**
