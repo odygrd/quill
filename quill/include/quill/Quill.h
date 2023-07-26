@@ -150,7 +150,11 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> get_handler(std::s
 
 /**
  * Creates or returns an existing handler to a file.
- * If the file is already opened the existing handler for this file is returned instead
+ * If the file is already opened the existing handler for this file is returned instead.
+ *
+ * @note It is possible to remove the file handler and close the associated file by removing all the loggers
+ * associated with this handler with `quill::remove_logger()`
+ *
  * @param filename the name of the file
  * @param config configuration for the file handler
  * @param file_event_notifier a FileEventNotifier to get callbacks to file events such as before_open, after_open etc
@@ -161,7 +165,11 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> file_handler(
   FileEventNotifier file_event_notifier = FileEventNotifier{});
 
 /**
- * Creates a new instance of the RotatingFileHandler class or looks up an existing instance.
+ * Creates a new instance of the RotatingFileHandler class.
+ * If the file is already opened the existing handler for this file is returned instead.
+ *
+ * @note It is possible to remove the file handler and close the associated file by removing all the loggers
+ * associated with this handler with `quill::remove_logger()`
  *
  * @param base_filename the base file name
  * @param config configuration for the rotating file handler
@@ -173,11 +181,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> rotating_file_hand
   FileEventNotifier file_event_notifier = FileEventNotifier{});
 
 /**
- * Creates a new instance of the JsonFileHandler class or looks up an existing instance.
+ * Creates a new instance of the JsonFileHandler.
  * If the file is already opened the existing handler for this file is returned instead.
  *
  * When the JsonFileHandler is used named arguments need to be passed as the format string
  * to the loggers. See examples/example_json_structured_log.cpp
+ *
+ * @note It is possible to remove the file handler and close the associated file by removing all the loggers
+ * associated with this handler with `quill::remove_logger()`
  *
  * @param filename the name of the file
  * @param config configuration for the json file handler
@@ -295,6 +306,7 @@ QUILL_NODISCARD Logger* create_logger(std::string const& logger_name,
 /**
  * Removes the logger. The logger is async removed by the backend logging thread after
  * all pending messages are processed.
+ * When a logger is removed the associated Handler will also get removed if no other logger is using it.
  * @warning This function is thread safe but the user has to make sure they do not log
  * anything else from that logger after calling this function. There is no check on the hot
  * path that the logger is invalidated other than an assertion.

@@ -305,16 +305,68 @@ of log messages across threads.
 
 int main()
 {
+  quill::configure(
+    []()
+    {
+      // See Config.h and Tweaks.h for run time and compile time configuration options
+      quill::Config cfg;
+      return cfg;
+    }());
+
+  // Starts the logging backend thread
+  quill::start();
+
+  // Create a file logger
+  quill::Logger* logger = quill::create_logger(
+    "file_logger",
+    quill::file_handler("example.log",
+                        []()
+                        {
+                          quill::FileHandlerConfig cfg;
+                          cfg.set_open_mode('w');
+                          cfg.set_pattern(
+                            "[%(ascii_time)] [%(thread)] [%(filename):%(lineno)] [%(logger_name)] "
+                            "[%(level_name)] - %(message)",
+                            "%H:%M:%S.%Qms");
+                          return cfg;
+                        }()));
+
+  logger->set_log_level(quill::LogLevel::TraceL3);
+
+  // enable a backtrace that will get flushed when we log CRITICAL
+  logger->init_backtrace(2u, quill::LogLevel::Critical);
+
+  LOG_BACKTRACE(logger, "Backtrace log {}", 1);
+  LOG_BACKTRACE(logger, "Backtrace log {}", 2);
+
+  LOG_INFO(logger, "Welcome to Quill!");
+  LOG_ERROR(logger, "An error message. error code {}", 123);
+  LOG_WARNING(logger, "A warning message.");
+  LOG_CRITICAL(logger, "A critical error.");
+  LOG_DEBUG(logger, "Debugging foo {}", 1234);
+  LOG_TRACE_L1(logger, "{:>30}", "right aligned");
+  LOG_TRACE_L2(logger, "Positional arguments are {1} {0} ", "too", "supported");
+  LOG_TRACE_L3(logger, "Support for floats {:03.2f}", 1.23456);
+}
+```
+
+```c++
+#include "quill/Quill.h"
+
+int main()
+{
   quill::Config cfg;
   cfg.enable_console_colours = true;
   quill::configure(cfg);
+  
   quill::start();
 
+  // Default root logger to stdout
   quill::Logger* logger = quill::get_logger();
   logger->set_log_level(quill::LogLevel::TraceL3);
 
   // enable a backtrace that will get flushed when we log CRITICAL
-  logger->init_backtrace(2, quill::LogLevel::Critical);
+  logger->init_backtrace(2u, quill::LogLevel::Critical);
 
   LOG_BACKTRACE(logger, "Backtrace log {}", 1);
   LOG_BACKTRACE(logger, "Backtrace log {}", 2);

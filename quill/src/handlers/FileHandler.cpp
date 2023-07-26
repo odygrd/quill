@@ -45,12 +45,25 @@ void FileHandlerConfig::set_do_fsync(bool value) { _do_fsync = value; }
 void FileHandlerConfig::set_open_mode(char open_mode) { _open_mode = open_mode; }
 
 /***/
+void FileHandlerConfig::set_pattern(std::string const& log_pattern,
+                                    std::string const& time_format /* = std::string{"%H:%M:%S.%Qns"} */)
+{
+  _log_pattern = log_pattern;
+  _time_format = time_format;
+}
+
+/***/
 FileHandler::FileHandler(fs::path const& filename, FileHandlerConfig config,
                          FileEventNotifier file_event_notifier, bool do_fopen /* = true */)
   : StreamHandler(get_appended_filename(filename, config.append_to_filename(), config.timezone()),
                   nullptr, std::move(file_event_notifier)),
     _config(config)
 {
+  if (!_config.log_pattern().empty())
+  {
+    set_pattern(_config.log_pattern(), _config.time_format());
+  }
+
   if (do_fopen)
   {
     open_file(_filename, _config.open_mode());

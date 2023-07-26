@@ -36,38 +36,56 @@ public:
    *
    * @param value The append type to set. Valid options are Date and DateAndTime.
    */
-  void set_append_to_filename(FilenameAppend value);
+  QUILL_ATTRIBUTE_COLD void set_append_to_filename(FilenameAppend value);
 
   /**
    * @brief Sets the timezone to use for time-based operations e.g. when appending the date to the
-   * filename. Valid options for the timezone are 'LocalTime' or 'GmtTime'. The default value is
-   * 'LocalTime'. The default value is LocalTime.
+   * filename or when setting the logging pattern.
+   * Valid options for the timezone are 'LocalTime' or 'GmtTime'
+   * The default value is 'LocalTime'
    * @param timezone The timezone to use for time-based operations.
    */
-  void set_timezone(Timezone timezone);
+  QUILL_ATTRIBUTE_COLD void set_timezone(Timezone timezone);
 
   /**
    * @brief Sets whether fsync should be performed when flushing.
    * The default value is false.
    * @param value True to perform fsync, false otherwise.
    */
-  void set_do_fsync(bool value);
+  QUILL_ATTRIBUTE_COLD void set_do_fsync(bool value);
 
   /**
    * @brief Sets the open mode for the file.
    * Valid options for the open mode are 'a' or 'w'. The default value is 'a'.
    * @param open_mode open mode for the file.
    */
-  void set_open_mode(char open_mode);
+  QUILL_ATTRIBUTE_COLD void set_open_mode(char open_mode);
+
+  /**
+   * @brief Sets the logging pattern for the file handler.
+   * It is also possible to change the timezone with `set_timezone`
+   * The default log_pattern is :
+   *   "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) %(logger_name:<12) %(message)"
+   * @see PatternFormatter.h for more details on the pattern format.
+   * @param log_pattern: Specifies the format pattern for the log messages.
+   * @param time_format Specifies the format pattern for the log timestamps.
+   */
+  QUILL_ATTRIBUTE_COLD void set_pattern(std::string const& log_pattern,
+                                        std::string const& time_format = std::string{
+                                          "%H:%M:%S.%Qns"});
 
   /** Getters **/
   QUILL_NODISCARD bool do_fsync() const noexcept { return _do_fsync; }
   QUILL_NODISCARD Timezone timezone() const noexcept { return _timezone_value; }
   QUILL_NODISCARD FilenameAppend append_to_filename() const noexcept { return _append_to_filename; }
   QUILL_NODISCARD std::string const& open_mode() const noexcept { return _open_mode; }
+  QUILL_NODISCARD std::string const& log_pattern() const noexcept { return _log_pattern; }
+  QUILL_NODISCARD std::string const& time_format() const noexcept { return _time_format; }
 
 private:
   std::string _open_mode{'a'};
+  std::string _log_pattern;
+  std::string _time_format;
   Timezone _timezone_value{Timezone::LocalTime};
   FilenameAppend _append_to_filename{FilenameAppend::None};
   bool _do_fsync{false};

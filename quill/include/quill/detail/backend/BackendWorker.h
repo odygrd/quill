@@ -182,6 +182,9 @@ private:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* _read_unbounded_queue(UnboundedQueue& queue,
                                                                               ThreadContext* thread_context);
 
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline bool _check_all_queues_empty(
+    ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
+
   /**
    * Resyncs the rdtsc clock
    */
@@ -974,6 +977,29 @@ std::byte* BackendWorker::_read_unbounded_queue(UnboundedQueue& queue, ThreadCon
 }
 
 /***/
+
+bool BackendWorker::_check_all_queues_empty(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
+{
+  bool all_empty{true};
+
+  for (ThreadContext* thread_context : cached_thread_contexts)
+  {
+    std::visit(
+      [&all_empty](auto& queue)
+      {
+        using T = std::decay_t<decltype(queue)>;
+        if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
+        {
+          all_empty &= queue.empty();
+        }
+      },
+      thread_context->spsc_queue_variant());
+  }
+
+  return all_empty;
+}
+
+/***/
 void BackendWorker::_main_loop()
 {
   // load all contexts locally
@@ -1046,25 +1072,18 @@ void BackendWorker::_main_loop()
     _resync_rdtsc_clock();
 
     // Also check if all queues are empty as we need to know that to remove any unused Loggers
-    bool all_queues_empty{true};
-    for (ThreadContext* thread_context : cached_thread_contexts)
-    {
-      std::visit(
-        [&all_queues_empty](auto& queue)
-        {
-          using T = std::decay_t<decltype(queue)>;
-          if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
-          {
-            all_queues_empty &= queue.empty();
-          }
-        },
-        thread_context->spsc_queue_variant());
-    }
+    bool all_queues_empty = _check_all_queues_empty(cached_thread_contexts);
 
     if (all_queues_empty)
     {
       // since there are no messages we can check for invalidated loggers and clean them up
-      bool const loggers_removed = _logger_collection.remove_invalidated_loggers();
+      bool const loggers_removed = _logger_collection.remove_invalidated_loggers(
+        [this]()
+        {
+          // we need to reload all thread contexts and check again for empty queues before remove a logger to avoid race condition
+          return _check_all_queues_empty(_thread_context_collection.backend_thread_contexts_cache());
+        });
+
       if (loggers_removed)
       {
         // if loggers were removed also check for Handlers to remove
@@ -1148,19 +1167,7 @@ void BackendWorker::_exit()
 
       if (_empty_all_queues_before_exit)
       {
-        for (ThreadContext* thread_context : cached_thread_contexts)
-        {
-          std::visit(
-            [&all_empty](auto& queue)
-            {
-              using T = std::decay_t<decltype(queue)>;
-              if constexpr ((std::is_same_v<T, UnboundedQueue>) || (std::is_same_v<T, BoundedQueue>))
-              {
-                all_empty &= queue.empty();
-              }
-            },
-            thread_context->spsc_queue_variant());
-        }
+        all_empty = _check_all_queues_empty(cached_thread_contexts);
       }
 
       if (all_empty)

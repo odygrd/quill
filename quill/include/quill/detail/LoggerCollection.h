@@ -10,8 +10,9 @@
 #include "quill/clock/TimestampClock.h"
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_COLD
 #include "quill/detail/misc/Common.h"
-#include <initializer_list>               // for initializer_list
-#include <memory>                         // for unique_ptr
+#include <functional>
+#include <initializer_list> // for initializer_list
+#include <memory>           // for unique_ptr
 #include <mutex>
 #include <string>        // for string, hash
 #include <unordered_map> // for unordered_map
@@ -139,7 +140,7 @@ public:
    * invalidated
    * @return true if loggers were removed
    */
-  QUILL_NODISCARD bool remove_invalidated_loggers();
+  QUILL_NODISCARD bool remove_invalidated_loggers(std::function<bool(void)> const& check_queues_empty);
 
 private:
   Config const& _config;

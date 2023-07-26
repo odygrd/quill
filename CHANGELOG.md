@@ -59,10 +59,13 @@
 - Introduced `QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS` option for user-configurable retry interval in the blocking queue.
   Default value is 800 nanoseconds. ([#330](https://github.com/odygrd/quill/pull/330))
 
-- Improved backendworker thread handling. Now verifies that all producer SPSC queues are empty before entering `sleep`
-  or removing loggers with `quill::remove_logger()`.
+- Improved backend thread handling. Now verifies that all producer SPSC queues are empty before entering `sleep`.
 
-- Improved exception handling on the backendworker thread when calling `fmt::format()`.
+- Fixed race condition and potential crash in quill::remove_logger(Logger*) when called without prior quill::flush().
+
+- Added protection to prevent removal of the root logger with `quill::remove_logger(Logger*)`.
+
+- Improved exception handling on the backend thread when calling `fmt::format()`.
 
   While compile-time checks ensure that the format string and arguments match, runtime errors can still occur.
   Previously, such exceptions would affect and drop subsequent log records. Now, exceptions are caught and logged

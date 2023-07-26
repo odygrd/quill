@@ -56,13 +56,13 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
     elem.join();
   }
 
-  // Flush all log
-  quill::flush();
-
   for (auto const& [key, value] : quill::get_all_loggers())
   {
     quill::remove_logger(value);
   }
+
+  // Flush all log
+  quill::flush();
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
@@ -114,7 +114,7 @@ TEST_CASE("log_from_multiple_threads")
 class log_test_class
 {
 public:
-  explicit log_test_class(std::string const& filename)
+  explicit log_test_class(std::string const& filename, std::string const& logger_name)
   {
     // create a new logger in the ctor
     std::shared_ptr<quill::Handler> filehandler = quill::file_handler(filename,
@@ -124,7 +124,7 @@ public:
                                                                         cfg.set_open_mode('w');
                                                                         return cfg;
                                                                       }());
-    _logger = quill::create_logger("test_class", std::move(filehandler));
+    _logger = quill::create_logger(logger_name, std::move(filehandler));
   }
 
   ~log_test_class() { quill::remove_logger(_logger); }
@@ -151,23 +151,32 @@ TEST_CASE("log_from_const_function")
   // Start the logging backend thread
   quill::start();
 
+  for (size_t i = 0u; i < 100u; ++i)
   {
-    // log for class a
-    log_test_class log_test_class_a{filename};
-    log_test_class_a.use_logger_const();
-    log_test_class_a.use_logger();
+    {
+      // log for class a
+      log_test_class log_test_class_a{filename, "test_class_a" + std::to_string(i)};
+      log_test_class_a.use_logger_const();
+      log_test_class_a.use_logger();
 
-    // log again for class b
-    log_test_class const log_test_class_b{filename};
-    log_test_class_b.use_logger_const();
+      // log again for class b
+      log_test_class const log_test_class_b{filename, "test_class_b" + std::to_string(i)};
+      log_test_class_b.use_logger_const();
+    }
 
     quill::flush();
-  }
 
-  // Read file and check
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 3);
-  quill::detail::remove_file(filename);
+    // Read file and check
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+    REQUIRE_EQ(file_contents.size(), 3);
+
+    while (quill::get_all_loggers().size() != 1)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds{100});
+    }
+
+    quill::detail::remove_file(filename);
+  }
 }
 
 /***/
@@ -228,10 +237,10 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
     LOG_INFO(rotating_logger_2, "Hello rotating file log num {}", i);
   }
 
-  quill::flush();
-
   quill::remove_logger(rotating_logger);
   quill::remove_logger(rotating_logger_2);
+
+  quill::flush();
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
@@ -316,10 +325,10 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
     LOG_INFO(rotating_logger_2, "Hello rotating file log num {}", i);
   }
 
-  quill::flush();
-
   quill::remove_logger(rotating_logger);
   quill::remove_logger(rotating_logger_2);
+
+  quill::flush();
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
@@ -378,8 +387,9 @@ TEST_CASE("log_using_daily_file_handler")
     LOG_INFO(daily_logger, "Hello daily file log num {}", i);
   }
 
-  quill::flush();
   quill::remove_logger(daily_logger);
+
+  quill::flush();
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
@@ -432,7 +442,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:409         LOG_INFO      root         Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:419         LOG_INFO      root         Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -527,7 +537,7 @@ TEST_CASE("check_log_arguments_evaluation")
                                                                       cfg.set_open_mode('w');
                                                                       return cfg;
                                                                     }());
-  auto logger = quill::create_logger("logger", std::move(filehandler));
+  auto logger = quill::create_logger("logger_eval", std::move(filehandler));
 
   // Start the logging backend thread
   quill::start();
@@ -542,8 +552,9 @@ TEST_CASE("check_log_arguments_evaluation")
   LOG_INFO(logger, "Test log arguments {}", arg_str());
   REQUIRE_EQ(cnt, 1);
 
-  quill::flush();
   quill::remove_logger(logger);
+
+  quill::flush();
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
