@@ -171,6 +171,9 @@
   quill::Logger* logger_bar = quill::create_logger("daily_logger", std::move(file_handler));
   ```
 
+- Improved compatibility with older versions of external `libfmt`. Quill now compiles for all versions
+  of `libfmt >= 8.0.0`.
+
 ## v3.2.0
 
 - Addition of std::is_trivially_copyable<T> to default copy loggable

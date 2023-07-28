@@ -624,10 +624,12 @@ std::ostream& operator<<(std::ostream& os, const RawEnum& raw_enum)
   return os;
 }
 
+#if QUILL_FMT_VERSION >= 90000
 template <>
 struct fmtquill::formatter<RawEnum> : ostream_formatter
 {
 };
+#endif
 
 enum class EnumClass : int
 {
@@ -656,10 +658,12 @@ std::ostream& operator<<(std::ostream& os, const EnumClass& enum_class)
   return os;
 }
 
+#if QUILL_FMT_VERSION >= 90000
 template <>
 struct fmtquill::formatter<EnumClass> : ostream_formatter
 {
 };
+#endif
 
 /***/
 TEST_CASE("log_enums_with_overloaded_insertion_operator")

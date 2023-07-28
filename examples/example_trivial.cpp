@@ -81,8 +81,12 @@ int main()
 
   LOG_INFO(default_logger, "Welcome to Quill!");
   LOG_INFO(default_logger, "Print a vector {} ", std::vector<int>{1, 2, 3, 4, 5});
+
+#if QUILL_FMT_VERSION >= 100000
   LOG_INFO(default_logger, "or some optionals [{}, {}]", std::optional<std::string>{},
            std::optional<std::string>{"hello"});
+#endif
+
   LOG_ERROR(default_logger, "An error message with error code {}, error message {}", 123,
             "system_error");
 

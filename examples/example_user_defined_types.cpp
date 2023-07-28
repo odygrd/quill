@@ -24,10 +24,13 @@ private:
   uint32_t age;
 };
 
+// The preprocessor check is only to support backwards compatibility with older fmt versions. You do not need it
+#if QUILL_FMT_VERSION >= 90000
 template <>
 struct fmtquill::formatter<User> : ostream_formatter
 {
 };
+#endif
 
 /**
  * An other user defined type that is marked as safe to copy
@@ -56,10 +59,13 @@ private:
   uint32_t age;
 };
 
+// The preprocessor check is only to support backwards compatibility with older fmt versions. You do not need it
+#if QUILL_FMT_VERSION >= 90000
 template <>
 struct fmtquill::formatter<User2> : ostream_formatter
 {
 };
+#endif
 
 /**
  * An other user defined type that is registered as safe to copy via copy_logable
@@ -82,10 +88,13 @@ private:
   uint32_t age;
 };
 
+// The preprocessor check is only to support backwards compatibility with older fmt versions. You do not need it
+#if QUILL_FMT_VERSION >= 90000
 template <>
 struct fmtquill::formatter<User3> : ostream_formatter
 {
 };
+#endif
 
 class User4
 {
