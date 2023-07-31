@@ -275,6 +275,7 @@ TEST_CASE("rotation_scheme_index_open_mode_write_clean_up_old_files")
   remove_file(filename_1);
   remove_file(filename_2);
   remove_file(filename_3);
+  remove_file(filename_4);
 }
 
 /***/
