@@ -405,16 +405,16 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
   {
     for (const auto& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
     {
-      // is_directory() does not exist in std::experimental::filesystem
-      if (entry.path().string().find(filename.stem().string()) == std::string::npos)
+      if (entry.path().extension().string() != filename.extension().string())
       {
+        // we only check for the files of the same extension to remove
         continue;
       }
 
-      std::size_t const found = entry.path().string().find(filename.stem().string() + ".");
-
-      if (found == std::string::npos)
+      // is_directory() does not exist in std::experimental::filesystem
+      if (entry.path().filename().string().find(filename.stem().string() + ".") != 0)
       {
+        // expect to find filename.stem().string() exactly at the start of the filename
         continue;
       }
 
@@ -472,15 +472,16 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
     for (const auto& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
     {
       // is_directory() does not exist in std::experimental::filesystem
-      if (entry.path().string().find(filename.stem().string()) == std::string::npos)
+      if (entry.path().extension().string() != filename.extension().string())
       {
+        // we only check for the files of the same extension to remove
         continue;
       }
 
-      std::size_t const found = entry.path().string().find(filename.stem().string() + ".");
-
-      if (found == std::string::npos)
+      // is_directory() does not exist in std::experimental::filesystem
+      if (entry.path().filename().string().find(filename.stem().string() + ".") != 0)
       {
+        // expect to find filename.stem().string() exactly at the start of the filename
         continue;
       }
 

@@ -1,3 +1,4 @@
+- [v3.3.1](#v331)
 - [v3.3.0](#v330)
 - [v3.2.0](#v320)
 - [v3.1.0](#v310)
@@ -48,6 +49,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v3.3.1
+
+- Fixed `RotatingFileHandler` to prevent accidental removal of non-log files when using open mode `w`
+  and `set_remove_old_files(true)`
 
 ## v3.3.0
 

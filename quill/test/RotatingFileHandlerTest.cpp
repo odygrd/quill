@@ -1835,4 +1835,89 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
   remove_file(filename_3);
 }
 
+/***/
+TEST_CASE("rotation_scheme_index_dont_remove_unrelated_files")
+{
+  fs::path const filename = "rotation_scheme_index_dont_remove_unrelated_files.log";
+  fs::path const filename_1 = "rotation_scheme_index_dont_remove_unrelated_files.1.log";
+  fs::path const filename_2 = "rotation_scheme_index_dont_remove_unrelated_files.2.log";
+  fs::path const filename_3 = "rotation_scheme_index_dont_remove_unrelated_files.3.log";
+  fs::path const filename_yaml = "rotation_scheme_index_dont_remove_unrelated_files.yaml";
+  fs::path const filename_other = "config_rotation_scheme_index_dont_remove_unrelated_files";
+
+  // create all files simulating the previous run
+  testing::create_file(filename, "Existing [2]");
+  testing::create_file(filename_1, "Existing [1]");
+  testing::create_file(filename_2, "Existing [0]");
+  testing::create_file(filename_3, "Existing [-1]");
+  testing::create_file(filename_yaml, "YAML config");
+  testing::create_file(filename_other, "YAML config");
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(fs::exists(filename_2));
+  REQUIRE(fs::exists(filename_3));
+  REQUIRE(fs::exists(filename_yaml));
+  REQUIRE(fs::exists(filename_other));
+
+  {
+    auto rfh = RotatingFileHandler{filename,
+                                   []()
+                                   {
+                                     RotatingFileHandlerConfig cfg;
+                                     cfg.set_remove_old_files(true);
+                                     cfg.set_rotation_max_file_size(1024);
+                                     cfg.set_open_mode('w');
+                                     return cfg;
+                                   }(),
+                                   FileEventNotifier{}};
+
+    REQUIRE(!fs::exists(filename_1));
+    REQUIRE(!fs::exists(filename_2));
+    REQUIRE(!fs::exists(filename_3));
+    REQUIRE(fs::exists(filename_yaml));
+    REQUIRE(fs::exists(filename_other));
+
+    // write some records to the file
+    for (size_t i = 0; i < 4; ++i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      fmt_buffer_t formatted_log_message;
+      formatted_log_message.append(s.data(), s.data() + s.size());
+
+      // Add a big string to rotate the file
+      std::string f;
+      f.resize(1024);
+      formatted_log_message.append(f.data(), f.data() + f.size());
+
+      rfh.write(formatted_log_message, quill::TransitEvent{});
+    }
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(fs::exists(filename_2));
+  REQUIRE(fs::exists(filename_3));
+
+  // Read file and check
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [3]"), true);
+
+  std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [2]"), true);
+
+  std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
+  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [1]"), true);
+
+  std::vector<std::string> const file_contents_3 = testing::file_contents(filename_3);
+  REQUIRE_EQ(testing::file_contains(file_contents_3, "Record [0]"), true);
+
+  remove_file(filename);
+  remove_file(filename_1);
+  remove_file(filename_2);
+  remove_file(filename_3);
+  remove_file(filename_yaml);
+  remove_file(filename_other);
+}
+
 TEST_SUITE_END();
