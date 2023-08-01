@@ -32,8 +32,11 @@
 namespace std
 {
 
-template <typename CharT, typename Traits, typename Allocator>
+namespace __cxx11
+{
+template <typename CharT, typename Traits, typename Alloc>
 class basic_string;
+}
 
 template <typename T>
 class optional;
