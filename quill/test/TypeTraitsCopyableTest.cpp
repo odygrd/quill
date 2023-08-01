@@ -7,6 +7,7 @@
 #include <ctime>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>

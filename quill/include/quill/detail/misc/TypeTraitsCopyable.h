@@ -5,12 +5,7 @@
 
 #pragma once
 
-#include <functional>
-#include <optional>
-#include <string>
-#include <tuple>
 #include <type_traits>
-#include <utility>
 
 /**
  * Below are type traits to determine whether an object is marked as copyable.
@@ -32,6 +27,23 @@
  * g) std::pairs of the above types
  * h) std::tuples of the above types
  */
+
+// Forward declarations
+namespace std
+{
+
+template <typename CharT, typename Traits, typename Allocator>
+class basic_string;
+
+template <typename T>
+class optional;
+
+template <typename T1, typename T2>
+struct pair;
+
+template <typename... Types>
+class tuple;
+} // namespace std
 
 // clang-format off
 namespace quill
