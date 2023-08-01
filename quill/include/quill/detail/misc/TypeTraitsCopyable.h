@@ -28,26 +28,6 @@
  * h) std::tuples of the above types
  */
 
-// Forward declarations
-namespace std
-{
-
-namespace __cxx11
-{
-template <typename CharT, typename Traits, typename Alloc>
-class basic_string;
-}
-
-template <typename T>
-class optional;
-
-template <typename T1, typename T2>
-struct pair;
-
-template <typename... Types>
-class tuple;
-} // namespace std
-
 // clang-format off
 namespace quill
 {

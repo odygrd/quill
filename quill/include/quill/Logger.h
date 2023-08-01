@@ -17,12 +17,13 @@
 #include "quill/detail/ThreadContext.h"
 #include "quill/detail/ThreadContextCollection.h"
 #include "quill/detail/misc/Rdtsc.h"
-#include "quill/detail/misc/TypeTraitsCopyable.h"
 #include "quill/detail/misc/Utilities.h"
 #include <atomic>
 #include <cstdint>
 #include <thread>
 #include <vector>
+
+#include "quill/detail/misc/TypeTraitsCopyable.h"
 
 namespace quill
 {

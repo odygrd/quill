@@ -11,12 +11,13 @@
 #include "quill/QuillError.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"
-#include "quill/detail/misc/TypeTraitsCopyable.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <string_view>
 #include <type_traits>
+
+#include "quill/detail/misc/TypeTraitsCopyable.h"
 
 namespace quill
 {

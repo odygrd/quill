@@ -1,6 +1,5 @@
 #include "doctest/doctest.h"
 
-#include "quill/detail/misc/TypeTraitsCopyable.h"
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -12,6 +11,8 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+
+#include "quill/detail/misc/TypeTraitsCopyable.h"
 
 TEST_SUITE_BEGIN("TypeTraitsCopyable");
 
