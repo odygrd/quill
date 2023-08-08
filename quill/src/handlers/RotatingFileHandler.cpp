@@ -485,6 +485,8 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
         continue;
       }
 
+      std::string const extension = entry.path().extension().string(); // e.g. ".log"
+
       // stem will be something like `logfile.1`
       size_t pos = entry.path().stem().string().find_last_of('.');
       if (pos != std::string::npos)
@@ -494,7 +496,9 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
           std::string const index =
             entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
 
-          std::string const current_file = entry.path().filename().string().substr(0, pos) + ".log";
+          std::string const current_filename = entry.path().filename().string().substr(0, pos) + extension;
+          fs::path current_file = entry.path().parent_path();
+          current_file.append(current_filename);
 
           // Attempt to convert the index to a number
           QUILL_TRY
@@ -515,8 +519,9 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
           if ((index_or_date.length() >= 8) && (index_or_date == today_date))
           {
             // assume it is a date, no need to find the index
-            std::string const current_file =
-              entry.path().filename().string().substr(0, pos) + ".log";
+            std::string const current_filename = entry.path().filename().string().substr(0, pos) + extension;
+            fs::path current_file = entry.path().parent_path();
+            current_file.append(current_filename);
 
             _created_files.emplace_front(current_file, 0, index_or_date);
           }
@@ -534,7 +539,9 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
 
               if (date_part == today_date)
               {
-                std::string const current_file = filename_with_date.substr(0, second_last) + ".log";
+                std::string const current_filename = filename_with_date.substr(0, second_last) + extension;
+                fs::path current_file = entry.path().parent_path();
+                current_file.append(current_filename);
 
                 // Attempt to convert the index to a number
                 QUILL_TRY
