@@ -56,6 +56,9 @@
 - Resolved "bad_variant_access" error occurring when using Quill as a pre-compiled library with a distinct queue
   type. ([#276](https://github.com/odygrd/quill/pull/276))
 
+- Resolved a bug in `RotatingFileHandler` associated with logfiles located outside the working directory,
+  specifically when used with open_mode `a`. ([#340](https://github.com/odygrd/quill/pull/340))
+
 ## v3.3.1
 
 - Fixed `RotatingFileHandler` to prevent accidental removal of non-log files when using open mode `w`
