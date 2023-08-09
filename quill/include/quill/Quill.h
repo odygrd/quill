@@ -322,7 +322,7 @@ void remove_logger(Logger* logger);
  *
  * @note This function will not do anything if called while the backend worker is not running
  */
-void flush();
+QUILL_ALWAYS_INLINE void flush() { detail::LogManagerSingleton::instance().log_manager().flush(); }
 
 /**
  * Wakes up the backend logging thread on demand.
