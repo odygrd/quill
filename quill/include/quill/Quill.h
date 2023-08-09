@@ -33,7 +33,7 @@ namespace quill
 /** Version Info **/
 constexpr uint32_t VersionMajor{3};
 constexpr uint32_t VersionMinor{3};
-constexpr uint32_t VersionPatch{1};
+constexpr uint32_t VersionPatch{2};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 /** forward declarations **/
@@ -322,7 +322,7 @@ void remove_logger(Logger* logger);
  *
  * @note This function will not do anything if called while the backend worker is not running
  */
-void flush();
+inline void flush() { detail::LogManagerSingleton::instance().log_manager().flush(); }
 
 /**
  * Wakes up the backend logging thread on demand.
