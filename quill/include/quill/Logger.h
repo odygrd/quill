@@ -371,6 +371,11 @@ private:
     return _is_invalidated.load(std::memory_order_acquire);
   }
 
+  /**
+   * @return The name of the logger
+   */
+  QUILL_NODISCARD std::string const& name() const noexcept { return _logger_details.name(); }
+
 private:
   detail::LoggerDetails _logger_details;
   TimestampClock* _custom_timestamp_clock{nullptr}; /* A non owned pointer to a custom timestamp clock, valid only when provided */
