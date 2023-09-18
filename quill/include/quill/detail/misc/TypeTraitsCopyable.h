@@ -60,6 +60,9 @@ struct remove_cvref
 template< class T >
 using remove_cvref_t = typename remove_cvref<T>::type;
 
+template <typename Arg>
+constexpr size_t array_size_v = std::extent<remove_cvref_t<Arg>>::value;
+
 /**
  * fmtquill::streamed detection
  */
