@@ -42,6 +42,19 @@ int main()
     std::array<uint32_t, 4> arr = {1, 2, 3, 4};
     LOG_INFO(logger, "This is a log info example {}", arr);
 
+    union
+    {
+      char no_0[2];
+      char mid_0[6]{'1', '2', '3', '4', '\0', 6};
+    } char_arrays;
+
+    // only output "12" even if there's no '\0' at the end
+    LOG_INFO(logger, R"(This is a log info example for char array without '\0': {})", char_arrays.no_0);
+
+    // output "1234" until the '\0'
+    LOG_INFO(logger, R"(This is a log info example for char array with '\0' in middle: {})",
+             char_arrays.mid_0);
+
     // Using a dynamic runtime log level
     std::array<quill::LogLevel, 4> const runtime_log_levels = {
       quill::LogLevel::Debug, quill::LogLevel::Info, quill::LogLevel::Warning, quill::LogLevel::Error};
