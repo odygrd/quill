@@ -199,4 +199,13 @@ TEST_CASE("are_copyable")
   static_assert(!are_copyable_v<int, Enum, std::string, NonTrivial>, "_");
 }
 
+TEST_CASE("array_size_v")
+{
+  char a[3];
+  static_assert(array_size_v<decltype(a)> == 3, "_");
+
+  using B = char(&)[1];
+  static_assert(array_size_v<B> == 1, "_");
+}
+
 TEST_SUITE_END();

@@ -5,6 +5,11 @@
 
 #pragma once
 
+#ifndef __STDC_WANT_LIB_EXT1__
+  #define __STDC_WANT_LIB_EXT1__ 1
+  #include <string.h>
+#endif
+
 #include "misc/Utilities.h"
 #include "quill/LogLevel.h"
 #include "quill/MacroMetadata.h"
@@ -23,8 +28,24 @@ namespace quill
 namespace detail
 {
 
+constexpr auto strnlen =
+#ifdef __STDC_LIB_EXT1__
+  ::strnlen_s
+#else
+  ::strnlen
+#endif
+  ;
+
 /** Forward declaration **/
 class LoggerDetails;
+
+template <typename Arg>
+QUILL_NODISCARD constexpr bool is_type_of_c_array()
+{
+  using ArgType = detail::remove_cvref_t<Arg>;
+  return std::is_array<ArgType>::value &&
+    std::is_same<detail::remove_cvref_t<typename std::remove_extent<ArgType>::type>, char>::value;
+}
 
 template <typename Arg>
 QUILL_NODISCARD constexpr bool is_type_of_c_string()
@@ -177,7 +198,13 @@ template <size_t CstringIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_string_sizes,
                                                                     Arg const& arg, Args const&... args)
 {
-  if constexpr (is_type_of_c_string<Arg>())
+  if constexpr (is_type_of_c_array<Arg>())
+  {
+    size_t const len = strnlen(arg, detail::array_size_v<Arg>) + 1;
+    c_string_sizes[CstringIdx] = len;
+    return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+  }
+  else if constexpr (is_type_of_c_string<Arg>())
   {
     size_t const len = strlen(arg) + 1;
     c_string_sizes[CstringIdx] = len;
@@ -225,7 +252,24 @@ template <size_t CstringIdx, typename Arg, typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_string_sizes, std::byte* out,
                                                                      Arg&& arg, Args&&... args)
 {
-  if constexpr (is_type_of_c_string<Arg>())
+  if constexpr (is_type_of_c_array<Arg>())
+  {
+    const auto size = c_string_sizes[CstringIdx];
+    constexpr auto array_size = detail::array_size_v<Arg>;
+    if (QUILL_UNLIKELY(size > array_size))
+    {
+      // no '\0' in c array
+      assert(size == array_size + 1);
+      std::memcpy(out, arg, array_size);
+      out[size - 1] = std::byte{'\0'};
+    }
+    else
+    {
+      std::memcpy(out, arg, size);
+    }
+    return encode_args<CstringIdx + 1>(c_string_sizes, out + size, std::forward<Args>(args)...);
+  }
+  else if constexpr (is_type_of_c_string<Arg>())
   {
     std::memcpy(out, arg, c_string_sizes[CstringIdx]);
     return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],

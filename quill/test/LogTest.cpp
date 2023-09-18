@@ -246,6 +246,64 @@ TEST_CASE("default_logger_ints_and_large_string")
 }
 
 /***/
+TEST_CASE("default_logger_ints_and_c_array")
+{
+  fs::path const filename{"test_default_logger_ints_and_c_array"};
+  {
+    LogManager lm;
+
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(),
+      []()
+      {
+        quill::FileHandlerConfig cfg;
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{}));
+    lm.configure(cfg);
+
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    std::thread frontend(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        union
+        {
+          char no_0[2];
+          char mid_0[6]{'a', 'b', 'c', 'd', '\0', 'e'};
+        } v;
+
+        // log an array so the log message is pushed to the queue
+        for (int i = 0; i < 2000; ++i)
+        {
+          v.no_0[0] = std::to_string(i).back();
+          LOG_INFO(default_logger, "Logging int: {}, int: {}, no_0: {}, mid_0: {}", i, i * 10, v.no_0, v.mid_0);
+        }
+
+        // Let all log get flushed to the file
+        lm.flush();
+      });
+
+    frontend.join();
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+    REQUIRE_EQ(file_contents.size(), 2000);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         Logging int: 0, int: 0, no_0: 0b, mid_0: 0bcd"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         Logging int: 1999, int: 19990, no_0: 9b, mid_0: 9bcd"}));
+
+    lm.stop_backend_worker();
+  }
+  // quill::detail::remove_file(filename);
+}
+
+/***/
 TEST_CASE("default_logger_ints_and_large_string_dynamic_log_level")
 {
   fs::path const filename{"test_default_logger_ints_and_large_string_dynamic_log_level"};
