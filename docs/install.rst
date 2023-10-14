@@ -27,6 +27,7 @@ Building and Installing Quill as Static Library
    git clone https://github.com/odygrd/quill.git
    mkdir cmake_build
    cd cmake_build
+   cmake ..
    make install
 
 Note: To install in custom directory invoke cmake with ``-DCMAKE_INSTALL_PREFIX=/quill/install-dir/``
