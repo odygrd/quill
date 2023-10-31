@@ -84,8 +84,6 @@ public:
 
   QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(integer_type n) noexcept
   {
-    integer_type const index = _writer_pos & _mask;
-
     if ((_capacity - static_cast<integer_type>(_writer_pos - _reader_pos_cache)) < n)
     {
       // not enough space, we need to load reader and re-check
@@ -93,11 +91,11 @@ public:
 
       if ((_capacity - static_cast<integer_type>(_writer_pos - _reader_pos_cache)) < n)
       {
-        return _storage + index;
+        return nullptr;
       }
     }
 
-    return _storage + index;
+    return _storage + (_writer_pos & _mask);
   }
 
   QUILL_ALWAYS_INLINE_HOT void finish_write(integer_type n) noexcept { _writer_pos += n; }
@@ -106,7 +104,7 @@ public:
   {
     // set the atomic flag so the reader can see write
     _atomic_writer_pos.store(_writer_pos, std::memory_order_release);
-    
+
 #if defined(QUILL_X86ARCH)
     // flush writen cache lines
     _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
@@ -119,20 +117,17 @@ public:
 
   QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_read() noexcept
   {
-    integer_type const index = _reader_pos & _mask;
-
-    if (_writer_pos_cache == _reader_pos)
+    if (_reader_pos == _writer_pos_cache)
     {
-      // nothing to read, try to load the writer_pos again
       _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
 
-      if (_writer_pos_cache == _reader_pos)
+      if (_reader_pos == _writer_pos_cache)
       {
         return nullptr;
       }
     }
 
-    return _storage + index;
+    return _storage + (_reader_pos & _mask);
   }
 
   QUILL_ALWAYS_INLINE_HOT void finish_read(integer_type n) noexcept { _reader_pos += n; }
@@ -142,17 +137,20 @@ public:
     if ((_reader_pos & _bytes_per_batch_mask) == 0)
     {
       _atomic_reader_pos.store(_reader_pos, std::memory_order_release);
-      
+
 #if defined(QUILL_X86ARCH)
       _flush_cachelines(_last_flushed_reader_pos, _reader_pos);
 #endif
     }
   }
 
+  /**
+   * Only meant to be called by the reader
+   * @return
+   */
   QUILL_NODISCARD bool empty() const noexcept
   {
-    return _atomic_reader_pos.load(std::memory_order_relaxed) ==
-      _atomic_writer_pos.load(std::memory_order_relaxed);
+    return _reader_pos == _atomic_writer_pos.load(std::memory_order_relaxed);
   }
 
   QUILL_NODISCARD integer_type capacity() const noexcept
