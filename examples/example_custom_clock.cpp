@@ -55,6 +55,7 @@ int main()
   // Config using the custom ts class and the stdout handler
   quill::Config cfg;
   cfg.default_handlers.emplace_back(file_handler);
+  cfg.default_timestamp_clock_type = quill::TimestampClockType::Custom;
   cfg.default_custom_timestamp_clock = std::addressof(custom_ts);
   quill::configure(cfg);
 
