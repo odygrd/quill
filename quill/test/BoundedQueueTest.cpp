@@ -58,7 +58,7 @@ TEST_CASE("read_write_buffer")
 
 TEST_CASE("bounded_queue_integer_overflow")
 {
-  BoundedQueueImpl<uint8_t> buffer{128};
+  BoundedQueueImpl<uint8_t> buffer{128, false, 128};
   size_t const iterations = static_cast<size_t>(std::numeric_limits<uint8_t>::max()) * 8ull;
 
   for (size_t i = 0; i < iterations; ++i)
