@@ -40,10 +40,10 @@ class BoundedQueueImpl
 public:
   using integer_type = T;
 
-  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false, integer_type batch_num = 32)
+  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false, integer_type reader_store_percent = 5)
     : _capacity(next_power_of_2(capacity)),
       _mask(_capacity - 1),
-      _bytes_per_batch_mask((_capacity / batch_num) - 1),
+      _bytes_per_batch_mask(static_cast<integer_type>(_capacity * static_cast<double>(reader_store_percent)/100.0)),
       _storage(static_cast<std::byte*>(
         alloc_aligned(2ull * static_cast<uint64_t>(_capacity), CACHE_LINE_ALIGNED, huge_pages)))
   {
@@ -134,7 +134,8 @@ public:
 
   QUILL_ALWAYS_INLINE_HOT void commit_read() noexcept
   {
-    if ((_reader_pos & _bytes_per_batch_mask) == 0)
+    integer_type const prev_reader_pos = _atomic_reader_pos.load(std::memory_order_relaxed);
+    if (static_cast<integer_type>(_reader_pos - prev_reader_pos) >= _bytes_per_batch_mask)
     {
       _atomic_reader_pos.store(_reader_pos, std::memory_order_release);
 
