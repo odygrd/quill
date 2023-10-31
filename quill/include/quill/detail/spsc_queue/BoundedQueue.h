@@ -40,7 +40,7 @@ class BoundedQueueImpl
 public:
   using integer_type = T;
 
-  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false, integer_type batch_num = 4)
+  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false, integer_type batch_num = 32)
     : _capacity(next_power_of_2(capacity)),
       _mask(_capacity - 1),
       _bytes_per_batch_mask((_capacity / batch_num) - 1),
