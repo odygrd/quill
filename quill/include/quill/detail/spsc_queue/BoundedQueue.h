@@ -40,10 +40,10 @@ class BoundedQueueImpl
 public:
   using integer_type = T;
 
-  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false)
+  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false, integer_type batch_num = 4)
     : _capacity(next_power_of_2(capacity)),
       _mask(_capacity - 1),
-      _bytes_per_batch_mask((_capacity / 4) - 1),
+      _bytes_per_batch_mask((_capacity / batch_num) - 1),
       _storage(static_cast<std::byte*>(
         alloc_aligned(2ull * static_cast<uint64_t>(_capacity), CACHE_LINE_ALIGNED, huge_pages)))
   {
@@ -117,11 +117,11 @@ public:
 
   QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_read() noexcept
   {
-    if (_reader_pos == _writer_pos_cache)
+    if (_writer_pos_cache == _reader_pos)
     {
       _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
 
-      if (_reader_pos == _writer_pos_cache)
+      if (_writer_pos_cache == _reader_pos)
       {
         return nullptr;
       }
@@ -150,7 +150,8 @@ public:
    */
   QUILL_NODISCARD bool empty() const noexcept
   {
-    return _reader_pos == _atomic_writer_pos.load(std::memory_order_relaxed);
+    return _reader_pos ==
+      _atomic_writer_pos.load(std::memory_order_relaxed);
   }
 
   QUILL_NODISCARD integer_type capacity() const noexcept
