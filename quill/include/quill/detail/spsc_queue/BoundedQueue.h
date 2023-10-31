@@ -126,7 +126,7 @@ public:
       // nothing to read, try to load the writer_pos again
       _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
 
-      if (_writer_pos_cache != _reader_pos)
+      if (_writer_pos_cache == _reader_pos)
       {
         return nullptr;
       }
