@@ -59,7 +59,7 @@
 - Resolved a bug in `RotatingFileHandler` associated with logfiles located outside the working directory,
   specifically when used with open_mode `a`. ([#340](https://github.com/odygrd/quill/pull/340))
 
-- Added a name() method to the Logger class which provides the logger name. ([#345](https://github.com/odygrd/quill/pull/345))
+- Added a `name()` method to the Logger class which provides the logger name. ([#345](https://github.com/odygrd/quill/pull/345))
 
 - Fixed library and include paths in the pkg-config configuration. ([#352](https://github.com/odygrd/quill/pull/352))
 
