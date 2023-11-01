@@ -59,16 +59,20 @@
 - Resolved a bug in `RotatingFileHandler` associated with logfiles located outside the working directory,
   specifically when used with open_mode `a`. ([#340](https://github.com/odygrd/quill/pull/340))
 
-- Added a `name()` method to the Logger class which provides the logger name. ([#345](https://github.com/odygrd/quill/pull/345))
+- Added a `name()` method to the Logger class which provides the logger
+  name. ([#345](https://github.com/odygrd/quill/pull/345))
 
 - Fixed library and include paths in the pkg-config configuration. ([#352](https://github.com/odygrd/quill/pull/352))
 
-- Introduced support for logging character arrays. You can now log character arrays, even when they don't contain a null-terminating character.
+- Move `get_root_logger()` definition from cpp to the header file ([#348](https://github.com/odygrd/quill/issues/348))
+
+- Introduced support for logging character arrays. You can now log character arrays, even when they don't contain a
+  null-terminating character.
   Additionally, character arrays with null characters in the middle are supported, and the logger will
   capture the content until the null character is encountered. ([#353](https://github.com/odygrd/quill/pull/353))
 
   For example
-  
+
   ```c++
       union
     {
@@ -89,7 +93,7 @@
   Previous: 2.21 million msgs/sec average, total time elapsed: 1809 ms for 4000000 log messages.
   
   New:      2.24 million msgs/sec average, total time elapsed: 1787 ms for 4000000 log messages.
-  
+
 ## v3.3.1
 
 - Fixed `RotatingFileHandler` to prevent accidental removal of non-log files when using open mode `w`

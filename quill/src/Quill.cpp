@@ -102,14 +102,6 @@ Logger* get_logger(char const* logger_name /* = nullptr */)
 }
 
 /***/
-Logger* get_root_logger() noexcept
-{
-  assert(_g_root_logger &&
-         "_g_root_logger is nullptr, this function must be called after quill::start()");
-  return _g_root_logger;
-}
-
-/***/
 std::unordered_map<std::string, Logger*> get_all_loggers()
 {
   return detail::LogManagerSingleton::instance().log_manager().logger_collection().get_all_loggers();

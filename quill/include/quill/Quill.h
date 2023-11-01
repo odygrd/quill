@@ -17,10 +17,11 @@
 #include "quill/handlers/FileHandler.h"         // for FilenameAppend, Filena...
 #include "quill/handlers/JsonFileHandler.h"     // for JsonFileHandler
 #include "quill/handlers/RotatingFileHandler.h" // for RotatingFileHandler
-#include <chrono>                               // for hours, minutes, nanose...
-#include <cstddef>                              // for size_t
-#include <cstdint>                              // for uint16_t
-#include <initializer_list>                     // for initializer_list
+#include <cassert>
+#include <chrono>           // for hours, minutes, nanose...
+#include <cstddef>          // for size_t
+#include <cstdint>          // for uint16_t
+#include <initializer_list> // for initializer_list
 #include <limits>
 #include <memory>
 #include <optional>      // for optional
@@ -39,6 +40,7 @@ constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPa
 /** forward declarations **/
 class Handler;
 class Logger;
+extern Logger* _g_root_logger;
 
 /**
  * Pre-allocates the thread-local data needed for the current thread.
@@ -230,7 +232,16 @@ QUILL_NODISCARD Logger* get_logger(char const* logger_name = nullptr);
  * @warning This should be used only after calling quill::start(); if you need the root logger earlier then call get_logger() instead
  * @return pointer to the root logger
  */
-QUILL_NODISCARD Logger* get_root_logger() noexcept;
+template <bool WithCheck = true>
+QUILL_NODISCARD Logger* get_root_logger() noexcept
+{
+  if constexpr (WithCheck)
+  {
+    assert(_g_root_logger &&
+           "_g_root_logger is nullptr, this function must be called after quill::start()");
+  }
+  return _g_root_logger;
+}
 
 /**
  * Returns all existing loggers and the pointers to them
