@@ -53,7 +53,7 @@
 
 ## v3.4.0
 
-- Resolved "bad_variant_access" error occurring when using Quill as a pre-compiled library with a distinct queue
+- Resolved `bad_variant_access` error occurring when using Quill as a pre-compiled library with a distinct queue
   type. ([#276](https://github.com/odygrd/quill/pull/276))
 
 - Resolved a bug in `RotatingFileHandler` associated with logfiles located outside the working directory,
