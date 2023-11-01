@@ -1,4 +1,4 @@
-- [v3.3.2](#v332)
+- [v3.4.0](#v340)
 - [v3.3.1](#v331)
 - [v3.3.0](#v330)
 - [v3.2.0](#v320)
@@ -51,7 +51,7 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v3.3.2
+## v3.4.0
 
 - Resolved "bad_variant_access" error occurring when using Quill as a pre-compiled library with a distinct queue
   type. ([#276](https://github.com/odygrd/quill/pull/276))
@@ -59,6 +59,37 @@
 - Resolved a bug in `RotatingFileHandler` associated with logfiles located outside the working directory,
   specifically when used with open_mode `a`. ([#340](https://github.com/odygrd/quill/pull/340))
 
+- Added a name() method to the Logger class which provides the logger name. ([#345](https://github.com/odygrd/quill/pull/345))
+
+- Fixed library and include paths in the pkg-config configuration. ([#352](https://github.com/odygrd/quill/pull/352))
+
+- Introduced support for logging character arrays. You can now log character arrays, even when they don't contain a null-terminating character.
+  Additionally, character arrays with null characters in the middle are supported, and the logger will
+  capture the content until the null character is encountered. ([#353](https://github.com/odygrd/quill/pull/353))
+
+  For example
+  
+  ```c++
+      union
+    {
+      char no_0[2];
+      char mid_0[6]{'1', '2', '3', '4', '\0', 6};
+    } char_arrays;
+
+    // only output "12" even if there's no '\0' at the end
+    LOG_INFO(logger, R"(This is a log info example for char array without '\0': {})", char_arrays.no_0);
+
+    // output "1234" until the '\0'
+    LOG_INFO(logger, R"(This is a log info example for char array with '\0' in middle: {})",
+             char_arrays.mid_0);
+  ```
+
+- Minor improvements in the bounded queue and throughput. ([#362](https://github.com/odygrd/quill/pull/362))
+  
+  Previous: 2.21 million msgs/sec average, total time elapsed: 1809 ms for 4000000 log messages.
+  
+  New:      2.24 million msgs/sec average, total time elapsed: 1787 ms for 4000000 log messages.
+  
 ## v3.3.1
 
 - Fixed `RotatingFileHandler` to prevent accidental removal of non-log files when using open mode `w`
