@@ -275,6 +275,8 @@ You can find the benchmark code on the [logger_benchmarks](http://github.com/ody
 
 ### Throughput
 
+Average throughput: 2.24 million msgs/sec average, total time elapsed: 1787 ms for 4000000 log messages
+
 While the primary focus of the library is not on throughput, it does provide efficient handling of log messages across
 multiple threads. The backend logging thread, responsible for formatting and ordering log messages from hot threads,
 ensures that all queues are emptied on a high priority basis. This approach prevents the need for allocating new queues
@@ -292,8 +294,7 @@ the backend logging thread can write to the file per second.
 For benchmarking purposes, you can find the
 code [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throughput/quill_backend_throughput.cpp).
 When measured on the same system as the latency benchmarks mentioned earlier, logging 4 million messages resulted in a
-log file size of 476 MB. The average throughput achieved was 1.76 million messages per second, with a total elapsed time
-of 2266 ms.
+log file size of 476 MB. 
 
 Please note that while Quill performs well in terms of throughput, its primary strength lies in its efficient handling
 of log messages across threads.
