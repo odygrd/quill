@@ -36,7 +36,9 @@
  * QUILL_LOG_LEVEL_ERROR
  * QUILL_LOG_LEVEL_CRITICAL
  */
+#if !defined(QUILL_ACTIVE_LOG_LEVEL)
 // #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
+#endif
 
 /**
  * Quill defers formatting to the backend thread. Objects are copied to a queue and formatted
@@ -67,21 +69,27 @@
  * When MODE_UNSAFE is enabled, Quill copies any copy-constructible user-defined types to the queue
  * without checks. Tagging or specialization is not required.
  */
+#if !defined(QUILL_MODE_UNSAFE)
 // #define QUILL_MODE_UNSAFE
+#endif
 
 /**
  * When QUILL_DISABLE_NON_PREFIXED_MACROS is defined, it removes `LOG_*` macros,
  * and only `QUILL_LOG_*` macros are available.
  * This is useful if the original macro names collide with an existing logging library.
  */
+#if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS)
 // #define QUILL_DISABLE_NON_PREFIXED_MACROS
+#endif
 
 /**
  * When the application doesn't require multiple Logger objects and the root logger is enough,
  * define QUILL_ROOT_LOGGER_ONLY to log without passing any Logger* to the macro.
  * Example: LOG_INFO("Hello {}", "world");
  */
+#if !defined(QUILL_ROOT_LOGGER_ONLY)
 // #define QUILL_ROOT_LOGGER_ONLY
+#endif
 
 /**
  * When QUILL_USE_BOUNDED_QUEUE is defined, a bounded queue is used instead of the default unbounded queue.
@@ -102,7 +110,9 @@
  *
  * @see: examples/example_bounded_queue_message_dropping.cpp
  */
+#if !defined(QUILL_USE_BOUNDED_QUEUE)
 // #define QUILL_USE_BOUNDED_QUEUE
+#endif
 
 /**
  * Similar to QUILL_USE_BOUNDED_QUEUE but the hot thread will now block instead of dropping messages.
@@ -113,7 +123,9 @@
  *
  * @see: examples/example_bounded_queue_blocking.cpp
  */
+#if !defined(QUILL_USE_BOUNDED_BLOCKING_QUEUE)
 // #define QUILL_USE_BOUNDED_BLOCKING_QUEUE
+#endif
 
 /**
  * The default unbounded queue stops re-allocating and blocks when it reaches the maximum capacity
@@ -125,7 +137,9 @@
  * For CMake:
  *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE"
  */
+#if !defined(QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE)
 // #define QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE
+#endif
 
 /**
  * Similar to QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE, but the hot thread will drop messages instead
@@ -134,14 +148,18 @@
  * For CMake:
  *   -DCMAKE_CXX_FLAGS:STRING="-DQUILL_USE_UNBOUNDED_DROPPING_QUEUE"
  */
+#if !defined(QUILL_USE_UNBOUNDED_DROPPING_QUEUE)
 // #define QUILL_USE_UNBOUNDED_DROPPING_QUEUE
+#endif
 
 /**
  * Similar to QUILL_USE_UNBOUNDED_NO_MAX_LIMIT_QUEUE, but the hot thread will block instead
  * of allocating additional 2GB queues when the maximum capacity of the unbounded queue is reached.
  * This is the default behavior.
  */
+#if !defined(QUILL_USE_UNBOUNDED_BLOCKING_QUEUE)
 // #define QUILL_USE_UNBOUNDED_BLOCKING_QUEUE
+#endif
 
 /**
  * Applies to bounded/unbounded blocking queues. When the queue is full, the active thread
@@ -150,7 +168,9 @@
  * For CMake:
  *   -DCMAKE_CXX_FLAGS:INT="-DBLOCKING_QUEUE_RETRY_INTERVAL_NS=1000"
  */
+#if !defined(QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS)
 // #define QUILL_BLOCKING_QUEUE_RETRY_INTERVAL_NS 800
+#endif
 
 /**
  * Enables the use of _mm_prefetch, _mm_clflush, and _mm_clflushopt on the ring buffer to improve
@@ -164,7 +184,9 @@
  * or
  *   target_compile_definitions(<target> PUBLIC -DQUILL_X86ARCH)
  */
+#if !defined(QUILL_X86ARCH)
 // #define QUILL_X86ARCH
+#endif
 
 /**************************************************************************************************/
 /* Anything after this point requires the whole library to be recompiled with the desired option. */
@@ -174,7 +196,9 @@
  * Disables features not supported on Windows 2012/2016.
  * Also available as CMake option `-DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON`
  */
+#if !defined(QUILL_NO_THREAD_NAME_SUPPORT)
 // #define QUILL_NO_THREAD_NAME_SUPPORT
+#endif
 
 /**
  * Uses an installed version of the fmt library instead of Quill's bundled copy.
@@ -188,10 +212,14 @@
  * Quill will look for a CMake Target named `fmt`. If the target is not found, it will
  * use find_package(fmt REQUIRED), so make sure that the fmt library is installed on your system.
  */
+#if !defined(QUILL_FMT_EXTERNAL)
 // #define QUILL_FMT_EXTERNAL
+#endif
 
 /**
  * Disables all exceptions and replaces them with std::abort()
  * Also available as CMake option `-DQUILL_NO_EXCEPTIONS=ON`
  */
+#if !defined(QUILL_NO_EXCEPTIONS)
 // #define QUILL_NO_EXCEPTIONS
+#endif

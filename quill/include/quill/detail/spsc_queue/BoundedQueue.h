@@ -1,7 +1,8 @@
 #pragma once
 
-#include "quill/QuillError.h"
 #include "quill/TweakMe.h"
+
+#include "quill/QuillError.h"
 #include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Os.h"

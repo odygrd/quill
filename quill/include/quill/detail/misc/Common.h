@@ -6,8 +6,8 @@
 #pragma once
 
 #include "quill/TweakMe.h"
-#include "quill/detail/misc/Attributes.h"
 
+#include "quill/detail/misc/Attributes.h"
 #include "quill/Fmt.h"
 #include <functional>
 #include <sstream>
