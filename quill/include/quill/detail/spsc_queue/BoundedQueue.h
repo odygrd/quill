@@ -40,10 +40,11 @@ class BoundedQueueImpl
 public:
   using integer_type = T;
 
-  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false, integer_type reader_store_percent = 5)
+  QUILL_ALWAYS_INLINE explicit BoundedQueueImpl(integer_type capacity, bool huge_pages = false,
+                                                integer_type reader_store_percent = 5)
     : _capacity(next_power_of_2(capacity)),
       _mask(_capacity - 1),
-      _bytes_per_batch_mask(static_cast<integer_type>(_capacity * static_cast<double>(reader_store_percent)/100.0)),
+      _bytes_per_batch(static_cast<integer_type>(_capacity * static_cast<double>(reader_store_percent) / 100.0)),
       _storage(static_cast<std::byte*>(
         alloc_aligned(2ull * static_cast<uint64_t>(_capacity), CACHE_LINE_ALIGNED, huge_pages)))
   {
@@ -134,8 +135,7 @@ public:
 
   QUILL_ALWAYS_INLINE_HOT void commit_read() noexcept
   {
-    integer_type const prev_reader_pos = _atomic_reader_pos.load(std::memory_order_relaxed);
-    if (static_cast<integer_type>(_reader_pos - prev_reader_pos) >= _bytes_per_batch_mask)
+    if (static_cast<integer_type>(_reader_pos - _atomic_reader_pos.load(std::memory_order_relaxed)) >= _bytes_per_batch)
     {
       _atomic_reader_pos.store(_reader_pos, std::memory_order_release);
 
@@ -151,8 +151,7 @@ public:
    */
   QUILL_NODISCARD bool empty() const noexcept
   {
-    return _reader_pos ==
-      _atomic_writer_pos.load(std::memory_order_relaxed);
+    return _reader_pos == _atomic_writer_pos.load(std::memory_order_relaxed);
   }
 
   QUILL_NODISCARD integer_type capacity() const noexcept
@@ -181,7 +180,7 @@ private:
 
   integer_type const _capacity;
   integer_type const _mask;
-  integer_type const _bytes_per_batch_mask;
+  integer_type const _bytes_per_batch;
   std::byte* const _storage{nullptr};
 
   alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
