@@ -13,7 +13,9 @@
 #include <string>
 
 #if defined(_WIN32)
-  #define WIN32_LEAN_AND_MEAN
+  #if !defined(WIN32_LEAN_AND_MEAN)
+    #define WIN32_LEAN_AND_MEAN
+  #endif
 
   #if !defined(NOMINMAX)
     // Mingw already defines this, so no need to redefine
