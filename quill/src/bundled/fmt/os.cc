@@ -18,6 +18,10 @@
 #  include <sys/stat.h>
 #  include <sys/types.h>
 
+#  ifdef _WRS_KERNEL   // VxWorks7 kernel
+#    include <ioLib.h> // getpagesize
+#  endif
+
 #  ifndef _WIN32
 #    include <unistd.h>
 #  else
@@ -351,7 +355,12 @@ long getpagesize() {
   GetSystemInfo(&si);
   return si.dwPageSize;
 #    else
+#      ifdef _WRS_KERNEL
+  long size = FMTQUILL_POSIX_CALL(getpagesize());
+#      else
   long size = FMTQUILL_POSIX_CALL(sysconf(_SC_PAGESIZE));
+#      endif
+
   if (size < 0)
     FMTQUILL_THROW(system_error(errno, FMTQUILL_STRING("cannot get memory page size")));
   return size;

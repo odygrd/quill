@@ -97,6 +97,7 @@
 - Disable `fmt::join(data, "")` at compile time. ([#356](https://github.com/odygrd/quill/issues/356))
 - Add guards for redefined preprocessor variables.
 - Fix `uint64_t` to `time_t` implicit conversion error in Clang 18.
+- Update bundled `libfmt` to `v10.1.1`
 
 ## v3.3.1
 
