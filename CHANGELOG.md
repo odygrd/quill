@@ -89,10 +89,14 @@
   ```
 
 - Minor improvements in the bounded queue and throughput. ([#362](https://github.com/odygrd/quill/pull/362))
-  
+
   Previous: 2.21 million msgs/sec average, total time elapsed: 1809 ms for 4000000 log messages.
-  
+
   New:      2.24 million msgs/sec average, total time elapsed: 1787 ms for 4000000 log messages.
+
+- Disable `fmt::join(data, "")` at compile time. ([#356](https://github.com/odygrd/quill/issues/356))
+- Add guards for redefined preprocessor variables.
+- Fix `uint64_t` to `time_t` implicit conversion error in Clang 18.
 
 ## v3.3.1
 

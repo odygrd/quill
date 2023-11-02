@@ -12,6 +12,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "quill/Fmt.h"
+
 /**
  * Below are type traits to determine whether an object is marked as copyable.
  * The traits are used to decide about
@@ -332,7 +334,8 @@ struct filter_copyable : std::conjunction<std::disjunction<std::is_arithmetic<T>
                                      is_copyable_tuple<T>,
                                      is_copyable_optional<T>,
                                      is_copyable_container<T>
-                                     >, std::negation<is_reference_wrapper<T>>>
+                                     >, std::negation<is_reference_wrapper<T>>,
+                                        std::negation<std::is_base_of<fmtquill::detail::view, T>>>
 {};
 
 /**
