@@ -155,7 +155,7 @@ inline void vprint_directly(std::ostream& os, string_view format_str,
 
 }  // namespace detail
 
-FMTQUILL_MODULE_EXPORT template <typename Char>
+FMTQUILL_EXPORT template <typename Char>
 void vprint(std::basic_ostream<Char>& os,
             basic_string_view<type_identity_t<Char>> format_str,
             basic_format_args<buffer_context<type_identity_t<Char>>> args) {
@@ -174,7 +174,7 @@ void vprint(std::basic_ostream<Char>& os,
     fmtquill::print(cerr, "Don't {}!", "panic");
   \endrst
  */
-FMTQUILL_MODULE_EXPORT template <typename... T>
+FMTQUILL_EXPORT template <typename... T>
 void print(std::ostream& os, format_string<T...> fmt, T&&... args) {
   const auto& vargs = fmtquill::make_format_args(args...);
   if (detail::is_utf8())
@@ -183,7 +183,7 @@ void print(std::ostream& os, format_string<T...> fmt, T&&... args) {
     detail::vprint_directly(os, fmt, vargs);
 }
 
-FMTQUILL_MODULE_EXPORT
+FMTQUILL_EXPORT
 template <typename... Args>
 void print(std::wostream& os,
            basic_format_string<wchar_t, type_identity_t<Args>...> fmt,
@@ -191,12 +191,12 @@ void print(std::wostream& os,
   vprint(os, fmt, fmtquill::make_format_args<buffer_context<wchar_t>>(args...));
 }
 
-FMTQUILL_MODULE_EXPORT template <typename... T>
+FMTQUILL_EXPORT template <typename... T>
 void println(std::ostream& os, format_string<T...> fmt, T&&... args) {
   fmtquill::print(os, "{}\n", fmtquill::format(fmt, std::forward<T>(args)...));
 }
 
-FMTQUILL_MODULE_EXPORT
+FMTQUILL_EXPORT
 template <typename... Args>
 void println(std::wostream& os,
              basic_format_string<wchar_t, type_identity_t<Args>...> fmt,

@@ -13,11 +13,12 @@
 #include <cstring>  // std::strlen
 #include <iterator>
 #include <limits>
+#include <memory>  // std::addressof
 #include <string>
 #include <type_traits>
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMTQUILL_VERSION 100001
+#define FMTQUILL_VERSION 100100
 
 #if defined(__clang__) && !defined(__ibmxl__)
 #  define FMTQUILL_CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
@@ -92,7 +93,7 @@
 #ifndef FMTQUILL_USE_CONSTEXPR
 #  if (FMTQUILL_HAS_FEATURE(cxx_relaxed_constexpr) || FMTQUILL_MSC_VERSION >= 1912 || \
        (FMTQUILL_GCC_VERSION >= 600 && FMTQUILL_CPLUSPLUS >= 201402L)) &&             \
-      !FMTQUILL_ICC_VERSION && !defined(__NVCC__)
+      !FMTQUILL_ICC_VERSION && (!defined(__NVCC__) || FMTQUILL_CPLUSPLUS >= 202002L)
 #    define FMTQUILL_USE_CONSTEXPR 1
 #  else
 #    define FMTQUILL_USE_CONSTEXPR 0
@@ -178,8 +179,8 @@
     }
 #endif
 
-#ifndef FMTQUILL_MODULE_EXPORT
-#  define FMTQUILL_MODULE_EXPORT
+#ifndef FMTQUILL_EXPORT
+#  define FMTQUILL_EXPORT
 #  define FMTQUILL_BEGIN_EXPORT
 #  define FMTQUILL_END_EXPORT
 #endif
@@ -241,12 +242,6 @@
 #  endif
 #endif
 
-#if defined __cpp_inline_variables && __cpp_inline_variables >= 201606L
-#  define FMTQUILL_INLINE_VARIABLE inline
-#else
-#  define FMTQUILL_INLINE_VARIABLE
-#endif
-
 // Enable minimal optimizations for more compact code in debug mode.
 FMTQUILL_GCC_PRAGMA("GCC push_options")
 #if !defined(__OPTIMIZE__) && !defined(__NVCOMPILER) && !defined(__LCC__) && \
@@ -291,8 +286,11 @@ struct monostate {
 #  define FMTQUILL_ENABLE_IF(...) fmtquill::enable_if_t<(__VA_ARGS__), int> = 0
 #endif
 
+// This is defined in core.h instead of format.h to avoid injecting in std.
+// It is a template to avoid undesirable implicit conversions to std::byte.
 #ifdef __cpp_lib_byte
-inline auto format_as(std::byte b) -> unsigned char {
+template <typename T, FMTQUILL_ENABLE_IF(std::is_same<T, std::byte>::value)>
+inline auto format_as(T b) -> unsigned char {
   return static_cast<unsigned char>(b);
 }
 #endif
@@ -396,7 +394,7 @@ FMTQUILL_CONSTEXPR inline auto is_utf8() -> bool {
   compiled with a different ``-std`` option than the client code (which is not
   recommended).
  */
-FMTQUILL_MODULE_EXPORT
+FMTQUILL_EXPORT
 template <typename Char> class basic_string_view {
  private:
   const Char* data_;
@@ -499,11 +497,11 @@ template <typename Char> class basic_string_view {
   }
 };
 
-FMTQUILL_MODULE_EXPORT
+FMTQUILL_EXPORT
 using string_view = basic_string_view<char>;
 
 /** Specifies if ``T`` is a character type. Can be specialized by users. */
-FMTQUILL_MODULE_EXPORT
+FMTQUILL_EXPORT
 template <typename T> struct is_char : std::false_type {};
 template <> struct is_char<char> : std::true_type {};
 
@@ -641,6 +639,9 @@ struct error_handler {
 };
 }  // namespace detail
 
+/** Throws ``format_error`` with a given message. */
+using detail::throw_format_error;
+
 /** String's character type. */
 template <typename S> using char_t = typename detail::char_t_impl<S>::type;
 
@@ -651,7 +652,7 @@ template <typename S> using char_t = typename detail::char_t_impl<S>::type;
   You can use the ``format_parse_context`` type alias for ``char`` instead.
   \endrst
  */
-FMTQUILL_MODULE_EXPORT
+FMTQUILL_EXPORT
 template <typename Char> class basic_format_parse_context {
  private:
   basic_string_view<Char> format_str_;
@@ -717,7 +718,7 @@ template <typename Char> class basic_format_parse_context {
   FMTQUILL_CONSTEXPR void check_dynamic_spec(int arg_id);
 };
 
-FMTQUILL_MODULE_EXPORT
+FMTQUILL_EXPORT
 using format_parse_context = basic_format_parse_context<char>;
 
 namespace detail {
@@ -839,10 +840,8 @@ template <typename T> class buffer {
   /** Returns the capacity of this buffer. */
   constexpr auto capacity() const noexcept -> size_t { return capacity_; }
 
-  /** Returns a pointer to the buffer data. */
+  /** Returns a pointer to the buffer data (not null-terminated). */
   FMTQUILL_CONSTEXPR auto data() noexcept -> T* { return ptr_; }
-
-  /** Returns a pointer to the buffer data. */
   FMTQUILL_CONSTEXPR auto data() const noexcept -> const T* { return ptr_; }
 
   /** Clears this buffer. */
@@ -1059,12 +1058,12 @@ FMTQUILL_CONSTEXPR void basic_format_parse_context<Char>::check_dynamic_spec(
   }
 }
 
-FMTQUILL_MODULE_EXPORT template <typename Context> class basic_format_arg;
-FMTQUILL_MODULE_EXPORT template <typename Context> class basic_format_args;
-FMTQUILL_MODULE_EXPORT template <typename Context> class dynamic_format_arg_store;
+FMTQUILL_EXPORT template <typename Context> class basic_format_arg;
+FMTQUILL_EXPORT template <typename Context> class basic_format_args;
+FMTQUILL_EXPORT template <typename Context> class dynamic_format_arg_store;
 
 // A formatter for objects of type T.
-FMTQUILL_MODULE_EXPORT
+FMTQUILL_EXPORT
 template <typename T, typename Char = char, typename Enable = void>
 struct formatter {
   // A deleted default constructor indicates a disabled formatter.
@@ -1283,9 +1282,9 @@ template <typename Context> class value {
   FMTQUILL_INLINE value(const named_arg_info<char_type>* args, size_t size)
       : named_args{args, size} {}
 
-  template <typename T> FMTQUILL_CONSTEXPR FMTQUILL_INLINE value(T& val) {
+  template <typename T> FMTQUILL_CONSTEXPR20 FMTQUILL_INLINE value(T& val) {
     using value_type = remove_const_t<T>;
-    custom.value = const_cast<value_type*>(&val);
+    custom.value = const_cast<value_type*>(std::addressof(val));
     // Get the formatter type through the context to allow different contexts
     // have different extension points, e.g. `formatter<T>` for `format` and
     // `printf_formatter<T>` for `printf`.
@@ -1421,9 +1420,8 @@ template <typename Context> struct arg_mapper {
       FMTQUILL_ENABLE_IF(
           std::is_pointer<T>::value || std::is_member_pointer<T>::value ||
           std::is_function<typename std::remove_pointer<T>::type>::value ||
-          (std::is_convertible<const T&, const void*>::value &&
-           !std::is_convertible<const T&, const char_type*>::value &&
-           !has_formatter<T, Context>::value))>
+          (std::is_array<T>::value &&
+           !std::is_convertible<T, const char_type*>::value))>
   FMTQUILL_CONSTEXPR auto map(const T&) -> unformattable_pointer {
     return {};
   }
@@ -1491,6 +1489,13 @@ auto copy_str(InputIt begin, InputIt end, appender out) -> appender {
   get_container(out).append(begin, end);
   return out;
 }
+template <typename Char, typename InputIt>
+auto copy_str(InputIt begin, InputIt end,
+              std::back_insert_iterator<std::string> out)
+    -> std::back_insert_iterator<std::string> {
+  get_container(out).append(begin, end);
+  return out;
+}
 
 template <typename Char, typename R, typename OutputIt>
 FMTQUILL_CONSTEXPR auto copy_str(R&& rng, OutputIt out) -> OutputIt {
@@ -1544,10 +1549,14 @@ constexpr auto encode_types() -> unsigned long long {
          (encode_types<Context, Args...>() << packed_arg_bits);
 }
 
+#if defined(__cpp_if_constexpr)
+// This type is intentionally undefined, only used for errors
+template <typename T, typename Char> struct type_is_unformattable_for;
+#endif
+
 template <bool PACKED, typename Context, typename T, FMTQUILL_ENABLE_IF(PACKED)>
 FMTQUILL_CONSTEXPR FMTQUILL_INLINE auto make_arg(T& val) -> value<Context> {
-  auto&& arg = arg_mapper<Context>().map(val);
-  using arg_type = remove_cvref_t<decltype(arg)>;
+  using arg_type = remove_cvref_t<decltype(arg_mapper<Context>().map(val))>;
 
   constexpr bool formattable_char =
       !std::is_same<arg_type, unformattable_char>::value;
@@ -1562,11 +1571,16 @@ FMTQUILL_CONSTEXPR FMTQUILL_INLINE auto make_arg(T& val) -> value<Context> {
                 "Formatting of non-void pointers is disallowed.");
 
   constexpr bool formattable = !std::is_same<arg_type, unformattable>::value;
+#if defined(__cpp_if_constexpr)
+  if constexpr (!formattable) {
+    type_is_unformattable_for<T, typename Context::char_type> _;
+  }
+#endif
   static_assert(
       formattable,
       "Cannot format an argument. To make type T formattable provide a "
       "formatter<T> specialization: https://fmt.dev/latest/api.html#udt");
-  return {arg};
+  return {arg_mapper<Context>().map(val)};
 }
 
 template <typename Context, typename T>
@@ -1646,7 +1660,7 @@ template <typename Context> class basic_format_arg {
   ``vis(value)`` will be called with the value of type ``double``.
   \endrst
  */
-FMTQUILL_MODULE_EXPORT
+// DEPRECATED!
 template <typename Visitor, typename Context>
 FMTQUILL_CONSTEXPR FMTQUILL_INLINE auto visit_format_arg(
     Visitor&& vis, const basic_format_arg<Context>& arg) -> decltype(vis(0)) {
@@ -1792,7 +1806,7 @@ class format_arg_store
         basic_format_args<Context>(*this),
 #endif
         data_{detail::make_arg<is_packed, Context>(args)...} {
-    if (num_named_args != 0)
+    if (detail::const_check(num_named_args != 0))
       detail::init_named_args(data_.named_args(), 0, 0, args...);
   }
 };
@@ -1954,7 +1968,7 @@ template <typename Context> class basic_format_args {
 /** An alias to ``basic_format_args<format_context>``. */
 // A separate type would result in shorter symbols but break ABI compatibility
 // between clang and gcc on ARM (#1919).
-FMTQUILL_MODULE_EXPORT using format_args = basic_format_args<format_context>;
+FMTQUILL_EXPORT using format_args = basic_format_args<format_context>;
 
 // We cannot use enum classes as bit fields because of a gcc bug, so we put them
 // in namespaces instead (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=61414).
@@ -2526,7 +2540,17 @@ FMTQUILL_CONSTEXPR auto parse_format_specs(ParseContext& ctx)
       mapped_type_constant<T, context>::value != type::custom_type,
       decltype(arg_mapper<context>().map(std::declval<const T&>())),
       typename strip_named_arg<T>::type>;
+#if defined(__cpp_if_constexpr)
+  if constexpr (std::is_default_constructible_v<
+                    formatter<mapped_type, char_type>>) {
+    return formatter<mapped_type, char_type>().parse(ctx);
+  } else {
+    type_is_unformattable_for<T, char_type> _;
+    return ctx.begin();
+  }
+#else
   return formatter<mapped_type, char_type>().parse(ctx);
+#endif
 }
 
 // Checks char specs and returns true iff the presentation type is char-like.
@@ -2542,8 +2566,6 @@ FMTQUILL_CONSTEXPR auto check_char_specs(const format_specs<Char>& specs) -> boo
   return true;
 }
 
-constexpr FMTQUILL_INLINE_VARIABLE int invalid_arg_index = -1;
-
 #if FMTQUILL_USE_NONTYPE_TEMPLATE_ARGS
 template <int N, typename T, typename... Args, typename Char>
 constexpr auto get_arg_index_by_name(basic_string_view<Char> name) -> int {
@@ -2553,7 +2575,7 @@ constexpr auto get_arg_index_by_name(basic_string_view<Char> name) -> int {
   if constexpr (sizeof...(Args) > 0)
     return get_arg_index_by_name<N + 1, Args...>(name);
   (void)name;  // Workaround an MSVC bug about "unused" parameter.
-  return invalid_arg_index;
+  return -1;
 }
 #endif
 
@@ -2564,7 +2586,7 @@ FMTQUILL_CONSTEXPR auto get_arg_index_by_name(basic_string_view<Char> name) -> i
     return get_arg_index_by_name<0, Args...>(name);
 #endif
   (void)name;
-  return invalid_arg_index;
+  return -1;
 }
 
 template <typename Char, typename... Args> class format_string_checker {
@@ -2578,15 +2600,15 @@ template <typename Char, typename... Args> class format_string_checker {
   // needed for compile-time checks: https://godbolt.org/z/GvWzcTjh1.
   using parse_func = const Char* (*)(parse_context_type&);
 
+  type types_[num_args > 0 ? static_cast<size_t>(num_args) : 1];
   parse_context_type context_;
   parse_func parse_funcs_[num_args > 0 ? static_cast<size_t>(num_args) : 1];
-  type types_[num_args > 0 ? static_cast<size_t>(num_args) : 1];
 
  public:
   explicit FMTQUILL_CONSTEXPR format_string_checker(basic_string_view<Char> fmt)
-      : context_(fmt, num_args, types_),
-        parse_funcs_{&parse_format_specs<Args, parse_context_type>...},
-        types_{mapped_type_constant<Args, buffer_context<Char>>::value...} {}
+      : types_{mapped_type_constant<Args, buffer_context<Char>>::value...},
+        context_(fmt, num_args, types_),
+        parse_funcs_{&parse_format_specs<Args, parse_context_type>...} {}
 
   FMTQUILL_CONSTEXPR void on_text(const Char*, const Char*) {}
 
@@ -2597,7 +2619,7 @@ template <typename Char, typename... Args> class format_string_checker {
   FMTQUILL_CONSTEXPR auto on_arg_id(basic_string_view<Char> id) -> int {
 #if FMTQUILL_USE_NONTYPE_TEMPLATE_ARGS
     auto index = get_arg_index_by_name<Args...>(id);
-    if (index == invalid_arg_index) on_error("named argument is not found");
+    if (index < 0) on_error("named argument is not found");
     return index;
 #else
     (void)id;
@@ -2606,7 +2628,9 @@ template <typename Char, typename... Args> class format_string_checker {
 #endif
   }
 
-  FMTQUILL_CONSTEXPR void on_replacement_field(int, const Char*) {}
+  FMTQUILL_CONSTEXPR void on_replacement_field(int id, const Char* begin) {
+    on_format_specs(id, begin, begin);  // Call parse() on empty specs.
+  }
 
   FMTQUILL_CONSTEXPR auto on_format_specs(int id, const Char* begin, const Char*)
       -> const Char* {
@@ -2688,27 +2712,6 @@ struct formatter<T, Char,
   FMTQUILL_CONSTEXPR auto format(const T& val, FormatContext& ctx) const
       -> decltype(ctx.out());
 };
-
-#define FMTQUILL_FORMAT_AS(Type, Base)                                        \
-  template <typename Char>                                               \
-  struct formatter<Type, Char> : formatter<Base, Char> {                 \
-    template <typename FormatContext>                                    \
-    auto format(const Type& val, FormatContext& ctx) const               \
-        -> decltype(ctx.out()) {                                         \
-      return formatter<Base, Char>::format(static_cast<Base>(val), ctx); \
-    }                                                                    \
-  }
-
-FMTQUILL_FORMAT_AS(signed char, int);
-FMTQUILL_FORMAT_AS(unsigned char, unsigned);
-FMTQUILL_FORMAT_AS(short, int);
-FMTQUILL_FORMAT_AS(unsigned short, unsigned);
-FMTQUILL_FORMAT_AS(long, long long);
-FMTQUILL_FORMAT_AS(unsigned long, unsigned long long);
-FMTQUILL_FORMAT_AS(Char*, const Char*);
-FMTQUILL_FORMAT_AS(std::basic_string<Char>, basic_string_view<Char>);
-FMTQUILL_FORMAT_AS(std::nullptr_t, const void*);
-FMTQUILL_FORMAT_AS(detail::std_string_view<Char>, basic_string_view<Char>);
 
 template <typename Char = char> struct runtime_format_string {
   basic_string_view<Char> str;
