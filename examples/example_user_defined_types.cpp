@@ -113,11 +113,20 @@ private:
 template <>
 struct fmtquill::formatter<User4>
 {
+  
+#if QUILL_FMT_VERSION >= 100100
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+#else
   template <typename FormatContext>
   auto parse(FormatContext& ctx)
   {
     return ctx.begin();
   }
+#endif
 
   template <typename FormatContext>
   auto format(User4 const& user, FormatContext& ctx)
