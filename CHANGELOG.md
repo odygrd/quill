@@ -95,10 +95,10 @@
   New:      2.24 million msgs/sec average, total time elapsed: 1787 ms for 4000000 log messages.
 
 - Disable `fmt::join(data, "")` at compile time. ([#356](https://github.com/odygrd/quill/issues/356))
+- Use `__has_include` for `x86gprintrin.h` ([#366](https://github.com/odygrd/quill/pull/366))
 - Add guards for redefined preprocessor variables.
 - Fix `uint64_t` to `time_t` implicit conversion error in Clang 18.
 - Update bundled `libfmt` to `v10.1.1`
-- Use `__has_include` for `x86gprintrin.h`
 
 ## v3.3.1
 
