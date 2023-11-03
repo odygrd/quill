@@ -98,6 +98,7 @@
 - Add guards for redefined preprocessor variables.
 - Fix `uint64_t` to `time_t` implicit conversion error in Clang 18.
 - Update bundled `libfmt` to `v10.1.1`
+- Use `__has_include` for `x86gprintrin.h`
 
 ## v3.3.1
 
