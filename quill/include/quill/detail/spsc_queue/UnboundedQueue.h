@@ -240,10 +240,10 @@ public:
   }
 
 private:
-  /** Modified by either the producer or consumer but never both */
-  Node* _producer{nullptr};
-  Node* _consumer{nullptr};
   bool _huge_pages;
+  /** Modified by either the producer or consumer but never both */
+  alignas(CACHE_LINE_ALIGNED) Node* _producer{nullptr};
+  alignas(CACHE_LINE_ALIGNED) Node* _consumer{nullptr};
 };
 
 } // namespace quill::detail
