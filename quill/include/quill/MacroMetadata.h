@@ -93,8 +93,8 @@ public:
   QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view fileline() const noexcept
   {
     return _fileline;
-
   }
+
   /**
    * @return The user provided format
    */
