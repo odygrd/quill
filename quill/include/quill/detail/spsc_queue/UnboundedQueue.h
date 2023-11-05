@@ -59,7 +59,7 @@ public:
    * Constructor
    */
   explicit UnboundedQueue(uint32_t initial_bounded_queue_capacity, bool huge_pages = false)
-    : _producer(new Node(initial_bounded_queue_capacity, huge_pages)), _consumer(_producer), _huge_pages(huge_pages)
+    : _huge_pages(huge_pages), _producer(new Node(initial_bounded_queue_capacity, huge_pages)), _consumer(_producer)
   {
   }
 
