@@ -102,7 +102,7 @@ tm* gmtime_rs(time_t const* timer, tm* buf)
 tm* localtime_rs(time_t const* timer, tm* buf)
 {
 #if defined(_WIN32)
-  errno_t const res = localtime_s(buf, timer);
+  auto const res = localtime_s(buf, timer);
   if (res)
   {
     std::ostringstream error_msg;
