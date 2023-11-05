@@ -276,16 +276,11 @@ std::string const& StringFromTime::format_timestamp(time_t timestamp)
 /***/
 void StringFromTime::_populate_initial_parts(std::string timestamp_format)
 {
-  std::string part1;
-  std::string part2;
-
   do
   {
     // we get part1 and part2 and keep looping on the new modified string without the part1 and
     // part2 until we find not %H, %M or %S at all
-    auto const pp = _split_timestamp_format_once(timestamp_format);
-    part1 = pp.first;
-    part2 = pp.second;
+    auto const [part1, part2] = _split_timestamp_format_once(timestamp_format);
 
     if (!part1.empty())
     {
