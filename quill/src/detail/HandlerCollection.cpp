@@ -69,16 +69,12 @@ void HandlerCollection::subscribe_handler(std::shared_ptr<Handler> const& handle
 }
 
 /***/
-std::vector<std::weak_ptr<Handler>> HandlerCollection::active_handlers() const
+void HandlerCollection::active_handlers(std::vector<std::weak_ptr<Handler>>& active_handlers_collection) const
 {
-  std::vector<std::weak_ptr<Handler>> subscribed_handlers_collection;
-
   // Protect shared access, we just use a lock here since this function is not used when logging
   // messages but only in special cases e.g. flushing
   std::lock_guard<std::mutex> const lock{_mutex};
-  subscribed_handlers_collection = _active_handlers_collection;
-
-  return subscribed_handlers_collection;
+  active_handlers_collection = _active_handlers_collection;
 }
 
 /***/

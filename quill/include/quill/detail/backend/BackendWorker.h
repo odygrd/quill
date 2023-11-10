@@ -155,7 +155,7 @@ private:
   /**
    * Force flush all active Handlers
    */
-  QUILL_ATTRIBUTE_HOT inline void _force_flush(std::vector<std::weak_ptr<Handler>> const& active_handlers);
+  QUILL_ATTRIBUTE_HOT inline void _force_flush();
 
   /**
    * Check for dropped messages - only when bounded queue is used
@@ -206,6 +206,7 @@ private:
 
   std::vector<fmtquill::basic_format_arg<fmtquill::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
   std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>> _printf_args; /** Format args tmp storage as member to avoid reallocation */
+  std::vector<std::weak_ptr<Handler>> _active_handlers_cache;
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _slog_templates; /** Avoid re-formating the same structured template each time */
@@ -755,7 +756,8 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
     }
     else if (macro_metadata.event() == MacroMetadata::Event::Flush)
     {
-      _force_flush(_handler_collection.active_handlers());
+      _handler_collection.active_handlers(_active_handlers_cache);
+      _force_flush();
 
       // this is a flush event, so we need to notify the caller to continue now
       transit_event.flush_flag->store(true);
@@ -876,12 +878,12 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
 }
 
 /***/
-void BackendWorker::_force_flush(std::vector<std::weak_ptr<Handler>> const& active_handlers)
+void BackendWorker::_force_flush()
 {
   if (_has_unflushed_messages)
   {
     // If we have buffered any messages then flush all active handlers
-    for (auto const& handler : active_handlers)
+    for (auto const& handler : _active_handlers_cache)
     {
       std::shared_ptr<Handler> h = handler.lock();
       if (h)
@@ -1048,11 +1050,11 @@ void BackendWorker::_main_loop()
   {
     // None of the thread local queues had any events to process, this means we have processed
     // all messages in all queues We force flush all remaining messages
-    std::vector<std::weak_ptr<Handler>> const active_handlers = _handler_collection.active_handlers();
-    _force_flush(active_handlers);
+    _handler_collection.active_handlers(_active_handlers_cache);
+    _force_flush();
 
     // invoke the Handler's periodic loop
-    for (auto const& handler : active_handlers)
+    for (auto const& handler : _active_handlers_cache)
     {
       std::shared_ptr<Handler> h = handler.lock();
       if (h)
@@ -1174,7 +1176,8 @@ void BackendWorker::_exit()
       {
         // we are done, all queues are now empty
         _check_message_failures(cached_thread_contexts, _notification_handler);
-        _force_flush(_handler_collection.active_handlers());
+        _handler_collection.active_handlers(_active_handlers_cache);
+        _force_flush();
         break;
       }
     }

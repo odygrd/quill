@@ -132,9 +132,9 @@ public:
    * The list contains each handler only once regardless the amount of Logger instances using it
    * This is not used for logging by the backend but only in special cases when
    * e.g. it needs to iterate through all handlers for e.g. to flush
-   * @return a vector containing all the active handlers
+   * @param active_handlers_collection active handlers collection
    */
-  QUILL_NODISCARD std::vector<std::weak_ptr<Handler>> active_handlers() const;
+  void active_handlers(std::vector<std::weak_ptr<Handler>>& active_handlers_collection) const;
 
   /**
    * Called by the backend worker thread only to remove any handlers that are not longer in use
