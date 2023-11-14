@@ -115,6 +115,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
     char const* str = reinterpret_cast<char const*>(in);
     std::string_view const v{str, strlen(str)};
     args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
+
+    // for c_strings we add +1 to the length as we also want to copy the null terminated char
     return decode_args<TFormatContext, DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
   }
   else if constexpr (is_type_of_string<Arg>())
@@ -271,6 +273,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
   }
   else if constexpr (is_type_of_c_string<Arg>())
   {
+    assert((c_string_sizes[CstringIdx] > 0) &&
+           "we include the null terminated char to the size of the string for C strings");
     std::memcpy(out, arg, c_string_sizes[CstringIdx]);
     return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
                                        std::forward<Args>(args)...);
@@ -283,8 +287,12 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
     std::memcpy(out, &len, sizeof(size_t));
     out += sizeof(size_t);
 
-    // copy the string, no need to zero terminate it as we got the length
-    std::memcpy(out, arg.data(), arg.length());
+    if (len != 0)
+    {
+      // copy the string, no need to zero terminate it as we got the length
+      std::memcpy(out, arg.data(), arg.length());
+    }
+
     return encode_args<CstringIdx>(c_string_sizes, out + arg.length(), std::forward<Args>(args)...);
   }
 #if defined(_WIN32)
@@ -293,9 +301,13 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
     out = detail::align_pointer<alignof(size_t), std::byte>(out);
     size_t const len = c_string_sizes[CstringIdx];
     std::memcpy(out, &len, sizeof(size_t));
-
     out += sizeof(size_t);
-    wide_string_to_narrow(out, c_string_sizes[CstringIdx], std::wstring_view{arg, wcslen(arg)});
+
+    if (c_string_sizes[CstringIdx] != 0)
+    {
+      wide_string_to_narrow(out, c_string_sizes[CstringIdx], std::wstring_view{arg, wcslen(arg)});
+    }
+
     return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
                                        std::forward<Args>(args)...);
   }
@@ -307,7 +319,11 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
     std::memcpy(out, &len, sizeof(size_t));
     out += sizeof(size_t);
 
-    wide_string_to_narrow(out, c_string_sizes[CstringIdx], arg);
+    if (c_string_sizes[CstringIdx] != 0)
+    {
+      wide_string_to_narrow(out, c_string_sizes[CstringIdx], arg);
+    }
+
     return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
                                        std::forward<Args>(args)...);
   }
