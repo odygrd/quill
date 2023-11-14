@@ -59,7 +59,6 @@ TEST_CASE("default_logger_with_filehandler_1")
       {
         Logger* default_logger = lm.logger_collection().get_logger();
 
-        // log using the raw selialization queue
         std::string s = "adipiscing";
         LOG_INFO(default_logger, "Lorem ipsum dolor sit amet, consectetur {} {} {} {}", s, "elit", 1, 3.14);
         LOG_ERROR(default_logger,
@@ -78,6 +77,69 @@ TEST_CASE("default_logger_with_filehandler_1")
       file_contents, std::string{"LOG_INFO      root         Lorem ipsum dolor sit amet, consectetur adipiscing elit 1 3.14"}));
     REQUIRE(quill::testing::file_contains(
       file_contents, std::string{"LOG_ERROR     root         Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true"}));
+
+    lm.stop_backend_worker();
+  }
+  quill::detail::remove_file(filename);
+}
+
+/***/
+TEST_CASE("default_logger_with_filehandler_1_empty_strings")
+{
+  fs::path const filename{"test_default_logger_with_filehandler_1_empty_strings"};
+  {
+    LogManager lm;
+
+    // Set a file handler as the custom logger handler and log to it
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(),
+      []()
+      {
+        quill::FileHandlerConfig cfg;
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{}));
+
+    lm.configure(cfg);
+
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    std::thread frontend(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        std::string s = "adipiscing";
+        std::string_view const begin_s{"begin_s"};
+        std::string_view const end_s{"end_s"};
+        std::string_view const empty_sv{};
+        std::string const empty_s{};
+        char const* empty_cs = "";
+        char empty_ca[] = "";
+
+        LOG_INFO(default_logger,
+                 "Lorem ipsum dolor sit amet, consectetur {} {} {} {} {} [{}] [{}] [{}] [{}] {}", s,
+                 "elit", 1, 3.14, begin_s, empty_sv, empty_s, empty_cs, empty_ca, end_s);
+        LOG_ERROR(default_logger,
+                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {} {} {} "
+                  "[{}] [{}] [{}] [{}] {}",
+                  2, true, begin_s, empty_sv, empty_s, empty_cs, empty_ca, end_s);
+      });
+
+    frontend.join();
+
+    // Let all log get flushed to the file
+    lm.flush();
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+    REQUIRE_EQ(file_contents.size(), 2);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         Lorem ipsum dolor sit amet, consectetur adipiscing elit 1 3.14 begin_s [] [] [] [] end_s"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_ERROR     root         Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true begin_s [] [] [] []"}));
 
     lm.stop_backend_worker();
   }
@@ -164,7 +226,6 @@ TEST_CASE("default_logger_with_filehandler_cformat")
       {
         Logger* default_logger = lm.logger_collection().get_logger();
 
-        // log using the raw selialization queue
         std::string s = "adipiscing";
         LOG_INFO_CFORMAT(default_logger, "Lorem ipsum dolor sit amet, consectetur %s %s %d %f",
                          s.data(), "elit", 1, 3.14);

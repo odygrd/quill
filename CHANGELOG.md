@@ -55,6 +55,8 @@
 ## v3.4.1
 
 - Reduce backend worker unnecessary allocation. ([#368](https://github.com/odygrd/quill/issues/368))
+- Adjusted handling for empty `std::string_view` instances, addressing an issue where logging empty strings triggered an
+  unintended `memcpy` with zero size and a nullptr, leading to address sanitizer warnings.
 
 ## v3.4.0
 
