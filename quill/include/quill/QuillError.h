@@ -8,9 +8,21 @@
 #include "quill/TweakMe.h"
 
 #include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"
 #include <exception>
 #include <string>
+
+/**
+ * Require check
+ */
+#define QUILL_REQUIRE(expression, error)                                                           \
+  do                                                                                               \
+  {                                                                                                \
+    if (QUILL_UNLIKELY(!(expression)))                                                             \
+    {                                                                                              \
+      printf("Quill fatal error: %s (%s:%d)\n", error, __FILE__, __LINE__);                        \
+      std::abort();                                                                                \
+    }                                                                                              \
+  } while (0)
 
 #if defined(QUILL_NO_EXCEPTIONS)
   #define QUILL_TRY if (true)
