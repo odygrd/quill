@@ -7,8 +7,9 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/detail/misc/Attributes.h"
 #include "quill/Fmt.h"
+#include "quill/QuillError.h"
+#include "quill/detail/misc/Attributes.h"
 #include <functional>
 #include <sstream>
 #include <string>
@@ -75,19 +76,6 @@ enum class QueueType
   #define QUILL_LIKELY(x) (x)
   #define QUILL_UNLIKELY(x) (x)
 #endif
-
-/**
- * Require check
- */
-#define QUILL_REQUIRE(expression, error)                                                           \
-  do                                                                                               \
-  {                                                                                                \
-    if (QUILL_UNLIKELY(!(expression)))                                                             \
-    {                                                                                              \
-      printf("Quill fatal error: %s (%s:%d)\n", error, __FILE__, __LINE__);                        \
-      std::abort();                                                                                \
-    }                                                                                              \
-  } while (0)
 
 namespace quill
 {
@@ -191,8 +179,8 @@ constexpr bool check_printf_format_string(S format_str)
 
   if (num_specifiers > sizeof...(Args))
   {
-    throw std::runtime_error{
-      "Invalid printf format: format string does not match number of arguments"};
+    QUILL_THROW(
+      QuillError{"Invalid printf format: format string does not match number of arguments"});
   }
 
   return true;

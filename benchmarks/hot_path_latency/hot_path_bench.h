@@ -18,6 +18,8 @@
 #include <random>
 #include <thread>
 
+#include <x86intrin.h>
+
 // Instead of sleep
 inline void wait(std::chrono::nanoseconds min, std::chrono::nanoseconds max)
 {
