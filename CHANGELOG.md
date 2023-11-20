@@ -57,7 +57,7 @@
 - Reduce backend worker unnecessary allocation. ([#368](https://github.com/odygrd/quill/issues/368))
 - Adjusted handling for empty `std::string_view` instances, addressing an issue where logging empty strings triggered an
   unintended `memcpy` with zero size and a nullptr, leading to address sanitizer warnings.
-- Fix build error on macOS when using `-DQUILL_NO_EXCEPTIONS:BOOL=ON`. ([#357](https://github.com/odygrd/quill/issues/357))
+- Fix clang build error when using `-DQUILL_NO_EXCEPTIONS:BOOL=ON`. ([#357](https://github.com/odygrd/quill/issues/357))
 
 ## v3.4.0
 
