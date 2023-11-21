@@ -164,7 +164,6 @@ void on_signal(int32_t signal_number)
       // for other signals expect SIGINT and SIGTERM we re-raise
       std::signal(signal_number, SIG_DFL);
       std::raise(signal_number);
-
   }
   else
   {
@@ -185,7 +184,6 @@ void on_signal(int32_t signal_number)
       // Reset to the default signal handler and re-raise the signal
       std::signal(signal_number, SIG_DFL);
       std::raise(signal_number);
-
   }
 }
 

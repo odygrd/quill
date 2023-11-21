@@ -196,7 +196,7 @@ public:
    * This should only be called by the LogManagerSingleton and never directly from here
    */
   QUILL_ATTRIBUTE_COLD void start_backend_worker(bool with_signal_handler,
-                                                        std::initializer_list<int> const& catchable_signals)
+                                                 std::initializer_list<int> const& catchable_signals)
   {
     if (with_signal_handler)
     {
@@ -301,7 +301,7 @@ public:
   detail::LogManager& log_manager() noexcept { return _log_manager; }
 
   QUILL_ATTRIBUTE_COLD void start_backend_worker(bool with_signal_handler,
-                                                        std::initializer_list<int> const& catchable_signals)
+                                                 std::initializer_list<int> const& catchable_signals)
   {
     // protect init to be called only once
     std::call_once(

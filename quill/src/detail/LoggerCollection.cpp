@@ -43,8 +43,7 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
     return search->second.get();
   }
 
-    return _root_logger;
-
+  return _root_logger;
 }
 
 /***/

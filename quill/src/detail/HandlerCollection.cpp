@@ -56,8 +56,7 @@ void HandlerCollection::subscribe_handler(std::shared_ptr<Handler> const& handle
                                        return false;
                                      }
 
-                                       return elem.get() == handler_to_insert.get();
-
+                                     return elem.get() == handler_to_insert.get();
                                    });
 
   if (search == _active_handlers_collection.cend())
@@ -146,12 +145,12 @@ std::shared_ptr<Handler> HandlerCollection::_create_console_handler(std::string 
       return handler_ptr;
     }
 
-      // found a similar handler but with an out of date weak ptr, this is very rare to happen
-      // as the backend logging thread is cleaning them
-      // in that case allocate a new handler in that location
-      handler_ptr = std::make_shared<ConsoleHandler>(stream, file, console_colours);
-      search->second = handler_ptr;
-      return handler_ptr;
+    // found a similar handler but with an out of date weak ptr, this is very rare to happen
+    // as the backend logging thread is cleaning them
+    // in that case allocate a new handler in that location
+    handler_ptr = std::make_shared<ConsoleHandler>(stream, file, console_colours);
+    search->second = handler_ptr;
+    return handler_ptr;
   }
 
   // if first time add it

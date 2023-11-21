@@ -91,7 +91,6 @@ public:
 
         search->second = handler;
         return handler;
-
     }
 
     // if first time add it
