@@ -39,9 +39,9 @@ std::vector<std::wstring> wfile_contents(fs::path const& filename)
 // Search a vector for the given string
 bool file_contains(std::vector<std::string> const& file_vector, std::string const& search_string)
 {
-  auto const search = std::find_if(file_vector.cbegin(), file_vector.cend(),
-                                   [&search_string](std::string const& elem)
-                                   { return elem.find(search_string) != std::string::npos; });
+  auto const search =
+    std::find_if(file_vector.cbegin(), file_vector.cend(), [&search_string](std::string const& elem)
+                 { return elem.find(search_string) != std::string::npos; });
 
   bool const success = search != file_vector.cend();
 
@@ -60,8 +60,7 @@ bool file_contains(std::vector<std::string> const& file_vector, std::string cons
 
 void create_file(fs::path const& filename, std::string const& text)
 {
-  std::ofstream file(filename);
-  if (file.is_open())
+  if (std::ofstream file(filename); file.is_open())
   {
     if (!text.empty())
     {

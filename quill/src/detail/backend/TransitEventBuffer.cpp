@@ -87,12 +87,12 @@ UnboundedTransitEventBuffer::UnboundedTransitEventBuffer(uint32_t initial_transi
 /***/
 UnboundedTransitEventBuffer::~UnboundedTransitEventBuffer()
 {
-  Node* reader_node = _reader;
+  Node const* reader_node = _reader;
 
   // Look for extra nodes to delete
   while (reader_node)
   {
-    auto to_delete = reader_node;
+    auto const to_delete = reader_node;
     reader_node = reader_node->next;
     delete to_delete;
   }
@@ -134,7 +134,7 @@ TransitEvent* UnboundedTransitEventBuffer::back() noexcept
   {
     // buffer doesn't have enough space
     uint64_t capacity = static_cast<uint64_t>(_writer->transit_buffer.capacity()) * 2ull;
-    constexpr uint64_t max_bounded_queue_capacity =
+    uint64_t constexpr max_bounded_queue_capacity =
       (std::numeric_limits<BoundedTransitEventBuffer::integer_type>::max() >> 1) + 1;
 
     if (QUILL_UNLIKELY(capacity > max_bounded_queue_capacity))
@@ -142,7 +142,7 @@ TransitEvent* UnboundedTransitEventBuffer::back() noexcept
       capacity = max_bounded_queue_capacity;
     }
 
-    auto new_node = new Node{static_cast<uint32_t>(capacity)};
+    auto const new_node = new Node{static_cast<uint32_t>(capacity)};
     _writer->next = new_node;
     _writer = _writer->next;
     write_event = _writer->transit_buffer.back();
@@ -159,7 +159,7 @@ void UnboundedTransitEventBuffer::push_back() noexcept { _writer->transit_buffer
 /***/
 uint32_t UnboundedTransitEventBuffer::size() const noexcept
 {
-  Node* reader = _reader;
+  Node const* reader = _reader;
 
   uint32_t size = reader->transit_buffer.size();
 

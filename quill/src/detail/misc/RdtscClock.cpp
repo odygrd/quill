@@ -67,12 +67,10 @@ RdtscClock::RdtscClock(std::chrono::nanoseconds resync_interval /* = std::chrono
     _ns_per_tick(RdtscTicks::instance().ns_per_tick())
 
 {
-  bool res = resync(2500);
-  if (!res)
+  if (!resync(2500))
   {
     // try to resync again with higher lag
-    res = resync(10000);
-    if (!res)
+    if (!resync(10000))
     {
       std::cerr << "Failed to sync RdtscClock. Timestamps will be incorrect" << std::endl;
     }

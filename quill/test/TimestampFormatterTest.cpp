@@ -25,7 +25,7 @@ TEST_CASE("simple_format_string")
 /***/
 TEST_CASE("format_string_no_additional_specifier")
 {
-  const std::chrono::nanoseconds timestamp{1587161887987654321};
+  std::chrono::nanoseconds constexpr timestamp{1587161887987654321};
 
   // simple formats without any ms/us/ns specifiers
   {
@@ -56,7 +56,7 @@ TEST_CASE("format_string_with_millisecond_precision")
 {
   // simple
   {
-    const std::chrono::nanoseconds timestamp{1587161887987654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887987654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -65,7 +65,7 @@ TEST_CASE("format_string_with_millisecond_precision")
 
   // with double formatting
   {
-    const std::chrono::nanoseconds timestamp{1587161887803654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887803654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms %D", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -74,7 +74,7 @@ TEST_CASE("format_string_with_millisecond_precision")
 
   // with double formatting 2
   {
-    const std::chrono::nanoseconds timestamp{1587161887023654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887023654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms-%G", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -83,7 +83,7 @@ TEST_CASE("format_string_with_millisecond_precision")
 
   // with zeros
   {
-    const std::chrono::nanoseconds timestamp{1587161887009654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887009654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qms", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -96,7 +96,7 @@ TEST_CASE("format_string_with_microsecond_precision")
 {
   // simple
   {
-    const std::chrono::nanoseconds timestamp{1587161887987654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887987654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qus", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -105,7 +105,7 @@ TEST_CASE("format_string_with_microsecond_precision")
 
   // with double formatting
   {
-    const std::chrono::nanoseconds timestamp{1587161887803654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887803654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qus %D", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -114,7 +114,7 @@ TEST_CASE("format_string_with_microsecond_precision")
 
   // with double formatting 2
   {
-    const std::chrono::nanoseconds timestamp{1587161887010654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887010654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qus-%G", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -123,7 +123,7 @@ TEST_CASE("format_string_with_microsecond_precision")
 
   // with zeros
   {
-    const std::chrono::nanoseconds timestamp{1587161887000004321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887000004321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qus", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -136,7 +136,7 @@ TEST_CASE("format_string_with_nanosecond_precision")
 {
   // simple
   {
-    const std::chrono::nanoseconds timestamp{1587161887987654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887987654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -145,7 +145,7 @@ TEST_CASE("format_string_with_nanosecond_precision")
 
   // with double formatting
   {
-    const std::chrono::nanoseconds timestamp{1587161887803654320};
+    std::chrono::nanoseconds constexpr timestamp{1587161887803654320};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns %D", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -154,7 +154,7 @@ TEST_CASE("format_string_with_nanosecond_precision")
 
   // with double formatting 2
   {
-    const std::chrono::nanoseconds timestamp{1587161887000654321};
+    std::chrono::nanoseconds constexpr timestamp{1587161887000654321};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns-%G", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -163,7 +163,7 @@ TEST_CASE("format_string_with_nanosecond_precision")
 
   // with zeros
   {
-    const std::chrono::nanoseconds timestamp{1587161887000000009};
+    std::chrono::nanoseconds constexpr timestamp{1587161887000000009};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);
@@ -172,7 +172,7 @@ TEST_CASE("format_string_with_nanosecond_precision")
 
   // with max
   {
-    const std::chrono::nanoseconds timestamp{1587161887999999999};
+    std::chrono::nanoseconds constexpr timestamp{1587161887999999999};
     TimestampFormatter ts_formatter{"%H:%M:%S.%Qns", quill::Timezone::GmtTime};
 
     auto const& result = ts_formatter.format_timestamp(timestamp);

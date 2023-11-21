@@ -14,11 +14,13 @@ QUILL_NODISCARD quill::fs::path get_appended_filename(quill::fs::path const& fil
   {
     return filename;
   }
-  else if (append_to_filename == quill::FilenameAppend::StartDate)
+
+  if (append_to_filename == quill::FilenameAppend::StartDate)
   {
     return quill::detail::append_date_time_to_filename(filename, false, timezone);
   }
-  else if (append_to_filename == quill::FilenameAppend::StartDateTime)
+
+  if (append_to_filename == quill::FilenameAppend::StartDateTime)
   {
     return quill::detail::append_date_time_to_filename(filename, true, timezone);
   }
@@ -53,7 +55,7 @@ void FileHandlerConfig::set_pattern(std::string const& log_pattern,
 }
 
 /***/
-FileHandler::FileHandler(fs::path const& filename, FileHandlerConfig config,
+FileHandler::FileHandler(fs::path const& filename, FileHandlerConfig const& config,
                          FileEventNotifier file_event_notifier, bool do_fopen /* = true */)
   : StreamHandler(get_appended_filename(filename, config.append_to_filename(), config.timezone()),
                   nullptr, std::move(file_event_notifier)),

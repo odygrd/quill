@@ -61,7 +61,7 @@ public:
    * @note: Accessor for backend processing
    * @return reference to the pattern formatter of this handler
    */
-  QUILL_ATTRIBUTE_HOT PatternFormatter& formatter() { return *_formatter; }
+  QUILL_ATTRIBUTE_HOT PatternFormatter& formatter() const { return *_formatter; }
 
   /**
    * Logs a formatted log message to the handler
@@ -85,7 +85,7 @@ public:
    * @note It is recommended to avoid performing heavy operations within this function
    *       as it may adversely affect the performance of the backend thread.
    */
-  QUILL_ATTRIBUTE_HOT virtual void run_loop() noexcept {};
+  QUILL_ATTRIBUTE_HOT virtual void run_loop() noexcept {}
 
   /**
    * Sets a log level filter on the handler. Log statements with higher or equal severity only will be logged

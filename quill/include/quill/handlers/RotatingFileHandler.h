@@ -62,7 +62,7 @@ public:
    * @brief Sets the time of day for daily log file rotation.
    * When this option is set, the rotation frequency is automatically set to 'daily'.
    * By default, this option is disabled.
-   * @param time The time of day to perform the log file rotation. The value must be in the format "HH:MM".
+   * @param at_time The time of day to perform the log file rotation. The value must be in the format "HH:MM".
    */
   QUILL_ATTRIBUTE_COLD void set_rotation_time_daily(std::string const& at_time);
 
@@ -138,8 +138,9 @@ public:
    * Creates a new instance of the RotatingFileHandler class.
    *
    * @param filename The base file name to be used for logs.
-   * @param mode The mode to open the file.
    * @param config The handler configuration.
+   * @param file_event_notifier file event notifier
+   * @param start_time start time
    */
   RotatingFileHandler(fs::path const& filename, RotatingFileHandlerConfig const& config,
                       FileEventNotifier file_event_notifier,

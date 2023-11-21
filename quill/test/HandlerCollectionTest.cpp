@@ -53,7 +53,7 @@ TEST_CASE("create_get")
   HandlerCollection hc;
 
   // Create a file handler
-  std::shared_ptr<Handler> filehandler = hc.create_handler<FileHandler>(
+  std::shared_ptr<Handler> const filehandler = hc.create_handler<FileHandler>(
     "create_get_file_handler",
     []()
     {
@@ -64,7 +64,7 @@ TEST_CASE("create_get")
     FileEventNotifier{});
 
   // Request the same file handler
-  std::shared_ptr<Handler> filehandler_2 = hc.create_handler<FileHandler>(
+  std::shared_ptr<Handler> const filehandler_2 = hc.create_handler<FileHandler>(
     "create_get_file_handler",
     []()
     {

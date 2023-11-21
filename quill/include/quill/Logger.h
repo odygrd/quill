@@ -231,7 +231,7 @@ public:
     // look up their types to deserialize them
 
     // Note: The metadata variable here is created during program init time,
-    std::byte* const write_begin = write_buffer;
+    std::byte const* const write_begin = write_buffer;
     write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
 
     constexpr bool is_printf_format = macro_metadata.is_printf_format();

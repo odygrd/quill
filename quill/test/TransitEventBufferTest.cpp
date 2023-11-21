@@ -107,7 +107,7 @@ TEST_CASE("transit_event_bounded_buffer")
 TEST_CASE("transit_event_bounded_buffer_integer_overflow")
 {
   BoundedTransitEventBufferImpl<uint8_t> bte{128};
-  size_t const iterations = static_cast<size_t>(std::numeric_limits<uint8_t>::max()) * 8ull;
+  size_t constexpr iterations = static_cast<size_t>(std::numeric_limits<uint8_t>::max()) * 8ull;
 
   for (size_t i = 0; i < iterations; ++i)
   {

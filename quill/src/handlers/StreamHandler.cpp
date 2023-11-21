@@ -97,14 +97,13 @@ StreamHandler::StreamHandlerType StreamHandler::stream_handler_type() const noex
   {
     return StreamHandler::StreamHandlerType::Stdout;
   }
-  else if (_file == stderr)
+
+  if (_file == stderr)
   {
     return StreamHandler::StreamHandlerType::Stderr;
   }
-  else
-  {
-    return StreamHandler::StreamHandlerType::File;
-  }
+
+  return StreamHandler::StreamHandlerType::File;
 }
 
 /***/

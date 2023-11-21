@@ -10,7 +10,7 @@ namespace quill::detail
 /***/
 void BacktraceStorage::store(TransitEvent transit_event)
 {
-  auto stored_records_it = _stored_records_map.find(transit_event.header.logger_details->name());
+  auto const stored_records_it = _stored_records_map.find(transit_event.header.logger_details->name());
 
   if (QUILL_UNLIKELY(stored_records_it == _stored_records_map.end()))
   {
@@ -63,7 +63,7 @@ void BacktraceStorage::store(TransitEvent transit_event)
 void BacktraceStorage::process(std::string const& logger_name,
                                std::function<void(TransitEvent const&)> const& callback)
 {
-  auto stored_records_it = _stored_records_map.find(logger_name);
+  auto const stored_records_it = _stored_records_map.find(logger_name);
 
   if (QUILL_UNLIKELY(stored_records_it == _stored_records_map.end()))
   {

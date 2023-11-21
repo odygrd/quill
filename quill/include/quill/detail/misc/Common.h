@@ -131,11 +131,9 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
             ++char_cnt;
             continue;
           }
-          else
-          {
+
             // we found '{' match, we can break
             break;
-          }
         }
 
         ++pos;

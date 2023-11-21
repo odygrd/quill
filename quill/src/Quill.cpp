@@ -146,9 +146,7 @@ Logger* create_logger(std::string const& logger_name, std::vector<std::shared_pt
 /***/
 void remove_logger(Logger* logger)
 {
-  Logger* default_logger = get_logger(nullptr);
-
-  if (logger == default_logger)
+  if (logger == get_logger(nullptr))
   {
     // we do not allow removing the default logger as it is also used by the flush() function
     return;

@@ -105,7 +105,7 @@ fs::path append_date_time_to_filename(fs::path const& filename, bool with_time, 
 std::string get_datetime_string(uint64_t timestamp_ns, Timezone timezone, bool with_time)
 {
   // convert to seconds
-  time_t time_now = static_cast<time_t>(timestamp_ns / 1000000000);
+  auto const time_now = static_cast<time_t>(timestamp_ns / 1000000000);
   tm now_tm;
 
   if (timezone == Timezone::GmtTime)

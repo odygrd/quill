@@ -56,7 +56,7 @@ void ConsoleColours::set_default_colours() noexcept
 /***/
 void ConsoleColours::set_colour(LogLevel log_level, WORD colour) noexcept
 {
-  using log_lvl_t = std::underlying_type<LogLevel>::type;
+  using log_lvl_t = std::underlying_type_t<LogLevel>;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
   _colours[log_lvl] = colour;
   _using_colours = true;
@@ -71,7 +71,7 @@ bool ConsoleColours::using_colours() const noexcept { return _using_colours; }
 /***/
 WORD ConsoleColours::colour_code(LogLevel log_level) const noexcept
 {
-  using log_lvl_t = std::underlying_type<LogLevel>::type;
+  using log_lvl_t = std::underlying_type_t<LogLevel>;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
   return _colours[log_lvl];
 }
@@ -164,8 +164,8 @@ void ConsoleColours::_set_can_use_colours(FILE* file) noexcept
 #endif
 
 /***/
-ConsoleHandler::ConsoleHandler(std::string stream, FILE* file, ConsoleColours const& console_colours)
-  : StreamHandler{std::move(stream), file}, _console_colours(console_colours)
+ConsoleHandler::ConsoleHandler(std::string const& stream, FILE* file, ConsoleColours const& console_colours)
+  : StreamHandler{stream, file}, _console_colours(console_colours)
 {
   // In this ctor we take a full copy of console_colours and in our instance we modify it
   _console_colours._set_can_use_colours(_file);
@@ -243,7 +243,7 @@ void ConsoleHandler::enable_console_colours() noexcept { _console_colours.set_de
 ConsoleColours::WORD ConsoleHandler::_set_foreground_colour(ConsoleColours::WORD attributes)
 {
   CONSOLE_SCREEN_BUFFER_INFO orig_buffer_info;
-  auto out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file)));
+  auto const out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file)));
 
   bool const screen_buffer_info = ::GetConsoleScreenBufferInfo(out_handle, &orig_buffer_info);
   if (QUILL_UNLIKELY(!screen_buffer_info))

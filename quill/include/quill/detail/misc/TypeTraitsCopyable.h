@@ -63,7 +63,7 @@ template< class T >
 using remove_cvref_t = typename remove_cvref<T>::type;
 
 template <typename Arg>
-constexpr size_t array_size_v = std::extent<remove_cvref_t<Arg>>::value;
+constexpr size_t array_size_v = std::extent_v<remove_cvref_t<Arg>>;
 
 /**
  * fmtquill::streamed detection
@@ -117,7 +117,7 @@ template <typename T>
 constexpr bool is_copyable_v = is_copyable<remove_cvref_t<T>>::value;
 
 template<typename... Args>
-using are_copyable_t = typename std::conjunction<is_copyable<remove_cvref_t<Args>>...>;
+using are_copyable_t = std::conjunction<is_copyable<remove_cvref_t<Args>>...>;
 
 template<typename... Args>
 constexpr bool are_copyable_v = std::conjunction_v<is_copyable<remove_cvref_t<Args>>...>;

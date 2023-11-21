@@ -112,9 +112,9 @@ TEST_CASE("default_logger_with_filehandler_1_empty_strings")
         Logger* default_logger = lm.logger_collection().get_logger();
 
         std::string s = "adipiscing";
-        std::string_view const begin_s{"begin_s"};
-        std::string_view const end_s{"end_s"};
-        std::string_view const empty_sv{};
+        std::string_view constexpr begin_s{"begin_s"};
+        std::string_view constexpr end_s{"end_s"};
+        std::string_view constexpr empty_sv{};
         std::string const empty_s{};
         char const* empty_cs = "";
         char empty_ca[] = "";
@@ -901,7 +901,7 @@ TEST_CASE("many_loggers_multiple_threads")
         [&lm, i]()
         {
           // Create a logger in this thread
-          std::string logger_name = "logger_" + std::to_string(i);
+          std::string const logger_name = "logger_" + std::to_string(i);
           Logger* logger = lm.create_logger(logger_name.data(), std::nullopt, std::nullopt);
 
           for (size_t j = 0; j < message_count; ++j)
@@ -1582,7 +1582,7 @@ TEST_CASE("log_backtrace_manual_flush")
 class FileFilter1 : public quill::FilterBase
 {
 public:
-  FileFilter1() : quill::FilterBase("FileFilter1"){};
+  FileFilter1() : quill::FilterBase("FileFilter1"){}
 
   QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
                               quill::MacroMetadata const& metadata, fmt_buffer_t const&) noexcept override
@@ -1601,7 +1601,7 @@ public:
 class FileFilter2 : public quill::FilterBase
 {
 public:
-  FileFilter2() : quill::FilterBase("FileFilter2"){};
+  FileFilter2() : quill::FilterBase("FileFilter2"){}
 
   QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
                               quill::MacroMetadata const& metadata, fmt_buffer_t const&) noexcept override

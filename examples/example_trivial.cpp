@@ -56,7 +56,7 @@ int main()
              char_arrays.mid_0);
 
     // Using a dynamic runtime log level
-    std::array<quill::LogLevel, 4> const runtime_log_levels = {
+    std::array<quill::LogLevel, 4> constexpr runtime_log_levels = {
       quill::LogLevel::Debug, quill::LogLevel::Info, quill::LogLevel::Warning, quill::LogLevel::Error};
 
     for (auto const& log_level : runtime_log_levels)
@@ -123,7 +123,7 @@ int main()
   LOG_CRITICAL(logger_1, "This is never logged");
 
   // Get all created loggers
-  std::unordered_map<std::string, quill::Logger*> created_loggers = quill::get_all_loggers();
+  std::unordered_map<std::string, quill::Logger*> const created_loggers = quill::get_all_loggers();
   std::vector<std::string> logger_names;
   for (auto const& elem : created_loggers)
   {

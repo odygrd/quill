@@ -3,6 +3,8 @@
  * Distributed under the MIT License (http://opensource.org/licenses/MIT)
  */
 
+#pragma once
+
 #include "quill/detail/LogManager.h"
 #include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Rdtsc.h"

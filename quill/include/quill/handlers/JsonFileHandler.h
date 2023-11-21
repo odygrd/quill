@@ -27,7 +27,7 @@ public:
   {
     // JsonFileHandler requires an empty pattern
     set_pattern("");
-  };
+  }
 
   ~JsonFileHandler() override = default;
 

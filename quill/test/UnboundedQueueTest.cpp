@@ -53,7 +53,7 @@ TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
             std::tie(read_buffer, alloc) = buffer.prepare_read();
           }
 
-          auto value = reinterpret_cast<uint32_t const*>(read_buffer);
+          auto const value = reinterpret_cast<uint32_t const*>(read_buffer);
           REQUIRE_EQ(*value, i);
           buffer.finish_read(sizeof(uint32_t));
           buffer.commit_read();

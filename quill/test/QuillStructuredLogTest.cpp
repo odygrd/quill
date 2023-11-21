@@ -39,7 +39,7 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
   for (int i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back(
-      [log_from_one_thread_file, filename, filename_s, number_of_messages, test_id, i]() mutable
+      [log_from_one_thread_file, filename_s, number_of_messages, test_id, i]() mutable
       {
         // Also use preallocate
         quill::preallocate();
@@ -54,7 +54,7 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
                                 return cfg;
                               }());
 
-        std::string logger_name = "jlogger_" + std::string{test_id} + "_" + std::to_string(i);
+        std::string const logger_name = "jlogger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(
           logger_name,
           std::vector<std::shared_ptr<quill::Handler>>{std::move(log_from_one_thread_file),

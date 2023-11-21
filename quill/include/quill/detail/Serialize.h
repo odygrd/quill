@@ -7,7 +7,7 @@
 
 #ifndef __STDC_WANT_LIB_EXT1__
   #define __STDC_WANT_LIB_EXT1__ 1
-  #include <string.h>
+  #include <cstring>
 #endif
 
 #include "misc/Utilities.h"
@@ -42,9 +42,9 @@ class LoggerDetails;
 template <typename Arg>
 QUILL_NODISCARD constexpr bool is_type_of_c_array()
 {
-  using ArgType = detail::remove_cvref_t<Arg>;
-  return std::is_array<ArgType>::value &&
-    std::is_same<detail::remove_cvref_t<typename std::remove_extent<ArgType>::type>, char>::value;
+  using ArgType = remove_cvref_t<Arg>;
+  return std::is_array_v<ArgType> &&
+    std::is_same_v<remove_cvref_t<std::remove_extent_t<ArgType>>, char>;
 }
 
 template <typename Arg>
@@ -78,7 +78,7 @@ QUILL_NODISCARD constexpr bool is_type_of_wide_string()
 #endif
 
 template <typename Arg>
-QUILL_NODISCARD inline constexpr bool need_call_dtor_for()
+QUILL_NODISCARD constexpr bool need_call_dtor_for()
 {
   using ArgType = detail::remove_cvref_t<Arg>;
 
@@ -94,18 +94,18 @@ QUILL_NODISCARD inline constexpr bool need_call_dtor_for()
     return false;
   }
 
-  return !std::is_trivially_destructible<ArgType>::value;
+  return !std::is_trivially_destructible_v<ArgType>;
 }
 
 template <typename TFormatContext, size_t DestructIdx>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* decode_args(
   std::byte* in, std::vector<fmtquill::basic_format_arg<TFormatContext>>&, std::byte**)
 {
   return in;
 }
 
 template <typename TFormatContext, size_t DestructIdx, typename Arg, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* decode_args(
   std::byte* in, std::vector<fmtquill::basic_format_arg<TFormatContext>>& args, std::byte** destruct_args)
 {
   using ArgType = detail::remove_cvref_t<Arg>;
@@ -168,12 +168,12 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* decode_args(
 }
 
 template <size_t DestructIdx>
-QUILL_ATTRIBUTE_HOT inline void destruct_args(std::byte**)
+QUILL_ATTRIBUTE_HOT void destruct_args(std::byte**)
 {
 }
 
 template <size_t DestructIdx, typename Arg, typename... Args>
-QUILL_ATTRIBUTE_HOT inline void destruct_args(std::byte** args)
+QUILL_ATTRIBUTE_HOT void destruct_args(std::byte** args)
 {
   using ArgType = detail::remove_cvref_t<Arg>;
   if constexpr (need_call_dtor_for<Arg>())
@@ -364,7 +364,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> format_to
 {
   std::string error;
   constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
-  std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
+  std::byte* dtor_args[(std::max)(num_dtors, static_cast<size_t>(1))];
 
   args.clear();
   std::byte* ret = decode_args<fmtquill::format_context, 0, Args...>(data, args, dtor_args);
@@ -397,7 +397,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> printf_fo
 {
   std::string error;
   constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
-  std::byte* dtor_args[(std::max)(num_dtors, (size_t)1)];
+  std::byte* dtor_args[(std::max)(num_dtors, static_cast<size_t>(1))];
 
   args.clear();
   std::byte* ret = decode_args<fmtquill::printf_context, 0, Args...>(data, args, dtor_args);
@@ -455,7 +455,7 @@ struct Header
 public:
   Header() = default;
   Header(MetadataFormatFn metadata_and_format_fn, detail::LoggerDetails const* logger_details, uint64_t timestamp)
-    : metadata_and_format_fn(metadata_and_format_fn), logger_details(logger_details), timestamp(timestamp){};
+    : metadata_and_format_fn(metadata_and_format_fn), logger_details(logger_details), timestamp(timestamp){}
 
   MetadataFormatFn metadata_and_format_fn{nullptr};
   detail::LoggerDetails const* logger_details{nullptr};

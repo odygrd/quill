@@ -29,8 +29,7 @@ std::pair<std::string, std::string> _split_timestamp_format_once(std::string& ti
 
   for (auto const& modifier : modifiers)
   {
-    auto const search = timestamp_format.find(modifier);
-    if (search != std::string::npos)
+    if (auto const search = timestamp_format.find(modifier); search != std::string::npos)
     {
       // Add the index and the modifier string to our map
       found_format_modifiers.emplace(std::make_pair(search, modifier));
@@ -145,8 +144,7 @@ std::string const& StringFromTime::format_timestamp(time_t timestamp)
     }
     else if (_time_zone == Timezone::GmtTime)
     {
-      _next_recalculation_timestamp =
-        next_noon_or_midnight_timestamp(timestamp + 1, _time_zone);
+      _next_recalculation_timestamp = next_noon_or_midnight_timestamp(timestamp + 1, _time_zone);
     }
   }
 

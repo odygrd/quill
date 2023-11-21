@@ -42,7 +42,7 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
                                 return cfg;
                               }());
 
-        std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
+        std::string const logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(logger_name, std::move(log_from_one_thread_file));
 
         for (uint32_t j = 0; j < number_of_messages; ++j)

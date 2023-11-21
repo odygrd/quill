@@ -125,7 +125,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_in_terminal(FILE* file) noexcept;
 
 /**
  * fsync the file descriptor
- * @param f file
+ * @param fd file
  */
-bool fsync(FILE* f);
+bool fsync(FILE* fd);
 } // namespace quill::detail

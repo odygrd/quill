@@ -114,9 +114,8 @@ BOOL WINAPI on_console_signal(DWORD signal)
 LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
 {
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
-  uint32_t const tid = get_thread_id();
   if ((LogManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
-      (tid == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
+      (get_thread_id() == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
   {
     // backend worker thread is not running or the handler is called in the backend worker thread
   }
@@ -153,21 +152,19 @@ void on_signal(int32_t signal_number)
   }
 
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
-  uint32_t const tid = get_thread_id();
   if ((LogManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
-      (tid == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
+      (get_thread_id() == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
   {
     // backend worker thread is not running or the handler is called in the backend worker thread
     if (signal_number == SIGINT || signal_number == SIGTERM)
     {
       std::exit(EXIT_SUCCESS);
     }
-    else
-    {
+
       // for other signals expect SIGINT and SIGTERM we re-raise
       std::signal(signal_number, SIG_DFL);
       std::raise(signal_number);
-    }
+
   }
   else
   {
@@ -180,8 +177,7 @@ void on_signal(int32_t signal_number)
       quill::flush();
       std::exit(EXIT_SUCCESS);
     }
-    else
-    {
+
       LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
 
       quill::flush();
@@ -189,7 +185,7 @@ void on_signal(int32_t signal_number)
       // Reset to the default signal handler and re-raise the signal
       std::signal(signal_number, SIG_DFL);
       std::raise(signal_number);
-    }
+
   }
 }
 

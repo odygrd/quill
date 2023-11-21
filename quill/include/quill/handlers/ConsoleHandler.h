@@ -187,7 +187,7 @@ private:
 class ConsoleHandler : public StreamHandler
 {
 public:
-  ConsoleHandler(std::string stream, FILE* file, ConsoleColours const& console_colours);
+  ConsoleHandler(std::string const& stream, FILE* file, ConsoleColours const& console_colours);
 
   ~ConsoleHandler() override = default;
 
