@@ -83,7 +83,7 @@ time_t next_noon_or_midnight_timestamp(time_t timestamp, Timezone timezone) noex
 
   // convert back to time since epoch
   std::chrono::system_clock::time_point const next_midnight = (timezone == Timezone::GmtTime)
-    ? std::chrono::system_clock::from_time_t(timegm(&time_info))
+    ? std::chrono::system_clock::from_time_t(detail::timegm(&time_info))
     : std::chrono::system_clock::from_time_t(std::mktime(&time_info));
 
   // returns seconds since epoch of the next midnight.

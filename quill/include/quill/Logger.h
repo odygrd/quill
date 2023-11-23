@@ -291,8 +291,7 @@ public:
     } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_message_info)>(LogLevel::None,
-                                                             QUILL_FMT_STRING("{}"), capacity);
+    this->template log<decltype(anonymous_log_message_info)>(LogLevel::None, QUILL_FMT_STRING("{}"), capacity);
 
     // Also store the desired flush log level
     _logger_details.set_backtrace_flush_level(backtrace_flush_level);
