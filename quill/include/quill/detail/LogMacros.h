@@ -28,6 +28,7 @@
                                     __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     "n/a",                                                         \
                                     fmt,                                                           \
+                                    nullptr,                                                       \
                                     log_statement_level,                                           \
                                     quill::MacroMetadata::Event::Log,                              \
                                     quill::detail::detect_structured_log_template(fmt),            \
@@ -55,6 +56,7 @@
                                     __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     function_name,                                                 \
                                     fmt,                                                           \
+                                    nullptr,                                                       \
                                     log_statement_level,                                           \
                                     quill::MacroMetadata::Event::Log,                              \
                                     quill::detail::detect_structured_log_template(fmt),            \
@@ -67,6 +69,34 @@
       logger->template log<decltype(anonymous_log_message_info)>(                                  \
         quill::LogLevel::None, QUILL_FMT_STRING(fmt), ##__VA_ARGS__);                              \
     }                                                                                              \
+  } while (0)
+
+#define QUILL_LOGGER_CALL_WITH_TAGS(likelyhood, logger, log_statement_level, custom_tags, fmt, ...) \
+  do                                                                                                \
+  {                                                                                                 \
+    static constexpr char const* function_name = __FUNCTION__;                                      \
+    struct                                                                                          \
+    {                                                                                               \
+      constexpr quill::MacroMetadata operator()() const noexcept                                    \
+      {                                                                                             \
+        return quill::MacroMetadata{QUILL_STRINGIFY(__LINE__),                                      \
+                                    __FILE__,                                                       \
+                                    __FILE__ ":" QUILL_STRINGIFY(__LINE__),                         \
+                                    function_name,                                                  \
+                                    fmt,                                                            \
+                                    &custom_tags,                                                   \
+                                    log_statement_level,                                            \
+                                    quill::MacroMetadata::Event::Log,                               \
+                                    quill::detail::detect_structured_log_template(fmt),             \
+                                    false};                                                         \
+      }                                                                                             \
+    } anonymous_log_message_info;                                                                   \
+                                                                                                    \
+    if (likelyhood(logger->template should_log<log_statement_level>()))                             \
+    {                                                                                               \
+      logger->template log<decltype(anonymous_log_message_info)>(                                   \
+        quill::LogLevel::None, QUILL_FMT_STRING(fmt), ##__VA_ARGS__);                               \
+    }                                                                                               \
   } while (0)
 
 #define QUILL_LOGGER_CALL_LIMIT(min_interval, likelyhood, logger, log_statement_level, fmt, ...)   \
@@ -118,6 +148,7 @@
                                     __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     function_name,                                                 \
                                     fmt,                                                           \
+                                    nullptr,                                                       \
                                     quill::LogLevel::Backtrace,                                    \
                                     quill::MacroMetadata::Event::Log,                              \
                                     quill::detail::detect_structured_log_template(fmt),            \
@@ -149,6 +180,7 @@
                                     __FILE__ ":" QUILL_STRINGIFY(__LINE__),                                        \
                                     function_name,                                                                 \
                                     fmt,                                                                           \
+                                    nullptr,                                                                       \
                                     quill::LogLevel::Dynamic,                                                      \
                                     quill::MacroMetadata::Event::Log,                                              \
                                     quill::detail::detect_structured_log_template(fmt),                            \
@@ -177,6 +209,7 @@
                                     __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     "n/a",                                                         \
                                     fmt,                                                           \
+                                    nullptr,                                                       \
                                     log_statement_level,                                           \
                                     quill::MacroMetadata::Event::Log,                              \
                                     quill::detail::detect_structured_log_template(fmt),            \
@@ -207,6 +240,7 @@
                                     __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     function_name,                                                 \
                                     fmt,                                                           \
+                                    nullptr,                                                       \
                                     log_statement_level,                                           \
                                     quill::MacroMetadata::Event::Log,                              \
                                     quill::detail::detect_structured_log_template(fmt),            \
@@ -273,6 +307,7 @@
                                     __FILE__ ":" QUILL_STRINGIFY(__LINE__),                        \
                                     function_name,                                                 \
                                     fmt,                                                           \
+                                    nullptr,                                                       \
                                     quill::LogLevel::Backtrace,                                    \
                                     quill::MacroMetadata::Event::Log,                              \
                                     quill::detail::detect_structured_log_template(fmt),            \
@@ -307,6 +342,7 @@
                                     __FILE__ ":" QUILL_STRINGIFY(__LINE__),                                        \
                                     function_name,                                                                 \
                                     fmt,                                                                           \
+                                    nullptr,                                                                       \
                                     quill::LogLevel::Dynamic,                                                      \
                                     quill::MacroMetadata::Event::Log,                                              \
                                     quill::detail::detect_structured_log_template(fmt),                            \
@@ -333,6 +369,9 @@
   #define QUILL_LOG_TRACE_L3_LIMIT(min_interval, logger, fmt, ...)                                 \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 
+  #define QUILL_LOG_TRACE_L3_WITH_TAGS(logger, custom_tags, fmt, ...)                              \
+    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, custom_tags, fmt, ##__VA_ARGS__)
+
   #define QUILL_LOG_TRACE_L3_NOFN(logger, fmt, ...)                                                \
     QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 
@@ -340,19 +379,22 @@
     QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L3_CFORMAT(logger, fmt, ...)                                             \
-    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_CFORMAT(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L3_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                         \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT_CFORMAT(min_interval, QUILL_UNLIKELY, logger,                          \
+                                    quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L3_NOFN_CFORMAT(logger, fmt, ...)                                        \
-    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_CFORMAT(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L3_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                    \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT_CFORMAT(min_interval, QUILL_UNLIKELY, logger,                     \
+                                         quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_TRACE_L3(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L3_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L3_WITH_TAGS(logger, custom_tags, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L3_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L3_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L3_CFORMAT(logger, fmt, ...) (void)0
@@ -368,6 +410,9 @@
   #define QUILL_LOG_TRACE_L2_LIMIT(min_interval, logger, fmt, ...)                                 \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 
+  #define QUILL_LOG_TRACE_L2_WITH_TAGS(logger, custom_tags, fmt, ...)                              \
+    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, custom_tags, fmt, ##__VA_ARGS__)
+
   #define QUILL_LOG_TRACE_L2_NOFN(logger, fmt, ...)                                                \
     QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 
@@ -375,19 +420,22 @@
     QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L2_CFORMAT(logger, fmt, ...)                                             \
-    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_CFORMAT(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L2_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                         \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT_CFORMAT(min_interval, QUILL_UNLIKELY, logger,                          \
+                                    quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L2_NOFN_CFORMAT(logger, fmt, ...)                                        \
-    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_CFORMAT(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L2_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                    \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT_CFORMAT(min_interval, QUILL_UNLIKELY, logger,                     \
+                                         quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_TRACE_L2(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L2_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L2_WITH_TAGS(logger, custom_tags, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L2_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L2_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L2_CFORMAT(logger, fmt, ...) (void)0
@@ -403,6 +451,9 @@
   #define QUILL_LOG_TRACE_L1_LIMIT(min_interval, logger, fmt, ...)                                 \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 
+  #define QUILL_LOG_TRACE_L1_WITH_TAGS(logger, custom_tags, fmt, ...)                              \
+    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, custom_tags, fmt, ##__VA_ARGS__)
+
   #define QUILL_LOG_TRACE_L1_NOFN(logger, fmt, ...)                                                \
     QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 
@@ -410,19 +461,22 @@
     QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L1_CFORMAT(logger, fmt, ...)                                             \
-    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_CFORMAT(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L1_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                         \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT_CFORMAT(min_interval, QUILL_UNLIKELY, logger,                          \
+                                    quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L1_NOFN_CFORMAT(logger, fmt, ...)                                        \
-    QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_CFORMAT(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_TRACE_L1_NOFN_LIMIT_CFORMAT(min_interval, logger, fmt, ...)                    \
-    QUILL_LOGGER_CALL_NOFN_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_NOFN_LIMIT_CFORMAT(min_interval, QUILL_UNLIKELY, logger,                     \
+                                         quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 #else
   #define QUILL_LOG_TRACE_L1(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L1_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_TRACE_L1_WITH_TAGS(logger, custom_tags, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L1_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L1_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_TRACE_L1_CFORMAT(logger, fmt, ...) (void)0
@@ -437,6 +491,9 @@
 
   #define QUILL_LOG_DEBUG_LIMIT(min_interval, logger, fmt, ...)                                    \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_DEBUG_WITH_TAGS(logger, custom_tags, fmt, ...)                                 \
+    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, custom_tags, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_DEBUG_NOFN(logger, fmt, ...)                                                   \
     QUILL_LOGGER_CALL_NOFN(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
@@ -459,6 +516,7 @@
 #else
   #define QUILL_LOG_DEBUG(logger, fmt, ...) (void)0
   #define QUILL_LOG_DEBUG_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_DEBUG_WITH_TAGS(logger, custom_tags, fmt, ...) (void)0
   #define QUILL_LOG_DEBUG_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_DEBUG_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_DEBUG_CFORMAT(logger, fmt, ...) (void)0
@@ -473,6 +531,9 @@
 
   #define QUILL_LOG_INFO_LIMIT(min_interval, logger, fmt, ...)                                     \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_INFO_WITH_TAGS(logger, custom_tags, fmt, ...)                                  \
+    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_LIKELY, logger, quill::LogLevel::Info, custom_tags, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_INFO_NOFN(logger, fmt, ...)                                                    \
     QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
@@ -495,6 +556,7 @@
 #else
   #define QUILL_LOG_INFO(logger, fmt, ...) (void)0
   #define QUILL_LOG_INFO_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_INFO_WITH_TAGS(logger, custom_tags, fmt, ...) (void)0
   #define QUILL_LOG_INFO_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_INFO_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_INFO_CFORMAT(logger, fmt, ...) (void)0
@@ -509,6 +571,9 @@
 
   #define QUILL_LOG_WARNING_LIMIT(min_interval, logger, fmt, ...)                                  \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_WARNING_WITH_TAGS(logger, custom_tags, fmt, ...)                               \
+    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_LIKELY, logger, quill::LogLevel::Warning, custom_tags, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_WARNING_NOFN(logger, fmt, ...)                                                 \
     QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
@@ -531,6 +596,7 @@
 #else
   #define QUILL_LOG_WARNING(logger, fmt, ...) (void)0
   #define QUILL_LOG_WARNING_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_WARNING_WITH_TAGS(logger, custom_tags, fmt, ...) (void)0
   #define QUILL_LOG_WARNING_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_WARNING_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_WARNING_CFORMAT(logger, fmt, ...) (void)0
@@ -545,6 +611,9 @@
 
   #define QUILL_LOG_ERROR_LIMIT(min_interval, logger, fmt, ...)                                    \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_ERROR_WITH_TAGS(logger, custom_tags, fmt, ...)                                 \
+    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_LIKELY, logger, quill::LogLevel::Error, custom_tags, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_ERROR_NOFN(logger, fmt, ...)                                                   \
     QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
@@ -567,6 +636,7 @@
 #else
   #define QUILL_LOG_ERROR(logger, fmt, ...) (void)0
   #define QUILL_LOG_ERROR_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_ERROR_WITH_TAGS(logger, custom_tags, fmt, ...) (void)0
   #define QUILL_LOG_ERROR_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_ERROR_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_ERROR_CFORMAT(logger, fmt, ...) (void)0
@@ -581,6 +651,9 @@
 
   #define QUILL_LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...)                                 \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_CRITICAL_WITH_TAGS(logger, custom_tags, fmt, ...)                              \
+    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_LIKELY, logger, quill::LogLevel::Critical, custom_tags, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_CRITICAL_NOFN(logger, fmt, ...)                                                \
     QUILL_LOGGER_CALL_NOFN(QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
@@ -603,6 +676,7 @@
 #else
   #define QUILL_LOG_CRITICAL(logger, fmt, ...) (void)0
   #define QUILL_LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_CRITICAL_WITH_TAGS(logger, custom_tags, fmt, ...) (void)0
   #define QUILL_LOG_CRITICAL_NOFN(logger, fmt, ...) (void)0
   #define QUILL_LOG_CRITICAL_NOFN_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOG_CRITICAL_CFORMAT(logger, fmt, ...) (void)0
@@ -646,6 +720,23 @@
     QUILL_LOG_ERROR_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...)                                       \
     QUILL_LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_WITH_TAGS(logger, custom_tags, fmt, ...)                                    \
+    QUILL_LOG_TRACE_L3_WITH_TAGS(logger, custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_WITH_TAGS(logger, custom_tags, fmt, ...)                                    \
+    QUILL_LOG_TRACE_L2_WITH_TAGS(logger, custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_WITH_TAGS(logger, custom_tags, fmt, ...)                                    \
+    QUILL_LOG_TRACE_L1_WITH_TAGS(logger, custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_WITH_TAGS(logger, custom_tags, fmt, ...)                                       \
+    QUILL_LOG_DEBUG_WITH_TAGS(logger, custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_INFO_WITH_TAGS(logger, custom_tags, fmt, ...)                                        \
+    QUILL_LOG_INFO_WITH_TAGS(logger, custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_WITH_TAGS(logger, custom_tags, fmt, ...)                                     \
+    QUILL_LOG_WARNING_WITH_TAGS(logger, custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_WITH_TAGS(logger, custom_tags, fmt, ...)                                       \
+    QUILL_LOG_ERROR_WITH_TAGS(logger, custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_WITH_TAGS(logger, custom_tags, fmt, ...)                                    \
+    QUILL_LOG_CRITICAL_WITH_TAGS(logger, custom_tags, fmt, ##__VA_ARGS__)
 
   #define LOG_TRACE_L3_NOFN(logger, fmt, ...) QUILL_LOG_TRACE_L3_NOFN(logger, fmt, ##__VA_ARGS__)
   #define LOG_TRACE_L2_NOFN(logger, fmt, ...) QUILL_LOG_TRACE_L2_NOFN(logger, fmt, ##__VA_ARGS__)
@@ -770,6 +861,23 @@
     QUILL_LOG_ERROR_LIMIT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
   #define LOG_CRITICAL_LIMIT(min_interval, fmt, ...)                                               \
     QUILL_LOG_CRITICAL_LIMIT(min_interval, quill::get_root_logger(), fmt, ##__VA_ARGS__)
+
+  #define LOG_TRACE_L3_WITH_TAGS(custom_tags, fmt, ...)                                            \
+    QUILL_LOG_TRACE_L3_WITH_TAGS(quill::get_root_logger(), custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L2_WITH_TAGS(custom_tags, fmt, ...)                                            \
+    QUILL_LOG_TRACE_L2_WITH_TAGS(quill::get_root_logger(), custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_TRACE_L1_WITH_TAGS(custom_tags, fmt, ...)                                            \
+    QUILL_LOG_TRACE_L1_WITH_TAGS(quill::get_root_logger(), custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_DEBUG_WITH_TAGS(custom_tags, fmt, ...)                                               \
+    QUILL_LOG_DEBUG_WITH_TAGS(quill::get_root_logger(), custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_INFO_WITH_TAGS(custom_tags, fmt, ...)                                                \
+    QUILL_LOG_INFO_WITH_TAGS(quill::get_root_logger(), custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_WARNING_WITH_TAGS(custom_tags, fmt, ...)                                             \
+    QUILL_LOG_WARNING_WITH_TAGS(quill::get_root_logger(), custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_ERROR_WITH_TAGS(custom_tags, fmt, ...)                                               \
+    QUILL_LOG_ERROR_WITH_TAGS(quill::get_root_logger(), custom_tags, fmt, ##__VA_ARGS__)
+  #define LOG_CRITICAL_WITH_TAGS(custom_tags, fmt, ...)                                            \
+    QUILL_LOG_CRITICAL_WITH_TAGS(quill::get_root_logger(), custom_tags, fmt, ##__VA_ARGS__)
 
   #define LOG_TRACE_L3_NOFN(fmt, ...)                                                              \
     QUILL_LOG_TRACE_L3_NOFN(quill::get_root_logger(), fmt, ##__VA_ARGS__)

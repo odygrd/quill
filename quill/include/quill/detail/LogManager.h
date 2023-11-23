@@ -149,7 +149,8 @@ public:
       constexpr MacroMetadata operator()() const noexcept
       {
         return MacroMetadata{
-          "", "", "", "", "", LogLevel::Critical, MacroMetadata::Event::Flush, false, false};
+          "",    "",   "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush,
+          false, false};
       }
     } anonymous_log_message_info;
 

@@ -29,14 +29,16 @@ public:
   };
 
   constexpr MacroMetadata(std::string_view lineno, std::string_view pathname, std::string_view fileline,
-                          std::string_view func, std::string_view message_format, LogLevel level,
-                          Event event, bool is_structured_log_template, bool is_printf_format)
+                          std::string_view func, std::string_view message_format,
+                          CustomTags const* custom_tags, LogLevel level, Event event,
+                          bool is_structured_log_template, bool is_printf_format)
     : _func(func),
       _pathname(pathname),
       _filename(_extract_source_file_name(_pathname)),
       _fileline(_extract_source_file_name(fileline)),
       _message_format(message_format),
       _lineno(lineno),
+      _custom_tags(custom_tags),
       _level(level),
       _event(event),
       _is_structured_log_template(is_structured_log_template),
@@ -46,13 +48,15 @@ public:
 
 #if defined(_WIN32)
   constexpr MacroMetadata(std::string_view lineno, std::string_view pathname, std::string_view fileline,
-                          std::string_view func, std::wstring_view message_format, LogLevel level,
-                          Event event, bool is_structured_log_template, bool is_printf_format)
+                          std::string_view func, std::wstring_view message_format,
+                          CustomTags const* custom_tags, LogLevel level, Event event,
+                          bool is_structured_log_template, bool is_printf_format)
     : _func(func),
       _pathname(pathname),
       _filename(_extract_source_file_name(_pathname)),
       _fileline(_extract_source_file_name(fileline)),
       _lineno(lineno),
+      _custom_tags(custom_tags),
       _level(level),
       _event(event),
       _is_structured_log_template(is_structured_log_template),
@@ -87,7 +91,7 @@ public:
     return _filename;
   }
 
-    /**
+  /**
    * @return file:line
    */
   QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view fileline() const noexcept
@@ -122,6 +126,11 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view level_id_as_str() const noexcept
   {
     return loglevel_to_string_id(_level);
+  }
+
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr CustomTags const* custom_tags() const noexcept
+  {
+    return _custom_tags;
   }
 
   QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr Event event() const noexcept { return _event; }
@@ -177,6 +186,7 @@ private:
   std::string_view _fileline;
   std::string_view _message_format;
   std::string_view _lineno;
+  CustomTags const* _custom_tags{nullptr};
   LogLevel _level{LogLevel::None};
   Event _event{Event::Log};
   bool _is_structured_log_template{false};
