@@ -23,10 +23,16 @@
     {                                                                                              \
       constexpr quill::MacroMetadata operator()() const noexcept                                   \
       {                                                                                            \
-        return quill::MacroMetadata{                                                               \
-          "~",  "QuillSignalHandler.cpp", "QuillSignalHandler.cpp",         function_name,         \
-          fmt,  log_statement_level,      quill::MacroMetadata::Event::Log, false,                 \
-          false};                                                                                  \
+        return quill::MacroMetadata{"~",                                                           \
+                                    "QuillSignalHandler.cpp",                                      \
+                                    "QuillSignalHandler.cpp",                                      \
+                                    function_name,                                                 \
+                                    fmt,                                                           \
+                                    nullptr,                                                       \
+                                    log_statement_level,                                           \
+                                    quill::MacroMetadata::Event::Log,                              \
+                                    false,                                                         \
+                                    false};                                                        \
       }                                                                                            \
     } anonymous_log_message_info;                                                                  \
                                                                                                    \
@@ -161,9 +167,9 @@ void on_signal(int32_t signal_number)
       std::exit(EXIT_SUCCESS);
     }
 
-      // for other signals expect SIGINT and SIGTERM we re-raise
-      std::signal(signal_number, SIG_DFL);
-      std::raise(signal_number);
+    // for other signals expect SIGINT and SIGTERM we re-raise
+    std::signal(signal_number, SIG_DFL);
+    std::raise(signal_number);
   }
   else
   {
@@ -177,13 +183,13 @@ void on_signal(int32_t signal_number)
       std::exit(EXIT_SUCCESS);
     }
 
-      LOG_CRITICAL(get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
+    LOG_CRITICAL(get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
 
-      flush();
+    flush();
 
-      // Reset to the default signal handler and re-raise the signal
-      std::signal(signal_number, SIG_DFL);
-      std::raise(signal_number);
+    // Reset to the default signal handler and re-raise the signal
+    std::signal(signal_number, SIG_DFL);
+    std::raise(signal_number);
   }
 }
 

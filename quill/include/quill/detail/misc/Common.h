@@ -209,6 +209,16 @@ enum TimestampClockType : uint8_t
 };
 
 /**
+ * CustomTags class that can be used for _WITH_TAGS log macros
+ */
+class CustomTags
+{
+public:
+  constexpr CustomTags() = default;
+  virtual void format(std::string&) const = 0;
+};
+
+/**
  * backend worker thread error handler type
  */
 using backend_worker_notification_handler_t = std::function<void(std::string const&)>;
