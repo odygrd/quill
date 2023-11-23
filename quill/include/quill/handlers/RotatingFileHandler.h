@@ -162,7 +162,7 @@ public:
    * @param log_event The log event associated with the message.
    */
   QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message,
-                                 quill::TransitEvent const& log_event) override;
+                                 TransitEvent const& log_event) override;
 
 private:
   QUILL_NODISCARD bool _time_rotation(uint64_t record_timestamp_ns);

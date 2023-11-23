@@ -37,7 +37,7 @@ public:
    * @param log_event log_event
    */
   QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message,
-                                 quill::TransitEvent const& log_event) override;
+                                 TransitEvent const& log_event) override;
 
 private:
   fmt_buffer_t _json_message;

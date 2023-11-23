@@ -146,31 +146,31 @@ public:
     // we need to write an event to the queue passing this atomic variable
     struct
     {
-      constexpr quill::MacroMetadata operator()() const noexcept
+      constexpr MacroMetadata operator()() const noexcept
       {
-        return quill::MacroMetadata{
-          "", "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::Flush, false, false};
+        return MacroMetadata{
+          "", "", "", "", "", LogLevel::Critical, MacroMetadata::Event::Flush, false, false};
       }
     } anonymous_log_message_info;
 
-    detail::ThreadContext* const thread_context =
+    ThreadContext* const thread_context =
       _thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
-    size_t constexpr total_size = sizeof(detail::Header) + sizeof(uintptr_t);
+    size_t constexpr total_size = sizeof(Header) + sizeof(uintptr_t);
 
     std::byte* write_buffer =
       thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
     std::byte const* const write_begin = write_buffer;
 
-    write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
+    write_buffer = detail::align_pointer<alignof(Header), std::byte>(write_buffer);
 
-    new (write_buffer) detail::Header(
+    new (write_buffer) Header(
       detail::get_metadata_and_format_fn<false, decltype(anonymous_log_message_info)>, logger_details,
       (logger_details->timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
         : (logger_details->timestamp_clock_type() == TimestampClockType::System)
         ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
         : default_logger->_custom_timestamp_clock->now());
 
-    write_buffer += sizeof(detail::Header);
+    write_buffer += sizeof(Header);
 
     // encode the pointer to atomic bool
     std::atomic<bool>* flush_ptr = std::addressof(backend_thread_flushed);
@@ -298,7 +298,7 @@ public:
    * Access to LogManager
    * @return a reference to the log manager
    */
-  detail::LogManager& log_manager() noexcept { return _log_manager; }
+  LogManager& log_manager() noexcept { return _log_manager; }
 
   QUILL_ATTRIBUTE_COLD void start_backend_worker(bool with_signal_handler,
                                                  std::initializer_list<int> const& catchable_signals)
@@ -322,7 +322,7 @@ private:
   ~LogManagerSingleton() = default;
 
 private:
-  detail::LogManager _log_manager;
+  LogManager _log_manager;
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
 };
 } // namespace quill::detail

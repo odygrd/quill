@@ -108,7 +108,7 @@ void free_aligned(void* ptr) noexcept;
  * @param tm struct tm to convert
  * @throws on invalid input
  */
-QUILL_ATTRIBUTE_COLD time_t timegm(struct tm* tm);
+QUILL_ATTRIBUTE_COLD time_t timegm(tm* tm);
 
 /**
  * Check if the terminal supports colours

@@ -167,7 +167,7 @@ public:
     if (QUILL_UNLIKELY(_has_new_thread_context()))
     {
       // if the thread _thread_contexts was changed we lock and remake our reference cache
-      std::lock_guard<std::mutex> const lock(_mutex);
+      std::lock_guard<std::mutex> const lock {_mutex};
       _thread_context_cache.clear();
 
       // Remake thread context ref
@@ -266,7 +266,7 @@ private:
    */
   void _remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
   {
-    std::lock_guard<std::mutex> const lock(_mutex);
+    std::lock_guard<std::mutex> const lock {_mutex};
 
     auto const thread_context_it = std::find_if(_thread_contexts.begin(), _thread_contexts.end(),
                                           [thread_context](std::shared_ptr<ThreadContext> const& elem)

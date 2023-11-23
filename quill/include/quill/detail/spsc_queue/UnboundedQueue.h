@@ -123,8 +123,8 @@ public:
           " max_bounded_queue_capacity: " + std::to_string(max_bounded_queue_capacity)});
       }
 
-      if constexpr ((QUILL_QUEUE_TYPE == detail::QueueType::UnboundedBlocking) ||
-                    (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping))
+      if constexpr ((QUILL_QUEUE_TYPE == QueueType::UnboundedBlocking) ||
+                    (QUILL_QUEUE_TYPE == QueueType::UnboundedDropping))
       {
         // we reached the unbounded queue limit of 2147483648 bytes (~2GB) we won't be allocating
         // anymore and instead return nullptr to block

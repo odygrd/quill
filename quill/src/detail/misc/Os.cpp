@@ -60,14 +60,14 @@ namespace quill::detail
 /***/
 size_t get_wide_string_encoding_size(std::wstring_view s)
 {
-  return static_cast<size_t>(::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
+  return static_cast<size_t>(WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
                                                    nullptr, 0, nullptr, nullptr));
 }
 
 /***/
 void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s)
 {
-  ::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
+  WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
                         static_cast<char*>(dest), static_cast<int>(required_bytes), nullptr, nullptr);
 }
 #endif
@@ -411,7 +411,7 @@ void free_aligned(void* ptr) noexcept
 time_t timegm(tm* tm)
 {
 #if defined(_WIN32)
-  time_t const ret_val = ::_mkgmtime(tm);
+  time_t const ret_val = _mkgmtime(tm);
 
   if (QUILL_UNLIKELY(ret_val == -1))
   {
@@ -458,12 +458,12 @@ bool is_colour_terminal() noexcept
 bool is_in_terminal(FILE* file) noexcept
 {
 #if defined(_WIN32)
-  bool const is_atty = ::_isatty(_fileno(file)) != 0;
+  bool const is_atty = _isatty(_fileno(file)) != 0;
 
   // ::GetConsoleMode() should return 0 if file is redirected or does not point to the actual console
   DWORD console_mode;
   bool const is_console =
-    ::GetConsoleMode(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(file))), &console_mode) != 0;
+    GetConsoleMode(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(file))), &console_mode) != 0;
 
   return is_atty && is_console;
 #else

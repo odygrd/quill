@@ -70,7 +70,7 @@ public:
    * @param log_event transit event
    */
   QUILL_ATTRIBUTE_HOT virtual void write(fmt_buffer_t const& formatted_log_message,
-                                         quill::TransitEvent const& log_event) = 0;
+                                         TransitEvent const& log_event) = 0;
 
   /**
    * Flush the handler synchronising the associated handler with its controlled output sequence.
@@ -136,7 +136,7 @@ private:
   std::vector<std::unique_ptr<FilterBase>> _global_filters;
   std::recursive_mutex _global_filters_lock;
 
-  std::atomic<quill::LogLevel> _log_level{LogLevel::TraceL3};
+  std::atomic<LogLevel> _log_level{LogLevel::TraceL3};
 
   /** Indicator that a new filter was added **/
   std::atomic<bool> _new_filter{false};

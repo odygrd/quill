@@ -141,7 +141,7 @@ std::string_view TimestampFormatter::format_timestamp(std::chrono::nanoseconds t
     _formatted_date += _strftime_part_2.format_timestamp(timestamp_secs);
   }
 
-  return _formatted_date.data();
+  return _formatted_date;
 }
 
 /***/

@@ -19,7 +19,7 @@ std::shared_ptr<Handler> HandlerCollection::stdout_console_handler(std::string c
 std::shared_ptr<Handler> HandlerCollection::stderr_console_handler(std::string const& stderr_handler_name /* = std::string{"stderr"} */)
 {
   // we just pass an empty ConsoleColours class, as we don't use colours for stderr.
-  return _create_console_handler(stderr_handler_name, stderr, quill::ConsoleColours{});
+  return _create_console_handler(stderr_handler_name, stderr, ConsoleColours{});
 }
 
 /***/

@@ -50,7 +50,7 @@ void BackendWorker::wake_up()
 {
   // Set the flag to indicate that the data is ready
   {
-    std::lock_guard<std::mutex> lock(_wake_up_mutex);
+    std::lock_guard<std::mutex> lock {_wake_up_mutex};
     _wake_up = true;
   }
 
@@ -127,8 +127,10 @@ void BackendWorker::_resync_rdtsc_clock()
 
     if (auto const now = std::chrono::system_clock::now(); (now - _last_rdtsc_resync) > _rdtsc_resync_interval)
     {
-      _rdtsc_clock.load(std::memory_order_relaxed)->resync(2500);
-      _last_rdtsc_resync = now;
+      if (_rdtsc_clock.load(std::memory_order_relaxed)->resync(2500))
+      {
+        _last_rdtsc_resync = now;
+      }
     }
   }
 }

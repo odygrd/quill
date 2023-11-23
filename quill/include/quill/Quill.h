@@ -101,7 +101,7 @@ QUILL_ATTRIBUTE_COLD inline void start(bool with_signal_handler = false,
 QUILL_ATTRIBUTE_COLD inline void init_signal_handler(std::initializer_list<int> catchable_signals = {
                                                        SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
-  quill::detail::init_signal_handler(catchable_signals);
+  detail::init_signal_handler(catchable_signals);
 }
 #endif
 

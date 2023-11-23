@@ -58,7 +58,7 @@ public:
   /**
    * @return A reference to the backend's thread transit event buffer
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT detail::UnboundedTransitEventBuffer& transit_event_buffer() noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT UnboundedTransitEventBuffer& transit_event_buffer() noexcept
   {
     return _transit_event_buffer;
   }

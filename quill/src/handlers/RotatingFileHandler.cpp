@@ -250,7 +250,7 @@ RotatingFileHandler::RotatingFileHandler(
 }
 
 /***/
-void RotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
+void RotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event)
 {
   if (is_null())
   {
@@ -322,11 +322,11 @@ void RotatingFileHandler::_rotate_files(uint64_t record_timestamp_ns)
   std::string datetime_suffix;
   if (_config.rotation_naming_scheme() == RotatingFileHandlerConfig::RotationNamingScheme::Date)
   {
-    datetime_suffix = quill::detail::get_datetime_string(_open_file_timestamp, _config.timezone(), false);
+    datetime_suffix = detail::get_datetime_string(_open_file_timestamp, _config.timezone(), false);
   }
   else if (_config.rotation_naming_scheme() == RotatingFileHandlerConfig::RotationNamingScheme::DateAndTime)
   {
-    datetime_suffix = quill::detail::get_datetime_string(_open_file_timestamp, _config.timezone(), true);
+    datetime_suffix = detail::get_datetime_string(_open_file_timestamp, _config.timezone(), true);
   }
 
   // We need to rotate the files and rename them with an index
@@ -353,7 +353,7 @@ void RotatingFileHandler::_rotate_files(uint64_t record_timestamp_ns)
       it->index = index_to_use;
       it->date_time = datetime_suffix;
 
-      quill::detail::rename_file(existing_file, renamed_file);
+      detail::rename_file(existing_file, renamed_file);
     }
     else if (it->date_time.empty())
     {
@@ -365,7 +365,7 @@ void RotatingFileHandler::_rotate_files(uint64_t record_timestamp_ns)
       it->index = index_to_use;
       it->date_time = datetime_suffix;
 
-      quill::detail::rename_file(existing_file, renamed_file);
+      detail::rename_file(existing_file, renamed_file);
     }
   }
 
@@ -430,7 +430,7 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
         {
           // Get the today's date, we won't remove the files of the previous dates as they won't collide
           std::string const today_date =
-            quill::detail::get_datetime_string(today_timestamp_ns, _config.timezone(), false);
+            detail::get_datetime_string(today_timestamp_ns, _config.timezone(), false);
 
           if (std::string const index_or_date =
                 entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
@@ -506,7 +506,7 @@ void RotatingFileHandler::_clean_and_recover_files(fs::path const& filename, std
         {
           // Get the today's date, we won't remove the files of the previous dates as they won't collide
           std::string const today_date =
-            quill::detail::get_datetime_string(today_timestamp_ns, _config.timezone(), false);
+            detail::get_datetime_string(today_timestamp_ns, _config.timezone(), false);
 
           if (std::string const index_or_date =
                 entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());

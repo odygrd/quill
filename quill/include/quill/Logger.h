@@ -115,6 +115,7 @@ public:
    * fundamental types.
    * This is the fastest way possible to log
    * @note This function is thread-safe.
+   * @param dynamic_log_level dynamic log level
    * @param format_string format
    * @param fmt_args arguments
    */
@@ -179,10 +180,10 @@ public:
     size_t total_size = sizeof(detail::Header) + alignof(detail::Header) +
       detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
 
-    if constexpr (macro_metadata.level() == quill::LogLevel::Dynamic)
+    if constexpr (macro_metadata.level() == LogLevel::Dynamic)
     {
       // For the dynamic log level we want to add to the total size to store the dynamic log level
-      total_size += sizeof(quill::LogLevel);
+      total_size += sizeof(LogLevel);
     }
 
     // request this size from the queue
@@ -239,7 +240,7 @@ public:
     new (write_buffer) detail::Header(
       detail::get_metadata_and_format_fn<is_printf_format, TMacroMetadata, FmtArgs...>,
       std::addressof(_logger_details),
-      (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
+      (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc) ? detail::rdtsc()
         : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
         ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                   std::chrono::system_clock::now().time_since_epoch())
@@ -251,11 +252,11 @@ public:
     // encode remaining arguments
     write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
 
-    if constexpr (macro_metadata.level() == quill::LogLevel::Dynamic)
+    if constexpr (macro_metadata.level() == LogLevel::Dynamic)
     {
       // write the dynamic log level
-      std::memcpy(write_buffer, &dynamic_log_level, sizeof(quill::LogLevel));
-      write_buffer += sizeof(quill::LogLevel);
+      std::memcpy(write_buffer, &dynamic_log_level, sizeof(LogLevel));
+      write_buffer += sizeof(LogLevel);
     }
 
     assert(total_size >= (static_cast<uint32_t>(write_buffer - write_begin)) &&
@@ -281,16 +282,16 @@ public:
     // we do not care about the other fields, except quill::MacroMetadata::Event::InitBacktrace
     struct
     {
-      constexpr quill::MacroMetadata operator()() const noexcept
+      constexpr MacroMetadata operator()() const noexcept
       {
-        return quill::MacroMetadata{
-          "",    "",   "", "", "{}", LogLevel::Critical, quill::MacroMetadata::Event::InitBacktrace,
+        return MacroMetadata{
+          "",    "",   "", "", "{}", LogLevel::Critical, MacroMetadata::Event::InitBacktrace,
           false, false};
       }
     } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_message_info)>(quill::LogLevel::None,
+    this->template log<decltype(anonymous_log_message_info)>(LogLevel::None,
                                                              QUILL_FMT_STRING("{}"), capacity);
 
     // Also store the desired flush log level
@@ -308,16 +309,16 @@ public:
     // we do not care about the other fields, except quill::MacroMetadata::Event::Flush
     struct
     {
-      constexpr quill::MacroMetadata operator()() const noexcept
+      constexpr MacroMetadata operator()() const noexcept
       {
-        return quill::MacroMetadata{
-          "",    "",   "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::FlushBacktrace,
+        return MacroMetadata{
+          "",    "",   "", "", "", LogLevel::Critical, MacroMetadata::Event::FlushBacktrace,
           false, false};
       }
     } anonymous_log_message_info;
 
     // we pass this message to the queue
-    this->template log<decltype(anonymous_log_message_info)>(quill::LogLevel::None, QUILL_FMT_STRING(""));
+    this->template log<decltype(anonymous_log_message_info)>(LogLevel::None, QUILL_FMT_STRING(""));
   }
 
 private:

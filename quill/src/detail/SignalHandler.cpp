@@ -103,7 +103,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
     // This means signal handler is running a caller thread, we can log from the root logger
     LOG_INFO(quill::get_logger(), "Interrupted by Ctrl+C:");
 
-    quill::flush();
+    flush();
     std::exit(EXIT_SUCCESS);
   }
 
@@ -128,7 +128,7 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
     LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of exception code: {}",
                  get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
-    quill::flush();
+    flush();
   }
 
   // FATAL Exception: It doesn't necessarily stop here. we pass on continue search
@@ -173,13 +173,13 @@ void on_signal(int32_t signal_number)
     if (signal_number == SIGINT || signal_number == SIGTERM)
     {
       // For SIGINT and SIGTERM, we are shutting down gracefully
-      quill::flush();
+      flush();
       std::exit(EXIT_SUCCESS);
     }
 
-      LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
+      LOG_CRITICAL(get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
 
-      quill::flush();
+      flush();
 
       // Reset to the default signal handler and re-raise the signal
       std::signal(signal_number, SIG_DFL);

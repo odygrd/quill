@@ -312,12 +312,12 @@ void StringFromTime::_populate_pre_formatted_string_and_cached_indexes(time_t ti
 
   if (_time_zone == Timezone::LocalTime)
   {
-    detail::localtime_rs(reinterpret_cast<time_t const*>(std::addressof(_cached_timestamp)),
+    localtime_rs(reinterpret_cast<time_t const*>(std::addressof(_cached_timestamp)),
                          std::addressof(time_info));
   }
   else if (_time_zone == Timezone::GmtTime)
   {
-    detail::gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(_cached_timestamp)),
+    gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(_cached_timestamp)),
                       std::addressof(time_info));
   }
 

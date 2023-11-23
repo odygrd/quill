@@ -16,7 +16,7 @@ public:
 
   ~NullHandler() override = default;
 
-  QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event) override
+  QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event) override
   {
   }
   QUILL_ATTRIBUTE_HOT void flush() noexcept override {}
