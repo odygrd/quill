@@ -105,7 +105,7 @@ public:
    * @param file_event_notifier notifies on file events
    * @param do_fopen if false the file will not be opened
    */
-  FileHandler(fs::path const& filename, FileHandlerConfig config,
+  FileHandler(fs::path const& filename, FileHandlerConfig const& config,
               FileEventNotifier file_event_notifier, bool do_fopen = true);
 
   ~FileHandler() override;

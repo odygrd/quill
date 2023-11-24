@@ -75,6 +75,7 @@ constexpr void _store_named_args(
  *  i: 9 order idx[i] is: 10 - empty
  *  i: 10 order idx[i] is: 10 - empty
  * @tparam Args Args
+ * @param is_set_in_pattern is set in pattern
  * @param pattern pattern
  * @param args args
  * @return processed pattern
@@ -98,11 +99,10 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
   std::size_t arg_identifier_pos = pattern.find_first_of('%');
   while (arg_identifier_pos != std::string::npos)
   {
-    std::size_t open_paren_pos = pattern.find_first_of('(', arg_identifier_pos);
-    if (open_paren_pos != std::string::npos && (open_paren_pos - arg_identifier_pos) == 1)
+    if (std::size_t const open_paren_pos = pattern.find_first_of('(', arg_identifier_pos); open_paren_pos != std::string::npos && (open_paren_pos - arg_identifier_pos) == 1)
     {
       // if we found '%(' we have a matching pattern and we now need to get the closed paren
-      std::size_t closed_paren_pos = pattern.find_first_of(')', open_paren_pos);
+      std::size_t const closed_paren_pos = pattern.find_first_of(')', open_paren_pos);
 
       if (closed_paren_pos == std::string::npos)
       {

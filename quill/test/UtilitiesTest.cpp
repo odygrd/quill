@@ -20,16 +20,16 @@ TEST_CASE("next_noon_or_midnight_timestamp")
   
   {
     // Noon utc
-    time_t timestamp{1599033200};
-    time_t expected_timestamp{1599048000};
+    time_t constexpr timestamp{1599033200};
+    time_t constexpr expected_timestamp{1599048000};
     time_t const res = next_noon_or_midnight_timestamp(timestamp, Timezone::GmtTime);
     REQUIRE_EQ(res, expected_timestamp);
   }
 
   {
     // Midnight utc
-    time_t timestamp{1599079200};
-    time_t expected_timestamp{1599091200};
+    time_t constexpr timestamp{1599079200};
+    time_t constexpr expected_timestamp{1599091200};
     time_t const res = next_noon_or_midnight_timestamp(timestamp, Timezone::GmtTime);
     REQUIRE_EQ(res, expected_timestamp);
   }
@@ -38,16 +38,16 @@ TEST_CASE("next_noon_or_midnight_timestamp")
 /***/
 TEST_CASE("nearest_hour_timestamp")
 {
-  time_t const timestamp = 1599473669;
-  time_t const expected_timestamp = 1599472800;
+  time_t constexpr timestamp = 1599473669;
+  time_t constexpr expected_timestamp = 1599472800;
   REQUIRE_EQ(nearest_hour_timestamp(timestamp), expected_timestamp);
 }
 
 /***/
 TEST_CASE("next_hour_timestamp")
 {
-  time_t const timestamp = 1599473669;
-  time_t const expected_timestamp = 1599476400;
+  time_t constexpr timestamp = 1599473669;
+  time_t constexpr expected_timestamp = 1599476400;
   REQUIRE_EQ(next_hour_timestamp(timestamp), expected_timestamp);
 }
 

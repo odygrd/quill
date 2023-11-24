@@ -7,7 +7,7 @@ namespace
 template <typename T>
 std::string _to_hex(T* buffer, size_t size) noexcept
 {
-  static constexpr char const hex_chars[] = "0123456789ABCDEF";
+  static constexpr char hex_chars[] = "0123456789ABCDEF";
 
   std::string hex_string;
   hex_string.reserve(3 * size);

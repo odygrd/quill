@@ -69,7 +69,7 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
 }
 
 /***/
-void StreamHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
+void StreamHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event)
 {
   if (_file_event_notifier.before_write)
   {
@@ -95,16 +95,15 @@ StreamHandler::StreamHandlerType StreamHandler::stream_handler_type() const noex
 {
   if (_file == stdout)
   {
-    return StreamHandler::StreamHandlerType::Stdout;
+    return StreamHandlerType::Stdout;
   }
-  else if (_file == stderr)
+
+  if (_file == stderr)
   {
-    return StreamHandler::StreamHandlerType::Stderr;
+    return StreamHandlerType::Stderr;
   }
-  else
-  {
-    return StreamHandler::StreamHandlerType::File;
-  }
+
+  return StreamHandlerType::File;
 }
 
 /***/

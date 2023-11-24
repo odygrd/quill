@@ -42,7 +42,8 @@ private:
   {
     /**
      * Constructor
-     * @param capacity the capacity of the fixed buffer
+     * @param bounded_queue_capacity the capacity of the fixed buffer
+     * @param huge_pages enables huge pages
      */
     explicit Node(uint32_t bounded_queue_capacity, bool huge_pages)
       : bounded_queue(bounded_queue_capacity, huge_pages)
@@ -75,12 +76,12 @@ public:
   ~UnboundedQueue()
   {
     // Get the current consumer node
-    Node* current_node = _consumer;
+    Node const* current_node = _consumer;
 
     // Look for extra nodes to delete
     while (current_node != nullptr)
     {
-      auto to_delete = current_node;
+      auto const to_delete = current_node;
       current_node = current_node->next;
       delete to_delete;
     }
@@ -109,7 +110,7 @@ public:
     }
 
     // bounded queue max power of 2 capacity since uint32_t type is used to hold the value 2147483648 bytes
-    constexpr uint64_t max_bounded_queue_capacity =
+    uint64_t constexpr max_bounded_queue_capacity =
       (std::numeric_limits<BoundedQueue::integer_type>::max() >> 1) + 1;
 
     if (QUILL_UNLIKELY(capacity > max_bounded_queue_capacity))
@@ -122,8 +123,8 @@ public:
           " max_bounded_queue_capacity: " + std::to_string(max_bounded_queue_capacity)});
       }
 
-      if constexpr ((QUILL_QUEUE_TYPE == detail::QueueType::UnboundedBlocking) ||
-                    (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping))
+      if constexpr ((QUILL_QUEUE_TYPE == QueueType::UnboundedBlocking) ||
+                    (QUILL_QUEUE_TYPE == QueueType::UnboundedDropping))
       {
         // we reached the unbounded queue limit of 2147483648 bytes (~2GB) we won't be allocating
         // anymore and instead return nullptr to block
@@ -138,7 +139,7 @@ public:
     _producer->bounded_queue.commit_write();
 
     // We failed to reserve because the queue was full, create a new node with a new queue
-    auto next_node = new Node{static_cast<uint32_t>(capacity), _huge_pages};
+    auto const next_node = new Node{static_cast<uint32_t>(capacity), _huge_pages};
 
     // store the new node pointer as next in the current node
     _producer->next.store(next_node, std::memory_order_release);

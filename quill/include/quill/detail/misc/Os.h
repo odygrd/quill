@@ -108,7 +108,7 @@ void free_aligned(void* ptr) noexcept;
  * @param tm struct tm to convert
  * @throws on invalid input
  */
-QUILL_ATTRIBUTE_COLD time_t timegm(struct tm* tm);
+QUILL_ATTRIBUTE_COLD time_t timegm(tm* tm);
 
 /**
  * Check if the terminal supports colours
@@ -125,7 +125,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool is_in_terminal(FILE* file) noexcept;
 
 /**
  * fsync the file descriptor
- * @param f file
+ * @param fd file
  */
-bool fsync(FILE* f);
+bool fsync(FILE* fd);
 } // namespace quill::detail

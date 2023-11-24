@@ -56,7 +56,7 @@ void ConsoleColours::set_default_colours() noexcept
 /***/
 void ConsoleColours::set_colour(LogLevel log_level, WORD colour) noexcept
 {
-  using log_lvl_t = std::underlying_type<LogLevel>::type;
+  using log_lvl_t = std::underlying_type_t<LogLevel>;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
   _colours[log_lvl] = colour;
   _using_colours = true;
@@ -71,7 +71,7 @@ bool ConsoleColours::using_colours() const noexcept { return _using_colours; }
 /***/
 WORD ConsoleColours::colour_code(LogLevel log_level) const noexcept
 {
-  using log_lvl_t = std::underlying_type<LogLevel>::type;
+  using log_lvl_t = std::underlying_type_t<LogLevel>;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
   return _colours[log_lvl];
 }
@@ -164,15 +164,15 @@ void ConsoleColours::_set_can_use_colours(FILE* file) noexcept
 #endif
 
 /***/
-ConsoleHandler::ConsoleHandler(std::string stream, FILE* file, ConsoleColours const& console_colours)
-  : StreamHandler{std::move(stream), file}, _console_colours(console_colours)
+ConsoleHandler::ConsoleHandler(std::string const& stream, FILE* file, ConsoleColours const& console_colours)
+  : StreamHandler{stream, file}, _console_colours(console_colours)
 {
   // In this ctor we take a full copy of console_colours and in our instance we modify it
   _console_colours._set_can_use_colours(_file);
 }
 
 /***/
-void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
+void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event)
 {
   MacroMetadata const macro_metadata = log_event.metadata();
 
@@ -188,7 +188,7 @@ void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tra
 
     // Write to console
     bool const write_to_console =
-      ::WriteConsoleA(out_handle, formatted_log_message.data(),
+      WriteConsoleA(out_handle, formatted_log_message.data(),
                       static_cast<DWORD>(formatted_log_message.size()), nullptr, nullptr);
 
     if (QUILL_UNLIKELY(!write_to_console))
@@ -201,7 +201,7 @@ void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, quill::Tra
     }
 
     // reset to orig colors
-    bool const set_text_attr = ::SetConsoleTextAttribute(out_handle, orig_attribs);
+    bool const set_text_attr = SetConsoleTextAttribute(out_handle, orig_attribs);
     if (QUILL_UNLIKELY(!set_text_attr))
     {
       auto const error = std::error_code(GetLastError(), std::system_category());
@@ -243,9 +243,9 @@ void ConsoleHandler::enable_console_colours() noexcept { _console_colours.set_de
 ConsoleColours::WORD ConsoleHandler::_set_foreground_colour(ConsoleColours::WORD attributes)
 {
   CONSOLE_SCREEN_BUFFER_INFO orig_buffer_info;
-  auto out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file)));
+  auto const out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file)));
 
-  bool const screen_buffer_info = ::GetConsoleScreenBufferInfo(out_handle, &orig_buffer_info);
+  bool const screen_buffer_info = GetConsoleScreenBufferInfo(out_handle, &orig_buffer_info);
   if (QUILL_UNLIKELY(!screen_buffer_info))
   {
     auto const error = std::error_code(GetLastError(), std::system_category());
@@ -262,7 +262,7 @@ ConsoleColours::WORD ConsoleHandler::_set_foreground_colour(ConsoleColours::WORD
     static_cast<WORD>(~(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY));
 
   // keep the background color unchanged
-  bool const console_text_attr = ::SetConsoleTextAttribute(out_handle, attributes | back_color);
+  bool const console_text_attr = SetConsoleTextAttribute(out_handle, attributes | back_color);
   if (QUILL_UNLIKELY(!console_text_attr))
   {
     auto const error = std::error_code(GetLastError(), std::system_category());

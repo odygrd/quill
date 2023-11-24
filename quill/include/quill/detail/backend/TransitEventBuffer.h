@@ -46,7 +46,7 @@ public:
   {
     /**
      * Constructor
-     * @param capacity the capacity of the fixed buffer
+     * @param transit_buffer_capacity the capacity of the fixed buffer
      */
     explicit Node(uint32_t transit_buffer_capacity) : transit_buffer(transit_buffer_capacity) {}
 

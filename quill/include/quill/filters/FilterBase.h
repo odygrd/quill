@@ -24,7 +24,7 @@ public:
    * Constructor
    * @param filter_name unique filter name
    */
-  explicit FilterBase(std::string filter_name) : _filter_name(std::move(filter_name)){};
+  explicit FilterBase(std::string filter_name) : _filter_name(std::move(filter_name)){}
 
   /**
    * Destructor

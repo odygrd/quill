@@ -104,7 +104,7 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
       }
 
       // first character after the {
-      auto fc = fmt[pos];
+      auto const fc = fmt[pos];
       if (fc == '{')
       {
         // this means first '{' was escaped, so we ignore both of them
@@ -131,11 +131,9 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
             ++char_cnt;
             continue;
           }
-          else
-          {
+
             // we found '{' match, we can break
             break;
-          }
         }
 
         ++pos;

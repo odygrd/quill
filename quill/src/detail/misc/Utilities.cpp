@@ -59,11 +59,11 @@ time_t next_noon_or_midnight_timestamp(time_t timestamp, Timezone timezone) noex
 
   if (timezone == Timezone::GmtTime)
   {
-    detail::gmtime_rs(&timestamp, &time_info);
+    gmtime_rs(&timestamp, &time_info);
   }
   else
   {
-    detail::localtime_rs(&timestamp, &time_info);
+    localtime_rs(&timestamp, &time_info);
   }
 
   if (time_info.tm_hour < 12)
@@ -83,7 +83,7 @@ time_t next_noon_or_midnight_timestamp(time_t timestamp, Timezone timezone) noex
 
   // convert back to time since epoch
   std::chrono::system_clock::time_point const next_midnight = (timezone == Timezone::GmtTime)
-    ? std::chrono::system_clock::from_time_t(quill::detail::timegm(&time_info))
+    ? std::chrono::system_clock::from_time_t(detail::timegm(&time_info))
     : std::chrono::system_clock::from_time_t(std::mktime(&time_info));
 
   // returns seconds since epoch of the next midnight.
@@ -104,11 +104,11 @@ std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Tim
   tm time_info;
   if (timezone == Timezone::LocalTime)
   {
-    detail::localtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp)), std::addressof(time_info));
+    localtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp)), std::addressof(time_info));
   }
   else if (timezone == Timezone::GmtTime)
   {
-    detail::gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp)), std::addressof(time_info));
+    gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp)), std::addressof(time_info));
   }
 
   // Create a buffer to call strftimex

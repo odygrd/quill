@@ -54,18 +54,9 @@ private:
     ThreadContextWrapper(ThreadContextCollection& thread_context_collection, uint32_t default_queue_capacity,
                          uint32_t initial_transit_event_buffer_capacity, bool huge_pages)
       : _thread_context_collection(thread_context_collection),
-        _thread_context(std::shared_ptr<ThreadContext>(new ThreadContext(
-          queue_type, default_queue_capacity, initial_transit_event_buffer_capacity, huge_pages)))
+        _thread_context(std::make_shared<ThreadContext>(
+          queue_type, default_queue_capacity, initial_transit_event_buffer_capacity, huge_pages))
     {
-      // We can not use std::make_shared above.
-      // Explanation :
-      // ThreadContext has the SPSC queue as a class member which requires a 64 cache byte alignment,
-      // since we are creating this object on the heap this is not guaranteed.
-      // Visual Studio is the only compiler that gives a warning that ThreadContext might not be aligned to 64 bytes,
-      // as it is allocated on the heap, and we should use aligned alloc instead.
-      // The solution to solve this would be to define a custom operator new and operator delete for ThreadContext.
-      // However, when using std::make_shared, the default allocator is used.
-      // This is a problem if the class is supposed to use a non-default allocator like ThreadContext
       _thread_context_collection.register_thread_context(_thread_context);
     }
 
@@ -143,7 +134,7 @@ public:
   template <QueueType queue_type>
   QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext* local_thread_context() noexcept
   {
-    static thread_local ThreadContextWrapper<queue_type> thread_context_wrapper{
+    thread_local ThreadContextWrapper<queue_type> thread_context_wrapper{
       *this, _config.default_queue_capacity,
       _config.backend_thread_use_transit_buffer ? _config.backend_thread_initial_transit_event_buffer_capacity : 1,
       _config.enable_huge_pages_hot_path};
@@ -176,7 +167,7 @@ public:
     if (QUILL_UNLIKELY(_has_new_thread_context()))
     {
       // if the thread _thread_contexts was changed we lock and remake our reference cache
-      std::lock_guard<std::mutex> const lock(_mutex);
+      std::lock_guard<std::mutex> const lock {_mutex};
       _thread_context_cache.clear();
 
       // Remake thread context ref
@@ -275,9 +266,9 @@ private:
    */
   void _remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
   {
-    std::lock_guard<std::mutex> const lock(_mutex);
+    std::lock_guard<std::mutex> const lock {_mutex};
 
-    auto thread_context_it = std::find_if(_thread_contexts.begin(), _thread_contexts.end(),
+    auto const thread_context_it = std::find_if(_thread_contexts.begin(), _thread_contexts.end(),
                                           [thread_context](std::shared_ptr<ThreadContext> const& elem)
                                           { return elem.get() == thread_context; });
 

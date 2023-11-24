@@ -119,12 +119,13 @@ private:
 
   /**
    * Deserialize messages from the raw SPSC queue
+   * @param queue queue
    * @param thread_context thread context
    * @param ts_now timestamp now
    * @return total events stored in the transit_event_buffer
    */
   template <typename QueueT>
-  QUILL_ATTRIBUTE_HOT inline uint32_t _read_queue_messages_and_decode(QueueT& queue, ThreadContext* thread_context,
+  QUILL_ATTRIBUTE_HOT uint32_t _read_queue_messages_and_decode(QueueT& queue, ThreadContext* thread_context,
                                                                       uint64_t ts_now);
 
   QUILL_ATTRIBUTE_HOT inline bool _get_transit_event_from_queue(std::byte*& read_pos, ThreadContext* thread_context,
@@ -144,7 +145,7 @@ private:
   /**
    * Write a transit event
    */
-  QUILL_ATTRIBUTE_HOT inline void _write_transit_event(TransitEvent const& transit_event);
+  QUILL_ATTRIBUTE_HOT inline void _write_transit_event(TransitEvent const& transit_event) const;
 
   /**
    * Process the lowest timestamp from the queues and write it to the log file
@@ -160,6 +161,7 @@ private:
   /**
    * Check for dropped messages - only when bounded queue is used
    * @param cached_thread_contexts loaded thread contexts
+   * @param notification_handler notification handler
    */
   QUILL_ATTRIBUTE_HOT inline static void _check_message_failures(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
@@ -180,7 +182,7 @@ private:
    * @return start position of read
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::byte* _read_unbounded_queue(UnboundedQueue& queue,
-                                                                              ThreadContext* thread_context);
+                                                                              ThreadContext* thread_context) const;
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline bool _check_all_queues_empty(
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
@@ -387,7 +389,7 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadCon
   // This means that if we can read something from the queue it will be a full message
   // The producer will add items to the buffer :
   // |timestamp|metadata*|logger_details*|args...|
-  detail::UnboundedTransitEventBuffer& transit_event_buffer = thread_context->transit_event_buffer();
+  UnboundedTransitEventBuffer const& transit_event_buffer = thread_context->transit_event_buffer();
 
   size_t const queue_capacity = queue.capacity();
   uint32_t total_bytes_read{0};
@@ -412,11 +414,9 @@ uint32_t BackendWorker::_read_queue_messages_and_decode(QueueT& queue, ThreadCon
       return transit_event_buffer.size();
     }
 
-    std::byte* const read_begin = read_pos;
+    std::byte const* const read_begin = read_pos;
 
-    bool res = _get_transit_event_from_queue(read_pos, thread_context, ts_now);
-
-    if (!res)
+    if (!_get_transit_event_from_queue(read_pos, thread_context, ts_now))
     {
       // if _get_transit_event_from_queue returns false we stop reading
       return transit_event_buffer.size();
@@ -452,15 +452,15 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
 {
   // First we want to allocate a new TransitEvent or use an existing one
   // to store the message from the queue
-  detail::UnboundedTransitEventBuffer& transit_event_buffer = thread_context->transit_event_buffer();
+  UnboundedTransitEventBuffer& transit_event_buffer = thread_context->transit_event_buffer();
   TransitEvent* transit_event = transit_event_buffer.back();
   transit_event->thread_id = thread_context->thread_id();
   transit_event->thread_name = thread_context->thread_name();
 
   // read the header first, and take copy of the header
-  read_pos = detail::align_pointer<alignof(Header), std::byte>(read_pos);
-  transit_event->header = *(reinterpret_cast<detail::Header*>(read_pos));
-  read_pos += sizeof(detail::Header);
+  read_pos =  align_pointer<alignof(Header), std::byte>(read_pos);
+  transit_event->header = *(reinterpret_cast<Header*>(read_pos));
+  read_pos += sizeof( Header);
 
   // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
   // doing the conversion here ensures that every transit that is inserted in the transit buffer
@@ -555,11 +555,10 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         _structured_fmt_str.assign(macro_metadata.message_format().data(),
                                    macro_metadata.message_format().size());
 
-        std::vector<std::string> const* s_keys{nullptr};
+        std::vector<std::string> const* s_keys;
 
         // for messages containing named arguments threat them as structured logs
-        auto const search = _slog_templates.find(_structured_fmt_str);
-        if (search != std::cend(_slog_templates))
+        if (auto const search = _slog_templates.find(_structured_fmt_str); search != std::cend(_slog_templates))
         {
           auto const& [fmt_str, structured_keys] = search->second;
           s_keys = &structured_keys;
@@ -678,12 +677,11 @@ void BackendWorker::_process_transit_events(ThreadContextCollection::backend_thr
 {
   // Get the lowest timestamp
   uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
-  detail::UnboundedTransitEventBuffer* transit_buffer{nullptr};
+   UnboundedTransitEventBuffer* transit_buffer{nullptr};
 
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    TransitEvent* te = thread_context->transit_event_buffer().front();
-    if (te && min_ts > te->header.timestamp)
+    if (TransitEvent const* te = thread_context->transit_event_buffer().front(); te && (min_ts > te->header.timestamp))
     {
       min_ts = te->header.timestamp;
       transit_buffer = std::addressof(thread_context->transit_event_buffer());
@@ -729,8 +727,8 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
         if (QUILL_UNLIKELY(transit_event.log_level() >= transit_event.header.logger_details->backtrace_flush_level()))
         {
           _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
-                                                 [this](TransitEvent const& transit_event)
-                                                 { _write_transit_event(transit_event); });
+                                                 [this](TransitEvent const& te)
+                                                 { _write_transit_event(te); });
         }
       }
       else
@@ -751,8 +749,8 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
     {
       // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
       _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
-                                             [this](TransitEvent const& transit_event)
-                                             { _write_transit_event(transit_event); });
+                                             [this](TransitEvent const& te)
+                                             { _write_transit_event(te); });
     }
     else if (macro_metadata.event() == MacroMetadata::Event::Flush)
     {
@@ -780,7 +778,7 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
 }
 
 /***/
-void BackendWorker::_write_transit_event(TransitEvent const& transit_event)
+void BackendWorker::_write_transit_event(TransitEvent const& transit_event) const
 {
   // Forward the record to all the logger handlers
   MacroMetadata const macro_metadata = transit_event.metadata();
@@ -829,9 +827,9 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
             read_pos = queue.prepare_read();
           }
 
-          if (read_pos && (reinterpret_cast<detail::Header*>(read_pos)->timestamp < min_ts))
+          if (read_pos && (reinterpret_cast< Header*>(read_pos)->timestamp < min_ts))
           {
-            min_ts = reinterpret_cast<detail::Header*>(read_pos)->timestamp;
+            min_ts = reinterpret_cast< Header*>(read_pos)->timestamp;
             tc = thread_context;
           }
         }
@@ -862,7 +860,7 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
         }
         assert(read_pos);
 
-        std::byte* const read_begin = read_pos;
+        std::byte const* const read_begin = read_pos;
 
         _get_transit_event_from_queue(read_pos, tc, 0);
 
@@ -900,58 +898,56 @@ void BackendWorker::_force_flush()
 void BackendWorker::_check_message_failures(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts,
                                             backend_worker_notification_handler_t const& notification_handler) noexcept
 {
-  if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedNoMaxLimit)
+  // UnboundedNoMaxLimit does not block or drop messages
+  if constexpr (QUILL_QUEUE_TYPE !=  QueueType::UnboundedNoMaxLimit)
   {
-    // UnboundedNoMaxLimit does not block or drop messages
-    return;
-  }
-
-  for (ThreadContext* thread_context : cached_thread_contexts)
-  {
-    size_t const failed_messages_cnt = thread_context->get_and_reset_message_failure_counter();
-
-    if (QUILL_UNLIKELY(failed_messages_cnt > 0))
+    for (ThreadContext* thread_context : cached_thread_contexts)
     {
-      char ts[24];
-      time_t t = time(nullptr);
-      struct tm p;
-      quill::detail::localtime_rs(std::addressof(t), std::addressof(p));
-      strftime(ts, 24, "%X", std::addressof(p));
+      size_t const failed_messages_cnt = thread_context->get_and_reset_message_failure_counter();
 
-      if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedNonBlocking)
+      if (QUILL_UNLIKELY(failed_messages_cnt > 0))
       {
-        notification_handler(
-          fmtquill::format("{} Quill INFO: BoundedNonBlocking queue dropped {} "
-                           "log messages from thread {}",
-                           ts, failed_messages_cnt, thread_context->thread_id()));
-      }
-      else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedDropping)
-      {
-        notification_handler(
-          fmtquill::format("{} Quill INFO: UnboundedDropping queue dropped {} "
-                           "log messages from thread {}",
-                           ts, failed_messages_cnt, thread_context->thread_id()));
-      }
-      else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::BoundedBlocking)
-      {
-        notification_handler(
-          fmtquill::format("{} Quill INFO: BoundedBlocking queue thread {} "
-                           "experienced {} blocking occurrences",
-                           ts, thread_context->thread_id(), failed_messages_cnt));
-      }
-      else if constexpr (QUILL_QUEUE_TYPE == detail::QueueType::UnboundedBlocking)
-      {
-        notification_handler(
-          fmtquill::format("{} Quill INFO: UnboundedBlocking queue thread {} "
-                           "experienced {} blocking occurrences",
-                           ts, thread_context->thread_id(), failed_messages_cnt));
+        char ts[24];
+        time_t t = time(nullptr);
+        tm p;
+        localtime_rs(std::addressof(t), std::addressof(p));
+        strftime(ts, 24, "%X", std::addressof(p));
+
+        if constexpr (QUILL_QUEUE_TYPE ==  QueueType::BoundedNonBlocking)
+        {
+          notification_handler(
+            fmtquill::format("{} Quill INFO: BoundedNonBlocking queue dropped {} "
+                             "log messages from thread {}",
+                             ts, failed_messages_cnt, thread_context->thread_id()));
+        }
+        else if constexpr (QUILL_QUEUE_TYPE ==  QueueType::UnboundedDropping)
+        {
+          notification_handler(
+            fmtquill::format("{} Quill INFO: UnboundedDropping queue dropped {} "
+                             "log messages from thread {}",
+                             ts, failed_messages_cnt, thread_context->thread_id()));
+        }
+        else if constexpr (QUILL_QUEUE_TYPE ==  QueueType::BoundedBlocking)
+        {
+          notification_handler(
+            fmtquill::format("{} Quill INFO: BoundedBlocking queue thread {} "
+                             "experienced {} blocking occurrences",
+                             ts, thread_context->thread_id(), failed_messages_cnt));
+        }
+        else if constexpr (QUILL_QUEUE_TYPE ==  QueueType::UnboundedBlocking)
+        {
+          notification_handler(
+            fmtquill::format("{} Quill INFO: UnboundedBlocking queue thread {} "
+                             "experienced {} blocking occurrences",
+                             ts, thread_context->thread_id(), failed_messages_cnt));
+        }
       }
     }
   }
 }
 
 /***/
-std::byte* BackendWorker::_read_unbounded_queue(UnboundedQueue& queue, ThreadContext* thread_context)
+std::byte* BackendWorker::_read_unbounded_queue(UnboundedQueue& queue, ThreadContext* thread_context) const
 {
   auto [read_pos, allocation_info] = queue.prepare_read();
 
@@ -962,8 +958,8 @@ std::byte* BackendWorker::_read_unbounded_queue(UnboundedQueue& queue, ThreadCon
     {
       char ts[24];
       time_t t = time(nullptr);
-      struct tm p;
-      quill::detail::localtime_rs(std::addressof(t), std::addressof(p));
+      tm p;
+      localtime_rs(std::addressof(t), std::addressof(p));
       strftime(ts, 24, "%X", std::addressof(p));
 
       // we switched to a new here, and we also notify the user of the allocation via the
@@ -979,7 +975,6 @@ std::byte* BackendWorker::_read_unbounded_queue(UnboundedQueue& queue, ThreadCon
 }
 
 /***/
-
 bool BackendWorker::_check_all_queues_empty(ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts)
 {
   bool all_empty{true};
@@ -1097,7 +1092,7 @@ void BackendWorker::_main_loop()
       // buffer events are 0 here and also all the producer queues are empty
       if (_backend_thread_sleep_duration.count() != 0)
       {
-        std::unique_lock<std::mutex> lock(_wake_up_mutex);
+        std::unique_lock<std::mutex> lock {_wake_up_mutex};
 
         // Wait for a timeout or a notification to wake up
         _wake_up_cv.wait_for(lock, _backend_thread_sleep_duration, [this] { return _wake_up; });
@@ -1183,7 +1178,7 @@ void BackendWorker::_exit()
     }
   }
 
-  RdtscClock* rdtsc_clock{_rdtsc_clock.load(std::memory_order_relaxed)};
+  RdtscClock const* rdtsc_clock{_rdtsc_clock.load(std::memory_order_relaxed)};
   _rdtsc_clock.store(nullptr, std::memory_order_release);
   delete rdtsc_clock;
 }

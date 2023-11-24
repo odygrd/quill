@@ -3,9 +3,7 @@
 #include <iostream> // for endl, basic_ostream, cerr, ostream
 #include <vector>   // for vector
 
-namespace quill
-{
-namespace detail
+namespace quill::detail
 {
 /***/
 BackendWorker::BackendWorker(Config const& config, ThreadContextCollection& thread_context_collection,
@@ -31,9 +29,7 @@ BackendWorker::~BackendWorker()
 void BackendWorker::stop() noexcept
 {
   // Stop the backend worker
-  auto const is_running = _is_running.exchange(false);
-
-  if (!is_running)
+  if (!_is_running.exchange(false))
   {
     // already stopped
     return;
@@ -54,7 +50,7 @@ void BackendWorker::wake_up()
 {
   // Set the flag to indicate that the data is ready
   {
-    std::lock_guard<std::mutex> lock(_wake_up_mutex);
+    std::lock_guard<std::mutex> lock {_wake_up_mutex};
     _wake_up = true;
   }
 
@@ -77,9 +73,8 @@ std::pair<std::string, std::vector<std::string>> BackendWorker::_process_structu
   while (open_bracket_pos != std::string::npos)
   {
     // found an open bracket
-    size_t const open_bracket_2_pos = fmt_template.find_first_of('{', open_bracket_pos + 1);
-
-    if (open_bracket_2_pos != std::string::npos)
+    if (size_t const open_bracket_2_pos = fmt_template.find_first_of('{', open_bracket_pos + 1);
+        open_bracket_2_pos != std::string::npos)
     {
       // found another open bracket
       if ((open_bracket_2_pos - 1) == open_bracket_pos)
@@ -94,9 +89,8 @@ std::pair<std::string, std::vector<std::string>> BackendWorker::_process_structu
     while (close_bracket_pos != std::string::npos)
     {
       // found closed bracket
-      size_t const close_bracket_2_pos = fmt_template.find_first_of('}', close_bracket_pos + 1);
-
-      if (close_bracket_2_pos != std::string::npos)
+      if (size_t const close_bracket_2_pos = fmt_template.find_first_of('}', close_bracket_pos + 1);
+          close_bracket_2_pos != std::string::npos)
       {
         // found another open bracket
         if ((close_bracket_2_pos - 1) == close_bracket_pos)
@@ -130,13 +124,14 @@ void BackendWorker::_resync_rdtsc_clock()
   if (_rdtsc_clock.load(std::memory_order_relaxed))
   {
     // resync in rdtsc if we are not logging so that time_since_epoch() still works
-    auto const now = std::chrono::system_clock::now();
-    if ((now - _last_rdtsc_resync) > _rdtsc_resync_interval)
+
+    if (auto const now = std::chrono::system_clock::now(); (now - _last_rdtsc_resync) > _rdtsc_resync_interval)
     {
-      _rdtsc_clock.load(std::memory_order_relaxed)->resync(2500);
-      _last_rdtsc_resync = now;
+      if (_rdtsc_clock.load(std::memory_order_relaxed)->resync(2500))
+      {
+        _last_rdtsc_resync = now;
+      }
     }
   }
 }
-} // namespace detail
-} // namespace quill
+} // namespace quill::detail

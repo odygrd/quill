@@ -123,10 +123,10 @@ TEST_CASE("extract_stem_and_extension")
 /***/
 TEST_CASE("append_date_to_filename")
 {
-  std::chrono::system_clock::time_point ts =
+  std::chrono::system_clock::time_point const ts =
     std::chrono::system_clock::time_point{std::chrono::seconds{1583376945}};
-  fs::path expected_fname = "logfile_20200305.log";
-  fs::path base_fname = "logfile.log";
+  fs::path const expected_fname = "logfile_20200305.log";
+  fs::path const base_fname = "logfile.log";
 
   REQUIRE_STREQ(
     append_date_time_to_filename(base_fname, false, quill::Timezone::GmtTime, ts).string().data(),

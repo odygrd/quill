@@ -10,7 +10,7 @@ namespace quill
 void Handler::add_filter(std::unique_ptr<FilterBase> filter)
 {
   // Lock and add this filter to our global collection
-  std::lock_guard<std::recursive_mutex> const lock(_global_filters_lock);
+  std::lock_guard<std::recursive_mutex> const lock {_global_filters_lock};
 
   // Check if the same filter already exists
   auto const search_filter_it = std::find_if(
@@ -45,7 +45,7 @@ QUILL_NODISCARD bool Handler::apply_filters(char const* thread_id, std::chrono::
     // if there is a new filter we have to update
     _local_filters.clear();
 
-    std::lock_guard<std::recursive_mutex> const lock(_global_filters_lock);
+    std::lock_guard<std::recursive_mutex> const lock {_global_filters_lock};
     for (auto const& filter : _global_filters)
     {
       _local_filters.push_back(filter.get());

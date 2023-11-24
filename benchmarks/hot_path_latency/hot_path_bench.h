@@ -18,7 +18,11 @@
 #include <random>
 #include <thread>
 
-#include <x86intrin.h>
+#if defined(_WIN32)
+  #include <intrin.h>
+#else
+  #include <x86intrin.h>
+#endif
 
 // Instead of sleep
 inline void wait(std::chrono::nanoseconds min, std::chrono::nanoseconds max)

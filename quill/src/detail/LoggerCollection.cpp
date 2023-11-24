@@ -29,7 +29,7 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
 {
   if (logger_name)
   {
-    std::string logger_name_str{logger_name};
+    std::string const logger_name_str{logger_name};
     std::lock_guard<std::recursive_mutex> const lock{_rmutex};
 
     // Search for the logger
@@ -40,12 +40,10 @@ Logger* LoggerCollection::get_logger(char const* logger_name /* = nullptr */) co
       QUILL_THROW(QuillError{std::string{"logger does not exist. name: "} + logger_name_str});
     }
 
-    return (*search).second.get();
+    return search->second.get();
   }
-  else
-  {
-    return _root_logger;
-  }
+
+  return _root_logger;
 }
 
 /***/
@@ -68,7 +66,7 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name, Timestam
                                         TimestampClock* timestamp_clock)
 {
   // Get a copy of the root logger handlers
-  std::vector<std::shared_ptr<Handler>> handlers = _root_logger->_logger_details.handlers();
+  std::vector<std::shared_ptr<Handler>> const handlers = _root_logger->_logger_details.handlers();
 
   // Register the handlers, even if they already exist
   for (auto& handler : handlers)
@@ -86,7 +84,7 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name, Timestam
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return (*insert_result.first).second.get();
+  return insert_result.first->second.get();
 }
 
 /***/
@@ -105,7 +103,7 @@ Logger* LoggerCollection::create_logger(std::string const& logger_name, std::sha
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return (*insert_result.first).second.get();
+  return insert_result.first->second.get();
 }
 
 /***/
@@ -138,7 +136,7 @@ QUILL_NODISCARD Logger* LoggerCollection::create_logger(std::string const& logge
   auto const insert_result = _logger_name_map.emplace(std::string{logger_name}, std::move(logger));
 
   // Return the inserted logger or the existing logger
-  return (*insert_result.first).second.get();
+  return insert_result.first->second.get();
 }
 
 /***/
@@ -149,14 +147,14 @@ void LoggerCollection::remove_logger(Logger* logger)
 }
 
 /***/
-void LoggerCollection::enable_console_colours() noexcept
+void LoggerCollection::enable_console_colours() const noexcept
 {
   // Get the previous created default stdout handler
-  std::shared_ptr<Handler> stdout_stream_handler =
+  std::shared_ptr<Handler> const stdout_stream_handler =
     _handler_collection.stdout_console_handler("stdout");
   assert(stdout_stream_handler && "stdout_stream_handler can not be nullptr");
 
-  auto console_handler = reinterpret_cast<ConsoleHandler*>(stdout_stream_handler.get());
+  auto const console_handler = reinterpret_cast<ConsoleHandler*>(stdout_stream_handler.get());
   console_handler->enable_console_colours();
 }
 
@@ -174,7 +172,7 @@ void LoggerCollection::create_root_logger()
     if (_config.default_handlers.empty())
     {
       // Add the default console handler to the root logger
-      std::shared_ptr<Handler> stdout_stream_handler =
+      std::shared_ptr<Handler> const stdout_stream_handler =
         _handler_collection.stdout_console_handler("stdout");
 
       if (_config.enable_console_colours)
@@ -201,7 +199,7 @@ void LoggerCollection::create_root_logger()
     if (_config.default_handlers.empty())
     {
       // Add the default console handler to the root logger
-      std::shared_ptr<Handler> stdout_stream_handler =
+      std::shared_ptr<Handler> const stdout_stream_handler =
         _handler_collection.stdout_console_handler("stdout");
 
       if (_config.enable_console_colours)
@@ -213,7 +211,7 @@ void LoggerCollection::create_root_logger()
       _handler_collection.subscribe_handler(stdout_stream_handler);
 
       // get the pointer to the existing logger
-      auto search = _logger_name_map.find(_root_logger->_logger_details.name());
+      auto const search = _logger_name_map.find(_root_logger->_logger_details.name());
       assert(search != _logger_name_map.end() &&
              "we must always find the previous root logger in the map");
 
@@ -242,7 +240,7 @@ void LoggerCollection::create_root_logger()
       }
 
       // get the pointer to the existing logger
-      auto search = _logger_name_map.find(_root_logger->_logger_details.name());
+      auto const search = _logger_name_map.find(_root_logger->_logger_details.name());
       assert(search != _logger_name_map.end() &&
              "we must always find the previous root logger in the map");
 

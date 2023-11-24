@@ -41,7 +41,7 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
                                 return cfg;
                               }());
 
-        std::string logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
+        std::string const logger_name = "logger_" + std::string{test_id} + "_" + std::to_string(i);
         quill::Logger* logger = quill::create_logger(logger_name.data(), std::move(log_from_one_thread_file));
 
         for (uint32_t j = 0; j < number_of_messages; ++j)
@@ -137,7 +137,7 @@ public:
   /**
    * Use logger in normal function
    */
-  void use_logger() { LOG_INFO(_logger, "Test message for test class non const"); }
+  void use_logger() const { LOG_INFO(_logger, "Test message for test class non const"); }
 
 private:
   quill::Logger* _logger{nullptr};
@@ -479,7 +479,7 @@ TEST_CASE("log_using_stderr")
 
   quill::flush();
 
-  std::string results = quill::testing::GetCapturedStderr();
+  std::string const results = quill::testing::GetCapturedStderr();
 
   REQUIRE_EQ(results,
              "log_using_stderr - Hello log stderr (DOCTEST_ANON_FUNC_19)\n"
@@ -682,7 +682,7 @@ TEST_CASE("log_enums_with_overloaded_insertion_operator")
 
   quill::flush();
 
-  std::string results = quill::testing::GetCapturedStdout();
+  std::string const results = quill::testing::GetCapturedStdout();
 
   REQUIRE_EQ(results, "Test1,Test2,Test3,Test4,Test5,Test6\n");
 }

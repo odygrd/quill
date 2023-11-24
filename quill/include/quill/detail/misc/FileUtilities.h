@@ -80,7 +80,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_date_time_to_filename(
 
 /**
  * Constructs a datetime string that can be used for filename naming
- * @param timestamp timestamp
+ * @param timestamp_ns timestamp
  * @param timezone timezone
  * @param with_time with_time
  * @return
@@ -101,7 +101,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_index_to_filename(fs::path 
  * Append an index to the given filename
  * @param filename the name of the file
  * @param text the text to append
- * @param separator the text to append
  * @return a filepath with the index appended
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD fs::path append_string_to_filename(fs::path const& filename,

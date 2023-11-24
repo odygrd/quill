@@ -103,7 +103,7 @@ public:
                                         std::optional<TimestampClock*> timestamp_clock)
   {
     return _logger_collection.create_logger(
-      logger_name, handlers,
+      logger_name, std::move(handlers),
       timestamp_clock_type.has_value() ? *timestamp_clock_type : _config.default_timestamp_clock_type,
       timestamp_clock.has_value() ? *timestamp_clock : _config.default_custom_timestamp_clock);
   }
@@ -138,7 +138,7 @@ public:
     // get the root logger - this is needed for the logger_details struct, in order to figure out
     // the clock type later on the backend thread
     Logger* default_logger = logger_collection().get_logger(nullptr);
-    LoggerDetails* logger_details = std::addressof(default_logger->_logger_details);
+    LoggerDetails const* logger_details = std::addressof(default_logger->_logger_details);
 
     // Create an atomic variable
     std::atomic<bool> backend_thread_flushed{false};
@@ -146,31 +146,31 @@ public:
     // we need to write an event to the queue passing this atomic variable
     struct
     {
-      constexpr quill::MacroMetadata operator()() const noexcept
+      constexpr MacroMetadata operator()() const noexcept
       {
-        return quill::MacroMetadata{
-          "", "", "", "", "", LogLevel::Critical, quill::MacroMetadata::Event::Flush, false, false};
+        return MacroMetadata{
+          "", "", "", "", "", LogLevel::Critical, MacroMetadata::Event::Flush, false, false};
       }
     } anonymous_log_message_info;
 
-    detail::ThreadContext* const thread_context =
+    ThreadContext* const thread_context =
       _thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
-    size_t const total_size = sizeof(detail::Header) + sizeof(uintptr_t);
+    size_t constexpr total_size = sizeof(Header) + sizeof(uintptr_t);
 
     std::byte* write_buffer =
       thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
-    std::byte* const write_begin = write_buffer;
+    std::byte const* const write_begin = write_buffer;
 
-    write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
+    write_buffer = detail::align_pointer<alignof(Header), std::byte>(write_buffer);
 
-    new (write_buffer) detail::Header(
+    new (write_buffer) Header(
       detail::get_metadata_and_format_fn<false, decltype(anonymous_log_message_info)>, logger_details,
       (logger_details->timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
         : (logger_details->timestamp_clock_type() == TimestampClockType::System)
         ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
         : default_logger->_custom_timestamp_clock->now());
 
-    write_buffer += sizeof(detail::Header);
+    write_buffer += sizeof(Header);
 
     // encode the pointer to atomic bool
     std::atomic<bool>* flush_ptr = std::addressof(backend_thread_flushed);
@@ -195,8 +195,8 @@ public:
    * Starts the backend worker thread.
    * This should only be called by the LogManagerSingleton and never directly from here
    */
-  QUILL_ATTRIBUTE_COLD void inline start_backend_worker(bool with_signal_handler,
-                                                        std::initializer_list<int> const& catchable_signals)
+  QUILL_ATTRIBUTE_COLD void start_backend_worker(bool with_signal_handler,
+                                                 std::initializer_list<int> const& catchable_signals)
   {
     if (with_signal_handler)
     {
@@ -247,7 +247,7 @@ public:
   /**
    * @return true if backend worker has started
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool backend_worker_is_running() noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool backend_worker_is_running() const noexcept
   {
     return _backend_worker.is_running();
   }
@@ -298,10 +298,10 @@ public:
    * Access to LogManager
    * @return a reference to the log manager
    */
-  detail::LogManager& log_manager() noexcept { return _log_manager; }
+  LogManager& log_manager() noexcept { return _log_manager; }
 
-  QUILL_ATTRIBUTE_COLD void inline start_backend_worker(bool with_signal_handler,
-                                                        std::initializer_list<int> const& catchable_signals)
+  QUILL_ATTRIBUTE_COLD void start_backend_worker(bool with_signal_handler,
+                                                 std::initializer_list<int> const& catchable_signals)
   {
     // protect init to be called only once
     std::call_once(
@@ -322,7 +322,7 @@ private:
   ~LogManagerSingleton() = default;
 
 private:
-  detail::LogManager _log_manager;
+  LogManager _log_manager;
   std::once_flag _start_init_once_flag; /** flag to start the thread only once, in case start() is called multiple times */
 };
 } // namespace quill::detail

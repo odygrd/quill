@@ -33,15 +33,16 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
   size_t specifier_begin{std::string::npos};
 
   // look for all three special specifiers
-  size_t search_qms = timestamp_format_string.find(specifier_name[AdditionalSpecifier::Qms]);
-  if (search_qms != std::string::npos)
+
+  if (size_t const search_qms = timestamp_format_string.find(specifier_name[AdditionalSpecifier::Qms]);
+      search_qms != std::string::npos)
   {
     _additional_format_specifier = AdditionalSpecifier::Qms;
     specifier_begin = search_qms;
   }
 
-  size_t search_qus = timestamp_format_string.find(specifier_name[AdditionalSpecifier::Qus]);
-  if (search_qus != std::string::npos)
+  if (size_t const search_qus = timestamp_format_string.find(specifier_name[AdditionalSpecifier::Qus]);
+      search_qus != std::string::npos)
   {
     if (specifier_begin != std::string::npos)
     {
@@ -52,8 +53,8 @@ TimestampFormatter::TimestampFormatter(std::string const& timestamp_format_strin
     specifier_begin = search_qus;
   }
 
-  size_t search_qns = timestamp_format_string.find(specifier_name[AdditionalSpecifier::Qns]);
-  if (search_qns != std::string::npos)
+  if (size_t const search_qns = timestamp_format_string.find(specifier_name[AdditionalSpecifier::Qns]);
+      search_qns != std::string::npos)
   {
     if (specifier_begin != std::string::npos)
     {
@@ -140,14 +141,14 @@ std::string_view TimestampFormatter::format_timestamp(std::chrono::nanoseconds t
     _formatted_date += _strftime_part_2.format_timestamp(timestamp_secs);
   }
 
-  return _formatted_date.data();
+  return _formatted_date;
 }
 
 /***/
 void TimestampFormatter::_append_fractional_seconds(uint32_t extracted_fractional_seconds)
 {
   // Format the seconds and add them
-  fmtquill::format_int extracted_ms_string{extracted_fractional_seconds};
+  fmtquill::format_int const extracted_ms_string{extracted_fractional_seconds};
 
   // _formatted_date.size() - extracted_ms_string.size() is where we want to begin placing the fractional seconds
   memcpy(&_formatted_date[_formatted_date.size() - extracted_ms_string.size()],

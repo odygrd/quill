@@ -122,7 +122,7 @@ public:
    * This is meant to called before quill:start() and that is checked internally before calling
    * this function.
    */
-  QUILL_ATTRIBUTE_COLD void enable_console_colours() noexcept;
+  QUILL_ATTRIBUTE_COLD void enable_console_colours() const noexcept;
 
   /**
    * Get the root logger pointer

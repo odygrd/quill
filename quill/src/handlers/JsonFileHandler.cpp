@@ -4,7 +4,7 @@
 namespace quill
 {
 /***/
-void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, quill::TransitEvent const& log_event)
+void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event)
 {
   MacroMetadata const macro_metadata = log_event.metadata();
 

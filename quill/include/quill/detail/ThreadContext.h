@@ -28,7 +28,7 @@ namespace quill::detail
  * The backend thread reads all existing ThreadContext class instances and pop the events
  * from each thread queue
  */
-class ThreadContext
+class alignas(CACHE_LINE_ALIGNED) ThreadContext
 {
 public:
   /**
@@ -56,25 +56,9 @@ public:
   ThreadContext& operator=(ThreadContext const&) = delete;
 
   /**
-   * Operator new to align this object to a cache line boundary as we always create it on the heap
-   * This object should always be aligned to a cache line as it contains the SPSC queue as a member
-   * which has cache line alignment requirements
-   * @param i size of object
-   * @return a pointer to the allocated object
-   */
-  void* operator new(size_t i) { return alloc_aligned(i, CACHE_LINE_ALIGNED); }
-
-  /**
-   * Operator delete
-   * @see operator new
-   * @param p pointer to object
-   */
-  void operator delete(void* p) { free_aligned(p); }
-
-  /**
    * @return A reference to the backend's thread transit event buffer
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT detail::UnboundedTransitEventBuffer& transit_event_buffer() noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT UnboundedTransitEventBuffer& transit_event_buffer() noexcept
   {
     return _transit_event_buffer;
   }

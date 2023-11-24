@@ -95,7 +95,7 @@ public:
   }
 
 private:
-  friend class detail::LoggerCollection;
+  friend class LoggerCollection;
 
   std::string _name;
   std::vector<std::shared_ptr<Handler>> _handlers;

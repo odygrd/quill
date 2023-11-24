@@ -17,7 +17,7 @@ std::string_view loglevel_to_string(LogLevel log_level)
     {"TRACE_L3", "TRACE_L2", "TRACE_L1", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL",
      "BACKTRACE", "NONE", "DYNAMIC"}};
 
-  using log_lvl_t = std::underlying_type<LogLevel>::type;
+  using log_lvl_t = std::underlying_type_t<LogLevel>;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
 
   if (QUILL_UNLIKELY(log_lvl > (log_levels_map.size() - 1)))
@@ -37,7 +37,7 @@ std::string_view loglevel_to_string_id(LogLevel log_level)
   static constexpr std::array<std::string_view, 11> log_levels_map = {
     {"T3", "T2", "T1", "D", "I", "W", "E", "C", "BT", "N", "DN"}};
 
-  using log_lvl_t = std::underlying_type<LogLevel>::type;
+  using log_lvl_t = std::underlying_type_t<LogLevel>;
   auto const log_lvl = static_cast<log_lvl_t>(log_level);
 
   if (QUILL_UNLIKELY(log_lvl > (log_levels_map.size() - 1)))

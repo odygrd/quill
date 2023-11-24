@@ -61,7 +61,7 @@ public:
    * @note: Accessor for backend processing
    * @return reference to the pattern formatter of this handler
    */
-  QUILL_ATTRIBUTE_HOT PatternFormatter& formatter() { return *_formatter; }
+  QUILL_ATTRIBUTE_HOT PatternFormatter& formatter() const { return *_formatter; }
 
   /**
    * Logs a formatted log message to the handler
@@ -70,7 +70,7 @@ public:
    * @param log_event transit event
    */
   QUILL_ATTRIBUTE_HOT virtual void write(fmt_buffer_t const& formatted_log_message,
-                                         quill::TransitEvent const& log_event) = 0;
+                                         TransitEvent const& log_event) = 0;
 
   /**
    * Flush the handler synchronising the associated handler with its controlled output sequence.
@@ -85,7 +85,7 @@ public:
    * @note It is recommended to avoid performing heavy operations within this function
    *       as it may adversely affect the performance of the backend thread.
    */
-  QUILL_ATTRIBUTE_HOT virtual void run_loop() noexcept {};
+  QUILL_ATTRIBUTE_HOT virtual void run_loop() noexcept {}
 
   /**
    * Sets a log level filter on the handler. Log statements with higher or equal severity only will be logged
@@ -136,7 +136,7 @@ private:
   std::vector<std::unique_ptr<FilterBase>> _global_filters;
   std::recursive_mutex _global_filters_lock;
 
-  std::atomic<quill::LogLevel> _log_level{LogLevel::TraceL3};
+  std::atomic<LogLevel> _log_level{LogLevel::TraceL3};
 
   /** Indicator that a new filter was added **/
   std::atomic<bool> _new_filter{false};

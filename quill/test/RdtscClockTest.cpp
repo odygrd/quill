@@ -9,7 +9,7 @@ TEST_SUITE_BEGIN("RdtscClock");
 
 void check_wall_time_now(quill::detail::RdtscClock const& tsc_clock)
 {
-  std::chrono::milliseconds const offset{10};
+  std::chrono::milliseconds constexpr offset{10};
 
   auto const wall_time_chrono = std::chrono::system_clock::now().time_since_epoch();
   auto const wall_time_tsc = std::chrono::nanoseconds{tsc_clock.time_since_epoch(quill::detail::rdtsc())};
@@ -27,7 +27,7 @@ void check_wall_time_now(quill::detail::RdtscClock const& tsc_clock)
 
 TEST_CASE("wall_time")
 {
-  quill::detail::RdtscClock tsc_clock{std::chrono::milliseconds{700}};
+  quill::detail::RdtscClock const tsc_clock{std::chrono::milliseconds{700}};
 
   constexpr size_t num_reps{10};
 

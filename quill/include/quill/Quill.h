@@ -34,7 +34,7 @@ namespace quill
 /** Version Info **/
 constexpr uint32_t VersionMajor{3};
 constexpr uint32_t VersionMinor{4};
-constexpr uint32_t VersionPatch{1};
+constexpr uint32_t VersionPatch{2};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 /** forward declarations **/
@@ -101,7 +101,7 @@ QUILL_ATTRIBUTE_COLD inline void start(bool with_signal_handler = false,
 QUILL_ATTRIBUTE_COLD inline void init_signal_handler(std::initializer_list<int> catchable_signals = {
                                                        SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
-  quill::detail::init_signal_handler(catchable_signals);
+  detail::init_signal_handler(catchable_signals);
 }
 #endif
 

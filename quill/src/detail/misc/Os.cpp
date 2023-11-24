@@ -60,15 +60,15 @@ namespace quill::detail
 /***/
 size_t get_wide_string_encoding_size(std::wstring_view s)
 {
-  return static_cast<size_t>(::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
+  return static_cast<size_t>(WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
                                                    nullptr, 0, nullptr, nullptr));
 }
 
 /***/
 void wide_string_to_narrow(void* dest, size_t required_bytes, std::wstring_view s)
 {
-  ::WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
-                        reinterpret_cast<char*>(dest), static_cast<int>(required_bytes), NULL, NULL);
+  WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()),
+                        static_cast<char*>(dest), static_cast<int>(required_bytes), nullptr, nullptr);
 }
 #endif
 
@@ -139,7 +139,7 @@ ReturnT callRunTimeDynamicLinkedFunction(const std::string& dll_name,
   HINSTANCE const hinstLibrary = LoadLibraryA(dll_name.c_str());
   #endif
 
-  if (QUILL_UNLIKELY(hinstLibrary == NULL))
+  if (QUILL_UNLIKELY(hinstLibrary == nullptr))
   {
     std::ostringstream error_msg;
     error_msg << "Failed to load library "
@@ -149,7 +149,7 @@ ReturnT callRunTimeDynamicLinkedFunction(const std::string& dll_name,
 
   auto const callable = reinterpret_cast<Signature>(GetProcAddress(hinstLibrary, function_name.c_str()));
 
-  if (QUILL_UNLIKELY(callable == NULL))
+  if (QUILL_UNLIKELY(callable == nullptr))
   {
     FreeLibrary(hinstLibrary);
     std::ostringstream error_msg;
@@ -181,7 +181,7 @@ void set_cpu_affinity(uint16_t cpu_id)
   // setting cpu affinity on cygwin is not supported
 #elif defined(_WIN32)
   // core number starts from 0
-  auto mask = (static_cast<DWORD_PTR>(1) << cpu_id);
+  auto const mask = (static_cast<DWORD_PTR>(1) << cpu_id);
   auto ret = SetThreadAffinityMask(GetCurrentThread(), mask);
   if (ret == 0)
   {
@@ -411,7 +411,7 @@ void free_aligned(void* ptr) noexcept
 time_t timegm(tm* tm)
 {
 #if defined(_WIN32)
-  time_t const ret_val = ::_mkgmtime(tm);
+  time_t const ret_val = _mkgmtime(tm);
 
   if (QUILL_UNLIKELY(ret_val == -1))
   {
@@ -458,12 +458,12 @@ bool is_colour_terminal() noexcept
 bool is_in_terminal(FILE* file) noexcept
 {
 #if defined(_WIN32)
-  bool const is_atty = ::_isatty(_fileno(file)) != 0;
+  bool const is_atty = _isatty(_fileno(file)) != 0;
 
   // ::GetConsoleMode() should return 0 if file is redirected or does not point to the actual console
   DWORD console_mode;
   bool const is_console =
-    ::GetConsoleMode(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(file))), &console_mode) != 0;
+    GetConsoleMode(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(file))), &console_mode) != 0;
 
   return is_atty && is_console;
 #else

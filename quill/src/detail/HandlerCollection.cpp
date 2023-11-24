@@ -19,11 +19,11 @@ std::shared_ptr<Handler> HandlerCollection::stdout_console_handler(std::string c
 std::shared_ptr<Handler> HandlerCollection::stderr_console_handler(std::string const& stderr_handler_name /* = std::string{"stderr"} */)
 {
   // we just pass an empty ConsoleColours class, as we don't use colours for stderr.
-  return _create_console_handler(stderr_handler_name, stderr, quill::ConsoleColours{});
+  return _create_console_handler(stderr_handler_name, stderr, ConsoleColours{});
 }
 
 /***/
-std::shared_ptr<Handler> HandlerCollection::get_handler(std::string const& handler_name)
+std::shared_ptr<Handler> HandlerCollection::get_handler(std::string const& handler_name) const
 {
   // Protect shared access
   std::lock_guard<std::mutex> const lock{_mutex};
@@ -55,10 +55,8 @@ void HandlerCollection::subscribe_handler(std::shared_ptr<Handler> const& handle
                                      {
                                        return false;
                                      }
-                                     else
-                                     {
-                                       return elem.get() == handler_to_insert.get();
-                                     }
+
+                                     return elem.get() == handler_to_insert.get();
                                    });
 
   if (search == _active_handlers_collection.cend())
@@ -119,7 +117,7 @@ std::shared_ptr<Handler> HandlerCollection::_create_console_handler(std::string 
 
     if (handler_ptr)
     {
-      auto handler = reinterpret_cast<StreamHandler*>(handler_ptr.get());
+      auto const handler = reinterpret_cast<StreamHandler*>(handler_ptr.get());
 
       // if the handler with that name was already created check that the user didn't try to create it again passing a different file
       if (file == stdout && (handler->stream_handler_type() != StreamHandler::StreamHandlerType::Stdout))
@@ -128,13 +126,15 @@ std::shared_ptr<Handler> HandlerCollection::_create_console_handler(std::string 
           "Trying to insert an stdout handler again, but the handler already exists as a different "
           "file. Use an unique stream_handler name"));
       }
-      else if (file == stderr && (handler->stream_handler_type() != StreamHandler::StreamHandlerType::Stderr))
+
+      if (file == stderr && (handler->stream_handler_type() != StreamHandler::StreamHandlerType::Stderr))
       {
         QUILL_THROW(QuillError(
           "Trying to insert an stderr handler again, but the handler already exists as a different "
           "file. Use an unique stream_handler name"));
       }
-      else if (handler->stream_handler_type() == StreamHandler::StreamHandlerType::File)
+
+      if (handler->stream_handler_type() == StreamHandler::StreamHandlerType::File)
       {
         QUILL_THROW(
           QuillError("Trying to insert an stdout/stderr handler, but the handler already exists. "
@@ -144,15 +144,13 @@ std::shared_ptr<Handler> HandlerCollection::_create_console_handler(std::string 
 
       return handler_ptr;
     }
-    else
-    {
-      // found a similar handler but with an out of date weak ptr, this is very rare to happen
-      // as the backend logging thread is cleaning them
-      // in that case allocate a new handler in that location
-      handler_ptr = std::make_shared<ConsoleHandler>(stream, file, console_colours);
-      search->second = handler_ptr;
-      return handler_ptr;
-    }
+
+    // found a similar handler but with an out of date weak ptr, this is very rare to happen
+    // as the backend logging thread is cleaning them
+    // in that case allocate a new handler in that location
+    handler_ptr = std::make_shared<ConsoleHandler>(stream, file, console_colours);
+    search->second = handler_ptr;
+    return handler_ptr;
   }
 
   // if first time add it
