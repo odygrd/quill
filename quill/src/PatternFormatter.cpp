@@ -301,6 +301,7 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
   {
     if (macro_metadata.custom_tags())
     {
+      _custom_tags.clear();
       macro_metadata.custom_tags()->format(_custom_tags);
       _set_arg_val<Attribute::CustomTags>(_custom_tags);
     }

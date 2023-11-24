@@ -5,10 +5,13 @@
 
 #pragma once
 
-#include "quill/Fmt.h"
-#include "quill/detail/misc/Attributes.h"
 #include <cstddef>
 #include <string>
+#include <tuple>
+
+#include "quill/Fmt.h"
+#include "quill/detail/misc/Common.h"
+#include "quill/detail/misc/Attributes.h"
 
 /**
  * Contains useful utilities to assist with logging
@@ -53,4 +56,22 @@ QUILL_NODISCARD std::string to_string(T const& obj) noexcept
 {
   return fmtquill::to_string(obj);
 }
+
+/**
+ * Helper class for combining different CustomTag objects
+ */
+template <typename... TCustomTags>
+class CombinedCustomTags : public quill::CustomTags
+{
+public:
+  constexpr CombinedCustomTags(TCustomTags... custom_tags) : _tags(std::move(custom_tags)...) {}
+
+  virtual void format(std::string& out) const override
+  {
+    std::apply([&out](const auto&... tags) { (((tags.format(out)), out.append(", ")), ...); }, _tags);
+  }
+
+private:
+  std::tuple<TCustomTags...> _tags;
+};
 } // namespace quill::utility
