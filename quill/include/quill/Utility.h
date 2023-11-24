@@ -61,7 +61,7 @@ QUILL_NODISCARD std::string to_string(T const& obj) noexcept
  * Helper class for combining different CustomTag objects
  */
 template <typename... TCustomTags>
-class CombinedCustomTags : public quill::CustomTags
+class CombinedCustomTags : public CustomTags
 {
 public:
   constexpr CombinedCustomTags(TCustomTags... custom_tags) : _tags(std::move(custom_tags)...) {}
