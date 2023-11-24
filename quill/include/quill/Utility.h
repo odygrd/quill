@@ -66,7 +66,7 @@ class CombinedCustomTags : public quill::CustomTags
 public:
   constexpr CombinedCustomTags(TCustomTags... custom_tags) : _tags(std::move(custom_tags)...) {}
 
-  virtual void format(std::string& out) const override
+  void format(std::string& out) const override
   {
     std::apply([&out](const auto&... tags) { (((tags.format(out)), out.append(", ")), ...); }, _tags);
   }
