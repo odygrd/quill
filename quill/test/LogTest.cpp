@@ -287,7 +287,7 @@ TEST_CASE("default_logger_with_filehandler_custom_tags")
         cfg.set_open_mode('w');
         cfg.set_pattern(
           "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) "
-          "%(logger_name:<12) %(custom_tags) %(message)");
+          "%(logger_name:<12) [%(custom_tags)] %(message)");
         return cfg;
       }(),
       FileEventNotifier{}));
