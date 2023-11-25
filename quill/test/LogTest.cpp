@@ -3,6 +3,7 @@
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
 #include "misc/TestUtilities.h"
+#include "quill/Utility.h"
 #include "quill/detail/LogMacros.h"
 #include "quill/detail/LogManager.h"
 #include "quill/detail/misc/FileUtilities.h"
@@ -246,6 +247,80 @@ TEST_CASE("default_logger_with_filehandler_cformat")
       file_contents, std::string{"LOG_INFO      root         Lorem ipsum dolor sit amet, consectetur adipiscing elit 1 3.14"}));
     REQUIRE(quill::testing::file_contains(
       file_contents, std::string{"LOG_ERROR     root         Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true"}));
+
+    lm.stop_backend_worker();
+  }
+  quill::detail::remove_file(filename);
+}
+
+class TestCustomTags : public quill::CustomTags
+{
+public:
+  constexpr TestCustomTags(char const* tag_a) : _tag_a(tag_a) {}
+
+  void format(std::string& out) const override { out.append(fmtquill::format("{}", _tag_a)); }
+
+private:
+  char const* _tag_a;
+};
+
+static constexpr TestCustomTags custom_tags_a{"TAG_A"};
+static constexpr TestCustomTags custom_tags_b{"TAG_B"};
+
+static constexpr quill::utility::CombinedCustomTags<TestCustomTags, TestCustomTags> custom_tags_ab{
+  custom_tags_a, custom_tags_b, " -- "};
+
+/***/
+TEST_CASE("default_logger_with_filehandler_custom_tags")
+{
+  fs::path const filename{"test_default_logger_with_filehandler_custom_tags"};
+  {
+    LogManager lm;
+
+    // Set a file handler as the custom logger handler and log to it
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(lm.handler_collection().create_handler<FileHandler>(
+      filename.string(),
+      []()
+      {
+        quill::FileHandlerConfig cfg;
+        cfg.set_open_mode('w');
+        cfg.set_pattern(
+          "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) "
+          "%(logger_name:<12) %(custom_tags) %(message)");
+        return cfg;
+      }(),
+      FileEventNotifier{}));
+
+    lm.configure(cfg);
+
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    std::thread frontend(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
+
+        std::string s = "adipiscing";
+        LOG_INFO_WITH_TAGS(default_logger, custom_tags_ab,
+                           "Lorem ipsum dolor sit amet, consectetur {} {} {} {}", s, "elit", 1, 3.14);
+        LOG_ERROR_WITH_TAGS(
+          default_logger, custom_tags_ab,
+          "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {} {}", 2, true);
+
+        // Let all log get flushed to the file
+        lm.flush();
+      });
+
+    frontend.join();
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+    REQUIRE_EQ(file_contents.size(), 2);
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_INFO      root         [TAG_A -- TAG_B] Lorem ipsum dolor sit amet, consectetur adipiscing elit 1 3.14"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"LOG_ERROR     root         [TAG_A -- TAG_B] Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true"}));
 
     lm.stop_backend_worker();
   }
@@ -1582,7 +1657,7 @@ TEST_CASE("log_backtrace_manual_flush")
 class FileFilter1 : public quill::FilterBase
 {
 public:
-  FileFilter1() : quill::FilterBase("FileFilter1"){}
+  FileFilter1() : quill::FilterBase("FileFilter1") {}
 
   QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
                               quill::MacroMetadata const& metadata, fmt_buffer_t const&) noexcept override
@@ -1601,7 +1676,7 @@ public:
 class FileFilter2 : public quill::FilterBase
 {
 public:
-  FileFilter2() : quill::FilterBase("FileFilter2"){}
+  FileFilter2() : quill::FilterBase("FileFilter2") {}
 
   QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
                               quill::MacroMetadata const& metadata, fmt_buffer_t const&) noexcept override
