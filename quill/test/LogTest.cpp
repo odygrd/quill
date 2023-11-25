@@ -436,7 +436,8 @@ TEST_CASE("default_logger_ints_and_c_array")
 
     lm.stop_backend_worker();
   }
-  // quill::detail::remove_file(filename);
+
+  quill::detail::remove_file(filename);
 }
 
 /***/
@@ -673,97 +674,99 @@ TEST_CASE("default_logger_ints_and_very_large_wide_string")
 
 void custom_default_logger_same_handler(int test_case, fs::path filename)
 {
-  LogManager lm;
-
-  // Set a file handler the custom logger handler and log to it
-  std::shared_ptr<quill::Handler> file_handler = lm.handler_collection().create_handler<FileHandler>(
-    filename.string(),
-    []()
-    {
-      quill::FileHandlerConfig cfg;
-      cfg.set_open_mode('w');
-      return cfg;
-    }(),
-    FileEventNotifier{});
-  file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
-
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(file_handler);
-  lm.configure(cfg);
-
-  // Start logging
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
-
-  if (test_case == 0)
   {
-    // Add a second logger using the same file handler
-    std::shared_ptr<quill::Handler> file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+    LogManager lm;
+
+    // Set a file handler the custom logger handler and log to it
+    std::shared_ptr<quill::Handler> file_handler = lm.handler_collection().create_handler<FileHandler>(
       filename.string(),
       []()
       {
         quill::FileHandlerConfig cfg;
-        cfg.set_open_mode('a');
+        cfg.set_open_mode('w');
         return cfg;
       }(),
       FileEventNotifier{});
-    QUILL_MAYBE_UNUSED Logger* logger_2 =
-      lm.create_logger("custom_logger", file_handler_2, std::nullopt, std::nullopt);
-  }
-  else if (test_case == 1)
-  {
-    // Add the other logger by using the root logger params - which is the same as obtaining the file handler above
-    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
-  }
-  // Thread for default pattern
-  std::thread frontend_default(
-    [&lm]()
+    file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
+
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(file_handler);
+    lm.configure(cfg);
+
+    // Start logging
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    if (test_case == 0)
     {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      LOG_INFO(default_logger, "Default Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(default_logger,
-                "Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
-
-      lm.flush();
-    });
-
-  // Thread for custom pattern
-  std::thread frontend_custom(
-    [&lm]()
+      // Add a second logger using the same file handler
+      std::shared_ptr<quill::Handler> file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
+        filename.string(),
+        []()
+        {
+          quill::FileHandlerConfig cfg;
+          cfg.set_open_mode('a');
+          return cfg;
+        }(),
+        FileEventNotifier{});
+      QUILL_MAYBE_UNUSED Logger* logger_2 =
+        lm.create_logger("custom_logger", file_handler_2, std::nullopt, std::nullopt);
+    }
+    else if (test_case == 1)
     {
-      Logger* logger_2 = lm.logger_collection().get_logger("custom_logger");
+      // Add the other logger by using the root logger params - which is the same as obtaining the file handler above
+      QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
+    }
+    // Thread for default pattern
+    std::thread frontend_default(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-      LOG_INFO(logger_2, "Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(logger_2,
-                "Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+        LOG_INFO(default_logger, "Default Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(default_logger,
+                  "Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-      lm.flush();
-    });
+        lm.flush();
+      });
 
-  frontend_custom.join();
-  frontend_default.join();
+    // Thread for custom pattern
+    std::thread frontend_custom(
+      [&lm]()
+      {
+        Logger* logger_2 = lm.logger_collection().get_logger("custom_logger");
 
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+        LOG_INFO(logger_2, "Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(logger_2,
+                  "Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-  REQUIRE_EQ(file_contents.size(), 4);
+        lm.flush();
+      });
 
-  std::string const first_log_line_default =
-    "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-  std::string const second_log_line_default =
-    "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus "
-    "ante";
+    frontend_custom.join();
+    frontend_default.join();
 
-  std::string const first_log_line_custom =
-    "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit ";
-  std::string const second_log_line_custom =
-    "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ";
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
-  REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
-  REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
-  REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    REQUIRE_EQ(file_contents.size(), 4);
 
-  lm.stop_backend_worker();
+    std::string const first_log_line_default =
+      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+    std::string const second_log_line_default =
+      "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus "
+      "ante";
+
+    std::string const first_log_line_custom =
+      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit ";
+    std::string const second_log_line_custom =
+      "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ";
+
+    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+
+    lm.stop_backend_worker();
+  }
 
   quill::detail::remove_file(filename);
 }
@@ -782,46 +785,13 @@ TEST_CASE("custom_default_logger_same_file_from_default_logger")
 
 void test_custom_default_logger_multiple_handlers(int test_case, fs::path filename_1, fs::path filename_2)
 {
-  LogManager lm;
-
-  // Set a file handler the custom logger handler and log to it
-
-  // First handler
-  std::shared_ptr<quill::Handler> file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
-    filename_1.string(),
-    []()
-    {
-      quill::FileHandlerConfig cfg;
-      cfg.set_open_mode('w');
-      return cfg;
-    }(),
-    FileEventNotifier{});
-  file_handler_1->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
-
-  // Second handler with different pattern
-  std::shared_ptr<quill::Handler> file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
-    filename_2.string(),
-    []()
-    {
-      quill::FileHandlerConfig cfg;
-      cfg.set_open_mode('w');
-      return cfg;
-    }(),
-    FileEventNotifier{});
-  file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
-
-  quill::Config cfg;
-  cfg.default_handlers.emplace_back(file_handler_1);
-  cfg.default_handlers.emplace_back(file_handler_2);
-  lm.configure(cfg);
-
-  // Start logging
-  lm.start_backend_worker(false, std::initializer_list<int32_t>{});
-
-  if (test_case == 0)
   {
-    // Add a second logger using the same file handler
-    std::shared_ptr<quill::Handler> file_handler_a = lm.handler_collection().create_handler<FileHandler>(
+    LogManager lm;
+
+    // Set a file handler the custom logger handler and log to it
+
+    // First handler
+    std::shared_ptr<quill::Handler> file_handler_1 = lm.handler_collection().create_handler<FileHandler>(
       filename_1.string(),
       []()
       {
@@ -830,7 +800,10 @@ void test_custom_default_logger_multiple_handlers(int test_case, fs::path filena
         return cfg;
       }(),
       FileEventNotifier{});
-    std::shared_ptr<quill::Handler> file_handler_b = lm.handler_collection().create_handler<FileHandler>(
+    file_handler_1->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
+
+    // Second handler with different pattern
+    std::shared_ptr<quill::Handler> file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
       filename_2.string(),
       []()
       {
@@ -839,91 +812,123 @@ void test_custom_default_logger_multiple_handlers(int test_case, fs::path filena
         return cfg;
       }(),
       FileEventNotifier{});
-    QUILL_MAYBE_UNUSED Logger* logger_2 =
-      lm.create_logger("custom_logger", {file_handler_a, file_handler_b}, std::nullopt, std::nullopt);
-  }
-  else if (test_case == 1)
-  {
-    // Add the second logger constructing it from the params of the root logger
-    QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
-  }
+    file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
 
-  // Thread for default pattern
-  std::thread frontend_default(
-    [&lm]()
+    quill::Config cfg;
+    cfg.default_handlers.emplace_back(file_handler_1);
+    cfg.default_handlers.emplace_back(file_handler_2);
+    lm.configure(cfg);
+
+    // Start logging
+    lm.start_backend_worker(false, std::initializer_list<int32_t>{});
+
+    if (test_case == 0)
     {
-      Logger* default_logger = lm.logger_collection().get_logger();
-
-      LOG_INFO(default_logger, "Default Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(default_logger,
-                "Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
-
-      lm.flush();
-    });
-
-  // Thread for custom pattern
-  std::thread frontend_custom(
-    [&lm]()
+      // Add a second logger using the same file handler
+      std::shared_ptr<quill::Handler> file_handler_a = lm.handler_collection().create_handler<FileHandler>(
+        filename_1.string(),
+        []()
+        {
+          quill::FileHandlerConfig cfg;
+          cfg.set_open_mode('w');
+          return cfg;
+        }(),
+        FileEventNotifier{});
+      std::shared_ptr<quill::Handler> file_handler_b = lm.handler_collection().create_handler<FileHandler>(
+        filename_2.string(),
+        []()
+        {
+          quill::FileHandlerConfig cfg;
+          cfg.set_open_mode('w');
+          return cfg;
+        }(),
+        FileEventNotifier{});
+      QUILL_MAYBE_UNUSED Logger* logger_2 =
+        lm.create_logger("custom_logger", {file_handler_a, file_handler_b}, std::nullopt, std::nullopt);
+    }
+    else if (test_case == 1)
     {
-      Logger* logger_2 = lm.logger_collection().get_logger("custom_logger");
+      // Add the second logger constructing it from the params of the root logger
+      QUILL_MAYBE_UNUSED Logger* logger_2 = lm.create_logger("custom_logger", std::nullopt, std::nullopt);
+    }
 
-      LOG_INFO(logger_2, "Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit");
-      LOG_ERROR(logger_2,
-                "Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
+    // Thread for default pattern
+    std::thread frontend_default(
+      [&lm]()
+      {
+        Logger* default_logger = lm.logger_collection().get_logger();
 
-      lm.flush();
-    });
+        LOG_INFO(default_logger, "Default Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(default_logger,
+                  "Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-  frontend_custom.join();
-  frontend_default.join();
+        lm.flush();
+      });
 
-  {
-    // Validate handler 1
-    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_1);
+    // Thread for custom pattern
+    std::thread frontend_custom(
+      [&lm]()
+      {
+        Logger* logger_2 = lm.logger_collection().get_logger("custom_logger");
 
-    REQUIRE_EQ(file_contents.size(), 4);
+        LOG_INFO(logger_2, "Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit");
+        LOG_ERROR(logger_2,
+                  "Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
 
-    std::string const first_log_line_default =
-      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    std::string const second_log_line_default =
-      "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante ";
+        lm.flush();
+      });
 
-    std::string const first_log_line_custom =
-      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    std::string const second_log_line_custom =
-      "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
-      "ante";
+    frontend_custom.join();
+    frontend_default.join();
 
-    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
-    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
-    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
-    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    {
+      // Validate handler 1
+      std::vector<std::string> const file_contents = quill::testing::file_contents(filename_1);
+
+      REQUIRE_EQ(file_contents.size(), 4);
+
+      std::string const first_log_line_default =
+        "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+      std::string const second_log_line_default =
+        "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante ";
+
+      std::string const first_log_line_custom =
+        "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+      std::string const second_log_line_custom =
+        "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
+        "ante";
+
+      REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+      REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+      REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+      REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    }
+
+    {
+      // Validate handler 2
+      std::vector<std::string> const file_contents = quill::testing::file_contents(filename_2);
+
+      REQUIRE_EQ(file_contents.size(), 4);
+
+      std::string const first_log_line_default =
+        "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+      std::string const second_log_line_default =
+        "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante";
+
+      std::string const first_log_line_custom =
+        "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+      std::string const second_log_line_custom =
+        "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
+        "ante";
+
+      REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
+      REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
+      REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
+      REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
+    }
+
+    lm.stop_backend_worker();
   }
-
-  {
-    // Validate handler 2
-    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_2);
-
-    REQUIRE_EQ(file_contents.size(), 4);
-
-    std::string const first_log_line_default =
-      "root - Default Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    std::string const second_log_line_default =
-      "root - Default Nulla tempus, libero at dignissim viverra, lectus libero finibus ante";
-
-    std::string const first_log_line_custom =
-      "custom_logger - Custom Lorem ipsum dolor sit amet, consectetur adipiscing elit";
-    std::string const second_log_line_custom =
-      "custom_logger - Custom Nulla tempus, libero at dignissim viverra, lectus libero finibus "
-      "ante";
-
-    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_default));
-    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_default));
-    REQUIRE(quill::testing::file_contains(file_contents, first_log_line_custom));
-    REQUIRE(quill::testing::file_contains(file_contents, second_log_line_custom));
-  }
-
-  lm.stop_backend_worker();
 
   quill::detail::remove_file(filename_1);
   quill::detail::remove_file(filename_2);
@@ -2257,6 +2262,7 @@ TEST_CASE("default_logger_with_random_strings")
 
     lm.stop_backend_worker();
   }
+
   quill::detail::remove_file(filename);
 }
 
