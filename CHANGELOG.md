@@ -58,8 +58,7 @@
 - Fixed `LOG_TRACE_CFORMAT` macros.
 - Added support for compile-time custom tags in `quill::MacroMetadata` to enhance message filtering and incorporate
   static information. New log macros suffixed with `_WITH_TAGS` introduced for this feature.
-  Additionally, `%(custom_tags)` parameter added
-  to `PatternFormatter`. ([#349](https://github.com/odygrd/quill/issues/349))
+  Additionally, `%(custom_tags)` parameter added to `PatternFormatter`. ([#349](https://github.com/odygrd/quill/issues/349))
   See [example_custom_tags.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_tags.cpp)
 
 ## v3.4.1
