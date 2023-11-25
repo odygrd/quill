@@ -76,6 +76,7 @@ int main()
   LOG_WARNING_WITH_TAGS(logger, custom_tags_b, "Warning with custom tags");
   LOG_ERROR_WITH_TAGS(logger, custom_tags_a, "Error with custom tags");
   LOG_CRITICAL_WITH_TAGS(logger, custom_tags_ab, "Critical with combined custom tags");
-  LOG_CRITICAL_WITH_TAGS(logger, custom_tags_ab_custom_format_delimiter, "Critical with combined custom tags custom delimiter");
+  LOG_CRITICAL_WITH_TAGS(logger, custom_tags_ab_custom_format_delimiter,
+                         "Critical with combined custom tags custom delimiter");
   LOG_CRITICAL(logger, "Critical without custom tags");
 }
