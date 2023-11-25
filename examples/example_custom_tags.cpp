@@ -43,6 +43,9 @@ static constexpr MyCustomTagsB custom_tags_b{"CUSTOM_TAG_B", 23};
 static constexpr quill::utility::CombinedCustomTags<MyCustomTagsA, MyCustomTagsB> custom_tags_ab{
   custom_tags_a, custom_tags_b};
 
+static constexpr quill::utility::CombinedCustomTags<MyCustomTagsA, MyCustomTagsB> custom_tags_ab_custom_format_delimiter{
+  custom_tags_a, custom_tags_b, " -- "};
+
 int main()
 {
   // Set a custom formatter for stdout that prints the tags
@@ -73,5 +76,6 @@ int main()
   LOG_WARNING_WITH_TAGS(logger, custom_tags_b, "Warning with custom tags");
   LOG_ERROR_WITH_TAGS(logger, custom_tags_a, "Error with custom tags");
   LOG_CRITICAL_WITH_TAGS(logger, custom_tags_ab, "Critical with combined custom tags");
+  LOG_CRITICAL_WITH_TAGS(logger, custom_tags_ab_custom_format_delimiter, "Critical with combined custom tags custom delimiter");
   LOG_CRITICAL(logger, "Critical without custom tags");
 }

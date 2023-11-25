@@ -7,11 +7,12 @@
 
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <tuple>
 
 #include "quill/Fmt.h"
-#include "quill/detail/misc/Common.h"
 #include "quill/detail/misc/Attributes.h"
+#include "quill/detail/misc/Common.h"
 
 /**
  * Contains useful utilities to assist with logging
@@ -64,14 +65,25 @@ template <typename... TCustomTags>
 class CombinedCustomTags : public CustomTags
 {
 public:
-  constexpr CombinedCustomTags(TCustomTags... custom_tags) : _tags(std::move(custom_tags)...) {}
+  constexpr CombinedCustomTags(TCustomTags... custom_tags, std::string_view delim = ", ")
+    : _tags(std::move(custom_tags)...), _delim(delim)
+  {
+  }
 
   void format(std::string& out) const override
   {
-    std::apply([&out](const auto&... tags) { (((tags.format(out)), out.append(", ")), ...); }, _tags);
+    std::apply([&out, this](const auto&... tags)
+               { (((tags.format(out)), out.append(_delim.data())), ...); }, _tags);
+
+    if (!out.empty())
+    {
+      // erase last delim
+      out.erase(out.length() - _delim.length(), _delim.length());
+    }
   }
 
 private:
   std::tuple<TCustomTags...> _tags;
+  std::string_view _delim;
 };
 } // namespace quill::utility
