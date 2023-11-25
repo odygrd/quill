@@ -256,7 +256,7 @@ TEST_CASE("default_logger_with_filehandler_cformat")
 class TestCustomTags : public quill::CustomTags
 {
 public:
-  constexpr TestCustomTags(char const* tag_a) : _tag_a(tag_a) {}
+  explicit constexpr TestCustomTags(char const* tag_a) : _tag_a(tag_a) {}
 
   void format(std::string& out) const override { out.append(fmtquill::format("{}", _tag_a)); }
 
