@@ -285,7 +285,7 @@ public:
       constexpr MacroMetadata operator()() const noexcept
       {
         return MacroMetadata{
-          "",    "",   "", "", "{}", LogLevel::Critical, MacroMetadata::Event::InitBacktrace,
+          "",    "",   "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace,
           false, false};
       }
     } anonymous_log_message_info;
@@ -311,7 +311,7 @@ public:
       constexpr MacroMetadata operator()() const noexcept
       {
         return MacroMetadata{
-          "",    "",   "", "", "", LogLevel::Critical, MacroMetadata::Event::FlushBacktrace,
+          "",    "",   "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace,
           false, false};
       }
     } anonymous_log_message_info;

@@ -56,6 +56,7 @@ public:
     Process,
     FileLine,
     Message,
+    CustomTags,
     ATTR_NR_ITEMS
   };
 
@@ -121,6 +122,7 @@ private:
    * %(thread)        - Thread ID
    * %(thread_name)   - Thread Name if set
    * %(process)       - Process ID
+   * %(custom_tags)   - Appends custom tags to the message when _WITH_TAGS macros are used.
    *
    * @throws on invalid format string
    */
@@ -145,6 +147,7 @@ private:
 
 private:
   std::string _format;
+  std::string _custom_tags;
   /** Each named argument in the format_pattern is mapped in order to this array **/
   std::array<size_t, Attribute::ATTR_NR_ITEMS> _order_index{};
   std::array<fmtquill::basic_format_arg<fmtquill::format_context>, Attribute::ATTR_NR_ITEMS> _args{};

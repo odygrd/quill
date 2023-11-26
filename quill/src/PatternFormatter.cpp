@@ -23,7 +23,8 @@ PatternFormatter::Attribute attribute_from_string(std::string const& attribute_n
     {"thread_name", PatternFormatter::Attribute::ThreadName},
     {"process", PatternFormatter::Attribute::Process},
     {"fileline", PatternFormatter::Attribute::FileLine},
-    {"message", PatternFormatter::Attribute::Message}};
+    {"message", PatternFormatter::Attribute::Message},
+    {"custom_tags", PatternFormatter::Attribute::CustomTags}};
 
   auto const search = attr_map.find(attribute_name);
 
@@ -99,7 +100,8 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
   std::size_t arg_identifier_pos = pattern.find_first_of('%');
   while (arg_identifier_pos != std::string::npos)
   {
-    if (std::size_t const open_paren_pos = pattern.find_first_of('(', arg_identifier_pos); open_paren_pos != std::string::npos && (open_paren_pos - arg_identifier_pos) == 1)
+    if (std::size_t const open_paren_pos = pattern.find_first_of('(', arg_identifier_pos);
+        open_paren_pos != std::string::npos && (open_paren_pos - arg_identifier_pos) == 1)
     {
       // if we found '%(' we have a matching pattern and we now need to get the closed paren
       std::size_t const closed_paren_pos = pattern.find_first_of(')', open_paren_pos);
@@ -200,7 +202,7 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
     _is_set_in_pattern, std::string{format_pattern}, "ascii_time"_a = "", "filename"_a = "",
     "function_name"_a = "", "level_name"_a = "", "level_id"_a = "", "lineno"_a = "",
     "logger_name"_a = "", "pathname"_a = "", "thread"_a = "", "thread_name"_a = "",
-    "process"_a = "", "fileline"_a = "", "message"_a = "");
+    "process"_a = "", "fileline"_a = "", "message"_a = "", "custom_tags"_a = "");
 
   _set_arg<Attribute::AsciiTime>(std::string_view("ascii_time"));
   _set_arg<Attribute::FileName>(std::string_view("filename"));
@@ -215,6 +217,7 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
   _set_arg<Attribute::Process>(std::string_view("process"));
   _set_arg<Attribute::FileLine>(std::string_view("fileline"));
   _set_arg<Attribute::Message>(std::string_view("message"));
+  _set_arg<Attribute::CustomTags>(std::string_view("custom_tags"));
 }
 
 /***/
@@ -292,6 +295,20 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
   if (_is_set_in_pattern[Attribute::FileLine])
   {
     _set_arg_val<Attribute::FileLine>(macro_metadata.fileline());
+  }
+
+  if (_is_set_in_pattern[Attribute::CustomTags])
+  {
+    if (macro_metadata.custom_tags())
+    {
+      _custom_tags.clear();
+      macro_metadata.custom_tags()->format(_custom_tags);
+      _set_arg_val<Attribute::CustomTags>(_custom_tags);
+    }
+    else
+    {
+      _set_arg_val<Attribute::CustomTags>(std::string{});
+    }
   }
 
   _set_arg_val<Attribute::Message>(std::string_view{log_msg.begin(), log_msg.size()});

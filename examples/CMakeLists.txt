@@ -46,6 +46,9 @@ target_link_libraries(quill_example_custom_formatter_thread_name quill)
 add_executable(quill_example_custom_handler example_custom_handler.cpp)
 target_link_libraries(quill_example_custom_handler quill)
 
+add_executable(quill_example_custom_tags example_custom_tags.cpp)
+target_link_libraries(quill_example_custom_tags quill)
+
 add_executable(quill_example_daily_file_rotation example_daily_file_rotation.cpp)
 target_link_libraries(quill_example_daily_file_rotation quill)
 
