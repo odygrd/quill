@@ -39,10 +39,16 @@ namespace fmtquill = fmt;
 #if QUILL_FMT_VERSION > 70103
   #if defined(QUILL_FMT_EXTERNAL)
     #include <fmt/args.h>
-    #include <fmt/xchar.h>
+
+    #if defined(_WIN32)
+      #include <fmt/xchar.h>
+    #endif
   #else
     #include "quill/bundled/fmt/args.h"
-    #include "quill/bundled/fmt/xchar.h"
+
+    #if defined(_WIN32)
+      #include "quill/bundled/fmt/xchar.h"
+    #endif
   #endif
 #endif
 
