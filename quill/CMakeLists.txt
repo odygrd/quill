@@ -73,6 +73,8 @@ set(SOURCE_FILES
         src/detail/HandlerCollection.cpp
         src/detail/LoggerCollection.cpp
         src/detail/SignalHandler.cpp
+        src/detail/ThreadContext.cpp
+        src/detail/ThreadContextCollection.cpp
 
         src/handlers/ConsoleHandler.cpp
         src/handlers/FileHandler.cpp

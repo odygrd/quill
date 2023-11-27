@@ -140,12 +140,12 @@ private:
   /**
    * Process a single trnasit event
    */
-  QUILL_ATTRIBUTE_HOT inline void _process_transit_event(TransitEvent& transit_event);
+  QUILL_ATTRIBUTE_HOT void _process_transit_event(TransitEvent& transit_event);
 
   /**
    * Write a transit event
    */
-  QUILL_ATTRIBUTE_HOT inline void _write_transit_event(TransitEvent const& transit_event) const;
+  QUILL_ATTRIBUTE_HOT void _write_transit_event(TransitEvent const& transit_event) const;
 
   /**
    * Process the lowest timestamp from the queues and write it to the log file
@@ -156,7 +156,7 @@ private:
   /**
    * Force flush all active Handlers
    */
-  QUILL_ATTRIBUTE_HOT inline void _force_flush();
+  QUILL_ATTRIBUTE_HOT void _force_flush();
 
   /**
    * Check for dropped messages - only when bounded queue is used
@@ -474,76 +474,7 @@ void BackendWorker::_process_transit_events(ThreadContextCollection::backend_thr
   TransitEvent* transit_event = transit_buffer->front();
   assert(transit_event && "transit_buffer is set only when transit_event is valid");
 
-  _process_transit_event(*transit_event);
-
-  // Remove this event and move to the next.
-  transit_buffer->pop_front();
-}
-
-/***/
-void BackendWorker::_process_transit_event(TransitEvent& transit_event)
-{
-  MacroMetadata const macro_metadata = transit_event.metadata();
-
-  // If backend_process(...) throws we want to skip this event and move to the next, so we catch the
-  // error here instead of catching it in the parent try/catch block of main_loop
-  QUILL_TRY
-  {
-    if (macro_metadata.event() == MacroMetadata::Event::Log)
-    {
-      if (transit_event.log_level() != LogLevel::Backtrace)
-      {
-        _write_transit_event(transit_event);
-
-        // We also need to check the severity of the log message here against the backtrace
-        // Check if we should also flush the backtrace messages:
-        // After we forwarded the message we will check the severity of this message for this logger
-        // If the severity of the message is higher than the backtrace flush severity we will also
-        // flush the backtrace of the logger
-        if (QUILL_UNLIKELY(transit_event.log_level() >= transit_event.header.logger_details->backtrace_flush_level()))
-        {
-          _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
-                                                 [this](TransitEvent const& te)
-                                                 { _write_transit_event(te); });
-        }
-      }
-      else
-      {
-        // this is a backtrace log and we will store it
-        _backtrace_log_message_storage.store(std::move(transit_event));
-      }
-    }
-    else if (macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
-    {
-      // we can just convert the capacity back to int here and use it
-      _backtrace_log_message_storage.set_capacity(
-        transit_event.header.logger_details->name(),
-        static_cast<uint32_t>(std::stoul(
-          std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
-    }
-    else if (macro_metadata.event() == MacroMetadata::Event::FlushBacktrace)
-    {
-      // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
-      _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
-                                             [this](TransitEvent const& te)
-                                             { _write_transit_event(te); });
-    }
-    else if (macro_metadata.event() == MacroMetadata::Event::Flush)
-    {
-      _handler_collection.active_handlers(_active_handlers_cache);
-      _force_flush();
-
-      // this is a flush event, so we need to notify the caller to continue now
-      transit_event.flush_flag->store(true);
-
-      // we also need to reset the flush_flag as the TransitEvents are re-used
-      transit_event.flush_flag = nullptr;
-    }
-
-    // Since after processing an event we never force flush but leave it up to the OS instead,
-    // set this to true to keep track of unflushed messages we have
-    _has_unflushed_messages = true;
-  }
+  QUILL_TRY { _process_transit_event(*transit_event); }
 #if !defined(QUILL_NO_EXCEPTIONS)
   QUILL_CATCH(std::exception const& e) { _notification_handler(e.what()); }
   QUILL_CATCH_ALL()
@@ -551,31 +482,9 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
     _notification_handler(std::string{"Caught unhandled exception."});
   } // clang-format on
 #endif
-}
 
-/***/
-void BackendWorker::_write_transit_event(TransitEvent const& transit_event) const
-{
-  // Forward the record to all the logger handlers
-  MacroMetadata const macro_metadata = transit_event.metadata();
-
-  for (auto& handler : transit_event.header.logger_details->handlers())
-  {
-    auto const& formatted_log_message_buffer = handler->formatter().format(
-      std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id,
-      transit_event.thread_name, _process_id, transit_event.header.logger_details->name(),
-      transit_event.log_level_as_str(), macro_metadata, transit_event.formatted_msg);
-
-    // If all filters are okay we write this message to the file
-    if (handler->apply_filters(transit_event.thread_id,
-                               std::chrono::nanoseconds{transit_event.header.timestamp},
-                               transit_event.log_level(), macro_metadata, formatted_log_message_buffer))
-    {
-      // log to the handler, also pass the log_message_timestamp this is only needed in some
-      // cases like daily file rotation
-      handler->write(formatted_log_message_buffer, transit_event);
-    }
-  }
+  // Remove this event and move to the next.
+  transit_buffer->pop_front();
 }
 
 /***/
@@ -649,25 +558,6 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
     tc->spsc_queue_variant());
 
   return true;
-}
-
-/***/
-void BackendWorker::_force_flush()
-{
-  if (_has_unflushed_messages)
-  {
-    // If we have buffered any messages then flush all active handlers
-    for (auto const& handler : _active_handlers_cache)
-    {
-      std::shared_ptr<Handler> h = handler.lock();
-      if (h)
-      {
-        h->flush();
-      }
-    }
-
-    _has_unflushed_messages = false;
-  }
 }
 
 /***/

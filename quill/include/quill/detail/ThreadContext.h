@@ -34,20 +34,8 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContext(QueueType queue_type, uint32_t default_queue_capacity,
-                         uint32_t initial_transit_event_buffer_capacity, bool huge_pages)
-    : _transit_event_buffer(initial_transit_event_buffer_capacity)
-  {
-    if ((queue_type == QueueType::UnboundedBlocking) ||
-        (queue_type == QueueType::UnboundedNoMaxLimit) || (queue_type == QueueType::UnboundedDropping))
-    {
-      _spsc_queue.emplace<UnboundedQueue>(default_queue_capacity, huge_pages);
-    }
-    else
-    {
-      _spsc_queue.emplace<BoundedQueue>(default_queue_capacity, huge_pages);
-    }
-  }
+  ThreadContext(QueueType queue_type, uint32_t default_queue_capacity,
+                uint32_t initial_transit_event_buffer_capacity, bool huge_pages);
 
   /**
    * Deleted
@@ -148,14 +136,7 @@ public:
    * counter Called by the backend worker thread
    * @return current value of the message message counter
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_and_reset_message_failure_counter() noexcept
-  {
-    if (QUILL_LIKELY(_message_failure_counter.load(std::memory_order_relaxed) == 0))
-    {
-      return 0;
-    }
-    return _message_failure_counter.exchange(0, std::memory_order_relaxed);
-  }
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_and_reset_message_failure_counter() noexcept;
 
 private:
   std::variant<std::monostate, UnboundedQueue, BoundedQueue> _spsc_queue; /** queue for this thread, events are pushed here */
