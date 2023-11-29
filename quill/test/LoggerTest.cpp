@@ -85,4 +85,17 @@ TEST_CASE("logger_should_log")
   REQUIRE_UNARY_FALSE(logger_collection.get_logger("logger_1")->should_log<LogLevel::Critical>());
 }
 
+/***/
+TEST_CASE("logger_name")
+{
+  Config cfg;
+  ThreadContextCollection tc{cfg};
+  HandlerCollection hc;
+
+  LoggerCollection logger_collection{cfg, tc, hc};
+
+  Logger* logger_1 = logger_collection.create_logger("logger_1", TimestampClockType::Tsc, nullptr);
+  REQUIRE_EQ(logger_1->name(), "logger_1");
+}
+
 TEST_SUITE_END();
