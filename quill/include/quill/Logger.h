@@ -320,6 +320,11 @@ public:
     this->template log<decltype(anonymous_log_message_info)>(LogLevel::None, QUILL_FMT_STRING(""));
   }
 
+  /**
+   * @return The name of the logger
+   */
+  QUILL_NODISCARD std::string const& name() const noexcept { return _logger_details.name(); }
+
 private:
   friend class detail::LoggerCollection;
   friend class detail::LogManager;
@@ -370,11 +375,6 @@ private:
   {
     return _is_invalidated.load(std::memory_order_acquire);
   }
-
-  /**
-   * @return The name of the logger
-   */
-  QUILL_NODISCARD std::string const& name() const noexcept { return _logger_details.name(); }
 
 private:
   detail::LoggerDetails _logger_details;
