@@ -107,7 +107,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
   if (signal == CTRL_C_EVENT || signal == CTRL_BREAK_EVENT)
   {
     // This means signal handler is running a caller thread, we can log from the root logger
-    LOG_INFO(quill::get_logger(), "Interrupted by Ctrl+C:");
+    QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Info, "Interrupted by Ctrl+C:");
 
     flush();
     std::exit(EXIT_SUCCESS);
@@ -128,10 +128,10 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
   else
   {
     // This means signal handler is running a caller thread, we can log from the root logger
-    LOG_INFO(quill::get_logger(), "Received exception code: {}",
+    QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Info, "Received exception code: {}",
              get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
-    LOG_CRITICAL(quill::get_logger(), "Terminated unexpectedly because of exception code: {}",
+    QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Critical, "Terminated unexpectedly because of exception code: {}",
                  get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
     flush();
@@ -174,7 +174,7 @@ void on_signal(int32_t signal_number)
   else
   {
     // This means signal handler is running a caller thread, we can log from the root logger
-    LOG_INFO(quill::get_logger(), "Received signal: {}", signal_number);
+    QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Info, "Received signal: {}", signal_number);
 
     if (signal_number == SIGINT || signal_number == SIGTERM)
     {
@@ -183,7 +183,7 @@ void on_signal(int32_t signal_number)
       std::exit(EXIT_SUCCESS);
     }
 
-    LOG_CRITICAL(get_logger(), "Terminated unexpectedly because of signal: {}", signal_number);
+    QUILL_INTERNAL_LOG(get_logger(), quill::LogLevel::Critical, "Terminated unexpectedly because of signal: {}", signal_number);
 
     flush();
 
