@@ -56,7 +56,8 @@
 
 ## v3.5.1
 
-- Fix for accessing `name()` method of the `Logger` class. ([#378](https://github.com/odygrd/quill/pull/378))
+- Resolved issue with accessing the `name()` method within the `Logger` class. ([#378](https://github.com/odygrd/quill/pull/378))
+- Fixed a compilation error in `SignalHandler` specific to Windows when `QUILL_DISABLE_NON_PREFIXED_MACROS` is defined. ([#380](https://github.com/odygrd/quill/pull/380))
 
 ## v3.5.0
 
