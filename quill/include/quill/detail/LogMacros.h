@@ -130,7 +130,7 @@
         break;                                                                                        \
       }                                                                                               \
                                                                                                       \
-      limit_us = now + min_interval;                                                                  \
+      next_log_time = now + min_interval;                                                             \
       QUILL_LOGGER_CALL_NOFN(likelyhood, logger, log_statement_level, fmt, ##__VA_ARGS__);            \
     }                                                                                                 \
   } while (0)
@@ -286,7 +286,7 @@
         break;                                                                                                \
       }                                                                                                       \
                                                                                                               \
-      limit_us = now + min_interval;                                                                          \
+      next_log_time = now + min_interval;                                                                     \
       QUILL_LOGGER_CALL_NOFN_CFORMAT(likelyhood, logger, log_statement_level, fmt, ##__VA_ARGS__);            \
     }                                                                                                         \
   } while (0)
