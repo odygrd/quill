@@ -147,7 +147,9 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
       assert(!macro_metadata.is_structured_log_template() &&
              "structured log templates are not supported for wide characters");
 
-      auto const [pos, error] = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
+      auto const [pos, error] = 
+        format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args, nullptr);
+
       read_pos = pos;
 
       if (QUILL_UNLIKELY(!error.empty()))
