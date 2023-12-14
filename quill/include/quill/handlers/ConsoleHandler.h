@@ -209,7 +209,8 @@ private:
   QUILL_NODISCARD ConsoleColours::WORD _set_foreground_colour(ConsoleColours::WORD attributes);
 #endif
 
-private:
+protected:
+  // protected in case someone wants to derive from this class and create a custom one, e.g. for json logging to stdout
   ConsoleColours _console_colours;
 };
 } // namespace quill
