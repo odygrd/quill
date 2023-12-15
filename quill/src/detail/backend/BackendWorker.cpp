@@ -188,8 +188,8 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
           }
 
           // Now we format the message and also populate the values of each structured key
-          auto const [pos, error] =
-            format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args, &transit_event->structured_kvs);
+          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
+                                                 _args, &transit_event->structured_kvs);
 
           read_pos = pos;
 
@@ -217,8 +217,8 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
           }
 
           // Now we format the message and also populate the values of each structured key
-          auto const [pos, error] =
-            format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args, &transit_event->structured_kvs);
+          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
+                                                 _args, &transit_event->structured_kvs);
 
           read_pos = pos;
 
