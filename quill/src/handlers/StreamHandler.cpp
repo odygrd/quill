@@ -69,7 +69,7 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
 }
 
 /***/
-void StreamHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event)
+void StreamHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const&)
 {
   if (_file_event_notifier.before_write)
   {
