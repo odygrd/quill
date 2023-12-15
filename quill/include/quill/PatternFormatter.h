@@ -57,6 +57,7 @@ public:
     FileLine,
     Message,
     CustomTags,
+    StructuredKeys,
     ATTR_NR_ITEMS
   };
 
@@ -98,7 +99,9 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmt_buffer_t const& format(
     std::chrono::nanoseconds timestamp, std::string_view thread_id, std::string_view thread_name,
     std::string_view process_id, std::string_view logger_name, std::string_view log_level,
-    MacroMetadata const& macro_metadata, transit_event_fmt_buffer_t const& log_msg);
+    MacroMetadata const& macro_metadata,
+    std::vector<std::pair<std::string, transit_event_fmt_buffer_t>> const& structured_kvs,
+    transit_event_fmt_buffer_t const& log_msg);
 
   QUILL_ATTRIBUTE_HOT std::string_view format_timestamp(std::chrono::nanoseconds timestamp);
 
@@ -110,19 +113,20 @@ private:
    * The following attribute names can be used with the corresponding placeholder in a %-style format string.
    * @note: The same attribute can not be used twice in the same format pattern
    *
-   * %(ascii_time)    - Human-readable time when the LogRecord was created
-   * %(filename)      - Source file where the logging call was issued
-   * %(pathname)      - Full source file where the logging call was issued
-   * %(function_name) - Name of function containing the logging call
-   * %(level_name)    - Text logging level for the messageText logging level for the message
-   * %(level_id)      - Single letter id
-   * %(lineno)        - Source line number where the logging call was issued
-   * %(logger_name)   - Name of the logger used to log the call.
-   * %(message)       - The logged message
-   * %(thread)        - Thread ID
-   * %(thread_name)   - Thread Name if set
-   * %(process)       - Process ID
-   * %(custom_tags)   - Appends custom tags to the message when _WITH_TAGS macros are used.
+   * %(ascii_time)      - Human-readable time when the LogRecord was created
+   * %(filename)        - Source file where the logging call was issued
+   * %(pathname)        - Full source file where the logging call was issued
+   * %(function_name)   - Name of function containing the logging call
+   * %(level_name)      - Text logging level for the messageText logging level for the message
+   * %(level_id)        - Single letter id
+   * %(lineno)          - Source line number where the logging call was issued
+   * %(logger_name)     - Name of the logger used to log the call.
+   * %(message)         - The logged message
+   * %(thread)          - Thread ID
+   * %(thread_name)     - Thread Name if set
+   * %(process)         - Process ID
+   * %(custom_tags)     - Appends custom tags to the message when _WITH_TAGS macros are used.
+   * %(structured_keys) - Appends keys to the message. Only applicable with structured message formatting; remains empty otherwise.
    *
    * @throws on invalid format string
    */
@@ -148,6 +152,7 @@ private:
 private:
   std::string _format;
   std::string _custom_tags;
+  std::string _structured_keys;
   /** Each named argument in the format_pattern is mapped in order to this array **/
   std::array<size_t, Attribute::ATTR_NR_ITEMS> _order_index{};
   std::array<fmtquill::basic_format_arg<fmtquill::format_context>, Attribute::ATTR_NR_ITEMS> _args{};

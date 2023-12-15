@@ -1,4 +1,4 @@
-- [v3.5.2](#v352)
+- [v3.6.0](#v360)
 - [v3.5.1](#v351)
 - [v3.5.0](#v350)
 - [v3.4.1](#v341)
@@ -55,13 +55,18 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v3.5.2
+## v3.6.0
 
 - Fixed `QUILL_LOGGER_CALL_NOFN_LIMIT` macros. ([#381](https://github.com/odygrd/quill/pull/381))
 - Resolved a bug that caused reading destructed arguments when structured logging format was used.
 - Modified member access from `private` to `protected` in `ConsoleHandler` for potential inheritance purposes.
 - Eliminated redundant whitespaces within `JsonFileHandler`.
 - Fixed `JsonFileHandler` to notify the file event notifier before log message writes.
+- Implemented a new attribute called `%(structured_keys)` within the `PatternFormatter` to facilitate the inclusion
+  of keys in messages when using structured log formatting. This addition is useful for instances where logging occurs
+  in both JSON and regular log formats, enabling the display of keys within the regular log-formatted messages.
+  See
+  updated [example_json_structured_log.cpp](https://github.com/odygrd/quill/blob/master/examples/example_json_structured_log.cpp)
 
 ## v3.5.1
 

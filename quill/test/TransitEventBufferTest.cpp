@@ -23,7 +23,7 @@ TEST_CASE("transit_event_bounded_buffer")
       TransitEvent* te1 = bte.back();
       REQUIRE(te1);
       te1->structured_kvs.clear();
-      te1->structured_kvs.emplace_back(std::string{"test1"} + std::to_string(i), "");
+      te1->structured_kvs.emplace_back(std::string{"test1"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
@@ -33,7 +33,7 @@ TEST_CASE("transit_event_bounded_buffer")
       TransitEvent* te2 = bte.back();
       REQUIRE(te2);
       te2->structured_kvs.clear();
-      te2->structured_kvs.emplace_back(std::string{"test2"} + std::to_string(i), "");
+      te2->structured_kvs.emplace_back(std::string{"test2"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
@@ -43,7 +43,7 @@ TEST_CASE("transit_event_bounded_buffer")
       TransitEvent* te3 = bte.back();
       REQUIRE(te3);
       te3->structured_kvs.clear();
-      te3->structured_kvs.emplace_back(std::string{"test3"} + std::to_string(i), "");
+      te3->structured_kvs.emplace_back(std::string{"test3"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
@@ -53,7 +53,7 @@ TEST_CASE("transit_event_bounded_buffer")
       TransitEvent* te4 = bte.back();
       REQUIRE(te4);
       te4->structured_kvs.clear();
-      te4->structured_kvs.emplace_back(std::string{"test4"} + std::to_string(i), "");
+      te4->structured_kvs.emplace_back(std::string{"test4"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
@@ -117,7 +117,7 @@ TEST_CASE("transit_event_bounded_buffer_integer_overflow")
       TransitEvent* te = bte.back();
       REQUIRE(te);
       te->structured_kvs.clear();
-      te->structured_kvs.emplace_back(std::string{"test"} + std::to_string(i), "");
+      te->structured_kvs.emplace_back(std::string{"test"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
@@ -149,7 +149,7 @@ TEST_CASE("transit_event_unbounded_buffer")
       TransitEvent* te1 = bte.back();
       REQUIRE(te1);
       te1->structured_kvs.clear();
-      te1->structured_kvs.emplace_back(std::string{"test1"} + std::to_string(i), "");
+      te1->structured_kvs.emplace_back(std::string{"test1"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
@@ -159,7 +159,7 @@ TEST_CASE("transit_event_unbounded_buffer")
       TransitEvent* te2 = bte.back();
       REQUIRE(te2);
       te2->structured_kvs.clear();
-      te2->structured_kvs.emplace_back(std::string{"test2"} + std::to_string(i), "");
+      te2->structured_kvs.emplace_back(std::string{"test2"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
@@ -169,7 +169,7 @@ TEST_CASE("transit_event_unbounded_buffer")
       TransitEvent* te3 = bte.back();
       REQUIRE(te3);
       te3->structured_kvs.clear();
-      te3->structured_kvs.emplace_back(std::string{"test3"} + std::to_string(i), "");
+      te3->structured_kvs.emplace_back(std::string{"test3"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
@@ -179,7 +179,7 @@ TEST_CASE("transit_event_unbounded_buffer")
       TransitEvent* te4 = bte.back();
       REQUIRE(te4);
       te4->structured_kvs.clear();
-      te4->structured_kvs.emplace_back(std::string{"test4"} + std::to_string(i), "");
+      te4->structured_kvs.emplace_back(std::string{"test4"} + std::to_string(i), transit_event_fmt_buffer_t{});
       bte.push_back();
     }
 
