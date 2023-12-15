@@ -24,7 +24,8 @@ PatternFormatter::Attribute attribute_from_string(std::string const& attribute_n
     {"process", PatternFormatter::Attribute::Process},
     {"fileline", PatternFormatter::Attribute::FileLine},
     {"message", PatternFormatter::Attribute::Message},
-    {"custom_tags", PatternFormatter::Attribute::CustomTags}};
+    {"custom_tags", PatternFormatter::Attribute::CustomTags},
+    {"structured_keys", PatternFormatter::Attribute::StructuredKeys}};
 
   auto const search = attr_map.find(attribute_name);
 
@@ -201,8 +202,8 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
   std::tie(_format, _order_index) = _generate_fmt_format_string(
     _is_set_in_pattern, std::string{format_pattern}, "ascii_time"_a = "", "filename"_a = "",
     "function_name"_a = "", "level_name"_a = "", "level_id"_a = "", "lineno"_a = "",
-    "logger_name"_a = "", "pathname"_a = "", "thread"_a = "", "thread_name"_a = "",
-    "process"_a = "", "fileline"_a = "", "message"_a = "", "custom_tags"_a = "");
+    "logger_name"_a = "", "pathname"_a = "", "thread"_a = "", "thread_name"_a = "", "process"_a = "",
+    "fileline"_a = "", "message"_a = "", "custom_tags"_a = "", "structured_keys"_a = "");
 
   _set_arg<Attribute::AsciiTime>(std::string_view("ascii_time"));
   _set_arg<Attribute::FileName>(std::string_view("filename"));
@@ -218,6 +219,7 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
   _set_arg<Attribute::FileLine>(std::string_view("fileline"));
   _set_arg<Attribute::Message>(std::string_view("message"));
   _set_arg<Attribute::CustomTags>(std::string_view("custom_tags"));
+  _set_arg<Attribute::StructuredKeys>(std::string_view("structured_keys"));
 }
 
 /***/
@@ -225,7 +227,8 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
                                              std::string_view thread_name, std::string_view process_id,
                                              std::string_view logger_name, std::string_view log_level,
                                              MacroMetadata const& macro_metadata,
-                                             transit_event_fmt_buffer_t const& log_msg)
+  std::vector<std::pair<std::string, transit_event_fmt_buffer_t>> const& structured_kvs,
+  transit_event_fmt_buffer_t const& log_msg)
 {
   // clear out existing buffer
   _formatted_log_message.clear();
@@ -295,6 +298,22 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
   if (_is_set_in_pattern[Attribute::FileLine])
   {
     _set_arg_val<Attribute::FileLine>(macro_metadata.fileline());
+  }
+
+  if (_is_set_in_pattern[Attribute::StructuredKeys])
+  {
+    _structured_keys.clear();
+    for (size_t i = 0; i < structured_kvs.size(); ++i)
+    {
+      _structured_keys += structured_kvs[i].first;
+
+      if (i != structured_kvs.size() - 1)
+      {
+        _structured_keys += ", ";
+      }
+    }
+
+    _set_arg_val<Attribute::StructuredKeys>(_structured_keys);
   }
 
   if (_is_set_in_pattern[Attribute::CustomTags])

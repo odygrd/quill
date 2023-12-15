@@ -167,20 +167,29 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
                "format_to_fn must be set for structured log templates, printf format is not "
                "support for structured log templates");
 
+        transit_event->structured_kvs.clear();
+
         // using the message_format as key for lookups
         _structured_fmt_str.assign(macro_metadata.message_format().data(),
                                    macro_metadata.message_format().size());
 
-        std::vector<std::string> const* s_keys;
-
         // for messages containing named arguments threat them as structured logs
         if (auto const search = _slog_templates.find(_structured_fmt_str); search != std::cend(_slog_templates))
         {
+          // process structured log that structured keys exist in our map
           auto const& [fmt_str, structured_keys] = search->second;
-          s_keys = &structured_keys;
 
-          auto const [pos, error] =
-            format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args, &_structured_values);
+          transit_event->structured_kvs.resize(structured_keys.size());
+
+          // We first populate the structured keys in the transit buffer
+          for (size_t i = 0; i < structured_keys.size(); ++i)
+          {
+            transit_event->structured_kvs[i].first = structured_keys[i];
+          }
+
+          // Now we format the message and also populate the values of each structured key
+          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
+                                                 _args, &transit_event->structured_kvs);
 
           read_pos = pos;
 
@@ -192,16 +201,24 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         }
         else
         {
-          auto [fmt_str, structured_keys] =
-            _process_structured_log_template(macro_metadata.message_format());
+          // process structured log that structured keys are processed for the first time
+          // parse structured keys and stored them to our lookup map
+          auto const [res_it, inserted] = _slog_templates.try_emplace(
+            _structured_fmt_str, _process_structured_log_template(macro_metadata.message_format()));
 
-          // insert the results
-          auto res = _slog_templates.try_emplace(
-            _structured_fmt_str, std::make_pair(fmt_str, std::move(structured_keys)));
-          s_keys = &(res.first->second.second);
+          auto const& [fmt_str, structured_keys] = res_it->second;
 
-          auto const [pos, error] =
-            format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args, &_structured_values);
+          transit_event->structured_kvs.resize(structured_keys.size());
+
+          // We first populate the structured keys in the transit buffer
+          for (size_t i = 0; i < structured_keys.size(); ++i)
+          {
+            transit_event->structured_kvs[i].first = structured_keys[i];
+          }
+
+          // Now we format the message and also populate the values of each structured key
+          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
+                                                 _args, &transit_event->structured_kvs);
 
           read_pos = pos;
 
@@ -211,14 +228,6 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
             _notification_handler(fmtquill::format("Quill ERROR: {}", error));
           }
         }
-
-        // store them as kv pair
-        transit_event->structured_kvs.clear();
-        for (size_t i = 0; i < s_keys->size(); ++i)
-        {
-          transit_event->structured_kvs.emplace_back((*s_keys)[i], std::move(_structured_values[i]));
-        }
-        _structured_values.clear();
       }
       else
       {
@@ -286,6 +295,8 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
 /***/
 std::pair<std::string, std::vector<std::string>> BackendWorker::_process_structured_log_template(std::string_view fmt_template) noexcept
 {
+  // It would be nice to do this at compile time and store it in macro metadata, but without
+  // constexpr vector and string in c++17 it is not possible
   std::string fmt_str;
   std::vector<std::string> keys;
 
@@ -351,7 +362,8 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event) cons
     auto const& formatted_log_message_buffer = handler->formatter().format(
       std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id,
       transit_event.thread_name, _process_id, transit_event.header.logger_details->name(),
-      transit_event.log_level_as_str(), macro_metadata, transit_event.formatted_msg);
+      transit_event.log_level_as_str(), macro_metadata, transit_event.structured_kvs,
+      transit_event.formatted_msg);
 
     // If all filters are okay we write this message to the file
     if (handler->apply_filters(transit_event.thread_id,

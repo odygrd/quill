@@ -85,7 +85,7 @@ struct TransitEvent
   char const* thread_id;
   char const* thread_name;
   transit_event_fmt_buffer_t formatted_msg; /** buffer for message **/
-  std::vector<std::pair<std::string, std::string>> structured_kvs;
+  std::vector<std::pair<std::string, transit_event_fmt_buffer_t>> structured_kvs;
   std::optional<LogLevel> log_level_override{std::nullopt};
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };

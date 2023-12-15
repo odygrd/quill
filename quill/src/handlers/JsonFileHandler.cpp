@@ -18,7 +18,7 @@ void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, TransitEv
 
   for (auto const& [key, value] : log_event.structured_kvs)
   {
-    _json_message.append(fmtquill::format(R"(,"{}":"{}")", key, value));
+    _json_message.append(fmtquill::format(R"(,"{}":"{}")", key, std::string_view {value.data(), value.size()}));
   }
 
   _json_message.append(std::string_view{"}\n"});

@@ -208,7 +208,6 @@ private:
 
   std::vector<fmtquill::basic_format_arg<fmtquill::format_context>> _args; /** Format args tmp storage as member to avoid reallocation */
   std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>> _printf_args; /** Format args tmp storage as member to avoid reallocation */
-  std::vector<std::string> _structured_values;
   std::vector<std::weak_ptr<Handler>> _active_handlers_cache;
 
   BacktraceStorage _backtrace_log_message_storage; /** Stores a vector of backtrace messages per logger name */

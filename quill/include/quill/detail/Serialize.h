@@ -352,7 +352,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_s
 using FormatToFn = std::pair<std::byte*, std::string> (*)(
   std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
   std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args,
-  std::vector<std::string>* structured_keys);
+  std::vector<std::pair<std::string, transit_event_fmt_buffer_t>>* structured_kvs);
 using PrintfFormatToFn = std::pair<std::byte*, std::string> (*)(
   std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
   std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args);
@@ -360,7 +360,8 @@ using PrintfFormatToFn = std::pair<std::byte*, std::string> (*)(
 template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> format_to(
   std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
-  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args, std::vector<std::string>* structured_values)
+  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args,
+  std::vector<std::pair<std::string, transit_event_fmt_buffer_t>>* structured_kvs)
 {
   std::string error;
   constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
@@ -375,13 +376,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> format_to
     fmtquill::vformat_to(std::back_inserter(out), format,
                          fmtquill::basic_format_args(args.data(), sizeof...(Args)));
 
-    if (structured_values)
+    if (structured_kvs)
     {
       // if we are processing a structured log we need to pass the values of the args here
       // At the end of the function we will be destructing the args
-      for (auto const& arg : args)
+      for (size_t i = 0; i < args.size(); ++i)
       {
-        structured_values->emplace_back(fmtquill::vformat("{}", fmtquill::basic_format_args(&arg, 1)));
+        fmtquill::vformat_to(std::back_inserter((*structured_kvs)[i].second), "{}",
+                             fmtquill::basic_format_args(&args[i], 1));
       }
     }
   }

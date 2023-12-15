@@ -13,6 +13,8 @@ using namespace quill;
 char const* thread_name = "test_thread";
 std::string_view process_id = "123";
 
+std::vector<std::pair<std::string, transit_event_fmt_buffer_t>> const structured_kvs;
+
 TEST_CASE("default_pattern_formatter")
 {
   PatternFormatter default_pattern_formatter;
@@ -35,16 +37,16 @@ TEST_CASE("default_pattern_formatter")
   transit_event_fmt_buffer_t mbuff;
   fmtquill::format_to(std::back_inserter(mbuff), fmtquill::runtime(log_line_info.message_format()),
                       "pattern", 1234);
-  auto const& formatted_buffer =
-    default_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                     loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+  auto const& formatted_buffer = default_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(log_line_info.level()),
+    log_line_info, structured_kvs, mbuff);
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
   std::string const expected_string =
-    "[31341] PatternFormatterTest.cpp:25  LOG_INFO      test_logger  This the pattern formatter "
+    "[31341] PatternFormatterTest.cpp:27  LOG_INFO      test_logger  This the pattern formatter "
     "1234\n";
   auto const found_expected = formatted_string.find(expected_string);
   REQUIRE(found_expected != std::string::npos);
@@ -73,9 +75,9 @@ TEST_CASE("custom_pattern_message_only")
   transit_event_fmt_buffer_t mbuff;
   fmtquill::format_to(std::back_inserter(mbuff), fmtquill::runtime(log_line_info.message_format()),
                       "pattern", 12.34);
-  auto const& formatted_buffer =
-    custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                    loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+  auto const& formatted_buffer = custom_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(log_line_info.level()),
+    log_line_info, structured_kvs, mbuff);
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -112,15 +114,15 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   transit_event_fmt_buffer_t mbuff;
   fmtquill::format_to(std::back_inserter(mbuff), fmtquill::runtime(log_line_info.message_format()),
                       "pattern", 1234);
-  auto const& formatted_buffer =
-    custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                    loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+  auto const& formatted_buffer = custom_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(log_line_info.level()),
+    log_line_info, structured_kvs, mbuff);
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:100 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:102 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_7]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -152,15 +154,15 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   transit_event_fmt_buffer_t mbuff;
   fmtquill::format_to(std::back_inserter(mbuff), fmtquill::runtime(log_line_info.message_format()),
                       "pattern", 1234);
-  auto const& formatted_buffer =
-    custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                    loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+  auto const& formatted_buffer = custom_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(log_line_info.level()),
+    log_line_info, structured_kvs, mbuff);
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:140 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:142 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_9]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -192,15 +194,15 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   transit_event_fmt_buffer_t mbuff;
   fmtquill::format_to(std::back_inserter(mbuff), fmtquill::runtime(log_line_info.message_format()),
                       "pattern", 1234);
-  auto const& formatted_buffer =
-    custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                    loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+  auto const& formatted_buffer = custom_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(log_line_info.level()),
+    log_line_info, structured_kvs, mbuff);
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:180 LOG_DEBUG test_logger This "
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:182 LOG_DEBUG test_logger This "
     "the 1234 formatter pattern [DOCTEST_ANON_FUNC_11]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -232,15 +234,15 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   transit_event_fmt_buffer_t mbuff;
   fmtquill::format_to(std::back_inserter(mbuff), fmtquill::runtime(log_line_info.message_format()),
                       "pattern", 1234);
-  auto const& formatted_buffer =
-    custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                    loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+  auto const& formatted_buffer = custom_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(log_line_info.level()),
+    log_line_info, structured_kvs, mbuff);
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:220 LOG_DEBUG test_logger This the "
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:222 LOG_DEBUG test_logger This the "
     "1234 formatter pattern [DOCTEST_ANON_FUNC_13]\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -275,15 +277,15 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
     transit_event_fmt_buffer_t mbuff;
     fmtquill::format_to(std::back_inserter(mbuff),
                         fmtquill::runtime(log_line_info.message_format()), "pattern", 1234);
-    auto const& formatted_buffer =
-      custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                      loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+    auto const& formatted_buffer = custom_pattern_formatter.format(
+      ts, thread_id, thread_name, process_id, logger_name,
+      loglevel_to_string(log_line_info.level()), log_line_info, structured_kvs, mbuff);
 
     // Convert the buffer to a string
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:261 "
+      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:263 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_15]\n";
 
     REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -319,15 +321,15 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
     transit_event_fmt_buffer_t mbuff;
     fmtquill::format_to(std::back_inserter(mbuff),
                         fmtquill::runtime(log_line_info.message_format()), "pattern", 1234);
-    auto const& formatted_buffer =
-      custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                      loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+    auto const& formatted_buffer = custom_pattern_formatter.format(
+      ts, thread_id, thread_name, process_id, logger_name,
+      loglevel_to_string(log_line_info.level()), log_line_info, structured_kvs, mbuff);
 
     // Convert the buffer to a string
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:305 "
+      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:307 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_17]\n";
 
     REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -380,15 +382,15 @@ TEST_CASE("custom_pattern")
   transit_event_fmt_buffer_t mbuff;
   fmtquill::format_to(std::back_inserter(mbuff), fmtquill::runtime(log_line_info.message_format()),
                       "pattern", 1234);
-  auto const& formatted_buffer =
-    custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                    loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+  auto const& formatted_buffer = custom_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(log_line_info.level()),
+    log_line_info, structured_kvs, mbuff);
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:368 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:370 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_buffer.size(), expected_string.length());
@@ -421,9 +423,9 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
   transit_event_fmt_buffer_t mbuff;
   fmtquill::format_to(std::back_inserter(mbuff), fmtquill::runtime(log_line_info.message_format()),
                       "pattern", 1234);
-  auto const& formatted_buffer =
-    custom_pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name,
-                                    loglevel_to_string(log_line_info.level()), log_line_info, mbuff);
+  auto const& formatted_buffer = custom_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(log_line_info.level()),
+    log_line_info, structured_kvs, mbuff);
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);

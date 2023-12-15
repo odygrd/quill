@@ -3,7 +3,7 @@
 #include <regex>
 
 /**
- * Trivial logging example
+ * Structured logging example
  */
 
 int main()
@@ -34,16 +34,36 @@ int main()
   quill::start();
 
   // log to the json file ONLY by using the default logger
-  quill::Logger* logger = quill::get_logger();
+  // This is only logged to the file
+  quill::Logger* logger = quill::create_logger("json_only");
   for (int i = 0; i < 2; ++i)
   {
     LOG_INFO(logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
   }
 
   // or create another logger tha logs e.g. to stdout and to the json file at the same time
-  quill::Logger* dual_logger = quill::create_logger("dual_logger", {quill::stdout_handler(), json_handler});
+  // json is logged to the file
+  // regural log is logged to stdout
+  quill::Logger* flex_logger = quill::create_logger("both_formats", {quill::stdout_handler(), json_handler});
   for (int i = 2; i < 4; ++i)
   {
-    LOG_INFO(dual_logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
+    LOG_INFO(flex_logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
+  }
+
+  // same as the above with the inclusion of keys
+
+  // create a custom stdout_handler to change the format
+  auto custom_stdout_handler = quill::stdout_handler("custom_stdout");
+  custom_stdout_handler->set_pattern(
+    "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) "
+    "%(logger_name:<12) %(message) [%(structured_keys)]");
+
+  // Logged to both file as json and to stdout with the inclusion of keys for stdout
+  quill::Logger* skey_logger =
+    quill::create_logger("with_skey", {std::move(custom_stdout_handler), json_handler});
+  for (int i = 2; i < 4; ++i)
+  {
+    LOG_INFO(skey_logger, "Method elapsed time [{method}, {endpoint}, {duration}]", "POST",
+             "http://", 10 * i);
   }
 }
