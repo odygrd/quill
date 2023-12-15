@@ -5,9 +5,43 @@
 #include "quill/detail/misc/FileUtilities.h"
 #include "quill/handlers/JsonFileHandler.h"
 #include <cstdio>
+#include <optional>
 #include <string>
 
 TEST_SUITE_BEGIN("QuillStructuredLog");
+
+class CustomTest
+{
+public:
+  CustomTest() = default;
+  CustomTest(uint32_t i, std::string const& s) : _i(i), _s(s) {}
+
+  virtual ~CustomTest() {};
+
+  friend std::ostream& operator<<(std::ostream& os, CustomTest const& obj)
+  {
+    if (obj._i && obj._s)
+    {
+      os << "i: " << *obj._i << ", s: " << *obj._s;
+    }
+
+    return os;
+  }
+
+private:
+  std::optional<uint32_t> _i;
+  std::optional<std::string> _s;
+};
+
+template <>
+struct fmtquill::formatter<CustomTest> : ostream_formatter
+{
+};
+
+template <>
+struct quill::copy_loggable<CustomTest> : std::true_type
+{
+};
 
 // Note: This thread is flushing using the main() gtest test thread. This means that no-other test should have used flush()
 // on the main gtest test thread as the main thread's thread context is not re-added.
@@ -62,7 +96,9 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
 
         for (uint32_t j = 0; j < number_of_messages; ++j)
         {
-          LOG_INFO(logger, "Hello from thread {thread_index} this is message {message_num}", i, j);
+          LOG_INFO(logger,
+                   "Hello from thread {thread_index} this is message {message_num} [{custom}]", i,
+                   j, CustomTest{j, std::to_string(j)});
         }
       });
   }
@@ -98,12 +134,14 @@ void test_quill_log(char const* test_id, std::string const& filename, std::strin
       // check json log
       std::string expected_logger_name = "jlogger_" + std::string{test_id} + "_" + std::to_string(i);
 
-      std::string expected_json_string = std::string{"\"logger\": \""} + expected_logger_name +
+      std::string expected_json_string = std::string{"\"logger\":\""} + expected_logger_name +
         std::string{
-          "\", \"level\": \"INFO\", \"message\": \"Hello from thread {thread_index} this is "
-          "message {message_num}\", "} +
-        std::string{"\"thread_index\": \""} + std::to_string(i) +
-        std::string{"\", \"message_num\": \""} + std::to_string(j) + std::string{"\""};
+          "\",\"level\":\"INFO\",\"message\":\"Hello from thread {thread_index} this is "
+          "message {message_num} [{custom}]\","} +
+        std::string{"\"thread_index\":\""} + std::to_string(i) +
+        std::string{"\",\"message_num\":\""} + std::to_string(j) +
+        std::string{"\",\"custom\":\"i: "} + std::to_string(j) + ", s: " + std::to_string(j) +
+        std::string{"\""};
 
       REQUIRE(quill::testing::file_contains(file_contents, expected_json_string));
 

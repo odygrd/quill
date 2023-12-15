@@ -58,6 +58,10 @@
 ## v3.5.2
 
 - Fixed `QUILL_LOGGER_CALL_NOFN_LIMIT` macros. ([#381](https://github.com/odygrd/quill/pull/381))
+- Resolved a bug that caused reading destructed arguments when structured logging format was used.
+- Modified member access from `private` to `protected` in `ConsoleHandler` for potential inheritance purposes.
+- Eliminated redundant whitespaces within `JsonFileHandler`.
+- Fixed `JsonFileHandler` to notify the file event notifier before log message writes.
 
 ## v3.5.1
 

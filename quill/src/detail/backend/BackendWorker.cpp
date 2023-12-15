@@ -147,7 +147,9 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
       assert(!macro_metadata.is_structured_log_template() &&
              "structured log templates are not supported for wide characters");
 
-      auto const [pos, error] = format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args);
+      auto const [pos, error] = 
+        format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args, nullptr);
+
       read_pos = pos;
 
       if (QUILL_UNLIKELY(!error.empty()))
@@ -177,7 +179,8 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
           auto const& [fmt_str, structured_keys] = search->second;
           s_keys = &structured_keys;
 
-          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+          auto const [pos, error] =
+            format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args, &_structured_values);
 
           read_pos = pos;
 
@@ -197,7 +200,8 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
             _structured_fmt_str, std::make_pair(fmt_str, std::move(structured_keys)));
           s_keys = &(res.first->second.second);
 
-          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args);
+          auto const [pos, error] =
+            format_to_fn(fmt_str, read_pos, transit_event->formatted_msg, _args, &_structured_values);
 
           read_pos = pos;
 
@@ -208,20 +212,13 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
           }
         }
 
-        // format the values to strings
-        std::vector<std::string> structured_values;
-        structured_values.reserve(s_keys->size());
-        for (auto const& arg : _args)
-        {
-          structured_values.emplace_back(fmtquill::vformat("{}", fmtquill::basic_format_args(&arg, 1)));
-        }
-
         // store them as kv pair
         transit_event->structured_kvs.clear();
         for (size_t i = 0; i < s_keys->size(); ++i)
         {
-          transit_event->structured_kvs.emplace_back((*s_keys)[i], std::move(structured_values[i]));
+          transit_event->structured_kvs.emplace_back((*s_keys)[i], std::move(_structured_values[i]));
         }
+        _structured_values.clear();
       }
       else
       {
@@ -229,8 +226,8 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         if (format_to_fn)
         {
           // fmt style format
-          auto const [pos, error] =
-            format_to_fn(macro_metadata.message_format(), read_pos, transit_event->formatted_msg, _args);
+          auto const [pos, error] = format_to_fn(macro_metadata.message_format(), read_pos,
+                                                 transit_event->formatted_msg, _args, nullptr);
 
           read_pos = pos;
 
