@@ -24,6 +24,17 @@
   #include <x86intrin.h>
 #endif
 
+inline unsigned get_cpu_to_pin_thread(size_t thread_num)
+{
+  const unsigned num_cores = std::thread::hardware_concurrency();
+
+  // If hardware_concurrency feature is not supported, zero value is returned.
+  if (num_cores == 0)
+    return 0;
+
+  return thread_num % num_cores;
+}
+
 // Instead of sleep
 inline void wait(std::chrono::nanoseconds min, std::chrono::nanoseconds max)
 {
@@ -53,7 +64,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
                               std::function<void()> on_thread_exit, size_t current_thread_num)
 {
   // running thread affinity
-  quill::detail::set_cpu_affinity(current_thread_num);
+  quill::detail::set_cpu_affinity(get_cpu_to_pin_thread(current_thread_num));
 
   on_thread_start();
 
@@ -85,7 +96,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
                               std::vector<uint64_t>& latencies, double rdtsc_ns_per_tick)
 {
   // running thread affinity
-  quill::detail::set_cpu_affinity(current_thread_num);
+  quill::detail::set_cpu_affinity(get_cpu_to_pin_thread(current_thread_num));
 
   on_thread_start();
 
