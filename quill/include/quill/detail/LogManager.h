@@ -156,10 +156,16 @@ public:
 
     ThreadContext* const thread_context =
       _thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
+
+    auto& spsc_queue = thread_context->spsc_queue<QUILL_QUEUE_TYPE>();
     size_t constexpr total_size = sizeof(Header) + sizeof(uintptr_t);
 
-    std::byte* write_buffer =
-      thread_context->spsc_queue<QUILL_QUEUE_TYPE>().prepare_write(static_cast<uint32_t>(total_size));
+    std::byte* write_buffer;
+    while ((write_buffer = spsc_queue.prepare_write(static_cast<uint32_t>(total_size))) == nullptr)
+    {
+      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+    }
+
     std::byte const* const write_begin = write_buffer;
 
     write_buffer = detail::align_pointer<alignof(Header), std::byte>(write_buffer);

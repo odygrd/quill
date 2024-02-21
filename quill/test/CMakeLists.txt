@@ -62,6 +62,7 @@ quill_add_test(TEST_TypeTraitsCopyable TypeTraitsCopyableTest.cpp)
 quill_add_test(TEST_UnboundedQueueTest.cpp UnboundedQueueTest.cpp)
 quill_add_test(TEST_Utilities UtilitiesTest.cpp)
 quill_add_test(TEST_Utility UtilityTest.cpp)
+quill_add_test(TEST_QuillBoundQueueLog QuillBoundQueueLogTest.cpp)
 
 if (NOT QUILL_USE_VALGRIND)
     quill_add_test(TEST_RdtscClock RdtscClockTest.cpp)
