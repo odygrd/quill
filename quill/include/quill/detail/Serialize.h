@@ -29,7 +29,7 @@ namespace detail
 {
 
 constexpr auto strnlen =
-#ifdef __STDC_LIB_EXT1__
+#if defined(__STDC_LIB_EXT1__) || defined(_MSC_VER)
   ::strnlen_s
 #else
   ::strnlen
