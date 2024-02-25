@@ -50,6 +50,29 @@
   #include <sys/stat.h>
   #include <syscall.h>
   #include <unistd.h>
+#elif defined(__NetBSD__)
+  #include <sched.h>
+  #include <sys/mman.h>
+  #include <sys/stat.h>
+  #include <unistd.h>
+  #include <lwp.h>
+#elif defined(__FreeBSD__)
+  #include <sched.h>
+  #include <sys/mman.h>
+  #include <sys/stat.h>
+  #include <unistd.h>
+  #include <sys/thr.h>
+#elif defined(__DragonFly__)
+  #include <sched.h>
+  #include <sys/mman.h>
+  #include <sys/stat.h>
+  #include <unistd.h>
+  #include <sys/lwp.h>
+#else
+  #include <sched.h>
+  #include <sys/mman.h>
+  #include <sys/stat.h>
+  #include <unistd.h>
 #endif
 
 #include "quill/detail/misc/Utilities.h"
@@ -316,6 +339,16 @@ uint32_t get_thread_id() noexcept
   uint64_t tid64;
   pthread_threadid_np(nullptr, &tid64);
   return static_cast<uint32_t>(tid64);
+#elif defined(__NetBSD__)
+  return static_cast<uint32_t>(_lwp_self());
+#elif defined(__FreeBSD__)
+  long lwpid;
+  thr_self(&lwpid);
+  return static_cast<uint32_t>(lwpid);
+#elif defined(__DragonFly__)
+  return static_cast<uint32_t>(lwp_gettid());
+#else
+  return reinterpret_cast<uintptr_t>(pthread_self()); // (Ab)use pthread_self as a last resort option
 #endif
 }
 
