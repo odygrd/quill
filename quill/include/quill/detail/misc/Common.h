@@ -132,8 +132,8 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
             continue;
           }
 
-            // we found '{' match, we can break
-            break;
+          // we found '{' match, we can break
+          break;
         }
 
         ++pos;
@@ -215,6 +215,7 @@ class CustomTags
 {
 public:
   constexpr CustomTags() = default;
+  virtual ~CustomTags() = default;
   virtual void format(std::string&) const = 0;
 };
 
