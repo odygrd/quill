@@ -63,6 +63,7 @@
 - Fixed windows clang-cl build error. ([#400](https://github.com/odygrd/quill/pull/400))
 - Fixed compilation errors encountered on FreeBSD and extended ``get_thread_id()`` support to various other BSD
   operating systems. ([#401](https://github.com/odygrd/quill/pull/401))
+- Update bundled `libfmt` to `v10.2.1`
 
 ## v3.6.0
 

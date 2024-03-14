@@ -14,8 +14,8 @@ FMTQUILL_BEGIN_NAMESPACE
 namespace detail {
 
 template <typename Char, typename InputIt>
-FMTQUILL_CONSTEXPR inline counting_iterator copy_str(InputIt begin, InputIt end,
-                                                counting_iterator it) {
+FMTQUILL_CONSTEXPR inline auto copy_str(InputIt begin, InputIt end,
+                                   counting_iterator it) -> counting_iterator {
   return it + (end - begin);
 }
 
@@ -57,7 +57,7 @@ struct udl_compiled_string : compiled_string {
 #endif
 
 template <typename T, typename... Tail>
-const T& first(const T& value, const Tail&...) {
+auto first(const T& value, const Tail&...) -> const T& {
   return value;
 }
 
@@ -488,18 +488,19 @@ FMTQUILL_CONSTEXPR OutputIt format_to(OutputIt out, const S&, Args&&... args) {
 
 template <typename OutputIt, typename S, typename... Args,
           FMTQUILL_ENABLE_IF(detail::is_compiled_string<S>::value)>
-format_to_n_result<OutputIt> format_to_n(OutputIt out, size_t n,
-                                         const S& format_str, Args&&... args) {
+auto format_to_n(OutputIt out, size_t n, const S& format_str, Args&&... args)
+    -> format_to_n_result<OutputIt> {
   using traits = detail::fixed_buffer_traits;
   auto buf = detail::iterator_buffer<OutputIt, char, traits>(out, n);
-  format_to(std::back_inserter(buf), format_str, std::forward<Args>(args)...);
+  fmtquill::format_to(std::back_inserter(buf), format_str,
+                 std::forward<Args>(args)...);
   return {buf.out(), buf.count()};
 }
 
 template <typename S, typename... Args,
           FMTQUILL_ENABLE_IF(detail::is_compiled_string<S>::value)>
-FMTQUILL_CONSTEXPR20 size_t formatted_size(const S& format_str,
-                                      const Args&... args) {
+FMTQUILL_CONSTEXPR20 auto formatted_size(const S& format_str, const Args&... args)
+    -> size_t {
   return fmtquill::format_to(detail::counting_iterator(), format_str, args...)
       .count();
 }
