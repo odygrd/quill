@@ -1,3 +1,4 @@
+- [v3.7.0](#v370)
 - [v3.6.0](#v360)
 - [v3.5.1](#v351)
 - [v3.5.0](#v350)
@@ -54,6 +55,14 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v3.7.0
+
+- Fixed crash triggered by insufficient space in the queue upon invocation
+  of ``flush()``. ([#398](https://github.com/odygrd/quill/pull/398))
+- Fixed windows clang-cl build error. ([#400](https://github.com/odygrd/quill/pull/400))
+- Fixed compilation errors encountered on FreeBSD and extended ``get_thread_id()`` support to various other BSD
+  operating systems. ([#401](https://github.com/odygrd/quill/pull/401))
 
 ## v3.6.0
 
