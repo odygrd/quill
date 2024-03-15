@@ -63,7 +63,7 @@ public:
   /**
    * Flushes the stream
    */
-  QUILL_ATTRIBUTE_HOT void flush() noexcept override;
+  QUILL_ATTRIBUTE_HOT void flush() override;
 
   /**
    * @return return the name of the file
@@ -82,5 +82,6 @@ protected:
   FILE* _file{nullptr};
   FileEventNotifier _file_event_notifier;
   bool _is_null{false};
+  bool _write_occurred{false};
 };
 } // namespace quill

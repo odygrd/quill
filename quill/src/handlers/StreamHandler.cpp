@@ -35,13 +35,9 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
       fs::create_directories(parent_path, ec);
       if (ec)
       {
-#if QUILL_HAS_EXPERIMENTAL_FILESYSTEM
+        // use .string() to also support experimental fs
         QUILL_THROW(QuillError{fmtquill::format("cannot create directories for {}, error: {}",
-                                                parent_path.c_str(), ec.message())});
-#else
-        QUILL_THROW(QuillError{fmtquill::format("cannot create directories for {}, error: {}",
-                                                parent_path, ec.message())});
-#endif
+                                                parent_path.string(), ec.message())});
       }
     }
     else
@@ -54,13 +50,9 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
 
     if (ec)
     {
-#if QUILL_HAS_EXPERIMENTAL_FILESYSTEM
+      // use .string() to also support experimental fs
       QUILL_THROW(QuillError{fmtquill::format("cannot make canonical path for {}, error: {}",
-                                              parent_path.c_str(), ec.message())});
-#else
-      QUILL_THROW(QuillError{fmtquill::format("cannot make canonical path for {}, error: {}",
-                                              parent_path, ec.message())});
-#endif
+                                              parent_path.string(), ec.message())});
     }
 
     // finally replace the given filename's parent_path with the equivalent canonical path
@@ -71,6 +63,12 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
 /***/
 void StreamHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const&)
 {
+  if (QUILL_UNLIKELY(!_file))
+  {
+    // FileHandler::flush() tries to re-open a deleted file and if it fails _file can be null
+    return;
+  }
+
   if (_file_event_notifier.before_write)
   {
     std::string const modified_message = _file_event_notifier.before_write(
@@ -82,10 +80,21 @@ void StreamHandler::write(fmt_buffer_t const& formatted_log_message, TransitEven
   {
     detail::fwrite_fully(formatted_log_message.data(), sizeof(char), formatted_log_message.size(), _file);
   }
+
+  _write_occurred = true;
 }
 
 /***/
-void StreamHandler::flush() noexcept { fflush(_file); }
+void StreamHandler::flush()
+{
+  if (!_write_occurred || !_file)
+  {
+    return;
+  }
+
+  _write_occurred = false;
+  fflush(_file);
+}
 
 /***/
 fs::path const& StreamHandler::filename() const noexcept { return _filename; }

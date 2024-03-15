@@ -28,6 +28,18 @@ void fwrite_fully(void const* ptr, size_t size, size_t count, FILE* stream)
 /***/
 FILE* open_file(fs::path const& filename, std::string const& mode)
 {
+  if (!filename.parent_path().empty())
+  {
+    std::error_code ec;
+    fs::create_directories(filename.parent_path(), ec);
+    if (ec)
+    {
+      // use .string() to also support experimental fs
+      QUILL_THROW(QuillError{fmtquill::format("cannot create directories for {}, error: {}",
+                                              filename.parent_path().string(), ec.message())});
+    }
+  }
+
   FILE* fp = fopen(filename.string().data(), mode.data());
 
   if (!fp)

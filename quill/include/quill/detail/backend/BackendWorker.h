@@ -154,11 +154,6 @@ private:
     ThreadContextCollection::backend_thread_contexts_cache_t const& cached_thread_contexts);
 
   /**
-   * Force flush all active Handlers
-   */
-  QUILL_ATTRIBUTE_HOT void _force_flush();
-
-  /**
    * Check for dropped messages - only when bounded queue is used
    * @param cached_thread_contexts loaded thread contexts
    * @param notification_handler notification handler
@@ -192,6 +187,46 @@ private:
    */
   QUILL_ATTRIBUTE_HOT void _resync_rdtsc_clock();
 
+  /**
+   * Updates the active handlers cache
+   */
+  void _flush_and_run_active_handlers_loop(bool run_loop)
+  {
+    if (_logger_collection.has_invalidated_loggers())
+    {
+      // If there are invalidated loggers we take a slower path and exclude the handlers of
+      // the invalidated loggers
+      _logger_collection.active_handlers(_active_handlers_cache);
+    }
+    else
+    {
+      _handler_collection.active_handlers(_active_handlers_cache);
+    }
+
+    for (auto const& handler : _active_handlers_cache)
+    {
+      std::shared_ptr<Handler> h = handler.lock();
+      if (h)
+      {
+        QUILL_TRY
+        {
+          // If an exception is thrown, catch it here to prevent it from propagating
+          // to the outer function. This prevents potential infinite loops caused by failing flush operations.
+          h->flush();
+        }
+#if !defined(QUILL_NO_EXCEPTIONS)
+        QUILL_CATCH(std::exception const& e) { _notification_handler(e.what()); }
+        QUILL_CATCH_ALL() { _notification_handler(std::string{"Caught unhandled exception."}); }
+#endif
+
+        if (run_loop)
+        {
+          h->run_loop();
+        }
+      }
+    }
+  }
+
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection;
@@ -223,7 +258,6 @@ private:
   backend_worker_notification_handler_t _notification_handler; /** error handler for the backend thread */
 
   bool _backend_thread_yield; /** backend_thread_yield from config **/
-  bool _has_unflushed_messages{false}; /** There are messages that are buffered by the OS, but not yet flushed */
   bool _strict_log_timestamp_order{true};
   bool _empty_all_queues_before_exit{true};
   bool _use_transit_buffer{true};
@@ -689,18 +723,8 @@ void BackendWorker::_main_loop()
   {
     // None of the thread local queues had any events to process, this means we have processed
     // all messages in all queues We force flush all remaining messages
-    _handler_collection.active_handlers(_active_handlers_cache);
-    _force_flush();
 
-    // invoke the Handler's periodic loop
-    for (auto const& handler : _active_handlers_cache)
-    {
-      std::shared_ptr<Handler> h = handler.lock();
-      if (h)
-      {
-        h->run_loop();
-      }
-    }
+    _flush_and_run_active_handlers_loop(true);
 
     // check for any dropped messages / blocked threads
     _check_message_failures(cached_thread_contexts, _notification_handler);
@@ -815,8 +839,7 @@ void BackendWorker::_exit()
       {
         // we are done, all queues are now empty
         _check_message_failures(cached_thread_contexts, _notification_handler);
-        _handler_collection.active_handlers(_active_handlers_cache);
-        _force_flush();
+        _flush_and_run_active_handlers_loop(false);
         break;
       }
     }

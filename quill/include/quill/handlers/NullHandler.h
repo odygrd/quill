@@ -19,6 +19,6 @@ public:
   QUILL_ATTRIBUTE_HOT void write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event) override
   {
   }
-  QUILL_ATTRIBUTE_HOT void flush() noexcept override {}
+  QUILL_ATTRIBUTE_HOT void flush() override {}
 };
 } // namespace quill

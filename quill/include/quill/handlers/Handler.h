@@ -75,7 +75,7 @@ public:
   /**
    * Flush the handler synchronising the associated handler with its controlled output sequence.
    */
-  QUILL_ATTRIBUTE_HOT virtual void flush() noexcept = 0;
+  QUILL_ATTRIBUTE_HOT virtual void flush() = 0;
 
   /**
    * Executes periodically by the backend thread, providing an opportunity for the user

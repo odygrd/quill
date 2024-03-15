@@ -83,7 +83,7 @@ void FileHandler::open_file(fs::path const& filename, std::string const& mode)
   // _file is the base file*
   _file = detail::open_file(filename, mode);
 
-  assert(_file && "open_file always returns a valid pointer");
+  assert(_file && "open_file always returns a valid pointer or throws");
 
   if (_file_event_notifier.after_open)
   {
@@ -94,20 +94,22 @@ void FileHandler::open_file(fs::path const& filename, std::string const& mode)
 /***/
 void FileHandler::close_file()
 {
-  if (_file)
+  if (!_file)
   {
-    if (_file_event_notifier.before_close)
-    {
-      _file_event_notifier.before_close(_filename, _file);
-    }
+    return;
+  }
 
-    fclose(_file);
-    _file = nullptr;
+  if (_file_event_notifier.before_close)
+  {
+    _file_event_notifier.before_close(_filename, _file);
+  }
 
-    if (_file_event_notifier.after_close)
-    {
-      _file_event_notifier.after_close(_filename);
-    }
+  fclose(_file);
+  _file = nullptr;
+
+  if (_file_event_notifier.after_close)
+  {
+    _file_event_notifier.after_close(_filename);
   }
 }
 
@@ -115,8 +117,14 @@ void FileHandler::close_file()
 FileHandler::~FileHandler() { close_file(); }
 
 /***/
-void FileHandler::flush() noexcept
+void FileHandler::flush()
 {
+  if (!_write_occurred || !_file)
+  {
+    // Check here because StreamHandler::flush() will set _write_occurred to false
+    return;
+  }
+
   StreamHandler::flush();
 
   if (_config.do_fsync())

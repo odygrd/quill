@@ -58,6 +58,7 @@ void test_quill_log(char const* test_id, std::string const& filename, uint16_t n
 
   for (auto const& [key, value] : quill::get_all_loggers())
   {
+    quill::flush();
     quill::remove_logger(value);
   }
 
@@ -127,7 +128,11 @@ public:
     _logger = quill::create_logger(logger_name, std::move(filehandler));
   }
 
-  ~log_test_class() { quill::remove_logger(_logger); }
+  ~log_test_class()
+  {
+    quill::flush();
+    quill::remove_logger(_logger);
+  }
 
   /**
    * Use logger in const function
@@ -237,6 +242,7 @@ TEST_CASE("log_using_rotating_file_handler_overwrite_oldest_files")
     LOG_INFO(rotating_logger_2, "Hello rotating file log num {}", i);
   }
 
+  quill::flush();
   quill::remove_logger(rotating_logger);
   quill::remove_logger(rotating_logger_2);
 
@@ -325,10 +331,9 @@ TEST_CASE("log_using_rotating_file_handler_dont_overwrite_oldest_files")
     LOG_INFO(rotating_logger_2, "Hello rotating file log num {}", i);
   }
 
+  quill::flush();
   quill::remove_logger(rotating_logger);
   quill::remove_logger(rotating_logger_2);
-
-  quill::flush();
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
@@ -387,9 +392,8 @@ TEST_CASE("log_using_daily_file_handler")
     LOG_INFO(daily_logger, "Hello daily file log num {}", i);
   }
 
-  quill::remove_logger(daily_logger);
-
   quill::flush();
+  quill::remove_logger(daily_logger);
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename);
@@ -442,7 +446,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
     if (i % 2 == 0)
     {
       std::string expected_string =
-        "QuillLogTest.cpp:419         LOG_INFO      root         Hello log num " + std::to_string(i);
+        "QuillLogTest.cpp:423         LOG_INFO      root         Hello log num " + std::to_string(i);
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {
@@ -552,9 +556,8 @@ TEST_CASE("check_log_arguments_evaluation")
   LOG_INFO(logger, "Test log arguments {}", arg_str());
   REQUIRE_EQ(cnt, 1);
 
-  quill::remove_logger(logger);
-
   quill::flush();
+  quill::remove_logger(logger);
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
