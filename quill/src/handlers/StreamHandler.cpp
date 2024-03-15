@@ -35,8 +35,9 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
       fs::create_directories(parent_path, ec);
       if (ec)
       {
+        // use .string() to also support experimental fs
         QUILL_THROW(QuillError{fmtquill::format("cannot create directories for {}, error: {}",
-                                                parent_path.c_str(), ec.message())});
+                                                parent_path.string(), ec.message())});
       }
     }
     else
@@ -49,8 +50,9 @@ StreamHandler::StreamHandler(fs::path stream, FILE* file /* = nullptr */,
 
     if (ec)
     {
+      // use .string() to also support experimental fs
       QUILL_THROW(QuillError{fmtquill::format("cannot make canonical path for {}, error: {}",
-                                              parent_path.c_str(), ec.message())});
+                                              parent_path.string(), ec.message())});
     }
 
     // finally replace the given filename's parent_path with the equivalent canonical path
@@ -63,6 +65,7 @@ void StreamHandler::write(fmt_buffer_t const& formatted_log_message, TransitEven
 {
   if (QUILL_UNLIKELY(!_file))
   {
+    // FileHandler::flush() tries to re-open a deleted file and if it fails _file can be null
     return;
   }
 

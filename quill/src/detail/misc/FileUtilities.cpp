@@ -34,8 +34,9 @@ FILE* open_file(fs::path const& filename, std::string const& mode)
     fs::create_directories(filename.parent_path(), ec);
     if (ec)
     {
+      // use .string() to also support experimental fs
       QUILL_THROW(QuillError{fmtquill::format("cannot create directories for {}, error: {}",
-                                              filename.parent_path().c_str(), ec.message())});
+                                              filename.parent_path().string(), ec.message())});
     }
   }
 
