@@ -71,6 +71,8 @@
   the terminal while the logger is running. ([#395](https://github.com/odygrd/quill/issues/395))
 - Ensure that after a logger is removed, there are no subsequent calls to the Handler's flush() or run_loop(), provided
   the Handler is not shared. ([#395](https://github.com/odygrd/quill/issues/395))
+- Ignore the virtual destructor missing warning for the `CustomTags`
+  class. ([#402](https://github.com/odygrd/quill/pull/402))
 - Update bundled `libfmt` to `v10.2.1`
 
 ## v3.6.0
