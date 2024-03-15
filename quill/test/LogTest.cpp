@@ -2490,18 +2490,22 @@ TEST_CASE("flush_without_any_log")
   std::thread watcher(
     [&is_flush_done]()
     {
-      int try_count = 3;
+      uint32_t try_count = 2000;
       while (is_flush_done.load() == false && try_count--)
       {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
       }
       REQUIRE_EQ(is_flush_done.load(), true);
     });
 
-  lm.flush();
+  std::thread frontend(
+    [&lm, &is_flush_done]()
+    {
+      lm.flush();
+      is_flush_done = true;
+    });
 
-  is_flush_done = true;
-
+  frontend.join();
   watcher.join();
 
   lm.stop_backend_worker();
