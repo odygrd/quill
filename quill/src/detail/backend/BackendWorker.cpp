@@ -425,37 +425,13 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
   }
   else if (macro_metadata.event() == MacroMetadata::Event::Flush)
   {
-    _handler_collection.active_handlers(_active_handlers_cache);
-    _force_flush();
+    _flush_and_run_active_handlers_loop(false);
 
     // this is a flush event, so we need to notify the caller to continue now
     transit_event.flush_flag->store(true);
 
     // we also need to reset the flush_flag as the TransitEvents are re-used
     transit_event.flush_flag = nullptr;
-  }
-
-  // Since after processing an event we never force flush but leave it up to the OS instead,
-  // set this to true to keep track of unflushed messages we have
-  _has_unflushed_messages = true;
-}
-
-/***/
-void BackendWorker::_force_flush()
-{
-  if (_has_unflushed_messages)
-  {
-    // If we have buffered any messages then flush all active handlers
-    for (auto const& handler : _active_handlers_cache)
-    {
-      std::shared_ptr<Handler> h = handler.lock();
-      if (h)
-      {
-        h->flush();
-      }
-    }
-
-    _has_unflushed_messages = false;
   }
 }
 
@@ -497,4 +473,5 @@ void BackendWorker::_resync_rdtsc_clock()
     }
   }
 }
+
 } // namespace quill::detail

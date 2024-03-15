@@ -113,7 +113,7 @@ public:
   /**
    * Flushes the stream and optionally fsyncs it
    */
-  QUILL_ATTRIBUTE_HOT void flush() noexcept override;
+  QUILL_ATTRIBUTE_HOT void flush() override;
 
 protected:
   void open_file(fs::path const& filename, std::string const& mode);

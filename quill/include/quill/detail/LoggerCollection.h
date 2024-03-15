@@ -142,6 +142,24 @@ public:
    */
   QUILL_NODISCARD bool remove_invalidated_loggers(std::function<bool(void)> const& check_queues_empty);
 
+  /**
+   * Checks if any invalidated loggers exist
+   * @return
+   */
+  QUILL_NODISCARD bool has_invalidated_loggers() const noexcept
+  {
+    return _has_invalidated_loggers.load(std::memory_order_acquire);
+  }
+
+  /**
+   * Get a list of all the active subscribed handlers filtering out the handlers of any invalidated logger
+   * The list contains each handler only once regardless the amount of Logger instances using it
+   * This is not used for logging by the backend but only in special cases when
+   * e.g. it needs to iterate through all handlers for e.g. to flush
+   * @param active_handlers_collection active handlers collection
+   */
+  void active_handlers(std::vector<std::weak_ptr<Handler>>& active_handlers_collection) const;
+
 private:
   Config const& _config;
   ThreadContextCollection& _thread_context_collection; /**< We need to pass this to each logger */

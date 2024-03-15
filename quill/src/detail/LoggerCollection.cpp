@@ -303,5 +303,40 @@ bool LoggerCollection::remove_invalidated_loggers(std::function<bool(void)> cons
 
   return loggers_removed;
 }
+
+/***/
+void LoggerCollection::active_handlers(std::vector<std::weak_ptr<Handler>>& active_handlers_collection) const
+{
+  active_handlers_collection.clear();
+
+  std::lock_guard<std::recursive_mutex> const lock{_rmutex};
+  for (auto const& [logger_name, logger_ptr] : _logger_name_map)
+  {
+    if (logger_ptr->is_invalidated())
+    {
+      // Skip handlers of invalidated loggers
+      continue;
+    }
+
+    std::vector<std::shared_ptr<Handler>> const& logger_handlers = logger_ptr->_logger_details.handlers();
+    for (std::shared_ptr<Handler> const& handler : logger_handlers)
+    {
+      auto search_it = std::find_if(std::begin(active_handlers_collection), std::end(active_handlers_collection),
+                                    [handler_ptr = handler.get()](std::weak_ptr<Handler> const& elem)
+                                    {
+                                      // no one else can remove the shared pointer as this is only
+                                      // running on backend thread, lock() will always succeed
+                                      return elem.lock().get() == handler_ptr;
+                                    });
+
+      if (search_it == std::end(active_handlers_collection))
+      {
+        // Add handler
+        active_handlers_collection.push_back(handler);
+      }
+    }
+  }
+}
+
 } // namespace detail
 } // namespace quill
