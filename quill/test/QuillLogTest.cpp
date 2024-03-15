@@ -180,7 +180,7 @@ TEST_CASE("log_from_const_function")
       std::this_thread::sleep_for(std::chrono::milliseconds{100});
     }
 
-    // quill::detail::remove_file(filename);
+    quill::detail::remove_file(filename);
   }
 }
 
