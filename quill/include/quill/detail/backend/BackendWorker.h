@@ -203,7 +203,6 @@ private:
       _handler_collection.active_handlers(_active_handlers_cache);
     }
 
-    // If we have buffered any messages then flush all active handlers
     for (auto const& handler : _active_handlers_cache)
     {
       std::shared_ptr<Handler> h = handler.lock();
