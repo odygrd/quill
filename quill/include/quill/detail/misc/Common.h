@@ -208,6 +208,17 @@ enum TimestampClockType : uint8_t
   Custom
 };
 
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
+#elif defined(__GNUC__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#elif defined(_WIN32)
+  #pragma warning(push)
+  #pragma warning(disable : 4265) // Disable warning about non-virtual destructor in MSVC
+#endif
+
 /**
  * CustomTags class that can be used for _WITH_TAGS log macros
  */
@@ -217,6 +228,14 @@ public:
   constexpr CustomTags() = default;
   virtual void format(std::string&) const = 0;
 };
+
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+  #pragma GCC diagnostic pop
+#elif defined(_WIN32)
+  #pragma warning(pop)
+#endif
 
 /**
  * backend worker thread error handler type
