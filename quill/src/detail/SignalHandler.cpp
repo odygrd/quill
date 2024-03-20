@@ -23,10 +23,8 @@
     {                                                                                              \
       constexpr quill::MacroMetadata operator()() const noexcept                                   \
       {                                                                                            \
-        return quill::MacroMetadata{"~",                                                           \
-                                    "QuillSignalHandler.cpp",                                      \
-                                    "QuillSignalHandler.cpp",                                      \
-                                    function_name,                                                 \
+        return quill::MacroMetadata{                                                               \
+          "QuillSignalHandler.cpp:~",       function_name,                                                 \
                                     fmt,                                                           \
                                     nullptr,                                                       \
                                     log_statement_level,                                           \

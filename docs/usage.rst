@@ -46,7 +46,7 @@ Single logger object
     {
       // quill::Handler* handler = quill::stdout_handler(); /** for stdout **/
       quill::Handler* handler = quill::file_handler("quickstart.log", "w");
-      handler->set_pattern("%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) %(message)");
+      handler->set_pattern("%(time) [%(thread)] %(short_source_location:<28) LOG_%(log_level) %(message)");
 
       // set configuration
       quill::Config cfg;
@@ -70,7 +70,7 @@ Log to file
     int main()
     {
       quill::Handler* handler = quill::file_handler("quickstart.log", "w");
-      handler->set_pattern("%(ascii_time) [%(thread)] %(fileline:<28) %(level_name) %(logger_name:<12) %(message)");
+      handler->set_pattern("%(time) [%(thread)] %(short_source_location:<28) %(log_level) %(logger:<12) %(message)");
 
       // set configuration
       quill::Config cfg;

@@ -31,7 +31,7 @@ int main()
                                                                        cfg.set_open_mode('w');
                                                                        return cfg;
                                                                      }());
-  file_handler->set_pattern("%(ascii_time) [%(thread)] %(fileline) %(level_name) %(message)");
+  file_handler->set_pattern("%(time) [%(thread)] %(short_source_location) %(log_level) %(message)");
   quill::Logger* logger = quill::create_logger("bench_logger", std::move(file_handler));
   quill::preallocate();
 

@@ -326,8 +326,8 @@ int main()
                           quill::FileHandlerConfig cfg;
                           cfg.set_open_mode('w');
                           cfg.set_pattern(
-                            "[%(ascii_time)] [%(thread)] [%(filename):%(lineno)] [%(logger_name)] "
-                            "[%(level_name)] - %(message)",
+                            "[%(time)] [%(thread)] [%(file_name):%(line_number)] [%(logger)] "
+                            "[%(log_level)] - %(message)",
                             "%H:%M:%S.%Qms");
                           return cfg;
                         }()));

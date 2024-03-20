@@ -11,7 +11,7 @@ int main()
   std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler();
 
   // Set a custom formatter for this handler
-  stdout_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
+  stdout_handler->set_pattern("%(time) [%(process_id)] [%(thread_id)] %(logger) - %(message)", // format
                               "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
                               quill::Timezone::GmtTime); // timestamp's timezone
 

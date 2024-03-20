@@ -58,15 +58,7 @@ struct TransitEvent
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT LogLevel log_level() const noexcept
   {
-    return log_level_override ? *log_level_override : header.metadata_and_format_fn().first.level();
-  }
-
-  /**
-   * @return  The log level of this logging event as a string
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view log_level_as_str() const noexcept
-  {
-    return loglevel_to_string(log_level());
+    return log_level_override ? *log_level_override : metadata().log_level();
   }
 
   /**

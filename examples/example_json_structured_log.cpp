@@ -55,8 +55,8 @@ int main()
   // create a custom stdout_handler to change the format
   auto custom_stdout_handler = quill::stdout_handler("custom_stdout");
   custom_stdout_handler->set_pattern(
-    "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) "
-    "%(logger_name:<12) %(message) [%(structured_keys)]");
+    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) "
+    "%(logger:<12) %(message) [%(structured_keys)]");
 
   // Logged to both file as json and to stdout with the inclusion of keys for stdout
   quill::Logger* skey_logger =

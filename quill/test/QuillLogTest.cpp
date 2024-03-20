@@ -412,7 +412,7 @@ TEST_CASE("log_using_multiple_stdout_formats")
   quill::testing::CaptureStdout();
 
   std::shared_ptr<quill::Handler> stdout_custom_handler = quill::stdout_handler("stdout_custom_1");
-  stdout_custom_handler->set_pattern("%(logger_name) - %(message) (%(function_name))");
+  stdout_custom_handler->set_pattern("%(logger) - %(message) (%(caller_function))");
   quill::Logger* custom_logger = quill::create_logger("custom", std::move(stdout_custom_handler));
 
   // log a few messages so we rotate files
@@ -475,7 +475,7 @@ TEST_CASE("log_using_stderr")
   quill::testing::CaptureStderr();
 
   std::shared_ptr<quill::Handler> stderr_handler = quill::stderr_handler("stderr_custom_1");
-  stderr_handler->set_pattern("%(logger_name) - %(message) (%(function_name))");
+  stderr_handler->set_pattern("%(logger) - %(message) (%(caller_function))");
   quill::Logger* custom_logger = quill::create_logger("log_using_stderr", std::move(stderr_handler));
 
   LOG_INFO(custom_logger, "Hello log stderr");
@@ -500,10 +500,10 @@ TEST_CASE("log_to_multiple_handlers_from_same_logger")
   quill::testing::CaptureStdout();
 
   std::shared_ptr<quill::Handler> stderr_handler = quill::stderr_handler();
-  stderr_handler->set_pattern("%(logger_name) - %(message) (%(function_name))");
+  stderr_handler->set_pattern("%(logger) - %(message) (%(caller_function))");
 
   std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler();
-  stdout_handler->set_pattern("%(logger_name) - %(message) (%(function_name))");
+  stdout_handler->set_pattern("%(logger) - %(message) (%(caller_function))");
 
   // Create the new logger with multiple handlers
   quill::Logger* custom_logger = quill::create_logger("log_multi_handlers", {stdout_handler, stderr_handler});

@@ -138,7 +138,16 @@ public:
     // get the root logger - this is needed for the logger_details struct, in order to figure out
     // the clock type later on the backend thread
     Logger* default_logger = logger_collection().get_logger(nullptr);
-    LoggerDetails const* logger_details = std::addressof(default_logger->_logger_details);
+    LoggerDetails const* logger_details = &default_logger->_logger_details;
+
+    // Take and store the timestamp here as it is more accurate
+    uint64_t const timestamp = (logger_details->timestamp_clock_type() == TimestampClockType::Tsc)
+      ? detail::rdtsc()
+      : (logger_details->timestamp_clock_type() == TimestampClockType::System)
+      ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                std::chrono::system_clock::now().time_since_epoch())
+                                .count())
+      : default_logger->_custom_timestamp_clock->now();
 
     // Create an atomic variable
     std::atomic<bool> backend_thread_flushed{false};
@@ -149,8 +158,7 @@ public:
       constexpr MacroMetadata operator()() const noexcept
       {
         return MacroMetadata{
-          "",    "",   "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush,
-          false, false};
+          "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush, false, false};
       }
     } anonymous_log_message_info;
 
@@ -170,12 +178,8 @@ public:
 
     write_buffer = detail::align_pointer<alignof(Header), std::byte>(write_buffer);
 
-    new (write_buffer) Header(
-      detail::get_metadata_and_format_fn<false, decltype(anonymous_log_message_info)>, logger_details,
-      (logger_details->timestamp_clock_type() == TimestampClockType::Tsc) ? quill::detail::rdtsc()
-        : (logger_details->timestamp_clock_type() == TimestampClockType::System)
-        ? static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count())
-        : default_logger->_custom_timestamp_clock->now());
+    new (write_buffer) Header(detail::get_metadata_and_format_fn<false, decltype(anonymous_log_message_info)>,
+                              logger_details, timestamp);
 
     write_buffer += sizeof(Header);
 

@@ -6,8 +6,10 @@
 #pragma once
 
 #include "quill/LogLevel.h"
+#include "quill/detail/misc/Attributes.h"
 #include "quill/detail/misc/Common.h"
-#include <array>
+
+#include <cassert>
 #include <cstdint>
 #include <string_view>
 #include <type_traits>
@@ -28,173 +30,185 @@ public:
     Flush
   };
 
-  constexpr MacroMetadata(std::string_view lineno, std::string_view pathname, std::string_view fileline,
-                          std::string_view func, std::string_view message_format,
-                          CustomTags const* custom_tags, LogLevel level, Event event,
-                          bool is_structured_log_template, bool is_printf_format)
-    : _func(func),
-      _pathname(pathname),
-      _filename(_extract_source_file_name(_pathname)),
-      _fileline(_extract_source_file_name(fileline)),
-      _message_format(message_format),
-      _lineno(lineno),
-      _custom_tags(custom_tags),
-      _level(level),
-      _event(event),
-      _is_structured_log_template(is_structured_log_template),
-      _is_printf_format(is_printf_format)
-  {
-  }
-
 #if defined(_WIN32)
-  constexpr MacroMetadata(std::string_view lineno, std::string_view pathname, std::string_view fileline,
-                          std::string_view func, std::wstring_view message_format,
-                          CustomTags const* custom_tags, LogLevel level, Event event,
-                          bool is_structured_log_template, bool is_printf_format)
-    : _func(func),
-      _pathname(pathname),
-      _filename(_extract_source_file_name(_pathname)),
-      _fileline(_extract_source_file_name(fileline)),
-      _lineno(lineno),
+  constexpr MacroMetadata(char const* source_location, char const* caller_function,
+                          wchar_t const* message_format, CustomTags const* custom_tags, LogLevel log_level,
+                          Event event, bool is_structured_log, bool is_printf_format) noexcept
+    : _source_location(source_location),
+      _caller_function(caller_function),
+      _message_format(message_format),
       _custom_tags(custom_tags),
-      _level(level),
-      _event(event),
-      _is_structured_log_template(is_structured_log_template),
-      _is_printf_format(is_printf_format),
-      _has_wide_char{true},
-      _wmessage_format(message_format)
+      _colon_separator_pos(_calc_colon_separator_pos()),
+      _file_name_pos(_calc_file_name_pos()),
+      _log_level(log_level),
+      _event(event)
   {
+    _set_structured_log_template_flag(is_structured_log);
+    _set_printf_format_flag(is_printf_format);
   }
 #endif
 
-  /**
-   * @return The function name
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view func() const noexcept
+  constexpr MacroMetadata(char const* source_location, char const* caller_function,
+                          char const* message_format, CustomTags const* custom_tags, LogLevel log_level,
+                          Event event, bool is_structured_log, bool is_printf_format) noexcept
+    : _source_location(source_location),
+      _caller_function(caller_function),
+      _message_format(message_format),
+      _custom_tags(custom_tags),
+      _colon_separator_pos(_calc_colon_separator_pos()),
+      _file_name_pos(_calc_file_name_pos()),
+      _log_level(log_level),
+      _event(event)
   {
-    return _func;
+    _set_structured_log_template_flag(is_structured_log);
+    _set_printf_format_flag(is_printf_format);
   }
 
-  /**
-   * @return The full pathname of the source file where the logging call was made.
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view pathname() const noexcept
+  QUILL_NODISCARD char const* source_location() const noexcept { return _source_location; }
+
+  QUILL_NODISCARD char const* caller_function() const noexcept { return _caller_function; }
+
+  QUILL_NODISCARD char const* message_format() const noexcept
   {
-    return _pathname;
+    assert(!is_wide_char_format());
+    return static_cast<char const*>(_message_format);
   }
 
-  /**
-   * @return Short portion of the path name
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view filename() const noexcept
+  QUILL_NODISCARD char const* line() const noexcept
   {
-    return _filename;
+    return _source_location + _colon_separator_pos + 1;
   }
 
-  /**
-   * @return file:line
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view fileline() const noexcept
+  QUILL_NODISCARD std::string_view full_path() const noexcept
   {
-    return _fileline;
+    return std::string_view{_source_location, _colon_separator_pos};
   }
 
-  /**
-   * @return The user provided format
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view message_format() const noexcept
+  QUILL_NODISCARD std::string_view file_name() const noexcept
   {
-    return _message_format;
+    return std::string_view{_source_location + _file_name_pos,
+                            static_cast<size_t>(_colon_separator_pos - _file_name_pos)};
   }
 
-  /**
-   * @return The line number
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::string_view lineno() const noexcept
+  QUILL_NODISCARD char const* short_source_location() const noexcept
   {
-    return _lineno;
+    return _source_location + _file_name_pos;
   }
 
-  /**
-   * @return The log level of this logging event as an enum
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr LogLevel level() const noexcept { return _level; }
+  QUILL_NODISCARD constexpr LogLevel log_level() const noexcept { return _log_level; }
 
-  /**
-   * @return  The log level of this logging event as a string
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view level_id_as_str() const noexcept
+  QUILL_NODISCARD std::string_view log_level_string() const noexcept
   {
-    return loglevel_to_string_id(_level);
+    return quill::loglevel_to_string(_log_level);
   }
 
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr CustomTags const* custom_tags() const noexcept
+  QUILL_NODISCARD std::string_view log_level_id() const noexcept
   {
-    return _custom_tags;
+    return quill::loglevel_to_string_id(_log_level);
   }
 
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr Event event() const noexcept { return _event; }
+  QUILL_NODISCARD CustomTags const* custom_tags() const noexcept { return _custom_tags; }
 
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr bool is_structured_log_template() const noexcept
+  QUILL_NODISCARD constexpr bool is_structured_log_template() const noexcept
   {
-    return _is_structured_log_template;
+    return _format_flags & STRUCTURED_LOG_TEMPLATE_FLAG;
   }
 
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr bool is_printf_format() const noexcept
+  QUILL_NODISCARD constexpr bool is_printf_format() const noexcept
   {
-    return _is_printf_format;
+    return _format_flags & PRINTF_FORMAT_FLAG;
+  }
+
+  QUILL_NODISCARD Event event() const noexcept { return _event; }
+
+  QUILL_NODISCARD constexpr bool is_wide_char_format() const noexcept
+  {
+    return _format_flags & WIDE_CHAR_FORMAT_FLAG;
   }
 
 #if defined(_WIN32)
-  /**
-   * @return true if the user provided a wide char format string
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr bool has_wide_char() const noexcept
+  QUILL_NODISCARD wchar_t const* wmessage_format() const noexcept
   {
-    return _has_wide_char;
-  }
-
-  /**
-   * @return The user provided wide character format
-   */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT constexpr std::wstring_view wmessage_format() const noexcept
-  {
-    return _wmessage_format;
+    assert(is_wide_char_format());
+    return static_cast<wchar_t const*>(_message_format);
   }
 #endif
 
 private:
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT static constexpr std::string_view _extract_source_file_name(std::string_view pathname) noexcept
+  QUILL_NODISCARD constexpr uint16_t _calc_file_name_pos() const noexcept
   {
-    char const* path = pathname.data();
-    char const* file = path;
-    while (*path)
+    char const* source_location = _source_location;
+    char const* file = source_location;
+    while (*source_location)
     {
-      char cur = *path++;
-      if (cur == '/' || cur == fs::path::preferred_separator)
+      char cur = *source_location++;
+      if (cur == '/' || cur == std::filesystem::path::preferred_separator)
       {
-        file = path;
+        file = source_location;
       }
     }
-    return file;
+    return static_cast<uint16_t>(file - _source_location);
+  }
+
+  QUILL_NODISCARD constexpr uint16_t _calc_colon_separator_pos() const noexcept
+  {
+    std::string_view source_loc{_source_location};
+    auto const separator_index = source_loc.rfind(':');
+    return static_cast<uint16_t>(separator_index);
+  }
+
+  constexpr void _set_structured_log_template_flag(bool value) noexcept
+  {
+    if (value)
+    {
+      _format_flags |= STRUCTURED_LOG_TEMPLATE_FLAG;
+    }
+    else
+    {
+      _format_flags &= ~STRUCTURED_LOG_TEMPLATE_FLAG;
+    }
+  }
+
+  constexpr void _set_printf_format_flag(bool value) noexcept
+  {
+    if (value)
+    {
+      _format_flags |= PRINTF_FORMAT_FLAG;
+    }
+    else
+    {
+      _format_flags &= ~PRINTF_FORMAT_FLAG;
+    }
+  }
+
+  constexpr void _set_wide_char_format_flag(bool value) noexcept
+  {
+    if (value)
+    {
+      _format_flags |= WIDE_CHAR_FORMAT_FLAG;
+    }
+    else
+    {
+      _format_flags &= ~WIDE_CHAR_FORMAT_FLAG;
+    }
   }
 
 private:
-  std::string_view _func;
-  std::string_view _pathname;
-  std::string_view _filename;
-  std::string_view _fileline;
-  std::string_view _message_format;
-  std::string_view _lineno;
-  CustomTags const* _custom_tags{nullptr};
-  LogLevel _level{LogLevel::None};
-  Event _event{Event::Log};
-  bool _is_structured_log_template{false};
-  bool _is_printf_format{false};
+  static constexpr uint8_t STRUCTURED_LOG_TEMPLATE_FLAG = 0x01;
+  static constexpr uint8_t PRINTF_FORMAT_FLAG = 0x02;
+  static constexpr uint8_t WIDE_CHAR_FORMAT_FLAG = 0x04;
 
-#if defined(_WIN32)
-  bool _has_wide_char{false};
-  std::wstring_view _wmessage_format;
-#endif
+  char const* _source_location;
+  char const* _caller_function;
+  void const* _message_format;
+  CustomTags const* _custom_tags;
+  uint16_t _colon_separator_pos;
+  uint16_t _file_name_pos;
+  LogLevel _log_level;
+  Event _event;
+  uint8_t _format_flags{0};
 };
+
+static_assert(sizeof(MacroMetadata) <= detail::CACHE_LINE_SIZE,
+              "Size of MacroMetadata exceeds the cache line size");
 } // namespace quill

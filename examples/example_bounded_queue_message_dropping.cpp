@@ -8,7 +8,8 @@ int main()
 {
   std::shared_ptr<quill::Handler> handler = quill::stdout_handler(); /** for stdout **/
   // std::shared_ptr<quill::Handler> handler = quill::file_handler("quickstart.log", "w");  /** for writing to file **/
-  handler->set_pattern("%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name) %(message)");
+  handler->set_pattern(
+    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level) %(message)");
 
   // set configuration
   quill::Config cfg;

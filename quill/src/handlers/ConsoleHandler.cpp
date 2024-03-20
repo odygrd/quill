@@ -220,7 +220,7 @@ void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, TransitEve
   if (_console_colours.can_use_colours())
   {
     // Write colour code
-    std::string const& colour_code = _console_colours.colour_code(macro_metadata.level());
+    std::string const& colour_code = _console_colours.colour_code(macro_metadata.log_level());
 
     detail::fwrite_fully(colour_code.data(), sizeof(char), colour_code.size(), _file);
   }

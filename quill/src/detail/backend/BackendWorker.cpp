@@ -137,7 +137,7 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
   if (macro_metadata.event() != MacroMetadata::Event::Flush)
   {
 #if defined(_WIN32)
-    if (macro_metadata.has_wide_char())
+    if (macro_metadata.is_wide_char_format())
     {
       // convert the format string to a narrow string
       size_t const size_needed = get_wide_string_encoding_size(macro_metadata.wmessage_format());
@@ -147,7 +147,7 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
       assert(!macro_metadata.is_structured_log_template() &&
              "structured log templates are not supported for wide characters");
 
-      auto const [pos, error] = 
+      auto const [pos, error] =
         format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args, nullptr);
 
       read_pos = pos;
@@ -170,8 +170,7 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         transit_event->structured_kvs.clear();
 
         // using the message_format as key for lookups
-        _structured_fmt_str.assign(macro_metadata.message_format().data(),
-                                   macro_metadata.message_format().size());
+        _structured_fmt_str.assign(macro_metadata.message_format());
 
         // for messages containing named arguments threat them as structured logs
         if (auto const search = _slog_templates.find(_structured_fmt_str); search != std::cend(_slog_templates))
@@ -262,7 +261,7 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         }
       }
 
-      if (macro_metadata.level() == LogLevel::Dynamic)
+      if (macro_metadata.log_level() == LogLevel::Dynamic)
       {
         // if this is a dynamic log level we need to read the log level from the buffer
         LogLevel dynamic_log_level;
@@ -356,14 +355,15 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event) cons
 {
   // Forward the record to all the logger handlers
   MacroMetadata const macro_metadata = transit_event.metadata();
+  LogLevel const log_level = transit_event.log_level_override ? *transit_event.log_level_override
+                                                              : macro_metadata.log_level();
 
   for (auto& handler : transit_event.header.logger_details->handlers())
   {
     auto const& formatted_log_message_buffer = handler->formatter().format(
       std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id,
       transit_event.thread_name, _process_id, transit_event.header.logger_details->name(),
-      transit_event.log_level_as_str(), macro_metadata, transit_event.structured_kvs,
-      transit_event.formatted_msg);
+      loglevel_to_string(log_level), macro_metadata, transit_event.structured_kvs, transit_event.formatted_msg);
 
     // If all filters are okay we write this message to the file
     if (handler->apply_filters(transit_event.thread_id,

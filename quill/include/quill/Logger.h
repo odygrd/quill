@@ -143,6 +143,16 @@ public:
     }
 #endif
 
+    // Store the timestamp of the log statement at the start of the call. This gives more accurate
+    // timestamp especially if the queue is full
+    uint64_t const timestamp = (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc)
+      ? detail::rdtsc()
+      : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
+      ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                std::chrono::system_clock::now().time_since_epoch())
+                                .count())
+      : _custom_timestamp_clock->now();
+
     constexpr MacroMetadata macro_metadata{TMacroMetadata{}()};
     if constexpr (!macro_metadata.is_printf_format())
     {
@@ -180,7 +190,7 @@ public:
     size_t total_size = sizeof(detail::Header) + alignof(detail::Header) +
       detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
 
-    if constexpr (macro_metadata.level() == LogLevel::Dynamic)
+    if constexpr (macro_metadata.log_level() == LogLevel::Dynamic)
     {
       // For the dynamic log level we want to add to the total size to store the dynamic log level
       total_size += sizeof(LogLevel);
@@ -228,8 +238,8 @@ public:
     // we have enough space in this buffer, and we will write to the buffer
 
     // Then write the pointer to the LogDataNode. The LogDataNode has all details on how to
-    // deserialize the object. We will just serialize the arguments in our queue, but we need to
-    // look up their types to deserialize them
+    // deserialize the object. We will just serialize the arguments in our queue, but we need
+    // to look up their types to deserialize them
 
     // Note: The metadata variable here is created during program init time,
     std::byte const* const write_begin = write_buffer;
@@ -237,22 +247,16 @@ public:
 
     constexpr bool is_printf_format = macro_metadata.is_printf_format();
 
-    new (write_buffer) detail::Header(
-      detail::get_metadata_and_format_fn<is_printf_format, TMacroMetadata, FmtArgs...>,
-      std::addressof(_logger_details),
-      (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc) ? detail::rdtsc()
-        : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
-        ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                  std::chrono::system_clock::now().time_since_epoch())
-                                  .count())
-        : _custom_timestamp_clock->now());
+    new (write_buffer)
+      detail::Header(detail::get_metadata_and_format_fn<is_printf_format, TMacroMetadata, FmtArgs...>,
+                     &_logger_details, timestamp);
 
     write_buffer += sizeof(detail::Header);
 
     // encode remaining arguments
     write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
 
-    if constexpr (macro_metadata.level() == LogLevel::Dynamic)
+    if constexpr (macro_metadata.log_level() == LogLevel::Dynamic)
     {
       // write the dynamic log level
       std::memcpy(write_buffer, &dynamic_log_level, sizeof(LogLevel));
@@ -285,7 +289,7 @@ public:
       constexpr MacroMetadata operator()() const noexcept
       {
         return MacroMetadata{
-          "",    "",   "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace,
+          "",    "",   "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace,
           false, false};
       }
     } anonymous_log_message_info;
@@ -311,7 +315,7 @@ public:
       constexpr MacroMetadata operator()() const noexcept
       {
         return MacroMetadata{
-          "",    "",   "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace,
+          "",    "",   "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace,
           false, false};
       }
     } anonymous_log_message_info;
