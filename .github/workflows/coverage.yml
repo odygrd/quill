@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Configure
       run: cmake -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_STANDARD=17 -DQUILL_BUILD_TESTS=ON -DQUILL_CODE_COVERAGE=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON

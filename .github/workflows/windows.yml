@@ -52,7 +52,7 @@ jobs:
             with_tests: "OFF"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Create Build Environment
         run: cmake -E make_directory ${{runner.workspace}}/build
