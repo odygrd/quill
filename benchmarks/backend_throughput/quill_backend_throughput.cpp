@@ -13,8 +13,8 @@ int main()
   quill::detail::set_cpu_affinity(0);
 
   quill::Config cfg;
-  cfg.backend_thread_yield = false;
-  cfg.backend_thread_cpu_affinity = 1;
+
+  cfg.backend_thread_cpu_affinity = 5;
 
   quill::configure(cfg);
 

@@ -66,8 +66,6 @@
   enough space to push the message, which could make it less accurate. Additionally, in the case of a blocking queue,
   the timestamp could be later in time. Now, the timestamp is taken and stored right after the log statement is issued,
   before checking for the queue size.
-- The throughput of the backend worker thread has been improved by approximately 3%. This enhancement is reflected in
-  the new throughput value of 4.10 million msgs/sec, compared to the previous throughput of 3.98 million msgs/sec.
 
 ## v3.7.0
 
