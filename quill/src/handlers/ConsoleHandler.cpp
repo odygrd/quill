@@ -179,7 +179,7 @@ void ConsoleHandler::write(fmt_buffer_t const& formatted_log_message, TransitEve
 #if defined(_WIN32)
   if (_console_colours.using_colours())
   {
-    WORD const colour_code = _console_colours.colour_code(macro_metadata.level());
+    WORD const colour_code = _console_colours.colour_code(macro_metadata.log_level());
 
     // Set foreground colour and store the original attributes
     WORD const orig_attribs = _set_foreground_colour(colour_code);
