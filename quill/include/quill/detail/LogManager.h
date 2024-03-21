@@ -153,20 +153,11 @@ public:
     std::atomic<bool> backend_thread_flushed{false};
 
     // we need to write an event to the queue passing this atomic variable
-    struct
-    {
-      constexpr MacroMetadata operator()() const noexcept
-      {
-        return MacroMetadata{
-          "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush, false, false};
-      }
-    } anonymous_log_message_info;
-
     ThreadContext* const thread_context =
       _thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
 
     auto& spsc_queue = thread_context->spsc_queue<QUILL_QUEUE_TYPE>();
-    size_t constexpr total_size = sizeof(Header) + sizeof(uintptr_t);
+    size_t constexpr total_size = alignof(uint64_t) + sizeof(uint64_t) + (sizeof(uintptr_t) * 4);
 
     std::byte* write_buffer;
     while ((write_buffer = spsc_queue.prepare_write(static_cast<uint32_t>(total_size))) == nullptr)
@@ -176,12 +167,23 @@ public:
 
     std::byte const* const write_begin = write_buffer;
 
-    write_buffer = detail::align_pointer<alignof(Header), std::byte>(write_buffer);
+    write_buffer = detail::align_pointer<alignof(uint64_t), std::byte>(write_buffer);
 
-    new (write_buffer) Header(detail::get_metadata_and_format_fn<false, decltype(anonymous_log_message_info)>,
-                              logger_details, timestamp);
+    std::memcpy(write_buffer, &timestamp, sizeof(timestamp));
+    write_buffer += sizeof(timestamp);
 
-    write_buffer += sizeof(Header);
+    static constexpr MacroMetadata macro_metadata{
+      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush, false, false};
+    MacroMetadata const* macro_metadata_ptr = &macro_metadata;
+
+    std::memcpy(write_buffer, &macro_metadata_ptr, sizeof(uintptr_t));
+    write_buffer += sizeof(uintptr_t);
+
+    std::memcpy(write_buffer, &logger_details, sizeof(uintptr_t));
+    write_buffer += sizeof(uintptr_t);
+
+    // Increment once more we are not writing any format_to function for flush
+    write_buffer += sizeof(uintptr_t);
 
     // encode the pointer to atomic bool
     std::atomic<bool>* flush_ptr = std::addressof(backend_thread_flushed);

@@ -263,13 +263,13 @@ void RotatingFileHandler::write(fmt_buffer_t const& formatted_log_message, Trans
   if (_config.rotation_frequency() != RotatingFileHandlerConfig::RotationFrequency::Disabled)
   {
     // Check if we need to rotate based on time
-    time_rotation = _time_rotation(log_event.header.timestamp);
+    time_rotation = _time_rotation(log_event.timestamp);
   }
 
   if (!time_rotation && _config.rotation_max_file_size() != 0)
   {
     // Check if we need to rotate based on size
-    _size_rotation(formatted_log_message.size(), log_event.header.timestamp);
+    _size_rotation(formatted_log_message.size(), log_event.timestamp);
   }
 
   // write to file

@@ -132,8 +132,8 @@ constexpr bool detect_structured_log_template(std::string_view fmt)
             continue;
           }
 
-            // we found '{' match, we can break
-            break;
+          // we found '{' match, we can break
+          break;
         }
 
         ++pos;
@@ -159,30 +159,6 @@ constexpr bool detect_structured_log_template(std::wstring_view)
 }
 
 constexpr void QUILL_PRINTF_FORMAT_ATTRIBUTE(1, 2) check_printf_args(char const*, ...) {}
-
-template <typename... Args, typename S>
-constexpr bool check_printf_format_string(S format_str)
-{
-  using char_t = typename S::char_type;
-  constexpr auto format = fmtquill::basic_string_view<char_t>(format_str);
-  size_t num_specifiers = 0;
-
-  for (auto it = format.begin(); it != format.end(); ++it)
-  {
-    if (*it == '%')
-    {
-      ++num_specifiers;
-    }
-  }
-
-  if (num_specifiers > sizeof...(Args))
-  {
-    QUILL_THROW(
-      QuillError{"Invalid printf format: format string does not match number of arguments"});
-  }
-
-  return true;
-}
 
 } // namespace detail
 

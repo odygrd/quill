@@ -461,18 +461,5 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::pair<MacroMetadata, std::pair
 
 namespace detail
 {
-struct Header
-{
-public:
-  Header() = default;
-  Header(MetadataFormatFn metadata_and_format_fn, LoggerDetails const* logger_details, uint64_t timestamp)
-    : metadata_and_format_fn(metadata_and_format_fn), logger_details(logger_details), timestamp(timestamp)
-  {
-  }
-
-  MetadataFormatFn metadata_and_format_fn{nullptr};
-  LoggerDetails const* logger_details{nullptr};
-  uint64_t timestamp{0};
-};
 } // namespace detail
 } // namespace quill

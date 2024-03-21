@@ -10,7 +10,7 @@ namespace quill::detail
 /***/
 void BacktraceStorage::store(TransitEvent transit_event)
 {
-  auto const stored_records_it = _stored_records_map.find(transit_event.header.logger_details->name());
+  auto const stored_records_it = _stored_records_map.find(transit_event.logger_details->name());
 
   if (QUILL_UNLIKELY(stored_records_it == _stored_records_map.end()))
   {

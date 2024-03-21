@@ -490,10 +490,9 @@ void BackendWorker::_process_transit_events(ThreadContextCollection::backend_thr
 
   for (ThreadContext* thread_context : cached_thread_contexts)
   {
-    if (TransitEvent const* te = thread_context->transit_event_buffer().front();
-        te && (min_ts > te->header.timestamp))
+    if (TransitEvent const* te = thread_context->transit_event_buffer().front(); te && (min_ts > te->timestamp))
     {
-      min_ts = te->header.timestamp;
+      min_ts = te->timestamp;
       transit_buffer = std::addressof(thread_context->transit_event_buffer());
     }
   }
@@ -546,10 +545,17 @@ bool BackendWorker::_process_and_write_single_message(const ThreadContextCollect
             read_pos = queue.prepare_read();
           }
 
-          if (read_pos && (reinterpret_cast<Header*>(read_pos)->timestamp < min_ts))
+          if (read_pos)
           {
-            min_ts = reinterpret_cast<Header*>(read_pos)->timestamp;
-            tc = thread_context;
+            read_pos = align_pointer<alignof(uint64_t), std::byte>(read_pos);
+            uint64_t timestamp;
+            std::memcpy(&timestamp, read_pos, sizeof(uint64_t));
+
+            if (timestamp < min_ts)
+            {
+              min_ts = timestamp;
+              tc = thread_context;
+            }
           }
         }
       },
