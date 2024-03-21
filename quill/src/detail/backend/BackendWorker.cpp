@@ -143,15 +143,20 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
   if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
   {
 #if defined(_WIN32)
-    if (macro_metadata.is_wide_char_format())
+    if (transit_event->macro_metadata->is_wide_char_format())
     {
       // convert the format string to a narrow string
-      size_t const size_needed = get_wide_string_encoding_size(macro_metadata.wmessage_format());
-      std::string format_str(size_needed, 0);
-      wide_string_to_narrow(format_str.data(), size_needed, macro_metadata.wmessage_format());
+      size_t const size_needed =
+        get_wide_string_encoding_size(transit_event->macro_metadata->wmessage_format());
 
-      assert(!macro_metadata.is_structured_log_template() &&
+      std::string format_str(size_needed, 0);
+      wide_string_to_narrow(format_str.data(), size_needed, transit_event->macro_metadata->wmessage_format());
+
+      assert(!transit_event->macro_metadata->is_structured_log_template() &&
              "structured log templates are not supported for wide characters");
+
+      auto format_to_fn = reinterpret_cast<detail::FormatToFn>(transit_event->format_fn);
+      assert(format_to_fn);
 
       auto const [pos, error] =
         format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args, nullptr);
