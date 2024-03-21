@@ -116,19 +116,19 @@ public:
    * This is the fastest way possible to log
    * @note This function is thread-safe.
    * @param dynamic_log_level dynamic log level
-   * @param format_string format
+   * @param fmt_string format
    * @param fmt_args arguments
    */
   template <typename TMacroMetadata, typename TFormatString, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT void log(LogLevel dynamic_log_level, TFormatString format_string, FmtArgs&&... fmt_args)
+  QUILL_ALWAYS_INLINE_HOT void log(LogLevel dynamic_log_level, TFormatString fmt_string, FmtArgs&&... fmt_args)
   {
     assert(!_is_invalidated.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 
 #if QUILL_FMT_VERSION >= 90000
     static_assert(!detail::has_fmt_stream_view_v<FmtArgs...>,
                   "fmtquill::streamed(...) is not supported. In order to make a type formattable "
-                  "via std::ostream "
-                  "you should provide a formatter specialization inherited from ostream_formatter. "
+                  "via std::ostream you should provide a formatter specialization inherited "
+                  "from ostream_formatter. "
                   "`template <> struct fmtquill::formatter<T> : ostream_formatter {};");
 #endif
 
@@ -143,6 +143,25 @@ public:
     }
 #endif
 
+    constexpr MacroMetadata macro_metadata{TMacroMetadata{}()};
+    if constexpr (macro_metadata.is_printf_format())
+    {
+      QUILL_MAYBE_UNUSED constexpr bool ok = detail::check_printf_format_string<FmtArgs...>(fmt_string);
+    }
+    else
+    {
+      if constexpr (!macro_metadata.is_structured_log_template())
+      {
+#ifdef QUILL_FMT_HAS_CONSTEVAL
+        QUILL_MAYBE_UNUSED constexpr auto check_format_string = fmtquill::format_string<FmtArgs...>(
+          fmtquill::basic_string_view<typename TFormatString::char_type>(fmt_string).data());
+#else
+        // fallback to legacy libfmt check
+        fmtquill::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(fmt_string);
+#endif
+      }
+    }
+
     // Store the timestamp of the log statement at the start of the call. This gives more accurate
     // timestamp especially if the queue is full
     uint64_t const timestamp = (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc)
@@ -152,25 +171,6 @@ public:
                                 std::chrono::system_clock::now().time_since_epoch())
                                 .count())
       : _custom_timestamp_clock->now();
-
-    constexpr MacroMetadata macro_metadata{TMacroMetadata{}()};
-    if constexpr (!macro_metadata.is_printf_format())
-    {
-      if constexpr (macro_metadata.is_structured_log_template())
-      {
-        // if the format statement has named args then we perform our own compile time check
-      }
-      else
-      {
-        // fallback to libfmt check
-        fmtquill::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
-      }
-    }
-    else
-    {
-      // for printf_format we check earlier inside the macro
-      QUILL_MAYBE_UNUSED constexpr bool ok = detail::check_printf_format_string<FmtArgs...>(format_string);
-    }
 
     detail::ThreadContext* const thread_context =
       _thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();

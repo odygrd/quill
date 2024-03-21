@@ -21,6 +21,9 @@
   #define QUILL_FMT_VERSION FMT_VERSION
   #define QUILL_FMT_STRING FMT_STRING
 
+  #if defined(FMT_HAS_CONSTEVAL)
+    #define QUILL_FMT_HAS_CONSTEVAL
+  #endif
 namespace fmtquill = fmt;
 #else
   #include "quill/bundled/fmt/chrono.h"
@@ -31,6 +34,11 @@ namespace fmtquill = fmt;
 
   #define QUILL_FMT_VERSION FMTQUILL_VERSION
   #define QUILL_FMT_STRING FMTQUILL_STRING
+
+  #if defined(FMTQUILL_HAS_CONSTEVAL)
+    #define QUILL_FMT_HAS_CONSTEVAL
+  #endif
+
 #endif
 
 /**
