@@ -478,9 +478,9 @@ bool is_colour_terminal() noexcept
     return false;
   }
 
-  static constexpr std::array<char const*, 14> terms = {
+  static constexpr std::array<char const*, 15> terms = {
     {"ansi", "color", "console", "cygwin", "gnome", "konsole", "kterm", "linux", "msys", "putty",
-     "rxvt", "screen", "vt100", "xterm"}};
+     "rxvt", "screen", "vt100", "xterm", "tmux"}};
 
   return std::any_of(terms.begin(), terms.end(),
                      [&](char const* term) { return std::strstr(env_p, term) != nullptr; });
