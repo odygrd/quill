@@ -73,6 +73,7 @@
   logs an error instead.
 - The throughput of the backend worker thread has been improved by approximately 5%. This enhancement is reflected in
   the new throughput value of 4.20 million msgs/sec, compared to the previous throughput of 3.98 million msgs/sec.
+- Detect `tmux` as colour terminal. ([#410](https://github.com/odygrd/quill/issues/410))
 
 ## v3.7.0
 
