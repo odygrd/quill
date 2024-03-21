@@ -68,9 +68,10 @@
   before checking for the queue size.
 - Reduced template instantiations during logging operations on the hot path. Removal of compile-time format checks was
   necessary due to their significant impact on template instantiations, especially considering that only a few cases are
-  invalid. For instance, while fmt::format("{}", 1, 2) is considered valid, fmt::format("{} {}", 1) is deemed invalid.
-  In cases where an invalid format string is detected, the backend worker thread now catches the generated exception and
-  logs an error instead.
+  invalid. For instance, while `fmt::format("{}", 1, 2)` is considered valid, `fmt::format("{} {}", 1)` is deemed
+  invalid.
+  In cases where an invalid format string is detected, the backend worker thread catches the generated exception and
+  logs an error.
 - The throughput of the backend worker thread has been improved by approximately 5%. This enhancement is reflected in
   the new throughput value of 4.20 million msgs/sec, compared to the previous throughput of 3.98 million msgs/sec.
 - Detect `tmux` as colour terminal. ([#410](https://github.com/odygrd/quill/issues/410))
