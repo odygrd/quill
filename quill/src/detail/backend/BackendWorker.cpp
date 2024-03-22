@@ -72,15 +72,24 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
   transit_event->thread_name = thread_context->thread_name();
 
   // read the header first, and take copy of the header
-  read_pos = align_pointer<alignof(Header), std::byte>(read_pos);
-  transit_event->header = *(reinterpret_cast<Header*>(read_pos));
-  read_pos += sizeof(Header);
+  read_pos = align_pointer<alignof(uint64_t), std::byte>(read_pos);
+  std::memcpy(&transit_event->timestamp, read_pos, sizeof(uint64_t));
+  read_pos += sizeof(uint64_t);
+
+  std::memcpy(&transit_event->macro_metadata, read_pos, sizeof(uintptr_t));
+  read_pos += sizeof(uintptr_t);
+
+  std::memcpy(&transit_event->logger_details, read_pos, sizeof(uintptr_t));
+  read_pos += sizeof(uintptr_t);
+
+  std::memcpy(&transit_event->format_fn, read_pos, sizeof(uintptr_t));
+  read_pos += sizeof(uintptr_t);
 
   // if we are using rdtsc clock then here we will convert the value to nanoseconds since epoch
   // doing the conversion here ensures that every transit that is inserted in the transit buffer
   // below has a header timestamp of nanoseconds since epoch and makes it even possible to
   // have Logger objects using different clocks
-  if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Tsc)
+  if (transit_event->logger_details->timestamp_clock_type() == TimestampClockType::Tsc)
   {
     if (!_rdtsc_clock.load(std::memory_order_relaxed))
     {
@@ -92,11 +101,11 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
     }
 
     // convert the rdtsc value to nanoseconds since epoch
-    transit_event->header.timestamp =
-      _rdtsc_clock.load(std::memory_order_relaxed)->time_since_epoch(transit_event->header.timestamp);
+    transit_event->timestamp =
+      _rdtsc_clock.load(std::memory_order_relaxed)->time_since_epoch(transit_event->timestamp);
 
     // Now check if the message has a timestamp greater than our ts_now
-    if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
+    if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->timestamp / 1'000) >= ts_now))
     {
       // We are reading the queues sequentially and to be fair when ordering the messages
       // we are trying to avoid the situation when we already read the first queue,
@@ -109,9 +118,9 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
       return false;
     }
   }
-  else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::System)
+  else if (transit_event->logger_details->timestamp_clock_type() == TimestampClockType::System)
   {
-    if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->header.timestamp / 1'000) >= ts_now))
+    if QUILL_UNLIKELY ((ts_now != 0) && ((transit_event->timestamp / 1'000) >= ts_now))
     {
       // We are reading the queues sequentially and to be fair when ordering the messages
       // we are trying to avoid the situation when we already read the first queue,
@@ -124,145 +133,149 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
       return false;
     }
   }
-  else if (transit_event->header.logger_details->timestamp_clock_type() == TimestampClockType::Custom)
+  else if (transit_event->logger_details->timestamp_clock_type() == TimestampClockType::Custom)
   {
     // we skip checking against `ts_now`, we can not compare a custom timestamp by
     // the user (TimestampClockType::Custom) against ours
   }
 
   // we need to check and do not try to format the flush events as that wouldn't be valid
-  auto const [macro_metadata, format_fns] = transit_event->header.metadata_and_format_fn();
-  auto const [format_to_fn, printf_format_to_fn] = format_fns;
-
-  if (macro_metadata.event() != MacroMetadata::Event::Flush)
+  if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
   {
 #if defined(_WIN32)
-    if (macro_metadata.has_wide_char())
+    if (transit_event->macro_metadata->is_wide_char_format())
     {
       // convert the format string to a narrow string
-      size_t const size_needed = get_wide_string_encoding_size(macro_metadata.wmessage_format());
-      std::string format_str(size_needed, 0);
-      wide_string_to_narrow(format_str.data(), size_needed, macro_metadata.wmessage_format());
+      size_t const size_needed =
+        get_wide_string_encoding_size(transit_event->macro_metadata->wmessage_format());
 
-      assert(!macro_metadata.is_structured_log_template() &&
+      std::string format_str(size_needed, 0);
+      wide_string_to_narrow(format_str.data(), size_needed, transit_event->macro_metadata->wmessage_format());
+
+      assert(!transit_event->macro_metadata->is_structured_log_template() &&
              "structured log templates are not supported for wide characters");
 
-      auto const [pos, error] = 
+      auto format_to_fn = reinterpret_cast<detail::FormatToFn>(transit_event->format_fn);
+      assert(format_to_fn);
+
+      bool const success =
         format_to_fn(format_str, read_pos, transit_event->formatted_msg, _args, nullptr);
 
-      read_pos = pos;
-
-      if (QUILL_UNLIKELY(!error.empty()))
+      if (QUILL_UNLIKELY(!success))
       {
         // this means that fmt::format_to threw an exception, and we report it to the user
-        _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+        _notification_handler(
+          fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                           transit_event->macro_metadata->short_source_location()));
       }
     }
     else
     {
 #endif
-      if (macro_metadata.is_structured_log_template())
+      if (transit_event->macro_metadata->is_printf_format())
       {
-        assert(format_to_fn &&
-               "format_to_fn must be set for structured log templates, printf format is not "
-               "support for structured log templates");
+        // printf style format
+        auto printf_format_to_fn = reinterpret_cast<detail::PrintfFormatToFn>(transit_event->format_fn);
+        assert(printf_format_to_fn);
 
-        transit_event->structured_kvs.clear();
+        auto const success = printf_format_to_fn(transit_event->macro_metadata->message_format(),
+                                                 read_pos, transit_event->formatted_msg, _printf_args);
 
-        // using the message_format as key for lookups
-        _structured_fmt_str.assign(macro_metadata.message_format().data(),
-                                   macro_metadata.message_format().size());
-
-        // for messages containing named arguments threat them as structured logs
-        if (auto const search = _slog_templates.find(_structured_fmt_str); search != std::cend(_slog_templates))
+        if (QUILL_UNLIKELY(!success))
         {
-          // process structured log that structured keys exist in our map
-          auto const& [fmt_str, structured_keys] = search->second;
-
-          transit_event->structured_kvs.resize(structured_keys.size());
-
-          // We first populate the structured keys in the transit buffer
-          for (size_t i = 0; i < structured_keys.size(); ++i)
-          {
-            transit_event->structured_kvs[i].first = structured_keys[i];
-          }
-
-          // Now we format the message and also populate the values of each structured key
-          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
-                                                 _args, &transit_event->structured_kvs);
-
-          read_pos = pos;
-
-          if (QUILL_UNLIKELY(!error.empty()))
-          {
-            // this means that fmt::format_to threw an exception, and we report it to the user
-            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
-          }
-        }
-        else
-        {
-          // process structured log that structured keys are processed for the first time
-          // parse structured keys and stored them to our lookup map
-          auto const [res_it, inserted] = _slog_templates.try_emplace(
-            _structured_fmt_str, _process_structured_log_template(macro_metadata.message_format()));
-
-          auto const& [fmt_str, structured_keys] = res_it->second;
-
-          transit_event->structured_kvs.resize(structured_keys.size());
-
-          // We first populate the structured keys in the transit buffer
-          for (size_t i = 0; i < structured_keys.size(); ++i)
-          {
-            transit_event->structured_kvs[i].first = structured_keys[i];
-          }
-
-          // Now we format the message and also populate the values of each structured key
-          auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
-                                                 _args, &transit_event->structured_kvs);
-
-          read_pos = pos;
-
-          if (QUILL_UNLIKELY(!error.empty()))
-          {
-            // this means that fmt::format_to threw an exception, and we report it to the user
-            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
-          }
+          // this means that fmt::format_to threw an exception, and we report it to the user
+          _notification_handler(
+            fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                             transit_event->macro_metadata->short_source_location()));
         }
       }
       else
       {
-        // regular logs
-        if (format_to_fn)
+        // lib fmt style logs
+        auto format_to_fn = reinterpret_cast<detail::FormatToFn>(transit_event->format_fn);
+        assert(format_to_fn);
+
+        if (transit_event->macro_metadata->is_structured_log_template())
         {
-          // fmt style format
-          auto const [pos, error] = format_to_fn(macro_metadata.message_format(), read_pos,
-                                                 transit_event->formatted_msg, _args, nullptr);
+          transit_event->structured_kvs.clear();
 
-          read_pos = pos;
+          // using the message_format as key for lookups
+          _structured_fmt_str.assign(transit_event->macro_metadata->message_format());
 
-          if (QUILL_UNLIKELY(!error.empty()))
+          // for messages containing named arguments threat them as structured logs
+          if (auto const search = _slog_templates.find(_structured_fmt_str); search != std::cend(_slog_templates))
           {
-            // this means that fmt::format_to threw an exception, and we report it to the user
-            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+            // process structured log that structured keys exist in our map
+            auto const& [fmt_str, structured_keys] = search->second;
+
+            transit_event->structured_kvs.resize(structured_keys.size());
+
+            // We first populate the structured keys in the transit buffer
+            for (size_t i = 0; i < structured_keys.size(); ++i)
+            {
+              transit_event->structured_kvs[i].first = structured_keys[i];
+            }
+
+            // Now we format the message and also populate the values of each structured key
+            bool const success = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
+                                              _args, &transit_event->structured_kvs);
+
+            if (QUILL_UNLIKELY(!success))
+            {
+              // this means that fmt::format_to threw an exception, and we report it to the user
+              _notification_handler(
+                fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                                 transit_event->macro_metadata->short_source_location()));
+            }
+          }
+          else
+          {
+            // process structured log that structured keys are processed for the first time
+            // parse structured keys and stored them to our lookup map
+            auto const [res_it, inserted] = _slog_templates.try_emplace(
+              _structured_fmt_str,
+              _process_structured_log_template(transit_event->macro_metadata->message_format()));
+
+            auto const& [fmt_str, structured_keys] = res_it->second;
+
+            transit_event->structured_kvs.resize(structured_keys.size());
+
+            // We first populate the structured keys in the transit buffer
+            for (size_t i = 0; i < structured_keys.size(); ++i)
+            {
+              transit_event->structured_kvs[i].first = structured_keys[i];
+            }
+
+            // Now we format the message and also populate the values of each structured key
+            bool const success = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
+                                              _args, &transit_event->structured_kvs);
+
+            if (QUILL_UNLIKELY(!success))
+            {
+              // this means that fmt::format_to threw an exception, and we report it to the user
+              _notification_handler(
+                fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                                 transit_event->macro_metadata->short_source_location()));
+            }
           }
         }
         else
         {
-          // printf style format
-          auto const [pos, error] = printf_format_to_fn(macro_metadata.message_format(), read_pos,
-                                                        transit_event->formatted_msg, _printf_args);
+          // fmt style format
+          bool const success = format_to_fn(transit_event->macro_metadata->message_format(),
+                                            read_pos, transit_event->formatted_msg, _args, nullptr);
 
-          read_pos = pos;
-
-          if (QUILL_UNLIKELY(!error.empty()))
+          if (QUILL_UNLIKELY(!success))
           {
             // this means that fmt::format_to threw an exception, and we report it to the user
-            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+            _notification_handler(
+              fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                               transit_event->macro_metadata->short_source_location()));
           }
         }
       }
 
-      if (macro_metadata.level() == LogLevel::Dynamic)
+      if (transit_event->macro_metadata->log_level() == LogLevel::Dynamic)
       {
         // if this is a dynamic log level we need to read the log level from the buffer
         LogLevel dynamic_log_level;
@@ -355,20 +368,19 @@ std::pair<std::string, std::vector<std::string>> BackendWorker::_process_structu
 void BackendWorker::_write_transit_event(TransitEvent const& transit_event) const
 {
   // Forward the record to all the logger handlers
-  MacroMetadata const macro_metadata = transit_event.metadata();
+  LogLevel const log_level = transit_event.log_level_override ? *transit_event.log_level_override
+                                                              : transit_event.macro_metadata->log_level();
 
-  for (auto& handler : transit_event.header.logger_details->handlers())
+  for (auto& handler : transit_event.logger_details->handlers())
   {
     auto const& formatted_log_message_buffer = handler->formatter().format(
-      std::chrono::nanoseconds{transit_event.header.timestamp}, transit_event.thread_id,
-      transit_event.thread_name, _process_id, transit_event.header.logger_details->name(),
-      transit_event.log_level_as_str(), macro_metadata, transit_event.structured_kvs,
-      transit_event.formatted_msg);
+      std::chrono::nanoseconds{transit_event.timestamp}, transit_event.thread_id, transit_event.thread_name,
+      _process_id, transit_event.logger_details->name(), loglevel_to_string(log_level),
+      *transit_event.macro_metadata, transit_event.structured_kvs, transit_event.formatted_msg);
 
     // If all filters are okay we write this message to the file
-    if (handler->apply_filters(transit_event.thread_id,
-                               std::chrono::nanoseconds{transit_event.header.timestamp},
-                               transit_event.log_level(), macro_metadata, formatted_log_message_buffer))
+    if (handler->apply_filters(transit_event.thread_id, std::chrono::nanoseconds{transit_event.timestamp},
+                               transit_event.log_level(), *transit_event.macro_metadata, formatted_log_message_buffer))
     {
       // log to the handler, also pass the log_message_timestamp this is only needed in some
       // cases like daily file rotation
@@ -380,11 +392,9 @@ void BackendWorker::_write_transit_event(TransitEvent const& transit_event) cons
 /***/
 void BackendWorker::_process_transit_event(TransitEvent& transit_event)
 {
-  MacroMetadata const macro_metadata = transit_event.metadata();
-
   // If backend_process(...) throws we want to skip this event and move to the next, so we catch the
   // error here instead of catching it in the parent try/catch block of main_loop
-  if (macro_metadata.event() == MacroMetadata::Event::Log)
+  if (transit_event.macro_metadata->event() == MacroMetadata::Event::Log)
   {
     if (transit_event.log_level() != LogLevel::Backtrace)
     {
@@ -395,9 +405,9 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
       // After we forwarded the message we will check the severity of this message for this logger
       // If the severity of the message is higher than the backtrace flush severity we will also
       // flush the backtrace of the logger
-      if (QUILL_UNLIKELY(transit_event.log_level() >= transit_event.header.logger_details->backtrace_flush_level()))
+      if (QUILL_UNLIKELY(transit_event.log_level() >= transit_event.logger_details->backtrace_flush_level()))
       {
-        _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
+        _backtrace_log_message_storage.process(transit_event.logger_details->name(),
                                                [this](TransitEvent const& te)
                                                { _write_transit_event(te); });
       }
@@ -408,22 +418,21 @@ void BackendWorker::_process_transit_event(TransitEvent& transit_event)
       _backtrace_log_message_storage.store(std::move(transit_event));
     }
   }
-  else if (macro_metadata.event() == MacroMetadata::Event::InitBacktrace)
+  else if (transit_event.macro_metadata->event() == MacroMetadata::Event::InitBacktrace)
   {
     // we can just convert the capacity back to int here and use it
     _backtrace_log_message_storage.set_capacity(
-      transit_event.header.logger_details->name(),
+      transit_event.logger_details->name(),
       static_cast<uint32_t>(std::stoul(
         std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
   }
-  else if (macro_metadata.event() == MacroMetadata::Event::FlushBacktrace)
+  else if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushBacktrace)
   {
     // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
-    _backtrace_log_message_storage.process(transit_event.header.logger_details->name(),
-                                           [this](TransitEvent const& te)
+    _backtrace_log_message_storage.process(transit_event.logger_details->name(), [this](TransitEvent const& te)
                                            { _write_transit_event(te); });
   }
-  else if (macro_metadata.event() == MacroMetadata::Event::Flush)
+  else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
   {
     _flush_and_run_active_handlers_loop(false);
 

@@ -13,8 +13,8 @@ int main()
   quill::detail::set_cpu_affinity(0);
 
   quill::Config cfg;
-  cfg.backend_thread_yield = false;
-  cfg.backend_thread_cpu_affinity = 1;
+
+  cfg.backend_thread_cpu_affinity = 5;
 
   quill::configure(cfg);
 
@@ -30,7 +30,8 @@ int main()
                                                                        cfg.set_open_mode('w');
                                                                        return cfg;
                                                                      }());
-  file_handler->set_pattern("%(ascii_time) [%(thread)] %(fileline) %(level_name) %(message)");
+  file_handler->set_pattern(
+    "%(time) [%(thread_id)] %(short_source_location) %(log_level) %(message)");
   quill::Logger* logger = quill::create_logger("bench_logger", std::move(file_handler));
   quill::preallocate();
 

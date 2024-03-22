@@ -116,26 +116,25 @@ public:
    * This is the fastest way possible to log
    * @note This function is thread-safe.
    * @param dynamic_log_level dynamic log level
-   * @param format_string format
    * @param fmt_args arguments
    */
-  template <typename TMacroMetadata, typename TFormatString, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT void log(LogLevel dynamic_log_level, TFormatString format_string, FmtArgs&&... fmt_args)
+  template <bool IsPrintfFormat, typename... Args>
+  QUILL_ALWAYS_INLINE_HOT void log(LogLevel dynamic_log_level, MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
     assert(!_is_invalidated.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 
 #if QUILL_FMT_VERSION >= 90000
-    static_assert(!detail::has_fmt_stream_view_v<FmtArgs...>,
+    static_assert(!detail::has_fmt_stream_view_v<Args...>,
                   "fmtquill::streamed(...) is not supported. In order to make a type formattable "
-                  "via std::ostream "
-                  "you should provide a formatter specialization inherited from ostream_formatter. "
+                  "via std::ostream you should provide a formatter specialization inherited "
+                  "from ostream_formatter. "
                   "`template <> struct fmtquill::formatter<T> : ostream_formatter {};");
 #endif
 
 #if !defined(QUILL_MODE_UNSAFE)
     {
       // not allowing unsafe copies
-      static_assert(detail::are_copyable_v<FmtArgs...>,
+      static_assert(detail::are_copyable_v<Args...>,
                     "Trying to copy an unsafe to copy type. Tag or specialize the type as "
                     "`copy_loggable` or explicitly format the type to string on the caller thread"
                     "prior to logging. See "
@@ -143,44 +142,34 @@ public:
     }
 #endif
 
-    constexpr MacroMetadata macro_metadata{TMacroMetadata{}()};
-    if constexpr (!macro_metadata.is_printf_format())
-    {
-      if constexpr (macro_metadata.is_structured_log_template())
-      {
-        // if the format statement has named args then we perform our own compile time check
-      }
-      else
-      {
-        // fallback to libfmt check
-        fmtquill::detail::check_format_string<std::remove_reference_t<FmtArgs>...>(format_string);
-      }
-    }
-    else
-    {
-      // for printf_format we check earlier inside the macro
-      QUILL_MAYBE_UNUSED constexpr bool ok = detail::check_printf_format_string<FmtArgs...>(format_string);
-    }
+    // Store the timestamp of the log statement at the start of the call. This gives more accurate
+    // timestamp especially if the queue is full
+    uint64_t const timestamp = (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc)
+      ? detail::rdtsc()
+      : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
+      ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                std::chrono::system_clock::now().time_since_epoch())
+                                .count())
+      : _custom_timestamp_clock->now();
 
     detail::ThreadContext* const thread_context =
       _thread_context_collection.local_thread_context<QUILL_QUEUE_TYPE>();
 
     // For windows also take wide strings into consideration.
 #if defined(_WIN32)
-    constexpr size_t c_string_count = fmtquill::detail::count<detail::is_type_of_c_string<FmtArgs>()...>() +
-      fmtquill::detail::count<detail::is_type_of_wide_c_string<FmtArgs>()...>() +
-      fmtquill::detail::count<detail::is_type_of_wide_string<FmtArgs>()...>();
+    constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>() +
+      detail::count_c_style_wide_strings<Args...>() + detail::count_std_wstring_type<Args...>();
 #else
-    constexpr size_t c_string_count = fmtquill::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
+    constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>();
 #endif
 
-    size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
+    size_t c_string_sizes[(std::max)(c_string_count, static_cast<uint32_t>(1))];
 
     // Need to reserve additional space as we will be aligning the pointer
-    size_t total_size = sizeof(detail::Header) + alignof(detail::Header) +
-      detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
+    size_t total_size = alignof(uint64_t) + sizeof(uint64_t) + (sizeof(uintptr_t) * 3) +
+      detail::calculate_args_size_and_populate_string_lengths(c_string_sizes, fmt_args...);
 
-    if constexpr (macro_metadata.level() == LogLevel::Dynamic)
+    if (dynamic_log_level != LogLevel::None)
     {
       // For the dynamic log level we want to add to the total size to store the dynamic log level
       total_size += sizeof(LogLevel);
@@ -228,31 +217,40 @@ public:
     // we have enough space in this buffer, and we will write to the buffer
 
     // Then write the pointer to the LogDataNode. The LogDataNode has all details on how to
-    // deserialize the object. We will just serialize the arguments in our queue, but we need to
-    // look up their types to deserialize them
+    // deserialize the object. We will just serialize the arguments in our queue, but we need
+    // to look up their types to deserialize them
 
     // Note: The metadata variable here is created during program init time,
     std::byte const* const write_begin = write_buffer;
-    write_buffer = detail::align_pointer<alignof(detail::Header), std::byte>(write_buffer);
+    write_buffer = detail::align_pointer<alignof(uint64_t), std::byte>(write_buffer);
 
-    constexpr bool is_printf_format = macro_metadata.is_printf_format();
+    std::memcpy(write_buffer, &timestamp, sizeof(timestamp));
+    write_buffer += sizeof(timestamp);
 
-    new (write_buffer) detail::Header(
-      detail::get_metadata_and_format_fn<is_printf_format, TMacroMetadata, FmtArgs...>,
-      std::addressof(_logger_details),
-      (_logger_details.timestamp_clock_type() == TimestampClockType::Tsc) ? detail::rdtsc()
-        : (_logger_details.timestamp_clock_type() == TimestampClockType::System)
-        ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                  std::chrono::system_clock::now().time_since_epoch())
-                                  .count())
-        : _custom_timestamp_clock->now());
+    std::memcpy(write_buffer, &macro_metadata, sizeof(uintptr_t));
+    write_buffer += sizeof(uintptr_t);
 
-    write_buffer += sizeof(detail::Header);
+    detail::LoggerDetails const* logger_details = &_logger_details;
+    std::memcpy(write_buffer, &logger_details, sizeof(uintptr_t));
+    write_buffer += sizeof(uintptr_t);
+
+    if constexpr (IsPrintfFormat)
+    {
+      detail::PrintfFormatToFn ftf = detail::printf_format_to<Args...>;
+      std::memcpy(write_buffer, &ftf, sizeof(uintptr_t));
+      write_buffer += sizeof(uintptr_t);
+    }
+    else
+    {
+      detail::FormatToFn ftf = detail::format_to<Args...>;
+      std::memcpy(write_buffer, &ftf, sizeof(uintptr_t));
+      write_buffer += sizeof(uintptr_t);
+    }
 
     // encode remaining arguments
-    write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
+    detail::encode(write_buffer, c_string_sizes, fmt_args...);
 
-    if constexpr (macro_metadata.level() == LogLevel::Dynamic)
+    if (dynamic_log_level != LogLevel::None)
     {
       // write the dynamic log level
       std::memcpy(write_buffer, &dynamic_log_level, sizeof(LogLevel));
@@ -280,18 +278,12 @@ public:
            "Invalidated loggers can not be used");
 
     // we do not care about the other fields, except quill::MacroMetadata::Event::InitBacktrace
-    struct
-    {
-      constexpr MacroMetadata operator()() const noexcept
-      {
-        return MacroMetadata{
-          "",    "",   "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace,
+    static constexpr MacroMetadata macro_metadata{
+      "",    "",   "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace,
           false, false};
-      }
-    } anonymous_log_message_info;
 
     // we pass this message to the queue and also pass capacity as arg
-    this->template log<decltype(anonymous_log_message_info)>(LogLevel::None, QUILL_FMT_STRING("{}"), capacity);
+    this->template log<false>(LogLevel::None, &macro_metadata, capacity);
 
     // Also store the desired flush log level
     _logger_details.set_backtrace_flush_level(backtrace_flush_level);
@@ -306,18 +298,12 @@ public:
            "Invalidated loggers can not be used");
 
     // we do not care about the other fields, except quill::MacroMetadata::Event::Flush
-    struct
-    {
-      constexpr MacroMetadata operator()() const noexcept
-      {
-        return MacroMetadata{
-          "",    "",   "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace,
+    static constexpr MacroMetadata macro_metadata{
+      "",    "",   "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace,
           false, false};
-      }
-    } anonymous_log_message_info;
 
     // we pass this message to the queue
-    this->template log<decltype(anonymous_log_message_info)>(LogLevel::None, QUILL_FMT_STRING(""));
+    this->template log<false>(LogLevel::None, &macro_metadata);
   }
 
   /**

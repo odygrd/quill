@@ -33,7 +33,7 @@ jobs:
             std: 17
             os: ubuntu-20.04
             with_tests: ON
-            install: sudo apt install g++-8
+            install: sudo apt -o Acquire::Retries=5 install g++-8
 
             # Build and test as shared library
           - cxx: g++-10
@@ -59,7 +59,7 @@ jobs:
             with_tests: ON
             cmake_options: -DQUILL_USE_VALGRIND=ON
             ctest_options: -T memcheck
-            install: sudo apt install valgrind
+            install: sudo apt -o Acquire::Retries=5 install valgrind
 
             # Build and test sanitizers
           - cxx: clang++-12
@@ -78,7 +78,7 @@ jobs:
             cmake_options: -DQUILL_SANITIZE_THREAD=ON
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Create Build Environment
         run: |

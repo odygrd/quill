@@ -18,28 +18,13 @@
 #define QUILL_INTERNAL_LOG(logger, log_statement_level, fmt, ...)                                  \
   do                                                                                               \
   {                                                                                                \
-    static constexpr char const* function_name = __FUNCTION__;                                     \
-    struct                                                                                         \
-    {                                                                                              \
-      constexpr quill::MacroMetadata operator()() const noexcept                                   \
-      {                                                                                            \
-        return quill::MacroMetadata{"~",                                                           \
-                                    "QuillSignalHandler.cpp",                                      \
-                                    "QuillSignalHandler.cpp",                                      \
-                                    function_name,                                                 \
-                                    fmt,                                                           \
-                                    nullptr,                                                       \
-                                    log_statement_level,                                           \
-                                    quill::MacroMetadata::Event::Log,                              \
-                                    false,                                                         \
-                                    false};                                                        \
-      }                                                                                            \
-    } anonymous_log_message_info;                                                                  \
-                                                                                                   \
     if (logger->template should_log<log_statement_level>())                                        \
     {                                                                                              \
-      logger->template log<decltype(anonymous_log_message_info)>(                                  \
-        quill::LogLevel::None, QUILL_FMT_STRING(fmt), ##__VA_ARGS__);                              \
+      static constexpr quill::MacroMetadata macro_metadata{                                        \
+        "QuillSignalHandler.cpp:~",       __FUNCTION__, fmt,  nullptr, log_statement_level,        \
+        quill::MacroMetadata::Event::Log, false,        false};                                    \
+                                                                                                   \
+      logger->template log<false>(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);          \
     }                                                                                              \
   } while (0)
 
@@ -129,10 +114,11 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
   {
     // This means signal handler is running a caller thread, we can log from the root logger
     QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Info, "Received exception code: {}",
-             get_error_message(exception_p->ExceptionRecord->ExceptionCode));
+                       get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
-    QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Critical, "Terminated unexpectedly because of exception code: {}",
-                 get_error_message(exception_p->ExceptionRecord->ExceptionCode));
+    QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Critical,
+                       "Terminated unexpectedly because of exception code: {}",
+                       get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
     flush();
   }
@@ -183,7 +169,8 @@ void on_signal(int32_t signal_number)
       std::exit(EXIT_SUCCESS);
     }
 
-    QUILL_INTERNAL_LOG(get_logger(), quill::LogLevel::Critical, "Terminated unexpectedly because of signal: {}", signal_number);
+    QUILL_INTERNAL_LOG(get_logger(), quill::LogLevel::Critical,
+                       "Terminated unexpectedly because of signal: {}", signal_number);
 
     flush();
 

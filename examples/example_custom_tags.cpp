@@ -52,7 +52,8 @@ int main()
   std::shared_ptr<quill::Handler> stdout_handler = quill::stdout_handler();
 
   stdout_handler->set_pattern(
-    "%(ascii_time) [%(thread)] %(fileline:<28) %(level_name) %(logger_name:<16) - [%(custom_tags)] "
+    "%(time) [%(thread_id)] %(short_source_location:<28) %(log_level) %(logger:<16) - "
+    "[%(custom_tags)] "
     "%(message)",              // format
     "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
     quill::Timezone::GmtTime); // timestamp's timezone

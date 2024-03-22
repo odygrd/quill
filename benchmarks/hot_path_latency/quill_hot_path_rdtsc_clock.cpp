@@ -16,8 +16,10 @@ void quill_benchmark(std::vector<int32_t> const& thread_count_array,
 
   /** - Setup Quill **/
   quill::Config cfg;
-  cfg.backend_thread_yield = false;
-  cfg.backend_thread_cpu_affinity = 0;
+
+  cfg.backend_thread_cpu_affinity = 5;
+  // cfg.enable_huge_pages_hot_path = true;  // enable huge pages
+
   quill::configure(cfg);
 
   // Start the logging backend thread

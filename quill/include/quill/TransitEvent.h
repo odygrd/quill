@@ -30,7 +30,10 @@ struct TransitEvent
   TransitEvent& operator=(TransitEvent const& other) = delete;
 
   TransitEvent(TransitEvent&& other) noexcept
-    : header(other.header),
+    : timestamp(other.timestamp),
+      macro_metadata(other.macro_metadata),
+      logger_details(other.logger_details),
+      format_fn(other.format_fn),
       thread_id(other.thread_id),
       thread_name(other.thread_name),
       formatted_msg(std::move(other.formatted_msg)),
@@ -44,10 +47,13 @@ struct TransitEvent
   {
     if (this != &other)
     {
+      timestamp = other.timestamp;
+      macro_metadata = other.macro_metadata;
+      logger_details = other.logger_details;
+      format_fn = other.format_fn;
       structured_kvs = std::move(other.structured_kvs);
       thread_id = other.thread_id;
       thread_name = other.thread_name;
-      header = other.header;
       formatted_msg = std::move(other.formatted_msg);
       log_level_override = other.log_level_override;
       flush_flag = other.flush_flag;
@@ -58,30 +64,17 @@ struct TransitEvent
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT LogLevel log_level() const noexcept
   {
-    return log_level_override ? *log_level_override : header.metadata_and_format_fn().first.level();
-  }
-
-  /**
-   * @return  The log level of this logging event as a string
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view log_level_as_str() const noexcept
-  {
-    return loglevel_to_string(log_level());
-  }
-
-  /**
-   * @return The metadata of this logging event
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT MacroMetadata metadata() const noexcept
-  {
-    return header.metadata_and_format_fn().first;
+    return log_level_override ? *log_level_override : macro_metadata->log_level();
   }
 
   /**
    * Need to take a copy of thread_id and thread_name here as the thread that logged can terminate
    * before we flush the backtrace.
    */
-  detail::Header header;
+  uint64_t timestamp;
+  MacroMetadata const* macro_metadata{nullptr};
+  detail::LoggerDetails const* logger_details{nullptr};
+  void* format_fn{nullptr};
   char const* thread_id;
   char const* thread_name;
   transit_event_fmt_buffer_t formatted_msg; /** buffer for message **/

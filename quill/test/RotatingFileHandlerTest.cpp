@@ -502,7 +502,7 @@ TEST_CASE("rotation_scheme_date_no_backup_limit")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230612;
+      te.timestamp = timestamp_20230612;
       rfh.write(formatted_log_message, te);
     }
 
@@ -517,7 +517,7 @@ TEST_CASE("rotation_scheme_date_no_backup_limit")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230613;
+      te.timestamp = timestamp_20230613;
       rfh.write(formatted_log_message, te);
     }
 
@@ -534,7 +534,7 @@ TEST_CASE("rotation_scheme_date_no_backup_limit")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230614;
+      te.timestamp = timestamp_20230614;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -627,7 +627,7 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_overwrite_rolled_files")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230612;
+      te.timestamp = timestamp_20230612;
       rfh.write(formatted_log_message, te);
     }
 
@@ -643,7 +643,7 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_overwrite_rolled_files")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230613;
+      te.timestamp = timestamp_20230613;
       rfh.write(formatted_log_message, te);
     }
 
@@ -660,7 +660,7 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_overwrite_rolled_files")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230614;
+      te.timestamp = timestamp_20230614;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -733,7 +733,7 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230612;
+      te.timestamp = timestamp_20230612;
       rfh.write(formatted_log_message, te);
     }
 
@@ -749,7 +749,7 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230613;
+      te.timestamp = timestamp_20230613;
       rfh.write(formatted_log_message, te);
     }
 
@@ -766,7 +766,7 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230614;
+      te.timestamp = timestamp_20230614;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -864,7 +864,7 @@ TEST_CASE("rotation_scheme_date_open_mode_write_clean_up_old_files")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230612;
+      te.timestamp = timestamp_20230612;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -956,7 +956,7 @@ TEST_CASE("rotation_scheme_date_open_mode_write_dont_clean_up_old_files")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230612;
+      te.timestamp = timestamp_20230612;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -1047,7 +1047,7 @@ TEST_CASE("rotation_scheme_data_open_mode_append")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230612;
+      te.timestamp = timestamp_20230612;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -1145,7 +1145,7 @@ TEST_CASE("rotation_scheme_dateandtime_no_backup_limit")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230612;
+      te.timestamp = timestamp_20230612;
       rfh.write(formatted_log_message, te);
     }
 
@@ -1162,7 +1162,7 @@ TEST_CASE("rotation_scheme_dateandtime_no_backup_limit")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230613;
+      te.timestamp = timestamp_20230613;
       rfh.write(formatted_log_message, te);
     }
 
@@ -1178,7 +1178,7 @@ TEST_CASE("rotation_scheme_dateandtime_no_backup_limit")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230613_2;
+      te.timestamp = timestamp_20230613_2;
       rfh.write(formatted_log_message, te);
     }
 
@@ -1195,7 +1195,7 @@ TEST_CASE("rotation_scheme_dateandtime_no_backup_limit")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230614;
+      te.timestamp = timestamp_20230614;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -1307,7 +1307,7 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_overwrite_rolled_files"
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230613;
+      te.timestamp = timestamp_20230613;
       rfh.write(formatted_log_message, te);
     }
 
@@ -1324,7 +1324,7 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_overwrite_rolled_files"
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230614;
+      te.timestamp = timestamp_20230614;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -1397,7 +1397,7 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_f
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230612;
+      te.timestamp = timestamp_20230612;
       rfh.write(formatted_log_message, te);
     }
 
@@ -1413,7 +1413,7 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_f
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230613;
+      te.timestamp = timestamp_20230613;
       rfh.write(formatted_log_message, te);
     }
 
@@ -1430,7 +1430,7 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_f
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       quill::TransitEvent te = {};
-      te.header.timestamp = timestamp_20230614;
+      te.timestamp = timestamp_20230614;
       rfh.write(formatted_log_message, te);
     }
   }
@@ -1494,7 +1494,7 @@ TEST_CASE("time_rotation_minutes_rotation_scheme_index")
       std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
 
     quill::TransitEvent te = {};
-    te.header.timestamp = timestamp_20230612;
+    te.timestamp = timestamp_20230612;
 
     for (size_t i = 0; i < 5; ++i)
     {
@@ -1508,7 +1508,7 @@ TEST_CASE("time_rotation_minutes_rotation_scheme_index")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       rfh.write(formatted_log_message, te);
-      te.header.timestamp += std::chrono::nanoseconds(std::chrono::minutes(1)).count();
+      te.timestamp += std::chrono::nanoseconds(std::chrono::minutes(1)).count();
     }
   }
 
@@ -1566,7 +1566,7 @@ TEST_CASE("time_rotation_hours_rotation_scheme_index")
       std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
 
     quill::TransitEvent te = {};
-    te.header.timestamp = timestamp_20230612;
+    te.timestamp = timestamp_20230612;
 
     for (size_t i = 0; i < 5; ++i)
     {
@@ -1580,7 +1580,7 @@ TEST_CASE("time_rotation_hours_rotation_scheme_index")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       rfh.write(formatted_log_message, te);
-      te.header.timestamp += std::chrono::nanoseconds(std::chrono::hours(1)).count();
+      te.timestamp += std::chrono::nanoseconds(std::chrono::hours(1)).count();
     }
   }
 
@@ -1632,19 +1632,19 @@ TEST_CASE("time_rotation_daily_at_time_rotation_scheme_index")
       std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
 
     quill::TransitEvent te = {};
-    te.header.timestamp = timestamp_20230612;
+    te.timestamp = timestamp_20230612;
 
     for (size_t i = 0; i < 5; ++i)
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      time_t timestamp = te.timestamp / 1000000000;
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [" + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;
@@ -1656,7 +1656,7 @@ TEST_CASE("time_rotation_daily_at_time_rotation_scheme_index")
       formatted_log_message.append(f.data(), f.data() + f.size());
 
       rfh.write(formatted_log_message, te);
-      te.header.timestamp += std::chrono::nanoseconds(std::chrono::hours(24)).count();
+      te.timestamp += std::chrono::nanoseconds(std::chrono::hours(24)).count();
     }
   }
 
@@ -1721,18 +1721,18 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
       std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
 
     quill::TransitEvent te = {};
-    te.header.timestamp = timestamp_20230612;
+    te.timestamp = timestamp_20230612;
 
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
-      // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      // Get the timeinfo struct using std::gmtime
+      time_t timestamp = te.timestamp / 1000000000;
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [0 " + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;
@@ -1742,15 +1742,15 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
     }
 
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      time_t timestamp = te.timestamp / 1000000000;
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [1 " + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;
@@ -1766,34 +1766,34 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
 
     for (size_t i = 2; i < 4; ++i)
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      time_t timestamp = te.timestamp / 1000000000;
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [" + std::to_string(i) + " " + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;
       formatted_log_message.append(s.data(), s.data() + s.size());
 
       rfh.write(formatted_log_message, te);
-      te.header.timestamp += std::chrono::nanoseconds(std::chrono::hours(24)).count();
+      te.timestamp += std::chrono::nanoseconds(std::chrono::hours(24)).count();
     }
 
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = te.header.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      time_t timestamp = te.timestamp / 1000000000;
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [4 " + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;

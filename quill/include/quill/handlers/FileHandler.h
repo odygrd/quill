@@ -65,7 +65,7 @@ public:
    * @brief Sets the logging pattern for the file handler.
    * It is also possible to change the timezone with `set_timezone`
    * The default log_pattern is :
-   *   "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) %(logger_name:<12) %(message)"
+   *   "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)"
    * @see PatternFormatter.h for more details on the pattern format.
    * @param log_pattern: Specifies the format pattern for the log messages.
    * @param time_format Specifies the format pattern for the log timestamps.

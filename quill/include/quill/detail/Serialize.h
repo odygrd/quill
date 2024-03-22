@@ -40,21 +40,21 @@ constexpr auto strnlen =
 class LoggerDetails;
 
 template <typename Arg>
-QUILL_NODISCARD constexpr bool is_type_of_c_array()
+QUILL_NODISCARD constexpr bool is_char_array_type()
 {
   using ArgType = remove_cvref_t<Arg>;
-  return std::is_array_v<ArgType> && std::is_same_v<remove_cvref_t<std::remove_extent_t<ArgType>>, char>;
+  return std::conjunction_v<std::is_array<ArgType>, std::is_same<remove_cvref_t<std::remove_extent_t<ArgType>>, char>>;
 }
 
 template <typename Arg>
-QUILL_NODISCARD constexpr bool is_type_of_c_string()
+QUILL_NODISCARD constexpr bool is_c_style_string_type()
 {
   using ArgType = std::decay_t<Arg>;
   return std::disjunction_v<std::is_same<ArgType, char const*>, std::is_same<ArgType, char*>>;
 }
 
 template <typename Arg>
-QUILL_NODISCARD constexpr bool is_type_of_string()
+QUILL_NODISCARD constexpr bool is_std_string_type()
 {
   using ArgType = std::decay_t<Arg>;
   return std::disjunction_v<std::is_same<ArgType, std::string>, std::is_same<ArgType, std::string_view>>;
@@ -62,14 +62,14 @@ QUILL_NODISCARD constexpr bool is_type_of_string()
 
 #if defined(_WIN32)
 template <typename Arg>
-QUILL_NODISCARD constexpr bool is_type_of_wide_c_string()
+QUILL_NODISCARD constexpr bool is_c_style_wide_string_type()
 {
   using ArgType = std::decay_t<Arg>;
   return std::disjunction_v<std::is_same<ArgType, wchar_t const*>, std::is_same<ArgType, wchar_t*>>;
 }
 
 template <typename Arg>
-QUILL_NODISCARD constexpr bool is_type_of_wide_string()
+QUILL_NODISCARD constexpr bool is_std_wstring_type()
 {
   using ArgType = std::decay_t<Arg>;
   return std::disjunction_v<std::is_same<ArgType, std::wstring>, std::is_same<ArgType, std::wstring_view>>;
@@ -77,18 +77,18 @@ QUILL_NODISCARD constexpr bool is_type_of_wide_string()
 #endif
 
 template <typename Arg>
-QUILL_NODISCARD constexpr bool need_call_dtor_for()
+QUILL_NODISCARD constexpr bool is_not_trivially_destructible()
 {
   using ArgType = remove_cvref_t<Arg>;
 
 #if defined(_WIN32)
-  if constexpr (is_type_of_wide_string<Arg>())
+  if constexpr (is_std_wstring_type<Arg>())
   {
     return false;
   }
 #endif
 
-  if constexpr (is_type_of_string<Arg>())
+  if constexpr (is_std_string_type<Arg>())
   {
     return false;
   }
@@ -96,294 +96,342 @@ QUILL_NODISCARD constexpr bool need_call_dtor_for()
   return !std::is_trivially_destructible_v<ArgType>;
 }
 
-template <typename TFormatContext, size_t DestructIdx>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* decode_args(
-  std::byte* in, std::vector<fmtquill::basic_format_arg<TFormatContext>>&, std::byte**)
-{
-  return in;
-}
-
-template <typename TFormatContext, size_t DestructIdx, typename Arg, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* decode_args(
-  std::byte* in, std::vector<fmtquill::basic_format_arg<TFormatContext>>& args, std::byte** destruct_args)
+template <typename TFormatContext, typename Arg>
+QUILL_ATTRIBUTE_HOT inline void decode_arg(std::byte*& buffer,
+                                           std::vector<fmtquill::basic_format_arg<TFormatContext>>& args_store,
+                                           std::byte** destruct_args, uint32_t& destruct_arg_index) noexcept
 {
   using ArgType = remove_cvref_t<Arg>;
 
-  if constexpr (is_type_of_c_string<Arg>())
+  if constexpr (is_c_style_string_type<Arg>())
   {
-    char const* str = reinterpret_cast<char const*>(in);
+    char const* str = reinterpret_cast<char const*>(buffer);
     std::string_view const v{str, strlen(str)};
-    args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
+    args_store.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
 
     // for c_strings we add +1 to the length as we also want to copy the null terminated char
-    return decode_args<TFormatContext, DestructIdx, Args...>(in + v.length() + 1, args, destruct_args);
+    buffer += v.length() + 1;
   }
-  else if constexpr (is_type_of_string<Arg>())
+  else if constexpr (is_std_string_type<Arg>())
   {
     // for std::string we first need to retrieve the length
-    in = align_pointer<alignof(size_t), std::byte>(in);
-    size_t len{0};
-    std::memcpy(&len, in, sizeof(size_t));
-    in += sizeof(size_t);
+    buffer = align_pointer<alignof(size_t), std::byte>(buffer);
+    size_t len;
+    std::memcpy(&len, buffer, sizeof(size_t));
 
     // retrieve the rest of the string
-    char const* str = reinterpret_cast<char const*>(in);
+    char const* str = reinterpret_cast<char const*>(buffer + sizeof(size_t));
     std::string_view const v{str, len};
-    args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
-    return decode_args<TFormatContext, DestructIdx, Args...>(in + v.length(), args, destruct_args);
+    args_store.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
+
+    buffer += sizeof(size_t) + v.length();
   }
 #if defined(_WIN32)
-  else if constexpr (is_type_of_wide_c_string<Arg>() || is_type_of_wide_string<Arg>())
+  else if constexpr (is_c_style_wide_string_type<Arg>() || is_std_wstring_type<Arg>())
   {
     // for std::wstring we first need to retrieve the length
-    in = align_pointer<alignof(size_t), std::byte>(in);
-    size_t len{0};
-    std::memcpy(&len, in, sizeof(size_t));
-    in += sizeof(size_t);
+    buffer = align_pointer<alignof(size_t), std::byte>(buffer);
+    size_t len;
+    std::memcpy(&len, buffer, sizeof(size_t));
 
-    char const* str = reinterpret_cast<char const*>(in);
+    char const* str = reinterpret_cast<char const*>(buffer + sizeof(size_t));
     std::string_view const v{str, len};
-    args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
-    return decode_args<TFormatContext, DestructIdx, Args...>(in + v.length(), args, destruct_args);
+    args_store.emplace_back(fmtquill::detail::make_arg<TFormatContext>(v));
+
+    buffer += sizeof(size_t) + v.length();
   }
 #endif
   else
   {
     // no need to align for chars, but align for any other type
-    in = align_pointer<alignof(Arg), std::byte>(in);
+    buffer = align_pointer<alignof(Arg), std::byte>(buffer);
+    args_store.emplace_back(fmtquill::detail::make_arg<TFormatContext>(*reinterpret_cast<ArgType*>(buffer)));
 
-    args.emplace_back(fmtquill::detail::make_arg<TFormatContext>(*reinterpret_cast<ArgType*>(in)));
+    if constexpr (is_not_trivially_destructible<Arg>())
+    {
+      destruct_args[destruct_arg_index++] = buffer;
+    }
 
-    if constexpr (need_call_dtor_for<Arg>())
-    {
-      destruct_args[DestructIdx] = in;
-      return decode_args<TFormatContext, DestructIdx + 1, Args...>(in + sizeof(ArgType), args, destruct_args);
-    }
-    else
-    {
-      return decode_args<TFormatContext, DestructIdx, Args...>(in + sizeof(ArgType), args, destruct_args);
-    }
+    buffer += sizeof(ArgType);
   }
 }
 
-template <size_t DestructIdx>
-QUILL_ATTRIBUTE_HOT void destruct_args(std::byte**)
+template <typename TFormatContext, typename... Args>
+QUILL_ATTRIBUTE_HOT inline void decode(std::byte*& buffer,
+                                       std::vector<fmtquill::basic_format_arg<TFormatContext>>& args_store,
+                                       QUILL_MAYBE_UNUSED std::byte** destruct_args) noexcept
 {
+  QUILL_MAYBE_UNUSED uint32_t destruct_arg_index{0};
+  (decode_arg<TFormatContext, Args>(buffer, args_store, destruct_args, destruct_arg_index), ...);
 }
 
-template <size_t DestructIdx, typename Arg, typename... Args>
-QUILL_ATTRIBUTE_HOT void destruct_args(std::byte** args)
+template <typename Arg>
+QUILL_ATTRIBUTE_HOT inline void destruct_arg(std::byte** destruct_args, uint32_t& destruct_arg_index) noexcept
 {
   using ArgType = remove_cvref_t<Arg>;
-  if constexpr (need_call_dtor_for<Arg>())
+  if constexpr (is_not_trivially_destructible<Arg>())
   {
-    reinterpret_cast<ArgType*>(args[DestructIdx])->~ArgType();
-    destruct_args<DestructIdx + 1, Args...>(args);
-  }
-  else
-  {
-    destruct_args<DestructIdx, Args...>(args);
+    reinterpret_cast<ArgType*>(destruct_args[destruct_arg_index++])->~ArgType();
   }
 }
 
-template <size_t CstringIdx>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t*)
+template <typename... Args>
+QUILL_ATTRIBUTE_HOT inline void destruct(QUILL_MAYBE_UNUSED std::byte** destruct_args)
 {
-  return 0;
+  QUILL_MAYBE_UNUSED uint32_t destruct_arg_index{0};
+  (destruct_arg<Args>(destruct_args, destruct_arg_index), ...);
 }
+
+template <typename... Args>
+QUILL_NODISCARD constexpr uint32_t count_c_style_strings() noexcept
+{
+  return (0u + ... + is_c_style_string_type<Args>());
+}
+
+template <typename... Args>
+QUILL_NODISCARD constexpr uint32_t count_not_trivially_destructible_args() noexcept
+{
+  return (0u + ... + is_not_trivially_destructible<Args>());
+}
+
+#if defined(_WIN32)
+template <typename... Args>
+QUILL_NODISCARD constexpr uint32_t count_c_style_wide_strings() noexcept
+{
+  return (0u + ... + is_c_style_wide_string_type<Args>());
+}
+
+template <typename... Args>
+QUILL_NODISCARD constexpr uint32_t count_std_wstring_type() noexcept
+{
+  return (0u + ... + is_std_wstring_type<Args>());
+}
+#endif
 
 /**
- * Get the size of all arguments
+ * @brief Calculates the size of the argument and the length of the string representation if the argument is a string type.
+ *
+ * This function determines the size of the argument `arg` and the length of its string representation
+ * if the argument is a string type, updating the `c_style_string_lengths` array accordingly.
+ *
+ * @param c_style_string_lengths An array to store the lengths of C-style strings and char arrays.
+ * @param c_style_string_lengths_index The index used to update the `c_style_string_lengths` array.
+ * @param arg The argument to calculate the size and length for.
+ * @return The size of the argument and the length of its string representation if the argument is a string type.
  */
-template <size_t CstringIdx, typename Arg, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t get_args_sizes(size_t* c_string_sizes,
-                                                                    Arg const& arg, Args const&... args)
+template <typename T>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t calculate_arg_size_and_string_length(
+  QUILL_MAYBE_UNUSED size_t* c_style_string_lengths, uint32_t& c_style_string_lengths_index, T const& arg) noexcept
 {
-  if constexpr (is_type_of_c_array<Arg>())
+  if constexpr (is_char_array_type<T>())
   {
-    size_t const len = strnlen(arg, array_size_v<Arg>) + 1;
-    c_string_sizes[CstringIdx] = len;
-    return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+    c_style_string_lengths[c_style_string_lengths_index] =
+      static_cast<size_t>(strnlen(arg, std::extent_v<T>) + 1u);
+
+    return c_style_string_lengths[c_style_string_lengths_index++];
   }
-  else if constexpr (is_type_of_c_string<Arg>())
+  else if constexpr (is_c_style_string_type<T>())
   {
-    size_t const len = strlen(arg) + 1;
-    c_string_sizes[CstringIdx] = len;
-    return len + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+    // include one extra for the zero termination
+    c_style_string_lengths[c_style_string_lengths_index] = static_cast<size_t>(strlen(arg) + 1u);
+
+    return c_style_string_lengths[c_style_string_lengths_index++];
   }
-  else if constexpr (is_type_of_string<Arg>())
+  else if constexpr (is_std_string_type<T>())
   {
     // for std::string we also need to store the size in order to correctly retrieve it
     // the reason for this is that if we create e.g:
     // std::string msg = fmtquill::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
     // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
-    return (arg.size() + sizeof(size_t)) + alignof(size_t) +
-      get_args_sizes<CstringIdx>(c_string_sizes, args...);
+    return static_cast<size_t>(sizeof(size_t) + alignof(size_t) + arg.length());
   }
 #if defined(_WIN32)
-  else if constexpr (is_type_of_wide_c_string<Arg>())
+  else if constexpr (is_c_style_wide_string_type<T>())
   {
-    size_t const len = get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
-    c_string_sizes[CstringIdx] = len;
-    return len + sizeof(size_t) + alignof(size_t) + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+    c_style_string_lengths[c_style_string_lengths_index] =
+      get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
+    return static_cast<size_t>(sizeof(size_t) + alignof(size_t) +
+                               c_style_string_lengths[c_style_string_lengths_index++]);
   }
-  else if constexpr (is_type_of_wide_string<Arg>())
+  else if constexpr (is_std_wstring_type<T>())
   {
-    size_t const len = get_wide_string_encoding_size(arg);
-    c_string_sizes[CstringIdx] = len;
-    return len + sizeof(size_t) + alignof(size_t) + get_args_sizes<CstringIdx + 1>(c_string_sizes, args...);
+    c_style_string_lengths[c_style_string_lengths_index] = get_wide_string_encoding_size(arg);
+    return static_cast<size_t>(sizeof(size_t) + alignof(size_t) +
+                               c_style_string_lengths[c_style_string_lengths_index++]);
   }
 #endif
   else
   {
-    return alignof(Arg) + sizeof(Arg) + get_args_sizes<CstringIdx>(c_string_sizes, args...);
+    return static_cast<size_t>(alignof(T) + sizeof(T));
   }
+};
+
+/**
+ * @brief Calculates the total size required to encode the provided arguments and populates the c_style_string_lengths array.
+
+ * @param c_style_string_lengths Array to store the c_style_string_lengths of C-style strings and char arrays.
+ * @param args The arguments to be encoded.
+ * @return The total size required to encode the arguments.
+ */
+template <typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t calculate_args_size_and_populate_string_lengths(
+  QUILL_MAYBE_UNUSED size_t* c_style_string_lengths, Args const&... args) noexcept
+{
+  QUILL_MAYBE_UNUSED uint32_t c_style_string_lengths_index{0};
+  return (0u + ... + calculate_arg_size_and_string_length(c_style_string_lengths, c_style_string_lengths_index, args));
 }
 
 /**
- * Encode args to the buffer
+ * @brief Encodes an argument into a buffer.
+ * @param buffer Pointer to the buffer for encoding.
+ * @param c_style_string_lengths Array storing the c_style_string_lengths of C-style strings and char arrays.
+ * @param c_style_string_lengths_index Index of the current string/array length in c_style_string_lengths.
+ * @param arg The argument to be encoded.
  */
-template <size_t CstringIdx>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t*, std::byte* out)
+template <typename T>
+QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& buffer, size_t const* c_style_string_lengths,
+                                           uint32_t& c_style_string_lengths_index, T const& arg) noexcept
 {
-  return out;
-}
-
-template <size_t CstringIdx, typename Arg, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::byte* encode_args(size_t* c_string_sizes, std::byte* out,
-                                                                     Arg&& arg, Args&&... args)
-{
-  if constexpr (is_type_of_c_array<Arg>())
+  if constexpr (is_char_array_type<T>())
   {
-    const auto size = c_string_sizes[CstringIdx];
-    constexpr auto array_size = array_size_v<Arg>;
-    if (QUILL_UNLIKELY(size > array_size))
+    size_t const len = c_style_string_lengths[c_style_string_lengths_index++];
+    constexpr auto array_size = array_size_v<T>;
+    if (QUILL_UNLIKELY(len > array_size))
     {
       // no '\0' in c array
-      assert(size == array_size + 1);
-      std::memcpy(out, arg, array_size);
-      out[size - 1] = std::byte{'\0'};
+      assert(len == array_size + 1);
+      std::memcpy(buffer, arg, array_size);
+      buffer[len - 1] = std::byte{'\0'};
     }
     else
     {
-      std::memcpy(out, arg, size);
+      std::memcpy(buffer, arg, len);
     }
-    return encode_args<CstringIdx + 1>(c_string_sizes, out + size, std::forward<Args>(args)...);
+
+    buffer += len;
   }
-  else if constexpr (is_type_of_c_string<Arg>())
+  else if constexpr (is_c_style_string_type<T>())
   {
-    assert((c_string_sizes[CstringIdx] > 0) &&
-           "we include the null terminated char to the size of the string for C strings");
-    std::memcpy(out, arg, c_string_sizes[CstringIdx]);
-    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
-                                       std::forward<Args>(args)...);
+    // null terminator is included in the len for c style strings
+    size_t const len = c_style_string_lengths[c_style_string_lengths_index++];
+    std::memcpy(buffer, arg, len);
+    buffer += len;
   }
-  else if constexpr (is_type_of_string<Arg>())
+  else if constexpr (is_std_string_type<T>())
   {
     // for std::string we store the size first, in order to correctly retrieve it
-    out = align_pointer<alignof(size_t), std::byte>(out);
+    // Copy the length first and then the actual string
+    buffer = align_pointer<alignof(size_t), std::byte>(buffer);
     size_t const len = arg.length();
-    std::memcpy(out, &len, sizeof(size_t));
-    out += sizeof(size_t);
+    std::memcpy(buffer, &len, sizeof(size_t));
 
     if (len != 0)
     {
       // copy the string, no need to zero terminate it as we got the length
-      std::memcpy(out, arg.data(), arg.length());
+      std::memcpy(buffer + sizeof(size_t), arg.data(), arg.length());
     }
 
-    return encode_args<CstringIdx>(c_string_sizes, out + arg.length(), std::forward<Args>(args)...);
+    buffer += sizeof(size_t) + len;
   }
 #if defined(_WIN32)
-  else if constexpr (is_type_of_wide_c_string<Arg>())
+  else if constexpr (is_c_style_wide_string_type<T>())
   {
-    out = align_pointer<alignof(size_t), std::byte>(out);
-    size_t const len = c_string_sizes[CstringIdx];
-    std::memcpy(out, &len, sizeof(size_t));
-    out += sizeof(size_t);
+    buffer = align_pointer<alignof(size_t), std::byte>(buffer);
+    size_t const len = c_style_string_lengths[c_style_string_lengths_index++];
+    std::memcpy(buffer, &len, sizeof(size_t));
 
-    if (c_string_sizes[CstringIdx] != 0)
+    if (len != 0)
     {
-      wide_string_to_narrow(out, c_string_sizes[CstringIdx], std::wstring_view{arg, wcslen(arg)});
+      wide_string_to_narrow(buffer + sizeof(size_t), len, std::wstring_view{arg, wcslen(arg)});
     }
 
-    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
-                                       std::forward<Args>(args)...);
+    buffer += sizeof(size_t) + len;
   }
-  else if constexpr (is_type_of_wide_string<Arg>())
+  else if constexpr (is_std_wstring_type<T>())
   {
     // for std::wstring we store the size first, in order to correctly retrieve it
-    out = align_pointer<alignof(size_t), std::byte>(out);
-    size_t const len = c_string_sizes[CstringIdx];
-    std::memcpy(out, &len, sizeof(size_t));
-    out += sizeof(size_t);
+    buffer = align_pointer<alignof(size_t), std::byte>(buffer);
+    size_t const len = c_style_string_lengths[c_style_string_lengths_index++];
+    std::memcpy(buffer, &len, sizeof(size_t));
 
-    if (c_string_sizes[CstringIdx] != 0)
+    if (len != 0)
     {
-      wide_string_to_narrow(out, c_string_sizes[CstringIdx], arg);
+      wide_string_to_narrow(buffer + sizeof(size_t), len, arg);
     }
 
-    return encode_args<CstringIdx + 1>(c_string_sizes, out + c_string_sizes[CstringIdx],
-                                       std::forward<Args>(args)...);
+    buffer += sizeof(size_t) + len;
   }
 #endif
   else
   {
     // no need to align for chars, but align for any other type
-    out = align_pointer<alignof(Arg), std::byte>(out);
+    buffer = align_pointer<alignof(T), std::byte>(buffer);
 
     // use memcpy when possible
-    if constexpr (std::is_trivially_copyable_v<remove_cvref_t<Arg>>)
+    if constexpr (std::is_trivially_copyable_v<remove_cvref_t<T>>)
     {
-      std::memcpy(out, &arg, sizeof(Arg));
+      std::memcpy(buffer, &arg, sizeof(arg));
     }
     else
     {
-      new (out) remove_cvref_t<Arg>(std::forward<Arg>(arg));
+      new (buffer) remove_cvref_t<T>(arg);
     }
 
-    return encode_args<CstringIdx>(c_string_sizes, out + sizeof(Arg), std::forward<Args>(args)...);
+    buffer += sizeof(T);
   }
+}
+
+/**
+ * @brief Encodes multiple arguments into a buffer.
+ * @param buffer Pointer to the buffer for encoding.
+ * @param c_style_string_lengths Array storing the c_style_string_lengths of C-style strings and char arrays.
+ * @param args The arguments to be encoded.
+ */
+template <typename... Args>
+QUILL_ATTRIBUTE_HOT inline void encode(std::byte*& buffer, QUILL_MAYBE_UNUSED size_t const* c_style_string_lengths,
+                                       Args const&... args) noexcept
+{
+  QUILL_MAYBE_UNUSED uint32_t c_style_string_lengths_index{0};
+  (encode_arg(buffer, c_style_string_lengths, c_style_string_lengths_index, args), ...);
 }
 
 /**
  * Format function
  */
-using FormatToFn = std::pair<std::byte*, std::string> (*)(
-  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
-  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args,
-  std::vector<std::pair<std::string, transit_event_fmt_buffer_t>>* structured_kvs);
-using PrintfFormatToFn = std::pair<std::byte*, std::string> (*)(
-  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
-  std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args);
+using FormatToFn = bool (*)(std::string_view format, std::byte*& data, transit_event_fmt_buffer_t& out,
+                            std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args_store,
+                            std::vector<std::pair<std::string, transit_event_fmt_buffer_t>>* structured_kvs);
+using PrintfFormatToFn = bool (*)(std::string_view format, std::byte*& data, transit_event_fmt_buffer_t& out,
+                                  std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args_store);
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> format_to(
-  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
-  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args,
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool format_to(
+  std::string_view format, std::byte*& data, transit_event_fmt_buffer_t& out,
+  std::vector<fmtquill::basic_format_arg<fmtquill::format_context>>& args_store,
   std::vector<std::pair<std::string, transit_event_fmt_buffer_t>>* structured_kvs)
 {
-  std::string error;
-  constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
+  bool success{true};
+
+  constexpr size_t num_dtors = count_not_trivially_destructible_args<Args...>();
   std::byte* dtor_args[(std::max)(num_dtors, static_cast<size_t>(1))];
 
-  std::byte* ret = decode_args<fmtquill::format_context, 0, Args...>(data, args, dtor_args);
+  decode<fmtquill::format_context, Args...>(data, args_store, dtor_args);
 
   out.clear();
 
   QUILL_TRY
   {
     fmtquill::vformat_to(std::back_inserter(out), format,
-                         fmtquill::basic_format_args(args.data(), sizeof...(Args)));
+                         fmtquill::basic_format_args(args_store.data(), sizeof...(Args)));
 
     if (structured_kvs)
     {
       // if we are processing a structured log we need to pass the values of the args here
       // At the end of the function we will be destructing the args
-      for (size_t i = 0; i < args.size(); ++i)
+      for (size_t i = 0; i < args_store.size(); ++i)
       {
         fmtquill::vformat_to(std::back_inserter((*structured_kvs)[i].second), "{}",
-                             fmtquill::basic_format_args(&args[i], 1));
+                             fmtquill::basic_format_args(&args_store[i], 1));
       }
     }
   }
@@ -391,88 +439,54 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> format_to
   QUILL_CATCH(std::exception const& e)
   {
     out.clear();
-    error = fmtquill::format("[format: \"{}\", error: \"{}\"]", format, e.what());
+    std::string const error = fmtquill::format(
+      "[Could not format log statement. message: \"{}\", error: \"{}\"]", format, e.what());
     out.append(error.data(), error.data() + error.length());
+    success = false;
   }
 #endif
 
-  destruct_args<0, Args...>(dtor_args);
-  args.clear();
+  destruct<Args...>(dtor_args);
+  args_store.clear();
 
-  return std::make_pair(ret, std::move(error));
+  return success;
 }
 
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::pair<std::byte*, std::string> printf_format_to(
-  std::string_view format, std::byte* data, transit_event_fmt_buffer_t& out,
-  std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool printf_format_to(
+  std::string_view format, std::byte*& data, transit_event_fmt_buffer_t& out,
+  std::vector<fmtquill::basic_format_arg<fmtquill::printf_context>>& args_store)
 {
-  std::string error;
-  constexpr size_t num_dtors = fmtquill::detail::count<need_call_dtor_for<Args>()...>();
+  bool success{true};
+
+  constexpr size_t num_dtors = count_not_trivially_destructible_args<Args...>();
   std::byte* dtor_args[(std::max)(num_dtors, static_cast<size_t>(1))];
 
-  std::byte* ret = decode_args<fmtquill::printf_context, 0, Args...>(data, args, dtor_args);
+  decode<fmtquill::printf_context, Args...>(data, args_store, dtor_args);
 
   out.clear();
 
   QUILL_TRY
   {
     fmtquill::detail::vprintf(out, fmtquill::basic_string_view<char>{format.data(), format.length()},
-                              fmtquill::printf_args(args.data(), sizeof...(Args)));
+                              fmtquill::printf_args(args_store.data(), sizeof...(Args)));
   }
 #if !defined(QUILL_NO_EXCEPTIONS)
   QUILL_CATCH(std::exception const& e)
   {
     out.clear();
-    error = fmtquill::format("[format: \"{}\", error: \"{}\"]", format, e.what());
+    std::string const error = fmtquill::format(
+      "[Could not format log statement. message: \"{}\", error: \"{}\"]", format, e.what());
     out.append(error.data(), error.data() + error.length());
+    success = false;
   }
 #endif
 
-  destruct_args<0, Args...>(dtor_args);
-  args.clear();
+  destruct<Args...>(dtor_args);
+  args_store.clear();
 
-  return std::make_pair(ret, std::move(error));
+  return success;
 }
 
-/**
- * This function pointer is used to store and pass the template parameters to the backend worker
- * thread
- */
-using MetadataFormatFn = std::pair<MacroMetadata, std::pair<FormatToFn, PrintfFormatToFn>> (*)();
-
-template <bool IsPrintfFormat, typename TAnonymousStruct, typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr std::pair<MacroMetadata, std::pair<FormatToFn, PrintfFormatToFn>> get_metadata_and_format_fn()
-{
-  if constexpr (!IsPrintfFormat)
-  {
-    constexpr auto ret = std::make_pair(TAnonymousStruct{}(), std::make_pair(format_to<Args...>, nullptr));
-    return ret;
-  }
-  else
-  {
-    constexpr auto ret =
-      std::make_pair(TAnonymousStruct{}(), std::make_pair(nullptr, printf_format_to<Args...>));
-    return ret;
-  }
-}
-
-} // namespace detail
-
-namespace detail
-{
-struct Header
-{
-public:
-  Header() = default;
-  Header(MetadataFormatFn metadata_and_format_fn, LoggerDetails const* logger_details, uint64_t timestamp)
-    : metadata_and_format_fn(metadata_and_format_fn), logger_details(logger_details), timestamp(timestamp)
-  {
-  }
-
-  MetadataFormatFn metadata_and_format_fn{nullptr};
-  LoggerDetails const* logger_details{nullptr};
-  uint64_t timestamp{0};
-};
 } // namespace detail
 } // namespace quill

@@ -11,18 +11,19 @@ namespace
 PatternFormatter::Attribute attribute_from_string(std::string const& attribute_name)
 {
   static std::unordered_map<std::string, PatternFormatter::Attribute> const attr_map = {
-    {"ascii_time", PatternFormatter::Attribute::AsciiTime},
-    {"filename", PatternFormatter::Attribute::FileName},
-    {"function_name", PatternFormatter::Attribute::FunctionName},
-    {"level_name", PatternFormatter::Attribute::LevelName},
-    {"level_id", PatternFormatter::Attribute::LevelId},
-    {"lineno", PatternFormatter::Attribute::LineNo},
-    {"logger_name", PatternFormatter::Attribute::LoggerName},
-    {"pathname", PatternFormatter::Attribute::PathName},
-    {"thread", PatternFormatter::Attribute::Thread},
+    {"time", PatternFormatter::Attribute::Time},
+    {"file_name", PatternFormatter::Attribute::FileName},
+    {"caller_function", PatternFormatter::Attribute::CallerFunction},
+    {"log_level", PatternFormatter::Attribute::LogLevel},
+    {"log_level_id", PatternFormatter::Attribute::LogLevelId},
+    {"line_number", PatternFormatter::Attribute::LineNumber},
+    {"logger", PatternFormatter::Attribute::Logger},
+    {"full_path", PatternFormatter::Attribute::FullPath},
+    {"thread_id", PatternFormatter::Attribute::ThreadId},
     {"thread_name", PatternFormatter::Attribute::ThreadName},
-    {"process", PatternFormatter::Attribute::Process},
-    {"fileline", PatternFormatter::Attribute::FileLine},
+    {"process_id", PatternFormatter::Attribute::ProcessId},
+    {"source_location", PatternFormatter::Attribute::SourceLocation},
+    {"short_source_location", PatternFormatter::Attribute::ShortSourceLocation},
     {"message", PatternFormatter::Attribute::Message},
     {"custom_tags", PatternFormatter::Attribute::CustomTags},
     {"structured_keys", PatternFormatter::Attribute::StructuredKeys}};
@@ -59,28 +60,28 @@ constexpr void _store_named_args(
 /**
  * Convert the pattern to fmt format string and also populate the order index array
  * e.g. given :
- *   "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name:<12) %(logger_name) - "
+ *   "%(time) [%(thread_id)] %(file_name):%(line_number) %(log_level:<12) %(logger) - "
  *
  * is changed to :
  *  {} [{}] {}:{} {:<12} {} -
  *
  *  with a order index of :
- *  i: 0 order idx[i] is: 0 - %(ascii_time)
- *  i: 1 order idx[i] is: 2 - %(filename)
+ *  i: 0 order idx[i] is: 0 - %(time)
+ *  i: 1 order idx[i] is: 2 - %(file_name)
  *  i: 2 order idx[i] is: 10 - empty
- *  i: 3 order idx[i] is: 4 - %(level_name)
+ *  i: 3 order idx[i] is: 4 - %(log_level)
  *  i: 4 order idx[i] is: 10 - empty
- *  i: 5 order idx[i] is: 3 - %(lineno)
- *  i: 6 order idx[i] is: 5 - %(logger_name)
+ *  i: 5 order idx[i] is: 3 - %(line_number)
+ *  i: 6 order idx[i] is: 5 - %(logger)
  *  i: 7 order idx[i] is: 10 - empty
- *  i: 8 order idx[i] is: 1 - %(thread)
+ *  i: 8 order idx[i] is: 1 - %(thread_id)
  *  i: 9 order idx[i] is: 10 - empty
  *  i: 10 order idx[i] is: 10 - empty
  * @tparam Args Args
  * @param is_set_in_pattern is set in pattern
  * @param pattern pattern
  * @param args args
- * @return processed pattern
+ * @return process_id pattern
  */
 template <typename... Args>
 QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attribute::ATTR_NR_ITEMS>> _generate_fmt_format_string(
@@ -122,7 +123,7 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
       if (pos != std::string::npos)
       {
         // we found user format specifiers that we want to keep.
-        // e.g. %(fileline:<32)
+        // e.g. %(short_source_location:<32)
 
         // Get only the format specifier
         // e.g. :<32
@@ -139,7 +140,7 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
         pattern.replace(arg_identifier_pos, attr.length(), value);
 
         // Get the part that is the named argument
-        // e.g. fileline
+        // e.g. short_source_location
         attr_name = attr.substr(2, pos - 2);
       }
       else
@@ -148,7 +149,7 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
         pattern.replace(arg_identifier_pos, attr.length(), "{}");
 
         // Get the part that is the named argument
-        // e.g. fileline
+        // e.g. short_source_location
         attr.pop_back(); // remove the ")"
 
         attr_name = attr.substr(2, attr.size());
@@ -168,7 +169,7 @@ QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attr
 
       if (id < 0)
       {
-        QUILL_THROW(QuillError{"Invalid format pattern"});
+        QUILL_THROW(QuillError{"Invalid format pattern, attribute with name \"" + attr_name + "\" is invalid"});
       }
 
       order_index[static_cast<size_t>(id)] = arg_idx++;
@@ -200,33 +201,35 @@ void PatternFormatter::_set_pattern(std::string format_pattern)
   // the order we pass the arguments here must match with the order of Attribute enum
   using namespace fmtquill::literals;
   std::tie(_format, _order_index) = _generate_fmt_format_string(
-    _is_set_in_pattern, std::string{format_pattern}, "ascii_time"_a = "", "filename"_a = "",
-    "function_name"_a = "", "level_name"_a = "", "level_id"_a = "", "lineno"_a = "",
-    "logger_name"_a = "", "pathname"_a = "", "thread"_a = "", "thread_name"_a = "", "process"_a = "",
-    "fileline"_a = "", "message"_a = "", "custom_tags"_a = "", "structured_keys"_a = "");
+    _is_set_in_pattern, std::string{format_pattern}, "time"_a = "", "file_name"_a = "",
+    "caller_function"_a = "", "log_level"_a = "", "log_level_id"_a = "", "line_number"_a = "",
+    "logger"_a = "", "full_path"_a = "", "thread_id"_a = "", "thread_name"_a = "",
+    "process_id"_a = "", "source_location"_a = "", "short_source_location"_a = "", "message"_a = "",
+    "custom_tags"_a = "", "structured_keys"_a = "");
 
-  _set_arg<Attribute::AsciiTime>(std::string_view("ascii_time"));
-  _set_arg<Attribute::FileName>(std::string_view("filename"));
-  _set_arg<Attribute::FunctionName>(std::string_view("function_name"));
-  _set_arg<Attribute::LevelName>(std::string_view("level_name"));
-  _set_arg<Attribute::LevelId>(std::string_view("level_id"));
-  _set_arg<Attribute::LineNo>(std::string_view("lineno"));
-  _set_arg<Attribute::LoggerName>(std::string_view("logger_name"));
-  _set_arg<Attribute::PathName>(std::string_view("pathname"));
-  _set_arg<Attribute::Thread>(std::string_view("thread"));
+  _set_arg<Attribute::Time>(std::string_view("time"));
+  _set_arg<Attribute::FileName>(std::string_view("file_name"));
+  _set_arg<Attribute::CallerFunction>("caller_function");
+  _set_arg<Attribute::LogLevel>(std::string_view("log_level"));
+  _set_arg<Attribute::LogLevelId>(std::string_view("log_level_id"));
+  _set_arg<Attribute::LineNumber>("line_number");
+  _set_arg<Attribute::Logger>(std::string_view("logger"));
+  _set_arg<Attribute::FullPath>(std::string_view("full_path"));
+  _set_arg<Attribute::ThreadId>(std::string_view("thread_id"));
   _set_arg<Attribute::ThreadName>(std::string_view("thread_name"));
-  _set_arg<Attribute::Process>(std::string_view("process"));
-  _set_arg<Attribute::FileLine>(std::string_view("fileline"));
+  _set_arg<Attribute::ProcessId>(std::string_view("process_id"));
+  _set_arg<Attribute::SourceLocation>("source_location");
+  _set_arg<Attribute::ShortSourceLocation>("short_source_location");
   _set_arg<Attribute::Message>(std::string_view("message"));
   _set_arg<Attribute::CustomTags>(std::string_view("custom_tags"));
   _set_arg<Attribute::StructuredKeys>(std::string_view("structured_keys"));
 }
 
 /***/
-fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp, std::string_view thread_id,
-                                             std::string_view thread_name, std::string_view process_id,
-                                             std::string_view logger_name, std::string_view log_level,
-                                             MacroMetadata const& macro_metadata,
+fmt_buffer_t const& PatternFormatter::format(
+  std::chrono::nanoseconds timestamp, std::string_view thread_id, std::string_view thread_name,
+  std::string_view process_id, std::string_view logger, std::string_view log_level,
+  MacroMetadata const& log_statement_metadata,
   std::vector<std::pair<std::string, transit_event_fmt_buffer_t>> const& structured_kvs,
   transit_event_fmt_buffer_t const& log_msg)
 {
@@ -240,49 +243,49 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
     return _formatted_log_message;
   }
 
-  if (_is_set_in_pattern[Attribute::AsciiTime])
+  if (_is_set_in_pattern[Attribute::Time])
   {
-    _set_arg_val<Attribute::AsciiTime>(_timestamp_formatter.format_timestamp(timestamp));
+    _set_arg_val<Attribute::Time>(_timestamp_formatter.format_timestamp(timestamp));
   }
 
   if (_is_set_in_pattern[Attribute::FileName])
   {
-    _set_arg_val<Attribute::FileName>(macro_metadata.filename());
+    _set_arg_val<Attribute::FileName>(log_statement_metadata.file_name());
   }
 
-  if (_is_set_in_pattern[Attribute::FunctionName])
+  if (_is_set_in_pattern[Attribute::CallerFunction])
   {
-    _set_arg_val<Attribute::FunctionName>(macro_metadata.func());
+    _set_arg_val<Attribute::CallerFunction>(log_statement_metadata.caller_function());
   }
 
-  if (_is_set_in_pattern[Attribute::LevelName])
+  if (_is_set_in_pattern[Attribute::LogLevel])
   {
-    _set_arg_val<Attribute::LevelName>(log_level);
+    _set_arg_val<Attribute::LogLevel>(log_level);
   }
 
-  if (_is_set_in_pattern[Attribute::LevelId])
+  if (_is_set_in_pattern[Attribute::LogLevelId])
   {
-    _set_arg_val<Attribute::LevelId>(macro_metadata.level_id_as_str());
+    _set_arg_val<Attribute::LogLevelId>(log_statement_metadata.log_level_id());
   }
 
-  if (_is_set_in_pattern[Attribute::LineNo])
+  if (_is_set_in_pattern[Attribute::LineNumber])
   {
-    _set_arg_val<Attribute::LineNo>(macro_metadata.lineno());
+    _set_arg_val<Attribute::LineNumber>(log_statement_metadata.line());
   }
 
-  if (_is_set_in_pattern[Attribute::LoggerName])
+  if (_is_set_in_pattern[Attribute::Logger])
   {
-    _set_arg_val<Attribute::LoggerName>(logger_name);
+    _set_arg_val<Attribute::Logger>(logger);
   }
 
-  if (_is_set_in_pattern[Attribute::PathName])
+  if (_is_set_in_pattern[Attribute::FullPath])
   {
-    _set_arg_val<Attribute::PathName>(macro_metadata.pathname());
+    _set_arg_val<Attribute::FullPath>(log_statement_metadata.full_path());
   }
 
-  if (_is_set_in_pattern[Attribute::Thread])
+  if (_is_set_in_pattern[Attribute::ThreadId])
   {
-    _set_arg_val<Attribute::Thread>(thread_id);
+    _set_arg_val<Attribute::ThreadId>(thread_id);
   }
 
   if (_is_set_in_pattern[Attribute::ThreadName])
@@ -290,14 +293,19 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
     _set_arg_val<Attribute::ThreadName>(thread_name);
   }
 
-  if (_is_set_in_pattern[Attribute::Process])
+  if (_is_set_in_pattern[Attribute::ProcessId])
   {
-    _set_arg_val<Attribute::Process>(process_id);
+    _set_arg_val<Attribute::ProcessId>(process_id);
   }
 
-  if (_is_set_in_pattern[Attribute::FileLine])
+  if (_is_set_in_pattern[Attribute::SourceLocation])
   {
-    _set_arg_val<Attribute::FileLine>(macro_metadata.fileline());
+    _set_arg_val<Attribute::SourceLocation>(log_statement_metadata.source_location());
+  }
+
+  if (_is_set_in_pattern[Attribute::ShortSourceLocation])
+  {
+    _set_arg_val<Attribute::ShortSourceLocation>(log_statement_metadata.short_source_location());
   }
 
   if (_is_set_in_pattern[Attribute::StructuredKeys])
@@ -318,10 +326,10 @@ fmt_buffer_t const& PatternFormatter::format(std::chrono::nanoseconds timestamp,
 
   if (_is_set_in_pattern[Attribute::CustomTags])
   {
-    if (macro_metadata.custom_tags())
+    if (log_statement_metadata.custom_tags())
     {
       _custom_tags.clear();
-      macro_metadata.custom_tags()->format(_custom_tags);
+      log_statement_metadata.custom_tags()->format(_custom_tags);
       _set_arg_val<Attribute::CustomTags>(_custom_tags);
     }
     else

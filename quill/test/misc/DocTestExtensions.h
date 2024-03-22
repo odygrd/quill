@@ -3,16 +3,18 @@
 #include "doctest/doctest.h"
 #include "quill/detail/misc/Attributes.h"
 
-#include <string>
 #include <cstring>
 #include <memory>
+#include <string>
+#include <string_view>
 
 #define REQUIRE_STREQ(str1, str2)                                                                  \
   do                                                                                               \
   {                                                                                                \
     if (strcmp(str1, str2) != 0)                                                                   \
     {                                                                                              \
-      MESSAGE("Expected equality of these values: \n\t str1: " << str1 << "\n\t str2: " << str2);  \
+      MESSAGE("Expected equality of these values: \n\t str1: "                                     \
+              << std::string_view{str1} << "\n\t str2: " << std::string_view{str2});               \
       REQUIRE_UNARY(false);                                                                        \
     };                                                                                             \
   } while (0)

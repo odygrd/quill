@@ -1,3 +1,4 @@
+- [v3.8.0](#v380)
 - [v3.7.0](#v370)
 - [v3.6.0](#v360)
 - [v3.5.1](#v351)
@@ -56,6 +57,25 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+## v3.8.0
+
+- Refactored `MacroMetadata` class to reduce its size.
+- Renamed some attributes in the `PatternFormatter` class for clarity. If you are using a custom format pattern, update
+  the attribute names in your code to match the new names.
+- Improved accuracy of log statement timestamps. Previously, the timestamp was taken after checking if the queue had
+  enough space to push the message, which could make it less accurate. Additionally, in the case of a blocking queue,
+  the timestamp could be later in time. Now, the timestamp is taken and stored right after the log statement is issued,
+  before checking for the queue size.
+- Reduced template instantiations during logging operations on the hot path. Fold expressions are now used for
+  encoding/decoding arguments, minimizing template recursion overhead.
+- Removed compile-time format checks due to their significant impact on template instantiations, especially considering
+  that only a few cases are invalid. For instance, while `fmt::format("{}", 1, 2)` is considered valid,
+  `fmt::format("{} {}", 1)` is deemed invalid. In cases where an invalid format string is detected, the backend worker
+  thread catches the generated exception and logs an error.
+- The throughput of the backend worker thread has been improved by approximately 5%. This enhancement is reflected in
+  the new throughput value of 4.20 million msgs/sec, compared to the previous throughput of 3.98 million msgs/sec.
+- Detect `tmux` as colour terminal. ([#410](https://github.com/odygrd/quill/issues/410))
+
 ## v3.7.0
 
 - Fixed crash triggered by insufficient space in the queue upon invocation
@@ -90,15 +110,18 @@
 
 ## v3.5.1
 
-- Resolved issue with accessing the `name()` method within the `Logger` class. ([#378](https://github.com/odygrd/quill/pull/378))
-- Fixed a compilation error in `SignalHandler` specific to Windows when `QUILL_DISABLE_NON_PREFIXED_MACROS` is defined. ([#380](https://github.com/odygrd/quill/pull/380))
+- Resolved issue with accessing the `name()` method within the `Logger`
+  class. ([#378](https://github.com/odygrd/quill/pull/378))
+- Fixed a compilation error in `SignalHandler` specific to Windows when `QUILL_DISABLE_NON_PREFIXED_MACROS` is
+  defined. ([#380](https://github.com/odygrd/quill/pull/380))
 
 ## v3.5.0
 
 - Fixed `LOG_TRACE_CFORMAT` macros.
 - Added support for compile-time custom tags in `quill::MacroMetadata` to enhance message filtering and incorporate
   static information. New log macros suffixed with `_WITH_TAGS` introduced for this feature.
-  Additionally, `%(custom_tags)` parameter added to `PatternFormatter`. ([#349](https://github.com/odygrd/quill/issues/349))
+  Additionally, `%(custom_tags)` parameter added
+  to `PatternFormatter`. ([#349](https://github.com/odygrd/quill/issues/349))
   See [example_custom_tags.cpp](https://github.com/odygrd/quill/blob/master/examples/example_custom_tags.cpp)
 - Improvements to reduce compilation time
 
@@ -175,7 +198,8 @@
 
 - Improved backend thread handling. Now verifies that all producer SPSC queues are empty before entering `sleep`.
 
-- Fixed a race condition and potential crash in `quill::remove_logger(Logger*)` when called without prior `quill::flush()`.
+- Fixed a race condition and potential crash in `quill::remove_logger(Logger*)` when called without
+  prior `quill::flush()`.
 
 - Added protection to prevent removal of the root logger with `quill::remove_logger(Logger*)`.
 

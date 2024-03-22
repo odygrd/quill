@@ -17,7 +17,7 @@ int main()
   // Using the default logger.
   // Default handler : stdout
   // Default LogLevel : Info
-  // Default pattern : "%(ascii_time) [%(thread)] %(filename):%(lineno) %(level_name) %(logger_name) - %(message)"
+  // Default pattern : "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)"
   quill::Logger* logger = quill::get_logger();
 
   // Change the LogLevel to print everything

@@ -11,7 +11,7 @@ int main()
   std::shared_ptr<quill::Handler> stdout_handler_1 = quill::stdout_handler("stdout_1");
 
   stdout_handler_1->set_pattern(
-    "%(ascii_time) [%(process)] [%(thread)] LOG_%(level_name) %(logger_name) - %(message)", // message format
+    "%(time) [%(process_id)] [%(thread_id)] LOG_%(log_level) %(logger) - %(message)", // message format
     "%D %H:%M:%S.%Qms %z",     // timestamp format
     quill::Timezone::GmtTime); // timestamp's timezone
 
@@ -20,7 +20,7 @@ int main()
   // Get the stdout file handler, with another unique name
   std::shared_ptr<quill::Handler> stdout_handler_2 = quill::stdout_handler("stdout_2");
 
-  stdout_handler_2->set_pattern("%(ascii_time) LOG_%(level_name) %(logger_name) - %(message)", // message format
+  stdout_handler_2->set_pattern("%(time) LOG_%(log_level) %(logger) - %(message)", // message format
                                 "%D %H:%M:%S.%Qms %z",     // timestamp format
                                 quill::Timezone::GmtTime); // timestamp's timezone
 

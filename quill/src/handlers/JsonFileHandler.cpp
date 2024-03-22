@@ -6,15 +6,17 @@ namespace quill
 /***/
 void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event)
 {
-  MacroMetadata const macro_metadata = log_event.metadata();
+  LogLevel const log_level = log_event.log_level_override ? *log_event.log_level_override
+                                                          : log_event.macro_metadata->log_level();
 
   _json_message.clear();
 
   _json_message.append(fmtquill::format(
     R"({{"timestamp":"{}","file":"{}","line":"{}","thread_id":"{}","logger":"{}","level":"{}","message":"{}")",
-    _formatter->format_timestamp(std::chrono::nanoseconds{log_event.header.timestamp}),
-    macro_metadata.filename(), macro_metadata.lineno(), log_event.thread_id,
-    log_event.header.logger_details->name(), log_event.log_level_as_str(), macro_metadata.message_format()));
+    _formatter->format_timestamp(std::chrono::nanoseconds{log_event.timestamp}),
+    log_event.macro_metadata->file_name(), log_event.macro_metadata->line(), log_event.thread_id,
+    log_event.logger_details->name(), loglevel_to_string(log_level),
+    log_event.macro_metadata->message_format()));
 
   for (auto const& [key, value] : log_event.structured_kvs)
   {

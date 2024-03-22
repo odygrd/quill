@@ -14,7 +14,7 @@ int main()
 
   // Set a custom formatter for this handler
   file_handler->set_pattern(
-    "%(ascii_time) [%(process)] [%(thread)] [%(thread_name)] %(logger_name) - %(message)", // format
+    "%(time) [%(process_id)] [%(thread_id)] [%(thread_name)] %(logger) - %(message)", // format
     "%D %H:%M:%S.%Qms %z",     // timestamp format
     quill::Timezone::GmtTime); // timestamp's timezone
 

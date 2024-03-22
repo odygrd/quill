@@ -99,7 +99,7 @@ fs::path append_date_time_to_filename(fs::path const& filename, bool with_time, 
                                       std::chrono::system_clock::time_point timestamp /* = {} */) noexcept
 {
   // Get base file and extension
-  std::pair<std::string, std::string> const stem_ext =  extract_stem_and_extension(filename);
+  auto const [stem, ext] =  extract_stem_and_extension(filename);
 
   // Get the time now as tm from user or default to now
   std::chrono::system_clock::time_point const ts_now =
@@ -109,9 +109,8 @@ fs::path append_date_time_to_filename(fs::path const& filename, bool with_time, 
     std::chrono::duration_cast<std::chrono::nanoseconds>(ts_now.time_since_epoch()).count());
 
   // Construct a filename
-  return fmtquill::format("{}_{}{}", stem_ext.first,
-                           get_datetime_string(timestamp_ns, timezone, with_time),
-                          stem_ext.second);
+  return fmtquill::format("{}_{}{}", stem,
+                           get_datetime_string(timestamp_ns, timezone, with_time), ext);
 }
 
 std::string get_datetime_string(uint64_t timestamp_ns, Timezone timezone, bool with_time)
@@ -155,11 +154,11 @@ fs::path append_index_to_filename(fs::path const& filename, uint32_t index) noex
   }
 
   // Get base file and extension
-  std::pair<std::string, std::string> const stem_ext =  extract_stem_and_extension(filename);
+  auto const [stem, ext] =  extract_stem_and_extension(filename);
 
   // Construct a filename
   std::stringstream ss;
-  ss << stem_ext.first << "." << index << stem_ext.second;
+  ss << stem << "." << index << ext;
   return ss.str();
 }
 
@@ -172,11 +171,11 @@ fs::path append_string_to_filename(fs::path const& filename, std::string const& 
   }
 
   // Get base file and extension
-  std::pair<std::string, std::string> const stem_ext =  extract_stem_and_extension(filename);
+  auto const [stem, ext] =  extract_stem_and_extension(filename);
 
   // Construct a filename
   std::stringstream ss;
-  ss << stem_ext.first << "." << text << stem_ext.second;
+  ss << stem << "." << text << ext;
   return ss.str();
 }
 

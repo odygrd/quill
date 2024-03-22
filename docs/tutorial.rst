@@ -126,7 +126,7 @@ This is useful for when you want to have different loggers writing to ``stdout``
      std::shared_ptr<quill::Handler> stdout_handler_1 = quill::stdout_handler("stdout_1");
 
      stdout_handler_1->set_pattern(
-       "%(ascii_time) [%(process)] [%(thread)] LOG_%(level_name) %(logger_name) - %(message)", // message format
+       "%(time) [%(process_id)] [%(thread)] LOG_%(log_level) %(logger) - %(message)", // message format
        "%D %H:%M:%S.%Qms %z",     // timestamp format
        quill::Timezone::GmtTime); // timestamp's timezone
 
@@ -135,7 +135,7 @@ This is useful for when you want to have different loggers writing to ``stdout``
      // Get the stdout file handler, with another unique name
      std::shared_ptr<quill::Handler> stdout_handler_2 = quill::stdout_handler("stdout_2");
 
-     stdout_handler_2->set_pattern("%(ascii_time) LOG_%(level_name) %(logger_name) - %(message)", // message format
+     stdout_handler_2->set_pattern("%(time) LOG_%(log_level) %(logger) - %(message)", // message format
                                    "%D %H:%M:%S.%Qms %z",     // timestamp format
                                    quill::Timezone::GmtTime); // timestamp's timezone
 
@@ -366,7 +366,7 @@ attributes.
 +-------------------+----------------+---------------------------------+
 | Name              | Format         | Description                     |
 +===================+================+=================================+
-| ascii_time        | %(ascii_time)  | Human-readable time when the    |
+| time              | %(time)        | Human-readable time when the    |
 |                   |                | LogRecord was created. By       |
 |                   |                | default this is of the form     |
 |                   |                | ‘2003-07-08 16:49:45.896’ (the  |
@@ -374,22 +374,22 @@ attributes.
 |                   |                | millisecond portion of the      |
 |                   |                | time).                          |
 +-------------------+----------------+---------------------------------+
-| filename          | %(filename)    | Filename portion of pathname.   |
+| file_name         | %(file_name)    | Filename portion of pathname.   |
 +-------------------+----------------+---------------------------------+
-| function_name     | %(             | Name of function containing the |
-|                   | function_name) | logging call.                   |
+| caller_function   | %(               | Name of function containing the |
+|                   | caller_function) | logging call.                   |
 +-------------------+----------------+---------------------------------+
-| level_name        | %(level_name)  | Text logging level for the      |
+| log_level         | %(log_level)   | Text logging level for the      |
 |                   |                | message (‘TRACEL3’, ‘TRACEL2’,  |
 |                   |                | ‘TRACEL1’, ‘DEBUG’, ‘INFO’,     |
 |                   |                | ‘WARNING’, ‘ERROR’, ‘CRITICAL’, |
 |                   |                | ‘BACKTRACE’).                   |
 +-------------------+----------------+---------------------------------+
-| level_id          | %(level_id)    | Abbreviated level name (‘T3’,   |
-|                   |                | ‘T2’, ‘T1’, ‘D’, ‘I’, ‘W’, ‘E’, |
-|                   |                | ‘C’, ‘BT’).                     |
+| log_level_id      | %(log_level_id) | Abbreviated level name (‘T3’,   |
+|                   |                 | ‘T2’, ‘T1’, ‘D’, ‘I’, ‘W’, ‘E’, |
+|                   |                 | ‘C’, ‘BT’).                     |
 +-------------------+----------------+---------------------------------+
-| lineno            | %(lineno)      | Source line number where the    |
+| line_number       | %(line_number) | Source line number where the    |
 |                   |                | logging call was issued (if     |
 |                   |                | available).                     |
 +-------------------+----------------+---------------------------------+
@@ -397,21 +397,34 @@ attributes.
 |                   |                | msg % args. This is set when    |
 |                   |                | Formatter.format() is invoked.  |
 +-------------------+----------------+---------------------------------+
-| logger_name       | %(logger_name) | Name of the logger used to log  |
+| logger            | %(logger)      | Name of the logger used to log  |
 |                   |                | the call.                       |
 +-------------------+----------------+---------------------------------+
-| pathname          | %(pathname)    | Full pathname of the source     |
+| full_path         | %(full_path)   | Full pathname of the source     |
 |                   |                | file where the logging call was |
 |                   |                | issued (if available).          |
 +-------------------+----------------+---------------------------------+
-| thread            | %(thread)      | Thread ID (if available).       |
+| thread_id         | %(thread_id)   | Thread ID (if available).       |
 +-------------------+----------------+---------------------------------+
 | thread name       | %(thread_name) | Thread name if set. The name of |
 |                   |                | the thread must be set prior to |
 |                   |                | issuing any log statement on    |
 |                   |                | that thread.                    |
 +-------------------+----------------+---------------------------------+
-| process           | %(process)     | Process ID                      |
+| process_id        | %(process_id)  | Process ID                      |
++-------------------+----------------+---------------------------------+
+| source_location   | %(source_location) | Full source file path and      |
+|                   |                    | line number as a single string |
++-------------------+----------------+---------------------------------+
+| short_source_location | %(short_source_location) | Shortened source file name and
+|                   |                              | line number as a single string |
++-------------------+----------------+---------------------------------+
+| custom_tags   | %(custom_tags) | Additional custom tags appended |
+|               |                | to the message when _WITH_TAGS macros are used |
++-------------------+----------------+---------------------------------+
+| structured_keys   | %(structured_keys) | Keys appended to the message. |
+|                   |                    | Only applicable with structured message formatting; |
+|                   |                    | remains empty otherwise |
 +-------------------+----------------+---------------------------------+
 
 Customising the timestamp
@@ -444,7 +457,7 @@ Setting a default formatter for logging to stdout
      std::shared_ptr<quill::Handler>  console_handler = quill::stdout_handler();
 
      // Set a custom formatter for this handler
-     console_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
+     console_handler->set_pattern("%(time) [%(process_id)] [%(thread)] %(logger) - %(message)", // format
                                "%D %H:%M:%S.%Qms %z",     // timestamp format
                                quill::Timezone::GmtTime); // timestamp's timezone
 
@@ -476,7 +489,7 @@ Setting a default formatter on a FileHandler
      std::shared_ptr<quill::Handler>  file_handler = quill::file_handler(filename, "w");
 
      // Set a custom pattern to this file handler
-     file_handler->set_pattern("%(ascii_time) [%(process)] [%(thread)] %(logger_name) - %(message)", // format
+     file_handler->set_pattern("%(time) [%(process_id)] [%(thread)] %(logger) - %(message)", // format
                                "%D %H:%M:%S.%Qms %z",     // timestamp format
                                quill::Timezone::GmtTime); // timestamp's timezone
 

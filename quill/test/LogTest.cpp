@@ -286,8 +286,8 @@ TEST_CASE("default_logger_with_filehandler_custom_tags")
         quill::FileHandlerConfig cfg;
         cfg.set_open_mode('w');
         cfg.set_pattern(
-          "%(ascii_time) [%(thread)] %(fileline:<28) LOG_%(level_name:<9) "
-          "%(logger_name:<12) [%(custom_tags)] %(message)");
+          "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) "
+          "%(logger:<12) [%(custom_tags)] %(message)");
         return cfg;
       }(),
       FileEventNotifier{}));
@@ -590,7 +590,7 @@ TEST_CASE("default_logger_ints_and_wide_string")
         LOG_INFO(default_logger, L"καλημέρα, {}", s1);
 
         wchar_t const* s2{L"Λορεμ ιπσθμ δολορ σιτ αμετ, αδμοδθμ δελενιτι ηενδρεριτ"};
-        LOG_INFO(default_logger, L"{}", s2);
+        LOG_INFO(default_logger, L"test {}", s2);
 
         lm.flush();
       });
@@ -687,7 +687,7 @@ void custom_default_logger_same_handler(int test_case, fs::path filename)
         return cfg;
       }(),
       FileEventNotifier{});
-    file_handler->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
+    file_handler->set_pattern("%(time) %(logger) - %(message) [%(log_level_id)]");
 
     quill::Config cfg;
     cfg.default_handlers.emplace_back(file_handler);
@@ -800,7 +800,7 @@ void test_custom_default_logger_multiple_handlers(int test_case, fs::path filena
         return cfg;
       }(),
       FileEventNotifier{});
-    file_handler_1->set_pattern("%(ascii_time) %(logger_name) - %(message) [%(level_id)]");
+    file_handler_1->set_pattern("%(time) %(logger) - %(message) [%(log_level_id)]");
 
     // Second handler with different pattern
     std::shared_ptr<quill::Handler> file_handler_2 = lm.handler_collection().create_handler<FileHandler>(
@@ -812,7 +812,7 @@ void test_custom_default_logger_multiple_handlers(int test_case, fs::path filena
         return cfg;
       }(),
       FileEventNotifier{});
-    file_handler_2->set_pattern("%(ascii_time) %(logger_name) - %(message)", "%D %H:%M:%S.%Qms");
+    file_handler_2->set_pattern("%(time) %(logger) - %(message)", "%D %H:%M:%S.%Qms");
 
     quill::Config cfg;
     cfg.default_handlers.emplace_back(file_handler_1);
@@ -1667,7 +1667,7 @@ public:
   QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
                               quill::MacroMetadata const& metadata, fmt_buffer_t const&) noexcept override
   {
-    if (metadata.level() < quill::LogLevel::Warning)
+    if (metadata.log_level() < quill::LogLevel::Warning)
     {
       return true;
     }
@@ -1686,7 +1686,7 @@ public:
   QUILL_NODISCARD bool filter(char const*, std::chrono::nanoseconds,
                               quill::MacroMetadata const& metadata, fmt_buffer_t const&) noexcept override
   {
-    if (metadata.level() >= quill::LogLevel::Warning)
+    if (metadata.log_level() >= quill::LogLevel::Warning)
     {
       return true;
     }
@@ -1899,9 +1899,9 @@ TEST_CASE("default_logger_with_custom_timestamp")
         return cfg;
       }(),
       FileEventNotifier{});
-    handler->set_pattern("%(ascii_time) %(level_name) %(logger_name:<16) %(message)", // format
-                         "%Y-%m-%d %H:%M:%S.%Qms",  // timestamp format
-                         quill::Timezone::GmtTime); // timestamp's timezone
+    handler->set_pattern("%(time) %(log_level) %(logger:<16) %(message)", // format
+                         "%Y-%m-%d %H:%M:%S.%Qms",                        // timestamp format
+                         quill::Timezone::GmtTime);                       // timestamp's timezone
 
     quill::Config cfg;
     cfg.default_handlers.emplace_back(handler);

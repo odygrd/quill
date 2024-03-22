@@ -19,7 +19,7 @@ public:
                               quill::fmt_buffer_t const& formatted_record) noexcept override
   {
     // log only messages that are INFO or above in the file
-    return metadata.level() < quill::LogLevel::Warning;
+    return metadata.log_level() < quill::LogLevel::Warning;
   }
 };
 
@@ -36,7 +36,7 @@ public:
                               quill::fmt_buffer_t const& formatted_record) noexcept override
   {
     // log only WARNINGS or higher to stdout
-    return metadata.level() >= quill::LogLevel::Warning;
+    return metadata.log_level() >= quill::LogLevel::Warning;
   }
 };
 

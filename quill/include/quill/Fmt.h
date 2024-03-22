@@ -19,8 +19,6 @@
   #include <fmt/ranges.h>
 
   #define QUILL_FMT_VERSION FMT_VERSION
-  #define QUILL_FMT_STRING FMT_STRING
-
 namespace fmtquill = fmt;
 #else
   #include "quill/bundled/fmt/chrono.h"
@@ -30,7 +28,6 @@ namespace fmtquill = fmt;
   #include "quill/bundled/fmt/ranges.h"
 
   #define QUILL_FMT_VERSION FMTQUILL_VERSION
-  #define QUILL_FMT_STRING FMTQUILL_STRING
 #endif
 
 /**
