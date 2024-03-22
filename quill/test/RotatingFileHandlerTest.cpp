@@ -1636,15 +1636,15 @@ TEST_CASE("time_rotation_daily_at_time_rotation_scheme_index")
 
     for (size_t i = 0; i < 5; ++i)
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [" + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;
@@ -1724,15 +1724,15 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
     te.timestamp = timestamp_20230612;
 
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
-      // Get the timeinfo struct using std::gmtime#
+      // Get the timeinfo struct using std::gmtime
       time_t timestamp = te.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [0 " + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;
@@ -1742,15 +1742,15 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
     }
 
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [1 " + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;
@@ -1766,15 +1766,15 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
 
     for (size_t i = 2; i < 4; ++i)
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [" + std::to_string(i) + " " + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;
@@ -1785,15 +1785,15 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
     }
 
     {
-      struct tm* timeinfo;
+      struct tm timeinfo;
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
       time_t timestamp = te.timestamp / 1000000000;
-      timeinfo = std::gmtime(&timestamp);
+      gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
-      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+      std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [4 " + std::string(buffer) + "]"};
       fmt_buffer_t formatted_log_message;

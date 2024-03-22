@@ -251,13 +251,13 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t calculate_arg_size_and_string_
     c_style_string_lengths[c_style_string_lengths_index] =
       get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
     return static_cast<size_t>(sizeof(size_t) + alignof(size_t) +
-                                 c_style_string_lengths[c_style_string_lengths_index++]);
+                               c_style_string_lengths[c_style_string_lengths_index++]);
   }
   else if constexpr (is_std_wstring_type<T>())
   {
     c_style_string_lengths[c_style_string_lengths_index] = get_wide_string_encoding_size(arg);
     return static_cast<size_t>(sizeof(size_t) + alignof(size_t) +
-                                 c_style_string_lengths[c_style_string_lengths_index++]);
+                               c_style_string_lengths[c_style_string_lengths_index++]);
   }
 #endif
   else
