@@ -590,7 +590,7 @@ TEST_CASE("default_logger_ints_and_wide_string")
         LOG_INFO(default_logger, L"καλημέρα, {}", s1);
 
         wchar_t const* s2{L"Λορεμ ιπσθμ δολορ σιτ αμετ, αδμοδθμ δελενιτι ηενδρεριτ"};
-        LOG_INFO(default_logger, L"{}", s2);
+        LOG_INFO(default_logger, L"test {}", s2);
 
         lm.flush();
       });

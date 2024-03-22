@@ -60,6 +60,22 @@ QUILL_NODISCARD constexpr bool is_std_string_type()
   return std::disjunction_v<std::is_same<ArgType, std::string>, std::is_same<ArgType, std::string_view>>;
 }
 
+#if defined(_WIN32)
+template <typename Arg>
+QUILL_NODISCARD constexpr bool is_c_style_wide_string_type()
+{
+  using ArgType = std::decay_t<Arg>;
+  return std::disjunction_v<std::is_same<ArgType, wchar_t const*>, std::is_same<ArgType, wchar_t*>>;
+}
+
+template <typename Arg>
+QUILL_NODISCARD constexpr bool is_std_wstring_type()
+{
+  using ArgType = std::decay_t<Arg>;
+  return std::disjunction_v<std::is_same<ArgType, std::wstring>, std::is_same<ArgType, std::wstring_view>>;
+}
+#endif
+
 template <typename Arg>
 QUILL_NODISCARD constexpr bool is_not_trivially_destructible()
 {
@@ -79,22 +95,6 @@ QUILL_NODISCARD constexpr bool is_not_trivially_destructible()
 
   return !std::is_trivially_destructible_v<ArgType>;
 }
-
-#if defined(_WIN32)
-template <typename Arg>
-QUILL_NODISCARD constexpr bool is_c_style_wide_string_type()
-{
-  using ArgType = std::decay_t<Arg>;
-  return std::disjunction_v<std::is_same<ArgType, wchar_t const*>, std::is_same<ArgType, wchar_t*>>;
-}
-
-template <typename Arg>
-QUILL_NODISCARD constexpr bool is_std_wstring_type()
-{
-  using ArgType = std::decay_t<Arg>;
-  return std::disjunction_v<std::is_same<ArgType, std::wstring>, std::is_same<ArgType, std::wstring_view>>;
-}
-#endif
 
 template <typename TFormatContext, typename Arg>
 QUILL_ATTRIBUTE_HOT inline void decode_arg(std::byte*& buffer,
@@ -116,7 +116,7 @@ QUILL_ATTRIBUTE_HOT inline void decode_arg(std::byte*& buffer,
   {
     // for std::string we first need to retrieve the length
     buffer = align_pointer<alignof(size_t), std::byte>(buffer);
-    size_t len{0};
+    size_t len;
     std::memcpy(&len, buffer, sizeof(size_t));
 
     // retrieve the rest of the string
@@ -131,7 +131,7 @@ QUILL_ATTRIBUTE_HOT inline void decode_arg(std::byte*& buffer,
   {
     // for std::wstring we first need to retrieve the length
     buffer = align_pointer<alignof(size_t), std::byte>(buffer);
-    size_t len{0};
+    size_t len;
     std::memcpy(&len, buffer, sizeof(size_t));
 
     char const* str = reinterpret_cast<char const*>(buffer + sizeof(size_t));
@@ -220,20 +220,20 @@ QUILL_NODISCARD constexpr uint32_t count_std_wstring_type() noexcept
  * @return The size of the argument and the length of its string representation if the argument is a string type.
  */
 template <typename T>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t calculate_arg_size_and_string_length(
-  QUILL_MAYBE_UNUSED uint32_t* c_style_string_lengths, uint32_t& c_style_string_lengths_index, T const& arg) noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t calculate_arg_size_and_string_length(
+  QUILL_MAYBE_UNUSED size_t* c_style_string_lengths, uint32_t& c_style_string_lengths_index, T const& arg) noexcept
 {
   if constexpr (is_char_array_type<T>())
   {
     c_style_string_lengths[c_style_string_lengths_index] =
-      static_cast<uint32_t>(strnlen(arg, std::extent_v<T>) + 1u);
+      static_cast<size_t>(strnlen(arg, std::extent_v<T>) + 1u);
 
     return c_style_string_lengths[c_style_string_lengths_index++];
   }
   else if constexpr (is_c_style_string_type<T>())
   {
     // include one extra for the zero termination
-    c_style_string_lengths[c_style_string_lengths_index] = static_cast<uint32_t>(strlen(arg) + 1u);
+    c_style_string_lengths[c_style_string_lengths_index] = static_cast<size_t>(strlen(arg) + 1u);
 
     return c_style_string_lengths[c_style_string_lengths_index++];
   }
@@ -243,26 +243,26 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t calculate_arg_size_and_strin
     // the reason for this is that if we create e.g:
     // std::string msg = fmtquill::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
     // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
-    return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) + arg.length());
+    return static_cast<size_t>(sizeof(size_t) + alignof(size_t) + arg.length());
   }
 #if defined(_WIN32)
   else if constexpr (is_c_style_wide_string_type<T>())
   {
     c_style_string_lengths[c_style_string_lengths_index] =
       get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
-    return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) +
+    return static_cast<size_t>(sizeof(size_t) + alignof(size_t) +
                                  c_style_string_lengths[c_style_string_lengths_index++]);
   }
   else if constexpr (is_std_wstring_type<T>())
   {
     c_style_string_lengths[c_style_string_lengths_index] = get_wide_string_encoding_size(arg);
-    return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) +
+    return static_cast<size_t>(sizeof(size_t) + alignof(size_t) +
                                  c_style_string_lengths[c_style_string_lengths_index++]);
   }
 #endif
   else
   {
-    return static_cast<uint32_t>(alignof(T) + sizeof(T));
+    return static_cast<size_t>(alignof(T) + sizeof(T));
   }
 };
 
@@ -274,8 +274,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t calculate_arg_size_and_strin
  * @return The total size required to encode the arguments.
  */
 template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t calculate_args_size_and_populate_string_lengths(
-  QUILL_MAYBE_UNUSED uint32_t* c_style_string_lengths, Args const&... args) noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t calculate_args_size_and_populate_string_lengths(
+  QUILL_MAYBE_UNUSED size_t* c_style_string_lengths, Args const&... args) noexcept
 {
   QUILL_MAYBE_UNUSED uint32_t c_style_string_lengths_index{0};
   return (0u + ... + calculate_arg_size_and_string_length(c_style_string_lengths, c_style_string_lengths_index, args));
@@ -289,12 +289,12 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t calculate_args_size_and_popu
  * @param arg The argument to be encoded.
  */
 template <typename T>
-QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& buffer, uint32_t const* c_style_string_lengths,
+QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& buffer, size_t const* c_style_string_lengths,
                                            uint32_t& c_style_string_lengths_index, T const& arg) noexcept
 {
   if constexpr (is_char_array_type<T>())
   {
-    uint32_t const len = c_style_string_lengths[c_style_string_lengths_index++];
+    size_t const len = c_style_string_lengths[c_style_string_lengths_index++];
     constexpr auto array_size = array_size_v<T>;
     if (QUILL_UNLIKELY(len > array_size))
     {
@@ -313,7 +313,7 @@ QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& buffer, uint32_t const* c
   else if constexpr (is_c_style_string_type<T>())
   {
     // null terminator is included in the len for c style strings
-    uint32_t const len = c_style_string_lengths[c_style_string_lengths_index++];
+    size_t const len = c_style_string_lengths[c_style_string_lengths_index++];
     std::memcpy(buffer, arg, len);
     buffer += len;
   }
@@ -323,7 +323,6 @@ QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& buffer, uint32_t const* c
     // Copy the length first and then the actual string
     buffer = align_pointer<alignof(size_t), std::byte>(buffer);
     size_t const len = arg.length();
-
     std::memcpy(buffer, &len, sizeof(size_t));
 
     if (len != 0)
@@ -338,8 +337,7 @@ QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& buffer, uint32_t const* c
   else if constexpr (is_c_style_wide_string_type<T>())
   {
     buffer = align_pointer<alignof(size_t), std::byte>(buffer);
-    uint32_t const len = c_style_string_lengths[c_style_string_lengths_index++];
-
+    size_t const len = c_style_string_lengths[c_style_string_lengths_index++];
     std::memcpy(buffer, &len, sizeof(size_t));
 
     if (len != 0)
@@ -353,8 +351,7 @@ QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& buffer, uint32_t const* c
   {
     // for std::wstring we store the size first, in order to correctly retrieve it
     buffer = align_pointer<alignof(size_t), std::byte>(buffer);
-    uint32_t const len = c_style_string_lengths[c_style_string_lengths_index++];
-
+    size_t const len = c_style_string_lengths[c_style_string_lengths_index++];
     std::memcpy(buffer, &len, sizeof(size_t));
 
     if (len != 0)
@@ -391,7 +388,7 @@ QUILL_ATTRIBUTE_HOT inline void encode_arg(std::byte*& buffer, uint32_t const* c
  * @param args The arguments to be encoded.
  */
 template <typename... Args>
-QUILL_ATTRIBUTE_HOT inline void encode(std::byte*& buffer, QUILL_MAYBE_UNUSED uint32_t const* c_style_string_lengths,
+QUILL_ATTRIBUTE_HOT inline void encode(std::byte*& buffer, QUILL_MAYBE_UNUSED size_t const* c_style_string_lengths,
                                        Args const&... args) noexcept
 {
   QUILL_MAYBE_UNUSED uint32_t c_style_string_lengths_index{0};

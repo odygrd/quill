@@ -158,12 +158,12 @@ public:
     // For windows also take wide strings into consideration.
 #if defined(_WIN32)
     constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>() +
-      detail::count_c_style_wide_strings<Args...>() + detail::count_c_style_strings<Args...>();
+      detail::count_c_style_wide_strings<Args...>() + detail::count_std_wstring_type<Args...>();
 #else
     constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>();
 #endif
 
-    uint32_t c_string_sizes[(std::max)(c_string_count, static_cast<uint32_t>(1))];
+    size_t c_string_sizes[(std::max)(c_string_count, static_cast<uint32_t>(1))];
 
     // Need to reserve additional space as we will be aligning the pointer
     size_t total_size = alignof(uint64_t) + sizeof(uint64_t) + (sizeof(uintptr_t) * 3) +
