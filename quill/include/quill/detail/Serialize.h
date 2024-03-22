@@ -209,8 +209,66 @@ QUILL_NODISCARD constexpr uint32_t count_std_wstring_type() noexcept
 #endif
 
 /**
+ * @brief Calculates the size of the argument and the length of the string representation if the argument is a string type.
+ *
+ * This function determines the size of the argument `arg` and the length of its string representation
+ * if the argument is a string type, updating the `c_style_string_lengths` array accordingly.
+ *
+ * @param c_style_string_lengths An array to store the lengths of C-style strings and char arrays.
+ * @param c_style_string_lengths_index The index used to update the `c_style_string_lengths` array.
+ * @param arg The argument to calculate the size and length for.
+ * @return The size of the argument and the length of its string representation if the argument is a string type.
+ */
+template <typename T>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t calculate_arg_size_and_string_length(
+  QUILL_MAYBE_UNUSED uint32_t* c_style_string_lengths, uint32_t& c_style_string_lengths_index, T const& arg) noexcept
+{
+  if constexpr (is_char_array_type<T>())
+  {
+    c_style_string_lengths[c_style_string_lengths_index] =
+      static_cast<uint32_t>(strnlen(arg, std::extent_v<T>) + 1u);
+
+    return c_style_string_lengths[c_style_string_lengths_index++];
+  }
+  else if constexpr (is_c_style_string_type<T>())
+  {
+    // include one extra for the zero termination
+    c_style_string_lengths[c_style_string_lengths_index] = static_cast<uint32_t>(strlen(arg) + 1u);
+
+    return c_style_string_lengths[c_style_string_lengths_index++];
+  }
+  else if constexpr (is_std_string_type<T>())
+  {
+    // for std::string we also need to store the size in order to correctly retrieve it
+    // the reason for this is that if we create e.g:
+    // std::string msg = fmtquill::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
+    // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
+    return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) + arg.length());
+  }
+#if defined(_WIN32)
+  else if constexpr (is_c_style_wide_string_type<T>())
+  {
+    c_style_string_lengths[c_style_string_lengths_index] =
+      get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
+    return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) +
+                                 c_style_string_lengths[c_style_string_lengths_index++]);
+  }
+  else if constexpr (is_std_wstring_type<T>())
+  {
+    c_style_string_lengths[c_style_string_lengths_index] = get_wide_string_encoding_size(arg);
+    return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) +
+                                 c_style_string_lengths[c_style_string_lengths_index++]);
+  }
+#endif
+  else
+  {
+    return static_cast<uint32_t>(alignof(T) + sizeof(T));
+  }
+};
+
+/**
  * @brief Calculates the total size required to encode the provided arguments and populates the c_style_string_lengths array.
- * @tparam Args Variadic template for the function arguments.
+
  * @param c_style_string_lengths Array to store the c_style_string_lengths of C-style strings and char arrays.
  * @param args The arguments to be encoded.
  * @return The total size required to encode the arguments.
@@ -220,56 +278,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t calculate_args_size_and_popu
   QUILL_MAYBE_UNUSED uint32_t* c_style_string_lengths, Args const&... args) noexcept
 {
   QUILL_MAYBE_UNUSED uint32_t c_style_string_lengths_index{0};
-
-  QUILL_MAYBE_UNUSED auto arg_size =
-    [](uint32_t* c_style_string_lengths, uint32_t& c_style_string_lengths_index, auto const& arg)
-  {
-    using T = remove_cvref_t<decltype(arg)>;
-
-    if constexpr (is_char_array_type<T>())
-    {
-      c_style_string_lengths[c_style_string_lengths_index] =
-        static_cast<uint32_t>(strnlen(arg, std::extent_v<T>) + 1u);
-
-      return c_style_string_lengths[c_style_string_lengths_index++];
-    }
-    else if constexpr (is_c_style_string_type<T>())
-    {
-      // include one extra for the zero termination
-      c_style_string_lengths[c_style_string_lengths_index] = static_cast<uint32_t>(strlen(arg) + 1u);
-
-      return c_style_string_lengths[c_style_string_lengths_index++];
-    }
-    else if constexpr (is_std_string_type<T>())
-    {
-      // for std::string we also need to store the size in order to correctly retrieve it
-      // the reason for this is that if we create e.g:
-      // std::string msg = fmtquill::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
-      // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
-      return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) + arg.length());
-    }
-#if defined(_WIN32)
-    else if constexpr (is_c_style_wide_string_type<T>())
-    {
-      c_style_string_lengths[c_style_string_lengths_index] =
-        get_wide_string_encoding_size(std::wstring_view{arg, wcslen(arg)});
-      return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) +
-                                   c_style_string_lengths[c_style_string_lengths_index++]);
-    }
-    else if constexpr (is_std_wstring_type<T>())
-    {
-      c_style_string_lengths[c_style_string_lengths_index] = get_wide_string_encoding_size(arg);
-      return static_cast<uint32_t>(sizeof(size_t) + alignof(size_t) +
-                                   c_style_string_lengths[c_style_string_lengths_index++]);
-    }
-#endif
-    else
-    {
-      return static_cast<uint32_t>(alignof(T) + sizeof(T));
-    }
-  };
-
-  return (0u + ... + arg_size(c_style_string_lengths, c_style_string_lengths_index, args));
+  return (0u + ... + calculate_arg_size_and_string_length(c_style_string_lengths, c_style_string_lengths_index, args));
 }
 
 /**
