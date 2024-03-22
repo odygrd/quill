@@ -118,14 +118,13 @@ public:
    * @param dynamic_log_level dynamic log level
    * @param fmt_args arguments
    */
-  template <bool IsPrintfFormat, typename... FmtArgs>
-  QUILL_ALWAYS_INLINE_HOT void log(LogLevel dynamic_log_level, MacroMetadata const* macro_metadata,
-                                   FmtArgs&&... fmt_args)
+  template <bool IsPrintfFormat, typename... Args>
+  QUILL_ALWAYS_INLINE_HOT void log(LogLevel dynamic_log_level, MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
     assert(!_is_invalidated.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 
 #if QUILL_FMT_VERSION >= 90000
-    static_assert(!detail::has_fmt_stream_view_v<FmtArgs...>,
+    static_assert(!detail::has_fmt_stream_view_v<Args...>,
                   "fmtquill::streamed(...) is not supported. In order to make a type formattable "
                   "via std::ostream you should provide a formatter specialization inherited "
                   "from ostream_formatter. "
@@ -135,7 +134,7 @@ public:
 #if !defined(QUILL_MODE_UNSAFE)
     {
       // not allowing unsafe copies
-      static_assert(detail::are_copyable_v<FmtArgs...>,
+      static_assert(detail::are_copyable_v<Args...>,
                     "Trying to copy an unsafe to copy type. Tag or specialize the type as "
                     "`copy_loggable` or explicitly format the type to string on the caller thread"
                     "prior to logging. See "
@@ -158,18 +157,17 @@ public:
 
     // For windows also take wide strings into consideration.
 #if defined(_WIN32)
-    constexpr size_t c_string_count = fmtquill::detail::count<detail::is_type_of_c_string<FmtArgs>()...>() +
-      fmtquill::detail::count<detail::is_type_of_wide_c_string<FmtArgs>()...>() +
-      fmtquill::detail::count<detail::is_type_of_wide_string<FmtArgs>()...>();
+    constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>() +
+      detail::count_c_style_wide_strings<Args...>() + detail::ccount_std_wstring_type<Args...>();
 #else
-    constexpr size_t c_string_count = fmtquill::detail::count<detail::is_type_of_c_string<FmtArgs>()...>();
+    constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>();
 #endif
 
-    size_t c_string_sizes[(std::max)(c_string_count, static_cast<size_t>(1))];
+    uint32_t c_string_sizes[(std::max)(c_string_count, static_cast<uint32_t>(1))];
 
     // Need to reserve additional space as we will be aligning the pointer
     size_t total_size = alignof(uint64_t) + sizeof(uint64_t) + (sizeof(uintptr_t) * 3) +
-      detail::get_args_sizes<0>(c_string_sizes, fmt_args...);
+      detail::calculate_args_size_and_populate_string_lengths(c_string_sizes, fmt_args...);
 
     if (dynamic_log_level != LogLevel::None)
     {
@@ -238,19 +236,19 @@ public:
 
     if constexpr (IsPrintfFormat)
     {
-      detail::PrintfFormatToFn ftf = detail::printf_format_to<FmtArgs...>;
+      detail::PrintfFormatToFn ftf = detail::printf_format_to<Args...>;
       std::memcpy(write_buffer, &ftf, sizeof(uintptr_t));
       write_buffer += sizeof(uintptr_t);
     }
     else
     {
-      detail::FormatToFn ftf = detail::format_to<FmtArgs...>;
+      detail::FormatToFn ftf = detail::format_to<Args...>;
       std::memcpy(write_buffer, &ftf, sizeof(uintptr_t));
       write_buffer += sizeof(uintptr_t);
     }
 
     // encode remaining arguments
-    write_buffer = detail::encode_args<0>(c_string_sizes, write_buffer, std::forward<FmtArgs>(fmt_args)...);
+    detail::encode(write_buffer, c_string_sizes, fmt_args...);
 
     if (dynamic_log_level != LogLevel::None)
     {

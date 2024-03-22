@@ -178,15 +178,15 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
         auto printf_format_to_fn = reinterpret_cast<detail::PrintfFormatToFn>(transit_event->format_fn);
         assert(printf_format_to_fn);
 
-        auto const [pos, error] = printf_format_to_fn(transit_event->macro_metadata->message_format(),
-                                                      read_pos, transit_event->formatted_msg, _printf_args);
+        auto const success = printf_format_to_fn(transit_event->macro_metadata->message_format(),
+                                                 read_pos, transit_event->formatted_msg, _printf_args);
 
-        read_pos = pos;
-
-        if (QUILL_UNLIKELY(!error.empty()))
+        if (QUILL_UNLIKELY(!success))
         {
           // this means that fmt::format_to threw an exception, and we report it to the user
-          _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+          _notification_handler(
+            fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                             transit_event->macro_metadata->short_source_location()));
         }
       }
       else
@@ -217,15 +217,15 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
             }
 
             // Now we format the message and also populate the values of each structured key
-            auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
-                                                   _args, &transit_event->structured_kvs);
+            bool const success = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
+                                              _args, &transit_event->structured_kvs);
 
-            read_pos = pos;
-
-            if (QUILL_UNLIKELY(!error.empty()))
+            if (QUILL_UNLIKELY(!success))
             {
               // this means that fmt::format_to threw an exception, and we report it to the user
-              _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+              _notification_handler(
+                fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                                 transit_event->macro_metadata->short_source_location()));
             }
           }
           else
@@ -247,30 +247,30 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
             }
 
             // Now we format the message and also populate the values of each structured key
-            auto const [pos, error] = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
-                                                   _args, &transit_event->structured_kvs);
+            bool const success = format_to_fn(fmt_str, read_pos, transit_event->formatted_msg,
+                                              _args, &transit_event->structured_kvs);
 
-            read_pos = pos;
-
-            if (QUILL_UNLIKELY(!error.empty()))
+            if (QUILL_UNLIKELY(!success))
             {
               // this means that fmt::format_to threw an exception, and we report it to the user
-              _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+              _notification_handler(
+                fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                                 transit_event->macro_metadata->short_source_location()));
             }
           }
         }
         else
         {
           // fmt style format
-          auto const [pos, error] = format_to_fn(transit_event->macro_metadata->message_format(),
-                                                 read_pos, transit_event->formatted_msg, _args, nullptr);
+          bool const success = format_to_fn(transit_event->macro_metadata->message_format(),
+                                            read_pos, transit_event->formatted_msg, _args, nullptr);
 
-          read_pos = pos;
-
-          if (QUILL_UNLIKELY(!error.empty()))
+          if (QUILL_UNLIKELY(!success))
           {
             // this means that fmt::format_to threw an exception, and we report it to the user
-            _notification_handler(fmtquill::format("Quill ERROR: {}", error));
+            _notification_handler(
+              fmtquill::format("Quill ERROR: Failed to format log statement, location: {}",
+                               transit_event->macro_metadata->short_source_location()));
           }
         }
       }
