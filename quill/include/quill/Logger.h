@@ -158,7 +158,7 @@ public:
     // For windows also take wide strings into consideration.
 #if defined(_WIN32)
     constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>() +
-      detail::count_c_style_wide_strings<Args...>() + detail::ccount_std_wstring_type<Args...>();
+      detail::count_c_style_wide_strings<Args...>() + detail::count_c_style_strings<Args...>();
 #else
     constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>();
 #endif
