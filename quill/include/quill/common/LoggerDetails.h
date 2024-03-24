@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/common/Common.h"
+#include "quill/common/LogLevel.h"
 #include "quill/common/Utilities.h"
 #include <atomic>
 #include <memory>

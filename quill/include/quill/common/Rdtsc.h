@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "quill/common/Attributes.h"
 
 #if defined(__aarch64__)

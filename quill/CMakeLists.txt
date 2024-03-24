@@ -50,14 +50,13 @@ set(HEADER_FILES
         include/quill/common/LoggerCollection.h
         include/quill/common/Os.h
         include/quill/common/PatternFormatter.h
+        include/quill/common/Fmt.h
+        include/quill/common/Logger.h
+        include/quill/common/TransitEvent.h
+        include/quill/common/Clock.h
 
         include/quill/LogMacros.h
-        include/quill/Fmt.h
-        include/quill/Logger.h
-
         include/quill/Quill.h
-        include/quill/TransitEvent.h
-        include/quill/Clock.h
         include/quill/TweakMe.h
         include/quill/Utility.h
         )
