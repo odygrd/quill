@@ -1,10 +1,10 @@
 #include "quill/Quill.h"
-#include "quill/QuillError.h"
-#include "quill/detail/HandlerCollection.h"       // for HandlerCollection
-#include "quill/detail/LogManager.h"              // for LogManagerSingleton
-#include "quill/detail/LoggerCollection.h"        // for LoggerCollection
-#include "quill/detail/ThreadContext.h"           // for ThreadContext, Thr...
-#include "quill/detail/ThreadContextCollection.h" // for ThreadContextColle...
+#include "quill/common/HandlerCollection.h" // for HandlerCollection
+#include "quill/common/LogManager.h"        // for LogManagerSingleton
+#include "quill/common/LoggerCollection.h"  // for LoggerCollection
+#include "quill/common/QuillError.h"
+#include "quill/common/ThreadContext.h"           // for ThreadContext, Thr...
+#include "quill/common/ThreadContextCollection.h" // for ThreadContextColle...
 #include "quill/handlers/ConsoleHandler.h"        // for ConsoleHandler
 #include "quill/handlers/NullHandler.h"           // for NullHandler
 #include "quill/handlers/StreamHandler.h"         // for StreamHandler

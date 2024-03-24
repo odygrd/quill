@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
-#include "quill/Config.h"
-#include "quill/detail/ThreadContext.h"
-#include "quill/detail/ThreadContextCollection.h"
+#include "quill/common/Config.h"
+#include "quill/common/ThreadContext.h"
+#include "quill/common/ThreadContextCollection.h"
 #include <array>
 #include <thread>
 

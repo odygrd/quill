@@ -7,13 +7,13 @@
 
 #include "quill/TweakMe.h"
 
-#include "quill/Config.h"
+#include "quill/LogMacros.h"
+#include "quill/backend/BackendWorker.h" // for backend_worker_error_h...
 #include "quill/clock/TimestampClock.h"
-#include "quill/detail/LogMacros.h"
-#include "quill/detail/LogManager.h"            // for LogManager
-#include "quill/detail/backend/BackendWorker.h" // for backend_worker_error_h...
-#include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_COLD
-#include "quill/detail/misc/Common.h"           // for Timezone
+#include "quill/common/Attributes.h" // for QUILL_ATTRIBUTE_COLD
+#include "quill/common/Common.h"     // for Timezone
+#include "quill/common/Config.h"
+#include "quill/common/LogManager.h"            // for LogManager
 #include "quill/handlers/FileHandler.h"         // for FilenameAppend, Filena...
 #include "quill/handlers/JsonFileHandler.h"     // for JsonFileHandler
 #include "quill/handlers/RotatingFileHandler.h" // for RotatingFileHandler
@@ -32,8 +32,8 @@ namespace quill
 {
 
 /** Version Info **/
-constexpr uint32_t VersionMajor{3};
-constexpr uint32_t VersionMinor{8};
+constexpr uint32_t VersionMajor{4};
+constexpr uint32_t VersionMinor{0};
 constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 

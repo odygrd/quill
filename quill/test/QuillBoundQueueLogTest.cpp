@@ -4,7 +4,7 @@
 #include "doctest/doctest.h"
 
 #include "quill/Quill.h"
-#include "quill/detail/LogManager.h"
+#include "quill/common/LogManager.h"
 
 TEST_SUITE_BEGIN("QuillBoundQueueLog");
 

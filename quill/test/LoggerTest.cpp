@@ -1,9 +1,9 @@
 #include "doctest/doctest.h"
 
-#include "quill/Config.h"
-#include "quill/detail//HandlerCollection.h"
-#include "quill/detail/LoggerCollection.h"
-#include "quill/detail/ThreadContextCollection.h"
+#include "quill/common/Config.h"
+#include "quill/common/HandlerCollection.h"
+#include "quill/common/LoggerCollection.h"
+#include "quill/common/ThreadContextCollection.h"
 #include "quill/handlers/Handler.h"
 
 TEST_SUITE_BEGIN("Logger");

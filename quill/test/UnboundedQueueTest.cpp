@@ -1,7 +1,7 @@
 #include "doctest/doctest.h"
 
-#include "quill/detail/misc/Utilities.h"
-#include "quill/detail/spsc_queue/UnboundedQueue.h"
+#include "quill/common/UnboundedSPSCQueue.h"
+#include "quill/common/Utilities.h"
 #include <cstring>
 #include <thread>
 #include <vector>
@@ -12,7 +12,7 @@ using namespace quill::detail;
 
 TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
 {
-  UnboundedQueue buffer{1024};
+  UnboundedSPSCQueue buffer{1024};
 
   std::thread producer_thread(
     [&buffer]()

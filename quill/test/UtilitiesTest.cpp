@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
 #include "DocTestExtensions.h"
-#include "quill/detail/misc/Os.h"
-#include "quill/detail/misc/Utilities.h"
+#include "quill/common/Os.h"
+#include "quill/common/Utilities.h"
 #include <chrono>
 #include <ctime>
 #include <thread>

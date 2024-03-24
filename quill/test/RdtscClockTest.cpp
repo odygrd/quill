@@ -1,7 +1,7 @@
 #include "doctest/doctest.h"
 
-#include "quill/detail/misc/RdtscClock.h"
-#include "quill/detail/misc/Rdtsc.h"
+#include "quill/common/Rdtsc.h"
+#include "quill/common/RdtscClock.h"
 #include <chrono>
 #include <thread>
 

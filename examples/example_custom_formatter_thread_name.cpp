@@ -1,7 +1,7 @@
 #include "quill/Quill.h"
 
 // Just to set the thread name
-#include "quill/detail/misc/Os.h"
+#include "quill/common/Os.h"
 
 /**
  * Logging to a file using a custom formatter pattern which also displays the thread name

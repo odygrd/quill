@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
 #include "misc/DocTestExtensions.h"
-#include "quill/detail/misc/Common.h"
-#include "quill/detail/misc/FileUtilities.h"
+#include "quill/common/Common.h"
+#include "quill/common/FileUtilities.h"
 
 TEST_SUITE_BEGIN("FileUtilities");
 

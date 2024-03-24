@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "quill/Fmt.h"
-#include "quill/MacroMetadata.h"
-#include "quill/detail/misc/Attributes.h"
+#include "quill/common/Attributes.h"
+#include "quill/common/Fmt.h"
+#include "quill/common/MacroMetadata.h"
 #include <string>
 
 namespace quill

@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
 #include "misc/DocTestExtensions.h"
-#include "quill/QuillError.h"
-#include "quill/detail/backend/TimestampFormatter.h"
+#include "quill/backend/TimestampFormatter.h"
+#include "quill/common/QuillError.h"
 
 TEST_SUITE_BEGIN("ThreadContextCollection");
 

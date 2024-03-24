@@ -1,7 +1,7 @@
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
 
-#include "quill/detail/backend/TransitEventBuffer.h"
+#include "quill/backend/TransitEventBuffer.h"
 
 TEST_SUITE_BEGIN("TransitEventBuffer");
 

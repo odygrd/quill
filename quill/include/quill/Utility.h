@@ -10,14 +10,16 @@
 #include <string_view>
 #include <tuple>
 
-#include "quill/Fmt.h"
-#include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"
+#include "quill/common/Attributes.h"
+#include "quill/common/Common.h"
+#include "quill/common/Fmt.h"
 
 /**
  * Contains useful utilities to assist with logging
  */
-namespace quill::utility
+namespace quill
+{
+namespace utility
 {
 /**
  * Formats the given buffer to hex
@@ -25,17 +27,34 @@ namespace quill::utility
  * @param size input buffer size
  * @return A string containing the hexadecimal representation of the given buffer
  */
-QUILL_NODISCARD std::string to_hex(unsigned char* buffer, size_t size) noexcept;
-QUILL_NODISCARD std::string to_hex(unsigned char const* buffer, size_t size) noexcept;
+template <typename T>
+QUILL_NODISCARD std::string to_hex(T* buffer, size_t size) noexcept
+{
+  static constexpr char hex_chars[] = "0123456789ABCDEF";
 
-/**
- * Formats the given buffer to hex
- * @param buffer input buffer
- * @param size input buffer size
- * @return A string containing the hexadecimal representation of the given buffer
- */
-QUILL_NODISCARD std::string to_hex(char* buffer, size_t size) noexcept;
-QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
+  std::string hex_string;
+  hex_string.reserve(3 * size);
+
+  for (size_t i = 0; i < size; ++i)
+  {
+    // 00001111 mask
+    static constexpr uint8_t mask = 0x0Fu;
+
+    // add the first four bits
+    hex_string += hex_chars[(buffer[i] >> 4u) & mask];
+
+    // add the remaining bits
+    hex_string += hex_chars[buffer[i] & mask];
+
+    if (i != (size - 1))
+    {
+      // add a space delimiter
+      hex_string += ' ';
+    }
+  }
+
+  return hex_string;
+}
 
 /**
  * By default the logger will take a copy of the passed object and then will call the operator<< in the background thread
@@ -86,4 +105,5 @@ private:
   std::tuple<TCustomTags...> _tags;
   std::string_view _delim;
 };
-} // namespace quill::utility
+} // namespace utility
+} // namespace quill

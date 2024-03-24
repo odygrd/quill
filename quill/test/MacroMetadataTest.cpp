@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
 #include "misc/TestUtilities.h"
-#include "quill/MacroMetadata.h"
-#include "quill/detail/misc/Common.h"
+#include "quill/common/Common.h"
+#include "quill/common/MacroMetadata.h"
 
 TEST_SUITE_BEGIN("MacroMetadata");
 

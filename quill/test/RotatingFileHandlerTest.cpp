@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
 #include "misc/TestUtilities.h"
-#include "quill/detail/misc/Common.h"
-#include "quill/detail/misc/FileUtilities.h"
+#include "quill/common/Common.h"
+#include "quill/common/FileUtilities.h"
 #include "quill/handlers/RotatingFileHandler.h"
 
 TEST_SUITE_BEGIN("RotatingFileHandler");

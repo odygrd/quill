@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Os.h"
+#include "quill/common/Attributes.h"
+#include "quill/common/Os.h"
 
 namespace quill
 {

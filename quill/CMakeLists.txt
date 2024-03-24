@@ -8,29 +8,12 @@ set(TARGET_NAME quill)
 # header files
 set(HEADER_FILES
         # quill
-        include/quill/detail/backend/BackendWorker.h
-        include/quill/detail/backend/BacktraceStorage.h
-        include/quill/detail/backend/StringFromTime.h
-        include/quill/detail/backend/TimestampFormatter.h
-        include/quill/detail/backend/TransitEventBuffer.h
-        include/quill/detail/misc/Attributes.h
-        include/quill/detail/misc/Common.h
-        include/quill/detail/misc/FileUtilities.h
-        include/quill/detail/misc/Os.h
-        include/quill/detail/misc/Rdtsc.h
-        include/quill/detail/misc/RdtscClock.h
-        include/quill/detail/misc/TypeTraitsCopyable.h
-        include/quill/detail/misc/Utilities.h
-        include/quill/detail/spsc_queue/BoundedQueue.h
-        include/quill/detail/spsc_queue/UnboundedQueue.h
-        include/quill/detail/HandlerCollection.h
-        include/quill/detail/LoggerCollection.h
-        include/quill/detail/LoggerDetails.h
-        include/quill/detail/LogMacros.h
-        include/quill/detail/LogManager.h
-        include/quill/detail/Serialize.h
-        include/quill/detail/ThreadContext.h
-        include/quill/detail/ThreadContextCollection.h
+        include/quill/backend/BackendWorker.h
+        include/quill/backend/BacktraceStorage.h
+        include/quill/backend/StringFromTime.h
+        include/quill/backend/TimestampFormatter.h
+        include/quill/backend/TransitEventBuffer.h
+
         include/quill/detail/SignalHandler.h
 
         include/quill/clock/TimestampClock.h
@@ -45,14 +28,34 @@ set(HEADER_FILES
         include/quill/handlers/RotatingFileHandler.h
         include/quill/handlers/StreamHandler.h
 
-        include/quill/Config.h
+        include/quill/common/Attributes.h
+        include/quill/common/BoundedSPSCQueue.h
+        include/quill/common/Config.h
+        include/quill/common/FileUtilities.h
+        include/quill/common/HandlerCollection.h
+        include/quill/common/LoggerDetails.h
+        include/quill/common/Common.h
+        include/quill/common/LogLevel.h
+        include/quill/common/LogManager.h
+        include/quill/common/MacroMetadata.h
+        include/quill/common/QuillError.h
+        include/quill/common/Rdtsc.h
+        include/quill/common/RdtscClock.h
+        include/quill/common/Serialize.h
+        include/quill/common/ThreadContext.h
+        include/quill/common/ThreadContextCollection.h
+        include/quill/common/TypeTraitsCopyable.h
+        include/quill/common/UnboundedSPSCQueue.h
+        include/quill/common/Utilities.h
+        include/quill/common/LoggerCollection.h
+        include/quill/common/Os.h
+        include/quill/common/PatternFormatter.h
+
+        include/quill/LogMacros.h
         include/quill/Fmt.h
         include/quill/Logger.h
-        include/quill/LogLevel.h
-        include/quill/MacroMetadata.h
-        include/quill/PatternFormatter.h
+
         include/quill/Quill.h
-        include/quill/QuillError.h
         include/quill/TransitEvent.h
         include/quill/Clock.h
         include/quill/TweakMe.h
@@ -61,32 +64,8 @@ set(HEADER_FILES
 
 # source files
 set(SOURCE_FILES
-        src/detail/backend/BackendWorker.cpp
-        src/detail/backend/BacktraceStorage.cpp
-        src/detail/backend/TimestampFormatter.cpp
-        src/detail/backend/StringFromTime.cpp
-        src/detail/backend/TransitEventBuffer.cpp
-        src/detail/misc/FileUtilities.cpp
-        src/detail/misc/Os.cpp
-        src/detail/misc/RdtscClock.cpp
-        src/detail/misc/Utilities.cpp
-        src/detail/HandlerCollection.cpp
-        src/detail/LoggerCollection.cpp
         src/detail/SignalHandler.cpp
-        src/detail/ThreadContext.cpp
-        src/detail/ThreadContextCollection.cpp
-
-        src/handlers/ConsoleHandler.cpp
-        src/handlers/FileHandler.cpp
-        src/handlers/Handler.cpp
-        src/handlers/JsonFileHandler.cpp
-        src/handlers/RotatingFileHandler.cpp
-        src/handlers/StreamHandler.cpp
-
-        src/LogLevel.cpp
-        src/PatternFormatter.cpp
         src/Quill.cpp
-        src/Utility.cpp
         )
 
 if (NOT QUILL_FMT_EXTERNAL)

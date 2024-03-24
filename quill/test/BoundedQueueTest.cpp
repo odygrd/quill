@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 #include "misc/DocTestExtensions.h"
 
-#include "quill/detail/misc/Utilities.h"
-#include "quill/detail/spsc_queue/BoundedQueue.h"
+#include "quill/common/BoundedSPSCQueue.h"
+#include "quill/common/Utilities.h"
 #include <cstring>
 #include <thread>
 #include <vector>
@@ -16,7 +16,7 @@ using namespace quill::detail;
 
 TEST_CASE("read_write_buffer")
 {
-  BoundedQueue buffer{64u};
+  BoundedSPSCQueue buffer{64u};
 
   for (uint32_t i = 0; i < 128; ++i)
   {
@@ -58,7 +58,7 @@ TEST_CASE("read_write_buffer")
 
 TEST_CASE("bounded_queue_integer_overflow")
 {
-  BoundedQueueImpl<uint8_t> buffer{128, false, 0};
+  BoundedSPSCQueueImpl<uint8_t> buffer{128, false, 0};
   size_t constexpr iterations = static_cast<size_t>(std::numeric_limits<uint8_t>::max()) * 8ull;
 
   for (size_t i = 0; i < iterations; ++i)
@@ -84,7 +84,7 @@ TEST_CASE("bounded_queue_integer_overflow")
 
 TEST_CASE("bounded_queue_read_write_multithreaded_plain_ints")
 {
-  BoundedQueue buffer{131'072};
+  BoundedSPSCQueue buffer{131'072};
 
   std::thread producer_thread(
     [&buffer]()

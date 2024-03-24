@@ -3,10 +3,10 @@
 #define QUILL_ACTIVE_LOG_LEVEL QUILL_LOG_LEVEL_TRACE_L3
 
 #include "misc/TestUtilities.h"
+#include "quill/LogMacros.h"
 #include "quill/Utility.h"
-#include "quill/detail/LogMacros.h"
-#include "quill/detail/LogManager.h"
-#include "quill/detail/misc/FileUtilities.h"
+#include "quill/common/FileUtilities.h"
+#include "quill/common/LogManager.h"
 #include "quill/filters/FilterBase.h"
 #include "quill/handlers/Handler.h"
 #include <algorithm>

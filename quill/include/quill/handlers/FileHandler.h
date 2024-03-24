@@ -8,6 +8,11 @@
 #include "quill/handlers/StreamHandler.h" // for StreamHandler
 #include <string>                         // for string
 
+#include "quill/common/FileUtilities.h" // for append_date_to_filename
+#include "quill/common/Fmt.h"
+#include "quill/common/Os.h"
+#include <cstdio> // for fclose
+
 namespace quill
 {
 
@@ -36,7 +41,10 @@ public:
    *
    * @param value The append type to set. Valid options are Date and DateAndTime.
    */
-  QUILL_ATTRIBUTE_COLD void set_append_to_filename(FilenameAppend value);
+  QUILL_ATTRIBUTE_COLD void set_append_to_filename(FilenameAppend value)
+  {
+    _append_to_filename = value;
+  }
 
   /**
    * @brief Sets the timezone to use for time-based operations e.g. when appending the date to the
@@ -45,21 +53,21 @@ public:
    * The default value is 'LocalTime'
    * @param timezone The timezone to use for time-based operations.
    */
-  QUILL_ATTRIBUTE_COLD void set_timezone(Timezone timezone);
+  QUILL_ATTRIBUTE_COLD void set_timezone(Timezone timezone) { _timezone_value = timezone; }
 
   /**
    * @brief Sets whether fsync should be performed when flushing.
    * The default value is false.
    * @param value True to perform fsync, false otherwise.
    */
-  QUILL_ATTRIBUTE_COLD void set_do_fsync(bool value);
+  QUILL_ATTRIBUTE_COLD void set_do_fsync(bool value) { _do_fsync = value; }
 
   /**
    * @brief Sets the open mode for the file.
    * Valid options for the open mode are 'a' or 'w'. The default value is 'a'.
    * @param open_mode open mode for the file.
    */
-  QUILL_ATTRIBUTE_COLD void set_open_mode(char open_mode);
+  QUILL_ATTRIBUTE_COLD void set_open_mode(char open_mode) { _open_mode = open_mode; }
 
   /**
    * @brief Sets the logging pattern for the file handler.
@@ -72,7 +80,11 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void set_pattern(std::string const& log_pattern,
                                         std::string const& time_format = std::string{
-                                          "%H:%M:%S.%Qns"});
+                                          "%H:%M:%S.%Qns"})
+  {
+    _log_pattern = log_pattern;
+    _time_format = time_format;
+  }
 
   /** Getters **/
   QUILL_NODISCARD bool do_fsync() const noexcept { return _do_fsync; }
@@ -106,18 +118,115 @@ public:
    * @param do_fopen if false the file will not be opened
    */
   FileHandler(fs::path const& filename, FileHandlerConfig const& config,
-              FileEventNotifier file_event_notifier, bool do_fopen = true);
+              FileEventNotifier file_event_notifier, bool do_fopen = true)
+    : StreamHandler(_get_appended_filename(filename, config.append_to_filename(), config.timezone()),
+                    nullptr, std::move(file_event_notifier)),
+      _config(config)
+  {
+    if (!_config.log_pattern().empty())
+    {
+      set_pattern(_config.log_pattern(), _config.time_format());
+    }
 
-  ~FileHandler() override;
+    if (do_fopen)
+    {
+      open_file(_filename, _config.open_mode());
+    }
+  }
+
+  ~FileHandler() override { close_file(); }
 
   /**
    * Flushes the stream and optionally fsyncs it
    */
-  QUILL_ATTRIBUTE_HOT void flush() override;
+  QUILL_ATTRIBUTE_HOT void flush() override
+  {
+    if (!_write_occurred || !_file)
+    {
+      // Check here because StreamHandler::flush() will set _write_occurred to false
+      return;
+    }
+
+    StreamHandler::flush();
+
+    if (_config.do_fsync())
+    {
+      detail::fsync(_file);
+    }
+
+    if (!fs::exists(_filename))
+    {
+      // after flushing the file we can check if the file still exists. If not we reopen it.
+      // This can happen if a user deletes a file while the application is running
+      close_file();
+
+      // now reopen the file for writing again, it will be a new file
+      open_file(_filename, "w");
+    }
+  }
 
 protected:
-  void open_file(fs::path const& filename, std::string const& mode);
-  void close_file();
+  void open_file(fs::path const& filename, std::string const& mode)
+  {
+    if (_file_event_notifier.before_open)
+    {
+      _file_event_notifier.before_open(filename);
+    }
+
+    // _file is the base file*
+    _file = detail::open_file(filename, mode);
+
+    assert(_file && "open_file always returns a valid pointer or throws");
+
+    if (_file_event_notifier.after_open)
+    {
+      _file_event_notifier.after_open(filename, _file);
+    }
+  }
+
+  void close_file()
+  {
+    if (!_file)
+    {
+      return;
+    }
+
+    if (_file_event_notifier.before_close)
+    {
+      _file_event_notifier.before_close(_filename, _file);
+    }
+
+    fclose(_file);
+    _file = nullptr;
+
+    if (_file_event_notifier.after_close)
+    {
+      _file_event_notifier.after_close(_filename);
+    }
+  }
+
+private:
+  QUILL_NODISCARD quill::fs::path _get_appended_filename(quill::fs::path const& filename,
+                                                         quill::FilenameAppend append_to_filename,
+                                                         quill::Timezone timezone)
+  {
+    if ((append_to_filename == quill::FilenameAppend::None) || (filename == "/dev/null"))
+    {
+      return filename;
+    }
+
+    if (append_to_filename == quill::FilenameAppend::StartDate)
+    {
+      return quill::detail::append_date_time_to_filename(filename, false, timezone);
+    }
+
+    if (append_to_filename == quill::FilenameAppend::StartDateTime)
+    {
+      return quill::detail::append_date_time_to_filename(filename, true, timezone);
+    }
+
+    return quill::fs::path{};
+  }
 
 private:
   FileHandlerConfig _config;

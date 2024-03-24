@@ -1,7 +1,7 @@
-#include "quill/detail/backend/StringFromTime.h"
+#include "quill/backend/StringFromTime.h"
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
-#include "quill/detail/misc/Os.h"
+#include "quill/common/Os.h"
 #include <ctime>
 
 TEST_SUITE_BEGIN("StringFromTime");

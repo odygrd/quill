@@ -5,13 +5,13 @@
 
 #pragma once
 
-#include "quill/Fmt.h"
-#include "quill/MacroMetadata.h"
-#include "quill/PatternFormatter.h"
-#include "quill/TransitEvent.h"
-#include "quill/detail/Serialize.h"
-#include "quill/detail/misc/Common.h"
-#include "quill/detail/misc/Os.h"
+#include "quill/common/Common.h"
+#include "quill/common/Fmt.h"
+#include "quill/common/MacroMetadata.h"
+#include "quill/common/Os.h"
+#include "quill/common/PatternFormatter.h"
+#include "quill/common/Serialize.h"
+#include "quill/common/TransitEvent.h"
 #include "quill/filters/FilterBase.h"
 #include <atomic>
 #include <memory>
@@ -112,7 +112,27 @@ public:
    * @note: thread-safe
    * @param filter instance of a filter class as unique ptr
    */
-  void add_filter(std::unique_ptr<FilterBase> filter);
+  void add_filter(std::unique_ptr<FilterBase> filter)
+  {
+    // Lock and add this filter to our global collection
+    std::lock_guard<std::recursive_mutex> const lock{_global_filters_lock};
+
+    // Check if the same filter already exists
+    auto const search_filter_it =
+      std::find_if(_global_filters.cbegin(), _global_filters.cend(),
+                   [&filter](std::unique_ptr<FilterBase> const& elem_filter)
+                   { return elem_filter->get_filter_name() == filter->get_filter_name(); });
+
+    if (QUILL_UNLIKELY(search_filter_it != _global_filters.cend()))
+    {
+      QUILL_THROW(QuillError{"Filter with the same name already exists"});
+    }
+
+    _global_filters.push_back(std::move(filter));
+
+    // Indicate a new filter was added - here relaxed is okay as the spinlock will do acq-rel on destruction
+    _new_filter.store(true, std::memory_order_relaxed);
+  }
 
   /**
    * Apply all registered filters.
@@ -121,7 +141,34 @@ public:
    */
   QUILL_NODISCARD bool apply_filters(char const* thread_id, std::chrono::nanoseconds log_message_timestamp,
                                      LogLevel log_level, MacroMetadata const& metadata,
-                                     fmt_buffer_t const& formatted_record);
+                                     fmt_buffer_t const& formatted_record)
+  {
+    if (log_level < _log_level.load(std::memory_order_relaxed))
+    {
+      return false;
+    }
+
+    // Update our local collection of the filters
+    if (QUILL_UNLIKELY(_new_filter.load(std::memory_order_relaxed)))
+    {
+      // if there is a new filter we have to update
+      _local_filters.clear();
+
+      std::lock_guard<std::recursive_mutex> const lock{_global_filters_lock};
+      for (auto const& filter : _global_filters)
+      {
+        _local_filters.push_back(filter.get());
+      }
+
+      // all filters loaded so change to false
+      _new_filter.store(false, std::memory_order_relaxed);
+    }
+
+    return std::all_of(
+      _local_filters.begin(), _local_filters.end(),
+      [thread_id, log_message_timestamp, &metadata, &formatted_record](FilterBase* filter_elem)
+      { return filter_elem->filter(thread_id, log_message_timestamp, metadata, formatted_record); });
+  }
 
 protected:
   /**< Owned formatter for this handler, we have to use a pointer here since the PatterFormatter

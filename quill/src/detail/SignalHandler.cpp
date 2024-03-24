@@ -6,8 +6,8 @@
 #include <thread>
 
 #include "quill/Quill.h"
-#include "quill/QuillError.h"
-#include "quill/detail/misc/Os.h"
+#include "quill/common/Os.h"
+#include "quill/common/QuillError.h"
 
 #if defined(_WIN32)
   #include <windows.h>

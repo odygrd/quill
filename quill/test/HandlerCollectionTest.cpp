@@ -1,6 +1,6 @@
 #include "doctest/doctest.h"
 
-#include "quill/detail/HandlerCollection.h"
+#include "quill/common/HandlerCollection.h"
 #include <cstdio>
 
 TEST_SUITE_BEGIN("HandlerCollection");

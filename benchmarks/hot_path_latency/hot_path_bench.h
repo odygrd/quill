@@ -6,9 +6,9 @@
 #pragma once
 
 #include "hot_path_bench_config.h"
-#include "quill/detail/misc/Os.h"
-#include "quill/detail/misc/Rdtsc.h"
-#include "quill/detail/misc/RdtscClock.h"
+#include "quill/common/Os.h"
+#include "quill/common/Rdtsc.h"
+#include "quill/common/RdtscClock.h"
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
