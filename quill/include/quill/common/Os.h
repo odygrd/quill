@@ -22,6 +22,7 @@
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <codecvt>
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
@@ -191,6 +192,30 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT T* align_pointer(void* pointer, size_t align
 {
   assert(is_pow_of_two(alignment) && "alignment must be a power of two");
   return reinterpret_cast<T*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) & ~(alignment - 1ul));
+}
+
+/**
+ * Convert a string to wstring
+ * @param str input string
+ * @return the value of input string as wide string
+ */
+QUILL_NODISCARD inline std::wstring s2ws(std::string const& str) noexcept
+{
+  using convert_t = std::codecvt_utf8_utf16<wchar_t>;
+  std::wstring_convert<convert_t, wchar_t> converter;
+  return converter.from_bytes(str);
+}
+
+/**
+ * wstring to string
+ * @param wstr input wide string
+ * @return the value of input wide string as string
+ */
+QUILL_NODISCARD inline std::string ws2s(std::wstring const& wstr) noexcept
+{
+  using convert_t = std::codecvt_utf8_utf16<wchar_t>;
+  std::wstring_convert<convert_t, wchar_t> converter;
+  return converter.to_bytes(wstr);
 }
 
 /**

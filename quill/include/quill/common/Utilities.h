@@ -61,30 +61,6 @@ inline void replace_all(std::string& str, std::string const& old_value, std::str
 }
 
 /**
- * Convert a string to wstring
- * @param str input string
- * @return the value of input string as wide string
- */
-QUILL_NODISCARD inline std::wstring s2ws(std::string const& str) noexcept
-{
-  using convert_t = std::codecvt_utf8_utf16<wchar_t>;
-  std::wstring_convert<convert_t, wchar_t> converter;
-  return converter.from_bytes(str);
-}
-
-/**
- * wstring to string
- * @param wstr input wide string
- * @return the value of input wide string as string
- */
-QUILL_NODISCARD inline std::string ws2s(std::wstring const& wstr) noexcept
-{
-  using convert_t = std::codecvt_utf8_utf16<wchar_t>;
-  std::wstring_convert<convert_t, wchar_t> converter;
-  return converter.to_bytes(wstr);
-}
-
-/**
  * Same as strncpy.
  * Compared to normal strncpy :
  * a) It copies only the required bytes and b) always null terminates.
