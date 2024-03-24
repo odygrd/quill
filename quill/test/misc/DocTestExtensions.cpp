@@ -1,6 +1,9 @@
 #include "DocTestExtensions.h"
 
+#include <memory>
+
 #ifndef _WIN32
+  #include <cstdlib>
   #include <unistd.h>
 #else
   #include <windows.h>

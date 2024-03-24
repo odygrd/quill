@@ -6,9 +6,11 @@
 #pragma once
 
 #include "hot_path_bench_config.h"
-#include "quill/detail/misc/Os.h"
-#include "quill/detail/misc/Rdtsc.h"
-#include "quill/detail/misc/RdtscClock.h"
+
+#include "quill/backend/BackendUtilities.h"
+#include "quill/backend/RdtscClock.h"
+#include "quill/core/Rdtsc.h"
+
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
@@ -24,9 +26,9 @@
   #include <x86intrin.h>
 #endif
 
-inline unsigned get_cpu_to_pin_thread(size_t thread_num)
+inline uint16_t get_cpu_to_pin_thread(uint16_t thread_num)
 {
-  const unsigned num_cores = std::thread::hardware_concurrency();
+  auto const num_cores = static_cast<uint16_t>(std::thread::hardware_concurrency());
 
   // If hardware_concurrency feature is not supported, zero value is returned.
   if (num_cores == 0)
@@ -104,7 +106,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
   // Main Benchmark
   for (size_t iteration = 0; iteration < num_iterations; ++iteration)
   {
-    double const d = iteration + (0.1 * iteration);
+    double const d = static_cast<double>(iteration) + (0.1 * static_cast<double>(iteration));
 
     auto const start = __rdtscp(&aux);
     for (size_t i = 0; i < messages_per_iteration; ++i)
@@ -113,7 +115,8 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
     }
     auto const end = __rdtscp(&aux);
 
-    uint64_t const latency{static_cast<uint64_t>((end - start) / messages_per_iteration * rdtsc_ns_per_tick)};
+    uint64_t const latency{static_cast<uint64_t>(
+      static_cast<double>((end - start)) / static_cast<double>(messages_per_iteration) * rdtsc_ns_per_tick)};
     latencies.push_back(latency);
 
     // send the next batch of messages after x time
@@ -125,7 +128,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 #endif
 
 /***/
-inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size_t num_iterations,
+inline void run_benchmark(char const* benchmark_name, uint16_t thread_count, size_t num_iterations,
                           size_t messages_per_iteration, std::function<void()> const& on_thread_start,
                           std::function<void(uint64_t, uint64_t, double)> const& log_func,
                           std::function<void()> const& on_thread_exit)
@@ -149,7 +152,7 @@ inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size
 
   std::vector<std::thread> threads;
   threads.reserve(thread_count);
-  for (int thread_num = 0; thread_num < thread_count; ++thread_num)
+  for (uint16_t thread_num = 0; thread_num < thread_count; ++thread_num)
   {
 #ifdef PERF_ENABLED
     // Spawn num threads
@@ -157,14 +160,16 @@ inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size
                          on_thread_start, log_func, on_thread_exit, thread_num + 1);
 #else
     // Spawn num threads
-    threads.emplace_back(run_log_benchmark, num_iterations, (messages_per_iteration / thread_count),
+    threads.emplace_back(run_log_benchmark, num_iterations,
+                         static_cast<size_t>(messages_per_iteration / thread_count),
                          std::ref(on_thread_start), std::ref(log_func), std::ref(on_thread_exit),
-                         thread_num + 1, std::ref(latencies[thread_num]), rdtsc_clock.nanoseconds_per_tick());
+                         static_cast<uint16_t>(thread_num + 1u), std::ref(latencies[thread_num]),
+                         rdtsc_clock.nanoseconds_per_tick());
 #endif
   }
 
   // Wait for threads to finish
-  for (int i = 0; i < thread_count; ++i)
+  for (uint16_t i = 0; i < thread_count; ++i)
   {
     threads[i].join();
   }
@@ -181,15 +186,19 @@ inline void run_benchmark(char const* benchmark_name, int32_t thread_count, size
   // Sort all latencies
   std::sort(latencies_combined.begin(), latencies_combined.end());
 
-  std::cout << "Thread Count " << thread_count << " - Total messages "
-            << latencies_combined.size() * messages_per_iteration << " - " << benchmark_name
-            << "\n |  50th | 75th | 90th | 95th | 99th | 99.9th | Worst |\n"
-            << " |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.5)]
-            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.75)]
-            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.9)]
-            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.95)]
-            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.99)]
-            << "  |  " << latencies_combined[(size_t)((size_t)(num_iterations * thread_count) * 0.999)]
-            << "  |  " << latencies_combined[latencies_combined.size() - 1] << "  |\n\n";
+  std::cout
+    << "Thread Count " << thread_count << " - Total messages " << latencies_combined.size() * messages_per_iteration
+    << " - " << benchmark_name << "\n |  50th | 75th | 90th | 95th | 99th | 99.9th | Worst |\n"
+    << " |  "
+    << latencies_combined[static_cast<size_t>(static_cast<double>(num_iterations * thread_count) * 0.5)] << "  |  "
+    << latencies_combined[static_cast<size_t>(static_cast<double>(num_iterations * thread_count) * 0.75)]
+    << "  |  "
+    << latencies_combined[static_cast<size_t>(static_cast<double>(num_iterations * thread_count) * 0.9)] << "  |  "
+    << latencies_combined[static_cast<size_t>(static_cast<double>(num_iterations * thread_count) * 0.95)]
+    << "  |  "
+    << latencies_combined[static_cast<size_t>(static_cast<double>(num_iterations * thread_count) * 0.99)]
+    << "  |  "
+    << latencies_combined[static_cast<size_t>(static_cast<double>(num_iterations * thread_count) * 0.999)]
+    << "  |  " << latencies_combined[static_cast<size_t>(latencies_combined.size() - 1)] << "  |\n\n";
 #endif
 }

@@ -12,42 +12,36 @@ All components and API offered to the user is intended to be thread-safe without
 :cpp:class:`quill::Logger` are thread safe by default. The same instance can be used to log by any thread.
 Any thread can safely modify the active log level of the logger.
 
-Logging a non copyable, non movable user defined type
+Logging types
 =====================================================
 
-Quill will copy all arguments passed as arguments and perform all the formatting in the background thread.
-Therefore, the arguments passed to the logger needs to be copyable or at least movable.
-If the argument can not be made copyable then the user has to convert it to a string first before passing it to the logger.
+For primitive types, std::string, and std::string_view, the library will perform a deep copy, and all formatting will occur asynchronously in the backend thread.
+However, for standard library types or user-defined types, they need to be converted to a string beforehand before being passed to the logger.
 
 Guaranteed logging
 =======================
 
-Quill uses a thread-local single-producer-single-consumer queue to
-forward logs records to the backend thread. By default an unbounded queue is used with an initially small size for
-performance reasons. If the queue becomes full the user can suffer a small performance penalty as a new queue will get
-allocated. Log messages are never dropped.
+Quill employs a thread-local single-producer-single-consumer queue to relay logs to the backend thread,
+ensuring that log messages are never dropped.
+Initially, an unbounded queue with a small size is used for performance optimization.
+However, if the queue reaches full capacity, a new queue will be allocated, incurring a slight performance penalty for the frontend.
 
-Customising the queue size
+The default unbounded queue can expand up to a size of 2GB. Should this limit be reached, the frontend thread will block.
+However, it's possible to alter the queue type within the FrontendOptions.
+
+Customising the queue size and type
 --------------------------
 
-The queue size if configurable in runtime in :cpp:class:`quill::Config` and applies to both bounded and unbounded queues.
+The queue size and type is configurable in runtime by creating a custom FrontendOptions class.
 
-Enabling non-guaranteed logging mode
-------------------------------------
-
-If this option is enabled in ``TweakMe.h`` then the queue will never re-allocate but log messages will be dropped instead.
-If any messages are dropped then the user is notified by logging the number of dropped messages to ``stderr``
-
-Flush Policy and Force Flushing
+Flush
 ===============================
 
-By default quill lets `libc` to flush whenever it sees fit in order to achieve good performance.
-You can explicitly instruct the logger to flush all its contents. The logger will in turn flush
-all existing handlers.
+You can explicitly instruct the frontend thread to wait until the log is flushed.
 
 .. note:: The thread that calls ::cpp:func:`quill::flush()` will **block** until every message up to that point is flushed.
 
-.. doxygenfunction:: quill::flush()
+.. doxygenfunction:: Logger::flush_log()
 
 Application Crash Policy
 ========================
@@ -57,15 +51,14 @@ When the program is terminated gracefully, quill will go through its destructor 
 However, if the applications crashes, log messages can be lost.
 
 To avoid losing messages when the application crashes due to a signal interrupt the user must setup it’s own signal
-handler and call :cpp:func:`quill::flush()` inside the signal handler.
+handler and call :cpp:func:`Logger::flush_log()` inside the signal handler.
 
-There is a built-in signal handler that offers this crash-safe behaviour and can be enabled in :cpp:func:`quill::start()`
+There is a built-in signal handler that offers this crash-safe behaviour and can be enabled in :cpp:func:`quill::Backend::start_with_signal_handler<quill::FrontendOptions>()`
 
 Log Messages Timestamp Order
 ==============================
 
-Quill creates a single worker backend thread which orders the messages in all queues by timestamp before printing
-them to the log file.
+Quill creates a single worker backend thread which orders the messages in all queues by timestamp before printing them to the log file.
 
 Number of Backend Threads
 ============================
@@ -76,24 +69,18 @@ Latency of the first log message
 ====================================
 
 A queue and an internal buffer will be allocated on the first log message of each thread. If the latency of the first
-log message is important it is recommended to call :cpp:func:`quill::preallocate()`
+log message is important it is recommended to call :cpp:func:`Frontend::preallocate()`
 
-.. doxygenfunction:: quill::preallocate()
+.. doxygenfunction:: Frontend::preallocate()
 
 Configuration
 ======================
 
-Quill offers a few customisation options which are also very well documented.
+Quill offers a few customization options, which are also well-documented.
 
-Have a look at files ``Config.h`` under the namespace :cpp:func:`quill::config`.
+This customization can be applied to either the frontend or the backend.
 
-Ideally each hot thread runs on an isolated CPU. Then the backend
-logging thread should also be pinned to an either isolated or a junk CPU core.
+Frontend configuration occurs at compile time, thus requiring a custom FrontendOptions class to be provided
+(:cpp:func:quill::FrontendOptions`).
 
-Also the file ``TweakMe.h`` offers some compile time customisations.
-In release builds lower severity log levels such as ``LOG_TRACE`` or ``LOG_DEBUG`` statements can be
-compiled out to reduce the number of branches in the application. This can be done by editing ``TweakMe.h`` or invoking cmake
-
-::
-
-   cmake .. -DCMAKE_CXX_FLAGS="-DQUILL_ACTIVE_LOG_LEVEL=QUILL_LOG_LEVEL_INFO"
+For customizing the backend, refer to :cpp:func:`quill::BackendOptions`

@@ -1,3 +1,4 @@
+- [v4.0.0](#v400)
 - [v3.8.0](#v380)
 - [v3.7.0](#v370)
 - [v3.6.0](#v360)
@@ -56,6 +57,149 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v4.0.0
+
+This version represents a major revamp of the library, aiming to simplify and modernize it, resulting in the removal
+of a few features. Please tread through the changes carefully before upgrading, as it is not backwards compatible with
+previous versions.
+
+I understand that these changes may inconvenience some existing users. However, they have been made with good
+intentions, aiming to improve and refine the logging library. This involved significant effort and dedication.
+
+Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x` branch.
+
+#### Comparison
+
+- This version significantly improves compile times by minimizing the inclusion of standard library headers. Taking a
+  look at some compiler profiling for a Release build, we can see the difference. Below are the two compiler
+  flamegraphs for building the `recommended_usage` example from the new version and the `wrapper_lib` example from the
+  previous version.
+
+| Version |                                     Compiler FlameGraph                                      |
+|---------|:--------------------------------------------------------------------------------------------:|
+| v4.0.0  | ![quill_v4_compiler_profile.speedscope.png](docs%2Fquill_v4_compiler_profile.speedscope.png) |
+| v3.8.0  | ![quill_v3_compiler_profile.speedscope.png](docs%2Fquill_v3_compiler_profile.speedscope.png) |
+
+- Increased backend thread throughput compared to the previous version. Below benchmark results were obtained on
+  `Linux RHEL 9` with an `Intel Core i5-12600` running at 4.8 GHz.
+
+| Version |                                 Backend Throughput                                 |
+|---------|:----------------------------------------------------------------------------------:|
+| v4.0.0  | 4.56 million msgs/sec average, total time elapsed: 876 ms for 4000000 log messages |
+| v3.8.0  | 4.39 million msgs/sec average, total time elapsed: 910 ms for 4000000 log messages |
+
+- Frontend performance is similar as in the previous version. Below is the frontend latency
+  of calling `LOG_INFO(logger, "Logging iteration: {}, message: {}, double: {}", k, i, d)` in nanoseconds.
+
+##### 1 Thread
+
+| Version | 50th | 75th | 90th | 95th | 99th | 99.9th |
+|---------|:----:|:----:|:----:|:----:|:----:|:------:|
+| v4.0.0  |  8   |  8   |  9   |  9   |  10  |   13   |
+| v3.8.0  |  8   |  9   |  9   |  10  |  11  |   13   |
+
+##### 4 Threads
+
+| Version | 50th | 75th | 90th | 95th | 99th | 99.9th |
+|---------|:----:|:----:|:----:|:----:|:----:|:------:|
+| v4.0.0  |  8   |  8   |  8   |  16  |  18  |   20   | 
+| v3.8.0  |  8   |  11  |  12  |  16  |  19  |   21   |
+
+#### Changes
+
+- **Default logger removal**: The default logger, along with its configuration inheritance feature during logger
+  creation, has been removed. Now, when creating a new logger instance, configurations such as the `Sink` and log
+  message format must be explicitly specified each time. This simplifies the codebase.
+
+- **Global logger removal**: The static global logger variable that was initialised during `quill::start()` used to
+  obtain the default logger has been removed. It is possible to add this on the user side. If you require a global
+  logger you can have a look
+  at [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage.cpp)
+
+- **Removal of `printf` style formatting support**: The support for `printf` style formatting has been removed due to
+  its limited usage. Users requiring this feature are encouraged to stay on `v3.x.x` versions to maintain compatibility.
+
+- **Renaming of `Handlers` to `Sinks`**: To enhance clarity, handlers have been renamed to sinks.
+
+- **Preprocessor flags moved to template parameters**: Most preprocessor flags have been moved to template parameters,
+  with only a few remaining as `CMake` options. This change simplifies exporting the library as a C++ module in the
+  future.
+
+- **Split Configuration**: The configuration settings have been divided into 'FrontendOptions' and 'BackendOptions'.
+
+- **Header-Only library**: The library is now header-only. This change simplifies exporting the library as a C++ module
+  in the future.
+
+- **Removal of backend formatting for user-defined and standard library types**: One of the significant changes is the
+  removal of support for formatting user-defined and standard library types on the backend worker thread.
+
+  In earlier versions, the backend worker thread could manage the formatting of any type sent by the frontend by
+  creating a copy of the type. However, this approach presents several challenges for asynchronous logging:
+
+  - Error-Prone Asynchronous Logging: Copying and formatting user-defined types on the backend thread in an
+    asynchronous logging setup could lead to errors. Previous versions attempted to address this issue with type
+    trait checks, which incurred additional template instantiations and compile times.
+  - Uncertainty in Type Verification: It was challenging to confidently verify types, as some trivially copiable
+    types, such as `struct A { int* m; }`, could still lead to issues due to potential modifications by the user before
+    formatting.
+  - Hidden Performance Penalties: Logging non-trivially copiable types could introduce hidden cache coherence
+    performance penalties due to memory allocations and de-allocations across threads.
+
+  Additionally, after years of professional use and based on experience, it has been observed that user-defined and
+  standard library types are often logged during program initialization, with fewer occurrences on the hot path where
+  mostly primitive types are logged. In such scenarios, the overhead of string conversions during initialization is not
+  an issue. While this approach may not be suitable for every use case, it aligns well with the low-latency objectives
+  of this library, making the cost of logging user-defined types explicit.
+
+  User-defined types can still be logged, but they are now converted to strings on the frontend instead of being
+  formatted on the backend thread. See the following examples for usage:
+
+  [user_defined_types_logging](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging.cpp)
+
+  [user_defined_types_implicit_conversion_logging](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_implicit_conversion_logging.cpp)
+
+- **Refactoring of backend classes:** `MacroMetadata` and most backend classes have undergone refactoring, resulting in
+  reduced memory requirements.
+
+- **`PatternFormatter` moved to `Logger`**: The `PatternFormatter` has been relocated from `Sinks` to `Logger`, enabling
+  a logger object to log in a specific format. This allows for different formats within the same output file, a feature
+  not previously possible.
+
+- **Improved compile times**: Significant enhancements in compile times have been achieved by restructuring the library
+  to minimize the number of required headers. Refactoring efforts have focused on decoupling the frontend from
+  the backend, resulting in reduced dependencies. Accessing the frontend logging functions now does not demand
+  inclusion of any backend logic components.
+
+  - `#include "quill/Backend.h"`: Included once to start the backend logging thread, typically in main.cpp.
+  - `#include "quill/Frontend.h"`: Used to create or obtain a Logger* and Sinks. Included once, and `Logger*` can
+    be passed around thereafter.
+  - `#include "quill/Logger.h"` and `#include "quill/LogMacros.h"`: These two files are the only ones needed for
+    logging and are included in almost every file that requires logging functionality.
+
+- **Removal of external libfmt usage**: The option to use external `libfmt` with the library has been removed.
+  Instead, `libfmt` is now an internal component of the library, accessible under the namespace `fmtquill`. You can
+  utilize the bundled version of `fmtquill` by including the necessary headers. Alternatively, you have the freedom to
+  integrate your preferred formatting library. Since `libfmt` is encapsulated within a distinct namespace, there are no
+  conflicts even if you link your custom `libfmt` alongside the logging library.
+
+  Internal `fmtquill` header-only version has been modified to include only `fmt/core.h` for the frontend,
+  omitting the heavier `fmt/format.h` dependency. It's important to note that `fmt/format.h` is not required when
+  logging primitive types, enums, or strings (such as std::string, std::string_view, or char arrays).
+  However, when using `LogMacrosFmt.h` to format standard library or user-defined types, inclusion of `fmt/format.h`
+  is still necessary on your end.
+
+#### Migration Guidance
+
+- Revise include files to accommodate the removal of `Quill.h`
+- Update the code that starts the backend thread and the logger/sink creation
+- For log statements containing standard library or user-defined types:
+  - If using `LogMacros.h`, ensure there types are formatted to strings before passing them to `LOG_` macros,
+    employing your preferred method. This approach is recommended for its minimal include dependencies and explicit
+    conversion to strings.
+  - If using `LogMacrosFmt.h`, simply include the relevant `quill/bundled/fmt/` headers. The `LOG_` macros from this
+    file will automatically convert unsupported arguments to strings, eliminating the necessity to update each log
+    statement's arguments.
 
 ## v3.8.0
 

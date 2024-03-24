@@ -9,80 +9,83 @@ Quickstart
 
 .. code:: cpp
 
-   #include "quill/Quill.h"
+    #include "quill/Backend.h"
+    #include "quill/Frontend.h"
+    #include "quill/LogMacros.h"
+    #include "quill/Logger.h"
+    #include "quill/sinks/ConsoleSink.h"
 
-   int main()
-   {
-     // optional configuration before calling quill::start()
-     quill::Config cfg;
-     cfg.enable_console_colours = true;
-     quill::configure(cfg);
+    #include <string>
+    #include <utility>
 
-     // starts the logging thread
-     quill::start();
-
-     // creates a logger
-     quill::Logger* logger = quill::get_logger("my_logger");
-
-     // log
-     LOG_DEBUG(logger, "Debugging foo {}", 1234);
-     LOG_INFO(logger, "Welcome to Quill!");
-     LOG_WARNING(logger, "A warning message.");
-     LOG_ERROR(logger, "An error message. error code {}", 123);
-     LOG_CRITICAL(logger, "A critical error.");
-   }
-
-Single logger object
-======================
-
-.. code:: cpp
-
-    // When QUILL_ROOT_LOGGER_ONLY is defined then only a single root logger object is used
-    #define QUILL_ROOT_LOGGER_ONLY
-
-    #include "quill/Quill.h"
+    /**
+     * Trivial logging example to console
+     */
 
     int main()
     {
-      // quill::Handler* handler = quill::stdout_handler(); /** for stdout **/
-      quill::Handler* handler = quill::file_handler("quickstart.log", "w");
-      handler->set_pattern("%(time) [%(thread)] %(short_source_location:<28) LOG_%(log_level) %(message)");
+      // Start the backend thread
+      quill::BackendOptions backend_options;
+      quill::Backend::start(backend_options);
 
-      // set configuration
-      quill::Config cfg;
-      cfg.default_handlers.push_back(handler);
+      // Frontend
+      auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
+      quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
 
-      // Apply configuration and start the backend worker thread
-      quill::configure(cfg);
-      quill::start();
+      // Change the LogLevel to print everything
+      logger->set_log_level(quill::LogLevel::TraceL3);
 
-      LOG_INFO("Hello {}", "world");
-      LOG_ERROR("This is a log error example {}", 7);
+      LOG_TRACE_L3(logger, "This is a log trace l3 example {}", 1);
+      LOG_TRACE_L2(logger, "This is a log trace l2 example {} {}", 2, 2.3);
+      LOG_TRACE_L1(logger, "This is a log trace l1 {} example", "string");
+      LOG_DEBUG(logger, "This is a log debug example {}", 4);
+      LOG_INFO(logger, "This is a log info example {}", sizeof(std::string));
+      LOG_WARNING(logger, "This is a log warning example {}", sizeof(std::string));
+      LOG_ERROR(logger, "This is a log error example {}", sizeof(std::string));
+      LOG_CRITICAL(logger, "This is a log critical example {}", sizeof(std::string));
     }
+
 
 Log to file
 ======================
 
 .. code:: cpp
 
-    #include "quill/Quill.h"
+    #include "quill/Backend.h"
+    #include "quill/Frontend.h"
+    #include "quill/LogMacros.h"
+    #include "quill/Logger.h"
+    #include "quill/sinks/FileSink.h"
+
+    #include <utility>
 
     int main()
     {
-      quill::Handler* handler = quill::file_handler("quickstart.log", "w");
-      handler->set_pattern("%(time) [%(thread)] %(short_source_location:<28) %(log_level) %(logger:<12) %(message)");
+      // Start the backend thread
+      quill::BackendOptions backend_options;
+      quill::Backend::start(backend_options);
 
-      // set configuration
-      quill::Config cfg;
-      cfg.default_handlers.push_back(handler);
+      // Frontend
+      auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
+        "trivial_logging.log",
+        []()
+        {
+          quill::FileSinkConfig cfg;
+          cfg.set_open_mode('w');
+          cfg.set_filename_append_option(quill::FilenameAppendOption::StartDateTime);
+          return cfg;
+        }(),
+        quill::FileEventNotifier{});
 
-      // Apply configuration and start the backend worker thread
-      quill::configure(cfg);
-      quill::start();
+      quill::Logger* logger =
+        quill::Frontend::create_or_get_logger("root", std::move(file_sink),
+                                              "%(time) [%(thread_id)] %(short_source_location:<28) "
+                                              "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                                              "%H:%M:%S.%Qns", quill::Timezone::GmtTime);
 
-      auto my_logger = quill::create_logger("mylogger");
-      my_logger->set_log_level(quill::LogLevel::Debug);
+      // set the log level of the logger to debug (default is info)
+      logger->set_log_level(quill::LogLevel::Debug);
 
-      LOG_INFO(my_logger, "Hello {}", "world");
-      LOG_ERROR(my_logger, "This is a log error example {}", 7);
+      LOG_INFO(logger, "log something {}", 123);
+      LOG_DEBUG(logger, "something else {}", 456);
     }

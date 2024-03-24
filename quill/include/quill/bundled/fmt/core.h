@@ -8,6 +8,10 @@
 #ifndef FMTQUILL_CORE_H_
 #define FMTQUILL_CORE_H_
 
+#if !defined(FMTQUILL_HEADER_ONLY)
+  #define FMTQUILL_HEADER_ONLY
+#endif
+
 #include <cstddef>  // std::byte
 #include <cstdio>   // std::FILE
 #include <cstring>  // std::strlen
@@ -814,12 +818,11 @@ FMTQUILL_CONSTEXPR auto copy_str(T* begin, T* end, U* out) -> U* {
   \endrst
  */
 template <typename T> class buffer {
- private:
+protected:
   T* ptr_;
   size_t size_;
   size_t capacity_;
 
- protected:
   // Don't initialize ptr_ since it is not accessed to save a few cycles.
   FMTQUILL_MSC_WARNING(suppress : 26495)
   FMTQUILL_CONSTEXPR buffer(size_t sz) noexcept : size_(sz), capacity_(sz) {}
@@ -2963,7 +2966,4 @@ FMTQUILL_END_EXPORT
 FMTQUILL_GCC_PRAGMA("GCC pop_options")
 FMTQUILL_END_NAMESPACE
 
-#ifdef FMTQUILL_HEADER_ONLY
-#  include "format.h"
-#endif
 #endif  // FMTQUILL_CORE_H_

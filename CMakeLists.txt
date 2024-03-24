@@ -5,9 +5,21 @@ project(quill)
 # Options
 #-------------------------------------------------------------------------------------------------------
 
-option(QUILL_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
+# Builds Quill without exceptions by adding the -fno-exceptions flag to the compiler.
+option(QUILL_NO_EXCEPTIONS "Build without exceptions using -fno-exceptions flag" OFF)
 
-option(QUILL_NO_EXCEPTIONS "Build without exceptions with -fno-exceptions flag" OFF)
+# Disables features that rely on retrieving the thread name, which is not supported in older versions of Windows (e.g., Windows Server 2012/2016).
+# Enabling this option ensures compatibility with older Windows versions.
+option(QUILL_NO_THREAD_NAME_SUPPORT "Disable features not supported on Windows Server 2012/2016" OFF)
+
+# Enables the use of _mm_prefetch, _mm_clflush, and _mm_clflushopt instructions to enhance cache coherence performance on x86 architectures.
+# When enabled, Quill will utilize these instructions on the frontend's queue operations.
+# Ensure to specify the target architecture with -march="..." when compiling to maximize compatibility and performance.
+option(QUILL_X86ARCH "Enable optimizations for cache coherence on x86 architectures using specific CPU instructions" OFF)
+
+# When enabled, removes the non-prefixed `LOG_*` macros, leaving only `QUILL_LOG_*` macros available.
+# This is useful in scenarios where the original macro names conflict with those of an existing logging library.
+option(QUILL_DISABLE_NON_PREFIXED_MACROS "Disable non-prefixed macros" OFF)
 
 option(QUILL_DISABLE_POSITION_INDEPENDENT_CODE "Disable position-independent code" OFF)
 
@@ -26,8 +38,6 @@ option(QUILL_CODE_COVERAGE "Enable code coverage" OFF)
 option(QUILL_USE_VALGRIND "Use valgrind as the default memcheck tool in CTest (Requires Valgrind)" OFF)
 
 option(QUILL_ENABLE_INSTALL "Enable CMake Install when Quill is not a master project" OFF)
-
-option(QUILL_NO_THREAD_NAME_SUPPORT "Disable features that are not supported on Windows 2012/2016" OFF)
 
 option(QUILL_DOCS_GEN "Generate documentation" OFF)
 
@@ -106,8 +116,9 @@ if (QUILL_MASTER_PROJECT)
 endif ()
 
 message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
-message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
 message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
+message(STATUS "QUILL_X86ARCH: " ${QUILL_X86ARCH})
+message(STATUS "QUILL_DISABLE_NON_PREFIXED_MACROS: " ${QUILL_DISABLE_NON_PREFIXED_MACROS})
 
 #---------------------------------------------------------------------------------------
 # Verbose make file option

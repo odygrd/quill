@@ -7,7 +7,7 @@
 #include <chrono>
 
 /**
- * When running the benchmark using e.g. perf, enable this definition to remove_file extra noise
+ * When running the benchmark using e.g. perf, enable this definition to remove extra noise
  * from calculating and printing the results.
  *
  * To see shared cached lines :
@@ -17,7 +17,7 @@
 // #define PERF_ENABLED
 
 #define THREAD_LIST_COUNT                                                                          \
-  std::vector<int32_t> { 1, 4 }
+  std::vector<uint16_t> { 1, 4 }
 
 #define MESSAGES_PER_ITERATION                                                                     \
   std::size_t { 20 }

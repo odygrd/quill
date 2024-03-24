@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2023-01-29T15:13:55.661Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.69" etag="aKfgq7z-3RxgHOwli1lr" version="20.8.13" type="github">
+<mxfile host="app.diagrams.net" modified="2024-05-16T00:07:38.477Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0" etag="VW8ihnyupRLc_PgVfbaT" version="22.1.21" type="device">
   <diagram name="Page-1" id="kLzpoFuRwS6fnHKDuZMH">
-    <mxGraphModel dx="2963" dy="1640" grid="1" gridSize="12" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="1200" math="0" shadow="0">
+    <mxGraphModel dx="2066" dy="1145" grid="1" gridSize="12" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="1200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -70,7 +70,7 @@
         <mxCell id="BmINEKKr7EmUC2mtGokD-61" value="" style="rounded=0;whiteSpace=wrap;html=1;shadow=0;sketch=0;strokeColor=#000000;" parent="1" vertex="1">
           <mxGeometry x="473" y="800" width="110" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="BmINEKKr7EmUC2mtGokD-43" value="3.TransitEvents are processed after all SPSC queues are empty or when a max limit is reached. The TransitEvent with the min timestamp is passed to the all the registered Handlers." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+        <mxCell id="BmINEKKr7EmUC2mtGokD-43" value="3.TransitEvents are processed after all SPSC queues are empty or when a max limit is reached. The TransitEvent with the min timestamp is passed to the all the registered Sinks." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="108" y="648" width="240" height="90" as="geometry" />
         </mxCell>
         <mxCell id="BmINEKKr7EmUC2mtGokD-46" value="" style="rounded=1;whiteSpace=wrap;html=1;shadow=0;sketch=0;strokeColor=#000000;" parent="1" vertex="1">
@@ -85,7 +85,7 @@
         <mxCell id="BmINEKKr7EmUC2mtGokD-49" value="" style="shape=waypoint;sketch=0;fillStyle=solid;size=6;pointerEvents=1;points=[];fillColor=none;resizable=0;rotatable=0;perimeter=centerPerimeter;snapToPoint=1;" parent="1" vertex="1">
           <mxGeometry x="518" y="890" width="20" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="BmINEKKr7EmUC2mtGokD-52" value="Handlers" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+        <mxCell id="BmINEKKr7EmUC2mtGokD-52" value="Sinks" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="498" y="800" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="BmINEKKr7EmUC2mtGokD-53" value="" style="endArrow=classic;html=1;rounded=0;dashed=1;dashPattern=12 12;strokeColor=default;exitX=0.822;exitY=0.87;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.419;entryY=0.008;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="BmINEKKr7EmUC2mtGokD-14" target="BmINEKKr7EmUC2mtGokD-20" edge="1">
@@ -130,7 +130,7 @@
             <mxPoint x="502" y="1036" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="BmINEKKr7EmUC2mtGokD-65" value="4. The Handlers use the PatternFormatter to format the message and finally output it&amp;nbsp;" style="rounded=1;whiteSpace=wrap;html=1;shadow=0;sketch=0;strokeColor=#000000;" parent="1" vertex="1">
+        <mxCell id="BmINEKKr7EmUC2mtGokD-65" value="4. Sink output&amp;nbsp;" style="rounded=1;whiteSpace=wrap;html=1;shadow=0;sketch=0;strokeColor=#000000;" parent="1" vertex="1">
           <mxGeometry x="432.5" y="1006" width="191" height="90" as="geometry" />
         </mxCell>
       </root>

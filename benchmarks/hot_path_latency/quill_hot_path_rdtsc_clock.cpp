@@ -4,53 +4,71 @@
  */
 
 #include "hot_path_bench.h"
-#include "quill/Quill.h"
+
+#include "quill/Backend.h"
+#include "quill/Frontend.h"
+#include "quill/LogMacros.h"
+#include "quill/sinks/FileSink.h"
+
+struct FrontendOptions
+{
+  static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
+  static constexpr uint32_t initial_queue_capacity = 131'072;
+  static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
+  static constexpr bool huge_pages_enabled = false;
+};
+
+using Frontend = quill::FrontendImpl<FrontendOptions>;
+using Logger = quill::LoggerImpl<FrontendOptions>;
 
 /***/
-void quill_benchmark(std::vector<int32_t> const& thread_count_array,
+void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
                      size_t num_iterations_per_thread, size_t messages_per_iteration)
 {
-  std::remove("quill_call_site_latency_percentile_linux_benchmark.log");
-
   /** - MAIN THREAD START - Logger setup if any **/
 
   /** - Setup Quill **/
-  quill::Config cfg;
+  // main thread affinity
+  quill::detail::set_cpu_affinity(0);
 
-  cfg.backend_thread_cpu_affinity = 5;
-  // cfg.enable_huge_pages_hot_path = true;  // enable huge pages
+  quill::BackendOptions backend_options;
+  backend_options.backend_cpu_affinity = 5;
 
-  quill::configure(cfg);
+  // Start the logging backend thread and give it some tiem to init
+  quill::Backend::start(backend_options);
 
-  // Start the logging backend thread
-  quill::start();
+  std::this_thread::sleep_for(std::chrono::milliseconds{100});
 
   // wait for the backend thread to start
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  // Create a file handler to write to a file
-  std::shared_ptr<quill::Handler> file_handler =
-    quill::file_handler("quill_hot_path_rdtsc_clock.log",
-                        []()
-                        {
-                          quill::FileHandlerConfig cfg;
-                          cfg.set_open_mode('w');
-                          return cfg;
-                        }());
+  // Create a file sink to write to a file
+  std::shared_ptr<quill::Sink> file_sink = Frontend::create_or_get_sink<quill::FileSink>(
+    "quill_hot_path_rdtsc_clock.log",
+    []()
+    {
+      quill::FileSinkConfig cfg;
+      cfg.set_open_mode('w');
+      return cfg;
+    }(),
+    quill::FileEventNotifier{});
 
-  quill::Logger* logger = quill::create_logger("bench_logger", std::move(file_handler));
+  Logger* logger = Frontend::create_or_get_logger(
+    "bench_logger", std::move(file_sink),
+    "%(time) [%(thread_id)] %(short_source_location) %(log_level) %(message)");
 
   /** LOGGING THREAD FUNCTIONS - on_start, on_exit, log_func must be implemented **/
   /** those run on a several thread(s). It can be one or multiple threads based on THREAD_LIST_COUNT config */
   auto on_start = []() {
     // on thread start
-    quill::preallocate();
+    Frontend::preallocate();
   };
 
-  auto on_exit = []() {
+  auto on_exit = [logger]()
+  {
     // on thread exit we block flush, so the next benchmark starts with the backend thread ready
     // to process the messages
-    quill::flush();
+    logger->flush_log();
   };
 
   // on main
