@@ -5,8 +5,8 @@
 #include "misc/TestUtilities.h"
 #include "quill/LogMacros.h"
 #include "quill/Utility.h"
-#include "quill/common/FileUtilities.h"
-#include "quill/common/LogManager.h"
+#include "quill/core/FileUtilities.h"
+#include "quill/core/LogManager.h"
 #include "quill/filters/FilterBase.h"
 #include "quill/handlers/Handler.h"
 #include <algorithm>
@@ -1905,7 +1905,8 @@ TEST_CASE("default_logger_with_custom_timestamp")
 
     quill::Config cfg;
     cfg.default_handlers.emplace_back(handler);
-    cfg.default_timestamp_clock_type = TimestampClockType::Custom;
+cfg.
+default_timestamp_clock_type = ClockSourceType::User;
     cfg.default_custom_timestamp_clock = std::addressof(custom_ts);
 
     lm.configure(cfg);

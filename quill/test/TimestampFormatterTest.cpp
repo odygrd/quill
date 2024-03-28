@@ -2,7 +2,7 @@
 
 #include "misc/DocTestExtensions.h"
 #include "quill/backend/TimestampFormatter.h"
-#include "quill/common/QuillError.h"
+#include "quill/core/QuillError.h"
 
 TEST_SUITE_BEGIN("ThreadContextCollection");
 

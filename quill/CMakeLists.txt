@@ -8,54 +8,58 @@ set(TARGET_NAME quill)
 # header files
 set(HEADER_FILES
         # quill
+        include/quill/core/filters/FilterBase.h
+
+        include/quill/core/handlers/ConsoleHandler.h
+        include/quill/core/handlers/FileHandler.h
+        include/quill/core/handlers/Handler.h
+        include/quill/core/handlers/JsonFileHandler.h
+        include/quill/core/handlers/NullHandler.h
+        include/quill/core/handlers/RotatingFileHandler.h
+        include/quill/core/handlers/StreamHandler.h
+
         include/quill/backend/BackendWorker.h
         include/quill/backend/BacktraceStorage.h
+        include/quill/backend/Clock.h
+        include/quill/core/FileUtilities.h
+        include/quill/core/SinkManager.h
+        include/quill/core/LoggerManager.h
+        include/quill/backend/BackendManager.h
+        include/quill/core/PatternFormatter.h
+        include/quill/backend/RdtscClock.h
         include/quill/backend/StringFromTime.h
-        include/quill/backend/TimestampFormatter.h
-        include/quill/backend/TransitEventBuffer.h
+        include/quill/core/TimestampFormatter.h
+        include/quill/core/Utilities.h
+
+
 
         include/quill/detail/SignalHandler.h
 
-        include/quill/clock/TimestampClock.h
 
-        include/quill/filters/FilterBase.h
+        include/quill/core/Attributes.h
+        include/quill/core/BoundedSPSCQueue.h
+        include/quill/core/Config.h
 
-        include/quill/handlers/ConsoleHandler.h
-        include/quill/handlers/FileHandler.h
-        include/quill/handlers/Handler.h
-        include/quill/handlers/JsonFileHandler.h
-        include/quill/handlers/NullHandler.h
-        include/quill/handlers/RotatingFileHandler.h
-        include/quill/handlers/StreamHandler.h
+        include/quill/core/LoggerDetails.h
+        include/quill/core/Common.h
+        include/quill/core/LogLevel.h
 
-        include/quill/common/Attributes.h
-        include/quill/common/BoundedSPSCQueue.h
-        include/quill/common/Config.h
-        include/quill/common/FileUtilities.h
-        include/quill/common/HandlerCollection.h
-        include/quill/common/LoggerDetails.h
-        include/quill/common/Common.h
-        include/quill/common/LogLevel.h
-        include/quill/common/LogManager.h
-        include/quill/common/MacroMetadata.h
-        include/quill/common/QuillError.h
-        include/quill/common/Rdtsc.h
-        include/quill/common/RdtscClock.h
-        include/quill/common/Serialize.h
-        include/quill/common/ThreadContext.h
-        include/quill/common/ThreadContextCollection.h
-        include/quill/common/TypeTraitsCopyable.h
-        include/quill/common/UnboundedSPSCQueue.h
-        include/quill/common/Utilities.h
-        include/quill/common/LoggerCollection.h
-        include/quill/common/Os.h
-        include/quill/common/PatternFormatter.h
-        include/quill/common/Fmt.h
-        include/quill/common/Logger.h
-        include/quill/common/TransitEvent.h
-        include/quill/common/Clock.h
+        include/quill/core/MacroMetadata.h
+        include/quill/core/QuillError.h
+        include/quill/core/Rdtsc.h
 
-        include/quill/LogMacros.h
+        include/quill/core/EncodeDecode.h
+        include/quill/core/ThreadContextManager.h
+        include/quill/core/UnboundedSPSCQueue.h
+        include/quill/core/TransitEvent.h
+        include/quill/core/TransitEventBuffer.h
+
+        include/quill/core/Os.h
+        include/quill/core/UserClock.h
+
+
+        include/quill/frontend/Logger.h
+        include/quill/frontend/LogMacros.h
         include/quill/Quill.h
         include/quill/TweakMe.h
         include/quill/Utility.h
@@ -64,11 +68,8 @@ set(HEADER_FILES
 # source files
 set(SOURCE_FILES
         src/detail/SignalHandler.cpp
-        src/Quill.cpp
         )
 
-if (NOT QUILL_FMT_EXTERNAL)
-    # if not using external fmt, include the bundled version of libfmt
     list(APPEND HEADER_FILES
             include/quill/bundled/fmt/args.h
             include/quill/bundled/fmt/chrono.h
@@ -83,11 +84,6 @@ if (NOT QUILL_FMT_EXTERNAL)
             include/quill/bundled/fmt/ranges.h
             include/quill/bundled/fmt/std.h
             include/quill/bundled/fmt/xchar.h)
-
-    list(APPEND SOURCE_FILES
-            src/bundled/fmt/format.cc
-            src/bundled/fmt/os.cc)
-endif ()
 
 # Add as a library
 add_library(${TARGET_NAME} "")
@@ -123,25 +119,8 @@ endif ()
 # Add target sources
 target_sources(${TARGET_NAME} PRIVATE ${SOURCE_FILES} ${HEADER_FILES})
 
-# Check if using external fmt
-if (NOT QUILL_FMT_EXTERNAL)
     # Link dependencies
     target_link_libraries(${TARGET_NAME} PUBLIC Threads::Threads)
-else ()
-    # if fmt is not a target in the project trying to find it system wise
-    if (NOT TARGET fmt::fmt AND NOT TARGET fmt)
-        find_package(fmt REQUIRED)
-    endif ()
-
-    # define QUILL_FMT_EXTERNAL
-    target_compile_definitions(${TARGET_NAME} PUBLIC QUILL_FMT_EXTERNAL)
-
-    # Link dependencies
-    target_link_libraries(${TARGET_NAME} PUBLIC Threads::Threads fmt::fmt)
-
-    # Add dependency to pkg-config
-    set(PKG_CONFIG_REQUIRES fmt)
-endif ()
 
 if (MINGW)
     # strftime requires this when using MinGw to correctly format the time ..
@@ -251,12 +230,7 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
                 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif ()
 
-    # Copy the headers
-    if (QUILL_FMT_EXTERNAL)
-        install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR} PATTERN "bundled" EXCLUDE)
-    else ()
-        install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR})
-    endif ()
+    install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR})
 
     # Copy pkgconfig
     install(FILES "${pkgconfig}" DESTINATION "${QUILL_PKGCONFIG_DIR}")

@@ -1,7 +1,7 @@
 #include "doctest/doctest.h"
 
-#include "quill/common/Common.h"
-#include "quill/common/PatternFormatter.h"
+#include "quill/core/Common.h"
+#include "quill/core/PatternFormatter.h"
 #include <chrono>
 #include <string_view>
 

@@ -4,7 +4,7 @@
 #include "doctest/doctest.h"
 
 #include "quill/Quill.h"
-#include "quill/common/LogManager.h"
+#include "quill/core/LogManager.h"
 
 TEST_SUITE_BEGIN("QuillBoundQueueLog");
 
@@ -15,7 +15,7 @@ TEST_CASE("quill_full_bound_queue_safe_flush")
 {
   fs::path const filename{"test_quill_full_bound_queue_safe_flush"};
 
-  LogManager lm;
+LogSystemManager lm;
 
   quill::Config cfg;
 

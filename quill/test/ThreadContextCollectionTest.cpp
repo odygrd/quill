@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
-#include "quill/common/Config.h"
-#include "quill/common/ThreadContext.h"
-#include "quill/common/ThreadContextCollection.h"
+#include "quill/core/Config.h"
+#include "quill/core/ThreadContext.h"
+#include "quill/core/ThreadContextManager.h"
 #include <array>
 #include <thread>
 
@@ -22,7 +22,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
 
   // run the test multiple times to create many thread contexts for the same thread context collection
   Config cfg;
-  ThreadContextCollection thread_context_collection{cfg};
+ThreadContextManager thread_context_collection{cfg};
 
   constexpr uint32_t tries = 4;
   for (uint32_t k = 0; k < tries; ++k)
@@ -72,7 +72,12 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
 
     for (auto& thread_context : backend_thread_contexts_cache_local)
     {
-      REQUIRE(thread_context->is_valid());
+REQUIRE(thread_context
+->
+
+is_valid_context()
+
+);
       REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
     }
 
@@ -87,7 +92,12 @@ TEST_CASE("add_remove_thread_context_multithreaded_wait_for_threads_to_join")
     // For this we use the old cache avoiding to update it - This never happens in the real logger
     for (auto* thread_context : backend_thread_contexts_cache_local)
     {
-      REQUIRE_FALSE(thread_context->is_valid());
+REQUIRE_FALSE(thread_context
+->
+
+is_valid_context()
+
+);
       REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
     }
 
@@ -109,7 +119,7 @@ TEST_CASE("add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join
 
   // run the test multiple times to create many thread contexts for the same thread context collection
   Config cfg;
-  ThreadContextCollection thread_context_collection{cfg};
+ThreadContextManager thread_context_collection{cfg};
 
   constexpr uint32_t tries = 4;
   for (uint32_t k = 0; k < tries; ++k)
@@ -155,7 +165,12 @@ TEST_CASE("add_remove_thread_context_multithreaded_dont_wait_for_threads_to_join
     thread_context_collection.clear_invalid_and_empty_thread_contexts();
     for (auto& thread_context : thread_context_collection.backend_thread_contexts_cache())
     {
-      REQUIRE(thread_context->is_valid());
+REQUIRE(thread_context
+->
+
+is_valid_context()
+
+);
       REQUIRE(thread_context->spsc_queue<QUILL_QUEUE_TYPE>().empty());
       thread_context_collection.clear_invalid_and_empty_thread_contexts();
     }

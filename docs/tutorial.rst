@@ -518,10 +518,10 @@ The logger object are never instantiated directly. Instead they first have to ge
 
 Based on the create function that was used the new logger might inherit all properties of the default logger or get created with it’s own custom properties.
 
-.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
-.. doxygenfunction:: quill::create_logger(std::string const &logger_name, Handler *handler, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
-.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::initializer_list<std::shared_ptr<Handler>> handlers, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
-.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::vector<std::shared_ptr<Handler>> const &handlers, std::optional<TimestampClockType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::optional<ClockSourceType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, Handler *handler, std::optional<ClockSourceType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::initializer_list<std::shared_ptr<Handler>> handlers, std::optional<ClockSourceType> timestamp_clock_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
+.. doxygenfunction:: quill::create_logger(std::string const &logger_name, std::vector<std::shared_ptr<Handler>> const &handlers, std::optional<ClockSourceType> clock_source_type = std::nullopt, std::optional<TimestampClock*> timestamp_clock = std::nullopt)
 
 Logger access
 -----------------------------
@@ -903,7 +903,7 @@ The following example compiles and copies the user defined type even tho it is a
        class User
        {
        public:
-         User(std::string name) : name(std::move(name)){};
+         User(std::string name) : name(std::_move(name)){};
 
          friend std::ostream& operator<<(std::ostream& os, User2 const& obj)
          {

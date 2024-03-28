@@ -10,9 +10,9 @@
 #include <string_view>
 #include <tuple>
 
-#include "quill/common/Attributes.h"
-#include "quill/common/Common.h"
-#include "quill/common/Fmt.h"
+#include "quill/core/Attributes.h"
+#include "quill/core/Common.h"
+#include "quill/core/Fmt.h"
 
 /**
  * Contains useful utilities to assist with logging

@@ -1,7 +1,7 @@
 #include "doctest/doctest.h"
 
-#include "quill/common/UnboundedSPSCQueue.h"
-#include "quill/common/Utilities.h"
+#include "quill/core/UnboundedSPSCQueue.h"
+#include "quill/core/Utilities.h"
 #include <cstring>
 #include <thread>
 #include <vector>

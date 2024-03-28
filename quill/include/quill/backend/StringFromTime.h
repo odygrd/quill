@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "quill/common/Attributes.h"
-#include "quill/common/Common.h"
-#include "quill/common/Os.h"
-#include "quill/common/Utilities.h"
+#include "quill/core/Attributes.h"
+#include "quill/core/Common.h"
+#include "quill/core/Os.h"
+#include "quill/core/Utilities.h"
 
 #include <array>
 #include <chrono>

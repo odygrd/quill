@@ -1,9 +1,9 @@
 #include "doctest/doctest.h"
 
-#include "quill/common/Config.h"
-#include "quill/common/HandlerCollection.h"
-#include "quill/common/LoggerCollection.h"
-#include "quill/common/ThreadContextCollection.h"
+#include "quill/core/Config.h"
+#include "quill/core/LoggerCollection.h"
+#include "quill/core/SinkManager.h"
+#include "quill/core/ThreadContextManager.h"
 #include "quill/handlers/StreamHandler.h"
 
 TEST_SUITE_BEGIN("LoggerCollection");
@@ -16,13 +16,13 @@ TEST_CASE("create_get_same_logger")
 {
   // Create and then get the same logger and check that the values we set are cached
   Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
+SinkManager hc;
+ThreadContextManager tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   auto stream_handler = hc.stdout_console_handler();
   Logger* logger_1 =
-    logger_collection.create_logger("logger_1", stream_handler, TimestampClockType::Tsc, nullptr);
+          logger_collection.create_logger("logger_1", stream_handler, ClockSourceType::Tsc, nullptr);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
 
   // change existing log level
@@ -38,25 +38,25 @@ TEST_CASE("create_get_all_loggers")
 {
   // Create and then get the same logger and check that the values we set are cached
   Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
+SinkManager hc;
+ThreadContextManager tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   auto stream_handler = hc.stdout_console_handler();
   Logger* logger_1 =
-    logger_collection.create_logger("logger_1", stream_handler, TimestampClockType::Tsc, nullptr);
+          logger_collection.create_logger("logger_1", stream_handler, ClockSourceType::Tsc, nullptr);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
   logger_1->set_log_level(LogLevel::TraceL2);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::TraceL2);
 
   Logger* logger_2 =
-    logger_collection.create_logger("logger_2", stream_handler, TimestampClockType::Tsc, nullptr);
+          logger_collection.create_logger("logger_2", stream_handler, ClockSourceType::Tsc, nullptr);
   REQUIRE_EQ(logger_2->log_level(), LogLevel::Info);
   logger_2->set_log_level(LogLevel::Debug);
   REQUIRE_EQ(logger_2->log_level(), LogLevel::Debug);
 
   Logger* logger_3 =
-    logger_collection.create_logger("logger_3", stream_handler, TimestampClockType::Tsc, nullptr);
+          logger_collection.create_logger("logger_3", stream_handler, ClockSourceType::Tsc, nullptr);
   REQUIRE_EQ(logger_3->log_level(), LogLevel::Info);
   logger_3->set_log_level(LogLevel::Error);
   REQUIRE_EQ(logger_3->log_level(), LogLevel::Error);
@@ -75,13 +75,13 @@ TEST_CASE("create_get_different_loggers")
 {
   // Create and then get the same logger and check that the values we set are different
   Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
+SinkManager hc;
+ThreadContextManager tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   auto stream_handler = hc.stdout_console_handler();
   Logger* logger_1 =
-    logger_collection.create_logger("logger_1", stream_handler, TimestampClockType::Tsc, nullptr);
+          logger_collection.create_logger("logger_1", stream_handler, ClockSourceType::Tsc, nullptr);
   REQUIRE_EQ(logger_1->log_level(), LogLevel::Info);
 
   // change existing log level
@@ -90,7 +90,7 @@ TEST_CASE("create_get_different_loggers")
   // try to get a new logger with a default log level
   auto stream_handler_2 = hc.stdout_console_handler();
   QUILL_MAYBE_UNUSED Logger* logger_2 =
-    logger_collection.create_logger("logger_2", stream_handler_2, TimestampClockType::Tsc, nullptr);
+logger_collection.create_logger("logger_2", stream_handler_2, ClockSourceType::Tsc, nullptr);
   Logger* logger_3 = logger_collection.get_logger("logger_2");
   REQUIRE_EQ(logger_3->log_level(), LogLevel::Info);
 }
@@ -100,8 +100,8 @@ TEST_CASE("get_non_existing_logger")
 {
   // Check that we throw if we try to get a logger that was never created before
   Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
+SinkManager hc;
+ThreadContextManager tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   // try to get a new logger with a default log level
@@ -116,8 +116,8 @@ TEST_CASE("root_logger")
   // Get the root logger and change the log level, then get the root logger again and check
   // the values we set are cached
   Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
+SinkManager hc;
+ThreadContextManager tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
   Logger* default_logger = logger_collection.get_logger();
@@ -140,11 +140,11 @@ TEST_CASE("create_logger_from_default_logger")
 {
   // Create a new logger and check that the properties are the same as the root logger
   Config cfg;
-  HandlerCollection hc;
-  ThreadContextCollection tc{cfg};
+SinkManager hc;
+ThreadContextManager tc{cfg};
   LoggerCollection logger_collection{cfg, tc, hc};
 
-  Logger* default_logger = logger_collection.create_logger("logger_test", TimestampClockType::Tsc, nullptr);
+Logger *default_logger = logger_collection.create_logger("logger_test", ClockSourceType::Tsc, nullptr);
   REQUIRE_EQ(default_logger->log_level(), LogLevel::Info);
 }
 

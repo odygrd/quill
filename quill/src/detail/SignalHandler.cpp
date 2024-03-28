@@ -6,8 +6,8 @@
 #include <thread>
 
 #include "quill/Quill.h"
-#include "quill/common/Os.h"
-#include "quill/common/QuillError.h"
+#include "quill/core/Os.h"
+#include "quill/core/QuillError.h"
 
 #if defined(_WIN32)
   #include <windows.h>
@@ -22,9 +22,9 @@
     {                                                                                              \
       static constexpr quill::MacroMetadata macro_metadata{                                        \
         "QuillSignalHandler.cpp:~",       __FUNCTION__, fmt,  nullptr, log_statement_level,        \
-        quill::MacroMetadata::Event::Log, false,        false};                                    \
+        quill::MacroMetadata::Event::Log,        false};                                    \
                                                                                                    \
-      logger->template log<false>(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);          \
+      logger->log(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);          \
     }                                                                                              \
   } while (0)
 
@@ -105,8 +105,8 @@ BOOL WINAPI on_console_signal(DWORD signal)
 LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
 {
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
-  if ((LogManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
-      (get_thread_id() == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
+  if ((LogSystemManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
+      (get_thread_id() == LogSystemManagerSingleton::instance().log_manager().backend_worker_thread_id()))
   {
     // backend worker thread is not running or the handler is called in the backend worker thread
   }
@@ -144,8 +144,8 @@ void on_signal(int32_t signal_number)
   }
 
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
-  if ((LogManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
-      (get_thread_id() == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
+  if ((LogSystemManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
+      (get_thread_id() == LogSystemManagerSingleton::instance().log_manager().backend_worker_thread_id()))
   {
     // backend worker thread is not running or the handler is called in the backend worker thread
     if (signal_number == SIGINT || signal_number == SIGTERM)
@@ -201,64 +201,64 @@ void on_alarm(int32_t signal_number)
 /***/
 void on_signal(int32_t signal_number)
 {
-  // This handler can be entered by multiple threads. We only allow the first thread to enter
-  // the signal handler
-  lock = lock + 1;
-  while (lock != 1)
-  {
-    // sleep until a signal is delivered that either terminates the process or causes the
-    // invocation of a signal-catching function.
-    pause();
-  }
-
-  // Store the original signal number
-  signal_number_ = signal_number;
-
-  // We setup an alarm to crash after 20 seconds by redelivering the original signal,
-  // in case anything else goes wrong
-  alarm(std::chrono::seconds{20}.count());
-
-  // Get the id of this thread in the handler and make sure it is not the backend worker thread
-  uint32_t const tid = get_thread_id();
-  if ((LogManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
-      (tid == LogManagerSingleton::instance().log_manager().backend_worker_thread_id()))
-  {
-    // backend worker thread is not running or the handler is called in the backend worker thread
-    if (signal_number == SIGINT || signal_number == SIGTERM)
-    {
-      std::exit(EXIT_SUCCESS);
-    }
-    else
-    {
-      // for other signals expect SIGINT and SIGTERM we re-raise
-      std::signal(signal_number, SIG_DFL);
-      std::raise(signal_number);
-    }
-  }
-  else
-  {
-    // This means signal handler is running a caller thread, we can log from the root logger
-    QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Info, "Received signal: {}",
-                       ::strsignal(signal_number));
-
-    if (signal_number == SIGINT || signal_number == SIGTERM)
-    {
-      // For SIGINT and SIGTERM, we are shutting down gracefully
-      quill::flush();
-      std::exit(EXIT_SUCCESS);
-    }
-    else
-    {
-      QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Critical,
-                         "Terminated unexpectedly because of signal: {}", ::strsignal(signal_number));
-
-      quill::flush();
-
-      // Reset to the default signal handler and re-raise the signal
-      std::signal(signal_number, SIG_DFL);
-      std::raise(signal_number);
-    }
-  }
+//  // This handler can be entered by multiple threads. We only allow the first thread to enter
+//  // the signal handler
+//  lock = lock + 1;
+//  while (lock != 1)
+//  {
+//    // sleep until a signal is delivered that either terminates the process or causes the
+//    // invocation of a signal-catching function.
+//    pause();
+//  }
+//
+//  // Store the original signal number
+//  signal_number_ = signal_number;
+//
+//  // We setup an alarm to crash after 20 seconds by redelivering the original signal,
+//  // in case anything else goes wrong
+//  alarm(std::chrono::seconds{20}.count());
+//
+//  // Get the id of this thread in the handler and make sure it is not the backend worker thread
+//  uint32_t const tid = get_thread_id();
+//  if ((LogSystemManagerSingleton::instance().log_manager().backend_worker_thread_id() == 0) ||
+//      (tid == LogSystemManagerSingleton::instance().log_manager().backend_worker_thread_id()))
+//  {
+//    // backend worker thread is not running or the handler is called in the backend worker thread
+//    if (signal_number == SIGINT || signal_number == SIGTERM)
+//    {
+//      std::exit(EXIT_SUCCESS);
+//    }
+//    else
+//    {
+//      // for other signals expect SIGINT and SIGTERM we re-raise
+//      std::signal(signal_number, SIG_DFL);
+//      std::raise(signal_number);
+//    }
+//  }
+//  else
+//  {
+//    // This means signal handler is running a caller thread, we can log from the root logger
+//    QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Info, "Received signal: {}",
+//                       ::strsignal(signal_number));
+//
+//    if (signal_number == SIGINT || signal_number == SIGTERM)
+//    {
+//      // For SIGINT and SIGTERM, we are shutting down gracefully
+//      quill::get_logger()->flush();
+//      std::exit(EXIT_SUCCESS);
+//    }
+//    else
+//    {
+//      QUILL_INTERNAL_LOG(quill::get_logger(), quill::LogLevel::Critical,
+//                         "Terminated unexpectedly because of signal: {}", ::strsignal(signal_number));
+//
+//      quill::get_logger()->flush();
+//
+//      // Reset to the default signal handler and re-raise the signal
+//      std::signal(signal_number, SIG_DFL);
+//      std::raise(signal_number);
+//    }
+//  }
 }
 #endif
 } // namespace

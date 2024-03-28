@@ -1,7 +1,7 @@
 #pragma once
 
 #include "doctest/doctest.h"
-#include "quill/common/Attributes.h"
+#include "quill/core/Attributes.h"
 
 #include <cstring>
 #include <memory>

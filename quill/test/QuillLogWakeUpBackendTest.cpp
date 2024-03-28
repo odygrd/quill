@@ -2,7 +2,7 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Quill.h"
-#include "quill/common/FileUtilities.h"
+#include "quill/core/FileUtilities.h"
 #include "quill/handlers/JsonFileHandler.h"
 #include <cstdio>
 #include <string>

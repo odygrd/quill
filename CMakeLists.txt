@@ -5,8 +5,6 @@ project(quill)
 # Options
 #-------------------------------------------------------------------------------------------------------
 
-option(QUILL_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
-
 option(QUILL_NO_EXCEPTIONS "Build without exceptions with -fno-exceptions flag" OFF)
 
 option(QUILL_DISABLE_POSITION_INDEPENDENT_CODE "Disable position-independent code" OFF)
@@ -106,7 +104,6 @@ if (QUILL_MASTER_PROJECT)
 endif ()
 
 message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
-message(STATUS "QUILL_FMT_EXTERNAL: " ${QUILL_FMT_EXTERNAL})
 message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
 
 #---------------------------------------------------------------------------------------

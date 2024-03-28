@@ -474,7 +474,7 @@
 - When the logging file is deleted from the command line while the logger is still using it, then a new file will be
   reopened for writing.
 - Added `quill::Clock` which enables taking and converting TSC timestamps to system clock timestamps.
-  When `TimestampClockType::Tsc` is used as the default clock type in `Config.h` this class
+  When `ClockSourceType::Tsc` is used as the default clock type in `Config.h` this class
   can also be used to generate timestamps that are in sync with the timestamps in the log
   file. ([#264](https://github.com/odygrd/quill/pull/264))
 - Both `Unbounded` and `Bounded` queue modes can now be used without having to recompile `quill` library. This is still
@@ -778,7 +778,7 @@ For example :
 **Improvements**
 
 - Previously storing the default root logger by calling `quill::get_logger()` followed by `quill::configure(cfg)`
-  would invalidate the pointer to the default root logger returned by the former function. This has now been fixed and
+  would mark_invalid the pointer to the default root logger returned by the former function. This has now been fixed and
   the obtained `Logger*` pointer is still valid.
 - Disable `fmt::streamed()`. ([#189](https://github.com/odygrd/quill/issues/189))
 - Update bundled fmt to 9.1.0

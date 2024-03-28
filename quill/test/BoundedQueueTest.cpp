@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 #include "misc/DocTestExtensions.h"
 
-#include "quill/common/BoundedSPSCQueue.h"
-#include "quill/common/Utilities.h"
+#include "quill/core/BoundedSPSCQueue.h"
+#include "quill/core/Utilities.h"
 #include <cstring>
 #include <thread>
 #include <vector>

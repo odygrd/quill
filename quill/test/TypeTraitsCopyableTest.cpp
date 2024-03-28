@@ -1,6 +1,5 @@
 #include "doctest/doctest.h"
 
-#include "quill/common/TypeTraitsCopyable.h"
 #include <array>
 #include <chrono>
 #include <cstdint>

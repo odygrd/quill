@@ -201,22 +201,6 @@
 #endif
 
 /**
- * Uses an installed version of the fmt library instead of Quill's bundled copy.
- * Quill will try to include <fmt/format.h>, so make sure to set -I directories
- * accordingly if not using CMake.
- *
- * Also available as CMake option `-DQUILL_FMT_EXTERNAL=ON`
- * When `-DQUILL_FMT_EXTERNAL=ON` is used, the below line does not need to be uncommented as CMake
- * will define it automatically.
- *
- * Quill will look for a CMake Target named `fmt`. If the target is not found, it will
- * use find_package(fmt REQUIRED), so make sure that the fmt library is installed on your system.
- */
-#if !defined(QUILL_FMT_EXTERNAL)
-// #define QUILL_FMT_EXTERNAL
-#endif
-
-/**
  * Disables all exceptions and replaces them with std::abort()
  * Also available as CMake option `-DQUILL_NO_EXCEPTIONS=ON`
  */

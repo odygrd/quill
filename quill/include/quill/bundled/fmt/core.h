@@ -8,6 +8,8 @@
 #ifndef FMTQUILL_CORE_H_
 #define FMTQUILL_CORE_H_
 
+#define FMTQUILL_HEADER_ONLY
+
 #include <cstddef>  // std::byte
 #include <cstdio>   // std::FILE
 #include <cstring>  // std::strlen
@@ -2963,7 +2965,4 @@ FMTQUILL_END_EXPORT
 FMTQUILL_GCC_PRAGMA("GCC pop_options")
 FMTQUILL_END_NAMESPACE
 
-#ifdef FMTQUILL_HEADER_ONLY
-#  include "format.h"
-#endif
 #endif  // FMTQUILL_CORE_H_

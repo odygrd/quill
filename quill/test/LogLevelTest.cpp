@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
 #include "misc/TestUtilities.h"
-#include "quill/common/LogLevel.h"
-#include "quill/common/QuillError.h"
+#include "quill/core/LogLevel.h"
+#include "quill/core/QuillError.h"
 
 TEST_SUITE_BEGIN("LogLevel");
 

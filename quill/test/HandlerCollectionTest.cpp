@@ -1,6 +1,6 @@
 #include "doctest/doctest.h"
 
-#include "quill/common/HandlerCollection.h"
+#include "quill/core/SinkManager.h"
 #include <cstdio>
 
 TEST_SUITE_BEGIN("HandlerCollection");
@@ -11,7 +11,7 @@ using namespace quill::detail;
 /***/
 TEST_CASE("stdout_stderr_handlers")
 {
-  HandlerCollection hc;
+SinkManager hc;
 
   // Get the default stdout stream handler
   std::shared_ptr<Handler> stdout_handler = hc.stdout_console_handler();
@@ -50,7 +50,7 @@ TEST_CASE("stdout_stderr_handlers")
 /***/
 TEST_CASE("create_get")
 {
-  HandlerCollection hc;
+SinkManager hc;
 
   // Create a file handler
   std::shared_ptr<Handler> const filehandler = hc.create_handler<FileHandler>(
@@ -82,7 +82,7 @@ TEST_CASE("create_get")
 /***/
 TEST_CASE("subscribe_get_active_same_handler")
 {
-  HandlerCollection hc;
+SinkManager hc;
   // Create a file handler
   std::shared_ptr<Handler> filehandler = hc.create_handler<FileHandler>(
     "create_get_file_handler",
@@ -133,7 +133,7 @@ TEST_CASE("subscribe_get_active_same_handler")
 /***/
 TEST_CASE("subscribe_get_active_different_handlers")
 {
-  HandlerCollection hc;
+SinkManager hc;
 
   // Create a file handler
   std::shared_ptr<Handler> filehandler = hc.create_handler<FileHandler>(

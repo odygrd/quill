@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "quill/common/Common.h"
-#include "quill/common/LoggerDetails.h"
-#include "quill/common/Os.h"
-#include "quill/common/QuillError.h" // for QUILL_THROW, Quil...
-#include "quill/common/TransitEvent.h"
+#include "quill/core/Common.h"
+#include "quill/core/LoggerDetails.h"
+#include "quill/core/Os.h"
+#include "quill/core/QuillError.h" // for QUILL_THROW, Quil...
+#include "quill/core/TransitEvent.h"
 
 #include <cstdint>
 #include <functional>

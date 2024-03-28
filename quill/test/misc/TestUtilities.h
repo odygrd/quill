@@ -3,7 +3,7 @@
 #include "doctest/doctest.h"
 
 #include "DocTestExtensions.h"
-#include "quill/common/Common.h"
+#include "quill/core/Common.h"
 #include <algorithm>
 #include <cstring>
 #include <fstream>

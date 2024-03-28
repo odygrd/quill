@@ -1,5 +1,5 @@
 #include "TestUtilities.h"
-#include "quill/common/Utilities.h"
+#include "quill/core/Utilities.h"
 #include <iostream>
 
 namespace quill
