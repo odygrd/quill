@@ -15,7 +15,7 @@
   // assume x86-64 ..
   #if defined(_WIN32)
     #include <intrin.h>
-  #elif __has_include(<x86gprintrin.h>)
+  #elif __has_include(<x86gprintrin.h>) && !defined(__INTEL_COMPILER)
     #include <x86gprintrin.h>
   #else
     #include <x86intrin.h>
