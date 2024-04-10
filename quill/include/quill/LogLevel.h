@@ -7,6 +7,7 @@
 
 #include "quill/detail/misc/Attributes.h" // for QUILL_NODISCARD
 #include <string>                         // for string
+#include <cstdint>
 
 namespace quill
 {

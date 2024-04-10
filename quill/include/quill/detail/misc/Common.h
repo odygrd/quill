@@ -8,6 +8,7 @@
 #include "quill/TweakMe.h"
 #include <string>
 #include <sstream>
+#include <cstdint>
 
 /**
  * Common type definitions etc
