@@ -6,8 +6,7 @@ namespace quill
 /***/
 void JsonFileHandler::write(fmt_buffer_t const& formatted_log_message, TransitEvent const& log_event)
 {
-  LogLevel const log_level = log_event.log_level_override ? *log_event.log_level_override
-                                                          : log_event.macro_metadata->log_level();
+  LogLevel const log_level = log_event.log_level();
 
   _json_message.clear();
 
