@@ -284,6 +284,12 @@ bool BackendWorker::_get_transit_event_from_queue(std::byte*& read_pos, ThreadCo
 
         // Also set the dynamic log level to the transit event
         transit_event->log_level_override = dynamic_log_level;
+      } else {
+        // Important: if a dynamic log level is not being used, then this must
+        // not have a value, otherwise the wrong log level may be used later.
+        // We can't assume that this member (or any member of TransitEvent) has
+        // its default value because TransitEvents may be reused.
+        transit_event->log_level_override = std::nullopt;
       }
 #if defined(_WIN32)
     }
