@@ -116,6 +116,8 @@ if (QUILL_VERBOSE_MAKEFILE)
     set(CMAKE_VERBOSE_MAKEFILE TRUE CACHE BOOL "Verbose output" FORCE)
 endif ()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftime-trace")
+
 # address sanitizer flags
 if (QUILL_SANITIZE_ADDRESS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g")

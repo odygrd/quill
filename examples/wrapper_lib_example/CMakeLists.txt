@@ -1,0 +1,4 @@
+add_subdirectory(quill_wrapper)
+
+add_executable(quill_example_wrapper_lib example_wrapper_lib.cpp)
+target_link_libraries(quill_example_wrapper_lib quill_wrapper)

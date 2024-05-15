@@ -1,3 +1,5 @@
+add_subdirectory(wrapper_lib_example)
+
 add_executable(quill_example_backtrace example_backtrace.cpp)
 target_link_libraries(quill_example_backtrace quill)
 
