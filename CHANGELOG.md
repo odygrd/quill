@@ -1,4 +1,5 @@
 - [v4.0.0](#v400)
+- [v3.9.0](#v390)
 - [v3.8.0](#v380)
 - [v3.7.0](#v370)
 - [v3.6.0](#v360)
@@ -137,14 +138,14 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
   In earlier versions, the backend worker thread could manage the formatting of any type sent by the frontend by
   creating a copy of the type. However, this approach presents several challenges for asynchronous logging:
 
-  - Error-Prone Asynchronous Logging: Copying and formatting user-defined types on the backend thread in an
-    asynchronous logging setup could lead to errors. Previous versions attempted to address this issue with type
-    trait checks, which incurred additional template instantiations and compile times.
-  - Uncertainty in Type Verification: It was challenging to confidently verify types, as some trivially copiable
-    types, such as `struct A { int* m; }`, could still lead to issues due to potential modifications by the user before
-    formatting.
-  - Hidden Performance Penalties: Logging non-trivially copiable types could introduce hidden cache coherence
-    performance penalties due to memory allocations and de-allocations across threads.
+    - Error-Prone Asynchronous Logging: Copying and formatting user-defined types on the backend thread in an
+      asynchronous logging setup could lead to errors. Previous versions attempted to address this issue with type
+      trait checks, which incurred additional template instantiations and compile times.
+    - Uncertainty in Type Verification: It was challenging to confidently verify types, as some trivially copiable
+      types, such as `struct A { int* m; }`, could still lead to issues due to potential modifications by the user before
+      formatting.
+    - Hidden Performance Penalties: Logging non-trivially copiable types could introduce hidden cache coherence
+      performance penalties due to memory allocations and de-allocations across threads.
 
   Additionally, after years of professional use and based on experience, it has been observed that user-defined and
   standard library types are often logged during program initialization, with fewer occurrences on the hot path where
@@ -171,11 +172,11 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
   the backend, resulting in reduced dependencies. Accessing the frontend logging functions now does not demand
   inclusion of any backend logic components.
 
-  - `#include "quill/Backend.h"`: Included once to start the backend logging thread, typically in main.cpp.
-  - `#include "quill/Frontend.h"`: Used to create or obtain a Logger* and Sinks. Included once, and `Logger*` can
-    be passed around thereafter.
-  - `#include "quill/Logger.h"` and `#include "quill/LogMacros.h"`: These two files are the only ones needed for
-    logging and are included in almost every file that requires logging functionality.
+    - `#include "quill/Backend.h"`: Included once to start the backend logging thread, typically in main.cpp.
+    - `#include "quill/Frontend.h"`: Used to create or obtain a Logger* and Sinks. Included once, and `Logger*` can
+      be passed around thereafter.
+    - `#include "quill/Logger.h"` and `#include "quill/LogMacros.h"`: These two files are the only ones needed for
+      logging and are included in almost every file that requires logging functionality.
 
 - **Removal of external libfmt usage**: The option to use external `libfmt` with the library has been removed.
   Instead, `libfmt` is now an internal component of the library, accessible under the namespace `fmtquill`. You can
@@ -194,12 +195,19 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
 - Revise include files to accommodate the removal of `Quill.h`
 - Update the code that starts the backend thread and the logger/sink creation
 - For log statements containing standard library or user-defined types:
-  - If using `LogMacros.h`, ensure there types are formatted to strings before passing them to `LOG_` macros,
-    employing your preferred method. This approach is recommended for its minimal include dependencies and explicit
-    conversion to strings.
-  - If using `LogMacrosFmt.h`, simply include the relevant `quill/bundled/fmt/` headers. The `LOG_` macros from this
-    file will automatically convert unsupported arguments to strings, eliminating the necessity to update each log
-    statement's arguments.
+    - If using `LogMacros.h`, ensure there types are formatted to strings before passing them to `LOG_` macros,
+      employing your preferred method. This approach is recommended for its minimal include dependencies and explicit
+      conversion to strings.
+    - If using `LogMacrosFmt.h`, simply include the relevant `quill/bundled/fmt/` headers. The `LOG_` macros from this
+      file will automatically convert unsupported arguments to strings, eliminating the necessity to update each log
+      statement's arguments.
+
+## v3.9.0
+
+- Fix bug in `ConsoleHandler` when dynamic log level is used ([#421](https://github.com/odygrd/quill/pull/421))
+- Fix bug in `TransitEvent` when dynamic log level is used ([#427](https://github.com/odygrd/quill/pull/427))
+- Fix build error for Intel compiler classic ([#414](https://github.com/odygrd/quill/pull/414))
+- Added `JsonConsoleHandler` ([#413](https://github.com/odygrd/quill/issues/413))
 
 ## v3.8.0
 
