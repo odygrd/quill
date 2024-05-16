@@ -82,7 +82,7 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
 | v4.0.0  | ![quill_v4_compiler_profile.speedscope.png](docs%2Fquill_v4_compiler_profile.speedscope.png) |
 | v3.8.0  | ![quill_v3_compiler_profile.speedscope.png](docs%2Fquill_v3_compiler_profile.speedscope.png) |
 
-- Increased backend thread throughput compared to the previous version. Below benchmark results were obtained on
+- Minor increase in backend thread throughput compared to the previous version. Below benchmark results were obtained on
   `Linux RHEL 9` with an `Intel Core i5-12600` running at 4.8 GHz.
 
 | Version |                                 Backend Throughput                                 |
@@ -104,7 +104,7 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
 
 | Version | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------|:----:|:----:|:----:|:----:|:----:|:------:|
-| v4.0.0  |  8   |  8   |  8   |  16  |  18  |   20   | 
+| v4.0.0  |  8   |  8   |  9   |  16  |  18  |   21   | 
 | v3.8.0  |  8   |  11  |  12  |  16  |  19  |   21   |
 
 #### Changes
@@ -142,8 +142,8 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
       asynchronous logging setup could lead to errors. Previous versions attempted to address this issue with type
       trait checks, which incurred additional template instantiations and compile times.
     - Uncertainty in Type Verification: It was challenging to confidently verify types, as some trivially copiable
-      types, such as `struct A { int* m; }`, could still lead to issues due to potential modifications by the user before
-      formatting.
+      types, such as `struct A { int* m; }`, could still lead to issues due to potential modifications by the user
+      before formatting.
     - Hidden Performance Penalties: Logging non-trivially copiable types could introduce hidden cache coherence
       performance penalties due to memory allocations and de-allocations across threads.
 
@@ -184,23 +184,12 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
   integrate your preferred formatting library. Since `libfmt` is encapsulated within a distinct namespace, there are no
   conflicts even if you link your custom `libfmt` alongside the logging library.
 
-  Internal `fmtquill` header-only version has been modified to include only `fmt/core.h` for the frontend,
-  omitting the heavier `fmt/format.h` dependency. It's important to note that `fmt/format.h` is not required when
-  logging primitive types, enums, or strings (such as std::string, std::string_view, or char arrays).
-  However, when using `LogMacrosFmt.h` to format standard library or user-defined types, inclusion of `fmt/format.h`
-  is still necessary on your end.
-
 #### Migration Guidance
 
 - Revise include files to accommodate the removal of `Quill.h`
 - Update the code that starts the backend thread and the logger/sink creation
-- For log statements containing standard library or user-defined types:
-    - If using `LogMacros.h`, ensure there types are formatted to strings before passing them to `LOG_` macros,
-      employing your preferred method. This approach is recommended for its minimal include dependencies and explicit
-      conversion to strings.
-    - If using `LogMacrosFmt.h`, simply include the relevant `quill/bundled/fmt/` headers. The `LOG_` macros from this
-      file will automatically convert unsupported arguments to strings, eliminating the necessity to update each log
-      statement's arguments.
+- For log statements containing standard library or user-defined types ensure the types are formatted to strings before
+  passing them to `LOG_` macros, employing your preferred method.
 
 ## v3.9.0
 

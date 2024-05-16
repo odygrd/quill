@@ -319,7 +319,7 @@ public:
 
   /**
    * @brief Constructor
-   * @param console_colours console colours instance
+   * @param enable_colours enable or disable console colours
    * @param stream stream name can only be "stdout" or "stderr"
    */
   explicit ConsoleSink(bool enable_colours = true, std::string const& stream = "stdout")

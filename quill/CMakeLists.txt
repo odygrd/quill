@@ -20,20 +20,24 @@ set(HEADER_FILES
         include/quill/backend/TransitEventBuffer.h
         include/quill/backend/BackendUtilities.h
 
-        include/quill/filters/Filter.h
-
-        include/quill/sinks/ConsoleSink.h
-        include/quill/sinks/FileSink.h
-        include/quill/sinks/Sink.h
-        include/quill/sinks/JsonFileSink.h
-        include/quill/sinks/NullSink.h
-        include/quill/sinks/RotatingFileSink.h
-        include/quill/sinks/StreamSink.h
+        include/quill/bundled/fmt/args.h
+        include/quill/bundled/fmt/chrono.h
+        include/quill/bundled/fmt/color.h
+        include/quill/bundled/fmt/compile.h
+        include/quill/bundled/fmt/core.h
+        include/quill/bundled/fmt/format.h
+        include/quill/bundled/fmt/format-inl.h
+        include/quill/bundled/fmt/os.h
+        include/quill/bundled/fmt/ostream.h
+        include/quill/bundled/fmt/printf.h
+        include/quill/bundled/fmt/ranges.h
+        include/quill/bundled/fmt/std.h
+        include/quill/bundled/fmt/xchar.h
 
         include/quill/core/Attributes.h
         include/quill/core/BoundedSPSCQueue.h
         include/quill/core/Common.h
-        include/quill/core/EncodeDecode.h
+        include/quill/core/Codec.h
         include/quill/core/Filesystem.h
         include/quill/core/FormatBuffer.h
         include/quill/core/FrontendOptions.h
@@ -49,30 +53,27 @@ set(HEADER_FILES
         include/quill/core/TimeUtilities.h
         include/quill/core/UnboundedSPSCQueue.h
 
+        include/quill/filters/Filter.h
+
+        include/quill/sinks/ConsoleSink.h
+        include/quill/sinks/FileSink.h
+        include/quill/sinks/JsonConsoleSink.h
+        include/quill/sinks/JsonFileSink.h
+        include/quill/sinks/NullSink.h
+        include/quill/sinks/RotatingFileSink.h
+        include/quill/sinks/Sink.h
+        include/quill/sinks/StreamSink.h
+
+        include/quill/std/Array.h
+
         include/quill/Backend.h
         include/quill/BackendTscClock.h
         include/quill/Frontend.h
         include/quill/Logger.h
         include/quill/LogMacros.h
-        include/quill/LogMacrosFmt.h
         include/quill/UserClockSource.h
         include/quill/Utility.h
 )
-
-list(APPEND HEADER_FILES
-        include/quill/bundled/fmt/args.h
-        include/quill/bundled/fmt/chrono.h
-        include/quill/bundled/fmt/color.h
-        include/quill/bundled/fmt/compile.h
-        include/quill/bundled/fmt/core.h
-        include/quill/bundled/fmt/format.h
-        include/quill/bundled/fmt/format-inl.h
-        include/quill/bundled/fmt/os.h
-        include/quill/bundled/fmt/ostream.h
-        include/quill/bundled/fmt/printf.h
-        include/quill/bundled/fmt/ranges.h
-        include/quill/bundled/fmt/std.h
-        include/quill/bundled/fmt/xchar.h)
 
 # Add as a library
 add_library(${TARGET_NAME} INTERFACE)
@@ -223,7 +224,6 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
                 quill_example_user_defined_sink
                 quill_example_tags_logging
                 quill_example_json_sink_logging
-                quill_example_user_defined_types_implicit_conversion_logging
                 quill_example_user_defined_types_logging
                 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif ()

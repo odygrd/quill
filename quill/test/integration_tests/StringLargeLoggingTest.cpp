@@ -62,11 +62,12 @@ TEST_CASE("string_large_logging")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   REQUIRE_EQ(file_contents.size(), number_of_messages);
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

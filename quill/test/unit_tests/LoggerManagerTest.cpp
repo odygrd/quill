@@ -33,10 +33,7 @@ TEST_CASE("create_get_remove_logger")
 
   REQUIRE_EQ(lm.get_logger("logger_1")->get_logger_name(), "logger_1");
   REQUIRE_EQ(lm.get_logger("logger_2")->get_logger_name(), "logger_2");
-
-#ifndef QUILL_NO_EXCEPTIONS
-  REQUIRE_THROWS_AS((void)lm.get_logger("logger_3"), quill::QuillError);
-#endif
+  REQUIRE_EQ(lm.get_logger("logger_3"), nullptr);
 
   REQUIRE_EQ(lm.get_all_loggers().size(), 2);
   REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_1");
@@ -47,19 +44,18 @@ TEST_CASE("create_get_remove_logger")
     lm.remove_logger(logger_1);
 
     // Logger is only marked invalid at this stage
-    REQUIRE_EQ(lm.get_all_loggers().size(), 2);
-    REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_1");
-    REQUIRE_EQ(lm.get_all_loggers()[1]->get_logger_name(), "logger_2");
+    REQUIRE_EQ(lm.get_all_loggers().size(), 1);
+    REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_2");
+
+    // count will include also the invalidated loggers
+    REQUIRE_EQ(lm.get_number_of_loggers(), 2);
 
     // Logger is not removed yet because we have pending records
     std::vector<std::string> const removed_loggers =
       lm.cleanup_invalidated_loggers([]() { return false; });
 
     REQUIRE_EQ(removed_loggers.size(), 0);
-
-    REQUIRE_EQ(lm.get_all_loggers().size(), 2);
-    REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_1");
-    REQUIRE_EQ(lm.get_all_loggers()[1]->get_logger_name(), "logger_2");
+    REQUIRE_EQ(lm.get_number_of_loggers(), 2);
   }
 
   // try_remove_logger_1_queue_is_empty
@@ -67,9 +63,11 @@ TEST_CASE("create_get_remove_logger")
     lm.remove_logger(logger_1);
 
     // Logger is only marked invalid at this stage
-    REQUIRE_EQ(lm.get_all_loggers().size(), 2);
-    REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_1");
-    REQUIRE_EQ(lm.get_all_loggers()[1]->get_logger_name(), "logger_2");
+    REQUIRE_EQ(lm.get_all_loggers().size(), 1);
+    REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_2");
+
+    // count will include also the invalidated loggers
+    REQUIRE_EQ(lm.get_number_of_loggers(), 2);
 
     // Logger is removed since we pass true meaning the queue is empty
     std::vector<std::string> const removed_loggers =
@@ -80,6 +78,9 @@ TEST_CASE("create_get_remove_logger")
 
     REQUIRE_EQ(lm.get_all_loggers().size(), 1);
     REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_2");
+
+    // Number of loggers is also updated after removal
+    REQUIRE_EQ(lm.get_number_of_loggers(), 1);
   }
 
   // try_remove_logger_2_queue_has_pending_messages
@@ -87,8 +88,7 @@ TEST_CASE("create_get_remove_logger")
     lm.remove_logger(logger_2);
 
     // Logger is only marked invalid at this stage
-    REQUIRE_EQ(lm.get_all_loggers().size(), 1);
-    REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_2");
+    REQUIRE_EQ(lm.get_all_loggers().size(), 0);
 
     // Logger is not removed yet because we have pending records
     std::vector<std::string> const removed_loggers =
@@ -96,8 +96,8 @@ TEST_CASE("create_get_remove_logger")
 
     REQUIRE_EQ(removed_loggers.size(), 0);
 
-    REQUIRE_EQ(lm.get_all_loggers().size(), 1);
-    REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_2");
+    REQUIRE_EQ(lm.get_all_loggers().size(), 0);
+    REQUIRE_EQ(lm.get_number_of_loggers(), 1);
   }
 
   // try_remove_logger_2_queue_is_empty
@@ -105,8 +105,7 @@ TEST_CASE("create_get_remove_logger")
     lm.remove_logger(logger_2);
 
     // Logger is only marked invalid at this stage
-    REQUIRE_EQ(lm.get_all_loggers().size(), 1);
-    REQUIRE_EQ(lm.get_all_loggers()[0]->get_logger_name(), "logger_2");
+    REQUIRE_EQ(lm.get_all_loggers().size(), 0);
 
     // Logger is removed since we pass true meaning the queue is empty
     std::vector<std::string> const removed_loggers =
@@ -116,6 +115,7 @@ TEST_CASE("create_get_remove_logger")
     REQUIRE_EQ(removed_loggers[0], "logger_2");
 
     REQUIRE_EQ(lm.get_all_loggers().size(), 0);
+    REQUIRE_EQ(lm.get_number_of_loggers(), 0);
   }
 }
 

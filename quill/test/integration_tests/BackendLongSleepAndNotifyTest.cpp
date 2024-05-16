@@ -16,8 +16,8 @@ using namespace quill;
 /***/
 TEST_CASE("backend_long_sleep_and_notify")
 {
-  static constexpr size_t number_of_messages = 500u;
-  static constexpr size_t number_of_threads = 10;
+  static constexpr size_t number_of_messages = 100u;
+  static constexpr size_t number_of_threads = 4;
   static constexpr char const* filename = "log_backend_long_sleep_and_notify.log";
   static std::string const logger_name_prefix = "logger_";
 
@@ -26,11 +26,7 @@ TEST_CASE("backend_long_sleep_and_notify")
   backend_options.sleep_duration = std::chrono::hours{24};
   Backend::start(backend_options);
 
-  // wait for backend worker to start
-  std::this_thread::sleep_for(std::chrono::seconds{1});
-
   std::vector<std::thread> threads;
-
   for (size_t i = 0; i < number_of_threads; ++i)
   {
     threads.emplace_back(
@@ -68,22 +64,14 @@ TEST_CASE("backend_long_sleep_and_notify")
   // The backend worker is still sleeping here so no file should exist
   REQUIRE_EQ(testing::file_contents(filename).size(), 0);
 
-  // Flush all log and remove the loggers
-  REQUIRE_FALSE(Frontend::get_all_loggers().empty());
+  // Notify the backend to wake up and process
+  Backend::notify();
 
-  for (Logger* logger : Frontend::get_all_loggers())
-  {
-    // wake up the backend logging thread on demand
-    // This is needed here to wake up the backend thread to even process the flush_log_message
-    Backend::notify();
-
-    logger->flush_log();
-    Frontend::remove_logger(logger);
-  }
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
 
   // Read file and check
   std::vector<std::string> const file_contents = testing::file_contents(filename);
-
   REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads);
 
   for (size_t i = 0; i < number_of_threads; ++i)

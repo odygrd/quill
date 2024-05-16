@@ -45,12 +45,12 @@ struct fmtquill::formatter<UserDefinedType> : fmtquill::ostream_formatter
 };
 
 /***/
-TEST_CASE("json_logging")
+TEST_CASE("json_file_logging")
 {
   static constexpr size_t number_of_messages = 500u;
   static constexpr size_t number_of_threads = 6;
-  static constexpr char const* json_filename = "json_logging.json";
-  static constexpr char const* filename = "json_logging_file.log";
+  static constexpr char const* json_filename = "json_file_logging.json";
+  static constexpr char const* filename = "json_file_logging_file.log";
   static std::string const logger_name_prefix = "logger_";
 
   // Start the logging backend thread
@@ -109,6 +109,9 @@ TEST_CASE("json_logging")
     Frontend::remove_logger(logger);
   }
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(json_filename);
   std::vector<std::string> const file_contents_s = quill::testing::file_contents(filename);
@@ -142,8 +145,6 @@ TEST_CASE("json_logging")
       REQUIRE(quill::testing::file_contains(file_contents_s, expected_string));
     }
   }
-
-  Backend::stop();
 
   testing::remove_file(json_filename);
   testing::remove_file(filename);

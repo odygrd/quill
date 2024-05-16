@@ -46,7 +46,9 @@ public:
     _backend_worker.run(options);
   }
 
+  /***/
   QUILL_ATTRIBUTE_COLD std::once_flag& get_start_once_flag() noexcept { return _start_once_flag; }
+
   /***/
   QUILL_ATTRIBUTE_COLD void stop_backend_thread() noexcept { _backend_worker.stop(); }
 

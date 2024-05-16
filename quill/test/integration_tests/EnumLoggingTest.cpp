@@ -108,13 +108,14 @@ TEST_CASE("enum_logging")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
   std::string expected_string = "LOG_INFO      " + logger_name + "       Test1 -> 1, Test4 -> 4";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

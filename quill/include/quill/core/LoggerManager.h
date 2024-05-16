@@ -8,7 +8,6 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 #include "quill/core/LoggerBase.h"
-#include "quill/core/QuillError.h"
 
 #include <algorithm>
 #include <atomic>
@@ -44,16 +43,8 @@ public:
   QUILL_NODISCARD LoggerBase* get_logger(std::string const& logger_name) const
   {
     std::lock_guard<std::recursive_mutex> const lock{_mutex};
-
     LoggerBase* logger = _find_logger(logger_name);
-
-    if (QUILL_UNLIKELY(!logger))
-    {
-      // logger does not exist
-      QUILL_THROW(QuillError{std::string{"logger does not exist. name: "} + logger_name});
-    }
-
-    return logger;
+    return logger && logger->is_valid_logger() ? logger : nullptr;
   }
 
   /***/
@@ -62,17 +53,29 @@ public:
     std::lock_guard<std::recursive_mutex> const lock{_mutex};
 
     std::vector<LoggerBase*> loggers;
-    loggers.reserve(_loggers.size());
 
     for (auto const& elem : _loggers)
     {
-      loggers.push_back(elem.get());
+      // we can not add invalidated loggers as they can be removed at any time
+      if (elem->is_valid_logger())
+      {
+        loggers.push_back(elem.get());
+      }
     }
 
     return loggers;
   }
 
   /***/
+  QUILL_NODISCARD size_t get_number_of_loggers() const noexcept
+  {
+    std::lock_guard<std::recursive_mutex> const lock{_mutex};
+    return _loggers.size();
+  }
+
+  /**
+   * For backend use only
+   */
   template <typename TCallback>
   void for_each_logger(TCallback cb) const
   {
@@ -80,6 +83,8 @@ public:
 
     for (auto const& elem : _loggers)
     {
+      // Here we do not check for valid_logger() like in get_all_loggers() because this
+      // function is only called by the backend
       cb(elem.get());
     }
   }
@@ -111,6 +116,7 @@ public:
     }
 
     assert(logger_ptr);
+    assert(logger_ptr->is_valid_logger());
     return logger_ptr;
   }
 
@@ -141,6 +147,7 @@ public:
     }
 
     assert(logger_ptr);
+    assert(logger_ptr->is_valid_logger());
     return logger_ptr;
   }
 

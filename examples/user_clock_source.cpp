@@ -33,7 +33,7 @@ public:
 
   /**
    * set custom timestamp
-   * @param time_since_epoch
+   * @param time_since_epoch timestamp
    */
   void set_timestamp(std::chrono::seconds time_since_epoch)
   {

@@ -140,8 +140,6 @@ struct BackendOptions
    * It's safe to perform logging operations within this function (e.g., LOG_INFO(...)),
    * but avoid calling logger->flush_log(). The function is invoked on the backend thread,
    * which should not remain in a waiting state as it waits for itself.
-   *
-   * @param error_message The error message or notification received from the backend.
    */
   std::function<void(std::string const&)> error_notifier = [](std::string const& error_message)
   {

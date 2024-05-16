@@ -86,6 +86,7 @@ TEST_CASE("backend_exception_notifier")
   // Check our handler was invoked
   REQUIRE_EQ(error_notifier_invoked.load(), 1);
 
+  // Wait until the backend thread stops for test stability
   Backend::stop();
 
   // After the backend has stopped, all messages include the async ones from the notifier will

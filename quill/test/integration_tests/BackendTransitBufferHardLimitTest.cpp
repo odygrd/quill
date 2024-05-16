@@ -67,6 +67,9 @@ TEST_CASE("backend_transit_buffer_hard_limit")
     Frontend::remove_logger(logger);
   }
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = testing::file_contents(filename);
 

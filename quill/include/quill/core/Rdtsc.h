@@ -10,9 +10,17 @@
 #include <cstdint>
 
 #if defined(__aarch64__)
+  #include <chrono>
+  #include <cstdint>
 #elif defined(__ARM_ARCH)
   #include <chrono>
+  #include <cstdint>
 #elif (defined(_M_ARM) || defined(_M_ARM64))
+  #include <chrono>
+  #include <cstdint>
+#elif (defined(__PPC64__))
+  #include <chrono>
+  #include <cstdint>
 #else
   // assume x86-64 ..
   #if defined(_WIN32)

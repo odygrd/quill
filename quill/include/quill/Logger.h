@@ -7,8 +7,8 @@
 
 #include "quill/UserClockSource.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/Codec.h"
 #include "quill/core/Common.h"
-#include "quill/core/EncodeDecode.h"
 #include "quill/core/FrontendOptions.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/LoggerBase.h"
@@ -63,8 +63,8 @@ public:
    * This is the fastest way possible to log
    * @note This function is thread-safe.
    * @param dynamic_log_level dynamic log level
-   * @param metadata metadata of the log message
-   * @param format_args arguments
+   * @param macro_metadata metadata of the log message
+   * @param fmt_args arguments
    *
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
@@ -86,19 +86,10 @@ public:
     detail::ThreadContext* const thread_context =
       quill::detail::get_local_thread_context<frontend_options_t>();
 
-    // For windows also take wide strings into consideration.
-#if defined(_WIN32)
-    constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>() +
-      detail::count_c_style_wide_strings<Args...>() + detail::count_std_wstring_type<Args...>();
-#else
-    constexpr uint32_t c_string_count = detail::count_c_style_strings<Args...>();
-#endif
-
-    size_t c_string_sizes[(c_string_count > 1 ? c_string_count : 1)];
-
     // Need to reserve additional space as we will be aligning the pointer
     size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
-      detail::calculate_args_size_and_populate_string_lengths(c_string_sizes, fmt_args...);
+      detail::calculate_args_size_and_populate_string_lengths(
+                          thread_context->get_c_style_string_length_cache(), fmt_args...);
 
     if (dynamic_log_level != LogLevel::None)
     {
@@ -194,7 +185,7 @@ public:
     write_buffer += sizeof(uintptr_t);
 
     // encode remaining arguments
-    detail::encode(write_buffer, c_string_sizes, fmt_args...);
+    detail::encode(write_buffer, thread_context->get_c_style_string_length_cache(), fmt_args...);
 
     if (dynamic_log_level != LogLevel::None)
     {
@@ -211,6 +202,7 @@ public:
 
     thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(static_cast<uint32_t>(total_size));
     thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();
+    thread_context->get_c_style_string_length_cache().clear();
 
     return true;
   }
@@ -264,9 +256,9 @@ public:
    * @note This function should only be called when the backend worker is running after Backend::start(...)
    * @note This function will block the calling thread until the flush message is processed by the backend thread.
    *       The calling thread can block for up to backend_options.sleep_duration. If you configure a custom
-   *       high sleep duration on the backend thread, e.g., backend_options.sleep_duration = std::chrono::minutes{1},
-   *       then you should call Backend::notify() prior to calling this function to ensure you are not blocked
-   *       while the backend worker thread is sleeping.
+   *       long sleep duration on the backend thread, e.g., backend_options.sleep_duration = std::chrono::minutes{1},
+   *       then you should ideally avoid calling this function as you can block for long period of times unless
+   *       you use another thread that calls Backend::notify()
    */
   void flush_log()
   {

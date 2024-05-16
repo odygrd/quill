@@ -112,6 +112,7 @@ public:
    * Notifies the backend thread to wake up.
    * It is possible to use a long backend sleep_duration and then notify the backend to wake up
    * from any frontend thread.
+   *
    * @note thread-safe
    */
   QUILL_ATTRIBUTE_COLD static void notify() noexcept

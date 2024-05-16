@@ -28,7 +28,7 @@ public:
 
   /**
    * set custom timestamp
-   * @param time_since_epoch
+   * @param time_since_epoch timestamp
    */
   void set_timestamp(std::chrono::seconds time_since_epoch)
   {
@@ -91,9 +91,11 @@ TEST_CASE("user_clock_source")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
   REQUIRE_EQ(file_contents.size(), number_of_messages * 2);
 
   for (size_t i = 0; i < number_of_messages; ++i)
@@ -110,8 +112,6 @@ TEST_CASE("user_clock_source")
       std::to_string(i);
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
   }
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

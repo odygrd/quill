@@ -5,13 +5,6 @@
 
 #pragma once
 
-// Define a preprocessor symbol indicating that LogMacros.h is included
-#define LOG_MACROS_INCLUDED
-
-#ifdef LOG_MACROS_FMT_INCLUDED
-  #error "Both LogMacros.h and LogMacrosFmt.h cannot be included in the same compilation unit."
-#endif
-
 #include "quill/core/Common.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"

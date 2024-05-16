@@ -76,7 +76,8 @@ public:
       _mask(_capacity - 1),
       _bytes_per_batch(static_cast<integer_type>(_capacity * static_cast<double>(reader_store_percent) / 100.0)),
       _storage(static_cast<std::byte*>(_alloc_aligned(2ull * static_cast<uint64_t>(_capacity),
-                                                      CACHE_LINE_ALIGNED, huges_pages_enabled)))
+                                                      CACHE_LINE_ALIGNED, huges_pages_enabled))),
+      _huge_pages_enabled(huges_pages_enabled)
   {
     std::memset(_storage, 0, 2ull * static_cast<uint64_t>(_capacity));
 
@@ -177,7 +178,7 @@ public:
 
   /**
    * Only meant to be called by the reader
-   * @return
+   * @return true if the queue is empty
    */
   QUILL_NODISCARD bool empty() const noexcept
   {
@@ -188,6 +189,8 @@ public:
   {
     return static_cast<integer_type>(_capacity);
   }
+
+  QUILL_NODISCARD bool huge_pages_enabled() const noexcept { return _huge_pages_enabled; }
 
 private:
 #if defined(QUILL_X86ARCH)
@@ -221,13 +224,13 @@ private:
    * Aligned alloc
    * @param size number of bytes to allocate. An integral multiple of alignment
    * @param alignment specifies the alignment. Must be a valid alignment supported by the implementation.
-   * @param huges_pages_enabled allocate huge pages, only suported on linux
+   * @param huges_pages_enabled allocate huge pages, only supported on linux
    * @return On success, returns the pointer to the beginning of newly allocated memory.
    * To avoid a memory leak, the returned pointer must be deallocated with _free_aligned().
    * @throws  std::system_error on failure
    */
 
-  QUILL_NODISCARD static void* _alloc_aligned(size_t size, size_t alignment, bool huges_pages_enabled = false)
+  QUILL_NODISCARD static void* _alloc_aligned(size_t size, size_t alignment, bool huges_pages_enabled)
   {
 #if defined(_WIN32)
     void* p = _aligned_malloc(size, alignment);
@@ -306,6 +309,7 @@ private:
   integer_type const _mask;
   integer_type const _bytes_per_batch;
   std::byte* const _storage{nullptr};
+  bool _huge_pages_enabled;
 
   alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
   alignas(CACHE_LINE_ALIGNED) integer_type _writer_pos{0};

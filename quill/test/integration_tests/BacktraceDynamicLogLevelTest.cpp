@@ -54,8 +54,10 @@ TEST_CASE("backtrace_dynamic_log_level")
   LOG_DYNAMIC(logger, LogLevel::Error, "After dynamic error");
 
   logger->flush_log();
-
   Frontend::remove_logger(logger);
+
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
@@ -76,8 +78,6 @@ TEST_CASE("backtrace_dynamic_log_level")
   std::string expected_string_4 =
     "LOG_BACKTRACE " + logger_name + "       Dynamic backtrace log 119";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string_4));
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

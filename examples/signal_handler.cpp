@@ -11,15 +11,6 @@
 #include <utility>
 #include <vector>
 
-int divide_by_zero(quill::Logger* logger)
-{
-  LOG_INFO(logger, "Crashing");
-
-  int a = 1;
-  int b = 0;
-  return a / b;
-}
-
 void cause_segfault(quill::Logger* logger)
 {
   LOG_INFO(logger, "Crashing");
@@ -85,8 +76,7 @@ int main()
         }
 
         // After 10 messages Crash - Uncomment any of the below :
-
-        // divide_by_zero(logger);
+        
         // illegal_instruction(logger);
         // cause_segfault(logger);
       });

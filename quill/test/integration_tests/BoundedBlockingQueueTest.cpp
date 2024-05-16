@@ -52,6 +52,9 @@ TEST_CASE("bounded_blocking_queue")
 
   logger->flush_log();
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check the first messages as we can't if some were dropped
   std::vector<std::string> const file_contents = testing::file_contents(filename);
 
@@ -70,8 +73,6 @@ TEST_CASE("bounded_blocking_queue")
     REQUIRE(testing::file_contains(file_contents, expected_string_2));
     REQUIRE(testing::file_contains(file_contents, expected_string_3));
   }
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

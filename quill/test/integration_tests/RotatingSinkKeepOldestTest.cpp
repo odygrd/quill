@@ -73,6 +73,9 @@ TEST_CASE("rotating_sink_keep_oldest")
     Frontend::remove_logger(logger);
   }
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(base_filename_a);
   REQUIRE_GE(file_contents.size(), 3);

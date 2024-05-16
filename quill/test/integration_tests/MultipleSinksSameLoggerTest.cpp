@@ -52,6 +52,9 @@ TEST_CASE("multiple_sinks_same_logger")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   {
     // Read file and check
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename);

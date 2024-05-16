@@ -84,6 +84,9 @@ TEST_CASE("arithmetic_types_logging")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
@@ -128,8 +131,6 @@ TEST_CASE("arithmetic_types_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       ci [-123]"}));
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

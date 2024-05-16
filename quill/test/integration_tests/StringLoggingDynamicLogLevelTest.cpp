@@ -102,6 +102,9 @@ TEST_CASE("string_logging_dynamic_log_level")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   REQUIRE_EQ(file_contents.size(), number_of_messages + 12);
@@ -146,8 +149,6 @@ TEST_CASE("string_logging_dynamic_log_level")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 1999, int: 19990, string: Lorem ipsum dolor sit amet, consectetur 1999, char: Lorem ipsum dolor sit amet, consectetur 1999"}));
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

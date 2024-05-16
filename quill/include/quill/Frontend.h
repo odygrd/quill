@@ -138,20 +138,21 @@ public:
    */
   QUILL_NODISCARD static logger_t* get_logger(std::string const& logger_name)
   {
-    return _cast_to_logger(detail::LoggerManager::instance().get_logger(logger_name));
+    detail::LoggerBase* logger = detail::LoggerManager::instance().get_logger(logger_name);
+    return logger ? _cast_to_logger(logger) : nullptr;
   }
 
   /**
-   * @brief Retrieves a map of all registered loggers.
-   *
-   * @return std::unordered_map<std::string, Logger*> A map containing all registered loggers.
+   * @brief Retrieves a map of all registered valid loggers.
+   * @note If `remove_logger()` is called from this or another thread, the return value
+   *       of this function will become invalid.
+   * @return A vector containing all registered loggers.
    */
   QUILL_NODISCARD static std::vector<logger_t*> get_all_loggers()
   {
     std::vector<detail::LoggerBase*> logger_bases = detail::LoggerManager::instance().get_all_loggers();
 
     std::vector<logger_t*> loggers;
-    loggers.reserve(logger_bases.size());
 
     for (auto const& logger_base : logger_bases)
     {
@@ -161,9 +162,22 @@ public:
     return loggers;
   }
 
+  /**
+   * @brief Counts the number of existing loggers, including any invalidated loggers.
+   * This function can be useful for verifying if a logger has been removed after calling
+   * remove_logger() by the backend, as removal occurs asynchronously.
+   * @return The number of loggers.
+   */
+  QUILL_NODISCARD static size_t get_number_of_loggers() noexcept
+  {
+    return detail::LoggerManager::instance().get_number_of_loggers();
+  }
+
 private:
   QUILL_NODISCARD static logger_t* _cast_to_logger(detail::LoggerBase* logger_base)
   {
+    assert(logger_base);
+
     auto* logger = dynamic_cast<logger_t*>(logger_base);
 
     if (QUILL_UNLIKELY(!logger))

@@ -41,7 +41,7 @@ endfunction()
 
 include(${PROJECT_SOURCE_DIR}/cmake/doctest.cmake)
 
-quill_add_test(TEST_BoundedQueueTest.cpp BoundedQueueTest.cpp)
+quill_add_test(TEST_BoundedQueueTest BoundedQueueTest.cpp)
 quill_add_test(TEST_FileUtilities FileUtilitiesTest.cpp)
 quill_add_test(TEST_LoggerManager LoggerManagerTest.cpp)
 quill_add_test(TEST_Logger LoggerTest.cpp)

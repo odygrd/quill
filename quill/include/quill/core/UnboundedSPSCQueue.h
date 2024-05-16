@@ -46,8 +46,8 @@ private:
      * @param bounded_queue_capacity the capacity of the fixed buffer
      * @param huges_pages_enabled enables huge pages
      */
-    explicit Node(uint32_t bounded_queue_capacity, bool huges_pages_enabled)
-      : bounded_queue(bounded_queue_capacity, huges_pages_enabled)
+    explicit Node(uint32_t bounded_queue_capacity, bool huge_pages_enabled)
+      : bounded_queue(bounded_queue_capacity, huge_pages_enabled)
     {
     }
 
@@ -71,9 +71,7 @@ public:
    * Constructor
    */
   explicit UnboundedSPSCQueue(uint32_t initial_bounded_queue_capacity, bool huges_pages_enabled = false)
-    : _huges_pages_enabled(huges_pages_enabled),
-      _producer(new Node(initial_bounded_queue_capacity, huges_pages_enabled)),
-      _consumer(_producer)
+    : _producer(new Node(initial_bounded_queue_capacity, huges_pages_enabled)), _consumer(_producer)
   {
   }
 
@@ -151,7 +149,8 @@ public:
     _producer->bounded_queue.commit_write();
 
     // We failed to reserve because the queue was full, create a new node with a new queue
-    auto const next_node = new Node{static_cast<uint32_t>(capacity), _huges_pages_enabled};
+    auto const next_node =
+      new Node{static_cast<uint32_t>(capacity), _producer->bounded_queue.huge_pages_enabled()};
 
     // store the new node pointer as next in the current node
     _producer->next.store(next_node, std::memory_order_release);
@@ -254,7 +253,6 @@ public:
   }
 
 private:
-  bool _huges_pages_enabled;
   /** Modified by either the producer or consumer but never both */
   alignas(CACHE_LINE_ALIGNED) Node* _producer{nullptr};
   alignas(CACHE_LINE_ALIGNED) Node* _consumer{nullptr};

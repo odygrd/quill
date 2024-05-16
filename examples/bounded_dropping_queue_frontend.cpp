@@ -32,7 +32,6 @@ struct CustomFrontendOptions
 
 /**
  * A new Frontend and Logger should be defined to use the custom frontend options.
- * @return
  */
 using CustomFrontend = quill::FrontendImpl<CustomFrontendOptions>;
 using CustommLogger = quill::LoggerImpl<CustomFrontendOptions>;

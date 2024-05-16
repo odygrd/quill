@@ -54,6 +54,8 @@ public:
       new (&_spsc_queue_union.bounded_spsc_queue)
         BoundedSPSCQueue{initial_spsc_queue_capacity, huges_pages_enabled};
     }
+
+    _c_style_string_length_cache.reserve(8);
   }
 
   /***/
@@ -107,6 +109,12 @@ public:
     {
       return _spsc_queue_union.bounded_spsc_queue;
     }
+  }
+
+  /***/
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::vector<size_t>& get_c_style_string_length_cache() noexcept
+  {
+    return _c_style_string_length_cache;
   }
 
   /***/
@@ -181,6 +189,7 @@ private:
   friend class detail::BackendWorker;
 
   SpscQueueUnion _spsc_queue_union;                                   /** queue for this thread */
+  std::vector<size_t> _c_style_string_length_cache; /** cache used for the length of c-style string log arguments **/
   std::string _thread_id = std::to_string(get_thread_id());           /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                       /**< cache this thread name */
   std::shared_ptr<UnboundedTransitEventBuffer> _transit_event_buffer; /** backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */

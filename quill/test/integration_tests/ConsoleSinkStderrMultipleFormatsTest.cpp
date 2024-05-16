@@ -57,6 +57,9 @@ TEST_CASE("console_sink_stderr_multiple_formats")
     Frontend::remove_logger(logger);
   }
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // convert result to vector
   std::string results = quill::testing::GetCapturedStderr();
   std::stringstream data(results);

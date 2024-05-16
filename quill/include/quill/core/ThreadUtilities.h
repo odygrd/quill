@@ -22,8 +22,10 @@
     #define NOMINMAX
   #endif
 
-  #include <codecvt>
   #include <windows.h>
+
+  #include <codecvt>
+  #include <locale>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>

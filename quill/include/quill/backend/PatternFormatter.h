@@ -91,7 +91,7 @@ public:
    * %(structured_keys)         - Keys appended to the message. Only applicable with structured message formatting; remains empty otherwise.
    *
    * @param time_format The format of the date. Same as strftime() format with extra specifiers `%Qms` `%Qus` `Qns`
-   * @param timezone The timezone of the timestamp, local_time or gmt_time
+   * @param timestamp_timezone The timezone of the timestamp, local_time or gmt_time
    *
    * @throws on invalid format string
    */

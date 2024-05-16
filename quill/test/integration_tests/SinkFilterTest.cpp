@@ -99,6 +99,9 @@ TEST_CASE("sink_filter")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents_a = quill::testing::file_contents(filename_a);
   REQUIRE_EQ(file_contents_a.size(), 1);
@@ -112,8 +115,6 @@ TEST_CASE("sink_filter")
     file_contents_b,
     std::string{"LOG_ERROR     " + logger_name +
                 "       Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
-
-  Backend::stop();
 
   testing::remove_file(filename_a);
   testing::remove_file(filename_b);

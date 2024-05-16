@@ -66,9 +66,11 @@ TEST_CASE("multi_frontend_threads")
     Frontend::remove_logger(logger);
   }
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
   REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads);
 
   for (size_t i = 0; i < number_of_threads; ++i)
@@ -82,8 +84,6 @@ TEST_CASE("multi_frontend_threads")
       REQUIRE(testing::file_contains(file_contents, expected_string));
     }
   }
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

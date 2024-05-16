@@ -74,6 +74,9 @@ TEST_CASE("tags_logging")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
   REQUIRE_EQ(file_contents.size(), 9);
@@ -112,8 +115,6 @@ TEST_CASE("tags_logging")
                 "       [TAG_A -- TAG_B] Lorem ipsum dolor sit amet, consectetur elit 1 3.14"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_ERROR     " + logger_name + "       [TAG_A -- TAG_B] Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true"}));
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

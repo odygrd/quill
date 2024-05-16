@@ -45,9 +45,11 @@ TEST_CASE("single_frontend_thread")
   logger->flush_log();
   Frontend::remove_logger(logger);
 
+  // Wait until the backend thread stops for test stability
+  Backend::stop();
+
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-
   REQUIRE_EQ(file_contents.size(), number_of_messages);
 
   for (size_t i = 0; i < number_of_messages; ++i)
@@ -55,8 +57,6 @@ TEST_CASE("single_frontend_thread")
     std::string expected_string = logger_name + "       This is message " + std::to_string(i);
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
   }
-
-  Backend::stop();
 
   testing::remove_file(filename);
 }

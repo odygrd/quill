@@ -3,9 +3,12 @@
 #include "doctest/doctest.h"
 #include "quill/core/Attributes.h"
 
+
+#include <iostream>
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <string_view>
 
 #define REQUIRE_STREQ(str1, str2)                                                                  \
   do                                                                                               \

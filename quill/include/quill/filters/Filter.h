@@ -45,7 +45,6 @@ public:
    * @param thread_name Name of the thread.
    * @param logger_name Name of the logger.
    * @param log_level Log level of the message.
-   * @param structured_keys_values Vector of key-value pairs for structured logging.
    * @param log_message The log message.
    *
    * @return true if the log message should be written to the file, false otherwise
