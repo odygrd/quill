@@ -15,6 +15,7 @@
 #include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_COLD
 #include "quill/detail/misc/Common.h"           // for Timezone
 #include "quill/handlers/FileHandler.h"         // for FilenameAppend, Filena...
+#include "quill/handlers/JsonConsoleHandler.h"  // for JsonConsoleHandler
 #include "quill/handlers/JsonFileHandler.h"     // for JsonFileHandler
 #include "quill/handlers/RotatingFileHandler.h" // for RotatingFileHandler
 #include <cassert>
@@ -33,7 +34,7 @@ namespace quill
 
 /** Version Info **/
 constexpr uint32_t VersionMajor{3};
-constexpr uint32_t VersionMinor{8};
+constexpr uint32_t VersionMinor{9};
 constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
@@ -200,6 +201,14 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> rotating_file_hand
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> json_file_handler(
   fs::path const& filename, JsonFileHandlerConfig const& config = JsonFileHandlerConfig{},
   FileEventNotifier file_event_notifier = FileEventNotifier{});
+
+/**
+ * Creates a new instance of the JsonConsoleHandler.
+ * @param console_colours
+ * @return
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> json_console_handler(
+  ConsoleColours const& console_colours = ConsoleColours{});
 
 /**
  * Creates a new instance of a NullHandler. The null handler does not do any formatting or output.

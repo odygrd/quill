@@ -81,6 +81,12 @@ std::shared_ptr<Handler> json_file_handler(fs::path const& filename, JsonFileHan
 }
 
 /***/
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Handler> json_console_handler(ConsoleColours const& console_colours /* = ConsoleColours {} */)
+{
+  return create_handler<JsonConsoleHandler>("json_stdout", stdout, console_colours);
+}
+
+/***/
 std::shared_ptr<Handler> null_handler() { return create_handler<NullHandler>("nullhandler"); }
 
 /***/

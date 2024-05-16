@@ -1,3 +1,4 @@
+- [v3.9.0](#v390)
 - [v3.8.0](#v380)
 - [v3.7.0](#v370)
 - [v3.6.0](#v360)
@@ -56,6 +57,14 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v3.9.0
+
+- Fix bug in `ConsoleHandler` when dynamic log level is used ([#421](https://github.com/odygrd/quill/pull/421))
+- Fix bug in `TransitEvent` when dynamic log level is used ([#427](https://github.com/odygrd/quill/pull/427))
+- Fix build error for Intel compiler classic ([#414](https://github.com/odygrd/quill/pull/414))
+- Added `JsonConsoleHandler` ([#413](https://github.com/odygrd/quill/issues/413))
+-
 
 ## v3.8.0
 

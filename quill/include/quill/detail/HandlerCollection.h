@@ -79,18 +79,18 @@ public:
         return handler;
       }
 
-        // recreate this handler
-        if constexpr (std::is_base_of_v<StreamHandler, THandler>)
-        {
-          handler = std::make_shared<THandler>(handler_name, std::forward<Args>(args)...);
-        }
-        else
-        {
-          handler = std::make_shared<THandler>(std::forward<Args>(args)...);
-        }
+      // recreate this handler
+      if constexpr (std::is_base_of_v<StreamHandler, THandler>)
+      {
+        handler = std::make_shared<THandler>(handler_name, std::forward<Args>(args)...);
+      }
+      else
+      {
+        handler = std::make_shared<THandler>(std::forward<Args>(args)...);
+      }
 
-        search->second = handler;
-        return handler;
+      search->second = handler;
+      return handler;
     }
 
     // if first time add it

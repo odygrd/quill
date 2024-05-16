@@ -40,6 +40,7 @@ set(HEADER_FILES
         include/quill/handlers/ConsoleHandler.h
         include/quill/handlers/FileHandler.h
         include/quill/handlers/Handler.h
+        include/quill/handlers/JsonConsoleHandler.h
         include/quill/handlers/JsonFileHandler.h
         include/quill/handlers/NullHandler.h
         include/quill/handlers/RotatingFileHandler.h
@@ -79,6 +80,7 @@ set(SOURCE_FILES
         src/handlers/ConsoleHandler.cpp
         src/handlers/FileHandler.cpp
         src/handlers/Handler.cpp
+        src/handlers/JsonConsoleHandler.cpp
         src/handlers/JsonFileHandler.cpp
         src/handlers/RotatingFileHandler.cpp
         src/handlers/StreamHandler.cpp
@@ -269,7 +271,7 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
                 quill_example_file_rotation quill_example_filters quill_example_handler_log_levels quill_example_json_structured_log
                 quill_example_trivial_system_clock quill_example_trivial_file_logging quill_example_user_defined_types
                 quill_example_bounded_queue_message_dropping quill_example_bounded_queue_blocking quill_example_file_callbacks
-                quill_example_wake_up_logging_thread
+                quill_example_wake_up_logging_thread quill_example_json_structured_log_console
                 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif ()
 
