@@ -91,8 +91,7 @@ public:
 
   /***/
   template <typename TLogger>
-  QUILL_NODISCARD LoggerBase* create_or_get_logger(std::string const& logger_name,
-                                                   std::shared_ptr<Sink> sink, std::string const& format_pattern,
+  LoggerBase* create_or_get_logger(std::string const& logger_name, std::shared_ptr<Sink> sink, std::string const& format_pattern,
                                                    std::string const& time_pattern, Timezone timestamp_timezone,
                                                    ClockSourceType clock_source, UserClockSource* user_clock)
   {
@@ -122,8 +121,8 @@ public:
 
   /***/
   template <typename TLogger>
-  QUILL_NODISCARD LoggerBase* create_or_get_logger(std::string const& logger_name,
-                                                   std::initializer_list<std::shared_ptr<Sink>> sinks,
+  LoggerBase* create_or_get_logger(std::string const& logger_name,
+                                   std::initializer_list<std::shared_ptr<Sink>> sinks,
                                                    std::string const& format_pattern,
                                                    std::string const& time_pattern, Timezone timestamp_timezone,
                                                    ClockSourceType clock_source, UserClockSource* user_clock)
@@ -169,7 +168,7 @@ public:
       _has_invalidated_loggers.store(false, std::memory_order_release);
 
       std::lock_guard<std::recursive_mutex> const lock{_mutex};
-      for (auto it = std::begin(_loggers); it != std::end(_loggers);)
+      for (auto it = _loggers.begin(); it != _loggers.end();)
       {
         if (!it->get()->is_valid_logger())
         {
@@ -209,7 +208,7 @@ private:
   /***/
   void _insert_logger(std::unique_ptr<LoggerBase> logger)
   {
-    auto search_it = std::lower_bound(std::begin(_loggers), std::end(_loggers), logger->get_logger_name(),
+    auto search_it = std::lower_bound(_loggers.begin(), _loggers.end(), logger->get_logger_name(),
                                       [](std::unique_ptr<LoggerBase> const& a, std::string const& b)
                                       { return a->get_logger_name() < b; });
 
@@ -219,7 +218,7 @@ private:
   /***/
   QUILL_NODISCARD LoggerBase* _find_logger(std::string const& target) const noexcept
   {
-    auto search_it = std::lower_bound(std::begin(_loggers), std::end(_loggers), target,
+    auto search_it = std::lower_bound(_loggers.begin(), _loggers.end(), target,
                                       [](std::unique_ptr<LoggerBase> const& a, std::string const& b)
                                       { return a->get_logger_name() < b; });
 

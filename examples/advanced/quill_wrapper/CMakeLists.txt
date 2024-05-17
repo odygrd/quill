@@ -1,7 +1,6 @@
-set(LIB_NAME quill_wrapper_recommended)
+set(LIB_NAME quill_wrapper_advanced)
 
 add_library(${LIB_NAME} STATIC
-        include/quill_wrapper/overwrite_macros.h
         include/quill_wrapper/quill_wrapper.h
         include/quill_wrapper/quill_wrapper.cpp)
 

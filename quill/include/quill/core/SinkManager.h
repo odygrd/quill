@@ -67,7 +67,7 @@ public:
   /***/
   template <typename TSink, typename... Args,
             std::enable_if_t<!(std::is_same_v<FileSink, TSink> || std::is_base_of_v<FileSink, TSink>), bool> = true>
-  QUILL_NODISCARD std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
+  std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
     std::lock_guard<std::mutex> const lock{_mutex};
@@ -86,7 +86,7 @@ public:
   /***/
   template <typename TSink, typename... Args,
             std::enable_if_t<(std::is_same_v<FileSink, TSink> || std::is_base_of_v<FileSink, TSink>), bool> = true>
-  QUILL_NODISCARD std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
+  std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating
     // their member variables. For FileSinks the sink_name is the name of the file
@@ -110,7 +110,7 @@ public:
     // it only when needed
     std::lock_guard<std::mutex> const lock{_mutex};
     uint32_t cnt{0};
-    for (auto it = std::begin(_sinks); it != std::end(_sinks);)
+    for (auto it = _sinks.begin(); it != _sinks.end();)
     {
       if (it->sink_ptr.expired())
       {
@@ -134,7 +134,7 @@ private:
   void _insert_sink(std::string const& sink_name, std::shared_ptr<Sink> const& sink)
   {
     auto search_it =
-      std::lower_bound(std::begin(_sinks), std::end(_sinks), sink_name,
+      std::lower_bound(_sinks.begin(), _sinks.end(), sink_name,
                        [](SinkInfo const& elem, std::string const& b) { return elem.sink_id < b; });
 
     _sinks.insert(search_it, SinkInfo{sink_name, sink});
@@ -146,7 +146,7 @@ private:
     std::shared_ptr<Sink> sink;
 
     auto search_it =
-      std::lower_bound(std::begin(_sinks), std::end(_sinks), target,
+      std::lower_bound(_sinks.begin(), _sinks.end(), target,
                        [](SinkInfo const& elem, std::string const& b) { return elem.sink_id < b; });
 
     if (search_it != std::end(_sinks) && search_it->sink_id == target)

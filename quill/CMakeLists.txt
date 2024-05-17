@@ -65,6 +65,18 @@ set(HEADER_FILES
         include/quill/sinks/StreamSink.h
 
         include/quill/std/Array.h
+        include/quill/std/Deque.h
+        include/quill/std/FilesystemPath.h
+        include/quill/std/ForwardList.h
+        include/quill/std/List.h
+        include/quill/std/Map.h
+        include/quill/std/Optional.h
+        include/quill/std/Pair.h
+        include/quill/std/Set.h
+        include/quill/std/Tuple.h
+        include/quill/std/UnorderedMap.h
+        include/quill/std/UnorderedSet.h
+        include/quill/std/Vector.h
 
         include/quill/Backend.h
         include/quill/BackendTscClock.h

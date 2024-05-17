@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -391,14 +392,14 @@ private:
     uint8_t arg_idx = 0;
 
     // we will replace all %(....) with {} to construct a string to pass to fmt library
-    std::size_t arg_identifier_pos = pattern.find_first_of('%');
+    size_t arg_identifier_pos = pattern.find_first_of('%');
     while (arg_identifier_pos != std::string::npos)
     {
-      if (std::size_t const open_paren_pos = pattern.find_first_of('(', arg_identifier_pos);
+      if (size_t const open_paren_pos = pattern.find_first_of('(', arg_identifier_pos);
           open_paren_pos != std::string::npos && (open_paren_pos - arg_identifier_pos) == 1)
       {
         // if we found '%(' we have a matching pattern and we now need to get the closed paren
-        std::size_t const closed_paren_pos = pattern.find_first_of(')', open_paren_pos);
+        size_t const closed_paren_pos = pattern.find_first_of(')', open_paren_pos);
 
         if (closed_paren_pos == std::string::npos)
         {

@@ -45,5 +45,5 @@ int main()
   LOG_INFO(global_logger_a, "This is a log info example {}", 5);
   LOG_WARNING(global_logger_a, "This is a log warning example {}", 6);
   LOG_ERROR(global_logger_a, "This is a log error example {}", 7);
-  LOG_CRITICAL(global_logger_a, "This is a log critical example {}", 11118);
+  LOG_CRITICAL(global_logger_a, "This is a log critical example {}", 118);
 }

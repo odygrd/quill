@@ -89,7 +89,7 @@ public:
     // Need to reserve additional space as we will be aligning the pointer
     size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
       detail::calculate_args_size_and_populate_string_lengths(
-                          thread_context->get_c_style_string_length_cache(), fmt_args...);
+                          thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
     if (dynamic_log_level != LogLevel::None)
     {
@@ -175,23 +175,22 @@ public:
     std::memcpy(write_buffer, &macro_metadata, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
-    detail::LoggerBase const* logger_context = this;
+    detail::LoggerBase* logger_context = this;
     std::memcpy(write_buffer, &logger_context, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
-    detail::FormatArgsDecoder const ftf =
-      detail::decode_and_populate_format_args<detail::remove_cvref_t<Args>...>;
+    detail::FormatArgsDecoder ftf = detail::decode_and_populate_format_args<detail::remove_cvref_t<Args>...>;
     std::memcpy(write_buffer, &ftf, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
     // encode remaining arguments
-    detail::encode(write_buffer, thread_context->get_c_style_string_length_cache(), fmt_args...);
+    detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
     if (dynamic_log_level != LogLevel::None)
     {
       // write the dynamic log level
       std::memcpy(write_buffer, &dynamic_log_level, sizeof(dynamic_log_level));
-      write_buffer += sizeof(LogLevel);
+      write_buffer += sizeof(dynamic_log_level);
     }
 
 #ifndef NDEBUG
@@ -202,7 +201,7 @@ public:
 
     thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(static_cast<uint32_t>(total_size));
     thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();
-    thread_context->get_c_style_string_length_cache().clear();
+    thread_context->get_conditional_arg_size_cache().clear();
 
     return true;
   }

@@ -30,22 +30,6 @@ public:
     Flush
   };
 
-#if defined(_WIN32)
-  constexpr MacroMetadata(char const* source_location, char const* caller_function, wchar_t const* message_format,
-                          Tags const* tags, LogLevel log_level, Event event, bool is_structured_log) noexcept
-    : _source_location(source_location),
-      _caller_function(caller_function),
-      _message_format(message_format),
-      _tags(tags),
-      _colon_separator_pos(_calc_colon_separator_pos()),
-      _file_name_pos(_calc_file_name_pos()),
-      _log_level(log_level),
-      _event(event)
-  {
-    _set_structured_log_template_flag(is_structured_log);
-  }
-#endif
-
   constexpr MacroMetadata(char const* source_location, char const* caller_function, char const* message_format,
                           Tags const* tags, LogLevel log_level, Event event, bool is_structured_log) noexcept
     : _source_location(source_location),
@@ -66,7 +50,6 @@ public:
 
   QUILL_NODISCARD char const* message_format() const noexcept
   {
-    assert(!is_wide_char_format());
     return static_cast<char const*>(_message_format);
   }
 
@@ -112,19 +95,6 @@ public:
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
 
-  QUILL_NODISCARD constexpr bool is_wide_char_format() const noexcept
-  {
-    return _format_flags & WIDE_CHAR_FORMAT_FLAG;
-  }
-
-#if defined(_WIN32)
-  QUILL_NODISCARD wchar_t const* wmessage_format() const noexcept
-  {
-    assert(is_wide_char_format());
-    return static_cast<wchar_t const*>(_message_format);
-  }
-#endif
-
 private:
   QUILL_NODISCARD constexpr uint16_t _calc_file_name_pos() const noexcept
   {
@@ -156,19 +126,7 @@ private:
     }
     else
     {
-      _format_flags &= ~STRUCTURED_LOG_TEMPLATE_FLAG;
-    }
-  }
-
-  constexpr void _set_wide_char_format_flag(bool value) noexcept
-  {
-    if (value)
-    {
-      _format_flags |= WIDE_CHAR_FORMAT_FLAG;
-    }
-    else
-    {
-      _format_flags &= ~WIDE_CHAR_FORMAT_FLAG;
+      _format_flags &= static_cast<uint8_t>(~STRUCTURED_LOG_TEMPLATE_FLAG);
     }
   }
 
@@ -181,11 +139,10 @@ private:
 #endif
 
   static constexpr uint8_t STRUCTURED_LOG_TEMPLATE_FLAG = 0x01;
-  static constexpr uint8_t WIDE_CHAR_FORMAT_FLAG = 0x02;
 
   char const* _source_location;
   char const* _caller_function;
-  void const* _message_format;
+  char const* _message_format;
   Tags const* _tags;
   uint16_t _colon_separator_pos;
   uint16_t _file_name_pos;

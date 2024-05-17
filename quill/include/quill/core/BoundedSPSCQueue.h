@@ -309,7 +309,7 @@ private:
   integer_type const _mask;
   integer_type const _bytes_per_batch;
   std::byte* const _storage{nullptr};
-  bool _huge_pages_enabled;
+  bool const _huge_pages_enabled;
 
   alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
   alignas(CACHE_LINE_ALIGNED) integer_type _writer_pos{0};

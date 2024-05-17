@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
 #include "quill/core/ThreadUtilities.h"
 #include "quill/core/UnboundedSPSCQueue.h"
@@ -16,6 +17,10 @@
 #include <cstdlib>
 #include <memory>
 #include <mutex>
+#include <new>
+#include <string>
+#include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace quill
@@ -55,7 +60,7 @@ public:
         BoundedSPSCQueue{initial_spsc_queue_capacity, huges_pages_enabled};
     }
 
-    _c_style_string_length_cache.reserve(8);
+    _conditional_arg_size_cache.reserve(8);
   }
 
   /***/
@@ -112,9 +117,9 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::vector<size_t>& get_c_style_string_length_cache() noexcept
+  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::vector<size_t>& get_conditional_arg_size_cache() noexcept
   {
-    return _c_style_string_length_cache;
+    return _conditional_arg_size_cache;
   }
 
   /***/
@@ -188,8 +193,8 @@ public:
 private:
   friend class detail::BackendWorker;
 
-  SpscQueueUnion _spsc_queue_union;                                   /** queue for this thread */
-  std::vector<size_t> _c_style_string_length_cache; /** cache used for the length of c-style string log arguments **/
+  SpscQueueUnion _spsc_queue_union;                /** queue for this thread */
+  std::vector<size_t> _conditional_arg_size_cache; /** used for storing sizes when necessary, such as when calling strn or when a loop is required for a specific type **/
   std::string _thread_id = std::to_string(get_thread_id());           /**< cache this thread pid */
   std::string _thread_name = get_thread_name();                       /**< cache this thread name */
   std::shared_ptr<UnboundedTransitEventBuffer> _transit_event_buffer; /** backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */

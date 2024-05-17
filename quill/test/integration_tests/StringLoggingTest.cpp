@@ -40,6 +40,8 @@ TEST_CASE("string_logging")
 
   {
     std::string s = "adipiscing";
+    std::string const& scr = s;
+    std::string& sr = s;
     std::string const empty_s{};
 
     std::string_view begin_s{"begin_s"};
@@ -58,6 +60,8 @@ TEST_CASE("string_logging")
     c_style_string_array_non_terminated[2] = 'C';
 
     LOG_INFO(logger, "s [{}]", s);
+    LOG_INFO(logger, "scr [{}]", scr);
+    LOG_INFO(logger, "sr [{}]", sr);
     LOG_INFO(logger, "empty_s [{}]", empty_s);
     LOG_INFO(logger, "begin_s [{}]", begin_s);
     LOG_INFO(logger, "end_s [{}]", end_s);
@@ -103,10 +107,16 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 12);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 14);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       s [adipiscing]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       scr [adipiscing]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       sr [adipiscing]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empty_s []"}));

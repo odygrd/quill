@@ -16,6 +16,8 @@
 #include "quill/core/ThreadContextManager.h"
 #include "quill/sinks/Sink.h"
 
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <memory>
@@ -53,7 +55,7 @@ public:
    * @return std::shared_ptr<Sink> A shared pointer to the created or retrieved sink.
    */
   template <typename TSink, typename... Args>
-  QUILL_NODISCARD static std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
+  static std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     return detail::SinkManager::instance().create_or_get_sink<TSink>(sink_name, static_cast<Args&&>(args)...);
   }
@@ -81,7 +83,7 @@ public:
    * @param user_clock A pointer to a custom user clock.
    * @return Logger* A pointer to the created or retrieved logger.
    */
-  QUILL_NODISCARD static logger_t* create_or_get_logger(
+  static logger_t* create_or_get_logger(
     std::string const& logger_name, std::shared_ptr<Sink> sink,
     std::string const& format_pattern =
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
@@ -106,7 +108,7 @@ public:
    * @param user_clock A pointer to a custom user clock.
    * @return Logger* A pointer to the created or retrieved logger.
    */
-  QUILL_NODISCARD static logger_t* create_or_get_logger(
+  static logger_t* create_or_get_logger(
     std::string const& logger_name, std::initializer_list<std::shared_ptr<Sink>> sinks,
     std::string const& format_pattern =
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
