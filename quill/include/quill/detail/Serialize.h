@@ -277,8 +277,12 @@ template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t calculate_args_size_and_populate_string_lengths(
   QUILL_MAYBE_UNUSED size_t* c_style_string_lengths, Args const&... args) noexcept
 {
+  // Do not use a fold expression for sequential evaluation
   QUILL_MAYBE_UNUSED uint32_t c_style_string_lengths_index{0};
-  return (0u + ... + calculate_arg_size_and_string_length(c_style_string_lengths, c_style_string_lengths_index, args));
+  size_t total_size{0};
+  ((total_size += calculate_arg_size_and_string_length(c_style_string_lengths, c_style_string_lengths_index, args)),
+   ...);
+  return total_size;
 }
 
 /**

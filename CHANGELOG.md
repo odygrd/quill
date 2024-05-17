@@ -64,6 +64,7 @@
 - Fix bug in `TransitEvent` when dynamic log level is used ([#427](https://github.com/odygrd/quill/pull/427))
 - Fix build error for Intel compiler classic ([#414](https://github.com/odygrd/quill/pull/414))
 - Added `JsonConsoleHandler` ([#413](https://github.com/odygrd/quill/issues/413))
+- Fix fold expression argument evaluation. This bug could occur when logging c style strings
 
 ## v3.8.0
 
