@@ -4,28 +4,28 @@
 User's API
 ##############################################################################
 
-Frontend Options
-=====================
-
-.. doxygenstruct:: quill::FrontendOptions
-   :members:
-
 Backend Options
 =====================
 
 .. doxygenstruct:: quill::BackendOptions
    :members:
 
-Frontend Class
-=====================
-
-.. doxygenclass:: quill::FrontendImpl
-   :members:
-
 Backend Class
 =====================
 
 .. doxygenclass:: quill::Backend
+   :members:
+
+Frontend Options
+=====================
+
+.. doxygenstruct:: quill::FrontendOptions
+   :members:
+
+Frontend Class
+=====================
+
+.. doxygenclass:: quill::FrontendImpl
    :members:
 
 Log Levels
@@ -37,6 +37,12 @@ Logger Class
 =====================
 
 .. doxygenclass:: quill::LoggerImpl
+   :members:
+
+PatternFormatter Class
+=========================
+
+.. doxygenclass:: quill::PatternFormatter
    :members:
 
 Sink Class
@@ -51,8 +57,14 @@ Filter Class
 .. doxygenclass:: quill::Filter
    :members:
 
-PatternFormatter Class
-=========================
+FileSinkConfig Class
+=====================
 
-.. doxygenclass:: quill::PatternFormatter
+.. doxygenclass:: quill::FileSinkConfig
+   :members:
+
+RotatingFileSinkConfig Class
+==============================
+
+.. doxygenclass:: quill::RotatingFileSinkConfig
    :members:
