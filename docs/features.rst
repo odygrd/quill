@@ -9,7 +9,7 @@ Thread Safety
 
 All components and API offered to the user is intended to be thread-safe without any special work needing to be done.
 
-:cpp:class:`quill::Logger` are thread safe by default. The same instance can be used to log by any thread.
+:cpp:class:`quill::LoggerImpl` are thread safe by default. The same instance can be used to log by any thread.
 Any thread can safely modify the active log level of the logger.
 
 Logging types
@@ -30,7 +30,7 @@ The default unbounded queue can expand up to a size of 2GB. Should this limit be
 However, it's possible to alter the queue type within the FrontendOptions.
 
 Customising the queue size and type
---------------------------
+--------------------------------------
 
 The queue size and type is configurable in runtime by creating a custom FrontendOptions class.
 
@@ -39,9 +39,9 @@ Flush
 
 You can explicitly instruct the frontend thread to wait until the log is flushed.
 
-.. note:: The thread that calls ::cpp:func:`quill::flush()` will **block** until every message up to that point is flushed.
+.. note:: The thread that calls :cpp:func:`flush_log` will **block** until every message up to that point is flushed.
 
-.. doxygenfunction:: Logger::flush_log()
+.. doxygenfunction:: flush_log
 
 Application Crash Policy
 ========================
@@ -51,9 +51,9 @@ When the program is terminated gracefully, quill will go through its destructor 
 However, if the applications crashes, log messages can be lost.
 
 To avoid losing messages when the application crashes due to a signal interrupt the user must setup it’s own signal
-handler and call :cpp:func:`Logger::flush_log()` inside the signal handler.
+handler and call :cpp:func:`flush_log` inside the signal handler.
 
-There is a built-in signal handler that offers this crash-safe behaviour and can be enabled in :cpp:func:`quill::Backend::start_with_signal_handler<quill::FrontendOptions>()`
+There is a built-in signal handler that offers this crash-safe behaviour and can be enabled in :cpp:func:`start_with_signal_handler<quill::FrontendOptions>`
 
 Log Messages Timestamp Order
 ==============================
@@ -69,9 +69,9 @@ Latency of the first log message
 ====================================
 
 A queue and an internal buffer will be allocated on the first log message of each thread. If the latency of the first
-log message is important it is recommended to call :cpp:func:`Frontend::preallocate()`
+log message is important it is recommended to call :cpp:func:`quill::preallocate`
 
-.. doxygenfunction:: Frontend::preallocate()
+.. doxygenfunction:: preallocate()
 
 Configuration
 ======================
@@ -81,6 +81,6 @@ Quill offers a few customization options, which are also well-documented.
 This customization can be applied to either the frontend or the backend.
 
 Frontend configuration occurs at compile time, thus requiring a custom FrontendOptions class to be provided
-(:cpp:func:quill::FrontendOptions`).
+:cpp:class:`quill::FrontendOptions`
 
-For customizing the backend, refer to :cpp:func:`quill::BackendOptions`
+For customizing the backend, refer to :cpp:class:`quill::BackendOptions`

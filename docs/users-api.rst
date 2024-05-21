@@ -4,16 +4,28 @@
 User's API
 ##############################################################################
 
+Frontend Options
+=====================
+
+.. doxygenstruct:: quill::FrontendOptions
+   :members:
+
+Backend Options
+=====================
+
+.. doxygenstruct:: quill::BackendOptions
+   :members:
+
 Frontend Class
 =====================
 
-.. doxygenstruct:: quill::Frontend
+.. doxygenclass:: quill::FrontendImpl
    :members:
 
 Backend Class
 =====================
 
-.. doxygenstruct:: quill::Backend
+.. doxygenclass:: quill::Backend
    :members:
 
 Log Levels
@@ -24,7 +36,7 @@ Log Levels
 Logger Class
 =====================
 
-.. doxygenclass:: quill::Logger
+.. doxygenclass:: quill::LoggerImpl
    :members:
 
 Sink Class
