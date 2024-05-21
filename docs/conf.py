@@ -33,9 +33,9 @@ if read_the_docs_build:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Quill'
-copyright = '2023, Odysseas Georgoudis'
+copyright = '2024, Odysseas Georgoudis'
 author = 'Odysseas Georgoudis'
-release = 'v2.7.0'
+release = 'v4.0.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -1,6 +1,12 @@
 #include "TestUtilities.h"
-#include "quill/detail/misc/Utilities.h"
+
+#include <algorithm>
+#include <fstream>
 #include <iostream>
+#include <iterator>
+#include <random>
+#include <system_error>
+#include <utility>
 
 namespace quill
 {
@@ -68,6 +74,36 @@ void create_file(fs::path const& filename, std::string const& text)
     }
     file.close();
   }
+}
+
+void remove_file(fs::path const& filename)
+{
+  std::error_code ec;
+  fs::remove(filename, ec);
+}
+
+std::vector<std::string> gen_random_strings(size_t n, int min_len, int max_len)
+{
+  // Generate random strings
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_int_distribution<int> dist_chars(32, 126);
+
+  // length of strings
+  std::uniform_int_distribution<int> dist_len(min_len, max_len);
+
+  // Generate a vector of random strings of dist_len
+  std::vector<std::string> random_strings_vec;
+  random_strings_vec.reserve(n);
+
+  std::string result;
+  for (size_t i = 0; i < n; ++i)
+  {
+    std::generate_n(std::back_inserter(result), dist_len(mt),
+                    [&] { return static_cast<char>(dist_chars(mt)); });
+    random_strings_vec.emplace_back(std::move(result));
+  }
+  return random_strings_vec;
 }
 } // namespace testing
 } // namespace quill

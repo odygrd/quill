@@ -10,9 +10,8 @@
 #include <string_view>
 #include <tuple>
 
-#include "quill/Fmt.h"
-#include "quill/detail/misc/Attributes.h"
-#include "quill/detail/misc/Common.h"
+#include "quill/core/Attributes.h"
+#include "quill/core/Common.h"
 
 /**
  * Contains useful utilities to assist with logging
@@ -25,48 +24,44 @@ namespace quill::utility
  * @param size input buffer size
  * @return A string containing the hexadecimal representation of the given buffer
  */
-QUILL_NODISCARD std::string to_hex(unsigned char* buffer, size_t size) noexcept;
-QUILL_NODISCARD std::string to_hex(unsigned char const* buffer, size_t size) noexcept;
-
-/**
- * Formats the given buffer to hex
- * @param buffer input buffer
- * @param size input buffer size
- * @return A string containing the hexadecimal representation of the given buffer
- */
-QUILL_NODISCARD std::string to_hex(char* buffer, size_t size) noexcept;
-QUILL_NODISCARD std::string to_hex(char const* buffer, size_t size) noexcept;
-
-/**
- * By default the logger will take a copy of the passed object and then will call the operator<< in the background thread
- * Use this function when :
- * 1) [to print a non copyable] It is not possible to take a copy of an object when the object is not copyable
- * 2) [to avoid race condition] You want to log a class that contains a reference or a pointer to another object as a class member, that
- * can be updated before the logger thread calls operator<<. In that case when the logger
- * thread tries to call operator<< on the class itself but the internal reference object might have changed between the
- * time you wanted to log and when the logged thread called operator <<.
- * Therefore, we need to accept the performance penalty calling operator<< on the caller thread
- * 3) Similar to 2) but the class contains a class that contains a shared_pointer or a raw pointer which gets modified
- * by the caller thread immediately after the logging call before the backend thread logs
- * @requires requires the custom type to have an operator<< overload defined
- * @param obj the given object
- * @return output of object's operator<< as std::string
- */
 template <typename T>
-QUILL_NODISCARD std::string to_string(T const& obj) noexcept
+QUILL_NODISCARD std::string to_hex(T* buffer, size_t size) noexcept
 {
-  return fmtquill::to_string(obj);
+  static constexpr char hex_chars[] = "0123456789ABCDEF";
+
+  std::string hex_string;
+  hex_string.reserve(3 * size);
+
+  for (size_t i = 0; i < size; ++i)
+  {
+    // 00001111 mask
+    static constexpr uint8_t mask = 0x0Fu;
+
+    // add the first four bits
+    hex_string += hex_chars[(buffer[i] >> 4u) & mask];
+
+    // add the remaining bits
+    hex_string += hex_chars[buffer[i] & mask];
+
+    if (i != (size - 1))
+    {
+      // add a space delimiter
+      hex_string += ' ';
+    }
+  }
+
+  return hex_string;
 }
 
 /**
  * Helper class for combining different CustomTag objects
  */
-template <typename... TCustomTags>
-class CombinedCustomTags : public CustomTags
+template <typename... TTags>
+class CombinedTags : public Tags
 {
 public:
-  constexpr CombinedCustomTags(TCustomTags... custom_tags, std::string_view delim = ", ")
-    : _tags(std::move(custom_tags)...), _delim(delim)
+  constexpr CombinedTags(TTags... tags, std::string_view delim = ", ")
+    : _tags(std::move(tags)...), _delim(delim)
   {
   }
 
@@ -83,7 +78,7 @@ public:
   }
 
 private:
-  std::tuple<TCustomTags...> _tags;
+  std::tuple<TTags...> _tags;
   std::string_view _delim;
 };
 } // namespace quill::utility

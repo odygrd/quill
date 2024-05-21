@@ -1,9 +1,23 @@
 #include "DocTestExtensions.h"
 
+#include <memory>
+
 #ifndef _WIN32
+  #include <cstdlib>
   #include <unistd.h>
 #else
+  #if !defined(WIN32_LEAN_AND_MEAN)
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+
+  #if !defined(NOMINMAX)
+    // Mingw already defines this, so no need to redefine
+    #define NOMINMAX
+  #endif
+
   #include <windows.h>
+
+  #include <codecvt>
   #include <io.h>
   #include <locale>
   #include <sys/stat.h>

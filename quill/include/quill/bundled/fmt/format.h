@@ -33,6 +33,10 @@
 #ifndef FMTQUILL_FORMAT_H_
 #define FMTQUILL_FORMAT_H_
 
+#if !defined(FMTQUILL_HEADER_ONLY)
+  #define FMTQUILL_HEADER_ONLY
+#endif
+
 #include <cmath>             // std::signbit
 #include <cstdint>           // uint32_t
 #include <cstring>           // std::memcpy
