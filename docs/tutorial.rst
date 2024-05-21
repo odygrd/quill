@@ -443,7 +443,7 @@ Avoiding the use of Logger objects
 ---------------------------------------
 For some applications the use of the single root logger might be enough. In that case passing the logger everytime
 to the macro becomes inconvenient. The solution is to store the created Logger as a static variable and create your
-own macros. See `global_logger_example`
+own macros. See `example <https://github.com/odygrd/quill/blob/master/examples/recommended_usage/quill_wrapper/include/quill_wrapper/overwrite_macros.h>`_
 
 Backtrace Logging
 ====================
