@@ -236,7 +236,8 @@ within a distinct namespace, there are no conflicts even if you link your own `l
 - Update the code that starts the backend thread and the logger/sink creation, see the updated examples.
 - For log statements containing user-defined types ensure the types are formatted to strings employing your
   preferred method see [here](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging.cpp)
-  Alternately, you can provide the relevant class template specializations for each user defined type see
+  Alternately, you can provide the relevant class template specializations for each user defined type if you
+  want to defer the formatting to string to the backend thread see
   [here](https://github.com/odygrd/quill/blob/master/examples/advanced/user_quill_codec.h)
 
 ## v3.9.0
