@@ -1,3 +1,4 @@
+- [v4.1.0](#v410)
 - [v4.0.0](#v400)
 - [v3.9.0](#v390)
 - [v3.8.0](#v380)
@@ -58,6 +59,13 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v4.1.0
+
+- Removed unnecessary template specializations and merged their logic into the primary template
+  for  `ArgSizeCalculator`, `Encoder`, and `Decoder` using if constexpr.
+- Replaced `sprintf` with `snprintf` to fix macOS warning.
+- Reviewed and removed gcc cold attribute from a few functions.
 
 ## v4.0.0
 
