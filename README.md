@@ -321,8 +321,8 @@ code [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throu
 
 Compile times are measured using `clang 15` and for `Release` build.
 
-Below you can see the additional headers that will be included by the library when you need to log if you follow the
-[recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
+Below, you can find the additional headers that the library will include when you need to log, following
+the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
 example
 
 ![quill_v4_compiler_profile.speedscope.png](docs%2Fquill_v4_compiler_profile.speedscope.png)
