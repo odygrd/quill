@@ -128,6 +128,12 @@ struct ArgSizeCalculator
     {
       return sizeof(Arg);
     }
+    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
+    {
+      size_t constexpr N = std::extent_v<Arg>;
+      conditional_arg_size_cache.push_back(static_cast<size_t>(strnlen(arg, N) + 1u));
+      return conditional_arg_size_cache.back();
+    }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
       // include one extra for the zero termination
@@ -172,18 +178,6 @@ struct ArgSizeCalculator
   }
 };
 
-/***/
-template <size_t N>
-struct ArgSizeCalculator<char[N]>
-{
-  QUILL_ATTRIBUTE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
-                                              char const (&arg)[N]) noexcept
-  {
-    conditional_arg_size_cache.push_back(static_cast<size_t>(strnlen(arg, N) + 1u));
-    return conditional_arg_size_cache.back();
-  }
-};
-
 /**
  * @brief Calculates the total size required to encode the provided arguments and populates the c_style_string_lengths array.
 
@@ -214,6 +208,25 @@ struct Encoder
     {
       std::memcpy(buffer, &arg, sizeof(Arg));
       buffer += sizeof(Arg);
+    }
+    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
+    {
+      size_t constexpr N = std::extent_v<Arg>;
+      size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+
+      if (QUILL_UNLIKELY(len > N))
+      {
+        // no '\0' in c array
+        assert(len == N + 1);
+        std::memcpy(buffer, arg, N);
+        buffer[len - 1] = std::byte{'\0'};
+      }
+      else
+      {
+        std::memcpy(buffer, arg, len);
+      }
+
+      buffer += len;
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
@@ -274,31 +287,6 @@ struct Encoder
   }
 };
 
-/***/
-template <size_t N>
-struct Encoder<char[N]>
-{
-  QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
-                                         uint32_t& conditional_arg_size_cache_index, char const (&arg)[N]) noexcept
-  {
-    size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-
-    if (QUILL_UNLIKELY(len > N))
-    {
-      // no '\0' in c array
-      assert(len == N + 1);
-      std::memcpy(buffer, arg, N);
-      buffer[len - 1] = std::byte{'\0'};
-    }
-    else
-    {
-      std::memcpy(buffer, arg, len);
-    }
-
-    buffer += len;
-  }
-};
-
 /**
  * @brief Encoders multiple arguments into a buffer.
  * @param buffer Pointer to the buffer for encoding.
@@ -332,6 +320,18 @@ struct Decoder
       }
 
       return arg;
+    }
+    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
+    {
+      char const* str = reinterpret_cast<char const*>(buffer);
+      buffer += strlen(str) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
+
+      if (args_store)
+      {
+        args_store->push_back(str);
+      }
+
+      return str;
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
@@ -408,25 +408,6 @@ struct Decoder
     {
       static_assert(always_false_v<Arg>, "Unsupported type");
     }
-  }
-};
-
-/***/
-template <size_t N>
-struct Decoder<char[N]>
-{
-  static char const* decode(std::byte*& buffer,
-                            fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
-  {
-    char const* str = reinterpret_cast<char const*>(buffer);
-    buffer += strlen(str) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
-
-    if (args_store)
-    {
-      args_store->push_back(str);
-    }
-
-    return str;
   }
 };
 
