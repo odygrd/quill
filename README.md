@@ -329,7 +329,7 @@ example
 
 There is also a compile-time benchmark measuring the compilation time of 2000 auto-generated log statements with
 various arguments. You can find
-it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time_bench.cpp). It takes approximately 30
+it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp). It takes approximately 30
 seconds to compile.
 
 ![quill_v4_compiler_bench.speedscope.png](docs%2Fquill_v4_compiler_bench.speedscope.png)
