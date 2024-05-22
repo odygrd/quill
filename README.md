@@ -36,7 +36,7 @@
       <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="license" />
     </a>
     <a href="https://en.wikipedia.org/wiki/C%2B%2B17">
-      <img src="https://img.shields.io/badge/language-C%2B%2B17%20%2F%20C%2B%2B14-red.svg?style=flat-square" alt="language" />
+      <img src="https://img.shields.io/badge/language-C%2B%2B17-red.svg?style=flat-square" alt="language" />
     </a>
   </div>
 
