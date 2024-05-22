@@ -233,9 +233,11 @@ within a distinct namespace, there are no conflicts even if you link your own `l
 #### Migration Guidance
 
 - Revise include files to accommodate the removal of `Quill.h`
-- Update the code that starts the backend thread and the logger/sink creation
-- For log statements containing user-defined types ensure the types are formatted to strings or provide the relevant
-  class template specializations before passing them to `LOG_` macros, employing your preferred method.
+- Update the code that starts the backend thread and the logger/sink creation, see the updated examples.
+- For log statements containing user-defined types ensure the types are formatted to strings employing your
+  preferred method see [here](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging.cpp)
+  Alternately, you can provide the relevant class template specializations for each user defined type see
+  [here](https://github.com/odygrd/quill/blob/master/examples/advanced/user_quill_codec.h)
 
 ## v3.9.0
 
