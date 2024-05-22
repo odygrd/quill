@@ -158,20 +158,16 @@ there is built-in support for most standard library types, which can also be dir
 including the relevant header from `quill/std`.
 
 The recommendation for user-defined types is to format them into strings before passing them to the `LOG_` macros using
-your preferred method. You can find an example of this
-in [user_defined_types_logging](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging.cpp).
+your preferred method. You can find an example of this [here](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging.cpp).
 
 It's also possible to extend the library by providing template specializations to serialize the user-defined types
 and offload their formatting to the backend. However, this approach should only be pursued if you cannot tolerate the
-formatting overhead in that part of your program. For further guidance, refer
-to [advanced_example](https://github.com/odygrd/quill/blob/master/examples/advanced/advanced.cpp).
+formatting overhead in that part of your program. For further guidance, refer to [this example](https://github.com/odygrd/quill/blob/master/examples/advanced/advanced.cpp).
 
 - **Header-Only library**
 
 The library is now header-only. This change simplifies exporting the library as a C++ module in the future. See
-the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp) on
-how to build a
-wrapper static library which includes the backend and will minimise the compile times.
+[here](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp) on how to build a wrapper static library which includes the backend and will minimise the compile times.
 
 - **Preprocessor flags moved to template parameters**
 
@@ -214,7 +210,7 @@ each time. This simplifies the codebase.
 
 The static global logger* variable that was initialised during `quill::start()` used to obtain the default logger has
 been removed. It is possible to add this on the user side. If you require a global logger you can have a look
-at [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
+at [this example](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
 
 - **Removal of printf style formatting support**
 
