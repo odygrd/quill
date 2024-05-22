@@ -85,7 +85,7 @@ The below flamegraph shows the difference in included headers between the two ve
 
 A new compiler benchmark has been introduced. A Python script generates 2000 distinct log statements with various
 arguments. You can find the
-benchmark [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time_bench.cpp).
+benchmark [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp).
 In the latest version, compilation takes only 30 seconds, whereas the previous version required over 4 minutes.
 
 | Version |                                   Compiler FlameGraph                                    |
