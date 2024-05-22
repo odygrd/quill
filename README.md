@@ -182,14 +182,14 @@ The following message is logged 100'000 times for each thread:
 
 `LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)`.
 
-##### 1 Thread
+##### 1 Thread Logging
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  7   |  7   |  8   |  8   |  9   |   10   |
+| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  6   |  6   |  7   |  8   |  9   |   10   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  8   |  8   |  9   |  9   |  10  |   13   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  8   |  9   |  9   |  10  |   13   |
-| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  9   |  9   |  10  |  10  |  11  |   14   |
+| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  8   |  9   |  10  |  11  |   13   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  11  |  12  |  13  |  14  |  15  |   20   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  21  |  21  |  22  |  24  |  28  |   57   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                |  41  |  45  |  47  |  48  |  49  |   69   |
@@ -197,14 +197,14 @@ The following message is logged 100'000 times for each thread:
 | [spdlog](http://github.com/gabime/spdlog)                           | 148  | 153  | 159  | 163  | 169  |  176   |    
 | [g3log](http://github.com/KjellKod/g3log)                           | 1192 | 1282 | 1363 | 1440 | 1624 |  1802  |
 
-##### 4 Threads
+##### 4 Threads Logging Simultaneously
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  7   |  8   |  9   |  9   |  10  |   12   |
+| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  6   |  7   |  8   |  9   |  9   |   11   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  8   |  8   |  9   |  9   |  11  |   13   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  9   |  10  |  10  |  11  |   13   |
-| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  9   |  10  |  10  |  11  |   14   |
+| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  9   |  9   |  11  |  11  |  12  |   14   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  12  |  13  |  13  |  14  |  15  |   19   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  21  |  21  |  22  |  22  |  29  |   62   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                |  42  |  46  |  47  |  48  |  54  |   78   |
@@ -221,30 +221,30 @@ The following message is logged 100'000 times for each thread:
 The large string used in the log message is over 35 characters to prevent the short string optimization
 of `std::string`.
 
-##### 1 Thread
+##### 1 Thread Logging
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  10  |  12  |  13  |  13  |  14  |   16   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  11  |  12  |  13  |  14  |  15  |   17   |
-| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  12  |  13  |  14  |  16  |   17   |
+| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  12  |  13  |  14  |  15  |   17   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  13  |  14  |  15  |  15  |  17  |   19   |
-| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  14  |  15  |  16  |  18  |   21   |
+| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  14  |  15  |  16  |  17  |   21   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  22  |  23  |  23  |  25  |  30  |   59   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)             |  52  |  55  |  64  |  83  | 114  |  160   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                | 102  | 122  | 134  | 137  | 143  |  153   |
 | [spdlog](http://github.com/gabime/spdlog)                           | 120  | 123  | 127  | 130  | 138  |  145   |    
 | [g3log](http://github.com/KjellKod/g3log)                           | 955  | 1049 | 1129 | 1190 | 1351 |  1539  |
 
-##### 4 Threads
+##### 4 Threads Logging Simultaneously
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
+| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  12  |  13  |  14  |  15  |   17   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  11  |  12  |  13  |  15  |  16  |   18   |
-| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  13  |  14  |  14  |  16  |   17   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  12  |  13  |  14  |  15  |  16  |   19   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  13  |  15  |  15  |  16  |  17  |   20   |
-| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  15  |  16  |  17  |  19  |   22   |
+| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  14  |  15  |  16  |  17  |  19  |   22   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  23  |  24  |  24  |  25  |  31  |   62   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)             |  53  |  60  |  92  | 121  | 149  |  212   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                | 101  | 121  | 133  | 136  | 143  |  160   |
@@ -260,24 +260,24 @@ The following message is logged 100'000 times for each thread:
 Logging `std::vector<std::string> v` containing 16 large strings, each ranging from 50 to 60 characters.
 The strings used in the log message are over 35 characters to prevent the short string optimization of `std::string`.
 
-##### 1 Thread
+##### 1 Thread Logging
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  51  |  53  |  55  |  56  |  59  |   69   |
-| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  52  |  53  |  56  |  57  |  59  |   63   |
+| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  50  |  53  |  55  |  56  |  59  |  107   | 
+| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  53  |  55  |  57  |  58  |  61  |   64   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  66  |  70  |  79  |  81  |  84  |   91   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        | 632  | 651  | 676  | 698  | 737  |  1049  | 
 | [fmtlog](http://github.com/MengRao/fmtlog)                          | 724  | 752  | 776  | 789  | 814  |  857   |
 | [spdlog](http://github.com/gabime/spdlog)                           | 6242 | 6331 | 6438 | 6523 | 6782 |  7341  |
 
-##### 4 Threads
+##### 4 Threads Logging Simultaneously
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  54  |  56  |  58  |  59  |  62  |   74   |
+| [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  51  |  54  |  56  |  58  |  61  |   78   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  70  |  74  |  83  |  85  |  88  |  102   |
-| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  87  |  92  |  98  | 102  | 109  |  119   |
+| [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  90  |  99  | 109  | 117  | 131  |  151   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        | 674  | 694  | 736  | 762  | 805  |  884   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          | 789  | 813  | 833  | 845  | 872  |  908   |
 | [spdlog](http://github.com/gabime/spdlog)                           | 6500 | 6596 | 6724 | 6848 | 7560 |  9036  |
@@ -316,6 +316,23 @@ that point is flushed to the file.
 
 For benchmarking purposes, you can find the
 code [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throughput/quill_backend_throughput.cpp).
+
+### Compilation Time
+
+Compile times are measured using `clang 15` and for `Release` build.
+
+Below, you can find the additional headers that the library will include when you need to log, following
+the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
+example
+
+![quill_v4_compiler_profile.speedscope.png](docs%2Fquill_v4_compiler_profile.speedscope.png)
+
+There is also a compile-time benchmark measuring the compilation time of 2000 auto-generated log statements with
+various arguments. You can find
+it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time_bench.cpp). It takes approximately 30
+seconds to compile.
+
+![quill_v4_compiler_bench.speedscope.png](docs%2Fquill_v4_compiler_bench.speedscope.png)
 
 ## Quick Start
 
@@ -471,13 +488,13 @@ When invoking a `LOG_` macro:
 
 2. Pushes the data SPSC lock-free queue. For each log message, the following variables are pushed
 
-| Variable   |                                                Description                                                |
-|------------|:---------------------------------------------------------------------------------------------------------:|
-| timestamp  |                                             Current timestamp                                             |
-| Metadata*  |                                      Pointer to metadata information                                      |
-| Logger*    |                                      Pointer to the logger instance                                       |
+| Variable   |                                                  Description                                                   |
+|------------|:--------------------------------------------------------------------------------------------------------------:|
+| timestamp  |                                               Current timestamp                                                |
+| Metadata*  |                                        Pointer to metadata information                                         |
+| Logger*    |                                         Pointer to the logger instance                                         |
 | DecodeFunc | A pointer to a templated function containing all the log message argument types, used for decoding the message |
-| Args...    |               A serialized binary copy of each log message argument that was passed to the `LOG_` macro |
+| Args...    |           A serialized binary copy of each log message argument that was passed to the `LOG_` macro            |
 
 ### Backend
 

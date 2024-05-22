@@ -69,8 +69,8 @@ public:
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
   template <typename... Args>
-  QUILL_ALWAYS_INLINE_HOT bool log_message(LogLevel dynamic_log_level,
-                                           MacroMetadata const* macro_metadata, Args&&... fmt_args)
+  QUILL_ATTRIBUTE_HOT bool log_message(LogLevel dynamic_log_level,
+                                       MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 

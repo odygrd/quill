@@ -132,7 +132,7 @@ struct ArgSizeCalculator
 template <typename Arg>
 struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static size_t calculate(std::vector<size_t>&, Arg) noexcept
+  QUILL_ATTRIBUTE_HOT static size_t calculate(std::vector<size_t>&, Arg) noexcept
   {
     return static_cast<size_t>(sizeof(Arg));
   }
@@ -142,8 +142,7 @@ struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_arithm
 template <typename Arg>
 struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
-                                                  char const* arg) noexcept
+  QUILL_ATTRIBUTE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache, char const* arg) noexcept
   {
     // include one extra for the zero termination
     conditional_arg_size_cache.push_back(static_cast<size_t>(strlen(arg) + 1u));
@@ -155,8 +154,8 @@ struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_same<A
 template <size_t N>
 struct ArgSizeCalculator<char[N]>
 {
-  QUILL_ALWAYS_INLINE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
-                                                  char const (&arg)[N]) noexcept
+  QUILL_ATTRIBUTE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
+                                              char const (&arg)[N]) noexcept
   {
     conditional_arg_size_cache.push_back(static_cast<size_t>(strnlen(arg, N) + 1u));
     return conditional_arg_size_cache.back();
@@ -167,7 +166,7 @@ struct ArgSizeCalculator<char[N]>
 template <typename Arg>
 struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, std::string>, std::is_same<Arg, std::string_view>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static size_t calculate(std::vector<size_t>&, Arg const& arg) noexcept
+  QUILL_ATTRIBUTE_HOT static size_t calculate(std::vector<size_t>&, Arg const& arg) noexcept
   {
     // for std::string we also need to store the size in order to correctly retrieve it
     // the reason for this is that if we create e.g:
@@ -182,8 +181,8 @@ struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_same<A
 template <typename Arg>
 struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
-                                                  wchar_t const* arg) noexcept
+  QUILL_ATTRIBUTE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
+                                              wchar_t const* arg) noexcept
   {
     // Calculate the size of the string in bytes
     size_t const len = wcslen(arg);
@@ -200,8 +199,7 @@ struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_same<A
 template <typename Arg>
 struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, std::wstring>, std::is_same<Arg, std::wstring_view>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
-                                                  Arg const& arg) noexcept
+  QUILL_ATTRIBUTE_HOT static size_t calculate(std::vector<size_t>& conditional_arg_size_cache, Arg const& arg) noexcept
   {
     // Calculate the size of the string in bytes
     size_t const len = arg.size();
@@ -222,7 +220,7 @@ struct ArgSizeCalculator<Arg, std::enable_if_t<std::disjunction_v<std::is_same<A
  * @return The total size required to encode the arguments.
  */
 template <typename... Args>
-QUILL_NODISCARD QUILL_ALWAYS_INLINE_HOT size_t calculate_args_size_and_populate_string_lengths(
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t calculate_args_size_and_populate_string_lengths(
   QUILL_MAYBE_UNUSED std::vector<size_t>& conditional_arg_size_cache, Args const&... args) noexcept
 {
   // Do not use fold expression with '+ ...' as we need a guaranteed sequence for the args here
@@ -235,7 +233,7 @@ QUILL_NODISCARD QUILL_ALWAYS_INLINE_HOT size_t calculate_args_size_and_populate_
 template <typename Arg, typename = void>
 struct Encoder
 {
-  QUILL_ALWAYS_INLINE_HOT static void encode(std::byte*&, std::vector<size_t> const&, uint32_t&, Arg const&) noexcept
+  QUILL_ATTRIBUTE_HOT static void encode(std::byte*&, std::vector<size_t> const&, uint32_t&, Arg const&) noexcept
   {
     static_assert(always_false_v<Arg>, "Unsupported type");
   }
@@ -245,8 +243,7 @@ struct Encoder
 template <typename Arg>
 struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const&,
-                                             uint32_t&, Arg arg) noexcept
+  QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, Arg arg) noexcept
   {
     std::memcpy(buffer, &arg, sizeof(arg));
     buffer += sizeof(arg);
@@ -257,8 +254,8 @@ struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_arithmetic<Arg>,
 template <typename Arg>
 struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
-                                             uint32_t& conditional_arg_size_cache_index, char const* arg) noexcept
+  QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+                                         uint32_t& conditional_arg_size_cache_index, char const* arg) noexcept
   {
     // null terminator is included in the len for c style strings
     size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
@@ -271,8 +268,7 @@ struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, char*>
 template <typename Arg>
 struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, std::string>, std::is_same<Arg, std::string_view>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const&,
-                                             uint32_t&, Arg const& arg) noexcept
+  QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, Arg const& arg) noexcept
   {
     // for std::string we store the size first, in order to correctly retrieve it
     // Copy the length first and then the actual string
@@ -293,8 +289,8 @@ struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, std::s
 template <size_t N>
 struct Encoder<char[N]>
 {
-  QUILL_ALWAYS_INLINE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
-                                             uint32_t& conditional_arg_size_cache_index,
+  QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+                                         uint32_t& conditional_arg_size_cache_index,
                                              char const (&arg)[N]) noexcept
   {
     size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
@@ -320,8 +316,8 @@ struct Encoder<char[N]>
 template <typename Arg>
 struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
-                                             uint32_t& conditional_arg_size_cache_index, wchar_t const* arg) noexcept
+  QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+                                         uint32_t& conditional_arg_size_cache_index, wchar_t const* arg) noexcept
   {
     // The wide string size in bytes
     size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
@@ -339,8 +335,8 @@ struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, wchar_
 template <typename Arg>
 struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, std::wstring>, std::is_same<Arg, std::wstring_view>>>>
 {
-  QUILL_ALWAYS_INLINE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
-                                             uint32_t& conditional_arg_size_cache_index, Arg const& arg) noexcept
+  QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+                                         uint32_t& conditional_arg_size_cache_index, Arg const& arg) noexcept
   {
     // The wide string size in bytes
     size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
@@ -366,8 +362,8 @@ struct Encoder<Arg, std::enable_if_t<std::disjunction_v<std::is_same<Arg, std::w
  * @param args The arguments to be encoded.
  */
 template <typename... Args>
-QUILL_ALWAYS_INLINE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
-                                    Args const&... args) noexcept
+QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+                                Args const&... args) noexcept
 {
   QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
   (Encoder<Args>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, args), ...);

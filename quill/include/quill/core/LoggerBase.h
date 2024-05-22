@@ -119,7 +119,7 @@ public:
    * @return bool if a message can be logged based on the current log level
    */
   template <LogLevel log_statement_level>
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log_message() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool should_log_message() const noexcept
   {
     return log_statement_level >= get_log_level();
   }
@@ -129,7 +129,7 @@ public:
    * @param log_statement_level The log level of the log statement to be logged
    * @return bool if a message can be logged based on the current log level
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool should_log_message(LogLevel log_statement_level) const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool should_log_message(LogLevel log_statement_level) const noexcept
   {
     return log_statement_level >= get_log_level();
   }

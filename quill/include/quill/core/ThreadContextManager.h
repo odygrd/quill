@@ -82,8 +82,9 @@ public:
 
   /***/
   template <QueueType queue_type>
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedUnlimited) ||
-                                                         (queue_type == QueueType::UnboundedDropping),
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT
+    std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedUnlimited) ||
+                         (queue_type == QueueType::UnboundedDropping),
                                                        UnboundedSPSCQueue, BoundedSPSCQueue>&
   get_spsc_queue() noexcept
   {
@@ -100,8 +101,9 @@ public:
 
   /***/
   template <QueueType queue_type>
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedUnlimited) ||
-                                                         (queue_type == QueueType::UnboundedDropping),
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT
+    std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedUnlimited) ||
+                         (queue_type == QueueType::UnboundedDropping),
                                                        UnboundedSPSCQueue, BoundedSPSCQueue> const&
   get_spsc_queue() const noexcept
   {
@@ -117,44 +119,44 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::vector<size_t>& get_conditional_arg_size_cache() noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::vector<size_t>& get_conditional_arg_size_cache() noexcept
   {
     return _conditional_arg_size_cache;
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool has_bounded_queue_type() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool has_bounded_queue_type() const noexcept
   {
     return (_queue_type == QueueType::BoundedBlocking) || (_queue_type == QueueType::BoundedDropping);
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool has_unbounded_queue_type() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool has_unbounded_queue_type() const noexcept
   {
     return (_queue_type == QueueType::UnboundedBlocking) ||
       (_queue_type == QueueType::UnboundedDropping) || (_queue_type == QueueType::UnboundedUnlimited);
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool has_dropping_queue() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool has_dropping_queue() const noexcept
   {
     return (_queue_type == QueueType::UnboundedDropping) || (_queue_type == QueueType::BoundedDropping);
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT bool has_blocking_queue() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool has_blocking_queue() const noexcept
   {
     return (_queue_type == QueueType::UnboundedBlocking) || (_queue_type == QueueType::BoundedBlocking);
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT SpscQueueUnion const& get_spsc_queue_union() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT SpscQueueUnion const& get_spsc_queue_union() const noexcept
   {
     return _spsc_queue_union;
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT SpscQueueUnion& get_spsc_queue_union() noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT SpscQueueUnion& get_spsc_queue_union() noexcept
   {
     return _spsc_queue_union;
   }
@@ -355,7 +357,7 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT ThreadContext*
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext*
 
   get_thread_context() const noexcept
   {
@@ -373,7 +375,7 @@ private:
 
 /***/
 template <typename TFrontendOptions>
-QUILL_NODISCARD_ALWAYS_INLINE_HOT extern ThreadContext* get_local_thread_context() noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT extern ThreadContext* get_local_thread_context() noexcept
 {
   thread_local ScopedThreadContext scoped_thread_context{
     TFrontendOptions::queue_type, TFrontendOptions::initial_queue_capacity, TFrontendOptions::huge_pages_enabled};

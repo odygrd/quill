@@ -36,7 +36,7 @@ namespace quill::detail
 {
 #if defined(__aarch64__)
 // arm64
-QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 {
   // System timer of ARMv8 runs at a different frequency than the CPU's.
   // The frequency is fixed, typically in the range 1-50MHz.  It can be
@@ -46,7 +46,7 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   return static_cast<uint64_t>(virtual_timer_value);
 }
 #elif defined(__ARM_ARCH)
-QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 {
   #if (__ARM_ARCH >= 6)
   // V6 is the earliest arch that has a standard cyclecount
@@ -70,13 +70,13 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
   return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
 }
 #elif (defined(_M_ARM) || defined(_M_ARM64))
-QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 {
   // soft failover
   return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
 }
 #elif (defined(__PPC64__))
-QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 {
   // soft failover
   return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
@@ -86,7 +86,7 @@ QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept
  * Get the TSC counter
  * @return rdtsc timestamp
  */
-QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t rdtsc() noexcept { return __rdtsc(); }
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept { return __rdtsc(); }
 #endif
 
 } // namespace quill::detail
