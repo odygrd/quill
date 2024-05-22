@@ -63,7 +63,7 @@
 ## v4.1.0
 
 - Removed unnecessary template specializations and merged their logic into the primary template
-  for  `ArgSizeCalculator`, `Encoder`, and `Decoder` using if constexpr.
+  for `ArgSizeCalculator`, `Encoder`, and `Decoder` using if constexpr.
 - Replaced `sprintf` with `snprintf` to fix macOS warning.
 - Reviewed and removed gcc cold attribute from a few functions.
 
