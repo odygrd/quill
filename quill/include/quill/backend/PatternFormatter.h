@@ -290,7 +290,7 @@ private:
   }
 
   template <size_t I, typename T>
-  QUILL_ALWAYS_INLINE_HOT void _set_arg_val(T const& arg)
+  void _set_arg_val(T const& arg)
   {
     fmtquill::detail::value<fmtquill::format_context>& value_ =
       *(reinterpret_cast<fmtquill::detail::value<fmtquill::format_context>*>(

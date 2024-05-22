@@ -41,17 +41,6 @@
 #endif
 
 /**
- * Always Inline
- */
-#if defined(__GNUC__)
-  #define QUILL_ALWAYS_INLINE inline __attribute__((__always_inline__))
-#elif defined(_WIN32)
-  #define QUILL_ALWAYS_INLINE __forceinline
-#else
-  #define QUILL_ALWAYS_INLINE inline
-#endif
-
-/**
  * Portable no discard warnings
  */
 #if QUILL_HAS_CPP_ATTRIBUTE(nodiscard)
@@ -109,12 +98,6 @@
 #else
   #define QUILL_API
 #endif
-
-/***/
-#define QUILL_NODISCARD_ALWAYS_INLINE_HOT QUILL_NODISCARD QUILL_ALWAYS_INLINE QUILL_ATTRIBUTE_HOT
-
-/***/
-#define QUILL_ALWAYS_INLINE_HOT QUILL_ALWAYS_INLINE QUILL_ATTRIBUTE_HOT
 
 /**
  * Likely

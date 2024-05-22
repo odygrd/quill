@@ -2256,9 +2256,6 @@ INCLUDE_FILE_PATTERNS  =
 
 PREDEFINED             =  QUILL_ATTRIBUTE_HOT= \
                           QUILL_NODISCARD= \
-                          QUILL_ALWAYS_INLINE= \
-                          QUILL_NODISCARD_ALWAYS_INLINE_HOT= \
-                          QUILL_ALWAYS_INLINE_HOT= \
                           QUILL_ATTRIBUTE_COLD=
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this

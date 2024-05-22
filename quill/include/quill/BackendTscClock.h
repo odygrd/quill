@@ -38,7 +38,7 @@ public:
     RdtscVal& operator=(RdtscVal const& other) = default;
     RdtscVal& operator=(RdtscVal&& other) noexcept = default;
 
-    QUILL_NODISCARD_ALWAYS_INLINE_HOT uint64_t value() const noexcept { return _value; }
+    QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint64_t value() const noexcept { return _value; }
 
   private:
     RdtscVal() noexcept : _value(detail::rdtsc()) {}

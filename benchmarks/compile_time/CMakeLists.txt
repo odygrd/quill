@@ -1,0 +1,4 @@
+add_subdirectory(qwrapper)
+
+add_executable(BENCHMARK_quill_compile_time compile_time_bench.cpp)
+target_link_libraries(BENCHMARK_quill_compile_time qwrapper_compile_time_bench)

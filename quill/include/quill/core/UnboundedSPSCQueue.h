@@ -103,7 +103,7 @@ public:
    * making it visible to the consumer.
    * @return a valid point to the buffer
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT std::byte* prepare_write(uint32_t nbytes, QueueType queue_type)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(uint32_t nbytes, QueueType queue_type)
   {
     // Try to reserve the bounded queue
     std::byte* write_pos = _producer->bounded_queue.prepare_write(nbytes);
@@ -169,7 +169,7 @@ public:
    * Complement to reserve producer space that makes nbytes starting
    * from the return of reserve producer space visible to the consumer.
    */
-  QUILL_ALWAYS_INLINE_HOT void finish_write(uint32_t nbytes)
+  QUILL_ATTRIBUTE_HOT void finish_write(uint32_t nbytes)
   {
     _producer->bounded_queue.finish_write(nbytes);
   }
@@ -177,14 +177,14 @@ public:
   /**
    * Commit the write to notify the consumer bytes are ready to read
    */
-  QUILL_ALWAYS_INLINE_HOT void commit_write() { _producer->bounded_queue.commit_write(); }
+  QUILL_ATTRIBUTE_HOT void commit_write() { _producer->bounded_queue.commit_write(); }
 
   /**
    * Prepare to read from the buffer
    * @error_notifier a callback used for notifications to the user
    * @return first: pointer to buffer or nullptr, second: a pair of new_capacity, previous_capacity if an allocation
    */
-  QUILL_NODISCARD_ALWAYS_INLINE_HOT ReadResult prepare_read()
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ReadResult prepare_read()
   {
     ReadResult read_result = ReadResult{_consumer->bounded_queue.prepare_read()};
 
@@ -227,7 +227,7 @@ public:
    * Consumes the next nbytes in the buffer and frees it back
    * for the producer to reuse.
    */
-  QUILL_ALWAYS_INLINE_HOT void finish_read(uint32_t nbytes)
+  QUILL_ATTRIBUTE_HOT void finish_read(uint32_t nbytes)
   {
     _consumer->bounded_queue.finish_read(nbytes);
   }
@@ -235,7 +235,7 @@ public:
   /**
    * Commit the read to indicate that the bytes are read and are now free to be reused
    */
-  QUILL_ALWAYS_INLINE_HOT void commit_read() { _consumer->bounded_queue.commit_read(); }
+  QUILL_ATTRIBUTE_HOT void commit_read() { _consumer->bounded_queue.commit_read(); }
 
   /**
    * Return the current buffer's capacity
