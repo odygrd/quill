@@ -84,9 +84,8 @@ The below flamegraph shows the difference in included headers between the two ve
 | v3.8.0  | ![quill_v3_compiler_profile.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v3_compiler_profile.speedscope.png) |
 
 A new compiler benchmark has been introduced. A Python script generates 2000 distinct log statements with various
-arguments. You can find the
-benchmark [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp).
-In the latest version, compilation takes only 30 seconds, whereas the previous version required over 4 minutes.
+arguments. You can find the benchmark [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp).
+Compilation now takes only about 30 seconds, whereas the previous version required over 4 minutes.
 
 | Version |                                   Compiler FlameGraph                                    |
 |---------|:----------------------------------------------------------------------------------------:|
