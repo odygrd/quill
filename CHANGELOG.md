@@ -72,15 +72,26 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
 
 #### Comparison
 
-- This version significantly improves compile times by minimizing the inclusion of several headers. Taking a
-  look at some compiler profiling for a `Release` build, we can see the difference. Below are the two compiler
-  flamegraphs for building the `recommended_usage` example from the new version and the `wrapper_lib` example from the
-  previous version.
+- This version significantly improves compile times. Taking a look at some compiler profiling for a `Release` build with
+  clang 15, we can see the difference. Below are the two compiler flamegraphs for building the `recommended_usage`
+  example from the new version and the `wrapper_lib` example from the previous version.
+
+The below flamegraph shows the difference in included headers between the two versions
 
 | Version |                                     Compiler FlameGraph                                      |
 |---------|:--------------------------------------------------------------------------------------------:|
 | v4.0.0  | ![quill_v4_compiler_profile.speedscope.png](docs%2Fquill_v4_compiler_profile.speedscope.png) |
 | v3.8.0  | ![quill_v3_compiler_profile.speedscope.png](docs%2Fquill_v3_compiler_profile.speedscope.png) |
+
+A new compiler benchmark has been introduced. A Python script generates 2000 distinct log statements with various
+arguments. You can find the
+benchmark [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time_bench.cpp).
+In the latest version, compilation takes only 30 seconds, whereas the previous version required over 4 minutes.
+
+| Version |                                   Compiler FlameGraph                                    |
+|---------|:----------------------------------------------------------------------------------------:|
+| v4.0.0  | ![quill_v4_compiler_bench.speedscope.png](docs%2Fquill_v4_compiler_bench.speedscope.png) |
+| v3.8.0  | ![quill_v3_compiler_bench.speedscope.png](docs%2Fquill_v3_compiler_bench.speedscope.png) |
 
 - Minor increase in backend thread throughput compared to the previous version.
 
@@ -97,10 +108,9 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
 
 - **Improved compile times**
 
-Significant enhancements in compile times have been achieved by restructuring the library to minimize the number of
-required headers. Refactoring efforts have focused on decoupling the frontend from the backend, resulting in reduced
-dependencies. Accessing the frontend logging functions now does not demand
-inclusion of any backend logic components.
+The library has been restructured to minimize the number of required headers. Refactoring efforts have focused on
+decoupling the frontend from the backend, resulting in reduced dependencies. Accessing the frontend logging functions
+now does not demand inclusion of any backend logic components.
 
      "quill/Backend.h" - It can be included once to start the backend logging thread, typically in main.cpp 
                          or in a wrapper library.
@@ -160,7 +170,8 @@ to [advanced_example](https://github.com/odygrd/quill/blob/master/examples/advan
 - **Header-Only library**
 
 The library is now header-only. This change simplifies exporting the library as a C++ module in the future. See
-the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp) on how to build a
+the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp) on
+how to build a
 wrapper static library which includes the backend and will minimise the compile times.
 
 - **Preprocessor flags moved to template parameters**
