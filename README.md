@@ -226,8 +226,8 @@ of `std::string`.
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  10  |  12  |  13  |  13  |  14  |   16   |
-| [fmtlog](http://github.com/MengRao/fmtlog)                          |  11  |  12  |  13  |  14  |  15  |   17   |
 | [Quill v4.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  12  |  13  |  14  |  15  |   17   |
+| [fmtlog](http://github.com/MengRao/fmtlog)                          |  11  |  12  |  13  |  14  |  15  |   17   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  13  |  14  |  15  |  15  |  17  |   19   |
 | [Quill v4.0 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  14  |  15  |  16  |  17  |   21   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  22  |  23  |  23  |  25  |  30  |   59   |
