@@ -101,8 +101,8 @@ In the latest version, compilation takes only 30 seconds, whereas the previous v
 | v3.8.0  | 4.39 million msgs/sec average, total time elapsed: 910 ms for 4000000 log messages |
 
 - Significant boost in hot path latency when logging complex types such as `std::vector`.
-  The performance remains consistent when logging only primitive types or strings in both versions. Refer to the README
-  for updated and detailed benchmarks.
+  The performance remains consistent when logging only primitive types or strings in both versions. Refer
+  [here](https://github.com/odygrd/quill?tab=readme-ov-file#performance) for updated and detailed benchmarks.
 
 #### Changes
 
