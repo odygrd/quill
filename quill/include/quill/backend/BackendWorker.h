@@ -86,7 +86,7 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool is_running() const noexcept
+  QUILL_NODISCARD bool is_running() const noexcept
   {
     return _is_backend_worker_running.load(std::memory_order_relaxed);
   }

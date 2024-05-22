@@ -621,13 +621,13 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static size_t _get_file_size(fs::path const& filename)
+  QUILL_NODISCARD static size_t _get_file_size(fs::path const& filename)
   {
     return static_cast<size_t>(fs::file_size(filename));
   }
 
   /***/
-  QUILL_ATTRIBUTE_COLD static bool _remove_file(fs::path const& filename) noexcept
+  static bool _remove_file(fs::path const& filename) noexcept
   {
     std::error_code ec;
     fs::remove(filename, ec);
@@ -655,8 +655,7 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static fs::path _append_index_to_filename(fs::path const& filename,
-                                                                                 uint32_t index) noexcept
+  QUILL_NODISCARD static fs::path _append_index_to_filename(fs::path const& filename, uint32_t index) noexcept
   {
     if (index == 0u)
     {
@@ -669,8 +668,7 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static fs::path _append_string_to_filename(fs::path const& filename,
-                                                                                  std::string const& text) noexcept
+  QUILL_NODISCARD static fs::path _append_string_to_filename(fs::path const& filename, std::string const& text) noexcept
   {
     if (text.empty())
     {
