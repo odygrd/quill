@@ -317,6 +317,23 @@ that point is flushed to the file.
 For benchmarking purposes, you can find the
 code [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throughput/quill_backend_throughput.cpp).
 
+### Compilation Time
+
+Compile times are measured using `clang 15` and for `Release` build.
+
+Below you can see the additional headers that will be included by the library when you need to log if you follow the
+[recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
+example
+
+![quill_v4_compiler_profile.speedscope.png](docs%2Fquill_v4_compiler_profile.speedscope.png)
+
+There is also a compile-time benchmark measuring the compilation time of 2000 auto-generated log statements with
+various arguments. You can find
+it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time_bench.cpp). It takes approximately 30
+seconds to compile.
+
+![quill_v4_compiler_bench.speedscope.png](docs%2Fquill_v4_compiler_bench.speedscope.png)
+
 ## Quick Start
 
 ```c++
