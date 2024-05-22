@@ -303,15 +303,15 @@ logging thread is `4.56 million msgs/sec`
 
 While the primary focus of the library is not on throughput, it does provide efficient handling of log messages across
 multiple threads. The backend logging thread, responsible for formatting and ordering log messages from hot threads,
-ensures that all queues are emptied on a high priority basis. This approach prevents the need for allocating new queues
-or dropping messages on the hot path. Instead, the backend thread internally buffers the log messages and then writes
-them later when the hot thread queues are empty or when a predefined limit, `backend_thread_transit_events_soft_limit`,
-is reached.
+ensures that all queues are emptied on a high priority basis. The backend thread internally buffers the log messages 
+and then writes them later when the caller thread queues are empty or when a predefined limit, 
+`backend_thread_transit_events_soft_limit`, is reached. This approach prevents the need for allocating new queues
+or dropping messages on the hot path.
 
 Comparing throughput with other logging libraries in an asynchronous logging scenario has proven challenging. Some
 libraries may drop log messages, resulting in smaller log files than expected, while others only offer asynchronous
 flush, making it difficult to determine when the logging thread has finished processing all messages.
-In contrast, Quill provides a blocking `flush()` guarantee, ensuring that every log message from the hot threads up to
+In contrast, Quill provides a blocking flush log guarantee, ensuring that every log message from the hot threads up to
 that point is flushed to the file.
 
 For benchmarking purposes, you can find the
