@@ -80,8 +80,8 @@ The below flamegraph shows the difference in included headers between the two ve
 
 | Version |                                     Compiler FlameGraph                                      |
 |---------|:--------------------------------------------------------------------------------------------:|
-| v4.0.0  | ![quill_v4_compiler_profile.speedscope.png](docs%2Fquill_v4_compiler_profile.speedscope.png) |
-| v3.8.0  | ![quill_v3_compiler_profile.speedscope.png](docs%2Fquill_v3_compiler_profile.speedscope.png) |
+| v4.0.0  | ![quill_v4_compiler_profile.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v4_compiler_profile.speedscope.png) |
+| v3.8.0  | ![quill_v3_compiler_profile.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v3_compiler_profile.speedscope.png) |
 
 A new compiler benchmark has been introduced. A Python script generates 2000 distinct log statements with various
 arguments. You can find the
@@ -90,8 +90,8 @@ In the latest version, compilation takes only 30 seconds, whereas the previous v
 
 | Version |                                   Compiler FlameGraph                                    |
 |---------|:----------------------------------------------------------------------------------------:|
-| v4.0.0  | ![quill_v4_compiler_bench.speedscope.png](docs%2Fquill_v4_compiler_bench.speedscope.png) |
-| v3.8.0  | ![quill_v3_compiler_bench.speedscope.png](docs%2Fquill_v3_compiler_bench.speedscope.png) |
+| v4.0.0  | ![quill_v4_compiler_bench.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v4_compiler_bench.speedscope.png) |
+| v3.8.0  | ![quill_v3_compiler_bench.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v4_compiler_profile.speedscope.png) |
 
 - Minor increase in backend thread throughput compared to the previous version.
 
@@ -100,7 +100,7 @@ In the latest version, compilation takes only 30 seconds, whereas the previous v
 | v4.0.0  | 4.56 million msgs/sec average, total time elapsed: 876 ms for 4000000 log messages |
 | v3.8.0  | 4.39 million msgs/sec average, total time elapsed: 910 ms for 4000000 log messages |
 
-- In the new version, frontend performance sees a significant boost when logging complex types such as `std::vector`.
+- Significant boost in hot path latency when logging complex types such as `std::vector`.
   The performance remains consistent when logging only primitive types or strings in both versions. Refer to the README
   for updated and detailed benchmarks.
 
