@@ -6,8 +6,8 @@
 #pragma once
 
 #include "quill/core/Codec.h"
+#include "quill/core/DynamicFormatArgStore.h"
 
-#include "quill/bundled/fmt/args.h"
 #include "quill/bundled/fmt/core.h"
 #include "quill/bundled/fmt/ranges.h"
 
@@ -52,8 +52,7 @@ struct Decoder<
 struct Decoder<std::pair<T1, T2>>
 #endif
 {
-  static std::pair<T1, T2> decode(std::byte*& buffer,
-                                  fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static std::pair<T1, T2> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     std::pair<T1, T2> arg;
 
@@ -80,7 +79,7 @@ struct Decoder<
   /**
    * Chaining stl types not supported for wstrings so we do not return anything
    */
-  static void decode(std::byte*& buffer, fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     constexpr bool wide_t1 = std::is_same_v<T1, wchar_t*> || std::is_same_v<T1, wchar_t const*> ||
       std::is_same_v<T1, std::wstring> || std::is_same_v<T1, std::wstring_view>;

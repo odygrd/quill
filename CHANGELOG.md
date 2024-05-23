@@ -66,6 +66,9 @@
   for `ArgSizeCalculator`, `Encoder`, and `Decoder` using if constexpr.
 - Replaced `sprintf` with `snprintf` to fix macOS warning.
 - Reviewed and removed gcc cold attribute from a few functions.
+- Minor backend thread optimisations when logging c style strings or char arrays
+- Eliminated `<functional>` header dependency in the frontend
+- Relocated certain classes to the `detail` namespace
 
 ## v4.0.0
 

@@ -6,8 +6,8 @@
 #pragma once
 
 #include "quill/core/Codec.h"
+#include "quill/core/DynamicFormatArgStore.h"
 
-#include "quill/bundled/fmt/args.h"
 #include "quill/bundled/fmt/core.h"
 #include "quill/bundled/fmt/std.h"
 
@@ -67,8 +67,7 @@ struct Decoder<std::optional<T>,
 struct Decoder<std::optional<T>>
 #endif
 {
-  static std::optional<T> decode(std::byte*& buffer,
-                                 fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static std::optional<T> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     std::optional<T> arg{std::nullopt};
 
@@ -97,7 +96,7 @@ struct Decoder<std::optional<T>,
   /**
    * Chaining stl types not supported for wstrings so we do not return anything
    */
-  static void decode(std::byte*& buffer, fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     if (args_store)
     {

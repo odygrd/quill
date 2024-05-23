@@ -18,6 +18,7 @@
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Codec.h"
 #include "quill/core/Common.h"
+#include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/FormatBuffer.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/LoggerBase.h"
@@ -29,10 +30,8 @@
 #include "quill/core/ThreadUtilities.h"
 #include "quill/core/TimeUtilities.h"
 #include "quill/core/UnboundedSPSCQueue.h"
-
 #include "quill/sinks/Sink.h"
 
-#include "quill/bundled/fmt/args.h"
 #include "quill/bundled/fmt/core.h"
 
 #include <algorithm>
@@ -61,7 +60,6 @@
 
 namespace quill::detail
 {
-
 class BackendWorker
 {
 public:
@@ -693,7 +691,9 @@ private:
 
           QUILL_TRY
           {
-            fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg), fmt_str, _format_args_store);
+            fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg), fmt_str,
+                                 fmtquill::basic_format_args<fmtquill::format_context>{
+                                   _format_args_store.get_types(), _format_args_store.data()});
 
             // format the values of each key
             _format_and_split_arguments(*transit_event->structured_kvs, _format_args_store);
@@ -740,7 +740,9 @@ private:
 
           QUILL_TRY
           {
-            fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg), fmt_str, _format_args_store);
+            fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg), fmt_str,
+                                 fmtquill::basic_format_args<fmtquill::format_context>{
+                                   _format_args_store.get_types(), _format_args_store.data()});
 
             // format the values of each key
             _format_and_split_arguments(*transit_event->structured_kvs, _format_args_store);
@@ -770,7 +772,9 @@ private:
         QUILL_TRY
         {
           fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg),
-                               transit_event->macro_metadata->message_format(), _format_args_store);
+                               transit_event->macro_metadata->message_format(),
+                               fmtquill::basic_format_args<fmtquill::format_context>{
+                                 _format_args_store.get_types(), _format_args_store.data()});
         }
 #if !defined(QUILL_NO_EXCEPTIONS)
         QUILL_CATCH(std::exception const& e)
@@ -1289,7 +1293,7 @@ private:
    * After formatting, the string is split to isolate each formatted value.
    */
   void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& structured_kvs,
-                                   fmtquill::dynamic_format_arg_store<fmtquill::format_context> const& arg_store)
+                                   DynamicFormatArgStore const& arg_store)
   {
     // Generate a format string
     std::string format_string;
@@ -1306,7 +1310,9 @@ private:
 
     // Format all values to a single string
     std::string formatted_values_str;
-    fmtquill::vformat_to(std::back_inserter(formatted_values_str), format_string, arg_store);
+    fmtquill::vformat_to(
+      std::back_inserter(formatted_values_str), format_string,
+      fmtquill::basic_format_args<fmtquill::format_context>{arg_store.get_types(), arg_store.data()});
 
     // Split the formatted_values to isolate each value
     size_t start = 0;
@@ -1338,7 +1344,7 @@ private:
 
   std::atomic<RdtscClock*> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
-  fmtquill::dynamic_format_arg_store<fmtquill::format_context> _format_args_store; /** Format args tmp storage as member to avoid reallocation */
+  DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
   std::vector<std::weak_ptr<Sink>> _active_sinks_cache;
   std::vector<ThreadContext*> _active_thread_contexts_cache;
   std::vector<std::weak_ptr<PatternFormatter>> _pattern_formatters;

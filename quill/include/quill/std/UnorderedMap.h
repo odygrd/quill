@@ -6,9 +6,9 @@
 #pragma once
 
 #include "quill/core/Codec.h"
+#include "quill/core/DynamicFormatArgStore.h"
 #include "quill/std/Pair.h"
 
-#include "quill/bundled/fmt/args.h"
 #include "quill/bundled/fmt/core.h"
 #include "quill/bundled/fmt/ranges.h"
 
@@ -97,8 +97,8 @@ struct Decoder<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
                  std::is_same<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>, std::unordered_multimap<Key, T, Hash, KeyEqual, Allocator>>>>>
 #endif
 {
-  static UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> decode(
-    std::byte*& buffer, fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> decode(std::byte*& buffer,
+                                                                    DynamicFormatArgStore* args_store)
   {
     UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> arg;
 
@@ -134,7 +134,7 @@ struct Decoder<
   /**
    * Chaining stl types not supported for wstrings so we do not return anything
    */
-  static void decode(std::byte*& buffer, fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     if (args_store)
     {
