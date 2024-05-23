@@ -72,7 +72,7 @@ private:
 public:
   DynamicFormatArgStore() = default;
 
-  QUILL_NODISCARD size_t get_types() const
+  QUILL_NODISCARD unsigned long long get_types() const
   {
     return fmtquill::detail::is_unpacked_bit | _data.size();
   }
