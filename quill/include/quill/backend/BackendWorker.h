@@ -60,7 +60,6 @@
 
 namespace quill::detail
 {
-
 class BackendWorker
 {
 public:

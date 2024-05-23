@@ -5,17 +5,12 @@
 
 #pragma once
 
+#include "quill/backend/BackendOptions.h"
 #include "quill/backend/BackendWorker.h"
 #include "quill/core/Attributes.h"
 
 #include <cstdint>
 #include <mutex>
-
-// Forward declaration
-namespace quill
-{
-struct BackendOptions;
-}
 
 namespace quill::detail
 {

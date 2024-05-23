@@ -72,6 +72,6 @@ public:
   }
 
 private:
-  FormatBuffer _json_message;
+  detail::FormatBuffer _json_message;
 };
 } // namespace quill

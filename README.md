@@ -325,7 +325,7 @@ Below, you can find the additional headers that the library will include when yo
 the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
 example
 
-![quill_v4_compiler_profile.speedscope.png](docs%2Fquill_v4_compiler_profile.speedscope.png)
+![quill_v4_1_compiler_profile.speedscope.png](docs%2Fquill_v4_1_compiler_profile.speedscope.png)
 
 There is also a compile-time benchmark measuring the compilation time of 2000 auto-generated log statements with
 various arguments. You can find

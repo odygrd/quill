@@ -11,7 +11,7 @@
 #include <memory>
 #include <string>
 
-namespace quill
+namespace quill::detail
 {
 /**
  * This is a replication of fmt::basic_memory_buffer with only dynamic storage

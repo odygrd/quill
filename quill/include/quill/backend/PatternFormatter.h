@@ -501,6 +501,6 @@ private:
 
   /** The buffer where we store each formatted string, also stored as class member to avoid
    * re-allocations. This is mutable so we can have a format() const function **/
-  FormatBuffer _formatted_log_message;
+  detail::FormatBuffer _formatted_log_message;
 };
 } // namespace quill

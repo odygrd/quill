@@ -19,15 +19,12 @@
 #include <utility>
 #include <vector>
 
-namespace quill
+namespace quill::detail
 {
-
-namespace detail
-{
-// Forward declaration
+/** Forward declaration */
 class LoggerBase;
-} // namespace detail
 
+/***/
 struct TransitEvent
 {
   /***/
@@ -92,4 +89,4 @@ struct TransitEvent
   std::optional<LogLevel> log_level_override{std::nullopt};
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
-} // namespace quill
+} // namespace quill::detail
