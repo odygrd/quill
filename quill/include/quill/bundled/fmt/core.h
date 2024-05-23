@@ -1928,8 +1928,6 @@ template <typename Context> class basic_format_args {
   constexpr FMTQUILL_INLINE basic_format_args(unsigned long long desc,
                                          const detail::value<Context>* values)
       : desc_(desc), values_(values) {}
-  constexpr basic_format_args(unsigned long long desc, const format_arg* args)
-      : desc_(desc), args_(args) {}
 
  public:
   constexpr basic_format_args() : desc_(0), args_(nullptr) {}
@@ -1954,6 +1952,9 @@ template <typename Context> class basic_format_args {
   constexpr FMTQUILL_INLINE basic_format_args(
       const dynamic_format_arg_store<Context>& store)
       : basic_format_args(store.get_types(), store.data()) {}
+
+  constexpr basic_format_args(unsigned long long desc, const format_arg* args)
+    : desc_(desc), args_(args) {}
 
   /**
    \rst
