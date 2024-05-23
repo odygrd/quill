@@ -9,9 +9,10 @@
   #define __STDC_WANT_LIB_EXT1__ 1
 #endif
 
-#include "quill/bundled/fmt/args.h"
 #include "quill/bundled/fmt/core.h"
+
 #include "quill/core/Attributes.h"
+#include "quill/core/DynamicFormatArgStore.h"
 
 #include <cassert>
 #include <cstddef>
@@ -306,7 +307,7 @@ QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& c
 template <typename Arg, typename = void>
 struct Decoder
 {
-  static auto decode(std::byte*& buffer, fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static auto decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>>)
     {
@@ -324,11 +325,13 @@ struct Decoder
     else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
     {
       char const* str = reinterpret_cast<char const*>(buffer);
-      buffer += strlen(str) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
+      size_t const len = strlen(str);
+      buffer += len + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
 
       if (args_store)
       {
-        args_store->push_back(str);
+        // pass the std::string_view to args_store to avoid the dynamic allocation
+        args_store->push_back(std::string_view{str, len});
       }
 
       return str;
@@ -336,11 +339,13 @@ struct Decoder
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
       char const* str = reinterpret_cast<char const*>(buffer);
-      buffer += strlen(str) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
+      size_t const len = strlen(str);
+      buffer += len + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
 
       if (args_store)
       {
-        args_store->push_back(str);
+        // pass the std::string_view to args_store to avoid the dynamic allocation
+        args_store->push_back(std::string_view{str, len});
       }
 
       return str;
@@ -412,8 +417,7 @@ struct Decoder
 };
 
 template <typename... Args>
-void decode(std::byte*& buffer,
-            QUILL_MAYBE_UNUSED fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store) noexcept
+void decode(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatArgStore* args_store) noexcept
 {
   (Decoder<Args>::decode(buffer, args_store), ...);
 }
@@ -421,12 +425,10 @@ void decode(std::byte*& buffer,
 /**
  * Decoder functions
  */
-using FormatArgsDecoder = void (*)(std::byte*& data,
-                                   fmtquill::dynamic_format_arg_store<fmtquill::format_context>& args_store);
+using FormatArgsDecoder = void (*)(std::byte*& data, DynamicFormatArgStore& args_store);
 
 template <typename... Args>
-void decode_and_populate_format_args(std::byte*& buffer,
-                                     fmtquill::dynamic_format_arg_store<fmtquill::format_context>& args_store)
+void decode_and_populate_format_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
 {
   args_store.clear();
   decode<Args...>(buffer, &args_store);
@@ -454,9 +456,7 @@ void encode_members(std::byte*& buffer, std::vector<size_t> const& conditional_a
 
 /***/
 template <typename T, typename... TMembers>
-void decode_and_assign_members(std::byte*& buffer,
-                               fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store,
-                               T& arg, TMembers&... members)
+void decode_and_assign_members(std::byte*& buffer, DynamicFormatArgStore* args_store, T& arg, TMembers&... members)
 {
   ((members = Decoder<remove_cvref_t<TMembers>>::decode(buffer, nullptr)), ...);
 

@@ -6,8 +6,8 @@
 #pragma once
 
 #include "quill/core/Codec.h"
+#include "quill/core/DynamicFormatArgStore.h"
 
-#include "quill/bundled/fmt/args.h"
 #include "quill/bundled/fmt/core.h"
 #include "quill/bundled/fmt/ranges.h"
 
@@ -60,7 +60,7 @@ struct Encoder<std::tuple<Types...>>
 template <typename... Types>
 struct Decoder<std::tuple<Types...>>
 {
-  static auto decode(std::byte*& buffer, fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static auto decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     std::tuple<Types...> arg{};
 

@@ -1,8 +1,8 @@
 #pragma once
 
 // Always required
-#include "quill/bundled/fmt/args.h"
 #include "quill/core/Codec.h"
+#include "quill/core/DynamicFormatArgStore.h"
 
 // To serialise the std::array member of User you need Array.h otherwise you don't need to include this
 #include "quill/std/Array.h"
@@ -57,7 +57,7 @@ struct quill::detail::Encoder<User>
 template <>
 struct quill::detail::Decoder<User>
 {
-  static ::User decode(std::byte*& buffer, fmtquill::dynamic_format_arg_store<fmtquill::format_context>* args_store)
+  static ::User decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     // You must decode the same members and in the same order as in the Encoder::encode
     ::User user;
