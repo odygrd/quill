@@ -56,9 +56,14 @@ namespace quill::detail
  */
 QUILL_NODISCARD inline std::wstring s2ws(std::string const& str) noexcept
 {
+  #pragma warning(push)
+  #pragma warning(disable : 4996)
+
   using convert_t = std::codecvt_utf8_utf16<wchar_t>;
   std::wstring_convert<convert_t, wchar_t> converter;
   return converter.from_bytes(str);
+
+  #pragma warning(pop)
 }
 
 /**
@@ -68,9 +73,14 @@ QUILL_NODISCARD inline std::wstring s2ws(std::string const& str) noexcept
  */
 QUILL_NODISCARD inline std::string ws2s(std::wstring const& wstr) noexcept
 {
+  #pragma warning(push)
+  #pragma warning(disable : 4996)
+
   using convert_t = std::codecvt_utf8_utf16<wchar_t>;
   std::wstring_convert<convert_t, wchar_t> converter;
   return converter.to_bytes(wstr);
+
+  #pragma warning(pop)
 }
 
 /***/

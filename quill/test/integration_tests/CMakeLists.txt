@@ -14,6 +14,8 @@ function(quill_add_test TEST_NAME SOURCES)
     # Create a test executable
     add_executable(${TEST_NAME} "")
 
+    set_common_compile_options(${TEST_NAME})
+
     # Add sources
     target_sources(${TEST_NAME} PRIVATE ${SOURCES} ${HEADER_FILES})
 
