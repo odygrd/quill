@@ -69,6 +69,10 @@
 - Minor backend thread optimisations when logging c style strings or char arrays
 - Eliminated `<functional>` header dependency in the frontend
 - Relocated certain classes to the `detail` namespace
+- Following the transition from a compiled to a header-only library, the `target_compile_options` previously applied to
+  the compiled library were mistakenly propagated to all programs linking against the header-only library.
+  This issue is now fixed by removing those flags and explicitly adding them to tests and examples. As a result,
+  executable targets no longer inherit flags from the library.
 
 ## v4.0.0
 
@@ -89,18 +93,19 @@ Bug fixes and releases for `v3` will continue to be supported under the `v3.x.x`
 
 The below flamegraph shows the difference in included headers between the two versions
 
-| Version |                                     Compiler FlameGraph                                      |
-|---------|:--------------------------------------------------------------------------------------------:|
+| Version |                                                          Compiler FlameGraph                                                           |
+|---------|:--------------------------------------------------------------------------------------------------------------------------------------:|
 | v4.0.0  | ![quill_v4_compiler_profile.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v4_compiler_profile.speedscope.png) |
 | v3.8.0  | ![quill_v3_compiler_profile.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v3_compiler_profile.speedscope.png) |
 
 A new compiler benchmark has been introduced. A Python script generates 2000 distinct log statements with various
-arguments. You can find the benchmark [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp).
+arguments. You can find the
+benchmark [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp).
 Compilation now takes only about 30 seconds, whereas the previous version required over 4 minutes.
 
-| Version |                                   Compiler FlameGraph                                    |
-|---------|:----------------------------------------------------------------------------------------:|
-| v4.0.0  | ![quill_v4_compiler_bench.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v4_compiler_bench.speedscope.png) |
+| Version |                                                         Compiler FlameGraph                                                          |
+|---------|:------------------------------------------------------------------------------------------------------------------------------------:|
+| v4.0.0  |  ![quill_v4_compiler_bench.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v4_compiler_bench.speedscope.png)  |
 | v3.8.0  | ![quill_v3_compiler_bench.speedscope.png](https://github.com/odygrd/quill/blob/master/docs/quill_v4_compiler_profile.speedscope.png) |
 
 - Minor increase in backend thread throughput compared to the previous version.
@@ -169,16 +174,19 @@ there is built-in support for most standard library types, which can also be dir
 including the relevant header from `quill/std`.
 
 The recommendation for user-defined types is to format them into strings before passing them to the `LOG_` macros using
-your preferred method. You can find an example of this [here](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging.cpp).
+your preferred method. You can find an example of
+this [here](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging.cpp).
 
 It's also possible to extend the library by providing template specializations to serialize the user-defined types
 and offload their formatting to the backend. However, this approach should only be pursued if you cannot tolerate the
-formatting overhead in that part of your program. For further guidance, refer to [this example](https://github.com/odygrd/quill/blob/master/examples/advanced/advanced.cpp).
+formatting overhead in that part of your program. For further guidance, refer
+to [this example](https://github.com/odygrd/quill/blob/master/examples/advanced/advanced.cpp).
 
 - **Header-Only library**
 
 The library is now header-only. This change simplifies exporting the library as a C++ module in the future. See
-[here](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp) on how to build a wrapper static library which includes the backend and will minimise the compile times.
+[here](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp) on how to build a
+wrapper static library which includes the backend and will minimise the compile times.
 
 - **Preprocessor flags moved to template parameters**
 
