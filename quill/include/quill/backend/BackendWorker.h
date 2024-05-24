@@ -254,15 +254,17 @@ private:
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
-    size_t total_events{0};
+    auto const [total_events, max_events] = _populate_transit_event_buffer();
 
-    auto const [tevents, max_events] = _populate_transit_event_buffer();
-    total_events = tevents;
-
-    if ((total_events != 0))
+    if (total_events > 0)
     {
       // there are buffered events to process
-      if (total_events >= _backend_options.transit_events_soft_limit)
+      if (total_events < _backend_options.transit_events_soft_limit)
+      {
+        // process a single transit event, then give priority to the hot thread spsc queue again
+        _process_transit_events();
+      }
+      else
       {
         // we can log only up to max_events, then we want to re-read the queue to avoid
         // logging out of order messages
@@ -271,15 +273,11 @@ private:
           _process_transit_events();
         }
       }
-      else
-      {
-        // process a single transit event, then give priority to the hot thread spsc queue again
-        _process_transit_events();
-      }
     }
-
-    if (total_events == 0)
+    else
     {
+      // There are no buffered transit events to process
+
       // None of the thread local queues had any events to process, this means we have processed
       // all messages in all queues We force flush all remaining messages
       _flush_and_run_active_sinks_loop(true);
@@ -287,11 +285,7 @@ private:
       // check for any dropped messages / blocked threads
       _check_failure_counter(_backend_options.error_notifier);
 
-      // We can also clear any invalidated or empty thread contexts
-      _cleanup_invalidated_thread_contexts();
-
-      // resync rdtsc clock before going to sleep.
-      // This is useful when quill::Clock is used
+      // This is useful when BackendTscClock is used to keep it up to date
       _resync_rdtsc_clock();
 
       // Also check if all queues are empty as we need to know that to remove any unused Loggers
@@ -299,6 +293,9 @@ private:
 
       if (all_queues_empty)
       {
+        // We can also clear any invalidated or empty thread contexts
+        _cleanup_invalidated_thread_contexts();
+
         // since there are no messages we can check for invalidated loggers and clean them up
         std::vector<std::string> const removed_loggers = _logger_manager.cleanup_invalidated_loggers(
           [this]()
