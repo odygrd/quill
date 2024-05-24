@@ -413,8 +413,8 @@ private:
   QUILL_ATTRIBUTE_HOT uint32_t _read_queue_messages_and_decode(QueueT& queue, ThreadContext* thread_context,
                                                                uint64_t ts_now)
   {
-    // Note: The producer will commit to this queue when one complete message is written.
-    // This means that if we can read something from the queue it will be a full message
+    // Note: The producer commits only complete messages to the queue.
+    // Therefore, if even a single byte is present in the queue, it signifies a full message.
 
     if (!thread_context->_transit_event_buffer)
     {
@@ -423,42 +423,12 @@ private:
     }
 
     size_t const queue_capacity = queue.capacity();
-    uint32_t total_bytes_read{0};
+    size_t total_bytes_read{0};
 
-    std::byte* read_pos;
-    if constexpr (std::is_same_v<QueueT, UnboundedSPSCQueue>)
+    do
     {
-      read_pos = _read_unbounded_queue(queue, thread_context);
-    }
-    else
-    {
-      read_pos = queue.prepare_read();
-    }
+      std::byte* read_pos;
 
-    // read max of one full queue and also max_transit events otherwise we can get stuck here
-    // forever if the producer keeps producing
-    while ((total_bytes_read < queue_capacity) && read_pos)
-    {
-      if (thread_context->_transit_event_buffer->size() == _backend_options.transit_events_hard_limit)
-      {
-        // stop reading the queue, we reached the transit buffer hard limit
-        return thread_context->_transit_event_buffer->size();
-      }
-
-      std::byte const* const read_begin = read_pos;
-
-      if (!_get_transit_event_from_queue(read_pos, thread_context, ts_now))
-      {
-        // if _get_transit_event_from_queue returns false we stop reading
-        return thread_context->_transit_event_buffer->size();
-      }
-
-      // Finish reading
-      assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
-      queue.finish_read(static_cast<uint32_t>(read_pos - read_begin));
-      total_bytes_read += static_cast<uint32_t>(read_pos - read_begin);
-
-      // read again
       if constexpr (std::is_same_v<QueueT, UnboundedSPSCQueue>)
       {
         read_pos = _read_unbounded_queue(queue, thread_context);
@@ -467,7 +437,29 @@ private:
       {
         read_pos = queue.prepare_read();
       }
-    }
+
+      if (!read_pos)
+      {
+        // Exit loop nothing to read
+        break;
+      }
+
+      std::byte const* const read_begin = read_pos;
+
+      if (!_get_transit_event_from_queue(read_pos, thread_context, ts_now))
+      {
+        // If _get_transit_event_from_queue returns false, stop reading
+        break;
+      }
+
+      // Finish reading
+      assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
+      auto const bytes_read = static_cast<uint32_t>(read_pos - read_begin);
+      queue.finish_read(bytes_read);
+      total_bytes_read += bytes_read;
+      // Read max of one full queue and also max_transit events otherwise we can get stuck on the same producer
+    } while ((total_bytes_read < queue_capacity) &&
+             (thread_context->_transit_event_buffer->size() < _backend_options.transit_events_hard_limit));
 
     if (total_bytes_read != 0)
     {
