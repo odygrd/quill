@@ -300,19 +300,19 @@ public:
    * @param thread_name The name of the thread that generated the log message
    * @param logger_name The name of the logger
    * @param log_level The log level of the message
-   * @param structured_params Structured key-value pairs associated with the log message
+   * @param named_args Structured key-value pairs associated with the log message
    * @param log_message The log message to write
    */
   QUILL_ATTRIBUTE_HOT void write_log_message(MacroMetadata const* log_metadata, uint64_t log_timestamp,
                                              std::string_view thread_id, std::string_view thread_name,
                                              std::string_view logger_name, LogLevel log_level,
-                                             std::vector<std::pair<std::string, std::string>> const* structured_params,
+                                             std::vector<std::pair<std::string, std::string>> const* named_args,
                                              std::string_view log_message) override
   {
     if (is_null())
     {
       StreamSink::write_log_message(log_metadata, log_timestamp, thread_id, thread_name,
-                                    logger_name, log_level, structured_params, log_message);
+                                    logger_name, log_level, named_args, log_message);
       return;
     }
 
@@ -332,7 +332,7 @@ public:
 
     // write to file
     StreamSink::write_log_message(log_metadata, log_timestamp, thread_id, thread_name, logger_name,
-                                  log_level, structured_params, log_message);
+                                  log_level, named_args, log_message);
 
     _file_size += log_message.size();
   }

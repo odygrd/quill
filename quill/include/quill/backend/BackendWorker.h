@@ -655,34 +655,33 @@ private:
       auto format_args_decoder = reinterpret_cast<detail::FormatArgsDecoder>(transit_event->format_args_decoder);
       assert(format_args_decoder);
 
-      if (transit_event->macro_metadata->is_structured_log_template())
+      if (transit_event->macro_metadata->has_named_args())
       {
-        if (!transit_event->structured_params)
+        if (!transit_event->named_args)
         {
-          transit_event->structured_params =
-            std::make_unique<std::vector<std::pair<std::string, std::string>>>();
+          transit_event->named_args = std::make_unique<std::vector<std::pair<std::string, std::string>>>();
         }
         else
         {
-          transit_event->structured_params->clear();
+          transit_event->named_args->clear();
         }
 
         // using the message_format as key for lookups
-        _structured_fmt_str.assign(transit_event->macro_metadata->message_format());
+        _named_args_format_buffer.assign(transit_event->macro_metadata->message_format());
 
-        // for messages containing named arguments threat them as structured logs
-        if (auto const search = _structured_log_templates.find(_structured_fmt_str);
-            search != std::cend(_structured_log_templates))
+        // for messages containing named arguments
+        if (auto const search = _named_args_format_message_templates.find(_named_args_format_buffer);
+            search != std::cend(_named_args_format_message_templates))
         {
-          // process structured log that structured keys exist in our map
-          auto const& [fmt_str, structured_keys] = search->second;
+          // process named args message when the message format already exists in our map
+          auto const& [fmt_str, arg_name] = search->second;
 
-          transit_event->structured_params->resize(structured_keys.size());
+          transit_event->named_args->resize(arg_name.size());
 
-          // We first populate the structured keys in the transit buffer
-          for (size_t i = 0; i < structured_keys.size(); ++i)
+          // We first populate the arg names in the transit buffer
+          for (size_t i = 0; i < arg_name.size(); ++i)
           {
-            (*transit_event->structured_params)[i].first = structured_keys[i];
+            (*transit_event->named_args)[i].first = arg_name[i];
           }
 
           format_args_decoder(read_pos, _format_args_store);
@@ -696,7 +695,7 @@ private:
                                    _format_args_store.get_types(), _format_args_store.data()});
 
             // format the values of each key
-            _format_and_split_arguments(*transit_event->structured_params, _format_args_store);
+            _format_and_split_arguments(*transit_event->named_args, _format_args_store);
           }
 #if !defined(QUILL_NO_EXCEPTIONS)
           QUILL_CATCH(std::exception const& e)
@@ -715,23 +714,23 @@ private:
         }
         else
         {
-          // process structured log that structured keys are processed for the first time
-          // parse structured keys and stored them to our lookup map
-          auto const [res_it, inserted] = _structured_log_templates.try_emplace(
-            _structured_fmt_str,
-            _process_structured_log_template(transit_event->macro_metadata->message_format()));
+          // process named args log when the message format is processed for the first time
+          // parse name of each arg and stored them to our lookup map
+          auto const [res_it, inserted] = _named_args_format_message_templates.try_emplace(
+            _named_args_format_buffer,
+            _process_named_arg_format_message(transit_event->macro_metadata->message_format()));
 
           // suppress unused warning
           (void)inserted;
 
-          auto const& [fmt_str, structured_keys] = res_it->second;
+          auto const& [fmt_str, arg_name] = res_it->second;
 
-          transit_event->structured_params->resize(structured_keys.size());
+          transit_event->named_args->resize(arg_name.size());
 
-          // We first populate the structured keys in the transit buffer
-          for (size_t i = 0; i < structured_keys.size(); ++i)
+          // We first populate the names of each arg in the transit buffer
+          for (size_t i = 0; i < arg_name.size(); ++i)
           {
-            (*transit_event->structured_params)[i].first = structured_keys[i];
+            (*transit_event->named_args)[i].first = arg_name[i];
           }
 
           format_args_decoder(read_pos, _format_args_store);
@@ -745,7 +744,7 @@ private:
                                    _format_args_store.get_types(), _format_args_store.data()});
 
             // format the values of each key
-            _format_and_split_arguments(*transit_event->structured_params, _format_args_store);
+            _format_and_split_arguments(*transit_event->named_args, _format_args_store);
           }
 #if !defined(QUILL_NO_EXCEPTIONS)
           QUILL_CATCH(std::exception const& e)
@@ -935,7 +934,7 @@ private:
     std::string_view const formatted_log_message = transit_event.logger_base->pattern_formatter->format(
       transit_event.timestamp, transit_event.thread_id, transit_event.thread_name, _process_id,
       transit_event.logger_base->logger_name, loglevel_to_string(transit_event.log_level()),
-      *transit_event.macro_metadata, transit_event.structured_params.get(),
+      *transit_event.macro_metadata, transit_event.named_args.get(),
       std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()});
 
     for (auto& sink : transit_event.logger_base->sinks)
@@ -949,7 +948,7 @@ private:
         sink->write_log_message(transit_event.macro_metadata, transit_event.timestamp,
                                 transit_event.thread_id, transit_event.thread_name,
                                 transit_event.logger_base->logger_name, transit_event.log_level(),
-                                transit_event.structured_params.get(), formatted_log_message);
+                                transit_event.named_args.get(), formatted_log_message);
       }
     }
   }
@@ -989,11 +988,11 @@ private:
   }
 
   /**
-   * Process a structured log template message
-   * @param fmt_template a structured log template message containing named arguments
+   * Process the format of a log message that contains named args
+   * @param fmt_template a log message containing named arguments
    * @return first: fmt string without the named arguments, second: a vector extracted keys
    */
-  QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_structured_log_template(
+  QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_named_arg_format_message(
     std::string_view fmt_template) noexcept
   {
     // It would be nice to do this at compile time and store it in macro metadata, but without
@@ -1292,17 +1291,17 @@ private:
    * iterate and format each argument individually in libfmt, this approach is used.
    * After formatting, the string is split to isolate each formatted value.
    */
-  void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& structured_params,
+  void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& named_args,
                                    DynamicFormatArgStore const& arg_store)
   {
     // Generate a format string
     std::string format_string;
     static constexpr std::string_view delimiter{"\x01\x02\x03"};
 
-    for (size_t i = 0; i < structured_params.size(); ++i)
+    for (size_t i = 0; i < named_args.size(); ++i)
     {
       format_string += "{}";
-      if (i < structured_params.size() - 1)
+      if (i < named_args.size() - 1)
       {
         format_string += delimiter;
       }
@@ -1321,16 +1320,16 @@ private:
 
     while ((end = formatted_values_str.find(delimiter, start)) != std::string::npos)
     {
-      if (idx < structured_params.size())
+      if (idx < named_args.size())
       {
-        structured_params[idx++].second = formatted_values_str.substr(start, end - start);
+        named_args[idx++].second = formatted_values_str.substr(start, end - start);
       }
       start = end + delimiter.length();
     }
 
-    if (idx < structured_params.size())
+    if (idx < named_args.size())
     {
-      structured_params[idx].second = formatted_values_str.substr(start);
+      named_args[idx].second = formatted_values_str.substr(start);
     }
   }
 
@@ -1350,11 +1349,11 @@ private:
   std::vector<std::weak_ptr<PatternFormatter>> _pattern_formatters;
 
   BacktraceStorage _backtrace_storage; /** Stores a vector of backtrace messages per logger name */
-  std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _structured_log_templates; /** Avoid re-formating the same structured template each time */
+  std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _named_args_format_message_templates; /** Avoid re-formating the same named args log template each time */
 
   /** Id of the current running process **/
   std::string _process_id;
-  std::string _structured_fmt_str; /** to avoid allocation each time **/
+  std::string _named_args_format_buffer; /** to avoid allocation each time **/
   std::chrono::system_clock::time_point _last_rdtsc_resync;
   std::atomic<uint32_t> _backend_worker_thread_id{0}; /** cached backend worker thread id */
 

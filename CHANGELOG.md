@@ -73,8 +73,8 @@
   the compiled library were mistakenly propagated to all programs linking against the header-only library.
   This issue is now fixed by removing those flags and explicitly adding them to tests and examples. As a result,
   executable targets no longer inherit flags from the library.
-- Replaced `%(structured_keys)` with `%(structured_params)` in the `PatternFormatter`. This change now appends the
-  entire key-value pair to the message, not just the keys.
+- Replaced `%(structured_keys)` with `%(named_args)` in the `PatternFormatter`. This change now appends the
+  entire key-value pair of named args to the message, not just the names.
 
 ## v4.0.0
 

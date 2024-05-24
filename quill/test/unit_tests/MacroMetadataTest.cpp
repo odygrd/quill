@@ -23,7 +23,7 @@ TEST_CASE("construct")
     REQUIRE_STREQ(macro_metadata.message_format(), "Test fmt {}");
     REQUIRE_EQ(macro_metadata.log_level(), quill::LogLevel::Debug);
     REQUIRE_STREQ(macro_metadata.line(), "15");
-    REQUIRE_EQ(macro_metadata.is_structured_log_template(), false);
+    REQUIRE_EQ(macro_metadata.has_named_args(), false);
   }
 
   {
@@ -42,7 +42,7 @@ TEST_CASE("construct")
     REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:30");
     REQUIRE_STREQ(macro_metadata.caller_function(), "DOCTEST_ANON_FUNC_3");
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Flush);
-    REQUIRE_EQ(macro_metadata.is_structured_log_template(), true);
+    REQUIRE_EQ(macro_metadata.has_named_args(), true);
   }
 }
 

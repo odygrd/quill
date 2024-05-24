@@ -61,7 +61,7 @@ public:
     ShortSourceLocation,
     Message,
     Tags,
-    StructuredParams,
+    NamedArgs,
     ATTR_NR_ITEMS
   };
 
@@ -89,7 +89,7 @@ public:
    * %(source_location)         - Full source file path and line number as a single string.
    * %(short_source_location)   - Shortened source file name and line number as a single string.
    * %(tags)                    - Additional custom tags appended to the message when _WITH_TAGS macros are used.
-   * %(structured_params)       - Key-value pairs appended to the message. Only applicable with structured message formatting; remains empty otherwise.
+   * %(named_args)              - Key-value pairs appended to the message. Only applicable when the message has named args; remains empty otherwise.
    *
    * @param time_format The format of the date. Same as strftime() format with extra specifiers `%Qms` `%Qus` `Qns`
    * @param timestamp_timezone The timezone of the timestamp, local_time or gmt_time
@@ -119,7 +119,7 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(
     uint64_t timestamp, std::string_view thread_id, std::string_view thread_name, std::string_view process_id,
     std::string_view logger, std::string_view log_level, MacroMetadata const& log_statement_metadata,
-    std::vector<std::pair<std::string, std::string>> const* structured_params, std::string_view log_msg)
+    std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_msg)
   {
     if (_fmt_format.empty())
     {
@@ -196,27 +196,27 @@ public:
       _set_arg_val<Attribute::ShortSourceLocation>(log_statement_metadata.short_source_location());
     }
 
-    if (_is_set_in_pattern[Attribute::StructuredParams])
+    if (_is_set_in_pattern[Attribute::NamedArgs])
     {
-      _formatted_structured_params_buffer.clear();
+      _formatted_named_args_buffer.clear();
 
-      if (structured_params)
+      if (named_args)
       {
-        for (size_t i = 0; i < structured_params->size(); ++i)
+        for (size_t i = 0; i < named_args->size(); ++i)
         {
-          _formatted_structured_params_buffer.append((*structured_params)[i].first);
-          _formatted_structured_params_buffer.append(std::string_view{": "});
-          _formatted_structured_params_buffer.append((*structured_params)[i].second);
+          _formatted_named_args_buffer.append((*named_args)[i].first);
+          _formatted_named_args_buffer.append(std::string_view{": "});
+          _formatted_named_args_buffer.append((*named_args)[i].second);
 
-          if (i != structured_params->size() - 1)
+          if (i != named_args->size() - 1)
           {
-            _formatted_structured_params_buffer.append(std::string_view{", "});
+            _formatted_named_args_buffer.append(std::string_view{", "});
           }
         }
       }
 
-      _set_arg_val<Attribute::StructuredParams>(std::string_view{
-        _formatted_structured_params_buffer.data(), _formatted_structured_params_buffer.size()});
+      _set_arg_val<Attribute::NamedArgs>(
+        std::string_view{_formatted_named_args_buffer.data(), _formatted_named_args_buffer.size()});
     }
 
     if (_is_set_in_pattern[Attribute::Tags])
@@ -265,7 +265,7 @@ private:
       "caller_function"_a = "", "log_level"_a = "", "log_level_id"_a = "", "line_number"_a = "",
       "logger"_a = "", "full_path"_a = "", "thread_id"_a = "", "thread_name"_a = "",
       "process_id"_a = "", "source_location"_a = "", "short_source_location"_a = "",
-      "message"_a = "", "tags"_a = "", "structured_params"_a = "");
+      "message"_a = "", "tags"_a = "", "named_args"_a = "");
 
     _set_arg<Attribute::Time>(std::string_view("time"));
     _set_arg<Attribute::FileName>(std::string_view("file_name"));
@@ -282,7 +282,7 @@ private:
     _set_arg<Attribute::ShortSourceLocation>("short_source_location");
     _set_arg<Attribute::Message>(std::string_view("message"));
     _set_arg<Attribute::Tags>(std::string_view("tags"));
-    _set_arg<Attribute::StructuredParams>(std::string_view("structured_params"));
+    _set_arg<Attribute::NamedArgs>(std::string_view("named_args"));
   }
 
   /***/
@@ -322,7 +322,7 @@ private:
       {"short_source_location", PatternFormatter::Attribute::ShortSourceLocation},
       {"message", PatternFormatter::Attribute::Message},
       {"tags", PatternFormatter::Attribute::Tags},
-      {"structured_params", PatternFormatter::Attribute::StructuredParams}};
+      {"named_args", PatternFormatter::Attribute::NamedArgs}};
 
     auto const search = attr_map.find(attribute_name);
 
@@ -503,6 +503,6 @@ private:
   /** The buffer where we store each formatted string, also stored as class member to avoid
    * re-allocations **/
   fmtquill::basic_memory_buffer<char, 512> _formatted_log_message_buffer;
-  fmtquill::basic_memory_buffer<char, 512> _formatted_structured_params_buffer;
+  fmtquill::basic_memory_buffer<char, 512> _formatted_named_args_buffer;
 };
 } // namespace quill
