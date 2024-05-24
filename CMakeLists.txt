@@ -47,6 +47,11 @@ option(QUILL_DOCS_GEN "Generate documentation" OFF)
 cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 
 #-------------------------------------------------------------------------------------------------------
+# Include common compiler options
+#-------------------------------------------------------------------------------------------------------
+include(${PROJECT_SOURCE_DIR}/cmake/SetCommonCompileOptions.cmake)
+
+#-------------------------------------------------------------------------------------------------------
 # Determine if quill is built as a subproject (using add_subdirectory) or if it is the master project.
 #-------------------------------------------------------------------------------------------------------
 set(QUILL_MASTER_PROJECT FALSE CACHE BOOL "Master Project" FORCE)

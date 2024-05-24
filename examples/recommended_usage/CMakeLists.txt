@@ -1,7 +1,9 @@
 add_subdirectory(quill_wrapper)
 
 add_executable(quill_example_recommended_usage recommended_usage.cpp)
+set_common_compile_options(quill_example_recommended_usage)
 target_link_libraries(quill_example_recommended_usage quill_wrapper_recommended)
 
 add_executable(quill_example_use_overwrite_macros use_overwrite_macros.cpp)
+set_common_compile_options(quill_example_use_overwrite_macros)
 target_link_libraries(quill_example_use_overwrite_macros quill_wrapper_recommended)
