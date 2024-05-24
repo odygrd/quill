@@ -285,48 +285,12 @@ private:
       // This is useful when BackendTscClock is used to keep it up to date
       _resync_rdtsc_clock();
 
-      // Also check if all queues are empty as we need to know that to remove any unused Loggers
-      bool all_queues_empty = _check_all_queues_empty();
-
+      // Also check if all queues are empty
+      bool const all_queues_empty = _check_all_queues_empty();
       if (all_queues_empty)
       {
-        // We can also clear any invalidated or empty thread contexts
         _cleanup_invalidated_thread_contexts();
-
-        // since there are no messages we can check for invalidated loggers and clean them up
-        std::vector<std::string> const removed_loggers = _logger_manager.cleanup_invalidated_loggers(
-          [this]()
-          {
-            // we need to reload all thread contexts and check again for empty queues before remove a logger to avoid race condition
-            _update_active_thread_contexts_cache();
-            return _check_all_queues_empty();
-          });
-
-        if (!removed_loggers.empty())
-        {
-          // if loggers were removed also check for sinks to remove
-          // cleanup_unused_sinks is expensive and should be only called when it is needed
-          _sink_manager.cleanup_unused_sinks();
-
-          // Clean up any expired pattern_formatters
-          for (auto it = _pattern_formatters.begin(); it != _pattern_formatters.end();)
-          {
-            if (it->expired())
-            {
-              it = _pattern_formatters.erase(it);
-            }
-            else
-            {
-              ++it;
-            }
-          }
-
-          // Clean up any backtrace storage
-          for (auto const& logger_name : removed_loggers)
-          {
-            _backtrace_storage.erase(logger_name);
-          }
-        }
+        _cleanup_invalidated_loggers();
 
         // There is nothing left to do, and we can let this thread sleep for a while
         // buffer events are 0 here and also all the producer queues are empty
@@ -382,14 +346,10 @@ private:
       else
       {
         // there are no buffered transit events to process
-        bool all_empty{true};
+        bool const all_queues_empty =
+          (!_backend_options.wait_for_queues_to_empty_before_exit) || _check_all_queues_empty();
 
-        if (_backend_options.wait_for_queues_to_empty_before_exit)
-        {
-          all_empty = _check_all_queues_empty();
-        }
-
-        if (all_empty)
+        if (all_queues_empty)
         {
           // we are done, all queues are now empty
           _check_failure_counter(_backend_options.error_notifier);
@@ -1072,6 +1032,8 @@ private:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool _check_all_queues_empty()
   {
+    _update_active_thread_contexts_cache();
+
     bool all_empty{true};
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
@@ -1267,6 +1229,47 @@ private:
       found_invalid_and_empty_thread_context =
         std::find_if(_active_thread_contexts_cache.begin(), _active_thread_contexts_cache.end(),
                      find_invalid_and_empty_thread_context_callback);
+    }
+  }
+
+  /**
+   * Cleans up any invalidated loggers
+   */
+  void _cleanup_invalidated_loggers()
+  {
+    // since there are no messages we can check for invalidated loggers and clean them up
+    std::vector<std::string> const removed_loggers = _logger_manager.cleanup_invalidated_loggers(
+      [this]()
+      {
+        // check the queues are empty each time before removing a logger to avoid
+        // potential race condition of the logger* still being in the queue
+        return _check_all_queues_empty();
+      });
+
+    if (!removed_loggers.empty())
+    {
+      // if loggers were removed also check for sinks to remove
+      // cleanup_unused_sinks is expensive and should be only called when it is needed
+      _sink_manager.cleanup_unused_sinks();
+
+      // Clean up any expired pattern_formatters
+      for (auto it = _pattern_formatters.begin(); it != _pattern_formatters.end();)
+      {
+        if (it->expired())
+        {
+          it = _pattern_formatters.erase(it);
+        }
+        else
+        {
+          ++it;
+        }
+      }
+
+      // Clean up any backtrace storage
+      for (auto const& logger_name : removed_loggers)
+      {
+        _backtrace_storage.erase(logger_name);
+      }
     }
   }
 
