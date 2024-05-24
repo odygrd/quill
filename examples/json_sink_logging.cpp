@@ -54,7 +54,7 @@ int main()
   quill::Logger* hybrid_logger = quill::Frontend::create_or_get_logger(
     "hybrid_logger", {std::move(json_sink_2), std::move(console_sink)},
     "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<20) "
-    "%(message) [%(structured_keys)]");
+    "%(message) [%(structured_params)]");
 
   for (int i = 2; i < 4; ++i)
   {

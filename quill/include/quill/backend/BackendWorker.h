@@ -657,14 +657,14 @@ private:
 
       if (transit_event->macro_metadata->is_structured_log_template())
       {
-        if (!transit_event->structured_kvs)
+        if (!transit_event->structured_params)
         {
-          transit_event->structured_kvs =
+          transit_event->structured_params =
             std::make_unique<std::vector<std::pair<std::string, std::string>>>();
         }
         else
         {
-          transit_event->structured_kvs->clear();
+          transit_event->structured_params->clear();
         }
 
         // using the message_format as key for lookups
@@ -677,12 +677,12 @@ private:
           // process structured log that structured keys exist in our map
           auto const& [fmt_str, structured_keys] = search->second;
 
-          transit_event->structured_kvs->resize(structured_keys.size());
+          transit_event->structured_params->resize(structured_keys.size());
 
           // We first populate the structured keys in the transit buffer
           for (size_t i = 0; i < structured_keys.size(); ++i)
           {
-            (*transit_event->structured_kvs)[i].first = structured_keys[i];
+            (*transit_event->structured_params)[i].first = structured_keys[i];
           }
 
           format_args_decoder(read_pos, _format_args_store);
@@ -696,7 +696,7 @@ private:
                                    _format_args_store.get_types(), _format_args_store.data()});
 
             // format the values of each key
-            _format_and_split_arguments(*transit_event->structured_kvs, _format_args_store);
+            _format_and_split_arguments(*transit_event->structured_params, _format_args_store);
           }
 #if !defined(QUILL_NO_EXCEPTIONS)
           QUILL_CATCH(std::exception const& e)
@@ -726,12 +726,12 @@ private:
 
           auto const& [fmt_str, structured_keys] = res_it->second;
 
-          transit_event->structured_kvs->resize(structured_keys.size());
+          transit_event->structured_params->resize(structured_keys.size());
 
           // We first populate the structured keys in the transit buffer
           for (size_t i = 0; i < structured_keys.size(); ++i)
           {
-            (*transit_event->structured_kvs)[i].first = structured_keys[i];
+            (*transit_event->structured_params)[i].first = structured_keys[i];
           }
 
           format_args_decoder(read_pos, _format_args_store);
@@ -745,7 +745,7 @@ private:
                                    _format_args_store.get_types(), _format_args_store.data()});
 
             // format the values of each key
-            _format_and_split_arguments(*transit_event->structured_kvs, _format_args_store);
+            _format_and_split_arguments(*transit_event->structured_params, _format_args_store);
           }
 #if !defined(QUILL_NO_EXCEPTIONS)
           QUILL_CATCH(std::exception const& e)
@@ -935,7 +935,7 @@ private:
     std::string_view const formatted_log_message = transit_event.logger_base->pattern_formatter->format(
       transit_event.timestamp, transit_event.thread_id, transit_event.thread_name, _process_id,
       transit_event.logger_base->logger_name, loglevel_to_string(transit_event.log_level()),
-      *transit_event.macro_metadata, transit_event.structured_kvs.get(),
+      *transit_event.macro_metadata, transit_event.structured_params.get(),
       std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()});
 
     for (auto& sink : transit_event.logger_base->sinks)
@@ -949,7 +949,7 @@ private:
         sink->write_log_message(transit_event.macro_metadata, transit_event.timestamp,
                                 transit_event.thread_id, transit_event.thread_name,
                                 transit_event.logger_base->logger_name, transit_event.log_level(),
-                                transit_event.structured_kvs.get(), formatted_log_message);
+                                transit_event.structured_params.get(), formatted_log_message);
       }
     }
   }
@@ -1292,17 +1292,17 @@ private:
    * iterate and format each argument individually in libfmt, this approach is used.
    * After formatting, the string is split to isolate each formatted value.
    */
-  void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& structured_kvs,
+  void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& structured_params,
                                    DynamicFormatArgStore const& arg_store)
   {
     // Generate a format string
     std::string format_string;
     static constexpr std::string_view delimiter{"\x01\x02\x03"};
 
-    for (size_t i = 0; i < structured_kvs.size(); ++i)
+    for (size_t i = 0; i < structured_params.size(); ++i)
     {
       format_string += "{}";
-      if (i < structured_kvs.size() - 1)
+      if (i < structured_params.size() - 1)
       {
         format_string += delimiter;
       }
@@ -1321,16 +1321,16 @@ private:
 
     while ((end = formatted_values_str.find(delimiter, start)) != std::string::npos)
     {
-      if (idx < structured_kvs.size())
+      if (idx < structured_params.size())
       {
-        structured_kvs[idx++].second = formatted_values_str.substr(start, end - start);
+        structured_params[idx++].second = formatted_values_str.substr(start, end - start);
       }
       start = end + delimiter.length();
     }
 
-    if (idx < structured_kvs.size())
+    if (idx < structured_params.size())
     {
-      structured_kvs[idx].second = formatted_values_str.substr(start);
+      structured_params[idx].second = formatted_values_str.substr(start);
     }
   }
 

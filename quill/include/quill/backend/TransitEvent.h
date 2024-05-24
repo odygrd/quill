@@ -28,7 +28,7 @@ class LoggerBase;
 struct TransitEvent
 {
   /***/
-  TransitEvent() { formatted_msg.reserve(64); }
+  TransitEvent() { formatted_msg.reserve(32); }
 
   /***/
   ~TransitEvent() = default;
@@ -46,7 +46,7 @@ struct TransitEvent
       thread_id(other.thread_id),
       thread_name(other.thread_name),
       formatted_msg(std::move(other.formatted_msg)),
-      structured_kvs(std::move(other.structured_kvs)),
+      structured_params(std::move(other.structured_params)),
       log_level_override(other.log_level_override),
       flush_flag(other.flush_flag)
   {
@@ -64,7 +64,7 @@ struct TransitEvent
       thread_id = other.thread_id;
       thread_name = other.thread_name;
       formatted_msg = std::move(other.formatted_msg);
-      structured_kvs = std::move(other.structured_kvs);
+      structured_params = std::move(other.structured_params);
       log_level_override = other.log_level_override;
       flush_flag = other.flush_flag;
     }
@@ -85,7 +85,7 @@ struct TransitEvent
   std::string_view thread_id;
   std::string_view thread_name;
   FormatBuffer formatted_msg; /** buffer for message **/
-  std::unique_ptr<std::vector<std::pair<std::string, std::string>>> structured_kvs; /** A unique ptr to save space as structured logs feature is not always used */
+  std::unique_ptr<std::vector<std::pair<std::string, std::string>>> structured_params; /** A unique ptr to save space as structured logs feature is not always used */
   std::optional<LogLevel> log_level_override{std::nullopt};
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
