@@ -150,6 +150,6 @@ TEST_CASE("json_file_logging")
     }
   }
 
-  //  testing::remove_file(json_filename);
-  //  testing::remove_file(filename);
+  testing::remove_file(json_filename);
+  testing::remove_file(filename);
 }
