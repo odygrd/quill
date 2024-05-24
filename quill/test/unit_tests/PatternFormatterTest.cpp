@@ -35,11 +35,11 @@ TEST_CASE("default_pattern_formatter")
   fmtquill::format_to(std::back_inserter(log_msg),
                       fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-  std::vector<std::pair<std::string, std::string>> structured_params;
+  std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = default_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -73,11 +73,11 @@ TEST_CASE("custom_pattern_message_only")
   fmtquill::format_to(std::back_inserter(log_msg),
                       fmtquill::runtime(macro_metadata.message_format()), "pattern", 12.34);
 
-  std::vector<std::pair<std::string, std::string>> structured_params;
+  std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -110,11 +110,11 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   fmtquill::format_to(std::back_inserter(log_msg),
                       fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-  std::vector<std::pair<std::string, std::string>> structured_params;
+  std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -149,11 +149,11 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   fmtquill::format_to(std::back_inserter(log_msg),
                       fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-  std::vector<std::pair<std::string, std::string>> structured_params;
+  std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -188,11 +188,11 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   fmtquill::format_to(std::back_inserter(log_msg),
                       fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-  std::vector<std::pair<std::string, std::string>> structured_params;
+  std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -227,11 +227,11 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   fmtquill::format_to(std::back_inserter(log_msg),
                       fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-  std::vector<std::pair<std::string, std::string>> structured_params;
+  std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -269,11 +269,11 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
     fmtquill::format_to(std::back_inserter(log_msg),
                         fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-    std::vector<std::pair<std::string, std::string>> structured_params;
+    std::vector<std::pair<std::string, std::string>> named_args;
 
     auto const& formatted_buffer = custom_pattern_formatter.format(
       ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-      macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+      macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
     // Convert the buffer to a string
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -312,11 +312,11 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
     fmtquill::format_to(std::back_inserter(log_msg),
                         fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-    std::vector<std::pair<std::string, std::string>> structured_params;
+    std::vector<std::pair<std::string, std::string>> named_args;
 
     auto const& formatted_buffer = custom_pattern_formatter.format(
       ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-      macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+      macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
     // Convert the buffer to a string
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -371,11 +371,11 @@ TEST_CASE("custom_pattern")
   fmtquill::format_to(std::back_inserter(log_msg),
                       fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-  std::vector<std::pair<std::string, std::string>> structured_params;
+  std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -411,11 +411,11 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
   fmtquill::format_to(std::back_inserter(log_msg),
                       fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
 
-  std::vector<std::pair<std::string, std::string>> structured_params;
+  std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &structured_params, std::string_view{log_msg.data(), log_msg.size()});
+    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);

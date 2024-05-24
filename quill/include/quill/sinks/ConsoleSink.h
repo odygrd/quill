@@ -344,13 +344,13 @@ public:
    * @param thread_name thread name
    * @param logger_name logger name
    * @param log_level log level
-   * @param structured_params vector of key-value pairs for structured logging
+   * @param named_args vector of key-value pairs of named args
    * @param log_message log message
    */
   QUILL_ATTRIBUTE_HOT void write_log_message(MacroMetadata const* log_metadata, uint64_t log_timestamp,
                                              std::string_view thread_id, std::string_view thread_name,
                                              std::string_view logger_name, LogLevel log_level,
-                                             std::vector<std::pair<std::string, std::string>> const* structured_params,
+                                             std::vector<std::pair<std::string, std::string>> const* named_args,
                                              std::string_view log_message) override
   {
 #if defined(_WIN32)
@@ -387,7 +387,7 @@ public:
     {
       // Write record to file
       StreamSink::write_log_message(log_metadata, log_timestamp, thread_id, thread_name,
-                                    logger_name, log_level, structured_params, log_message);
+                                    logger_name, log_level, named_args, log_message);
     }
 #else
     if (_console_colours.can_use_colours())
@@ -399,7 +399,7 @@ public:
 
     // Write record to file
     StreamSink::write_log_message(log_metadata, log_timestamp, thread_id, thread_name, logger_name,
-                                  log_level, structured_params, log_message);
+                                  log_level, named_args, log_message);
 
     if (_console_colours.can_use_colours())
     {

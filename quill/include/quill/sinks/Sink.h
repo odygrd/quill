@@ -54,14 +54,13 @@ public:
    * @param thread_name Name of the thread.
    * @param logger_name Name of the logger.
    * @param log_level Log level of the message.
-   * @param structured_params Vector of key-value pairs for structured logging.
+   * @param named_args Vector of key-value pairs of named args
    * @param log_message The log message.
    */
   QUILL_ATTRIBUTE_HOT virtual void write_log_message(
     MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
     std::string_view thread_name, std::string_view logger_name, LogLevel log_level,
-                                                     std::vector<std::pair<std::string, std::string>> const* structured_params,
-                                                     std::string_view log_message) = 0;
+    std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_message) = 0;
 
   /**
    * @brief Flushes the sink, synchronizing the associated sink with its controlled output sequence.

@@ -33,11 +33,11 @@
   #define QUILL_COMPILE_OUT_LOG_LEVEL -1
 #endif
 
-#define QUILL_DEFINE_MACRO_METADATA(caller_function, fmt, tags, log_level, is_structured_log)      \
+#define QUILL_DEFINE_MACRO_METADATA(caller_function, fmt, tags, log_level, has_named_args)         \
   static constexpr quill::MacroMetadata macro_metadata                                             \
   {                                                                                                \
     __FILE__ ":" QUILL_STRINGIFY(__LINE__), caller_function, fmt, tags, log_level,                 \
-      quill::MacroMetadata::Event::Log, is_structured_log                                          \
+      quill::MacroMetadata::Event::Log, has_named_args                                             \
   }
 
 #define QUILL_LOGGER_CALL(likelyhood, logger, log_level, fmt, ...)                                 \
@@ -46,7 +46,7 @@
     if (likelyhood(logger->template should_log_message<log_level>()))                              \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, nullptr, log_level,                           \
-                                  quill::detail::detect_structured_log_template(fmt));             \
+                                  quill::detail::detect_named_args(fmt));                          \
                                                                                                    \
       logger->log_message(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                  \
     }                                                                                              \
@@ -57,9 +57,8 @@
   {                                                                                                \
     if (likelyhood(logger->template should_log_message<log_level>()))                              \
     {                                                                                              \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, &tags, log_level,                             \
-                                  quill::detail::detect_structured_log_template(fmt));             \
-                                                                                                   \
+      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, &tags, log_level, quill::detail::detect_named_args(fmt)); \
+                                                                                                               \
       logger->log_message(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                  \
     }                                                                                              \
   } while (0)
@@ -88,7 +87,7 @@
     if (QUILL_LIKELY(logger->template should_log_message<quill::LogLevel::Backtrace>()))           \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, nullptr, quill::LogLevel::Backtrace,          \
-                                  quill::detail::detect_structured_log_template(fmt));             \
+                                  quill::detail::detect_named_args(fmt));                          \
                                                                                                    \
       logger->log_message(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                  \
     }                                                                                              \
@@ -104,7 +103,7 @@
     if (logger->should_log_message(log_level))                                                     \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, nullptr, quill::LogLevel::Dynamic,            \
-                                  quill::detail::detect_structured_log_template(fmt));             \
+                                  quill::detail::detect_named_args(fmt));                          \
                                                                                                    \
       logger->log_message(log_level, &macro_metadata, ##__VA_ARGS__);                              \
     }                                                                                              \

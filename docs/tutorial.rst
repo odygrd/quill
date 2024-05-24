@@ -207,11 +207,11 @@ Json log
       auto json_sink_2 = quill::Frontend::get_sink("json_sink_logging.log");
       auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console_sink_id_1");
 
-      // We set a custom format pattern here to also include structured key names
+      // We set a custom format pattern here to also include the named_args
       quill::Logger* hybrid_logger = quill::Frontend::create_or_get_logger(
         "hybrid_logger", {std::move(json_sink_2), std::move(console_sink)},
         "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<20) "
-        "%(message) [%(structured_params)]");
+        "%(message) [%(named_args)]");
 
       for (int i = 2; i < 4; ++i)
       {
@@ -375,9 +375,9 @@ attributes.
 |                         |                          | message when _WITH_TAGS macros are     |
 |                         |                          | used.                                  |
 +-------------------------+--------------------------+----------------------------------------+
-| structured_params       | %(structured_params)     | Key-value pairs appended to the        |
+| named_args              | %(named_args)            | Key-value pairs appended to the        |
 |                         |                          | message. Only applicable with          |
-|                         |                          | structured message formatting;         |
+|                         |                          | for a named args log format;           |
 |                         |                          | remains empty otherwise.               |
 +-------------------------+--------------------------+----------------------------------------+
 

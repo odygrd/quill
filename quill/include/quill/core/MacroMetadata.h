@@ -31,7 +31,7 @@ public:
   };
 
   constexpr MacroMetadata(char const* source_location, char const* caller_function, char const* message_format,
-                          Tags const* tags, LogLevel log_level, Event event, bool is_structured_log) noexcept
+                          Tags const* tags, LogLevel log_level, Event event, bool has_named_args) noexcept
     : _source_location(source_location),
       _caller_function(caller_function),
       _message_format(message_format),
@@ -41,7 +41,7 @@ public:
       _log_level(log_level),
       _event(event)
   {
-    _set_structured_log_template_flag(is_structured_log);
+    _set_named_args_flag(has_named_args);
   }
 
   QUILL_NODISCARD char const* source_location() const noexcept { return _source_location; }
@@ -88,9 +88,9 @@ public:
 
   QUILL_NODISCARD Tags const* tags() const noexcept { return _tags; }
 
-  QUILL_NODISCARD constexpr bool is_structured_log_template() const noexcept
+  QUILL_NODISCARD constexpr bool has_named_args() const noexcept
   {
-    return _format_flags & STRUCTURED_LOG_TEMPLATE_FLAG;
+    return _format_flags & NAMED_ARGS_FLAG;
   }
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
@@ -118,15 +118,15 @@ private:
     return static_cast<uint16_t>(separator_index);
   }
 
-  constexpr void _set_structured_log_template_flag(bool value) noexcept
+  constexpr void _set_named_args_flag(bool value) noexcept
   {
     if (value)
     {
-      _format_flags |= STRUCTURED_LOG_TEMPLATE_FLAG;
+      _format_flags |= NAMED_ARGS_FLAG;
     }
     else
     {
-      _format_flags &= static_cast<uint8_t>(~STRUCTURED_LOG_TEMPLATE_FLAG);
+      _format_flags &= static_cast<uint8_t>(~NAMED_ARGS_FLAG);
     }
   }
 
@@ -138,7 +138,7 @@ private:
   static constexpr char PATH_PREFERRED_SEPARATOR = '/';
 #endif
 
-  static constexpr uint8_t STRUCTURED_LOG_TEMPLATE_FLAG = 0x01;
+  static constexpr uint8_t NAMED_ARGS_FLAG = 0x01;
 
   char const* _source_location;
   char const* _caller_function;
