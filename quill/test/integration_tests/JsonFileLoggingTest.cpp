@@ -86,7 +86,9 @@ TEST_CASE("json_file_logging")
 
         Logger* logger = Frontend::create_or_get_logger(
           logger_name_prefix + std::to_string(i),
-          std::initializer_list<std::shared_ptr<Sink>>{std::move(json_file_sink), std::move(file_sink)});
+          std::initializer_list<std::shared_ptr<Sink>>{std::move(json_file_sink), std::move(file_sink)},
+          "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+          "%(message) [%(structured_params)]");
 
         for (size_t j = 0; j < number_of_messages; ++j)
         {
@@ -138,9 +140,11 @@ TEST_CASE("json_file_logging")
       REQUIRE(quill::testing::file_contains(file_contents, expected_json_string));
 
       // check standard log
-      // for each thread
+      // for each thread [i: 0, s: 0]
       std::string expected_string = logger_name_prefix + std::to_string(i) +
-        "     Hello from thread " + std::to_string(i) + " this is message " + std::to_string(j);
+        "     Hello from thread " + std::to_string(i) + " this is message " + std::to_string(j) +
+        +" [i: " + std::to_string(j) + ", s: " + std::to_string(j) +
+        "] [thread_index: " + std::to_string(i) + ", message_num: " + std::to_string(j) + ", ";
 
       REQUIRE(quill::testing::file_contains(file_contents_s, expected_string));
     }

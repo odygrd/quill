@@ -51,13 +51,13 @@ public:
    * @param thread_name Name of the thread.
    * @param logger_name Name of the logger.
    * @param log_level Log level of the message.
-   * @param structured_keys_values Vector of key-value pairs for structured logging.
+   * @param structured_params Vector of key-value pairs for structured logging.
    * @param log_message The log message.
    */
   QUILL_ATTRIBUTE_HOT void write_log_message(MacroMetadata const* log_metadata, uint64_t log_timestamp,
                                              std::string_view thread_id, std::string_view thread_name,
                                              std::string_view logger_name, LogLevel log_level,
-                                             std::vector<std::pair<std::string, std::string>> const* structured_keys_values,
+                                             std::vector<std::pair<std::string, std::string>> const* structured_params,
                                              std::string_view log_message) override
   {
     _json_message.clear();
@@ -67,9 +67,9 @@ public:
       std::to_string(log_timestamp), log_metadata->file_name(), log_metadata->line(), thread_id,
       logger_name, loglevel_to_string(log_level), log_metadata->message_format()));
 
-    if (structured_keys_values)
+    if (structured_params)
     {
-      for (auto const& [key, value] : *structured_keys_values)
+      for (auto const& [key, value] : *structured_params)
       {
         _json_message.append(",\"");
         _json_message.append(key);
@@ -82,7 +82,7 @@ public:
     _json_message.append("}\n");
 
     StreamSink::write_log_message(log_metadata, log_timestamp, thread_id, thread_name, logger_name,
-                                  log_level, structured_keys_values,
+                                  log_level, structured_params,
                                   std::string_view{_json_message.data(), _json_message.size()});
   }
 

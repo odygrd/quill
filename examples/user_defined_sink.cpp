@@ -24,7 +24,7 @@ public:
   void write_log_message(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
                          std::string_view thread_id, std::string_view thread_name,
                          std::string_view logger_name, quill::LogLevel log_level,
-                         std::vector<std::pair<std::string, std::string>> const* structured_keys_values,
+                         std::vector<std::pair<std::string, std::string>> const* structured_params,
                          std::string_view log_message) override
   {
     // Called by the logger backend worker thread for each LOG_* macro
