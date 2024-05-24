@@ -254,7 +254,7 @@ private:
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
-    auto const [total_events, max_events] = _populate_transit_event_buffer();
+    size_t const total_events = _populate_transit_event_buffer();
 
     if (total_events > 0)
     {
@@ -266,20 +266,17 @@ private:
       }
       else
       {
-        // we can log only up to max_events, then we want to re-read the queue to avoid
-        // logging out of order messages
-        for (size_t i = 0; i < (max_events - 1); ++i)
+        while (_process_transit_events())
         {
-          _process_transit_events();
+          // process all buffered events
         }
       }
     }
     else
     {
-      // There are no buffered transit events to process
+      // there are no buffered transit events to process
 
-      // None of the thread local queues had any events to process, this means we have processed
-      // all messages in all queues We force flush all remaining messages
+      // force flush all remaining messages
       _flush_and_run_active_sinks_loop(true);
 
       // check for any dropped messages / blocked threads
@@ -364,32 +361,27 @@ private:
 
     while (true)
     {
-      size_t total_events{0};
+      size_t total_events = _populate_transit_event_buffer();
 
-      auto const [tevents, max_events] = _populate_transit_event_buffer();
-      total_events = tevents;
-
-      if ((total_events != 0))
+      if (total_events > 0)
       {
         // there are buffered events to process
-        if (total_events >= _backend_options.transit_events_soft_limit)
-        {
-          // we can log only up to max_events, then we want to re-read the queue to avoid
-          // logging out of order messages
-          for (size_t i = 0; i < (max_events - 1); ++i)
-          {
-            _process_transit_events();
-          }
-        }
-        else
+        if (total_events < _backend_options.transit_events_soft_limit)
         {
           // process a single transit event, then give priority to the hot thread spsc queue again
           _process_transit_events();
         }
+        else
+        {
+          while (_process_transit_events())
+          {
+            // process all buffered events
+          }
+        }
       }
-
-      if (total_events == 0)
+      else
       {
+        // there are no buffered transit events to process
         bool all_empty{true};
 
         if (_backend_options.wait_for_queues_to_empty_before_exit)
@@ -415,7 +407,7 @@ private:
   /**
    * Populates the local transit event buffer
    */
-  QUILL_ATTRIBUTE_HOT std::pair<size_t, size_t> _populate_transit_event_buffer()
+  QUILL_ATTRIBUTE_HOT size_t _populate_transit_event_buffer()
   {
     uint64_t const ts_now = _backend_options.enable_strict_log_timestamp_order
       ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
@@ -424,7 +416,6 @@ private:
       : 0;
 
     size_t total_events{0};
-    size_t max_events{0};
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
@@ -446,14 +437,9 @@ private:
       }
 
       total_events += events;
-
-      if (events > max_events)
-      {
-        max_events = events;
-      }
     }
 
-    return std::make_pair(total_events, max_events);
+    return total_events;
   }
 
   /**
@@ -825,7 +811,7 @@ private:
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
    */
-  QUILL_ATTRIBUTE_HOT void _process_transit_events()
+  QUILL_ATTRIBUTE_HOT bool _process_transit_events()
   {
     // Get the lowest timestamp
     uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
@@ -847,7 +833,7 @@ private:
     {
       // all buffers are empty
       // return false, meaning we processed a message
-      return;
+      return false;
     }
 
     TransitEvent* transit_event = transit_buffer->front();
@@ -864,6 +850,8 @@ private:
 
     // Remove this event and move to the next.
     transit_buffer->pop_front();
+
+    return true;
   }
 
   /**
