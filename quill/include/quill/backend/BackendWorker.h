@@ -280,8 +280,8 @@ private:
       _resync_rdtsc_clock();
 
       // Also check if all queues are empty
-      bool const all_queues_empty = _check_all_queues_empty();
-      if (all_queues_empty)
+      bool const queues_and_events_empty = _check_frontend_queues_and_cached_transit_events_empty();
+      if (queues_and_events_empty)
       {
         _cleanup_invalidated_thread_contexts();
         _cleanup_invalidated_loggers();
@@ -340,10 +340,10 @@ private:
       else
       {
         // there are no buffered transit events to process
-        bool const all_queues_empty =
-          (!_options.wait_for_queues_to_empty_before_exit) || _check_all_queues_empty();
+        bool const queues_and_events_empty = (!_options.wait_for_queues_to_empty_before_exit) ||
+          _check_frontend_queues_and_cached_transit_events_empty();
 
-        if (all_queues_empty)
+        if (queues_and_events_empty)
         {
           // we are done, all queues are now empty
           _check_failure_counter(_options.error_notifier);
@@ -373,24 +373,18 @@ private:
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
-      uint32_t events{0};
-
       assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());
 
       if (thread_context->has_unbounded_queue_type())
       {
-        // copy everything from the SPSC queue to the transit event buffer to process it later
-        events = _read_and_decode_frontend_queue(
+        total_events += _read_and_decode_frontend_queue(
           thread_context->get_spsc_queue_union().unbounded_spsc_queue, thread_context, ts_now);
       }
       else if (thread_context->has_bounded_queue_type())
       {
-        // copy everything from the SPSC queue to the transit event buffer to process it later
-        events = _read_and_decode_frontend_queue(
+        total_events += _read_and_decode_frontend_queue(
           thread_context->get_spsc_queue_union().bounded_spsc_queue, thread_context, ts_now);
       }
-
-      total_events += events;
     }
 
     return total_events;
@@ -398,38 +392,31 @@ private:
 
   /**
    * Deserialize messages from the raw SPSC queue
-   * @param queue queue
+   * @param frontend_queue queue
    * @param thread_context thread context
    * @param ts_now timestamp now
    * @return total events stored in the transit_event_buffer
    */
-  template <typename QueueT>
-  QUILL_ATTRIBUTE_HOT uint32_t _read_and_decode_frontend_queue(QueueT& queue, ThreadContext* thread_context,
-                                                               uint64_t ts_now)
+  template <typename TFrontendQueue>
+  QUILL_ATTRIBUTE_HOT uint32_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
+                                                               ThreadContext* thread_context, uint64_t ts_now)
   {
     // Note: The producer commits only complete messages to the queue.
     // Therefore, if even a single byte is present in the queue, it signifies a full message.
-
-    if (!thread_context->_transit_event_buffer)
-    {
-      thread_context->_transit_event_buffer =
-        std::make_shared<UnboundedTransitEventBuffer>(_options.transit_event_buffer_initial_capacity);
-    }
-
-    size_t const queue_capacity = queue.capacity();
+    size_t const queue_capacity = frontend_queue.capacity();
     size_t total_bytes_read{0};
 
     do
     {
       std::byte* read_pos;
 
-      if constexpr (std::is_same_v<QueueT, UnboundedSPSCQueue>)
+      if constexpr (std::is_same_v<TFrontendQueue, UnboundedSPSCQueue>)
       {
-        read_pos = _read_unbounded_queue(queue, thread_context);
+        read_pos = _read_unbounded_frontend_queue(frontend_queue, thread_context);
       }
       else
       {
-        read_pos = queue.prepare_read();
+        read_pos = frontend_queue.prepare_read();
       }
 
       if (!read_pos)
@@ -449,7 +436,7 @@ private:
       // Finish reading
       assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
       auto const bytes_read = static_cast<uint32_t>(read_pos - read_begin);
-      queue.finish_read(bytes_read);
+      frontend_queue.finish_read(bytes_read);
       total_bytes_read += bytes_read;
       // Read max of one full queue and also max_transit events otherwise we can get stuck on the same producer
     } while ((total_bytes_read < queue_capacity) &&
@@ -458,7 +445,7 @@ private:
     if (total_bytes_read != 0)
     {
       // we read something from the queue, we commit all the reads together at the end
-      queue.commit_read();
+      frontend_queue.commit_read();
     }
 
     return thread_context->_transit_event_buffer->size();
@@ -747,7 +734,7 @@ private:
   }
 
   /**
-   * Checks for events in all queues and processes the one with the minimum timestamp
+   * Processes the cached transit event with the minimum timestamp
    */
   QUILL_ATTRIBUTE_HOT bool _process_next_cached_transit_event()
   {
@@ -885,26 +872,29 @@ private:
     // UnboundedNoMaxLimit does not block or drop messages
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
-      size_t const failed_messages_cnt = thread_context->get_and_reset_failure_counter();
-
-      if (QUILL_UNLIKELY(failed_messages_cnt > 0))
+      if (thread_context->has_bounded_queue_type())
       {
-        char timestamp[24];
-        time_t now = time(nullptr);
-        tm local_time;
-        localtime_rs(&now, &local_time);
-        strftime(timestamp, sizeof(timestamp), "%X", &local_time);
+        size_t const failed_messages_cnt = thread_context->get_and_reset_failure_counter();
 
-        if (thread_context->has_dropping_queue())
+        if (QUILL_UNLIKELY(failed_messages_cnt > 0))
         {
-          error_notifier(fmtquill::format("{} Quill INFO: Dropped {} log messages from thread {}",
-                                          timestamp, failed_messages_cnt, thread_context->thread_id()));
-        }
-        else if (thread_context->has_blocking_queue())
-        {
-          error_notifier(
-            fmtquill::format("{} Quill INFO: Experienced {} blocking occurrences on thread {}",
-                             timestamp, failed_messages_cnt, thread_context->thread_id()));
+          char timestamp[24];
+          time_t now = time(nullptr);
+          tm local_time;
+          localtime_rs(&now, &local_time);
+          strftime(timestamp, sizeof(timestamp), "%X", &local_time);
+
+          if (thread_context->has_dropping_queue())
+          {
+            error_notifier(fmtquill::format("{} Quill INFO: Dropped {} log messages from thread {}",
+                                            timestamp, failed_messages_cnt, thread_context->thread_id()));
+          }
+          else if (thread_context->has_blocking_queue())
+          {
+            error_notifier(
+              fmtquill::format("{} Quill INFO: Experienced {} blocking occurrences on thread {}",
+                               timestamp, failed_messages_cnt, thread_context->thread_id()));
+          }
         }
       }
     }
@@ -976,14 +966,14 @@ private:
 
   /**
    * Helper function to read the unbounded queue and also report the allocation
-   * @param queue queue
+   * @param frontend_queue queue
    * @param thread_context thread context
    * @return start position of read
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _read_unbounded_queue(UnboundedSPSCQueue& queue,
-                                                                       ThreadContext* thread_context) const
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _read_unbounded_frontend_queue(UnboundedSPSCQueue& frontend_queue,
+                                                                                ThreadContext* thread_context) const
   {
-    auto const read_result = queue.prepare_read();
+    auto const read_result = frontend_queue.prepare_read();
 
     if (read_result.allocation)
     {
@@ -1008,7 +998,7 @@ private:
     return read_result.read_pos;
   }
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool _check_all_queues_empty()
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool _check_frontend_queues_and_cached_transit_events_empty()
   {
     _update_active_thread_contexts_cache();
 
@@ -1113,9 +1103,6 @@ private:
 
   /**
    * Reloads the thread contexts in our local cache.
-   * Any invalidated thread contexts with empty queues are removed and any new thread contexts
-   * from new threads are added to the returned vector of caches.
-   * If there are no invalidated contexts or no new contexts the existing cache is returned
    */
   QUILL_ATTRIBUTE_HOT void _update_active_thread_contexts_cache()
   {
@@ -1126,7 +1113,15 @@ private:
       _thread_context_manager.for_each_thread_context(
         [this](ThreadContext* thread_context)
         {
-          // We do not skip invalidated && empty queue thread contexts as this is very rare, so instead we just add them and expect them to be cleaned in the next iteration
+          if (!thread_context->_transit_event_buffer)
+          {
+            // Lazy initialise the _transit_event_buffer for this thread_context
+            thread_context->_transit_event_buffer =
+              std::make_shared<UnboundedTransitEventBuffer>(_options.transit_event_buffer_initial_capacity);
+          }
+
+          // We do not skip invalidated && empty queue thread contexts as this is very rare,
+          // so instead we just add them and expect them to be cleaned in the next iteration
           _active_thread_contexts_cache.push_back(thread_context);
         });
     }
@@ -1134,7 +1129,7 @@ private:
 
   /**
    * Looks into the _thread_context_cache and removes all thread contexts that are 1) invalidated
-   * and 2) have an empty queue of no events to process
+   * and 2) have an empty frontend queue and no cached transit events to process
    *
    * @note Only called by the backend thread
    */
@@ -1151,21 +1146,21 @@ private:
       // We also want to empty the queue from all LogRecords before removing the thread context
       if (!thread_context->is_valid_context())
       {
-        bool has_empty_queue{false};
+        bool empty_frontend_queue{false};
 
         assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());
 
         // detect empty queue
         if (thread_context->has_unbounded_queue_type())
         {
-          has_empty_queue = thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty();
+          empty_frontend_queue = thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty();
         }
         else if (thread_context->has_bounded_queue_type())
         {
-          has_empty_queue = thread_context->get_spsc_queue_union().bounded_spsc_queue.empty();
+          empty_frontend_queue = thread_context->get_spsc_queue_union().bounded_spsc_queue.empty();
         }
 
-        if (has_empty_queue)
+        if (empty_frontend_queue)
         {
           if (thread_context->_transit_event_buffer)
           {
@@ -1218,7 +1213,7 @@ private:
       {
         // check the queues are empty each time before removing a logger to avoid
         // potential race condition of the logger* still being in the queue
-        return _check_all_queues_empty();
+        return _check_frontend_queues_and_cached_transit_events_empty();
       });
 
     if (!removed_loggers.empty())
