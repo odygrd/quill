@@ -75,6 +75,7 @@
   executable targets no longer inherit flags from the library.
 - Replaced `%(structured_keys)` with `%(named_args)` in the `PatternFormatter`. This change now appends the
   entire key-value pair of named args to the message, not just the names.
+- Refined backend thread by improving variable and function names and enhancing logic for a few edge cases.
 
 ## v4.0.0
 

@@ -86,7 +86,7 @@ public:
   /***/
   QUILL_NODISCARD bool is_running() const noexcept
   {
-    return _is_backend_worker_running.load(std::memory_order_relaxed);
+    return _is_worker_running.load(std::memory_order_relaxed);
   }
 
   /**
@@ -94,7 +94,7 @@ public:
    */
   QUILL_NODISCARD uint64_t time_since_epoch(uint64_t rdtsc_value) const
   {
-    if (QUILL_UNLIKELY(_backend_options.sleep_duration > _backend_options.rdtsc_resync_interval))
+    if (QUILL_UNLIKELY(_options.sleep_duration > _options.rdtsc_resync_interval))
     {
       QUILL_THROW(
         QuillError{"Invalid config, When TSC clock is used backend_thread_sleep_duration should "
@@ -111,7 +111,7 @@ public:
    */
   QUILL_NODISCARD uint32_t get_backend_thread_id() const noexcept
   {
-    return _backend_worker_thread_id.load();
+    return _worker_thread_id.load();
   }
 
   /**
@@ -120,68 +120,62 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void run(BackendOptions const& options)
   {
-    _backend_options = options;
+    _options = options;
 
     std::thread worker(
       [this]()
       {
         QUILL_TRY
         {
-          if (_backend_options.backend_cpu_affinity != (std::numeric_limits<uint16_t>::max)())
+          if (_options.backend_cpu_affinity != (std::numeric_limits<uint16_t>::max)())
           {
             // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
-            set_cpu_affinity(_backend_options.backend_cpu_affinity);
+            set_cpu_affinity(_options.backend_cpu_affinity);
           }
         }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _backend_options.error_notifier(e.what()); }
-        QUILL_CATCH_ALL()
-        {
-          _backend_options.error_notifier(std::string{"Caught unhandled exception."});
-        }
+        QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+        QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
 
         QUILL_TRY
         {
           // Set the thread name to the desired name
-          set_thread_name(_backend_options.thread_name.data());
+          set_thread_name(_options.thread_name.data());
         }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _backend_options.error_notifier(e.what()); }
-        QUILL_CATCH_ALL()
-        {
-          _backend_options.error_notifier(std::string{"Caught unhandled exception."});
-        }
+        QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+        QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
 
         // Cache this thread's id
-        _backend_worker_thread_id.store(get_thread_id());
+        _worker_thread_id.store(get_thread_id());
 
         // Double check or modify some backend options before we start
-        if (_backend_options.transit_events_hard_limit == 0)
+        if (_options.transit_events_hard_limit == 0)
         {
           // transit_events_hard_limit of 0 makes no sense as we can't process anything
-          _backend_options.transit_events_hard_limit = 1;
+          _options.transit_events_hard_limit = 1;
         }
 
-        if (_backend_options.transit_events_soft_limit == 0)
+        if (_options.transit_events_soft_limit == 0)
         {
-          _backend_options.transit_events_soft_limit = 1;
+          _options.transit_events_soft_limit = 1;
         }
 
         // All okay, set the backend worker thread running flag
-        _is_backend_worker_running.store(true);
+        _is_worker_running.store(true);
 
         // Running
-        while (QUILL_LIKELY(_is_backend_worker_running.load(std::memory_order_relaxed)))
+        while (QUILL_LIKELY(_is_worker_running.load(std::memory_order_relaxed)))
         {
           // main loop
           QUILL_TRY { _main_loop(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-          QUILL_CATCH(std::exception const& e) { _backend_options.error_notifier(e.what()); }
+          QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
           QUILL_CATCH_ALL()
           {
-            _backend_options.error_notifier(std::string{"Caught unhandled exception."});
+            _options.error_notifier(std::string{"Caught unhandled exception."});
           } // clang-format on
 #endif
         }
@@ -189,18 +183,18 @@ public:
         // exit
         QUILL_TRY { _exit(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _backend_options.error_notifier(e.what()); }
+        QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
         QUILL_CATCH_ALL()
         {
-          _backend_options.error_notifier(std::string{"Caught unhandled exception."});
+          _options.error_notifier(std::string{"Caught unhandled exception."});
         } // clang-format on
 #endif
       });
 
     // Move the worker ownership to our class
-    _backend_worker.swap(worker);
+    _worker_thread.swap(worker);
 
-    while (!_is_backend_worker_running.load(std::memory_order_seq_cst))
+    while (!_is_worker_running.load(std::memory_order_seq_cst))
     {
       // wait for the thread to start
       std::this_thread::sleep_for(std::chrono::microseconds{100});
@@ -213,7 +207,7 @@ public:
   QUILL_ATTRIBUTE_COLD void stop() noexcept
   {
     // Stop the backend worker
-    if (!_is_backend_worker_running.exchange(false))
+    if (!_is_worker_running.exchange(false))
     {
       // already stopped
       return;
@@ -223,9 +217,9 @@ public:
     notify();
 
     // Wait the backend thread to join, if backend thread was never started it won't be joinable so we can still
-    if (_backend_worker.joinable())
+    if (_worker_thread.joinable())
     {
-      _backend_worker.join();
+      _worker_thread.join();
     }
   }
 
@@ -238,7 +232,7 @@ public:
     // Set the flag to indicate that the data is ready
     {
       std::lock_guard<std::mutex> lock{_wake_up_mutex};
-      _wake_up = true;
+      _wake_up_flag = true;
     }
 
     // Signal the condition variable to wake up the worker thread
@@ -259,14 +253,14 @@ private:
     if (total_events > 0)
     {
       // there are buffered events to process
-      if (total_events < _backend_options.transit_events_soft_limit)
+      if (total_events < _options.transit_events_soft_limit)
       {
         // process a single transit event, then give priority to the hot thread spsc queue again
-        _process_transit_events();
+        _process_next_cached_transit_event();
       }
       else
       {
-        while (_process_transit_events())
+        while (_process_next_cached_transit_event())
         {
           // process all buffered events
         }
@@ -280,7 +274,7 @@ private:
       _flush_and_run_active_sinks_loop(true);
 
       // check for any dropped messages / blocked threads
-      _check_failure_counter(_backend_options.error_notifier);
+      _check_failure_counter(_options.error_notifier);
 
       // This is useful when BackendTscClock is used to keep it up to date
       _resync_rdtsc_clock();
@@ -294,20 +288,20 @@ private:
 
         // There is nothing left to do, and we can let this thread sleep for a while
         // buffer events are 0 here and also all the producer queues are empty
-        if (_backend_options.sleep_duration.count() != 0)
+        if (_options.sleep_duration.count() != 0)
         {
           std::unique_lock<std::mutex> lock{_wake_up_mutex};
 
           // Wait for a timeout or a notification to wake up
-          _wake_up_cv.wait_for(lock, _backend_options.sleep_duration, [this] { return _wake_up; });
+          _wake_up_cv.wait_for(lock, _options.sleep_duration, [this] { return _wake_up_flag; });
 
           // set the flag back to false since we woke up here
-          _wake_up = false;
+          _wake_up_flag = false;
 
           // After waking up resync rdtsc clock again and resume
           _resync_rdtsc_clock();
         }
-        else if (_backend_options.enable_yield_when_idle)
+        else if (_options.enable_yield_when_idle)
         {
           std::this_thread::yield();
         }
@@ -330,14 +324,14 @@ private:
       if (total_events > 0)
       {
         // there are buffered events to process
-        if (total_events < _backend_options.transit_events_soft_limit)
+        if (total_events < _options.transit_events_soft_limit)
         {
           // process a single transit event, then give priority to the hot thread spsc queue again
-          _process_transit_events();
+          _process_next_cached_transit_event();
         }
         else
         {
-          while (_process_transit_events())
+          while (_process_next_cached_transit_event())
           {
             // process all buffered events
           }
@@ -347,12 +341,12 @@ private:
       {
         // there are no buffered transit events to process
         bool const all_queues_empty =
-          (!_backend_options.wait_for_queues_to_empty_before_exit) || _check_all_queues_empty();
+          (!_options.wait_for_queues_to_empty_before_exit) || _check_all_queues_empty();
 
         if (all_queues_empty)
         {
           // we are done, all queues are now empty
-          _check_failure_counter(_backend_options.error_notifier);
+          _check_failure_counter(_options.error_notifier);
           _flush_and_run_active_sinks_loop(false);
           break;
         }
@@ -369,7 +363,7 @@ private:
    */
   QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues()
   {
-    uint64_t const ts_now = _backend_options.enable_strict_log_timestamp_order
+    uint64_t const ts_now = _options.enable_strict_log_timestamp_order
       ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                 std::chrono::system_clock::now().time_since_epoch())
                                 .count())
@@ -419,7 +413,7 @@ private:
     if (!thread_context->_transit_event_buffer)
     {
       thread_context->_transit_event_buffer =
-        std::make_shared<UnboundedTransitEventBuffer>(_backend_options.transit_event_buffer_initial_capacity);
+        std::make_shared<UnboundedTransitEventBuffer>(_options.transit_event_buffer_initial_capacity);
     }
 
     size_t const queue_capacity = queue.capacity();
@@ -459,7 +453,7 @@ private:
       total_bytes_read += bytes_read;
       // Read max of one full queue and also max_transit events otherwise we can get stuck on the same producer
     } while ((total_bytes_read < queue_capacity) &&
-             (thread_context->_transit_event_buffer->size() < _backend_options.transit_events_hard_limit));
+             (thread_context->_transit_event_buffer->size() < _options.transit_events_hard_limit));
 
     if (total_bytes_read != 0)
     {
@@ -539,8 +533,8 @@ private:
         // Here we lazy initialise rdtsc clock on the backend thread only if the user decides to use it
         // Use of the rdtsc clock based on config.
         // The clock requires a few seconds to init as it is taking samples first
-        _rdtsc_clock.store(new RdtscClock{_backend_options.rdtsc_resync_interval}, std::memory_order_release);
-        _last_rdtsc_resync = std::chrono::system_clock::now();
+        _rdtsc_clock.store(new RdtscClock{_options.rdtsc_resync_interval}, std::memory_order_release);
+        _last_rdtsc_resync_time = std::chrono::system_clock::now();
       }
 
       // convert the rdtsc value to nanoseconds since epoch
@@ -608,7 +602,7 @@ private:
             transit_event->macro_metadata->short_source_location(), e.what());
 
           transit_event->formatted_msg.append(error);
-          _backend_options.error_notifier(error);
+          _options.error_notifier(error);
         }
 #endif
       }
@@ -625,10 +619,10 @@ private:
         }
 
         // using the message_format as key for lookups
-        _named_args_format_buffer.assign(transit_event->macro_metadata->message_format());
+        _named_args_format_template.assign(transit_event->macro_metadata->message_format());
 
-        if (auto const search = _named_args_format_message_templates.find(_named_args_format_buffer);
-            search != std::cend(_named_args_format_message_templates))
+        if (auto const search = _named_args_templates.find(_named_args_format_template);
+            search != std::cend(_named_args_templates))
         {
           // process named args message when we already have parsed the format message once,
           // and we have the names of each arg cached
@@ -666,7 +660,7 @@ private:
               transit_event->macro_metadata->short_source_location(), e.what());
 
             transit_event->formatted_msg.append(error);
-            _backend_options.error_notifier(error);
+            _options.error_notifier(error);
           }
 #endif
         }
@@ -674,9 +668,9 @@ private:
         {
           // process named args log when the message format is processed for the first time
           // parse name of each arg and stored them to our lookup map
-          auto const [res_it, inserted] = _named_args_format_message_templates.try_emplace(
-            _named_args_format_buffer,
-            _process_named_arg_format_message(transit_event->macro_metadata->message_format()));
+          auto const [res_it, inserted] = _named_args_templates.try_emplace(
+            _named_args_format_template,
+            _process_named_args_format_message(transit_event->macro_metadata->message_format()));
 
           // suppress unused warning
           (void)inserted;
@@ -715,7 +709,7 @@ private:
               transit_event->macro_metadata->short_source_location(), e.what());
 
             transit_event->formatted_msg.append(error);
-            _backend_options.error_notifier(error);
+            _options.error_notifier(error);
           }
 #endif
         }
@@ -755,7 +749,7 @@ private:
   /**
    * Checks for events in all queues and processes the one with the minimum timestamp
    */
-  QUILL_ATTRIBUTE_HOT bool _process_transit_events()
+  QUILL_ATTRIBUTE_HOT bool _process_next_cached_transit_event()
   {
     // Get the lowest timestamp
     uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
@@ -783,12 +777,12 @@ private:
     TransitEvent* transit_event = transit_buffer->front();
     assert(transit_event && "transit_buffer is set only when transit_event is valid");
 
-    QUILL_TRY { _process_transit_event(*transit_event); }
+    QUILL_TRY { _process_cached_transit_event(*transit_event); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH(std::exception const& e) { _backend_options.error_notifier(e.what()); }
+    QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
     QUILL_CATCH_ALL()
     {
-      _backend_options.error_notifier(std::string{"Caught unhandled exception."});
+      _options.error_notifier(std::string{"Caught unhandled exception."});
     } // clang-format on
 #endif
 
@@ -799,9 +793,9 @@ private:
   }
 
   /**
-   * Process a single trnasit event
+   * Process a single transit event
    */
-  QUILL_ATTRIBUTE_HOT void _process_transit_event(TransitEvent& transit_event)
+  QUILL_ATTRIBUTE_HOT void _process_cached_transit_event(TransitEvent& transit_event)
   {
     // If backend_process(...) throws we want to skip this event and move to the next, so we catch
     // the error here instead of catching it in the parent try/catch block of main_loop
@@ -809,7 +803,7 @@ private:
     {
       if (transit_event.log_level() != LogLevel::Backtrace)
       {
-        _write_transit_event(transit_event);
+        _write_transit_event_to_sinks(transit_event);
 
         // We also need to check the severity of the log message here against the backtrace
         // Check if we should also flush the backtrace messages:
@@ -819,8 +813,8 @@ private:
         if (QUILL_UNLIKELY(transit_event.log_level() >=
                            transit_event.logger_base->backtrace_flush_level.load(std::memory_order_relaxed)))
         {
-          _backtrace_storage.process(transit_event.logger_base->logger_name,
-                                     [this](TransitEvent const& te) { _write_transit_event(te); });
+          _backtrace_storage.process(transit_event.logger_base->logger_name, [this](TransitEvent const& te)
+                                     { _write_transit_event_to_sinks(te); });
         }
       }
       else
@@ -840,8 +834,8 @@ private:
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushBacktrace)
     {
       // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
-      _backtrace_storage.process(transit_event.logger_base->logger_name,
-                                 [this](TransitEvent const& te) { _write_transit_event(te); });
+      _backtrace_storage.process(transit_event.logger_base->logger_name, [this](TransitEvent const& te)
+                                 { _write_transit_event_to_sinks(te); });
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
     {
@@ -858,7 +852,7 @@ private:
   /**
    * Write a transit event
    */
-  QUILL_ATTRIBUTE_HOT void _write_transit_event(TransitEvent const& transit_event) const
+  QUILL_ATTRIBUTE_HOT void _write_transit_event_to_sinks(TransitEvent const& transit_event) const
   {
     std::string_view const formatted_log_message = transit_event.logger_base->pattern_formatter->format(
       transit_event.timestamp, transit_event.thread_id, transit_event.thread_name, _process_id,
@@ -921,7 +915,7 @@ private:
    * @param fmt_template a log message containing named arguments
    * @return first: fmt string without the named arguments, second: a vector extracted keys
    */
-  QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_named_arg_format_message(
+  QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_named_args_format_message(
     std::string_view fmt_template) noexcept
   {
     // It would be nice to do this at compile time and store it in macro metadata, but without
@@ -994,7 +988,7 @@ private:
     if (read_result.allocation)
     {
       // When allocation_info has a value it means that the queue has re-allocated
-      if (_backend_options.error_notifier)
+      if (_options.error_notifier)
       {
         char ts[24];
         time_t t = time(nullptr);
@@ -1004,7 +998,7 @@ private:
 
         // we switched to a new here, and we also notify the user of the allocation via the
         // error_notifier
-        _backend_options.error_notifier(fmtquill::format(
+        _options.error_notifier(fmtquill::format(
           "{} Quill INFO: A new SPSC queue has been allocated with a new capacity of {} bytes and "
           "a previous capacity of {} bytes from thread {}",
           ts, read_result.new_capacity, read_result.previous_capacity, thread_context->thread_id()));
@@ -1052,11 +1046,11 @@ private:
       // resync in rdtsc if we are not logging so that time_since_epoch() still works
 
       if (auto const now = std::chrono::system_clock::now();
-          (now - _last_rdtsc_resync) > _backend_options.rdtsc_resync_interval)
+          (now - _last_rdtsc_resync_time) > _options.rdtsc_resync_interval)
       {
         if (_rdtsc_clock.load(std::memory_order_relaxed)->resync(2500))
         {
-          _last_rdtsc_resync = now;
+          _last_rdtsc_resync_time = now;
         }
       }
     }
@@ -1105,11 +1099,8 @@ private:
           h->flush_sink();
         }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _backend_options.error_notifier(e.what()); }
-        QUILL_CATCH_ALL()
-        {
-          _backend_options.error_notifier(std::string{"Caught unhandled exception."});
-        }
+        QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+        QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
 
         if (run_loop)
@@ -1263,8 +1254,8 @@ private:
    * iterate and format each argument individually in libfmt, this approach is used.
    * After formatting, the string is split to isolate each formatted value.
    */
-  void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& named_args,
-                                   DynamicFormatArgStore const& arg_store)
+  static void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& named_args,
+                                          DynamicFormatArgStore const& arg_store)
   {
     // Generate a format string
     std::string format_string;
@@ -1309,30 +1300,31 @@ private:
   ThreadContextManager& _thread_context_manager = ThreadContextManager::instance();
   SinkManager& _sink_manager = SinkManager::instance();
   LoggerManager& _logger_manager = LoggerManager::instance();
-  BackendOptions _backend_options;
+  BackendOptions _options;
 
-  std::thread _backend_worker;
+  std::thread _worker_thread;
 
   std::atomic<RdtscClock*> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
 
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
   std::vector<std::weak_ptr<Sink>> _active_sinks_cache;
   std::vector<ThreadContext*> _active_thread_contexts_cache;
+
   std::vector<std::weak_ptr<PatternFormatter>> _pattern_formatters;
 
   BacktraceStorage _backtrace_storage; /** Stores a vector of backtrace messages per logger name */
-  std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _named_args_format_message_templates; /** Avoid re-formating the same named args log template each time */
+  std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
 
   /** Id of the current running process **/
   std::string _process_id;
-  std::string _named_args_format_buffer; /** to avoid allocation each time **/
-  std::chrono::system_clock::time_point _last_rdtsc_resync;
-  std::atomic<uint32_t> _backend_worker_thread_id{0}; /** cached backend worker thread id */
+  std::string _named_args_format_template; /** to avoid allocation each time **/
+  std::chrono::system_clock::time_point _last_rdtsc_resync_time;
+  std::atomic<uint32_t> _worker_thread_id{0}; /** cached backend worker thread id */
 
-  std::atomic<bool> _is_backend_worker_running{false}; /** The spawned backend thread status */
+  std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
 
   alignas(CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
   std::condition_variable _wake_up_cv;
-  bool _wake_up{false};
+  bool _wake_up_flag{false};
 };
 } // namespace quill::detail
