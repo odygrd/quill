@@ -2,6 +2,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
+#include "quill/core/MathUtils.h"
 #include "quill/core/QuillError.h"
 
 #include <atomic>
@@ -72,7 +73,7 @@ public:
 
   QUILL_ATTRIBUTE_HOT explicit BoundedSPSCQueueImpl(integer_type capacity, bool huges_pages_enabled = false,
                                                     integer_type reader_store_percent = 5)
-    : _capacity(next_power_of_2(capacity)),
+    : _capacity(next_power_of_two(capacity)),
       _mask(_capacity - 1),
       _bytes_per_batch(static_cast<integer_type>(_capacity * static_cast<double>(reader_store_percent) / 100.0)),
       _storage(static_cast<std::byte*>(_alloc_aligned(2ull * static_cast<uint64_t>(_capacity),
@@ -215,7 +216,7 @@ private:
    */
   QUILL_NODISCARD static std::byte* _align_pointer(void* pointer, size_t alignment) noexcept
   {
-    assert(is_pow_of_two(alignment) && "alignment must be a power of two");
+    assert(is_power_of_two(alignment) && "alignment must be a power of two");
     return reinterpret_cast<std::byte*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) &
                                         ~(alignment - 1ul));
   }

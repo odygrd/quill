@@ -218,7 +218,7 @@ public:
   {
     // we do not care about the other fields, except quill::MacroMetadata::Event::InitBacktrace
     static constexpr MacroMetadata macro_metadata{
-      "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace, false};
+      "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace};
 
     // we pass this message to the queue and also pass capacity as arg
     // We do not want to drop the message if a dropping queue is used
@@ -238,7 +238,7 @@ public:
   {
     // we do not care about the other fields, except quill::MacroMetadata::Event::Flush
     static constexpr MacroMetadata macro_metadata{
-      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace, false};
+      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
 
     // We do not want to drop the message if a dropping queue is used
     while (!this->log_message(LogLevel::None, &macro_metadata))
@@ -263,7 +263,7 @@ public:
   void flush_log()
   {
     static constexpr MacroMetadata macro_metadata{
-      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush, false};
+      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush};
 
     std::atomic<bool> backend_thread_flushed{false};
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;

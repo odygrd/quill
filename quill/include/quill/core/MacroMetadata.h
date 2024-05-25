@@ -30,8 +30,7 @@ public:
     Flush
   };
 
-  constexpr MacroMetadata(char const* source_location, char const* caller_function, char const* message_format,
-                          Tags const* tags, LogLevel log_level, Event event, bool has_named_args) noexcept
+  constexpr MacroMetadata(char const* source_location, char const* caller_function, char const* message_format, Tags const* tags, LogLevel log_level, Event event) noexcept
     : _source_location(source_location),
       _caller_function(caller_function),
       _message_format(message_format),
@@ -41,7 +40,7 @@ public:
       _log_level(log_level),
       _event(event)
   {
-    _set_named_args_flag(has_named_args);
+    _set_named_args_flag(_contains_named_args(message_format));
   }
 
   QUILL_NODISCARD char const* source_location() const noexcept { return _source_location; }
@@ -49,9 +48,7 @@ public:
   QUILL_NODISCARD char const* caller_function() const noexcept { return _caller_function; }
 
   QUILL_NODISCARD char const* message_format() const noexcept
-  {
-    return static_cast<char const*>(_message_format);
-  }
+  { return _message_format; }
 
   QUILL_NODISCARD char const* line() const noexcept
   {
@@ -74,7 +71,7 @@ public:
     return _source_location + _file_name_pos;
   }
 
-  QUILL_NODISCARD constexpr LogLevel log_level() const noexcept { return _log_level; }
+  QUILL_NODISCARD LogLevel log_level() const noexcept { return _log_level; }
 
   QUILL_NODISCARD std::string_view log_level_string() const noexcept
   {
@@ -88,14 +85,14 @@ public:
 
   QUILL_NODISCARD Tags const* tags() const noexcept { return _tags; }
 
-  QUILL_NODISCARD constexpr bool has_named_args() const noexcept
-  {
+  QUILL_NODISCARD bool has_named_args() const noexcept {
     return _format_flags & NAMED_ARGS_FLAG;
   }
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
 
 private:
+  /***/
   QUILL_NODISCARD constexpr uint16_t _calc_file_name_pos() const noexcept
   {
     char const* source_location = _source_location;
@@ -111,6 +108,7 @@ private:
     return static_cast<uint16_t>(file - _source_location);
   }
 
+  /***/
   QUILL_NODISCARD constexpr uint16_t _calc_colon_separator_pos() const noexcept
   {
     std::string_view source_loc{_source_location};
@@ -118,6 +116,7 @@ private:
     return static_cast<uint16_t>(separator_index);
   }
 
+  /***/
   constexpr void _set_named_args_flag(bool value) noexcept
   {
     if (value)
@@ -128,6 +127,71 @@ private:
     {
       _format_flags &= static_cast<uint8_t>(~NAMED_ARGS_FLAG);
     }
+  }
+
+  /***/
+  constexpr bool _contains_named_args(std::string_view fmt) noexcept
+  {
+    uint32_t pos{0};
+    bool found_named_arg{false};
+
+    // Iterates the format string and checks if any characters are contained inside `{}`
+    while (pos < fmt.length())
+    {
+      if (fmt[pos] == '{')
+      {
+        ++pos; // consume {
+        if (pos >= fmt.length())
+        {
+          break;
+        }
+
+        // first character after the {
+        auto const fc = fmt[pos];
+        if (fc == '{')
+        {
+          // this means first '{' was escaped, so we ignore both of them
+          ++pos;
+          continue;
+        }
+
+        // else look for the next '}'
+        uint32_t char_cnt{0};
+        while (pos < fmt.length())
+        {
+          if (fmt[pos] == '}')
+          {
+            ++pos; // consume }
+            if (pos >= fmt.length())
+            {
+              break;
+            }
+
+            if (fmt[pos] == '}')
+            {
+              // this means first '}', was escaped ignore it
+              ++pos;
+              ++char_cnt;
+              continue;
+            }
+
+            // we found '{' match, we can break
+            break;
+          }
+
+          ++pos;
+          ++char_cnt;
+        }
+
+        if ((char_cnt != 0) && ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z')))
+        {
+          found_named_arg = true;
+        }
+      }
+      ++pos;
+    }
+
+    return found_named_arg;
   }
 
 private:
