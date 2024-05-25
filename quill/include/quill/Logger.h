@@ -189,6 +189,7 @@ public:
     if (dynamic_log_level != LogLevel::None)
     {
       // write the dynamic log level
+      // The reason we write it last is that is less likely to break the alignment in the buffer
       std::memcpy(write_buffer, &dynamic_log_level, sizeof(dynamic_log_level));
       write_buffer += sizeof(dynamic_log_level);
     }
