@@ -62,20 +62,20 @@
 
 ## v4.1.0
 
-- Removed unnecessary template specializations and merged their logic into the primary template
-  for `ArgSizeCalculator`, `Encoder`, and `Decoder` using if constexpr.
-- Replaced `sprintf` with `snprintf` to fix macOS warning.
-- Reviewed and removed gcc cold attribute from a few functions.
-- Minor backend thread optimisations when logging c style strings or char arrays
-- Eliminated `<functional>` header dependency in the frontend
-- Relocated certain classes to the `detail` namespace
 - Following the transition from a compiled to a header-only library, the `target_compile_options` previously applied to
   the compiled library were mistakenly propagated to all programs linking against the header-only library.
   This issue is now fixed by removing those flags and explicitly adding them to tests and examples. As a result,
   executable targets no longer inherit flags from the library.
+- Removed unnecessary template specializations and merged their logic into the primary template
+  for `ArgSizeCalculator`, `Encoder`, and `Decoder` using if constexpr.
+- Eliminated `<functional>` header dependency in the frontend
 - Replaced `%(structured_keys)` with `%(named_args)` in the `PatternFormatter`. This change now appends the
   entire key-value pair of named args to the message, not just the names.
-- Refined backend thread by improving variable and function names and enhancing logic for a few edge cases.
+- Relocated certain classes to the `detail` namespace
+- Replaced `sprintf` with `snprintf` to fix macOS warning.
+- Reviewed and removed gcc cold attribute from a few functions.
+- Minor backend thread optimisations when logging c style strings or char arrays
+- Improved backend thread variable and function names and fixed a bug for an edge case when the transit event hard limit is reached
 
 ## v4.0.0
 
