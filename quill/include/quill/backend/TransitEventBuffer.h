@@ -8,6 +8,7 @@
 #include "quill/backend/TransitEvent.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
+#include "quill/core/MathUtils.h"
 
 #include <cassert>
 #include <cstdint>
@@ -24,7 +25,7 @@ public:
 
   /***/
   explicit BoundedTransitEventBufferImpl(integer_type capacity)
-    : _capacity(next_power_of_2(capacity)), _mask(static_cast<integer_type>(_capacity - 1u))
+    : _capacity(next_power_of_two(capacity)), _mask(static_cast<integer_type>(_capacity - 1u))
   {
     _storage.resize(_capacity);
   }
