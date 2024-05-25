@@ -248,27 +248,29 @@ private:
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
-    size_t const total_events = _populate_transit_events_from_frontend_queues();
+    // Phase 1:
+    // Read all frontend queues and cache the log statements and the metadata as TransitEvents
+    size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
 
-    if (total_events > 0)
+    if (cached_transit_events_count > 0)
     {
-      // there are buffered events to process
-      if (total_events < _options.transit_events_soft_limit)
+      // there are cached events to process
+      if (cached_transit_events_count < _options.transit_events_soft_limit)
       {
-        // process a single transit event, then give priority to the hot thread spsc queue again
+        // process a single transit event, then give priority to reading the frontend queues again
         _process_next_cached_transit_event();
       }
       else
       {
         while (_process_next_cached_transit_event())
         {
-          // process all buffered events
+          // process all cached TransitEvents
         }
       }
     }
     else
     {
-      // there are no buffered transit events to process
+      // No cached transit events to process, minimal thread workload.
 
       // force flush all remaining messages
       _flush_and_run_active_sinks_loop(true);
@@ -319,12 +321,12 @@ private:
 
     while (true)
     {
-      size_t total_events = _populate_transit_events_from_frontend_queues();
+      size_t cached_transit_events_count = _populate_transit_events_from_frontend_queues();
 
-      if (total_events > 0)
+      if (cached_transit_events_count > 0)
       {
-        // there are buffered events to process
-        if (total_events < _options.transit_events_soft_limit)
+        // there are cached events to process
+        if (cached_transit_events_count < _options.transit_events_soft_limit)
         {
           // process a single transit event, then give priority to the hot thread spsc queue again
           _process_next_cached_transit_event();
@@ -333,13 +335,13 @@ private:
         {
           while (_process_next_cached_transit_event())
           {
-            // process all buffered events
+            // process all cached transit events
           }
         }
       }
       else
       {
-        // there are no buffered transit events to process
+        // there are no cached transit events to process
         bool const queues_and_events_empty = (!_options.wait_for_queues_to_empty_before_exit) ||
           _check_frontend_queues_and_cached_transit_events_empty();
 
@@ -369,7 +371,7 @@ private:
                                 .count())
       : 0;
 
-    size_t total_events{0};
+    size_t cached_transit_events_count{0};
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
@@ -377,17 +379,17 @@ private:
 
       if (thread_context->has_unbounded_queue_type())
       {
-        total_events += _read_and_decode_frontend_queue(
+        cached_transit_events_count += _read_and_decode_frontend_queue(
           thread_context->get_spsc_queue_union().unbounded_spsc_queue, thread_context, ts_now);
       }
       else if (thread_context->has_bounded_queue_type())
       {
-        total_events += _read_and_decode_frontend_queue(
+        cached_transit_events_count += _read_and_decode_frontend_queue(
           thread_context->get_spsc_queue_union().bounded_spsc_queue, thread_context, ts_now);
       }
     }
 
-    return total_events;
+    return cached_transit_events_count;
   }
 
   /**
@@ -395,7 +397,7 @@ private:
    * @param frontend_queue queue
    * @param thread_context thread context
    * @param ts_now timestamp now
-   * @return total events stored in the transit_event_buffer
+   * @return size of the transit_event_buffer
    */
   template <typename TFrontendQueue>
   QUILL_ATTRIBUTE_HOT uint32_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
@@ -438,13 +440,16 @@ private:
       auto const bytes_read = static_cast<uint32_t>(read_pos - read_begin);
       frontend_queue.finish_read(bytes_read);
       total_bytes_read += bytes_read;
-      // Read max of one full queue and also max_transit events otherwise we can get stuck on the same producer
+      // Reads a maximum of one full frontend queue or the transit events' hard limit to prevent
+      // getting stuck on the same producer.
     } while ((total_bytes_read < queue_capacity) &&
              (thread_context->_transit_event_buffer->size() < _options.transit_events_hard_limit));
 
     if (total_bytes_read != 0)
     {
-      // we read something from the queue, we commit all the reads together at the end
+      // If we read something from the queue, we commit all the reads together at the end.
+      // This strategy enhances cache coherence performance by updating the shared atomic flag
+      // only once.
       frontend_queue.commit_read();
     }
 
