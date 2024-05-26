@@ -10,12 +10,12 @@ using namespace quill;
 using namespace quill::detail;
 
 /***/
-TEST_CASE("rotation_scheme_index_no_backup_limit")
+TEST_CASE("rotating_file_sink_index_no_backup_limit")
 {
-  fs::path const filename = "rotation_scheme_index_no_backup_limit.log";
-  fs::path const filename_1 = "rotation_scheme_index_no_backup_limit.1.log";
-  fs::path const filename_2 = "rotation_scheme_index_no_backup_limit.2.log";
-  fs::path const filename_3 = "rotation_scheme_index_no_backup_limit.3.log";
+  fs::path const filename = "rotating_file_sink_index_no_backup_limit.log";
+  fs::path const filename_1 = "rotating_file_sink_index_no_backup_limit.1.log";
+  fs::path const filename_2 = "rotating_file_sink_index_no_backup_limit.2.log";
+  fs::path const filename_3 = "rotating_file_sink_index_no_backup_limit.3.log";
 
   {
     auto rfh = RotatingFileSink{filename,
@@ -70,14 +70,14 @@ TEST_CASE("rotation_scheme_index_no_backup_limit")
 }
 
 /***/
-TEST_CASE("rotation_scheme_index_with_backup_limit_overwrite_rolled_files")
+TEST_CASE("rotating_file_sink_index_with_backup_limit_overwrite_rolled_files")
 {
   // we expect to have only 2 backup files and to overwrite the rolled files
-  fs::path const filename = "rotation_scheme_index_with_backup_limit_overwrite_rolled_files.log";
+  fs::path const filename = "rotating_file_sink_index_with_backup_limit_overwrite_rolled_files.log";
   fs::path const filename_1 =
-    "rotation_scheme_index_with_backup_limit_overwrite_rolled_files.1.log";
+    "rotating_file_sink_index_with_backup_limit_overwrite_rolled_files.1.log";
   fs::path const filename_2 =
-    "rotation_scheme_index_with_backup_limit_overwrite_rolled_files.2.log";
+    "rotating_file_sink_index_with_backup_limit_overwrite_rolled_files.2.log";
 
   {
     auto rfh = RotatingFileSink{filename,
@@ -129,16 +129,16 @@ TEST_CASE("rotation_scheme_index_with_backup_limit_overwrite_rolled_files")
 }
 
 /***/
-TEST_CASE("rotation_scheme_index_with_backup_limit_dont_overwrite_rolled_files")
+TEST_CASE("rotating_file_sink_index_with_backup_limit_dont_overwrite_rolled_files")
 {
   // we expect to have only 2 backup files and then the rotation will stop and all the
   // remaining messages will be written to the last file
   fs::path const filename =
-    "rotation_scheme_index_with_backup_limit_dont_overwrite_rolled_files.log";
+    "rotating_file_sink_index_with_backup_limit_dont_overwrite_rolled_files.log";
   fs::path const filename_1 =
-    "rotation_scheme_index_with_backup_limit_dont_overwrite_rolled_files.1.log";
+    "rotating_file_sink_index_with_backup_limit_dont_overwrite_rolled_files.1.log";
   fs::path const filename_2 =
-    "rotation_scheme_index_with_backup_limit_dont_overwrite_rolled_files.2.log";
+    "rotating_file_sink_index_with_backup_limit_dont_overwrite_rolled_files.2.log";
 
   {
     auto rfh = RotatingFileSink{filename,
@@ -199,16 +199,16 @@ TEST_CASE("rotation_scheme_index_with_backup_limit_dont_overwrite_rolled_files")
 }
 
 /***/
-TEST_CASE("rotation_scheme_index_open_mode_write_clean_up_old_files")
+TEST_CASE("rotating_file_sink_index_open_mode_write_clean_up_old_files")
 {
   // On write mode, with RotateFileNamingScheme::Index, the log file names can collide
   // we need to clean up the old files
-  fs::path const filename = "rotation_scheme_index_open_mode_write_clean_up_old_files.log";
-  fs::path const filename_1 = "rotation_scheme_index_open_mode_write_clean_up_old_files.1.log";
-  fs::path const filename_2 = "rotation_scheme_index_open_mode_write_clean_up_old_files.2.log";
-  fs::path const filename_3 = "rotation_scheme_index_open_mode_write_clean_up_old_files.3.log";
+  fs::path const filename = "rotating_file_sink_index_open_mode_write_clean_up_old_files.log";
+  fs::path const filename_1 = "rotating_file_sink_index_open_mode_write_clean_up_old_files.1.log";
+  fs::path const filename_2 = "rotating_file_sink_index_open_mode_write_clean_up_old_files.2.log";
+  fs::path const filename_3 = "rotating_file_sink_index_open_mode_write_clean_up_old_files.3.log";
   fs::path const filename_4 =
-    "rotation_scheme_index_open_mode_write_clean_up_old_files_another.2.log";
+    "rotating_file_sink_index_open_mode_write_clean_up_old_files_another.2.log";
 
   // create all files simulating the previous run
   testing::create_file(filename);
@@ -282,18 +282,21 @@ TEST_CASE("rotation_scheme_index_open_mode_write_clean_up_old_files")
 }
 
 /***/
-TEST_CASE("rotation_scheme_index_open_mode_write_dont_clean_up_old_files")
+TEST_CASE("rotating_file_sink_index_open_mode_write_dont_clean_up_old_files")
 {
   // On write mode, with RotateFileNamingScheme::Index, the log file names can collide with old
   // files, but we do not want to clean them up
   // Eventually the files later will get overwritten by the new files
 
-  fs::path const filename = "rotation_scheme_index_open_mode_write_dont_clean_up_old_files.log";
-  fs::path const filename_1 = "rotation_scheme_index_open_mode_write_dont_clean_up_old_files.1.log";
-  fs::path const filename_2 = "rotation_scheme_index_open_mode_write_dont_clean_up_old_files.2.log";
-  fs::path const filename_3 = "rotation_scheme_index_open_mode_write_dont_clean_up_old_files.3.log";
+  fs::path const filename = "rotating_file_sink_index_open_mode_write_dont_clean_up_old_files.log";
+  fs::path const filename_1 =
+    "rotating_file_sink_index_open_mode_write_dont_clean_up_old_files.1.log";
+  fs::path const filename_2 =
+    "rotating_file_sink_index_open_mode_write_dont_clean_up_old_files.2.log";
+  fs::path const filename_3 =
+    "rotating_file_sink_index_open_mode_write_dont_clean_up_old_files.3.log";
   fs::path const filename_4 =
-    "rotation_scheme_index_open_mode_write_dont_clean_up_old_files_another.2.log";
+    "rotating_file_sink_index_open_mode_write_dont_clean_up_old_files_another.2.log";
 
   // create all files simulating the previous run
   testing::create_file(filename);
@@ -367,20 +370,20 @@ TEST_CASE("rotation_scheme_index_open_mode_write_dont_clean_up_old_files")
 }
 
 /***/
-TEST_CASE("rotation_scheme_index_open_mode_append")
+TEST_CASE("rotating_file_sink_index_open_mode_append")
 {
   // In append mode, with RotateFileNamingScheme::Index, the log file names can collide
   // we want to start appending to the last log file and then also rotate it with the correct index
   // continuing the count from the last run
   // On write mode, with RotateFileNamingScheme::Index, the log file names can collide
   // we need to clean up the old files
-  fs::path const filename = "rotation_scheme_index_open_mode_append.log";
-  fs::path const filename_1 = "rotation_scheme_index_open_mode_append.1.log";
-  fs::path const filename_2 = "rotation_scheme_index_open_mode_append.2.log";
-  fs::path const filename_3 = "rotation_scheme_index_open_mode_append.3.log";
-  fs::path const filename_4 = "rotation_scheme_index_open_mode_append.4.log";
-  fs::path const filename_5 = "rotation_scheme_index_open_mode_append.5.log";
-  fs::path const filename_6 = "rotation_scheme_index_open_mode_append.6.log";
+  fs::path const filename = "rotating_file_sink_index_open_mode_append.log";
+  fs::path const filename_1 = "rotating_file_sink_index_open_mode_append.1.log";
+  fs::path const filename_2 = "rotating_file_sink_index_open_mode_append.2.log";
+  fs::path const filename_3 = "rotating_file_sink_index_open_mode_append.3.log";
+  fs::path const filename_4 = "rotating_file_sink_index_open_mode_append.4.log";
+  fs::path const filename_5 = "rotating_file_sink_index_open_mode_append.5.log";
+  fs::path const filename_6 = "rotating_file_sink_index_open_mode_append.6.log";
 
   // create all files simulating the previous run
   testing::create_file(filename, "Existing [2]");
@@ -463,21 +466,21 @@ TEST_CASE("rotation_scheme_index_open_mode_append")
 /** Tests for scheme date **/
 
 /***/
-TEST_CASE("rotation_scheme_date_no_backup_limit")
+TEST_CASE("rotating_file_sink_date_no_backup_limit")
 {
   // e.g .2023-06-12. is the date the rotation occurred
   uint64_t const timestamp_20230612 = 1686528000000000000;
   uint64_t const timestamp_20230613 = 1686614400000000000;
   uint64_t const timestamp_20230614 = 1686700800000000000;
 
-  fs::path const filename_1 = "rotation_scheme_date_no_backup_limit.20230612.3.log";
-  fs::path const filename_2 = "rotation_scheme_date_no_backup_limit.20230612.2.log";
-  fs::path const filename_3 = "rotation_scheme_date_no_backup_limit.20230612.1.log";
-  fs::path const filename_4 = "rotation_scheme_date_no_backup_limit.20230612.log";
-  fs::path const filename_5 = "rotation_scheme_date_no_backup_limit.20230613.log";
-  fs::path const filename_6 = "rotation_scheme_date_no_backup_limit.20230614.1.log";
-  fs::path const filename_7 = "rotation_scheme_date_no_backup_limit.20230614.log";
-  fs::path const filename = "rotation_scheme_date_no_backup_limit.log";
+  fs::path const filename_1 = "rotating_file_sink_date_no_backup_limit.20230612.3.log";
+  fs::path const filename_2 = "rotating_file_sink_date_no_backup_limit.20230612.2.log";
+  fs::path const filename_3 = "rotating_file_sink_date_no_backup_limit.20230612.1.log";
+  fs::path const filename_4 = "rotating_file_sink_date_no_backup_limit.20230612.log";
+  fs::path const filename_5 = "rotating_file_sink_date_no_backup_limit.20230613.log";
+  fs::path const filename_6 = "rotating_file_sink_date_no_backup_limit.20230614.1.log";
+  fs::path const filename_7 = "rotating_file_sink_date_no_backup_limit.20230614.log";
+  fs::path const filename = "rotating_file_sink_date_no_backup_limit.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -586,7 +589,7 @@ TEST_CASE("rotation_scheme_date_no_backup_limit")
 }
 
 /***/
-TEST_CASE("rotation_scheme_date_with_backup_limit_overwrite_rolled_files")
+TEST_CASE("rotating_file_sink_date_with_backup_limit_overwrite_rolled_files")
 {
   // e.g .2023-06-12. is the date the rotation occurred
   uint64_t const timestamp_20230612 = 1686528000000000000;
@@ -594,10 +597,10 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_overwrite_rolled_files")
   uint64_t const timestamp_20230614 = 1686700800000000000;
 
   fs::path const filename_2 =
-    "rotation_scheme_date_with_backup_limit_overwrite_rolled_files.20230614.1.log";
+    "rotating_file_sink_date_with_backup_limit_overwrite_rolled_files.20230614.1.log";
   fs::path const filename_1 =
-    "rotation_scheme_date_with_backup_limit_overwrite_rolled_files.20230614.log";
-  fs::path const filename = "rotation_scheme_date_with_backup_limit_overwrite_rolled_files.log";
+    "rotating_file_sink_date_with_backup_limit_overwrite_rolled_files.20230614.log";
+  fs::path const filename = "rotating_file_sink_date_with_backup_limit_overwrite_rolled_files.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -684,7 +687,7 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_overwrite_rolled_files")
 }
 
 /***/
-TEST_CASE("rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files")
+TEST_CASE("rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files")
 {
   // e.g .2023-06-12. is the date the rotation occurred
   uint64_t const timestamp_20230612 = 1686528000000000000;
@@ -692,15 +695,15 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files")
   uint64_t const timestamp_20230614 = 1686700800000000000;
 
   fs::path const filename_1 =
-    "rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files.20230612.3.log";
+    "rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files.20230612.3.log";
   fs::path const filename_2 =
-    "rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files.20230612.2.log";
+    "rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files.20230612.2.log";
   fs::path const filename_3 =
-    "rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files.20230612.1.log";
+    "rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files.20230612.1.log";
   fs::path const filename_4 =
-    "rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files.20230612.log";
+    "rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files.20230612.log";
   fs::path const filename =
-    "rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files.log";
+    "rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -800,7 +803,7 @@ TEST_CASE("rotation_scheme_date_with_backup_limit_dont_overwrite_rolled_files")
 }
 
 /***/
-TEST_CASE("rotation_scheme_date_open_mode_write_clean_up_old_files")
+TEST_CASE("rotating_file_sink_date_open_mode_write_clean_up_old_files")
 {
   // On write mode, with RotateFileNamingScheme::Index, the log file names can collide
 
@@ -808,12 +811,12 @@ TEST_CASE("rotation_scheme_date_open_mode_write_clean_up_old_files")
   uint64_t const timestamp_20230612 = 1686528000000000000;
 
   fs::path const filename_1 =
-    "rotation_scheme_date_open_mode_write_clean_up_old_files.20230612.2.log";
+    "rotating_file_sink_date_open_mode_write_clean_up_old_files.20230612.2.log";
   fs::path const filename_2 =
-    "rotation_scheme_date_open_mode_write_clean_up_old_files.20230612.1.log";
+    "rotating_file_sink_date_open_mode_write_clean_up_old_files.20230612.1.log";
   fs::path const filename_3 =
-    "rotation_scheme_date_open_mode_write_clean_up_old_files.20230612.log";
-  fs::path const filename = "rotation_scheme_date_open_mode_write_clean_up_old_files.log";
+    "rotating_file_sink_date_open_mode_write_clean_up_old_files.20230612.log";
+  fs::path const filename = "rotating_file_sink_date_open_mode_write_clean_up_old_files.log";
 
   //  create files simulating the previous run
   testing::create_file(filename_1, "Existing [2]");
@@ -889,7 +892,7 @@ TEST_CASE("rotation_scheme_date_open_mode_write_clean_up_old_files")
 }
 
 /***/
-TEST_CASE("rotation_scheme_date_open_mode_write_dont_clean_up_old_files")
+TEST_CASE("rotating_file_sink_date_open_mode_write_dont_clean_up_old_files")
 {
   // On write mode, the log file names can collide with old
   // files, but we do not want to clean them up
@@ -899,12 +902,12 @@ TEST_CASE("rotation_scheme_date_open_mode_write_dont_clean_up_old_files")
   uint64_t const timestamp_20230612 = 1686528000000000000;
 
   fs::path const filename_1 =
-    "rotation_scheme_date_open_mode_write_dont_clean_up_old_files.20230612.2.log";
+    "rotating_file_sink_date_open_mode_write_dont_clean_up_old_files.20230612.2.log";
   fs::path const filename_2 =
-    "rotation_scheme_date_open_mode_write_dont_clean_up_old_files.20230612.1.log";
+    "rotating_file_sink_date_open_mode_write_dont_clean_up_old_files.20230612.1.log";
   fs::path const filename_3 =
-    "rotation_scheme_date_open_mode_write_dont_clean_up_old_files.20230612.log";
-  fs::path const filename = "rotation_scheme_date_open_mode_write_dont_clean_up_old_files.log";
+    "rotating_file_sink_date_open_mode_write_dont_clean_up_old_files.20230612.log";
+  fs::path const filename = "rotating_file_sink_date_open_mode_write_dont_clean_up_old_files.log";
 
   //  create files simulating the previous run
   testing::create_file(filename_1, "Existing [2]");
@@ -980,7 +983,7 @@ TEST_CASE("rotation_scheme_date_open_mode_write_dont_clean_up_old_files")
 }
 
 /***/
-TEST_CASE("rotation_scheme_data_open_mode_append")
+TEST_CASE("rotating_file_sink_data_open_mode_append")
 {
   // In append mode, with RotateFileNamingScheme::Index, the log file names can collide
   // we want to start appending to the last log file and then also rotate it with the correct index
@@ -988,14 +991,14 @@ TEST_CASE("rotation_scheme_data_open_mode_append")
   // e.g .2023-06-12. is the date the rotation occurred
   uint64_t const timestamp_20230612 = 1686528000000000000;
 
-  fs::path const filename_7 = "rotation_scheme_data_open_mode_append.20230612.6.log";
-  fs::path const filename_6 = "rotation_scheme_data_open_mode_append.20230612.5.log";
-  fs::path const filename_5 = "rotation_scheme_data_open_mode_append.20230612.4.log";
-  fs::path const filename_4 = "rotation_scheme_data_open_mode_append.20230612.3.log";
-  fs::path const filename_3 = "rotation_scheme_data_open_mode_append.20230612.2.log"; // 0
-  fs::path const filename_2 = "rotation_scheme_data_open_mode_append.20230612.1.log"; // 1
-  fs::path const filename_1 = "rotation_scheme_data_open_mode_append.20230612.log";   // 2
-  fs::path const filename = "rotation_scheme_data_open_mode_append.log";              // 3
+  fs::path const filename_7 = "rotating_file_sink_data_open_mode_append.20230612.6.log";
+  fs::path const filename_6 = "rotating_file_sink_data_open_mode_append.20230612.5.log";
+  fs::path const filename_5 = "rotating_file_sink_data_open_mode_append.20230612.4.log";
+  fs::path const filename_4 = "rotating_file_sink_data_open_mode_append.20230612.3.log";
+  fs::path const filename_3 = "rotating_file_sink_data_open_mode_append.20230612.2.log"; // 0
+  fs::path const filename_2 = "rotating_file_sink_data_open_mode_append.20230612.1.log"; // 1
+  fs::path const filename_1 = "rotating_file_sink_data_open_mode_append.20230612.log";   // 2
+  fs::path const filename = "rotating_file_sink_data_open_mode_append.log";              // 3
 
   //  create files simulating the previous run
   testing::create_file(filename_1, "Existing [2]");
@@ -1092,7 +1095,7 @@ TEST_CASE("rotation_scheme_data_open_mode_append")
 /** Tests for scheme DateAndTime **/
 
 /***/
-TEST_CASE("rotation_scheme_dateandtime_no_backup_limit")
+TEST_CASE("rotating_file_sink_dateandtime_no_backup_limit")
 {
   // e.g .2023-06-12. is the date the rotation occurred
   uint64_t const timestamp_20230612 = 1686538000000000000;
@@ -1100,15 +1103,19 @@ TEST_CASE("rotation_scheme_dateandtime_no_backup_limit")
   uint64_t const timestamp_20230613_2 = 1686639400000000000;
   uint64_t const timestamp_20230614 = 1686700800000000000;
 
-  fs::path const filename_1 = "rotation_scheme_dateandtime_no_backup_limit.20230612_024640.3.log";
-  fs::path const filename_2 = "rotation_scheme_dateandtime_no_backup_limit.20230612_024640.2.log";
-  fs::path const filename_3 = "rotation_scheme_dateandtime_no_backup_limit.20230612_024640.1.log";
-  fs::path const filename_4 = "rotation_scheme_dateandtime_no_backup_limit.20230612_024640.log";
-  fs::path const filename_5 = "rotation_scheme_dateandtime_no_backup_limit.20230613_053320.log";
-  fs::path const filename_6 = "rotation_scheme_dateandtime_no_backup_limit.20230613_065640.log";
-  fs::path const filename_7 = "rotation_scheme_dateandtime_no_backup_limit.20230614_000000.1.log";
-  fs::path const filename_8 = "rotation_scheme_dateandtime_no_backup_limit.20230614_000000.log";
-  fs::path const filename = "rotation_scheme_dateandtime_no_backup_limit.log";
+  fs::path const filename_1 =
+    "rotating_file_sink_dateandtime_no_backup_limit.20230612_024640.3.log";
+  fs::path const filename_2 =
+    "rotating_file_sink_dateandtime_no_backup_limit.20230612_024640.2.log";
+  fs::path const filename_3 =
+    "rotating_file_sink_dateandtime_no_backup_limit.20230612_024640.1.log";
+  fs::path const filename_4 = "rotating_file_sink_dateandtime_no_backup_limit.20230612_024640.log";
+  fs::path const filename_5 = "rotating_file_sink_dateandtime_no_backup_limit.20230613_053320.log";
+  fs::path const filename_6 = "rotating_file_sink_dateandtime_no_backup_limit.20230613_065640.log";
+  fs::path const filename_7 =
+    "rotating_file_sink_dateandtime_no_backup_limit.20230614_000000.1.log";
+  fs::path const filename_8 = "rotating_file_sink_dateandtime_no_backup_limit.20230614_000000.log";
+  fs::path const filename = "rotating_file_sink_dateandtime_no_backup_limit.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -1239,7 +1246,7 @@ TEST_CASE("rotation_scheme_dateandtime_no_backup_limit")
 }
 
 /***/
-TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_overwrite_rolled_files")
+TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_overwrite_rolled_files")
 {
   // e.g .2023-06-12. is the date the rotation occurred
   uint64_t const timestamp_20230612 = 1686578000000000000;
@@ -1247,11 +1254,11 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_overwrite_rolled_files"
   uint64_t const timestamp_20230614 = 1686720800000000000;
 
   fs::path const filename_2 =
-    "rotation_scheme_dateandtime_with_backup_limit_overwrite_rolled_files.20230614_053320.1.log";
+    "rotating_file_sink_dateandtime_with_backup_limit_overwrite_rolled_files.20230614_053320.1.log";
   fs::path const filename_1 =
-    "rotation_scheme_dateandtime_with_backup_limit_overwrite_rolled_files.20230614_053320.log";
+    "rotating_file_sink_dateandtime_with_backup_limit_overwrite_rolled_files.20230614_053320.log";
   fs::path const filename =
-    "rotation_scheme_dateandtime_with_backup_limit_overwrite_rolled_files.log";
+    "rotating_file_sink_dateandtime_with_backup_limit_overwrite_rolled_files.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -1338,7 +1345,7 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_overwrite_rolled_files"
 }
 
 /***/
-TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_files")
+TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolled_files")
 {
   // e.g .2023-06-12. is the date the rotation occurred
   uint64_t const timestamp_20230612 = 1686548000000000000;
@@ -1346,18 +1353,22 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_f
   uint64_t const timestamp_20230614 = 1686710800000000000;
 
   fs::path const filename_1 =
-    "rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_files.20230612_053320.3."
+    "rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolled_files.20230612_053320."
+    "3."
     "log";
   fs::path const filename_2 =
-    "rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_files.20230612_053320.2."
+    "rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolled_files.20230612_053320."
+    "2."
     "log";
   fs::path const filename_3 =
-    "rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_files.20230612_053320.1."
+    "rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolled_files.20230612_053320."
+    "1."
     "log";
   fs::path const filename_4 =
-    "rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_files.20230612_053320.log";
+    "rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolled_files.20230612_053320."
+    "log";
   fs::path const filename =
-    "rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_files.log";
+    "rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolled_files.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -1457,15 +1468,15 @@ TEST_CASE("rotation_scheme_dateandtime_with_backup_limit_dont_overwrite_rolled_f
 }
 
 /***/
-TEST_CASE("time_rotation_minutes_rotation_scheme_index")
+TEST_CASE("time_rotation_minutes_rotating_file_sink_index")
 {
   uint64_t const timestamp_20230612 = 1686528000000000000;
 
-  fs::path const filename_1 = "time_rotation_minutes_rotation_scheme_index.20230612.3.log";
-  fs::path const filename_2 = "time_rotation_minutes_rotation_scheme_index.20230612.2.log";
-  fs::path const filename_3 = "time_rotation_minutes_rotation_scheme_index.20230612.1.log";
-  fs::path const filename_4 = "time_rotation_minutes_rotation_scheme_index.20230612.log";
-  fs::path const filename = "time_rotation_minutes_rotation_scheme_index.log";
+  fs::path const filename_1 = "time_rotation_minutes_rotating_file_sink_index.20230612.3.log";
+  fs::path const filename_2 = "time_rotation_minutes_rotating_file_sink_index.20230612.2.log";
+  fs::path const filename_3 = "time_rotation_minutes_rotating_file_sink_index.20230612.1.log";
+  fs::path const filename_4 = "time_rotation_minutes_rotating_file_sink_index.20230612.log";
+  fs::path const filename = "time_rotation_minutes_rotating_file_sink_index.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -1532,13 +1543,13 @@ TEST_CASE("time_rotation_minutes_rotation_scheme_index")
 }
 
 /***/
-TEST_CASE("time_rotation_hours_rotation_scheme_index")
+TEST_CASE("time_rotation_hours_rotating_file_sink_index")
 {
   uint64_t const timestamp_20230612 = 1686528000000000000;
 
-  fs::path const filename_1 = "time_rotation_hours_rotation_scheme_index.20230612.1.log";
-  fs::path const filename_2 = "time_rotation_hours_rotation_scheme_index.20230612.log";
-  fs::path const filename = "time_rotation_hours_rotation_scheme_index.log";
+  fs::path const filename_1 = "time_rotation_hours_rotating_file_sink_index.20230612.1.log";
+  fs::path const filename_2 = "time_rotation_hours_rotating_file_sink_index.20230612.log";
+  fs::path const filename = "time_rotation_hours_rotating_file_sink_index.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -1597,15 +1608,15 @@ TEST_CASE("time_rotation_hours_rotation_scheme_index")
 }
 
 /***/
-TEST_CASE("time_rotation_daily_at_time_rotation_scheme_index")
+TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_index")
 {
   uint64_t const timestamp_20230612 = 1686529000000000000;
 
-  fs::path const filename_1 = "time_rotation_daily_at_time_rotation_scheme_index.20230612.log";
-  fs::path const filename_2 = "time_rotation_daily_at_time_rotation_scheme_index.20230613.log";
-  fs::path const filename_3 = "time_rotation_daily_at_time_rotation_scheme_index.20230614.log";
-  fs::path const filename_4 = "time_rotation_daily_at_time_rotation_scheme_index.20230615.log";
-  fs::path const filename = "time_rotation_daily_at_time_rotation_scheme_index.log";
+  fs::path const filename_1 = "time_rotation_daily_at_time_rotating_file_sink_index.20230612.log";
+  fs::path const filename_2 = "time_rotation_daily_at_time_rotating_file_sink_index.20230613.log";
+  fs::path const filename_3 = "time_rotation_daily_at_time_rotating_file_sink_index.20230614.log";
+  fs::path const filename_4 = "time_rotation_daily_at_time_rotating_file_sink_index.20230615.log";
+  fs::path const filename = "time_rotation_daily_at_time_rotating_file_sink_index.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -1682,19 +1693,19 @@ TEST_CASE("time_rotation_daily_at_time_rotation_scheme_index")
 }
 
 /***/
-TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
+TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
 {
   uint64_t const timestamp_20230612 = 1686529000000000000;
 
   fs::path const filename_1 =
-    "max_size_and_time_rotation_daily_at_time_rotation_scheme_index.20230612.2.log";
+    "max_size_and_time_rotation_daily_at_time_rotating_file_sink_index.20230612.2.log";
   fs::path const filename_2 =
-    "max_size_and_time_rotation_daily_at_time_rotation_scheme_index.20230612.1.log";
+    "max_size_and_time_rotation_daily_at_time_rotating_file_sink_index.20230612.1.log";
   fs::path const filename_3 =
-    "max_size_and_time_rotation_daily_at_time_rotation_scheme_index.20230612.log";
+    "max_size_and_time_rotation_daily_at_time_rotating_file_sink_index.20230612.log";
   fs::path const filename_4 =
-    "max_size_and_time_rotation_daily_at_time_rotation_scheme_index.20230613.log";
-  fs::path const filename = "max_size_and_time_rotation_daily_at_time_rotation_scheme_index.log";
+    "max_size_and_time_rotation_daily_at_time_rotating_file_sink_index.20230613.log";
+  fs::path const filename = "max_size_and_time_rotation_daily_at_time_rotating_file_sink_index.log";
 
   {
     auto rfh = RotatingFileSink{
@@ -1833,14 +1844,14 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotation_scheme_index")
 }
 
 /***/
-TEST_CASE("rotation_scheme_index_dont_remove_unrelated_files")
+TEST_CASE("rotating_file_sink_index_dont_remove_unrelated_files")
 {
-  fs::path const filename = "rotation_scheme_index_dont_remove_unrelated_files.log";
-  fs::path const filename_1 = "rotation_scheme_index_dont_remove_unrelated_files.1.log";
-  fs::path const filename_2 = "rotation_scheme_index_dont_remove_unrelated_files.2.log";
-  fs::path const filename_3 = "rotation_scheme_index_dont_remove_unrelated_files.3.log";
-  fs::path const filename_yaml = "rotation_scheme_index_dont_remove_unrelated_files.yaml";
-  fs::path const filename_other = "config_rotation_scheme_index_dont_remove_unrelated_files";
+  fs::path const filename = "rotating_file_sink_index_dont_remove_unrelated_files.log";
+  fs::path const filename_1 = "rotating_file_sink_index_dont_remove_unrelated_files.1.log";
+  fs::path const filename_2 = "rotating_file_sink_index_dont_remove_unrelated_files.2.log";
+  fs::path const filename_3 = "rotating_file_sink_index_dont_remove_unrelated_files.3.log";
+  fs::path const filename_yaml = "rotating_file_sink_index_dont_remove_unrelated_files.yaml";
+  fs::path const filename_other = "config_rotating_file_sink_index_dont_remove_unrelated_files";
 
   // create all files simulating the previous run
   testing::create_file(filename, "Existing [2]");
@@ -1916,6 +1927,41 @@ TEST_CASE("rotation_scheme_index_dont_remove_unrelated_files")
   testing::remove_file(filename_3);
   testing::remove_file(filename_yaml);
   testing::remove_file(filename_other);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_invalid_params")
+{
+  fs::path const filename = "rotating_file_sink_invalid_params.log";
+  REQUIRE_THROWS(RotatingFileSink{filename, []()
+                                  {
+                                    RotatingFileSinkConfig cfg;
+                                    cfg.set_rotation_max_file_size(128);
+                                    cfg.set_open_mode('w');
+                                    return cfg;
+                                  }()});
+
+  REQUIRE_FALSE(fs::exists(filename));
+
+  REQUIRE_THROWS(RotatingFileSink{filename, []()
+                                  {
+                                    RotatingFileSinkConfig cfg;
+                                    cfg.set_rotation_frequency_and_interval('Z', 123);
+                                    cfg.set_open_mode('w');
+                                    return cfg;
+                                  }()});
+
+  REQUIRE_FALSE(fs::exists(filename));
+
+  REQUIRE_THROWS(RotatingFileSink{filename, []()
+                                  {
+                                    RotatingFileSinkConfig cfg;
+                                    cfg.set_rotation_frequency_and_interval('M', 0);
+                                    cfg.set_open_mode('w');
+                                    return cfg;
+                                  }()});
+
+  REQUIRE_FALSE(fs::exists(filename));
 }
 
 TEST_SUITE_END();
