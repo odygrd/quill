@@ -20,7 +20,9 @@ TEST_CASE("arithmetic_types_logging")
   static std::string const logger_name = "logger";
 
   // Start the logging backend thread
-  Backend::start();
+  BackendOptions bo;
+  bo.error_notifier = [](std::string const&) {};
+  Backend::start(bo);
 
   Frontend::preallocate();
 
@@ -79,6 +81,8 @@ TEST_CASE("arithmetic_types_logging")
 
     int& ci = i;
     LOG_INFO(logger, "ci [{}]", ci);
+
+    LOG_INFO(logger, "invalid format [{%f}]", 321.1);
   }
 
   logger->flush_log();
@@ -130,7 +134,9 @@ TEST_CASE("arithmetic_types_logging")
     file_contents, std::string{"LOG_INFO      " + logger_name + "       cri [-123]"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       ci [-123]"}));
+    file_contents,
+    std::string{"LOG_INFO      " + logger_name +
+                "       [Could not format log statement. message: \"invalid format [{%f}]\""}));
 
   testing::remove_file(filename);
 }
