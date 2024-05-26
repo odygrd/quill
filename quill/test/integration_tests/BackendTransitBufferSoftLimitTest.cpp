@@ -53,12 +53,8 @@ TEST_CASE("backend_transit_buffer_soft_limit")
     LOG_INFO(logger, "Message num {}", i);
   }
 
-  // flush all log and remove all loggers
-  for (Logger* logger : Frontend::get_all_loggers())
-  {
-    logger->flush_log();
-    Frontend::remove_logger(logger);
-  }
+  logger->flush_log();
+  Frontend::remove_logger(logger);
 
   // Wait until the backend thread stops for test stability
   Backend::stop();
