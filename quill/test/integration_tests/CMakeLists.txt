@@ -96,6 +96,7 @@ quill_add_test(TEST_StringRandomLogging StringRandomLoggingTest.cpp)
 quill_add_test(TEST_StringRandomSmallLogging StringRandomSmallLoggingTest.cpp)
 quill_add_test(TEST_TagsLogging TagsLoggingTest.cpp)
 quill_add_test(TEST_UserClockSource UserClockSourceTest.cpp)
+quill_add_test(TEST_UserDefinedTypeLogging UserDefinedTypeLoggingTest.cpp)
 
 if (WIN32)
     quill_add_test(TEST_WideStdTypesLogging WideStdTypesLoggingTest.cpp)

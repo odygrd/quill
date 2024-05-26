@@ -72,6 +72,7 @@ TEST_CASE("loglevel_to_string")
     LogLevel log_level;
     log_level = static_cast<LogLevel>(-1);
     REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s = loglevel_to_string(log_level).data(), quill::QuillError);
+    REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s = loglevel_to_string_id(log_level).data(), quill::QuillError);
 #endif
   }
 }

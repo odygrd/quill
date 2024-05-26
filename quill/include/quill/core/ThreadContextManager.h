@@ -85,6 +85,8 @@ public:
                                                        UnboundedSPSCQueue, BoundedSPSCQueue>&
   get_spsc_queue() noexcept
   {
+    assert((_queue_type == queue_type) && "ThreadContext queue_type mismatch");
+
     if constexpr ((queue_type == QueueType::UnboundedBlocking) ||
                   (queue_type == QueueType::UnboundedUnlimited) || (queue_type == QueueType::UnboundedDropping))
     {
@@ -104,6 +106,8 @@ public:
                                                        UnboundedSPSCQueue, BoundedSPSCQueue> const&
   get_spsc_queue() const noexcept
   {
+    assert((_queue_type == queue_type) && "ThreadContext queue_type mismatch");
+
     if constexpr ((queue_type == QueueType::UnboundedBlocking) ||
                   (queue_type == QueueType::UnboundedUnlimited) || (queue_type == QueueType::UnboundedDropping))
     {

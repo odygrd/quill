@@ -5,7 +5,7 @@
 #include <array>
 #include <thread>
 
-TEST_SUITE_BEGIN("ThreadContextCollection");
+TEST_SUITE_BEGIN("ThreadContextManager");
 
 using namespace quill;
 using namespace quill::detail;
@@ -36,7 +36,14 @@ TEST_CASE("add_and_remove_thread_contexts")
         [&thread_terminate_flag, &threads_started]()
         {
           // create a context for that thread
-          QUILL_MAYBE_UNUSED auto tc = get_local_thread_context<FrontendOptions>();
+          ThreadContext* tc = get_local_thread_context<FrontendOptions>();
+
+          REQUIRE(tc->has_unbounded_queue_type());
+          REQUIRE(tc->has_blocking_queue());
+
+          REQUIRE_FALSE(tc->has_bounded_queue_type());
+          REQUIRE_FALSE(tc->has_dropping_queue());
+
           threads_started.fetch_add(1);
           while (!thread_terminate_flag.load())
           {
