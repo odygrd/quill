@@ -14,9 +14,6 @@
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Awindows">
       <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/windows.yml?branch=master&label=windows&logo=windows&logoColor=blue&style=flat-square" alt="windows-ci" />
     </a>
-    <a href="https://cloud.drone.io/odygrd/quill">
-      <img src="https://img.shields.io/drone/build/odygrd/quill/master?label=ARM&logo=drone&style=flat-square" alt="drone-ci" />
-    </a>
   </div>
 
   <div>
