@@ -55,11 +55,12 @@ TEST_CASE("construct")
                                            quill::LogLevel::Info,
                                            MacroMetadata::Event::Flush};
 
-    REQUIRE_STREQ(macro_metadata.message_format(), "Test another fmt {name} and {surname} and {{age}}");
+    REQUIRE_STREQ(macro_metadata.message_format(),
+                  "Test another fmt {name} and {surname} and {{age}}");
     REQUIRE_EQ(macro_metadata.log_level(), quill::LogLevel::Info);
-    REQUIRE_STREQ(macro_metadata.line(), "49");
+    REQUIRE_STREQ(macro_metadata.line(), "51");
     REQUIRE_EQ(macro_metadata.file_name(), std::string_view{"MacroMetadataTest.cpp"});
-    REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:49");
+    REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:51");
     REQUIRE_STREQ(macro_metadata.caller_function(), "DOCTEST_ANON_FUNC_3");
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Flush);
     REQUIRE_EQ(macro_metadata.has_named_args(), true);
@@ -75,9 +76,9 @@ TEST_CASE("construct")
 
     REQUIRE_STREQ(macro_metadata.message_format(), "Test another fmt {0} and {1} and {2}");
     REQUIRE_EQ(macro_metadata.log_level(), quill::LogLevel::Info);
-    REQUIRE_STREQ(macro_metadata.line(), "67");
+    REQUIRE_STREQ(macro_metadata.line(), "70");
     REQUIRE_EQ(macro_metadata.file_name(), std::string_view{"MacroMetadataTest.cpp"});
-    REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:67");
+    REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:70");
     REQUIRE_STREQ(macro_metadata.caller_function(), "DOCTEST_ANON_FUNC_3");
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Flush);
     REQUIRE_EQ(macro_metadata.has_named_args(), false);
