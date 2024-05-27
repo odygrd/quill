@@ -8,7 +8,7 @@
 
 #include <thread>
 
-extern quill::Logger* global_logger_a;
+__declspec(dllimport) extern quill::Logger* global_logger_a;
 
 void init() { setup_quill("quill_shared_lib_test.log"); }
 

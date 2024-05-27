@@ -42,7 +42,7 @@ public:
   SinkManager& operator=(SinkManager const&) = delete;
 
   /***/
-  QUILL_API static SinkManager& instance() noexcept
+  static SinkManager& instance() noexcept
   {
     static SinkManager instance;
     return instance;

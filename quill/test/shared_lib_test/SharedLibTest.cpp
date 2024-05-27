@@ -14,7 +14,7 @@
  * causing issues with internal singleton classes used by the library.
  */
 
-extern quill::Logger* global_logger_a;
+__declspec(dllimport) extern quill::Logger* global_logger_a;
 
 /***/
 TEST_CASE("quill_shared_lib")

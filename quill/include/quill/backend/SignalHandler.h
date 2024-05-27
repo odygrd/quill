@@ -52,7 +52,7 @@ public:
   SignalHandlerContext& operator=(SignalHandlerContext const&) = delete;
 
   /***/
-  QUILL_API static SignalHandlerContext& instance() noexcept
+  static SignalHandlerContext& instance() noexcept
   {
     static SignalHandlerContext instance;
     return instance;

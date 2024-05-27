@@ -1,7 +1,13 @@
 #pragma once
 
-void init();
+#ifdef QUILL_SHARED_TEST_EXPORTS
+  #define QUILL_SHARED_TEST_API __declspec(dllexport)
+#else
+  #define QUILL_SHARED_TEST_API __declspec(dllimport)
+#endif
 
-void log();
+QUILL_SHARED_TEST_API void init();
 
-void stop();
+QUILL_SHARED_TEST_API void log();
+
+QUILL_SHARED_TEST_API void stop();

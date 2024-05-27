@@ -32,7 +32,7 @@ function(quill_add_test TEST_NAME SOURCES)
             ${PROJECT_SOURCE_DIR}/quill/test)
 
     # Link dependencies
-    target_link_libraries(${TEST_NAME} foo_shared_test)
+    target_link_libraries(${TEST_NAME} PRIVATE foo_shared_test)
 
     # Do not decay cxx standard if not specified
     set_property(TARGET ${TEST_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)

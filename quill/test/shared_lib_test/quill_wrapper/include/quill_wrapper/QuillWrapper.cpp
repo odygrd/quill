@@ -5,7 +5,7 @@
 #include "quill/Logger.h"
 #include "quill/sinks/FileSink.h"
 
-quill::Logger* global_logger_a;
+__declspec(dllexport) quill::Logger* global_logger_a;
 
 void setup_quill(char const* log_file)
 {

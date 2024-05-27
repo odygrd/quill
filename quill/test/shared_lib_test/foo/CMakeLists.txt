@@ -14,3 +14,4 @@ target_include_directories(${LIB_NAME}
 
 # Link quill dependency
 target_link_libraries(${LIB_NAME} PUBLIC quill_shared_test)
+target_compile_definitions(${LIB_NAME} PRIVATE -DQUILL_SHARED_TEST_EXPORTS)
