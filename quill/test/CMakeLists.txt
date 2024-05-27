@@ -1,2 +1,3 @@
 add_subdirectory(unit_tests)
 add_subdirectory(integration_tests)
+add_subdirectory(shared_lib_test)
