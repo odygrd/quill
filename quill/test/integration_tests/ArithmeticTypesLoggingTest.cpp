@@ -90,6 +90,7 @@ TEST_CASE("arithmetic_types_logging")
 
   // Wait until the backend thread stops for test stability
   Backend::stop();
+  REQUIRE_FALSE(Backend::is_running());
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);

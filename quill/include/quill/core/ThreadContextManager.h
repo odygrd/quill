@@ -210,7 +210,7 @@ class ThreadContextManager
 {
 public:
   /***/
-  QUILL_API static ThreadContextManager& instance() noexcept
+  static ThreadContextManager& instance() noexcept
   {
     static ThreadContextManager instance;
     return instance;

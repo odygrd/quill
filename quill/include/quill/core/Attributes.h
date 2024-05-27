@@ -84,21 +84,6 @@
   #define QUILL_ATTRIBUTE_COLD
 #endif
 
-// visibility
-#if defined(_WIN32)
-  #if defined(QUILL_DLL_EXPORT)
-    #define QUILL_API __declspec(dllexport)
-  #elif defined(QUILL_BUILD_SHARED)
-    #define QUILL_API __declspec(dllimport)
-  #else
-    #define QUILL_API
-  #endif
-#elif defined(__GNUC__) || defined(__clang__)
-  #define QUILL_API [[gnu::visibility("default")]]
-#else
-  #define QUILL_API
-#endif
-
 /**
  * Likely
  */

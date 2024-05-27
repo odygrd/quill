@@ -24,7 +24,7 @@ class BackendManager
 {
 public:
   /***/
-  QUILL_API static BackendManager& instance() noexcept
+  static BackendManager& instance() noexcept
   {
     static BackendManager instance;
     return instance;
