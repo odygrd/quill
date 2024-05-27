@@ -17,7 +17,7 @@ TEST_CASE("subscribe_get_active_different_sinks")
 
   {
     // Create a file sink
-    std::shared_ptr<Sink> file_sink_1 = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+    std::shared_ptr<Sink> file_sink_1_a = SinkManager::instance().create_or_get_sink<quill::FileSink>(
       file_1,
       []()
       {
@@ -28,7 +28,7 @@ TEST_CASE("subscribe_get_active_different_sinks")
       FileEventNotifier{});
 
     // Request the same sink
-    std::shared_ptr<Sink> file_sink_2 = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+    std::shared_ptr<Sink> file_sink_1_b = SinkManager::instance().create_or_get_sink<quill::FileSink>(
       file_1,
       []()
       {
@@ -37,6 +37,8 @@ TEST_CASE("subscribe_get_active_different_sinks")
         return cfg;
       }(),
       FileEventNotifier{});
+
+    std::shared_ptr<Sink> file_sink_1_c = SinkManager::instance().get_sink(file_1);
 
     // Request a new sink of the same file
     std::shared_ptr<Sink> file_sink_3 = SinkManager::instance().create_or_get_sink<quill::FileSink>(
@@ -50,8 +52,9 @@ TEST_CASE("subscribe_get_active_different_sinks")
       FileEventNotifier{});
 
     // Compare the pointers
-    REQUIRE_EQ(file_sink_1, file_sink_2);
-    REQUIRE_NE(file_sink_1, file_sink_3);
+    REQUIRE_EQ(file_sink_1_a.get(), file_sink_1_b.get());
+    REQUIRE_EQ(file_sink_1_a.get(), file_sink_1_c.get());
+    REQUIRE_NE(file_sink_1_a.get(), file_sink_3.get());
     REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 0);
   }
 

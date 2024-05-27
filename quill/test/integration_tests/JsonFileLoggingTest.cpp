@@ -54,7 +54,9 @@ TEST_CASE("json_file_logging")
   static std::string const logger_name_prefix = "logger_";
 
   // Start the logging backend thread
-  Backend::start();
+  BackendOptions bo;
+  bo.error_notifier = [](std::string const&) {};
+  Backend::start(bo);
 
   std::vector<std::thread> threads;
 
@@ -90,11 +92,23 @@ TEST_CASE("json_file_logging")
           "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
           "%(message) [%(named_args)]");
 
+        if (i == 0)
+        {
+          // log a message without any args, only from the first thread
+          LOG_INFO(logger, "Hello from thread");
+        }
+
         for (size_t j = 0; j < number_of_messages; ++j)
         {
           LOG_INFO(logger,
                    "Hello from thread {thread_index} this is message {message_num} [{custom}]", i,
                    j, fmtquill::format("{}", UserDefinedType{j, std::to_string(j)}));
+        }
+
+        if (i == 0)
+        {
+          // log an invalid format for testing, only from the first thread
+          LOG_INFO(logger, "invalid format [{%f}]", 321.1);
         }
       });
   }
@@ -118,8 +132,8 @@ TEST_CASE("json_file_logging")
   std::vector<std::string> const file_contents = quill::testing::file_contents(json_filename);
   std::vector<std::string> const file_contents_s = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads);
-  REQUIRE_EQ(file_contents_s.size(), number_of_messages * number_of_threads);
+  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads + 2);
+  REQUIRE_EQ(file_contents_s.size(), number_of_messages * number_of_threads + 2);
 
   for (size_t i = 0; i < number_of_threads; ++i)
   {
@@ -148,6 +162,17 @@ TEST_CASE("json_file_logging")
 
       REQUIRE(quill::testing::file_contains(file_contents_s, expected_string));
     }
+
+    std::string expected_no_args_json = "\"log_level\":\"INFO\",\"message\":\"Hello from thread\"";
+    std::string expected_no_args_fmt = "Hello from thread";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_no_args_json));
+    REQUIRE(quill::testing::file_contains(file_contents_s, expected_no_args_fmt));
+
+    std::string expected_invalid_fmt_json =
+      "\"log_level\":\"INFO\",\"message\":\"invalid format [{%f}]\"";
+    std::string expected_invalid_fmt = "invalid format [{%f}]\", location: \"";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_invalid_fmt_json));
+    REQUIRE(quill::testing::file_contains(file_contents_s, expected_invalid_fmt));
   }
 
   testing::remove_file(json_filename);

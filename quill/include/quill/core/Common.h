@@ -50,7 +50,7 @@ enum class Timezone : uint8_t
 /**
  * Enum for the used clock type
  */
-enum ClockSourceType : uint8_t
+enum class ClockSourceType : uint8_t
 {
   Tsc,
   System,
