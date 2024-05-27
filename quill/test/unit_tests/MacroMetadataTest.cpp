@@ -41,8 +41,10 @@ TEST_CASE("construct")
     REQUIRE_STREQ(macro_metadata.caller_function(), "DOCTEST_ANON_FUNC_3");
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Flush);
     REQUIRE_EQ(macro_metadata.has_named_args(), true);
-    REQUIRE_NE(std::string_view{macro_metadata.source_location()}.find("/MacroMetadataTest.cpp"), std::string_view::npos);
-    REQUIRE_NE(std::string_view{macro_metadata.full_path()}.find("/MacroMetadataTest.cpp"), std::string_view::npos);
+    REQUIRE_NE(std::string_view{macro_metadata.source_location()}.find("MacroMetadataTest.cpp"),
+               std::string_view::npos);
+    REQUIRE_NE(std::string_view{macro_metadata.full_path()}.find("MacroMetadataTest.cpp"),
+               std::string_view::npos);
   }
 
   {
