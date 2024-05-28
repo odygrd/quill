@@ -69,7 +69,9 @@
   nanoseconds to sleep between retries when a blocking queue is used, and it is full, and between checks for the flush
   completion. The default sleep duration is 100 nanoseconds, but users can now customize this duration according to
   their needs. If a zero sleep duration is passed, the thread might yield instead.
-- Avoid calling `std::this_thread::sleep_for()` in the signal handler when waiting for the log to be flushed.
+- Removed uses of `std::this_thread::sleep_for()`, `std::string`, `std::vector` in the signal handler when waiting for
+  the
+  log to be flushed.
 - Fix `-Wno-unused-parameter` warnings
 - Fix clang `-Wdocumentation` warnings
 
