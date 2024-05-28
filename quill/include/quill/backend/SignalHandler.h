@@ -149,7 +149,8 @@ void on_signal(int32_t signal_number)
       if (signal_number == SIGINT || signal_number == SIGTERM)
       {
         // For SIGINT and SIGTERM, we are shutting down gracefully
-        logger->flush_log();
+        // Pass `0` to avoid calling std::this_thread::sleep_for()
+        logger->flush_log(0);
         std::exit(EXIT_SUCCESS);
       }
       else
@@ -157,7 +158,8 @@ void on_signal(int32_t signal_number)
         QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Critical,
                                  "Terminated unexpectedly because of signal: {}", signal_desc);
 
-        logger->flush_log();
+        // Pass `0` to avoid calling std::this_thread::sleep_for()
+        logger->flush_log(0);
 
         // Reset to the default signal handler and re-raise the signal
         std::signal(signal_number, SIG_DFL);
@@ -241,7 +243,9 @@ BOOL WINAPI on_console_signal(DWORD signal)
     {
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(loggers.front());
       QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Info, "Interrupted by Ctrl+C:");
-      logger->flush_log();
+
+      // Pass `0` to avoid calling std::this_thread::sleep_for()
+      logger->flush_log(0);
       std::exit(EXIT_SUCCESS);
     }
   }
@@ -272,7 +276,8 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
                                "Terminated unexpectedly because of exception code: {}",
                                get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
-      logger->flush_log();
+      // Pass `0` to avoid calling std::this_thread::sleep_for()
+      logger->flush_log(0);
     }
   }
 
