@@ -67,6 +67,24 @@ public:
   }
 
   /***/
+  QUILL_NODISCARD LoggerBase* get_valid_logger() const
+  {
+    // Retrieves any valid logger without the need for constructing a vector
+    std::lock_guard<std::recursive_mutex> const lock{_mutex};
+
+    for (auto const& elem : _loggers)
+    {
+      // we can not add invalidated loggers as they can be removed at any time
+      if (elem->is_valid_logger())
+      {
+        return elem.get();
+      }
+    }
+
+    return nullptr;
+  }
+
+  /***/
   QUILL_NODISCARD size_t get_number_of_loggers() const noexcept
   {
     std::lock_guard<std::recursive_mutex> const lock{_mutex};
