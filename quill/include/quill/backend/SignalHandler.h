@@ -139,9 +139,9 @@ void on_signal(int32_t signal_number)
     if (logger_base)
     {
 #if defined(_WIN32)
-      std::string const signal_desc = std::to_string(signal_number);
+      int32_t const signal_desc = signal_number;
 #else
-      std::string const signal_desc = ::strsignal(signal_number);
+      char const* const signal_desc = ::strsignal(signal_number);
 #endif
 
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
