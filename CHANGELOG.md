@@ -66,6 +66,8 @@
 - Added `signal_handler_timeout_seconds` parameter, which controls the timeout duration for the signal handler. Only
   available on Linux platforms.
 - Avoid calling `std::this_thread::sleep_for()` in the signal handler when waiting for the log to be flushed.
+- Fix `-Wno-unused-parameter` warnings
+- Fix clang `-Wdocumentation` warnings
 
 ## v4.1.0
 
