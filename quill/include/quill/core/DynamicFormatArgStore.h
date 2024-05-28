@@ -92,8 +92,6 @@ public:
       store.push_back("abc");
       store.push_back(1.5f);
       std::string result = fmtquill::vformat("{} and {} and {}", store);
-
-      @return When a copy is taken return true
   */
   template <typename T>
   void push_back(T const& arg)

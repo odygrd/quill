@@ -180,9 +180,9 @@ struct ArgSizeCalculator
 };
 
 /**
- * @brief Calculates the total size required to encode the provided arguments and populates the c_style_string_lengths array.
+ * @brief Calculates the total size required to encode the provided arguments
 
- * @param c_style_string_lengths Array to store the c_style_string_lengths of C-style strings and char arrays.
+ * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
  * @param args The arguments to be encoded.
  * @return The total size required to encode the arguments.
  */
@@ -291,7 +291,7 @@ struct Encoder
 /**
  * @brief Encoders multiple arguments into a buffer.
  * @param buffer Pointer to the buffer for encoding.
- * @param c_style_string_lengths Array storing the c_style_string_lengths of C-style strings and char arrays.
+ * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
  * @param args The arguments to be encoded.
  */
 template <typename... Args>

@@ -44,7 +44,7 @@ private:
     /**
      * Constructor
      * @param bounded_queue_capacity the capacity of the fixed buffer
-     * @param huges_pages_enabled enables huge pages
+     * @param huge_pages_enabled enables huge pages
      */
     explicit Node(uint32_t bounded_queue_capacity, bool huge_pages_enabled)
       : bounded_queue(bounded_queue_capacity, huge_pages_enabled)

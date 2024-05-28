@@ -253,6 +253,9 @@ public:
    * The backend thread will invoke the write operation on all sinks for all loggers up to the point
    * (timestamp) when this function is invoked.
    *
+   * @param sleep_duration_ns The duration in nanoseconds to sleep between retries when the
+   * blocking queue is full, and between checks for the flush completion. Default is 100 nanoseconds.
+   *
    * @note This function should only be called when the backend worker is running after Backend::start(...)
    * @note This function will block the calling thread until the flush message is processed by the backend thread.
    *       The calling thread can block for up to backend_options.sleep_duration. If you configure a custom
@@ -260,7 +263,7 @@ public:
    *       then you should ideally avoid calling this function as you can block for long period of times unless
    *       you use another thread that calls Backend::notify()
    */
-  void flush_log()
+  void flush_log(uint32_t sleep_duration_ns = 100)
   {
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush};
@@ -271,14 +274,20 @@ public:
     // We do not want to drop the message if a dropping queue is used
     while (!this->log_message(LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
-      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+      if (sleep_duration_ns > 0)
+      {
+        std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+      }
     }
 
     // The caller thread keeps checking the flag until the backend thread flushes
-    do
+    while (!backend_thread_flushed.load())
     {
-      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
-    } while (!backend_thread_flushed.load());
+      if (sleep_duration_ns > 0)
+      {
+        std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+      }
+    }
   }
 
 private:

@@ -50,7 +50,7 @@ QUILL_NODISCARD T next_power_of_two(T n)
     result <<= 1;
   }
 
-  assert(is_power_of_two(result) && "result is not a power of 2");
+  assert(is_power_of_two(static_cast<uint64_t>(result)) && "result is not a power of 2");
 
   return result;
 }

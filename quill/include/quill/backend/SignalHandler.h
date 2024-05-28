@@ -58,9 +58,10 @@ public:
     return instance;
   }
 
-  volatile std::sig_atomic_t signal_number{0};
-  volatile std::sig_atomic_t lock{0};
+  std::atomic<int32_t> signal_number{0};
+  std::atomic<uint32_t> lock{0};
   std::atomic<uint32_t> backend_thread_id{0};
+  std::atomic<uint32_t> signal_handler_timeout_seconds{20};
 
 private:
   SignalHandlerContext() = default;
@@ -73,7 +74,7 @@ private:
     if (logger->template should_log_message<log_level>())                                          \
     {                                                                                              \
       static constexpr quill::MacroMetadata macro_metadata{                                        \
-        "SignalHandler.h:~", "", fmt, nullptr, log_level, quill::MacroMetadata::Event::Log};       \
+        "SignalHandler:~", "", fmt, nullptr, log_level, quill::MacroMetadata::Event::Log};         \
                                                                                                    \
       logger->log_message(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                  \
     }                                                                                              \
@@ -83,16 +84,18 @@ private:
 template <typename TFrontendOptions>
 void on_signal(int32_t signal_number)
 {
-  // This handler can be entered by multiple threads. We only allow the first thread to enter
-  // the signal handler
-  SignalHandlerContext::instance().lock = SignalHandlerContext::instance().lock + 1;
-  while (SignalHandlerContext::instance().lock != 1)
+  // This handler can be entered by multiple threads.
+  uint32_t const lock = SignalHandlerContext::instance().lock.fetch_add(1);
+
+  if (lock != 0)
   {
+    // We only allow the first thread to enter the signal handler
+
     // sleep until a signal is delivered that either terminates the process or causes the
     // invocation of a signal-catching function.
 
 #if defined(_WIN32)
-    std::this_thread::sleep_for(std::chrono::hours{1});
+    std::this_thread::sleep_for(std::chrono::hours{24000});
 #else
     pause();
 #endif
@@ -102,11 +105,11 @@ void on_signal(int32_t signal_number)
   // nothing to do, windows do not have alarm
 #else
   // Store the original signal number for the alarm
-  SignalHandlerContext::instance().signal_number = signal_number;
+  SignalHandlerContext::instance().signal_number.store(signal_number);
 
-  // We setup an alarm to crash after 20 seconds by redelivering the original signal,
+  // Set up an alarm to crash after 20 seconds by redelivering the original signal,
   // in case anything else goes wrong
-  alarm(20);
+  alarm(SignalHandlerContext::instance().signal_handler_timeout_seconds.load());
 #endif
 
   // Get the id of this thread in the handler and make sure it is not the backend worker thread
@@ -146,7 +149,8 @@ void on_signal(int32_t signal_number)
       if (signal_number == SIGINT || signal_number == SIGTERM)
       {
         // For SIGINT and SIGTERM, we are shutting down gracefully
-        logger->flush_log();
+        // Pass `0` to avoid calling std::this_thread::sleep_for()
+        logger->flush_log(0);
         std::exit(EXIT_SUCCESS);
       }
       else
@@ -154,7 +158,8 @@ void on_signal(int32_t signal_number)
         QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Critical,
                                  "Terminated unexpectedly because of signal: {}", signal_desc);
 
-        logger->flush_log();
+        // Pass `0` to avoid calling std::this_thread::sleep_for()
+        logger->flush_log(0);
 
         // Reset to the default signal handler and re-raise the signal
         std::signal(signal_number, SIG_DFL);
@@ -238,7 +243,9 @@ BOOL WINAPI on_console_signal(DWORD signal)
     {
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(loggers.front());
       QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Info, "Interrupted by Ctrl+C:");
-      logger->flush_log();
+
+      // Pass `0` to avoid calling std::this_thread::sleep_for()
+      logger->flush_log(0);
       std::exit(EXIT_SUCCESS);
     }
   }
@@ -269,7 +276,8 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
                                "Terminated unexpectedly because of exception code: {}",
                                get_error_message(exception_p->ExceptionRecord->ExceptionCode));
 
-      logger->flush_log();
+      // Pass `0` to avoid calling std::this_thread::sleep_for()
+      logger->flush_log(0);
     }
   }
 
@@ -316,10 +324,9 @@ namespace detail
 /***/
 void on_alarm(int32_t signal_number)
 {
-  if (SignalHandlerContext::instance().signal_number == 0)
+  if (SignalHandlerContext::instance().signal_number.load() == 0)
   {
-    // Check SIGALRM is the first signal we receive
-    // if SIGALRM is the first signal we ever receive then signal_number_ will be 0
+    // Will only happen if SIGALRM is the first signal we receive
     SignalHandlerContext::instance().signal_number = signal_number;
   }
 
@@ -338,7 +345,7 @@ void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals
       QUILL_THROW(QuillError{"SIGALRM can not be part of catchable_signals."});
     }
 
-    // setup a signal handler per signal in the array
+    // set up a signal handler per signal in the array
     if (std::signal(catchable_signal, on_signal<TFrontendOptions>) == SIG_ERR)
     {
       QUILL_THROW(QuillError{"Failed to setup signal handler for signal: " + std::to_string(catchable_signal)});
