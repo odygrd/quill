@@ -92,8 +92,7 @@ TEST_CASE("signal_handler")
 #if defined(_WIN32)
     REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: 22 (signum: 22)"}));
 #else
-    REQUIRE(quill::testing::file_contains(
-      file_contents, std::string{"Received signal: User defined signal 1 (signum: 10)"}));
+    REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: Aborted (signum: 6)"}));
 #endif
   }
 
