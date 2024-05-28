@@ -19,7 +19,7 @@
 
 /** Version Info **/
 constexpr uint32_t VersionMajor{4};
-constexpr uint32_t VersionMinor{1};
+constexpr uint32_t VersionMinor{2};
 constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
@@ -51,31 +51,40 @@ public:
    * Starts the backend thread and initialises a signal handler
    * @param options Backend options to configure the backend behavior.
    * @param catchable_signals List of signals that the backend should catch if with_signal_handler is enabled.
+   * @param signal_handler_timeout_seconds This variable defines the timeout duration in seconds for
+   * the signal handler alarm. It is only available on Linux, as Windows does not support the alarm
+   * function. The signal handler sets up an alarm to ensure that the process will terminate if it
+   * does not complete within the specified time frame. This is particularly useful to prevent the
+   * process from hanging indefinitely in case the signal handler encounters an issue.
    */
   template <typename TFrontendOptions>
   QUILL_ATTRIBUTE_COLD static void start_with_signal_handler(
     BackendOptions const& options = BackendOptions{},
-    QUILL_MAYBE_UNUSED std::initializer_list<int> const& catchable_signals = std::initializer_list<int>{
-      SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
+    QUILL_MAYBE_UNUSED std::initializer_list<int> const& catchable_signals =
+      std::initializer_list<int>{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV},
+    QUILL_MAYBE_UNUSED uint32_t signal_handler_timeout_seconds = 20u)
   {
     std::call_once(detail::BackendManager::instance().get_start_once_flag(),
-                   [options, catchable_signals]()
+                   [options, catchable_signals, signal_handler_timeout_seconds]()
                    {
 #if defined(_WIN32)
                      (void)catchable_signals;
                      detail::init_exception_handler<TFrontendOptions>();
 #else
-        // block all signals before spawning the backend worker thread
-        // note: we just assume that std::thread is implemented using posix threads
-        // or this won't have any effect
-        sigset_t fill_mask;
-        sigfillset(&fill_mask);
-        sigprocmask(SIG_SETMASK, &fill_mask, nullptr);
+        // We do not want signal handler to run in the backend worker thread
+        // Block signals in the main thread so when we spawn the backend worker thread it inherits
+        // the master
+        sigset_t set, oldset;
+        sigfillset(&set);
+        sigprocmask(SIG_SETMASK, &set, &oldset);
         detail::init_signal_handler<TFrontendOptions>(catchable_signals);
 #endif
 
                      // Run the backend worker thread, we wait here until the thread enters the main loop
                      detail::BackendManager::instance().start_backend_thread(options);
+
+                     detail::SignalHandlerContext::instance().signal_handler_timeout_seconds.store(
+                       signal_handler_timeout_seconds);
 
                      // We need to update the signal handler with some backend thread details
                      detail::SignalHandlerContext::instance().backend_thread_id.store(
@@ -84,15 +93,11 @@ public:
 #if defined(_WIN32)
       // nothing to do
 #else
-                     // unblock all signals after spawning the backend thread
-                     // note: we just assume that std::thread is implemented using posix threads
-                     // or this won't have any effect
-                     sigset_t empty_mask;
-                     sigemptyset(&empty_mask);
-                     sigprocmask(SIG_SETMASK, &empty_mask, nullptr);
+                     // Unblock signals in the main thread so subsequent threads do not inherit the blocked mask
+                     sigprocmask(SIG_SETMASK, &oldset, nullptr);
 #endif
 
-                     // Setup an exit handler to call stop when the main application exits.
+                     // Set up an exit handler to call stop when the main application exits.
                      // always call stop on destruction to log everything. std::atexit seems to be
                      // working better with dll on windows compared to using ~LogManagerSingleton().
                      std::atexit([]() { detail::BackendManager::instance().stop_backend_thread(); });
@@ -115,9 +120,7 @@ public:
    *
    * @note thread-safe
    */
-  static void notify() noexcept {
-    detail::BackendManager::instance().notify_backend_thread();
-  }
+  static void notify() noexcept { detail::BackendManager::instance().notify_backend_thread(); }
 
   /**
    * Checks if the backend is currently running.

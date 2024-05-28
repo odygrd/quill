@@ -1,3 +1,4 @@
+- [v4.2.0](#v420)
 - [v4.1.0](#v410)
 - [v4.0.0](#v400)
 - [v3.9.0](#v390)
@@ -60,6 +61,11 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+## v4.2.0
+
+- Added `signal_handler_timeout_seconds` parameter, which controls the timeout duration for the signal handler. Only
+  available on Linux platforms.
+
 ## v4.1.0
 
 - Following the transition from a compiled to a header-only library, the `target_compile_options` previously applied to
@@ -75,7 +81,8 @@
 - Replaced `sprintf` with `snprintf` to fix macOS warning.
 - Reviewed and removed gcc cold attribute from a few functions.
 - Minor backend thread optimisations when logging c style strings or char arrays
-- Improved backend thread variable and function names and fixed a bug for an edge case when the transit event hard limit is reached
+- Improved backend thread variable and function names and fixed a bug for an edge case when the transit event hard limit
+  is reached
 
 ## v4.0.0
 
