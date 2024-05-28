@@ -27,6 +27,8 @@ TEST_CASE("signal_handler")
   Backend::start_with_signal_handler<FrontendOptions>(
     BackendOptions{}, std::initializer_list<int>{SIGABRT}, 40, false);
 
+  quill::Frontend::preallocate();
+
   std::vector<std::thread> threads;
 
   for (size_t i = 0; i < number_of_threads; ++i)
@@ -91,6 +93,8 @@ TEST_CASE("signal_handler")
 
 #if defined(_WIN32)
     REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: 22 (signum: 22)"}));
+#elif defined(__apple_build_version__)
+    REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: Abort trap: 6 (signum: 6)"}));
 #else
     REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: Aborted (signum: 6)"}));
 #endif
