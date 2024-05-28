@@ -126,6 +126,10 @@ public:
         thread_context->increment_failure_counter();
         return false;
       }
+      else
+      {
+        std::this_thread::yield();
+      }
     }
     else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedBlocking) ||
                        (frontend_options_t::queue_type == QueueType::UnboundedBlocking))
@@ -155,6 +159,10 @@ public:
               static_cast<uint32_t>(total_size));
           }
         } while (write_buffer == nullptr);
+      }
+      else
+      {
+        std::this_thread::yield();
       }
     }
 
