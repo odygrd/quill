@@ -25,7 +25,7 @@ TEST_CASE("signal_handler")
   // Start the logging backend thread, we expect the signal handler to catch the signal,
   // flush the log and raise the signal back
   Backend::start_with_signal_handler<FrontendOptions>(
-    BackendOptions{}, std::initializer_list<int>{SIGUSR1}, 40, false);
+    BackendOptions{}, std::initializer_list<int>{SIGABRT}, 40, false);
 
   std::vector<std::thread> threads;
 
@@ -34,6 +34,11 @@ TEST_CASE("signal_handler")
     threads.emplace_back(
       [i]() mutable
       {
+#if defined(_WIN32)
+        // NOTE: On windows the signal handler must be installed on each new thread
+        quill::init_signal_handler<quill::FrontendOptions>();
+#endif
+
         // Set writing logging to a file
         auto file_sink = Frontend::create_or_get_sink<FileSink>(
           filename,
@@ -64,7 +69,7 @@ TEST_CASE("signal_handler")
   }
 
   // Now raise a signal
-  std::raise(SIGUSR1);
+  std::raise(SIGABRT);
 
   {
     // Except the log and the signal handler in the logs
@@ -84,8 +89,12 @@ TEST_CASE("signal_handler")
       }
     }
 
+#if defined(_WIN32)
+    REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: 22 (signum: 22)"}));
+#else
     REQUIRE(quill::testing::file_contains(
       file_contents, std::string{"Received signal: User defined signal 1 (signum: 10)"}));
+#endif
   }
 
   // Wait until the backend thread stops for test stability
