@@ -27,7 +27,8 @@ public:
     Log,
     InitBacktrace,
     FlushBacktrace,
-    Flush
+    Flush,
+    FlushAndStop
   };
 
   constexpr MacroMetadata(char const* source_location, char const* caller_function, char const* message_format, Tags const* tags, LogLevel log_level, Event event) noexcept

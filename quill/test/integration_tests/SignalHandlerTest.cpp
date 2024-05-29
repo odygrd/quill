@@ -100,13 +100,6 @@ TEST_CASE("signal_handler")
 #endif
   }
 
-  // Wait until the backend thread stops for test stability
-  for (Logger* logger : Frontend::get_all_loggers())
-  {
-    logger->flush_log();
-    Frontend::remove_logger(logger);
-  }
-
   Backend::stop();
   REQUIRE_FALSE(Backend::is_running());
 

@@ -80,6 +80,28 @@ private:
     }                                                                                              \
   } while (0)
 
+template <typename TLogger>
+inline void signal_handler_flush_log(TLogger* logger)
+{
+  static constexpr MacroMetadata macro_metadata{
+    "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushAndStop};
+
+  std::atomic<bool> backend_thread_flushed{false};
+  std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
+
+  // We do not want to drop the message if a dropping queue is used
+  while (!logger->log_message(LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
+  {
+    std::this_thread::yield();
+  }
+
+  // The caller thread keeps checking the flag until the backend thread flushes
+  while (!backend_thread_flushed.load())
+  {
+    std::this_thread::yield();
+  }
+}
+
 /***/
 template <typename TFrontendOptions>
 void on_signal(int32_t signal_number)
@@ -147,12 +169,12 @@ void on_signal(int32_t signal_number)
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
       QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Info, "Received signal: {} (signum: {})",
                                signal_desc, signal_number);
-      logger->flush_log(0);
 
       if (signal_number == SIGINT || signal_number == SIGTERM)
       {
         // For SIGINT and SIGTERM, we are shutting down gracefully
         // Pass `0` to avoid calling std::this_thread::sleep_for()
+        signal_handler_flush_log(logger);
         std::exit(EXIT_SUCCESS);
       }
       else
@@ -162,6 +184,8 @@ void on_signal(int32_t signal_number)
           QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Critical,
                                    "Program terminated unexpectedly due to signal: {} (signum: {})",
                                    signal_desc, signal_number);
+
+          signal_handler_flush_log(logger);
 
           // Reset to the default signal handler and re-raise the signal
           std::signal(signal_number, SIG_DFL);
@@ -249,7 +273,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
                                "Program interrupted by Ctrl+C or Ctrl+Break signal");
 
       // Pass `0` to avoid calling std::this_thread::sleep_for()
-      logger->flush_log(0);
+      signal_handler_flush_log(logger);
       std::exit(EXIT_SUCCESS);
     }
   }
@@ -283,7 +307,7 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
                                exception_p->ExceptionRecord->ExceptionCode);
 
       // Pass `0` to avoid calling std::this_thread::sleep_for()
-      logger->flush_log(0);
+      signal_handler_flush_log(logger);
     }
   }
 

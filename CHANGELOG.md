@@ -70,8 +70,7 @@
   completion. The default sleep duration is 100 nanoseconds, but users can now customize this duration according to
   their needs. If a zero sleep duration is passed, the thread might yield instead.
 - Removed uses of `std::this_thread::sleep_for()`, `std::string`, `std::vector` in the signal handler when waiting for
-  the
-  log to be flushed.
+  the log to be flushed.
 - Fix `-Wno-unused-parameter` warnings
 - Fix clang `-Wdocumentation` warnings
 

@@ -81,6 +81,16 @@ public:
   {
     // This destructor will run during static destruction as the thread is part of the singleton
     stop();
+
+    // Wait the backend thread to join, if backend thread was never started it won't be joinable
+    if (_worker_thread.joinable())
+    {
+      _worker_thread.join();
+    }
+
+    RdtscClock* rdtsc_clock{_rdtsc_clock.load()};
+    _rdtsc_clock.store(nullptr);
+    delete rdtsc_clock;
   }
 
   /***/
@@ -215,12 +225,6 @@ public:
 
     // signal wake up the backend worker thread
     notify();
-
-    // Wait the backend thread to join, if backend thread was never started it won't be joinable so we can still
-    if (_worker_thread.joinable())
-    {
-      _worker_thread.join();
-    }
   }
 
   /**
@@ -262,7 +266,7 @@ private:
       }
       else
       {
-        while (_process_next_cached_transit_event())
+        while (!_flush_and_stop_event_received && _process_next_cached_transit_event())
         {
           // process all cached TransitEvents
         }
@@ -316,10 +320,16 @@ private:
    */
   QUILL_ATTRIBUTE_COLD void _exit()
   {
+    if (_flush_and_stop_event_received)
+    {
+      // When we have already received this, we just exit without processing any further logs
+      return;
+    }
+
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
-    while (true)
+    while (!_flush_and_stop_event_received)
     {
       size_t cached_transit_events_count = _populate_transit_events_from_frontend_queues();
 
@@ -333,31 +343,25 @@ private:
         }
         else
         {
-          while (_process_next_cached_transit_event())
+          while (!_flush_and_stop_event_received && _process_next_cached_transit_event())
           {
             // process all cached transit events
           }
         }
       }
-      else
-      {
-        // there are no cached transit events to process
-        bool const queues_and_events_empty = (!_options.wait_for_queues_to_empty_before_exit) ||
-          _check_frontend_queues_and_cached_transit_events_empty();
 
-        if (queues_and_events_empty)
-        {
-          // we are done, all queues are now empty
-          _check_failure_counter(_options.error_notifier);
-          _flush_and_run_active_sinks_loop(false);
-          break;
-        }
+      // check for further events to process
+      bool const queues_and_events_empty = (!_options.wait_for_queues_to_empty_before_exit) ||
+        _check_frontend_queues_and_cached_transit_events_empty();
+
+      if (queues_and_events_empty)
+      {
+        // we are done, all queues are now empty
+        _check_failure_counter(_options.error_notifier);
+        _flush_and_run_active_sinks_loop(false);
+        break;
       }
     }
-
-    RdtscClock const* rdtsc_clock{_rdtsc_clock.load(std::memory_order_relaxed)};
-    _rdtsc_clock.store(nullptr, std::memory_order_release);
-    delete rdtsc_clock;
   }
 
   /**
@@ -569,7 +573,8 @@ private:
     }
 
     // we need to check and do not try to format the flush events as that wouldn't be valid
-    if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
+    if ((transit_event->macro_metadata->event() != MacroMetadata::Event::Flush) &&
+        (transit_event->macro_metadata->event() != MacroMetadata::Event::FlushAndStop))
     {
       if (!transit_event->macro_metadata->has_named_args())
       {
@@ -829,7 +834,8 @@ private:
       _backtrace_storage.process(transit_event.logger_base->logger_name, [this](TransitEvent const& te)
                                  { _write_transit_event_to_sinks(te); });
     }
-    else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
+    else if ((transit_event.macro_metadata->event() == MacroMetadata::Event::Flush) ||
+             (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushAndStop))
     {
       _flush_and_run_active_sinks_loop(false);
 
@@ -838,6 +844,13 @@ private:
 
       // we also need to reset the flush_flag as the TransitEvents are re-used
       transit_event.flush_flag = nullptr;
+
+      if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushAndStop)
+      {
+        // We are done
+        _flush_and_stop_event_received = true;
+        _is_worker_running.store(false);
+      }
     }
   }
 
@@ -1321,6 +1334,7 @@ private:
   std::chrono::system_clock::time_point _last_rdtsc_resync_time;
   std::atomic<uint32_t> _worker_thread_id{0}; /** cached backend worker thread id */
 
+  bool _flush_and_stop_event_received{false};
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
 
   alignas(CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
