@@ -98,6 +98,9 @@ TEST_CASE("signal_handler")
 #else
     REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: Aborted (signum: 6)"}));
 #endif
+
+    REQUIRE(quill::testing::file_contains(
+      file_contents, std::string{"Program terminated unexpectedly due to signal:"}));
   }
 
   // Wait until the backend thread stops for test stability

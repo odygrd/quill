@@ -157,14 +157,14 @@ void on_signal(int32_t signal_number)
       }
       else
       {
+        QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Critical,
+                                 "Program terminated unexpectedly due to signal: {} (signum: {})",
+                                 signal_desc, signal_number);
+
+        logger->flush_log(0);
+
         if (should_reraise_signal)
         {
-          QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Critical,
-                                   "Program terminated unexpectedly due to signal: {} (signum: {})",
-                                   signal_desc, signal_number);
-
-          logger->flush_log(0);
-          
           // Reset to the default signal handler and re-raise the signal
           std::signal(signal_number, SIG_DFL);
           std::raise(signal_number);
