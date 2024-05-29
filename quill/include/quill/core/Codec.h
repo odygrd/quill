@@ -322,22 +322,10 @@ struct Decoder
 
       return arg;
     }
-    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
+    else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>,
+                                          std::conjunction<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>>)
     {
-      char const* str = reinterpret_cast<char const*>(buffer);
-      size_t const len = strlen(str);
-      buffer += len + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
-
-      if (args_store)
-      {
-        // pass the std::string_view to args_store to avoid the dynamic allocation
-        args_store->push_back(std::string_view{str, len});
-      }
-
-      return str;
-    }
-    else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
-    {
+      // c strings or char array
       char const* str = reinterpret_cast<char const*>(buffer);
       size_t const len = strlen(str);
       buffer += len + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
@@ -369,7 +357,8 @@ struct Decoder
       return v;
     }
 #if defined(_WIN32)
-    else if constexpr (std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>>)
+    else if constexpr (std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>,
+                                          std::is_same<Arg, std::wstring>, std::is_same<Arg, std::wstring_view>>)
     {
       // we first need to retrieve the length
       size_t len;
@@ -384,27 +373,14 @@ struct Decoder
         args_store->push_back(static_cast<std::string&&>(str));
       }
 
-      // For wchar_t* we also copy the null terminator
-      size_t const size_bytes = (len + 1) * sizeof(wchar_t);
-      buffer += size_bytes;
-      return wstr;
-    }
-    else if constexpr (std::disjunction_v<std::is_same<Arg, std::wstring>, std::is_same<Arg, std::wstring_view>>)
-    {
-      // we first need to retrieve the length
-      size_t len;
-      std::memcpy(&len, buffer, sizeof(len));
-      buffer += sizeof(len);
+      size_t size_bytes = len * sizeof(wchar_t);
 
-      std::wstring_view wstr{reinterpret_cast<wchar_t const*>(buffer), len};
-
-      if (args_store)
+      if constexpr (std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>>)
       {
-        std::string str = utf8_encode(buffer, len);
-        args_store->push_back(static_cast<std::string&&>(str));
+        // For c style wide strings we also include the null terminator
+        size_bytes += sizeof(wchar_t);
       }
 
-      size_t const size_bytes = len * sizeof(wchar_t);
       buffer += size_bytes;
       return wstr;
     }
