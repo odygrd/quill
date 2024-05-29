@@ -15,16 +15,18 @@
 namespace quill
 {
 /**
- * A utility class for accessing the Time Stamp Counter (TSC) clock used by the backend logging thread.
- * This class allows other threads to obtain timestamps synchronized with the TSC clock of the backend logging thread.
+ * @brief A utility class for accessing the Time Stamp Counter (TSC) clock used by the backend logging thread.
  *
- * When `default_timestamp_clock_type = TimestampClockType::Tsc` is used, this class provides access to
- * the TSC clock maintained by the backend logging thread for synchronized timestamp retrieval.
+ * This class provides access to the TSC clock maintained by the backend logging thread,
+ * allowing for synchronized timestamp retrieval.
  *
- * If `TimestampClockType::Tsc` is not enabled in Config.h, this class reverts to using the system clock
- * for timestamps.
+ * Other threads can obtain timestamps synchronized with the TSC clock of the backend logging
+ * thread, ensuring synchronization with log statement timestamps.
  *
- * @note For more accurate timestamps, consider reducing rdtsc_resync_interval in Config.h.
+ * If `ClockSourceType::Tsc` is not used by any Logger, this class reverts to using the system clock
+ * for providing a timestamp.
+ *
+ * @note For more accurate timestamps, consider reducing `rdtsc_resync_interval` in `BackendOptions`.
  * @note All methods of the class are thread-safe.
  */
 class BackendTscClock
@@ -76,7 +78,8 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static RdtscVal rdtsc() noexcept { return RdtscVal{}; }
 
   /**
-   * Converts a TSC counter value obtained from the backend logging thread's TSC timer to a wall clock timestamp.
+   * Converts a TSC counter value obtained from the backend logging thread's TSC timer to a wall
+   * clock timestamp.
    *
    * @param rdtsc The TSC counter value obtained from the backend logging thread's TSC timer.
    * @warning This function will return `0` when TimestampClockType::Tsc is not enabled in Config.h.

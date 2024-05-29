@@ -66,12 +66,12 @@
 - Added `signal_handler_timeout_seconds` parameter, which controls the timeout duration for the signal handler. Only
   available on Linux platforms.
 - Added `sleep_duration_ns parameter` to the `flush_log()` function. This parameter specifies the duration in
-  nanoseconds to sleep between retries when a blocking queue is used, and it is full, and between checks for the flush
-  completion. The default sleep duration is 100 nanoseconds, but users can now customize this duration according to
+  nanoseconds to sleep between retries between checks for the flush completion and when a blocking queue is used,
+  and it is full. The default sleep duration is 100 nanoseconds, but users can now customize this duration according to
   their needs. If a zero sleep duration is passed, the thread might yield instead.
 - Removed uses of `std::this_thread::sleep_for()`, `std::string`, `std::vector` in the signal handler when waiting for
   the log to be flushed.
-- Improved backend worker `_exit()` logic.
+- Improved backend worker `_exit()` functionality and reduced code duplication in other areas of the backend worker code
 - Fixed `-Wno-unused-parameter` and `-Wdocumentation` warnings
 
 ## v4.1.0

@@ -11,24 +11,23 @@
 namespace quill
 {
 /**
- * Base class that provides a logger timestamp based on a user-provided clock source for timestamps.
- * Creating a derived class allows passing a user-generated timestamp to a Logger.
+ * @brief Base class that provides a timestamp for log statements based on a user-provided clock source.
  *
- * This class is particularly useful for simulations or scenarios where time needs to be
- * manipulated, such as simulating time in the past.
+ * This base class can be derived from to pass a user-generated timestamp to a Logger.
  *
- * Note: The derived class must be thread-safe since the Logger object is also thread-safe,
- * unless the same logger is not used across multiple threads.
+ * It is particularly useful for simulations or scenarios where time manipulation is necessary,
+ * such as simulating time in the past and displaying past timestamps in logs.
+ *
+ * @note The derived class must be thread-safe if the Logger object is used across multiple threads.
+ * If a Logger is used within a single thread only, thread safety is not a concern.
  */
 class UserClockSource
 {
 public:
   UserClockSource() = default;
-
   virtual ~UserClockSource() = default;
 
   UserClockSource(UserClockSource const&) = delete;
-
   UserClockSource& operator=(UserClockSource const&) = delete;
 
   /**

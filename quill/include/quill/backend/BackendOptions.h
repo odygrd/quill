@@ -161,7 +161,8 @@ struct BackendOptions
    * with the system time from the system wall clock.
    * The TSC clock can drift slightly over time and is not synchronized with NTP server updates.
    *
-   * Smaller values provide more accurate log timestamps at the cost of additional system clock calls. Changing this value only affects the performance of the backend worker.
+   * Smaller values provide more accurate log timestamps at the cost of additional system clock
+   * calls. Changing this value only affects the performance of the backend worker.
    */
   std::chrono::milliseconds rdtsc_resync_interval = std::chrono::milliseconds{500};
 };

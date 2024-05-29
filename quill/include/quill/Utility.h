@@ -19,10 +19,13 @@
 namespace quill::utility
 {
 /**
- * Formats the given buffer to hex
- * @param buffer input buffer
- * @param size input buffer size
- * @return A string containing the hexadecimal representation of the given buffer
+ * @brief Formats the given buffer to hexadecimal representation.
+ *
+ * This function converts the contents of the input buffer to a hexadecimal string.
+ *
+ * @param buffer Pointer to the input buffer.
+ * @param size Size of the input buffer.
+ * @return A string containing the hexadecimal representation of the given buffer.
  */
 template <typename T>
 QUILL_NODISCARD std::string to_hex(T* buffer, size_t size) noexcept
@@ -54,7 +57,8 @@ QUILL_NODISCARD std::string to_hex(T* buffer, size_t size) noexcept
 }
 
 /**
- * Helper class for combining different CustomTag objects
+ * @brief Helper class for combining quill::Tag objects.
+ * This class combines multiple quill::Tag objects into a single Tag object.
  */
 template <typename... TTags>
 class CombinedTags : public Tags
