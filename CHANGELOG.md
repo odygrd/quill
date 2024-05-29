@@ -73,6 +73,7 @@
   the log to be flushed.
 - Improved backend worker `_exit()` functionality and reduced code duplication in other areas of the backend worker code
 - Fixed `-Wno-unused-parameter` and `-Wdocumentation` warnings
+- Fix build error when `UnboundedDropping` queue is used
 
 ## v4.1.0
 

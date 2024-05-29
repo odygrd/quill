@@ -109,7 +109,8 @@ public:
 
   /***/
   template <typename TLogger>
-  LoggerBase* create_or_get_logger(std::string const& logger_name, std::shared_ptr<Sink> sink, std::string const& format_pattern,
+  LoggerBase* create_or_get_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
+                                   std::string const& format_pattern,
                                                    std::string const& time_pattern, Timezone timestamp_timezone,
                                                    ClockSourceType clock_source, UserClockSource* user_clock)
   {
@@ -120,40 +121,8 @@ public:
     if (!logger_ptr)
     {
       // If logger pointer is null, create a new logger instance.
-      std::unique_ptr<LoggerBase> new_logger{
-        new TLogger{logger_name, static_cast<std::shared_ptr<Sink>&&>(sink), format_pattern,
-                    time_pattern, timestamp_timezone, clock_source, user_clock}};
-
-      _insert_logger(static_cast<std::unique_ptr<LoggerBase>&&>(new_logger));
-
-      // Although we could directly return .get() from the new_logger here,
-      // we retain this portion of code for additional safety in case of potential re-lookup of
-      // the logger. This section is not performance-critical.
-      logger_ptr = _find_logger(logger_name);
-    }
-
-    assert(logger_ptr);
-    assert(logger_ptr->is_valid_logger());
-    return logger_ptr;
-  }
-
-  /***/
-  template <typename TLogger>
-  LoggerBase* create_or_get_logger(std::string const& logger_name,
-                                   std::initializer_list<std::shared_ptr<Sink>> sinks,
-                                                   std::string const& format_pattern,
-                                                   std::string const& time_pattern, Timezone timestamp_timezone,
-                                                   ClockSourceType clock_source, UserClockSource* user_clock)
-  {
-    std::lock_guard<std::recursive_mutex> const lock{_mutex};
-
-    LoggerBase* logger_ptr = _find_logger(logger_name);
-
-    if (!logger_ptr)
-    {
-      // If logger pointer is null, create a new logger instance.
-      std::unique_ptr<LoggerBase> new_logger{new TLogger{
-        logger_name, sinks, format_pattern, time_pattern, timestamp_timezone, clock_source, user_clock}};
+      std::unique_ptr<LoggerBase> new_logger{new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+                    format_pattern, time_pattern, timestamp_timezone, clock_source, user_clock}};
 
       _insert_logger(static_cast<std::unique_ptr<LoggerBase>&&>(new_logger));
 

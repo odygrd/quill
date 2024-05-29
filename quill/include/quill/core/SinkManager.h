@@ -65,8 +65,7 @@ public:
   }
 
   /***/
-  template <typename TSink, typename... Args,
-            std::enable_if_t<!(std::is_same_v<FileSink, TSink> || std::is_base_of_v<FileSink, TSink>), bool> = true>
+  template <typename TSink, typename... Args>
   std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
@@ -76,27 +75,15 @@ public:
 
     if (!sink)
     {
-      sink = std::make_shared<TSink>(static_cast<Args&&>(args)...);
-      _insert_sink(sink_name, sink);
-    }
+      if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
+      {
+        sink = std::make_shared<TSink>(sink_name, static_cast<Args&&>(args)...);
+      }
+      else
+      {
+        sink = std::make_shared<TSink>(static_cast<Args&&>(args)...);
+      }
 
-    return sink;
-  }
-
-  /***/
-  template <typename TSink, typename... Args,
-            std::enable_if_t<(std::is_same_v<FileSink, TSink> || std::is_base_of_v<FileSink, TSink>), bool> = true>
-  std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
-  {
-    // The sinks are used by the backend thread, so after their creation we want to avoid mutating
-    // their member variables. For FileSinks the sink_name is the name of the file
-    std::lock_guard<std::mutex> const lock{_mutex};
-
-    std::shared_ptr<Sink> sink = _find_sink(sink_name);
-
-    if (!sink)
-    {
-      sink = std::make_shared<TSink>(sink_name, static_cast<Args&&>(args)...);
       _insert_sink(sink_name, sink);
     }
 

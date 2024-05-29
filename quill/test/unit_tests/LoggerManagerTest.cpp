@@ -16,8 +16,11 @@ TEST_CASE("create_get_remove_logger")
 
   LoggerManager& lm = LoggerManager::instance();
 
+  std::vector<std::shared_ptr<Sink>> sinks;
+  sinks.push_back(sink);
+
   LoggerBase* logger_1 = lm.create_or_get_logger<Logger>(
-    "logger_1", sink,
+    "logger_1", std::move(sinks),
     "%(time) [%(thread_id)] %(short_source_location:<28) "
     "LOG_%(log_level:<9) %(logger:<12) %(message)",
     "%H:%M:%S.%Qns", quill::Timezone::GmtTime, ClockSourceType::Tsc, nullptr);

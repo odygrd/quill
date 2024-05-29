@@ -97,11 +97,13 @@ public:
       total_size += sizeof(dynamic_log_level);
     }
 
-    // request this size from the queue
+    constexpr bool is_unbounded_queue = (frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
+      (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
+      (frontend_options_t::queue_type == QueueType::UnboundedDropping);
+
     std::byte* write_buffer;
-    if constexpr ((frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
-                  (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
-                  (frontend_options_t::queue_type == QueueType::UnboundedBlocking))
+
+    if constexpr (is_unbounded_queue)
     {
       write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(
         static_cast<uint32_t>(total_size), frontend_options_t::queue_type);
@@ -126,10 +128,6 @@ public:
         thread_context->increment_failure_counter();
         return false;
       }
-      else
-      {
-        std::this_thread::yield();
-      }
     }
     else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedBlocking) ||
                        (frontend_options_t::queue_type == QueueType::UnboundedBlocking))
@@ -146,9 +144,7 @@ public:
           }
 
           // not enough space to push to queue, keep trying
-          if constexpr ((frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
-                        (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
-                        (frontend_options_t::queue_type == QueueType::UnboundedBlocking))
+          if constexpr (is_unbounded_queue)
           {
             write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(
               static_cast<uint32_t>(total_size), frontend_options_t::queue_type);
@@ -160,17 +156,9 @@ public:
           }
         } while (write_buffer == nullptr);
       }
-      else
-      {
-        std::this_thread::yield();
-      }
     }
 
     // we have enough space in this buffer, and we will write to the buffer
-
-    // Then write the pointer to the LogDataNode. The LogDataNode has all details on how to
-    // deserialize the object. We will just serialize the arguments in our queue, but we need
-    // to look up their types to deserialize them
 
 #ifndef NDEBUG
     std::byte const* const write_begin = write_buffer;
@@ -311,27 +299,13 @@ private:
   friend class detail::BackendWorker;
 
   /***/
-  LoggerImpl(std::string logger_name, std::shared_ptr<Sink> sink, std::string format_pattern,
-             std::string time_pattern, Timezone timestamp_timezone, ClockSourceType clock_source,
-             UserClockSource* user_clock)
-    : detail::LoggerBase(static_cast<std::string&&>(logger_name), static_cast<std::shared_ptr<Sink>&&>(sink),
-                         static_cast<std::string&&>(format_pattern),
-                         static_cast<std::string&&>(time_pattern), timestamp_timezone, clock_source, user_clock)
-  {
-    if (this->user_clock)
-    {
-      // if a user clock is provided then set the ClockSourceType to User
-      this->clock_source = ClockSourceType::User;
-    }
-  }
-
-  /***/
-  LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> const& sinks,
+  LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              std::string format_pattern, std::string time_pattern, Timezone timestamp_timezone,
              ClockSourceType clock_source, UserClockSource* user_clock)
-    : detail::LoggerBase(
-        static_cast<std::string&&>(logger_name), sinks, static_cast<std::string&&>(format_pattern),
-        static_cast<std::string&&>(time_pattern), timestamp_timezone, clock_source, user_clock)
+    : detail::LoggerBase(static_cast<std::string&&>(logger_name),
+                         static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+                         static_cast<std::string&&>(format_pattern),
+                         static_cast<std::string&&>(time_pattern), timestamp_timezone, clock_source, user_clock)
 
   {
     if (this->user_clock)
