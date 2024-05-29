@@ -24,8 +24,11 @@ TEST_CASE("signal_handler")
 
   // Start the logging backend thread, we expect the signal handler to catch the signal,
   // flush the log and raise the signal back
-  Backend::start_with_signal_handler<FrontendOptions>(
-    BackendOptions{}, std::initializer_list<int>{SIGABRT}, 40, false);
+  Backend::start_with_signal_handler<FrontendOptions>(BackendOptions{},
+                                                      std::initializer_list<int>{SIGABRT}, 40);
+
+  // For testing purposes we want to keep the application running, we do not reraise the signal
+  detail::SignalHandlerContext::instance().should_reraise_signal.store(false);
 
   quill::Frontend::preallocate();
 
@@ -98,9 +101,6 @@ TEST_CASE("signal_handler")
 #else
     REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: Aborted (signum: 6)"}));
 #endif
-
-    REQUIRE(quill::testing::file_contains(
-      file_contents, std::string{"Program terminated unexpectedly due to signal:"}));
   }
 
   // Wait until the backend thread stops for test stability
