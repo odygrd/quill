@@ -1189,7 +1189,7 @@ private:
     // Then populate all the values of each arg
     QUILL_TRY { _format_and_split_arguments(*transit_event->named_args, _format_args_store); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH(std::exception const& e)
+    QUILL_CATCH(std::exception const&)
     {
       // This catch block simply catches the exception.
       // Since the error has already been handled in _populate_formatted_log_message,
