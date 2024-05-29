@@ -320,22 +320,8 @@ private:
    */
   QUILL_ATTRIBUTE_COLD void _exit()
   {
-    // load all contexts locally
-    _update_active_thread_contexts_cache();
-
     while (true)
     {
-      size_t cached_transit_events_count = _populate_transit_events_from_frontend_queues();
-
-      if (cached_transit_events_count > 0)
-      {
-        while (_process_next_cached_transit_event())
-        {
-          // process all the events
-        }
-      }
-
-      // there are no cached transit events to process
       bool const queues_and_events_empty = (!_options.wait_for_queues_to_empty_before_exit) ||
         _check_frontend_queues_and_cached_transit_events_empty();
 
@@ -345,6 +331,15 @@ private:
         _check_failure_counter(_options.error_notifier);
         _flush_and_run_active_sinks_loop(false);
         break;
+      }
+
+      size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
+      if (cached_transit_events_count > 0)
+      {
+        while (_process_next_cached_transit_event())
+        {
+          // process all the events
+        }
       }
     }
   }
