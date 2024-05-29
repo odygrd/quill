@@ -286,6 +286,10 @@ public:
       {
         std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
       }
+      else
+      {
+        std::this_thread::yield();
+      }
     }
 
     // The caller thread keeps checking the flag until the backend thread flushes
@@ -294,6 +298,10 @@ public:
       if (sleep_duration_ns > 0)
       {
         std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+      }
+      else
+      {
+        std::this_thread::yield();
       }
     }
   }
