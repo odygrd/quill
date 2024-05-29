@@ -81,6 +81,10 @@ public:
   {
     // This destructor will run during static destruction as the thread is part of the singleton
     stop();
+
+    RdtscClock const* rdtsc_clock{_rdtsc_clock.load()};
+    _rdtsc_clock.store(nullptr);
+    delete rdtsc_clock;
   }
 
   /***/
@@ -216,7 +220,7 @@ public:
     // signal wake up the backend worker thread
     notify();
 
-    // Wait the backend thread to join, if backend thread was never started it won't be joinable so we can still
+    // Wait the backend thread to join, if backend thread was never started it won't be joinable
     if (_worker_thread.joinable())
     {
       _worker_thread.join();
@@ -325,39 +329,24 @@ private:
 
       if (cached_transit_events_count > 0)
       {
-        // there are cached events to process
-        if (cached_transit_events_count < _options.transit_events_soft_limit)
+        while (_process_next_cached_transit_event())
         {
-          // process a single transit event, then give priority to the hot thread spsc queue again
-          _process_next_cached_transit_event();
-        }
-        else
-        {
-          while (_process_next_cached_transit_event())
-          {
-            // process all cached transit events
-          }
+          // process all the events
         }
       }
-      else
-      {
-        // there are no cached transit events to process
-        bool const queues_and_events_empty = (!_options.wait_for_queues_to_empty_before_exit) ||
-          _check_frontend_queues_and_cached_transit_events_empty();
 
-        if (queues_and_events_empty)
-        {
-          // we are done, all queues are now empty
-          _check_failure_counter(_options.error_notifier);
-          _flush_and_run_active_sinks_loop(false);
-          break;
-        }
+      // there are no cached transit events to process
+      bool const queues_and_events_empty = (!_options.wait_for_queues_to_empty_before_exit) ||
+        _check_frontend_queues_and_cached_transit_events_empty();
+
+      if (queues_and_events_empty)
+      {
+        // we are done, all queues are now empty
+        _check_failure_counter(_options.error_notifier);
+        _flush_and_run_active_sinks_loop(false);
+        break;
       }
     }
-
-    RdtscClock const* rdtsc_clock{_rdtsc_clock.load(std::memory_order_relaxed)};
-    _rdtsc_clock.store(nullptr, std::memory_order_release);
-    delete rdtsc_clock;
   }
 
   /**
