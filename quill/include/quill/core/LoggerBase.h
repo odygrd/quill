@@ -31,20 +31,6 @@ class LoggerBase
 {
 public:
   /***/
-  LoggerBase(std::string logger_name, std::shared_ptr<Sink> sink, std::string format_pattern,
-             std::string time_pattern, Timezone timezone, ClockSourceType clock_source, UserClockSource* user_clock)
-    : format_pattern(static_cast<std::string&&>(format_pattern)),
-      time_pattern(static_cast<std::string&&>(time_pattern)),
-      logger_name(static_cast<std::string&&>(logger_name)),
-      user_clock(user_clock),
-      timezone(timezone),
-      clock_source(clock_source)
-  {
-    assert(sink && "sink pointer is nullptr");
-    this->sinks.push_back(static_cast<std::shared_ptr<Sink>&&>(sink));
-  }
-
-  /***/
   LoggerBase(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              std::string format_pattern, std::string time_pattern, Timezone timezone,
              ClockSourceType clock_source, UserClockSource* user_clock)

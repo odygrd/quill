@@ -311,27 +311,13 @@ private:
   friend class detail::BackendWorker;
 
   /***/
-  LoggerImpl(std::string logger_name, std::shared_ptr<Sink> sink, std::string format_pattern,
-             std::string time_pattern, Timezone timestamp_timezone, ClockSourceType clock_source,
-             UserClockSource* user_clock)
-    : detail::LoggerBase(static_cast<std::string&&>(logger_name), static_cast<std::shared_ptr<Sink>&&>(sink),
-                         static_cast<std::string&&>(format_pattern),
-                         static_cast<std::string&&>(time_pattern), timestamp_timezone, clock_source, user_clock)
-  {
-    if (this->user_clock)
-    {
-      // if a user clock is provided then set the ClockSourceType to User
-      this->clock_source = ClockSourceType::User;
-    }
-  }
-
-  /***/
-  LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> const& sinks,
+  LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              std::string format_pattern, std::string time_pattern, Timezone timestamp_timezone,
              ClockSourceType clock_source, UserClockSource* user_clock)
-    : detail::LoggerBase(
-        static_cast<std::string&&>(logger_name), sinks, static_cast<std::string&&>(format_pattern),
-        static_cast<std::string&&>(time_pattern), timestamp_timezone, clock_source, user_clock)
+    : detail::LoggerBase(static_cast<std::string&&>(logger_name),
+                         static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+                         static_cast<std::string&&>(format_pattern),
+                         static_cast<std::string&&>(time_pattern), timestamp_timezone, clock_source, user_clock)
 
   {
     if (this->user_clock)

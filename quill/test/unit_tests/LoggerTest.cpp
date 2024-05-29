@@ -17,8 +17,11 @@ TEST_CASE("check_logger")
 
   LoggerManager& lm = LoggerManager::instance();
 
+  std::vector<std::shared_ptr<Sink>> sinks;
+  sinks.push_back(std::move(sink));
+
   Logger* logger_1 = static_cast<Logger*>(lm.create_or_get_logger<Logger>(
-    "logger_1", std::move(sink),
+    "logger_1", std::move(sinks),
     "%(time) [%(thread_id)] %(short_source_location:<28) "
     "LOG_%(log_level:<9) %(logger:<12) %(message)",
     "%H:%M:%S.%Qns", quill::Timezone::GmtTime, ClockSourceType::Tsc, nullptr));
@@ -40,8 +43,11 @@ TEST_CASE("logger_should_log")
 
   LoggerManager& lm = LoggerManager::instance();
 
+  std::vector<std::shared_ptr<Sink>> sinks;
+  sinks.push_back(std::move(sink));
+
   Logger* logger_1 = static_cast<Logger*>(lm.create_or_get_logger<Logger>(
-    "logger_1", std::move(sink),
+    "logger_1", std::move(sinks),
     "%(time) [%(thread_id)] %(short_source_location:<28) "
     "LOG_%(log_level:<9) %(logger:<12) %(message)",
     "%H:%M:%S.%Qns", quill::Timezone::GmtTime, ClockSourceType::Tsc, nullptr));
