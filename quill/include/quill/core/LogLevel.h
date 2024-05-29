@@ -33,6 +33,23 @@ enum class LogLevel : uint8_t
   Dynamic /**< This is only used for dynamic logging. Should not be set by the user. */
 };
 
+namespace detail
+{
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view _get_log_level_string(
+  LogLevel log_level, std::string_view const* log_levels_map, uint32_t log_levels_map_size)
+{
+  auto const log_lvl = static_cast<uint32_t>(log_level);
+
+  if (QUILL_UNLIKELY(log_lvl >= log_levels_map_size))
+  {
+    std::string const error_msg = "Invalid get_log_level value \"" + std::to_string(log_lvl) + "\"";
+    QUILL_THROW(QuillError{error_msg});
+  }
+
+  return log_levels_map[log_lvl];
+}
+} // namespace detail
+
 /**
  * Converts a LogLevel enum to string
  * @param log_level LogLevel
@@ -40,20 +57,13 @@ enum class LogLevel : uint8_t
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view loglevel_to_string(LogLevel log_level)
 {
-  static constexpr uint32_t log_levels_map_size = 11;
   static constexpr std::string_view log_levels_map[] = {
     "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO",   "WARNING",
     "ERROR",    "CRITICAL", "BACKTRACE", "NONE",  "DYNAMIC"};
 
-  auto const log_lvl = static_cast<uint32_t>(log_level);
+  static constexpr uint32_t log_levels_map_size = sizeof(log_levels_map) / sizeof(log_levels_map[0]);
 
-  if (QUILL_UNLIKELY(log_lvl > (log_levels_map_size - 1)))
-  {
-    std::string const error_msg = "Invalid get_log_level value \"" + std::to_string(log_lvl) + "\"";
-    QUILL_THROW(QuillError{error_msg});
-  }
-
-  return log_levels_map[log_lvl];
+  return detail::_get_log_level_string(log_level, log_levels_map, log_levels_map_size);
 }
 
 /**
@@ -63,19 +73,12 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view loglevel_to_string(L
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view loglevel_to_string_id(LogLevel log_level)
 {
-  static constexpr uint32_t log_levels_map_size = 11;
   static constexpr std::string_view log_levels_map[] = {"T3", "T2", "T1", "D", "I", "W",
                                                         "E",  "C",  "BT", "N", "DN"};
 
-  auto const log_lvl = static_cast<uint32_t>(log_level);
+  static constexpr uint32_t log_levels_map_size = sizeof(log_levels_map) / sizeof(log_levels_map[0]);
 
-  if (QUILL_UNLIKELY(log_lvl > (log_levels_map_size - 1)))
-  {
-    std::string const error_msg = "Invalid get_log_level value \"" + std::to_string(log_lvl) + "\"";
-    QUILL_THROW(QuillError{error_msg});
-  }
-
-  return log_levels_map[log_lvl];
+  return detail::_get_log_level_string(log_level, log_levels_map, log_levels_map_size);
 }
 
 /**
