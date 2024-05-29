@@ -147,12 +147,12 @@ void on_signal(int32_t signal_number)
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
       QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Info, "Received signal: {} (signum: {})",
                                signal_desc, signal_number);
-      logger->flush_log(0);
 
       if (signal_number == SIGINT || signal_number == SIGTERM)
       {
         // For SIGINT and SIGTERM, we are shutting down gracefully
         // Pass `0` to avoid calling std::this_thread::sleep_for()
+        logger->flush_log(0);
         std::exit(EXIT_SUCCESS);
       }
       else
@@ -163,6 +163,8 @@ void on_signal(int32_t signal_number)
                                    "Program terminated unexpectedly due to signal: {} (signum: {})",
                                    signal_desc, signal_number);
 
+          logger->flush_log(0);
+          
           // Reset to the default signal handler and re-raise the signal
           std::signal(signal_number, SIG_DFL);
           std::raise(signal_number);
