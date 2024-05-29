@@ -72,7 +72,7 @@
 - Removed uses of `std::this_thread::sleep_for()`, `std::string`, `std::vector` in the signal handler when waiting for
   the
   log to be flushed.
-- Fix `-Wno-unused-parameter` and `-Wdocumentation` warnings
+- Fixed `-Wno-unused-parameter` and `-Wdocumentation` warnings
 
 ## v4.1.0
 
