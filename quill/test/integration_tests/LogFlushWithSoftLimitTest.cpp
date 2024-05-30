@@ -18,11 +18,11 @@ TEST_CASE("log_flush_with_soft_limit_test")
 {
   static constexpr char const* filename = "log_flush_with_soft_limit_test.log";
   static std::string const logger_name = "logger";
-  size_t constexpr soft_limit = 100;
+  static size_t constexpr soft_limit = 100;
 
   // make sure we at least x 100 the soft limit to make sure we are testing what we want
   // to not reduce this number. Increasing is fine
-  size_t constexpr number_of_messages = soft_limit * 100;
+  static size_t constexpr number_of_messages = soft_limit * 100;
   static constexpr size_t number_of_threads = 4;
 
   // When hitting the transit_events_soft_limit several events are processed in the backend at the

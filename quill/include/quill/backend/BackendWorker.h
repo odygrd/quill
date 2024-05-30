@@ -267,7 +267,8 @@ private:
       else
       {
         // we want to process a batch of events.
-        while (!has_pending_events_for_caching() && _process_next_cached_transit_event())
+        while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
+               _process_next_cached_transit_event())
         {
           // We need to be cautious because there are log messages in the lock-free queues
           // that have not yet been cached in the transit event buffer. Logging only the cached
@@ -340,7 +341,8 @@ private:
       size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
       if (cached_transit_events_count > 0)
       {
-        while (!has_pending_events_for_caching() && _process_next_cached_transit_event())
+        while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
+               _process_next_cached_transit_event())
         {
           // We need to be cautious because there are log messages in the lock-free queues
           // that have not yet been cached in the transit event buffer. Logging only the cached
@@ -619,7 +621,7 @@ private:
    * Checks if there are pending events for caching based on the state of transit event buffers and queues.
    * @return True if there are pending events for caching when the _transit_event_buffer is empty, false otherwise.
    */
-  QUILL_ATTRIBUTE_HOT bool has_pending_events_for_caching() noexcept
+  QUILL_ATTRIBUTE_HOT bool has_pending_events_for_caching_when_transit_event_buffer_empty() noexcept
   {
     _update_active_thread_contexts_cache();
 
