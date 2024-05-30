@@ -23,7 +23,7 @@ TEST_CASE("log_flush_with_soft_limit_test")
   // make sure we at least x 100 the soft limit to make sure we are testing what we want
   // to not reduce this number. Increasing is fine
   size_t constexpr number_of_messages = soft_limit * 100;
-  static constexpr size_t number_of_threads = 2;
+  static constexpr size_t number_of_threads = 4;
 
   // When hitting the transit_events_soft_limit several events are processed in the backend at the
   // same time If all of them are processed there is a chance to miss messages that where in the
