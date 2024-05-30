@@ -266,9 +266,24 @@ private:
       }
       else
       {
-        while (_process_next_cached_transit_event())
+        // we want to process a batch of events.
+        if (any_transit_event_buffer_empty(_active_thread_contexts_cache))
         {
-          // process all cached TransitEvents
+          // If any transit event buffer from a thread is empty, process a single message.
+          // This indicates that we previously attempted to access the queues and there are
+          // no cached messages in the transit event buffer.
+          _process_next_cached_transit_event();
+        }
+        else
+        {
+          while (!any_transit_event_buffer_empty(_active_thread_contexts_cache) &&
+                 _process_next_cached_transit_event())
+          {
+            // We need to be cautious because there are log messages in the lock-free queues
+            // that have not yet been cached in the transit event buffer. Logging only the cached
+            // messages can result in out-of-order log entries, as messages with larger timestamps
+            // in the queue might be missed.
+          }
         }
       }
     }
@@ -336,9 +351,16 @@ private:
       size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
       if (cached_transit_events_count > 0)
       {
-        while (_process_next_cached_transit_event())
+        if (any_transit_event_buffer_empty(_active_thread_contexts_cache))
         {
-          // process all the events
+          _process_next_cached_transit_event();
+        }
+        else
+        {
+          while (!any_transit_event_buffer_empty(_active_thread_contexts_cache) &&
+                 _process_next_cached_transit_event())
+          {
+          }
         }
       }
     }
@@ -606,6 +628,21 @@ private:
     thread_context->_transit_event_buffer->push_back();
 
     return true;
+  }
+
+  /**
+   * Checks if any transit event buffer is empty
+   * @param contexts
+   * @return
+   */
+  QUILL_ATTRIBUTE_HOT static bool any_transit_event_buffer_empty(std::vector<ThreadContext*> const& active_contexts) noexcept
+  {
+    return std::any_of(active_contexts.begin(), active_contexts.end(),
+                       [](ThreadContext* thread_context)
+                       {
+                         return thread_context->_transit_event_buffer &&
+                           thread_context->_transit_event_buffer->empty();
+                       });
   }
 
   /**
