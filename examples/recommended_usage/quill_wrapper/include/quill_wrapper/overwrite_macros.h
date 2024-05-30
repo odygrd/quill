@@ -23,17 +23,6 @@
 extern quill::Logger* global_logger_a;
 
 // Define custom log macros using global_logger_a. Two examples are provided here for demonstration.
-
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_INFO
-  #define LOG_INFO(fmt, ...) QUILL_LOG_INFO(global_logger_a, fmt, ##__VA_ARGS__)
-#else
-  #define QUILL_LOG_INFO(logger, fmt, ...) (void)0
-#endif
-
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_WARNING
-  #define LOG_WARNING(fmt, ...) QUILL_LOG_WARNING(global_logger_a, fmt, ##__VA_ARGS__)
-#else
-  #define LOG_WARNING(logger, fmt, ...) (void)0
-#endif
-
+#define LOG_INFO(fmt, ...) QUILL_LOG_INFO(global_logger_a, fmt, ##__VA_ARGS__)
+#define LOG_WARNING(fmt, ...) QUILL_LOG_WARNING(global_logger_a, fmt, ##__VA_ARGS__)
 // etc ..

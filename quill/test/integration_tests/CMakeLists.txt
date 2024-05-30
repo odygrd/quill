@@ -100,6 +100,9 @@ quill_add_test(TEST_TagsLogging TagsLoggingTest.cpp)
 quill_add_test(TEST_UserClockSource UserClockSourceTest.cpp)
 quill_add_test(TEST_UserDefinedTypeLogging UserDefinedTypeLoggingTest.cpp)
 
+quill_add_test(TEST_CompileActiveLogLevel CompileActiveLogLevelTest.cpp)
+target_compile_definitions(TEST_CompileActiveLogLevel PRIVATE -DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+
 if (WIN32)
     quill_add_test(TEST_WideStdTypesLogging WideStdTypesLoggingTest.cpp)
     quill_add_test(TEST_WideStringLogging WideStringLoggingTest.cpp)
