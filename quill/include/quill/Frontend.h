@@ -169,6 +169,18 @@ public:
   }
 
   /**
+   * Returns the first valid logger that is found. This is useful when you do not want to use the
+   * std::vector<logger_t*> return value of get_all_loggers.
+   *
+   * @return A pointer to the first valid logger, or nullptr if no valid logger is found.
+   */
+  QUILL_NODISCARD static logger_t* get_valid_logger() noexcept
+  {
+    detail::LoggerBase* logger = detail::LoggerManager::instance().get_valid_logger();
+    return logger ? _cast_to_logger(logger) : nullptr;
+  }
+
+  /**
    * @brief Counts the number of existing loggers, including any invalidated loggers.
    * This function can be useful for verifying if a logger has been removed after calling
    * remove_logger() by the backend, as removal occurs asynchronously.

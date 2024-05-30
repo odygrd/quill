@@ -73,7 +73,10 @@
   the log to be flushed.
 - Improved backend worker `_exit()` functionality and reduced code duplication in other areas of the backend worker code
 - Fixed `-Wno-unused-parameter` and `-Wdocumentation` warnings
-- Fix build error when `UnboundedDropping` queue is used
+- Fixed build error when `UnboundedDropping` queue is used
+- Fixed a bug introduced in `v4.1.0`, which resulted in messages being logged out of order when
+  the `transit_events_soft_limit` was reached. Additionally, this issue affected the behavior of `flush_log()`,
+  prematurely unblocking the thread before all messages were flushed.
 
 ## v4.1.0
 

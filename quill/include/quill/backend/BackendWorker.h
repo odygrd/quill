@@ -266,9 +266,14 @@ private:
       }
       else
       {
-        while (_process_next_cached_transit_event())
+        // we want to process a batch of events.
+        while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
+               _process_next_cached_transit_event())
         {
-          // process all cached TransitEvents
+          // We need to be cautious because there are log messages in the lock-free queues
+          // that have not yet been cached in the transit event buffer. Logging only the cached
+          // messages can result in out-of-order log entries, as messages with larger timestamps
+          // in the queue might be missed.
         }
       }
     }
@@ -336,9 +341,13 @@ private:
       size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
       if (cached_transit_events_count > 0)
       {
-        while (_process_next_cached_transit_event())
+        while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
+               _process_next_cached_transit_event())
         {
-          // process all the events
+          // We need to be cautious because there are log messages in the lock-free queues
+          // that have not yet been cached in the transit event buffer. Logging only the cached
+          // messages can result in out-of-order log entries, as messages with larger timestamps
+          // in the queue might be missed.
         }
       }
     }
@@ -606,6 +615,35 @@ private:
     thread_context->_transit_event_buffer->push_back();
 
     return true;
+  }
+
+  /**
+   * Checks if there are pending events for caching based on the state of transit event buffers and queues.
+   * @return True if there are pending events for caching when the _transit_event_buffer is empty, false otherwise.
+   */
+  QUILL_ATTRIBUTE_HOT bool has_pending_events_for_caching_when_transit_event_buffer_empty() noexcept
+  {
+    _update_active_thread_contexts_cache();
+
+    for (ThreadContext* thread_context : _active_thread_contexts_cache)
+    {
+      if (!thread_context->_transit_event_buffer || thread_context->_transit_event_buffer->empty())
+      {
+        // if there is no _transit_event_buffer yet then check only the queue
+        if (thread_context->has_unbounded_queue_type() &&
+            !thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty())
+        {
+          return true;
+        }
+        else if (thread_context->has_bounded_queue_type() &&
+                 !thread_context->get_spsc_queue_union().bounded_spsc_queue.empty())
+        {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /**
