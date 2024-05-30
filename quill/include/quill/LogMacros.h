@@ -17,18 +17,23 @@
  *
  * The default value of -1 enables all log levels.
  * Specify a logging level to disable all levels equal to or higher than the specified level.
+ *
+ * For example to only log warnings and above you can use:
+ *   add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+ * or
+ *   target_compile_definitions(${TARGET} PRIVATE -DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
  **/
-#define QUILL_DISABLE_LOG_LEVEL_TRACE_L3 0
-#define QUILL_DISABLE_LOG_LEVEL_TRACE_L2 1
-#define QUILL_DISABLE_LOG_LEVEL_TRACE_L1 2
-#define QUILL_DISABLE_LOG_LEVEL_DEBUG 3
-#define QUILL_DISABLE_LOG_LEVEL_INFO 4
-#define QUILL_DISABLE_LOG_LEVEL_WARNING 5
-#define QUILL_DISABLE_LOG_LEVEL_ERROR 6
-#define QUILL_DISABLE_LOG_LEVEL_CRITICAL 7
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L3 0
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L2 1
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L1 2
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_DEBUG 3
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_INFO 4
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING 5
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_ERROR 6
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_CRITICAL 7
 
-#if !defined(QUILL_COMPILE_OUT_LOG_LEVEL)
-  #define QUILL_COMPILE_OUT_LOG_LEVEL -1
+#if !defined(QUILL_COMPILE_ACTIVE_LOG_LEVEL)
+  #define QUILL_COMPILE_ACTIVE_LOG_LEVEL -1
 #endif
 
 #define QUILL_DEFINE_MACRO_METADATA(caller_function, fmt, tags, log_level)                         \
@@ -107,7 +112,7 @@
 #define QUILL_DYNAMIC_LOG(logger, log_level, fmt, ...)                                             \
   QUILL_DYNAMIC_LOG_CALL(logger, log_level, fmt, ##__VA_ARGS__)
 
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_TRACE_L3
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L3
   #define QUILL_LOG_TRACE_L3(logger, fmt, ...)                                                     \
     QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL3, fmt, ##__VA_ARGS__)
 
@@ -122,7 +127,7 @@
   #define QUILL_LOG_TRACE_L3_WITH_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_TRACE_L2
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L2
   #define QUILL_LOG_TRACE_L2(logger, fmt, ...)                                                     \
     QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL2, fmt, ##__VA_ARGS__)
 
@@ -137,7 +142,7 @@
   #define QUILL_LOG_TRACE_L2_WITH_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_TRACE_L1
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L1
   #define QUILL_LOG_TRACE_L1(logger, fmt, ...)                                                     \
     QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::TraceL1, fmt, ##__VA_ARGS__)
 
@@ -152,7 +157,7 @@
   #define QUILL_LOG_TRACE_L1_WITH_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_DEBUG
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_DEBUG
   #define QUILL_LOG_DEBUG(logger, fmt, ...)                                                        \
     QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, quill::LogLevel::Debug, fmt, ##__VA_ARGS__)
 
@@ -167,7 +172,7 @@
   #define QUILL_LOG_DEBUG_WITH_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_INFO
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_INFO
   #define QUILL_LOG_INFO(logger, fmt, ...)                                                         \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Info, fmt, ##__VA_ARGS__)
 
@@ -182,7 +187,7 @@
   #define QUILL_LOG_INFO_WITH_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_WARNING
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING
   #define QUILL_LOG_WARNING(logger, fmt, ...)                                                      \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
 
@@ -197,7 +202,7 @@
   #define QUILL_LOG_WARNING_WITH_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_ERROR
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_ERROR
   #define QUILL_LOG_ERROR(logger, fmt, ...)                                                        \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Error, fmt, ##__VA_ARGS__)
 
@@ -212,7 +217,7 @@
   #define QUILL_LOG_ERROR_WITH_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
-#if QUILL_COMPILE_OUT_LOG_LEVEL < QUILL_DISABLE_LOG_LEVEL_CRITICAL
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_CRITICAL
   #define QUILL_LOG_CRITICAL(logger, fmt, ...)                                                     \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Critical, fmt, ##__VA_ARGS__)
 

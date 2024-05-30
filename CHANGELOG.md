@@ -77,6 +77,8 @@
 - Fixed a bug introduced in `v4.1.0`, which resulted in messages being logged out of order when
   the `transit_events_soft_limit` was reached. Additionally, this issue affected the behavior of `flush_log()`,
   prematurely unblocking the thread before all messages were flushed.
+- Fixed the compile-time exclusion of log levels as per request. Renamed the `QUILL_COMPILE_OUT_LOG_LEVEL` preprocessor
+  flag to `QUILL_COMPILE_ACTIVE_LOG_LEVEL`.
 
 ## v4.1.0
 
