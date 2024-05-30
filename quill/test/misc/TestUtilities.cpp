@@ -1,12 +1,17 @@
 #include "TestUtilities.h"
 
 #include <algorithm>
+#include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <random>
+#include <sstream>
+#include <string>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 namespace quill
 {
@@ -104,6 +109,47 @@ std::vector<std::string> gen_random_strings(size_t n, int min_len, int max_len)
     random_strings_vec.emplace_back(std::move(result));
   }
   return random_strings_vec;
+}
+
+uint64_t parse_timestamp(std::string const& timestamp_str)
+{
+  std::tm tm = {};
+  std::istringstream ss(timestamp_str);
+  ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S"); // Extract date and time
+
+  // Extract fractional seconds
+  size_t pos = timestamp_str.find('.');
+  std::string fractional_seconds_str = timestamp_str.substr(pos + 1, 9);
+  uint64_t fractional_seconds = std::stoull(fractional_seconds_str);
+
+  auto time_point = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+  auto nanoseconds_since_epoch =
+    std::chrono::duration_cast<std::chrono::nanoseconds>(time_point.time_since_epoch()).count();
+  return static_cast<uint64_t>(nanoseconds_since_epoch) + fractional_seconds;
+}
+
+bool is_timestamp_ordered(std::vector<std::string> const& file_contents)
+{
+  uint64_t previous_timestamp = 0;
+  bool first = true;
+
+  for (auto const& line : file_contents)
+  {
+    uint64_t current_timestamp = parse_timestamp(line);
+
+    if (!first)
+    {
+      if (current_timestamp < previous_timestamp)
+      {
+        return false;
+      }
+    }
+
+    previous_timestamp = current_timestamp;
+    first = false;
+  }
+
+  return true;
 }
 } // namespace testing
 } // namespace quill

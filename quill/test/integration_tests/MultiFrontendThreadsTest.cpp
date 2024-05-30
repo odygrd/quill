@@ -44,8 +44,11 @@ TEST_CASE("multi_frontend_threads")
           }(),
           FileEventNotifier{});
 
-        Logger* logger =
-          Frontend::create_or_get_logger(logger_name_prefix + std::to_string(i), std::move(file_sink));
+        Logger* logger = Frontend::create_or_get_logger(
+          logger_name_prefix + std::to_string(i), std::move(file_sink),
+          "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+          "%(message)",
+          "%Y-%m-%d %H:%M:%S.%Qns", Timezone::GmtTime);
 
         for (size_t j = 0; j < number_of_messages; ++j)
         {
@@ -84,6 +87,9 @@ TEST_CASE("multi_frontend_threads")
       REQUIRE(testing::file_contains(file_contents, expected_string));
     }
   }
+
+  // Check log file is timestamp ordered
+  REQUIRE(quill::testing::is_timestamp_ordered(file_contents));
 
   testing::remove_file(filename);
 }
