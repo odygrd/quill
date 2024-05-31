@@ -21,8 +21,6 @@ option(QUILL_X86ARCH "Enable optimizations for cache coherence on x86 architectu
 # This is useful in scenarios where the original macro names conflict with those of an existing logging library.
 option(QUILL_DISABLE_NON_PREFIXED_MACROS "Disable non-prefixed macros" OFF)
 
-option(QUILL_DISABLE_POSITION_INDEPENDENT_CODE "Disable position-independent code" OFF)
-
 option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
 option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
