@@ -50,13 +50,13 @@
 - [Caveats](#caveats)
 - [Performance](#performance)
 - [Quick Start](#quick-start)
-- [CMake Integration](#cmake-integration)
+- [Usage](#usage)
 - [Design](#design)
 - [License](#license)
 
-|       homebrew       |         vcpkg         |       conan       |
-|:--------------------:|:---------------------:|:-----------------:|
-| `brew install quill` | `vcpkg install quill` | `quill/[>=1.2.3]` |
+|       homebrew       |         vcpkg         |       conan       |           meson            |
+|:--------------------:|:---------------------:|:-----------------:|:--------------------------:|
+| `brew install quill` | `vcpkg install quill` | `quill/[>=1.2.3]` | `meson wrap install quill` |
 
 ## Introduction
 
@@ -400,9 +400,9 @@ int main()
 
 [![Screenshot-2020-08-14-at-01-09-43.png](http://i.postimg.cc/02Vbt8LH/Screenshot-2020-08-14-at-01-09-43.png)](http://postimg.cc/LnZ95M4z)
 
-## CMake-Integration
+## Usage
 
-#### External
+#### External CMake
 
 ##### Building and Installing Quill
 
@@ -439,7 +439,7 @@ add_executable(example main.cpp)
 target_link_libraries(example PUBLIC quill::quill)
 ```
 
-#### Embedded
+#### Embedded CMake
 
 To embed the library directly, copy the source [folder](http://github.com/odygrd/quill/tree/master/quill/quill) to your
 project and call `add_subdirectory()` in your `CMakeLists.txt` file
@@ -467,9 +467,30 @@ add_executable(my_project main.cpp)
 target_link_libraries(my_project PUBLIC quill::quill)
 ```
 
+#### Meson
+
+- Install quill subproject from the WrapDB by running from the root of your project:
+
+```meson
+meson wrap install quill
+```
+
+- In your project’s `meson.build` file, add an entry for the new subproject:
+
+```meson
+quill = subproject('quill')
+quill_dep = quill.get_variable('quill_dep')
+```
+
+- Include the new dependency object to link with quill:
+
+```meson
+my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], install : true)
+```
+
 #### Building Quill for Android NDK
 
-To build Quill for Android NDK add the following `CMake` flags when configuring the build:
+To build Quill for Android NDK add the following flags when configuring the build:
 
   ```
   -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
