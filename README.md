@@ -54,9 +54,12 @@
 - [Design](#design)
 - [License](#license)
 
-|       homebrew       |         vcpkg         |       conan       |           meson            |
-|:--------------------:|:---------------------:|:-----------------:|:--------------------------:|
-| `brew install quill` | `vcpkg install quill` | `quill/[>=1.2.3]` | `meson wrap install quill` |
+| Package Manager |    Installation Command    |
+|:---------------:|:--------------------------:|
+|      vcpkg      |   `vcpkg install quill`    |
+|      conan      |     `quill/[>=1.2.3]`      |
+|    homebrew     |    `brew install quill`    |
+|  meson wrapdb   | `meson wrap install quill` |
 
 ## Introduction
 
@@ -469,20 +472,22 @@ target_link_libraries(my_project PUBLIC quill::quill)
 
 #### Meson
 
-- Install quill subproject from the WrapDB by running from the root of your project:
+Meson's `wrapdb` includes a quill package, which repackages quill to be built by meson as a subproject.
+
+- Install quill subproject from the wrapdb by running from the root of your project
 
 ```meson
 meson wrap install quill
 ```
 
-- In your project’s `meson.build` file, add an entry for the new subproject:
+- In your project’s `meson.build` file, add an entry for the new subproject
 
 ```meson
 quill = subproject('quill')
 quill_dep = quill.get_variable('quill_dep')
 ```
 
-- Include the new dependency object to link with quill:
+- Include the new dependency object to link with quill
 
 ```meson
 my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], install : true)
@@ -490,7 +495,7 @@ my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], ins
 
 #### Building Quill for Android NDK
 
-To build Quill for Android NDK add the following flags when configuring the build:
+To build quill for Android NDK add the following flags when configuring the build:
 
   ```
   -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
