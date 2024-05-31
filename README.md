@@ -54,6 +54,8 @@
 - [Design](#design)
 - [License](#license)
 
+<br>
+
 | Package Manager |    Installation Command    |
 |:---------------:|:--------------------------:|
 |      vcpkg      |   `vcpkg install quill`    |
