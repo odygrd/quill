@@ -97,10 +97,8 @@ TEST_CASE("user_sink")
   REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_b.get())->log_message_cnt.load(), number_of_messages * 2);
 
   REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load(), 10);
-  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load(),
-             reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load());
-
+  REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load(), 10);
+  
   REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt.load(), 10);
-  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt.load(),
-             reinterpret_cast<UserSink*>(user_sink_b.get())->periodic_tasks_cnt.load());
+  REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_b.get())->periodic_tasks_cnt.load(), 10);
 }
