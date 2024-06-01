@@ -23,18 +23,18 @@ struct UserSink final : public quill::Sink
                          std::vector<std::pair<std::string, std::string>> const* named_args,
                          std::string_view log_message) override
   {
-    ++log_message_cnt;
+    log_message_cnt.fetch_add(1);
   }
 
   /***/
-  void flush_sink() noexcept override { ++flush_sink_cnt; }
+  void flush_sink() noexcept override { flush_sink_cnt.fetch_add(1); }
 
   /***/
-  void run_periodic_tasks() noexcept override { ++periodic_tasks_cnt; }
+  void run_periodic_tasks() noexcept override { periodic_tasks_cnt.fetch_add(1); }
 
-  uint64_t log_message_cnt{0};
-  uint64_t flush_sink_cnt{0};
-  uint64_t periodic_tasks_cnt{0};
+  std::atomic<uint64_t> log_message_cnt{0};
+  std::atomic<uint64_t> flush_sink_cnt{0};
+  std::atomic<uint64_t> periodic_tasks_cnt{0};
 };
 
 /***/
@@ -75,16 +75,32 @@ TEST_CASE("user_sink")
     LOG_ERROR(logger_c, "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {}", i);
   }
 
+  // Let the backend worker run a few times so that flush_sink_cnt and periodic_tasks_cnt are called
+  constexpr uint32_t max_retries = 20;
+  uint32_t retry_count = 0;
+  while (reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load() < 10)
+  {
+    if (retry_count >= max_retries)
+    {
+      FAIL("Exceeded maximum retry count");
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds {100});
+    ++retry_count;
+  }
+
   // Wait until the backend thread stops for test stability
   Backend::stop();
 
   // user_sink_b will have twice the messages since logger_c is also logging there
-  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->log_message_cnt, number_of_messages);
-  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_b.get())->log_message_cnt, number_of_messages * 2);
+  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->log_message_cnt.load(), number_of_messages);
+  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_b.get())->log_message_cnt.load(), number_of_messages * 2);
 
-  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt,
-             reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt);
+  REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load(), 10);
+  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load(),
+             reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load());
 
-  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt,
-             reinterpret_cast<UserSink*>(user_sink_b.get())->periodic_tasks_cnt);
+  REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt.load(), 10);
+  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt.load(),
+             reinterpret_cast<UserSink*>(user_sink_b.get())->periodic_tasks_cnt.load());
 }
