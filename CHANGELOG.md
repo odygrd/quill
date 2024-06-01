@@ -1,3 +1,4 @@
+- [v4.2.1](#v421)
 - [v4.2.0](#v420)
 - [v4.1.0](#v410)
 - [v4.0.0](#v400)
@@ -60,6 +61,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v4.2.1
+
+- Added `-Wno-gnu-zero-variadic-macro-arguments` as an interface compiler flag in CMake
 
 ## v4.2.0
 
