@@ -94,7 +94,7 @@ public:
   }
 
   /**
-   * Access the rdtsc class to convert an rdtsc value to wall time
+   * Access the rdtsc class from any thread to convert an rdtsc value to wall time
    */
   QUILL_NODISCARD uint64_t time_since_epoch(uint64_t rdtsc_value) const
   {
@@ -282,7 +282,7 @@ private:
       // No cached transit events to process, minimal thread workload.
 
       // force flush all remaining messages
-      _flush_and_run_active_sinks_loop(true);
+      _flush_and_run_active_sinks(true);
 
       // check for any dropped messages / blocked threads
       _check_failure_counter(_options.error_notifier);
@@ -334,7 +334,7 @@ private:
       {
         // we are done, all queues are now empty
         _check_failure_counter(_options.error_notifier);
-        _flush_and_run_active_sinks_loop(false);
+        _flush_and_run_active_sinks(false);
         break;
       }
 
@@ -757,7 +757,7 @@ private:
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
     {
-      _flush_and_run_active_sinks_loop(false);
+      _flush_and_run_active_sinks(false);
 
       // this is a flush event, so we need to notify the caller to continue now
       transit_event.flush_flag->store(true);
@@ -977,32 +977,31 @@ private:
     }
   }
 
-  /**
-   * Updates the active sinks cache
-   */
-  QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks_loop(bool run_loop)
+  /***/
+  QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks)
   {
+    _active_sinks_cache.clear();
+
     // Update the active sinks cache, consider only the valid loggers
     _logger_manager.for_each_logger(
       [this](LoggerBase* logger)
       {
-        _active_sinks_cache.clear();
-
         if (logger->is_valid_logger())
         {
           for (std::shared_ptr<Sink> const& sink : logger->sinks)
           {
+            Sink* logger_sink_ptr = sink.get();
             auto search_it = std::find_if(_active_sinks_cache.begin(), _active_sinks_cache.end(),
-                                          [sink_ptr = sink.get()](std::weak_ptr<Sink> const& elem)
+                                          [logger_sink_ptr](Sink* elem)
                                           {
-                                            // no one else can remove the shared pointer as this is only
-                                            // running on backend thread, lock() will always succeed
-                                            return elem.lock().get() == sink_ptr;
+                                            // no one else can remove the shared pointer as this is
+                                            // only running on backend thread
+                                            return elem == logger_sink_ptr;
                                           });
 
             if (search_it == std::end(_active_sinks_cache))
             {
-              _active_sinks_cache.push_back(sink);
+              _active_sinks_cache.push_back(logger_sink_ptr);
             }
           }
         }
@@ -1013,24 +1012,20 @@ private:
 
     for (auto const& sink : _active_sinks_cache)
     {
-      std::shared_ptr<Sink> h = sink.lock();
-      if (h)
+      QUILL_TRY
       {
-        QUILL_TRY
-        {
-          // If an exception is thrown, catch it here to prevent it from propagating
-          // to the outer function. This prevents potential infinite loops caused by failing flush operations.
-          h->flush_sink();
-        }
+        // If an exception is thrown, catch it here to prevent it from propagating
+        // to the outer function. This prevents potential infinite loops caused by failing flush operations.
+        sink->flush_sink();
+      }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-        QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
+      QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+      QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
 
-        if (run_loop)
-        {
-          h->run_periodic_tasks();
-        }
+      if (run_periodic_tasks)
+      {
+        sink->run_periodic_tasks();
       }
     }
   }
@@ -1268,25 +1263,21 @@ private:
   SinkManager& _sink_manager = SinkManager::instance();
   LoggerManager& _logger_manager = LoggerManager::instance();
   BackendOptions _options;
-
   std::thread _worker_thread;
 
-  std::atomic<RdtscClock*> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
-
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
-  std::vector<std::weak_ptr<Sink>> _active_sinks_cache;
   std::vector<ThreadContext*> _active_thread_contexts_cache;
-
+  std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
 
-  /** Id of the current running process **/
-  std::string _process_id;
   std::string _named_args_format_template; /** to avoid allocation each time **/
+  std::string _process_id;                 /** Id of the current running process **/
   std::chrono::system_clock::time_point _last_rdtsc_resync_time;
   std::atomic<uint32_t> _worker_thread_id{0}; /** cached backend worker thread id */
-
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
 
+  alignas(CACHE_LINE_ALIGNED) std::atomic<RdtscClock*> _rdtsc_clock{
+    nullptr}; /** rdtsc clock if enabled, can be accessed by any thread **/
   alignas(CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
   std::condition_variable _wake_up_cv;
   bool _wake_up_flag{false};
