@@ -67,6 +67,7 @@
 
 - Refactored `BacktraceStorage` to simplify the code.
 - Improved `LoggerBase` memory layout by reorganizing class members.
+- Fix multiple definitions of `on_alarm` in `SignalHandler.h`
 
 ## v4.2.1
 

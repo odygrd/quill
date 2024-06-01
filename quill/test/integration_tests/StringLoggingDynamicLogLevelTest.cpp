@@ -18,7 +18,7 @@ TEST_CASE("string_logging_dynamic_log_level")
 {
   static constexpr char const* filename = "string_logging_dynamic_log_level.log";
   static std::string const logger_name = "logger";
-  static constexpr size_t number_of_messages = 10000;
+  static constexpr size_t number_of_messages = 1000;
 
   // Start the logging backend thread
   Backend::start();
@@ -59,8 +59,11 @@ TEST_CASE("string_logging_dynamic_log_level")
     c_style_string_array_non_terminated[2] = 'C';
 
     LOG_DYNAMIC(logger, LogLevel::TraceL3, "s [{}]", s);
+    LOG_CRITICAL(logger, "s [{}]", s);
     LOG_DYNAMIC(logger, LogLevel::TraceL2, "empty_s [{}]", empty_s);
+    LOG_ERROR(logger, "empty_s [{}]", empty_s);
     LOG_DYNAMIC(logger, LogLevel::TraceL1, "begin_s [{}]", begin_s);
+    LOG_WARNING(logger, "begin_s [{}]", begin_s);
     LOG_DYNAMIC(logger, LogLevel::Debug, "end_s [{}]", end_s);
     LOG_DYNAMIC(logger, LogLevel::Info, "empty_sv [{}]", empty_sv);
     LOG_DYNAMIC(logger, LogLevel::Warning, "c_style_string_empty [{}]", c_style_string_empty);
@@ -99,6 +102,14 @@ TEST_CASE("string_logging_dynamic_log_level")
                 v, v.c_str());
   }
 
+  for (size_t i = 0; i < number_of_messages; ++i)
+  {
+    std::string v{"Lorem ipsum dolor sit amet, consectetur "};
+    v += std::to_string(i);
+
+    LOG_CRITICAL(logger, "Logging int: {}, int: {}, string: {}", i, i * 10, v);
+  }
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -107,16 +118,25 @@ TEST_CASE("string_logging_dynamic_log_level")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 12);
+  REQUIRE_EQ(file_contents.size(), (number_of_messages * 2) + 15);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_TRACE_L3  " + logger_name + "       s [adipiscing]"}));
 
   REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_CRITICAL  " + logger_name + "       s [adipiscing]"}));
+
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_TRACE_L2  " + logger_name + "       empty_s []"}));
 
   REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_ERROR     " + logger_name + "       empty_s []"}));
+
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_TRACE_L1  " + logger_name + "       begin_s [begin_s]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_WARNING   " + logger_name + "       begin_s [begin_s]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_DEBUG     " + logger_name + "       end_s [end_s]"}));
@@ -144,11 +164,18 @@ TEST_CASE("string_logging_dynamic_log_level")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_ERROR     " + logger_name + "       Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [2] [true] [begin_s] [] [] [ABC] [] [Lorem ipsum] [end_s] [] [dolor] [2] [true] [begin_s] [] [] [ABC] [] [Lorem ipsum] [end_s] [] [dolor]"}));
+
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 0, int: 0, string: Lorem ipsum dolor sit amet, consectetur 0, char: Lorem ipsum dolor sit amet, consectetur 0"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 1999, int: 19990, string: Lorem ipsum dolor sit amet, consectetur 1999, char: Lorem ipsum dolor sit amet, consectetur 1999"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 999, int: 9990, string: Lorem ipsum dolor sit amet, consectetur 999, char: Lorem ipsum dolor sit amet, consectetur 999"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_CRITICAL  " + logger_name + "       Logging int: 0, int: 0, string: Lorem ipsum dolor sit amet, consectetur 0"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_CRITICAL  " + logger_name + "       Logging int: 999, int: 9990, string: Lorem ipsum dolor sit amet, consectetur 999"}));
 
   testing::remove_file(filename);
 }
