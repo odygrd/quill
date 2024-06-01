@@ -332,7 +332,7 @@ void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals
 namespace detail
 {
 /***/
-void on_alarm(int32_t signal_number)
+inline void on_alarm(int32_t signal_number)
 {
   if (SignalHandlerContext::instance().signal_number.load() == 0)
   {
