@@ -476,37 +476,36 @@ private:
     // Look up to see if we have the formatter and if not create it
     if (!transit_event->logger_base->pattern_formatter)
     {
-      // Search for an existing pattern_formatter
-      auto search_it = std::find_if(
-        _pattern_formatters.begin(), _pattern_formatters.end(),
-        [transit_event](std::weak_ptr<PatternFormatter> const& elem)
+      // Search for an existing pattern_formatter in each logger
+      _logger_manager.for_each_logger(
+        [transit_event](LoggerBase* logger)
         {
-          std::shared_ptr<PatternFormatter> pattern_formatter = elem.lock();
+          if (logger->pattern_formatter &&
+              (logger->pattern_formatter->format_pattern() == transit_event->logger_base->format_pattern) &&
+              (logger->pattern_formatter->timestamp_formatter().time_format() ==
+               transit_event->logger_base->time_pattern) &&
+              (logger->pattern_formatter->timestamp_formatter().timestamp_timezone() ==
+               transit_event->logger_base->timezone))
+          {
+            // hold a copy of the shared_ptr of the same formatter
+            transit_event->logger_base->pattern_formatter = logger->pattern_formatter;
+            return true;
+          }
 
-          return pattern_formatter &&
-            (pattern_formatter->format_pattern() == transit_event->logger_base->format_pattern) &&
-            (pattern_formatter->timestamp_formatter().time_format() == transit_event->logger_base->time_pattern) &&
-            (pattern_formatter->timestamp_formatter().timestamp_timezone() ==
-             transit_event->logger_base->timezone);
+          return false;
         });
 
-      if (search_it != std::cend(_pattern_formatters))
+      if (!transit_event->logger_base->pattern_formatter)
       {
-        // we found a pattern formatter we can use. We are the only thread removing loggers and
-        // we know it is safe to re-lock the weak pointer will still be valid
-        assert(!search_it->expired());
-        transit_event->logger_base->pattern_formatter = search_it->lock();
-      }
-      else
-      {
-        // need to create a new pattern formatter
+        // Didn't find an existing formatter  need to create a new pattern formatter
         transit_event->logger_base->pattern_formatter = std::make_shared<PatternFormatter>(
           transit_event->logger_base->format_pattern, transit_event->logger_base->time_pattern,
           transit_event->logger_base->timezone);
-
-        _pattern_formatters.push_back(transit_event->logger_base->pattern_formatter);
       }
     }
+
+    assert(transit_event->logger_base->pattern_formatter &&
+           "transit_event->logger_base->pattern_formatter should be valid here");
 
     if (transit_event->logger_base->clock_source == ClockSourceType::Tsc)
     {
@@ -713,29 +712,48 @@ private:
         if (QUILL_UNLIKELY(transit_event.log_level() >=
                            transit_event.logger_base->backtrace_flush_level.load(std::memory_order_relaxed)))
         {
-          _backtrace_storage.process(transit_event.logger_base->logger_name, [this](TransitEvent const& te)
-                                     { _write_transit_event_to_sinks(te); });
+          if (transit_event.logger_base->backtrace_storage)
+          {
+            transit_event.logger_base->backtrace_storage->process(
+              [this](TransitEvent const& te) { _write_transit_event_to_sinks(te); });
+          }
         }
       }
       else
       {
-        // this is a backtrace log and we will store it
-        _backtrace_storage.store(std::move(transit_event));
+        if (transit_event.logger_base->backtrace_storage)
+        {
+          // this is a backtrace log and we will store it
+          transit_event.logger_base->backtrace_storage->store(std::move(transit_event));
+        }
+        else
+        {
+          QUILL_THROW(
+            QuillError{"logger->init_backtrace(...) needs to be called first before using "
+                       "LOG_BACKTRACE(...)."});
+        }
       }
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::InitBacktrace)
     {
       // we can just convert the capacity back to int here and use it
-      _backtrace_storage.set_capacity(
-        transit_event.logger_base->logger_name,
-        static_cast<uint32_t>(std::stoul(
-          std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
+      if (!transit_event.logger_base->backtrace_storage)
+      {
+        // Lazy BacktraceStorage creation
+        transit_event.logger_base->backtrace_storage = std::make_shared<BacktraceStorage>();
+      }
+
+      transit_event.logger_base->backtrace_storage->set_capacity(static_cast<uint32_t>(std::stoul(
+        std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushBacktrace)
     {
-      // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
-      _backtrace_storage.process(transit_event.logger_base->logger_name, [this](TransitEvent const& te)
-                                 { _write_transit_event_to_sinks(te); });
+      if (transit_event.logger_base->backtrace_storage)
+      {
+        // process all records in backtrace for this logger and log them
+        transit_event.logger_base->backtrace_storage->process([this](TransitEvent const& te)
+                                                              { _write_transit_event_to_sinks(te); });
+      }
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
     {
@@ -988,6 +1006,9 @@ private:
             }
           }
         }
+
+        // return false to never end the loop early
+        return false;
       });
 
     for (auto const& sink : _active_sinks_cache)
@@ -1134,25 +1155,6 @@ private:
       // if loggers were removed also check for sinks to remove
       // cleanup_unused_sinks is expensive and should be only called when it is needed
       _sink_manager.cleanup_unused_sinks();
-
-      // Clean up any expired pattern_formatters
-      for (auto it = _pattern_formatters.begin(); it != _pattern_formatters.end();)
-      {
-        if (it->expired())
-        {
-          it = _pattern_formatters.erase(it);
-        }
-        else
-        {
-          ++it;
-        }
-      }
-
-      // Clean up any backtrace storage
-      for (auto const& logger_name : removed_loggers)
-      {
-        _backtrace_storage.erase(logger_name);
-      }
     }
   }
 
@@ -1275,9 +1277,6 @@ private:
   std::vector<std::weak_ptr<Sink>> _active_sinks_cache;
   std::vector<ThreadContext*> _active_thread_contexts_cache;
 
-  std::vector<std::weak_ptr<PatternFormatter>> _pattern_formatters;
-
-  BacktraceStorage _backtrace_storage; /** Stores a vector of backtrace messages per logger name */
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
 
   /** Id of the current running process **/
