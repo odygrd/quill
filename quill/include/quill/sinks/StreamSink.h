@@ -33,10 +33,10 @@ class MacroMetadata;
  */
 struct FileEventNotifier
 {
-  std::function<void(fs::path const& filename)> before_open;
-  std::function<void(fs::path const& filename, FILE* f)> after_open;
-  std::function<void(fs::path const& filename, FILE* f)> before_close;
-  std::function<void(fs::path const& filename)> after_close;
+  std::function<void(fs::path const& file_path)> before_open;
+  std::function<void(fs::path const& file_path, FILE* f)> after_open;
+  std::function<void(fs::path const& file_path, FILE* f)> before_close;
+  std::function<void(fs::path const& file_path)> after_close;
   std::function<std::string(std::string_view message)> before_write;
 };
 
