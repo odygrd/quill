@@ -188,7 +188,7 @@ The following message is logged 100'000 times for each thread:
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  6   |  7   |  8   |  8   |  9   |   10   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  7   |  7   |  8   |  8   |  9   |   10   |
 | [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  8   |  9   |  9   |  10  |   13   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  8   |  9   |  9   |  10  |   13   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  8   |  8   |  9   |  9   |  10  |   13   |
@@ -203,7 +203,7 @@ The following message is logged 100'000 times for each thread:
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  7   |  8   |  9   |  9   |  10  |   12   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  8   |  8   |  9   |  9   |  10  |   12   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  8   |  8   |  9   |  9   |  11  |   13   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  9   |  10  |  10  |  11  |   13   |
 | [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  9   |  9   |  10  |  11  |  12  |   15   |
