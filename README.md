@@ -266,8 +266,8 @@ The strings used in the log message are over 35 characters to prevent the short 
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  52  |  54  |  56  |  58  |  60  |   71   |
-| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  53  |  56  |  57  |  59  |  61  |   64   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  47  |  49  |  52  |  53  |  57  |   94   |
+| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  54  |  56  |  57  |  59  |  61  |   64   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  66  |  70  |  79  |  81  |  84  |   91   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        | 632  | 651  | 676  | 698  | 737  |  1049  | 
 | [fmtlog](http://github.com/MengRao/fmtlog)                          | 724  | 752  | 776  | 789  | 814  |  857   |
@@ -277,9 +277,9 @@ The strings used in the log message are over 35 characters to prevent the short 
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  52  |  55  |  57  |  59  |  62  |   77   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  50  |  52  |  55  |  56  |  60  |   76   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  70  |  74  |  83  |  85  |  88  |  102   |
-| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  86  |  94  | 103  | 110  | 122  |  138   |
+| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  87  |  94  | 102  | 108  | 121  |  136   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        | 674  | 694  | 736  | 762  | 805  |  884   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          | 789  | 813  | 833  | 845  | 872  |  908   |
 | [spdlog](http://github.com/gabime/spdlog)                           | 6500 | 6596 | 6724 | 6848 | 7560 |  9036  |
@@ -305,8 +305,8 @@ logging thread when formatting a log message consisting of an int and a double i
 
 While the primary focus of the library is not on throughput, it does provide efficient handling of log messages across
 multiple threads. The backend logging thread, responsible for formatting and ordering log messages from hot threads,
-ensures that all queues are emptied on a high priority basis. The backend thread internally buffers the log messages 
-and then writes them later when the caller thread queues are empty or when a predefined limit, 
+ensures that all queues are emptied on a high priority basis. The backend thread internally buffers the log messages
+and then writes them later when the caller thread queues are empty or when a predefined limit,
 `backend_thread_transit_events_soft_limit`, is reached. This approach prevents the need for allocating new queues
 or dropping messages on the hot path.
 
@@ -331,8 +331,8 @@ example
 
 There is also a compile-time benchmark measuring the compilation time of 2000 auto-generated log statements with
 various arguments. You can find
-it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp). It takes approximately 30
-seconds to compile.
+it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp). It takes
+approximately 30 seconds to compile.
 
 ![quill_v4_compiler_bench.speedscope.png](docs%2Fquill_v4_compiler_bench.speedscope.png)
 
