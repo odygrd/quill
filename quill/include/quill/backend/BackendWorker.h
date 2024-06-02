@@ -94,7 +94,7 @@ public:
   }
 
   /**
-   * Access the rdtsc class to convert an rdtsc value to wall time
+   * Access the rdtsc class from any thread to convert an rdtsc value to wall time
    */
   QUILL_NODISCARD uint64_t time_since_epoch(uint64_t rdtsc_value) const
   {
@@ -282,7 +282,7 @@ private:
       // No cached transit events to process, minimal thread workload.
 
       // force flush all remaining messages
-      _flush_and_run_active_sinks_loop(true);
+      _flush_and_run_active_sinks(true);
 
       // check for any dropped messages / blocked threads
       _check_failure_counter(_options.error_notifier);
@@ -334,7 +334,7 @@ private:
       {
         // we are done, all queues are now empty
         _check_failure_counter(_options.error_notifier);
-        _flush_and_run_active_sinks_loop(false);
+        _flush_and_run_active_sinks(false);
         break;
       }
 
@@ -476,37 +476,36 @@ private:
     // Look up to see if we have the formatter and if not create it
     if (!transit_event->logger_base->pattern_formatter)
     {
-      // Search for an existing pattern_formatter
-      auto search_it = std::find_if(
-        _pattern_formatters.begin(), _pattern_formatters.end(),
-        [transit_event](std::weak_ptr<PatternFormatter> const& elem)
+      // Search for an existing pattern_formatter in each logger
+      _logger_manager.for_each_logger(
+        [transit_event](LoggerBase* logger)
         {
-          std::shared_ptr<PatternFormatter> pattern_formatter = elem.lock();
+          if (logger->pattern_formatter &&
+              (logger->pattern_formatter->format_pattern() == transit_event->logger_base->format_pattern) &&
+              (logger->pattern_formatter->timestamp_formatter().time_format() ==
+               transit_event->logger_base->time_pattern) &&
+              (logger->pattern_formatter->timestamp_formatter().timestamp_timezone() ==
+               transit_event->logger_base->timezone))
+          {
+            // hold a copy of the shared_ptr of the same formatter
+            transit_event->logger_base->pattern_formatter = logger->pattern_formatter;
+            return true;
+          }
 
-          return pattern_formatter &&
-            (pattern_formatter->format_pattern() == transit_event->logger_base->format_pattern) &&
-            (pattern_formatter->timestamp_formatter().time_format() == transit_event->logger_base->time_pattern) &&
-            (pattern_formatter->timestamp_formatter().timestamp_timezone() ==
-             transit_event->logger_base->timezone);
+          return false;
         });
 
-      if (search_it != std::cend(_pattern_formatters))
+      if (!transit_event->logger_base->pattern_formatter)
       {
-        // we found a pattern formatter we can use. We are the only thread removing loggers and
-        // we know it is safe to re-lock the weak pointer will still be valid
-        assert(!search_it->expired());
-        transit_event->logger_base->pattern_formatter = search_it->lock();
-      }
-      else
-      {
-        // need to create a new pattern formatter
+        // Didn't find an existing formatter  need to create a new pattern formatter
         transit_event->logger_base->pattern_formatter = std::make_shared<PatternFormatter>(
           transit_event->logger_base->format_pattern, transit_event->logger_base->time_pattern,
           transit_event->logger_base->timezone);
-
-        _pattern_formatters.push_back(transit_event->logger_base->pattern_formatter);
       }
     }
+
+    assert(transit_event->logger_base->pattern_formatter &&
+           "transit_event->logger_base->pattern_formatter should be valid here");
 
     if (transit_event->logger_base->clock_source == ClockSourceType::Tsc)
     {
@@ -713,33 +712,52 @@ private:
         if (QUILL_UNLIKELY(transit_event.log_level() >=
                            transit_event.logger_base->backtrace_flush_level.load(std::memory_order_relaxed)))
         {
-          _backtrace_storage.process(transit_event.logger_base->logger_name, [this](TransitEvent const& te)
-                                     { _write_transit_event_to_sinks(te); });
+          if (transit_event.logger_base->backtrace_storage)
+          {
+            transit_event.logger_base->backtrace_storage->process(
+              [this](TransitEvent const& te) { _write_transit_event_to_sinks(te); });
+          }
         }
       }
       else
       {
-        // this is a backtrace log and we will store it
-        _backtrace_storage.store(std::move(transit_event));
+        if (transit_event.logger_base->backtrace_storage)
+        {
+          // this is a backtrace log and we will store it
+          transit_event.logger_base->backtrace_storage->store(std::move(transit_event));
+        }
+        else
+        {
+          QUILL_THROW(
+            QuillError{"logger->init_backtrace(...) needs to be called first before using "
+                       "LOG_BACKTRACE(...)."});
+        }
       }
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::InitBacktrace)
     {
       // we can just convert the capacity back to int here and use it
-      _backtrace_storage.set_capacity(
-        transit_event.logger_base->logger_name,
-        static_cast<uint32_t>(std::stoul(
-          std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
+      if (!transit_event.logger_base->backtrace_storage)
+      {
+        // Lazy BacktraceStorage creation
+        transit_event.logger_base->backtrace_storage = std::make_shared<BacktraceStorage>();
+      }
+
+      transit_event.logger_base->backtrace_storage->set_capacity(static_cast<uint32_t>(std::stoul(
+        std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushBacktrace)
     {
-      // process all records in backtrace for this logger_name and log them by calling backend_process_backtrace_log_message
-      _backtrace_storage.process(transit_event.logger_base->logger_name, [this](TransitEvent const& te)
-                                 { _write_transit_event_to_sinks(te); });
+      if (transit_event.logger_base->backtrace_storage)
+      {
+        // process all records in backtrace for this logger and log them
+        transit_event.logger_base->backtrace_storage->process([this](TransitEvent const& te)
+                                                              { _write_transit_event_to_sinks(te); });
+      }
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
     {
-      _flush_and_run_active_sinks_loop(false);
+      _flush_and_run_active_sinks(false);
 
       // this is a flush event, so we need to notify the caller to continue now
       transit_event.flush_flag->store(true);
@@ -959,59 +977,58 @@ private:
     }
   }
 
-  /**
-   * Updates the active sinks cache
-   */
-  QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks_loop(bool run_loop)
+  /***/
+  QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks)
   {
-    // Update the active sinks cache, consider only the valid loggers
+    // Populate the active sinks cache with unique sinks, consider only the valid loggers
     _logger_manager.for_each_logger(
       [this](LoggerBase* logger)
       {
-        _active_sinks_cache.clear();
-
         if (logger->is_valid_logger())
         {
           for (std::shared_ptr<Sink> const& sink : logger->sinks)
           {
+            Sink* logger_sink_ptr = sink.get();
             auto search_it = std::find_if(_active_sinks_cache.begin(), _active_sinks_cache.end(),
-                                          [sink_ptr = sink.get()](std::weak_ptr<Sink> const& elem)
+                                          [logger_sink_ptr](Sink* elem)
                                           {
-                                            // no one else can remove the shared pointer as this is only
-                                            // running on backend thread, lock() will always succeed
-                                            return elem.lock().get() == sink_ptr;
+                                            // no one else can remove the shared pointer as this is
+                                            // only running on backend thread
+                                            return elem == logger_sink_ptr;
                                           });
 
             if (search_it == std::end(_active_sinks_cache))
             {
-              _active_sinks_cache.push_back(sink);
+              _active_sinks_cache.push_back(logger_sink_ptr);
             }
           }
         }
+
+        // return false to never end the loop early
+        return false;
       });
 
     for (auto const& sink : _active_sinks_cache)
     {
-      std::shared_ptr<Sink> h = sink.lock();
-      if (h)
+      QUILL_TRY
       {
-        QUILL_TRY
-        {
-          // If an exception is thrown, catch it here to prevent it from propagating
-          // to the outer function. This prevents potential infinite loops caused by failing flush operations.
-          h->flush_sink();
-        }
+        // If an exception is thrown, catch it here to prevent it from propagating
+        // to the outer function. This prevents potential infinite loops caused by failing
+        // flush operations.
+        sink->flush_sink();
+      }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-        QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
+      QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+      QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
 
-        if (run_loop)
-        {
-          h->run_periodic_tasks();
-        }
+      if (run_periodic_tasks)
+      {
+        sink->run_periodic_tasks();
       }
     }
+
+    _active_sinks_cache.clear();
   }
 
   /**
@@ -1134,25 +1151,6 @@ private:
       // if loggers were removed also check for sinks to remove
       // cleanup_unused_sinks is expensive and should be only called when it is needed
       _sink_manager.cleanup_unused_sinks();
-
-      // Clean up any expired pattern_formatters
-      for (auto it = _pattern_formatters.begin(); it != _pattern_formatters.end();)
-      {
-        if (it->expired())
-        {
-          it = _pattern_formatters.erase(it);
-        }
-        else
-        {
-          ++it;
-        }
-      }
-
-      // Clean up any backtrace storage
-      for (auto const& logger_name : removed_loggers)
-      {
-        _backtrace_storage.erase(logger_name);
-      }
     }
   }
 
@@ -1266,28 +1264,21 @@ private:
   SinkManager& _sink_manager = SinkManager::instance();
   LoggerManager& _logger_manager = LoggerManager::instance();
   BackendOptions _options;
-
   std::thread _worker_thread;
 
-  std::atomic<RdtscClock*> _rdtsc_clock{nullptr}; /** rdtsc clock if enabled **/
-
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
-  std::vector<std::weak_ptr<Sink>> _active_sinks_cache;
   std::vector<ThreadContext*> _active_thread_contexts_cache;
-
-  std::vector<std::weak_ptr<PatternFormatter>> _pattern_formatters;
-
-  BacktraceStorage _backtrace_storage; /** Stores a vector of backtrace messages per logger name */
+  std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
 
-  /** Id of the current running process **/
-  std::string _process_id;
   std::string _named_args_format_template; /** to avoid allocation each time **/
+  std::string _process_id;                 /** Id of the current running process **/
   std::chrono::system_clock::time_point _last_rdtsc_resync_time;
   std::atomic<uint32_t> _worker_thread_id{0}; /** cached backend worker thread id */
-
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
 
+  alignas(CACHE_LINE_ALIGNED) std::atomic<RdtscClock*> _rdtsc_clock{
+    nullptr}; /** rdtsc clock if enabled, can be accessed by any thread **/
   alignas(CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
   std::condition_variable _wake_up_cv;
   bool _wake_up_flag{false};

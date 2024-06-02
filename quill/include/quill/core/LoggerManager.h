@@ -103,7 +103,11 @@ public:
     {
       // Here we do not check for valid_logger() like in get_all_loggers() because this
       // function is only called by the backend
-      cb(elem.get());
+      if (cb(elem.get()))
+      {
+        // When the callback returns true stop the loop early
+        break;
+      }
     }
   }
 
