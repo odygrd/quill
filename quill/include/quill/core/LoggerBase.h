@@ -126,24 +126,23 @@ protected:
 
   /** Accessed by Frontend frequently - hot **/
   std::atomic<LogLevel> log_level{LogLevel::Info}; /* Accessed by frontend only */
-  std::atomic<LogLevel> backtrace_flush_level{
-    LogLevel::None}; /** Modified by the frontend at any time, accessed but not modified by the backend */
   ClockSourceType clock_source; /* Accessed by the frontend, accessed but not modified by the frontend AND backend */
   UserClockSource* user_clock{nullptr}; /* A non owned pointer to a custom timestamp clock, valid only when provided. accessed by frontend only */
+  std::atomic<LogLevel> backtrace_flush_level{LogLevel::None}; /** Modified by the frontend, accessed but not modified by the backend */
 
   /** Backend only variables - Modified by the Backend **/
-  alignas(CACHE_LINE_ALIGNED) std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will init this, we never access it on the frontend */
-  std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will init this, we never access it on the frontend */
+  alignas(CACHE_LINE_ALIGNED) std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will construct this, we never access it on the frontend */
+  std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
 
   /** Frequent Backend access - Rare Frontend access **/
-  std::string logger_name; /* Set by the frontend, accessed rarely by the frontend AND backend */
-  std::vector<std::shared_ptr<Sink>> sinks; /* Set by the frontend and accessed by the backend */
-  std::atomic<bool> valid{true}; /* Modified by the frontend at any time, accessed but not modified the backend */
+  std::string logger_name; /* Set by the frontend, accessed rarely by the frontend */
+  std::vector<std::shared_ptr<Sink>> sinks; /* Set by the frontend */
+  std::atomic<bool> valid{true}; /* Modified by the frontend, accessed but not modified the backend */
 
-  /** Set by the Frontend on construction - Backend access once **/
-  Timezone timezone; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
-  std::string format_pattern; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
-  std::string time_pattern; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
+  /** Set by the Frontend on constructor - Backend access once **/
+  Timezone timezone; /* Set by the frontend and accessed by the backend to construct PatternFormatter */
+  std::string format_pattern; /* Set by the frontend and accessed by the backend to construct PatternFormatter */
+  std::string time_pattern; /* Set by the frontend and accessed by the backend to construct PatternFormatter */
 };
 } // namespace detail
 } // namespace quill
