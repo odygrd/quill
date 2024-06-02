@@ -980,8 +980,6 @@ private:
   /***/
   QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks)
   {
-    _active_sinks_cache.clear();
-
     // Update the active sinks cache, consider only the valid loggers
     _logger_manager.for_each_logger(
       [this](LoggerBase* logger)
@@ -1028,6 +1026,8 @@ private:
         sink->run_periodic_tasks();
       }
     }
+
+    _active_sinks_cache.clear();
   }
 
   /**
