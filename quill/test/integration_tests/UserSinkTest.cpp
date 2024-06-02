@@ -81,7 +81,9 @@ TEST_CASE("user_sink")
   constexpr uint32_t min_flushes = 20;
   uint32_t retry_count = 0;
 
-  while (reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load() < min_flushes)
+  // user_sink_b is created second after user_sink_a
+  // if user_sink_b has at least min_flushes, then user_sink_a should have them too
+  while (reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load() < min_flushes)
   {
     if (retry_count >= max_retries)
     {
