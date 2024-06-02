@@ -66,7 +66,6 @@
 ## v4.3.0
 
 - Refactored `BacktraceStorage` to simplify the code.
-- Improved `LoggerBase` memory layout by reorganizing class members.
 - Fixed multiple definitions of `on_alarm` in `SignalHandler.h`
 - Fixed a bug in the backend thread where `flush()` and `run_periodic_tasks()` were skipped for certain sinks. All sinks
   are now correctly processed.

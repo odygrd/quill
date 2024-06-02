@@ -188,8 +188,8 @@ The following message is logged 100'000 times for each thread:
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.2 Bounded Dropping Queue](http://github.com/odygrd/quill) |  6   |  7   |  8   |  8   |  9   |   10   |
-| [Quill v4.2 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  8   |  9   |  9   |  10  |   13   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  6   |  7   |  8   |  8   |  9   |   10   |
+| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  8   |  9   |  9   |  10  |   13   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  8   |  9   |  9   |  10  |   13   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  8   |  8   |  9   |  9   |  10  |   13   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  11  |  12  |  13  |  14  |  15  |   20   |
@@ -203,10 +203,10 @@ The following message is logged 100'000 times for each thread:
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.2 Bounded Dropping Queue](http://github.com/odygrd/quill) |  7   |  8   |  9   |  9   |  10  |   12   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  7   |  8   |  9   |  9   |  10  |   12   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  8   |  8   |  9   |  9   |  11  |   13   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  9   |  10  |  10  |  11  |   13   |
-| [Quill v4.2 Unbounded Queue](http://github.com/odygrd/quill)        |  9   |  9   |  10  |  11  |  12  |   15   |
+| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  9   |  9   |  10  |  11  |  12  |   15   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  12  |  13  |  13  |  14  |  15  |   19   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  21  |  21  |  22  |  22  |  29  |   62   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                |  42  |  46  |  47  |  48  |  54  |   78   |
@@ -228,10 +228,10 @@ of `std::string`.
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  10  |  12  |  13  |  13  |  14  |   16   |
-| [Quill v4.2 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  12  |  13  |  14  |  15  |   17   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  12  |  13  |  14  |  15  |   17   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  11  |  12  |  13  |  14  |  15  |   17   |
+| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  14  |  15  |  15  |  17  |   19   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  13  |  14  |  15  |  15  |  17  |   19   |
-| [Quill v4.2 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  14  |  16  |  16  |  17  |   21   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  22  |  23  |  23  |  25  |  30  |   59   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)             |  52  |  55  |  64  |  83  | 114  |  160   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                | 102  | 122  | 134  | 137  | 143  |  153   |
@@ -242,11 +242,11 @@ of `std::string`.
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.2 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  12  |  13  |  15  |  16  |   18   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  12  |  13  |  15  |  16  |   18   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  11  |  12  |  13  |  15  |  16  |   18   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        |  12  |  13  |  14  |  15  |  16  |   19   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  13  |  15  |  15  |  16  |  17  |   20   |
-| [Quill v4.2 Unbounded Queue](http://github.com/odygrd/quill)        |  14  |  16  |  17  |  18  |  19  |   22   |
+| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  14  |  15  |  16  |  17  |  18  |   21   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  23  |  24  |  24  |  25  |  31  |   62   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)             |  53  |  60  |  92  | 121  | 149  |  212   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                | 101  | 121  | 133  | 136  | 143  |  160   |
@@ -266,8 +266,8 @@ The strings used in the log message are over 35 characters to prevent the short 
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.2 Bounded Dropping Queue](http://github.com/odygrd/quill) |  52  |  54  |  56  |  58  |  60  |   71   |
-| [Quill v4.2 Unbounded Queue](http://github.com/odygrd/quill)        |  53  |  56  |  57  |  59  |  61  |   64   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  52  |  54  |  56  |  58  |  60  |   71   |
+| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  53  |  56  |  57  |  59  |  61  |   64   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  66  |  70  |  79  |  81  |  84  |   91   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        | 632  | 651  | 676  | 698  | 737  |  1049  | 
 | [fmtlog](http://github.com/MengRao/fmtlog)                          | 724  | 752  | 776  | 789  | 814  |  857   |
@@ -277,9 +277,9 @@ The strings used in the log message are over 35 characters to prevent the short 
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.2 Bounded Dropping Queue](http://github.com/odygrd/quill) |  52  |  55  |  57  |  59  |  62  |   77   |
+| [Quill v4.3 Bounded Dropping Queue](http://github.com/odygrd/quill) |  52  |  55  |  57  |  59  |  62  |   77   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  70  |  74  |  83  |  85  |  88  |  102   |
-| [Quill v4.2 Unbounded Queue](http://github.com/odygrd/quill)        |  86  |  94  | 103  | 110  | 122  |  138   |
+| [Quill v4.3 Unbounded Queue](http://github.com/odygrd/quill)        |  86  |  94  | 103  | 110  | 122  |  138   |
 | [Quill v3.8 Unbounded Queue](http://github.com/odygrd/quill)        | 674  | 694  | 736  | 762  | 805  |  884   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          | 789  | 813  | 833  | 845  | 872  |  908   |
 | [spdlog](http://github.com/gabime/spdlog)                           | 6500 | 6596 | 6724 | 6848 | 7560 |  9036  |
@@ -301,7 +301,7 @@ The maximum throughput is measured by determining the maximum number of log mess
 write to the log file per second.
 
 When measured on the same system as the latency benchmarks mentioned above the average throughput of the backend
-logging thread is `4.56 million msgs/sec`
+logging thread when formatting a log message consisting of an int and a double is ~`4.40 million msgs/sec`
 
 While the primary focus of the library is not on throughput, it does provide efficient handling of log messages across
 multiple threads. The backend logging thread, responsible for formatting and ordering log messages from hot threads,
