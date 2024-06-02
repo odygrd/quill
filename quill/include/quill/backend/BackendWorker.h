@@ -980,7 +980,7 @@ private:
   /***/
   QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks)
   {
-    // Update the active sinks cache, consider only the valid loggers
+    // Populate the active sinks cache with unique sinks, consider only the valid loggers
     _logger_manager.for_each_logger(
       [this](LoggerBase* logger)
       {
@@ -1013,7 +1013,8 @@ private:
       QUILL_TRY
       {
         // If an exception is thrown, catch it here to prevent it from propagating
-        // to the outer function. This prevents potential infinite loops caused by failing flush operations.
+        // to the outer function. This prevents potential infinite loops caused by failing
+        // flush operations.
         sink->flush_sink();
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
