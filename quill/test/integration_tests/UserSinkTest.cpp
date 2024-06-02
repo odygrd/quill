@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <cmath>
 
 using namespace quill;
 
@@ -77,8 +78,10 @@ TEST_CASE("user_sink")
 
   // Let the backend worker run a few times so that flush_sink_cnt and periodic_tasks_cnt are called
   constexpr uint32_t max_retries = 20;
+  constexpr uint32_t min_flushes = 20;
   uint32_t retry_count = 0;
-  while (reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load() < 10)
+
+  while (reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load() < min_flushes)
   {
     if (retry_count >= max_retries)
     {
@@ -96,9 +99,21 @@ TEST_CASE("user_sink")
   REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->log_message_cnt.load(), number_of_messages);
   REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_b.get())->log_message_cnt.load(), number_of_messages * 2);
 
-  REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load(), 10);
-  REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load(), 10);
-  
-  REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt.load(), 10);
-  REQUIRE_GE(reinterpret_cast<UserSink*>(user_sink_b.get())->periodic_tasks_cnt.load(), 10);
+  uint64_t const count_a_flush = reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load();
+  uint64_t const count_b_flush = reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load();
+  uint64_t const count_a_periodic = reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt.load();
+  uint64_t const count_b_periodic = reinterpret_cast<UserSink*>(user_sink_b.get())->periodic_tasks_cnt.load();
+
+  REQUIRE_GE(count_a_flush, 10);
+  REQUIRE_GE(count_b_flush, 10);
+  REQUIRE_GE(count_a_periodic, 10);
+  REQUIRE_GE(count_b_flush, 10);
+
+  // since logger_a is created first and then logger_b it is expected that the counts will
+  // be different in each sink, but they should be close to each other
+  int64_t const threshold = 5;
+
+  // Check if counts are close to each other
+  REQUIRE_LE(std::abs(static_cast<int64_t>(count_a_flush - count_b_flush)), threshold);
+  REQUIRE_LE(std::abs(static_cast<int64_t>(count_a_periodic - count_b_periodic)), threshold);
 }
