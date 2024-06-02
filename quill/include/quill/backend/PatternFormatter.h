@@ -121,10 +121,11 @@ public:
     std::string_view logger, std::string_view log_level, MacroMetadata const& log_statement_metadata,
     std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_msg)
   {
-    if (_fmt_format.empty())
+    if (_format_pattern.empty())
     {
-      // nothing to format when the given format is empty. This is useful e.g. in the
-      // JsonFileSink if we want to skip formatting the main message
+      // No formatting is needed when the format pattern is empty.
+      // For example, in JsonFileSink, we can retrieve the MacroMetadata and the named arguments as
+      // key-value pairs, but we do not need to format the log statement.
       return std::string_view{};
     }
 
