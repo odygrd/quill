@@ -59,10 +59,10 @@
 | Package Manager |              Installation Command              |
 |:---------------:|:----------------------------------------------:|
 |      vcpkg      |             `vcpkg install quill`              |
-|      conan      |             `conan install quill`              |
-|    homebrew     |              `brew install quill`              |
-|  meson wrapdb   |           `meson wrap install quill`           |
-|   conda-forge   |      `conda install -c conda-forge quill`      |
+|      Conan      |             `conan install quill`              |
+|    Homebrew     |              `brew install quill`              |
+|  Meson WrapDB   |           `meson wrap install quill`           |
+|      Conda      |      `conda install -c conda-forge quill`      |
 |     Bzlmod      | `bazel_dep(name = "quill", version = "x.y.z")` |
 
 ## Introduction
