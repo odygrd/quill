@@ -64,6 +64,7 @@
 |  Meson WrapDB   |           `meson wrap install quill`           |
 |      Conda      |      `conda install -c conda-forge quill`      |
 |     Bzlmod      | `bazel_dep(name = "quill", version = "x.y.z")` |
+|      xmake      |              `xrepo install quill`             |
 
 ## Introduction
 
