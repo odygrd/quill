@@ -97,11 +97,11 @@ the capabilities of the library.
   statement or on demand. Refer
   to [Backtrace Logging](http://quillcpp.readthedocs.io/en/latest/tutorial.html#backtrace-logging) for more information.
 - **Multiple Logging Sinks**: Utilize various logging targets, including:
-  - Console logging with color support.
-  - File logging.
-  - Rotating log files based on time or size.
-  - JSON logging.
-  - Custom sinks.
+    - Console logging with color support.
+    - File logging.
+    - Rotating log files based on time or size.
+    - JSON logging.
+    - Custom sinks.
 - **Log Message Filtering**: Apply filters to selectively process log messages. Learn more
   about [Filters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#filters).
 - **Structured Logging**: Generate JSON structured logs.
@@ -477,7 +477,7 @@ target_link_libraries(my_project PUBLIC quill::quill)
 
 #### Meson
 
-##### WrapDB
+##### Using WrapDB
 
 Meson's `wrapdb` includes a quill package, which repackages quill to be built by meson as a subproject.
 
@@ -509,6 +509,22 @@ Once the library is integrated into your Meson project, follow these steps to en
   ```meson
   my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], install : true)
   ```
+
+#### Bazel
+
+##### Using Blzmod
+
+The library is available on BLZMOD, allowing for easy integration into your project.
+
+##### Manual Integration
+
+If you prefer manual integration, you can add the library as a dependency in your `BUILD.bazel` file. Below is a sample
+`cc_binary` rule demonstrating how to include the library. Ensure to replace `//quill_path` with the actual path to the
+directory containing the `BUILD.bazel` file for the quill library within your project structure.
+
+```bazel
+cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
+```
 
 #### Building Quill for Android NDK
 
