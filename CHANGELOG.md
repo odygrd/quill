@@ -69,6 +69,7 @@
 - Introduced `log_timestamp_ordering_grace_period parameter`, replacing `enable_strict_log_timestamp_order` in
   `BackendOptions`. Enables strict timestamp ordering with configurable grace period,
 - Upstreamed `Meson` build integration. See details [here](https://github.com/odygrd/quill?tab=readme-ov-file#meson)
+- Upstreamed `Bazel` build integration. See details [here](https://github.com/odygrd/quill?tab=readme-ov-file#bazel)
 
 ## v4.3.0
 
@@ -90,14 +91,16 @@
   the `transit_events_soft_limit` was reached. Additionally, this issue affected the behavior of `flush_log()`,
   prematurely unblocking the thread before all messages were flushed.
 - Fixed `-Wno-unused-parameter` and `-Wdocumentation` warnings.
-- Improved backend worker `_exit()` functionality and reduced code duplication in other areas of the backend worker code.
+- Improved backend worker `_exit()` functionality and reduced code duplication in other areas of the backend worker
+  code.
 - Added `signal_handler_timeout_seconds` parameter, which controls the timeout duration for the signal handler. Only
   available on Linux platforms.
 - Added `sleep_duration_ns` parameter to the `flush_log(...)` function. This parameter specifies the duration in
   nanoseconds to sleep between retries between checks for the flush completion and when a blocking queue is used,
   and it is full. The default sleep duration is 100 nanoseconds, but users can now customize this duration according to
   their needs. If a zero sleep duration is passed, the thread might yield instead.
-- Removed uses of `std::this_thread::sleep_for(...)`, `std::string`, `std::vector` in the signal handler when waiting for
+- Removed uses of `std::this_thread::sleep_for(...)`, `std::string`, `std::vector` in the signal handler when waiting
+  for
   the log to be flushed.
 
 ## v4.1.0
