@@ -477,26 +477,38 @@ target_link_libraries(my_project PUBLIC quill::quill)
 
 #### Meson
 
+##### WrapDB
+
 Meson's `wrapdb` includes a quill package, which repackages quill to be built by meson as a subproject.
 
 - Install quill subproject from the wrapdb by running from the root of your project
 
-```meson
-meson wrap install quill
-```
+  ```meson
+  meson wrap install quill
+  ```
+
+##### Manual Integration
+
+If you prefer not to use WrapDB, you can manually integrate Quill into your project by following these steps:
+
+- Copy the contents of this repository under the subprojects directory in your project.
+
+##### Integration Steps
+
+Once the library is integrated into your Meson project, follow these steps to ensure proper usage:
 
 - In your project’s `meson.build` file, add an entry for the new subproject
 
-```meson
-quill = subproject('quill')
-quill_dep = quill.get_variable('quill_dep')
-```
+  ```meson
+  quill = subproject('quill')
+  quill_dep = quill.get_variable('quill_dep')
+  ```
 
 - Include the new dependency object to link with quill
 
-```meson
-my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], install : true)
-```
+  ```meson
+  my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], install : true)
+  ```
 
 #### Building Quill for Android NDK
 
