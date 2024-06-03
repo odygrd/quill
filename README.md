@@ -62,6 +62,7 @@
 |      conan      |     `quill/[>=1.2.3]`      |
 |    homebrew     |    `brew install quill`    |
 |  meson wrapdb   | `meson wrap install quill` |
+|     Bzlmod      |          `quill`           |
 
 ## Introduction
 
