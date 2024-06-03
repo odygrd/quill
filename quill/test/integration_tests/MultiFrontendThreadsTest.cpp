@@ -22,6 +22,8 @@ TEST_CASE("multi_frontend_threads")
   static std::string const logger_name_prefix = "logger_";
 
   // Start the logging backend thread
+  BackendOptions bo;
+  bo.log_timestamp_ordering_grace_period = std::chrono::microseconds{500};
   Backend::start();
 
   std::vector<std::thread> threads;

@@ -83,27 +83,35 @@ struct BackendOptions
   size_t transit_events_hard_limit = 100'000;
 
   /**
-   * The backend iterates through all frontend queues and pops all messages from each queue.
-   * It then buffers and logs the message with the lowest timestamp among them.
+   * The backend iterates through all frontend lock-free queues and pops all messages from each
+   * queue. It then buffers and logs the message with the lowest timestamp among them.
    *
-   * Each frontend queue corresponds to a thread, and when multiple frontend threads are pushing logs
-   * simultaneously, it is possible to read a timestamp from the last queue in the iteration but
-   * miss that timestamp when the first queue was read because it was not available at that time.
+   * Each frontend lock-free queue corresponds to a thread, and when multiple frontend threads are
+   * pushing logs simultaneously, it is possible to read a timestamp from the last queue in the
+   * iteration but miss that timestamp when the first queue was read because it was not available at
+   * that time.
    *
-   * When this option is enabled, the backend takes a timestamp (`now()`) before reading
-   * the queues. It uses that timestamp to ensure that each log message's timestamp from the frontend
-   * queues is less than or equal to the stored `now()` timestamp, guaranteeing ordering by timestamp.
+   * When this option is set to a non-zero value, the backend takes a timestamp (`now()`) before
+   * reading the queues. It uses that timestamp to ensure that each log message's timestamp from the
+   * frontend queues is less than or equal to the stored `now()` timestamp minus the specified grace
+   * period, guaranteeing ordering by timestamp.
    *
-   * Messages that fail the above check are not logged and remain in the queue.
-   * They are checked again in the next iteration.
+   * Messages that fail the above check remain in the lock-free queue. They are checked again in the
+   * next iteration. The timestamp check is performed with microsecond precision.
    *
-   * The timestamp check is performed with microsecond precision.
+   * Example scenario:
+   * 1. Frontend thread takes a timestamp, then sleeps before pushing to the queue.
+   * 2. Backend thread takes timestamp `now()` and subtracts the grace period, reads queues up to
+   *    the adjusted `now()`, and writes the logs.
+   * 3. Frontend thread wakes up and pushes to the queue.
+   * 4. Backend thread reads and writes the delayed timestamp, resulting in an out-of-order log.
    *
-   * Enabling this option may cause a delay in processing but ensures correct timestamp order.
+   * Setting this option to a non-zero value causes a minor delay in reading the messages from the
+   * lock-free queues but ensures correct timestamp order.
    *
-   * @note Applicable only when use_transit_buffer = true.
+   * Setting `log_timestamp_ordering_grace_period` to zero disables strict timestamp ordering.
    */
-  bool enable_strict_log_timestamp_order = true;
+  std::chrono::microseconds log_timestamp_ordering_grace_period{5};
 
   /**
    * When this option is enabled and the application is terminating, the backend worker thread

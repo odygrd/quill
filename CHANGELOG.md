@@ -1,3 +1,4 @@
+- [v4.4.0](#v430)
 - [v4.3.0](#v430)
 - [v4.2.1](#v421)
 - [v4.2.0](#v420)
@@ -62,6 +63,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v4.4.0
+
+- Introduced `log_timestamp_ordering_grace_period parameter`, replacing `enable_strict_log_timestamp_order` in
+  `BackendOptions`. Enables strict timestamp ordering with configurable grace period,
 
 ## v4.3.0
 

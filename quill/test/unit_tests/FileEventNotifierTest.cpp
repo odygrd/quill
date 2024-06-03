@@ -45,7 +45,7 @@ TEST_CASE("file_event_notifier_no_open")
   };
 
   uint32_t before_write_cnt{0};
-  file_event_notifier.before_write = [&before_write_cnt, &file](std::string_view message) mutable
+  file_event_notifier.before_write = [&before_write_cnt](std::string_view message) mutable
   {
     ++before_write_cnt;
     return std::string{message};
@@ -123,7 +123,7 @@ TEST_CASE("file_event_notifier")
   };
 
   uint32_t before_write_cnt{0};
-  file_event_notifier.before_write = [&before_write_cnt, &file, &output_msg](std::string_view message) mutable
+  file_event_notifier.before_write = [&before_write_cnt, &output_msg](std::string_view message) mutable
   {
     ++before_write_cnt;
     auto const input = std::string{message};
