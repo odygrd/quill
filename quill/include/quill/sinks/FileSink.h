@@ -110,7 +110,7 @@ public:
   /** Getters **/
   QUILL_NODISCARD bool fsync_enabled() const noexcept { return _fsync_enabled; }
   QUILL_NODISCARD Timezone timezone() const noexcept { return _time_zone; }
-  QUILL_NODISCARD FilenameAppendOption append_to_filename_option() const noexcept
+  QUILL_NODISCARD FilenameAppendOption filename_append_option() const noexcept
   {
     return _filename_append_option;
   }
@@ -139,9 +139,10 @@ public:
    * @param do_fopen If false, the file will not be opened.
    */
   explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
-                    FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true)
+                    FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
+                    std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
     : StreamSink(_get_updated_filename_with_appended_datetime(
-                   filename, config.append_to_filename_option(), config.timezone()),
+                   filename, config.filename_append_option(), config.timezone(), start_time),
                  nullptr, std::move(file_event_notifier)),
       _config(config)
   {
@@ -240,19 +241,16 @@ protected:
    * @param timestamp Timestamp to use.
    * @return Updated filename.
    */
-  QUILL_NODISCARD static fs::path append_datetime_to_filename(
-    fs::path const& filename, bool with_time = false, Timezone timezone = Timezone::LocalTime,
-    std::chrono::system_clock::time_point timestamp = {}) noexcept
+  QUILL_NODISCARD static fs::path append_datetime_to_filename(fs::path const& filename,
+                                                              bool with_time, Timezone timezone,
+                                                              std::chrono::system_clock::time_point timestamp) noexcept
   {
     // Get base file and extension
     auto const [stem, ext] = extract_stem_and_extension(filename);
 
     // Get the time now as tm from user or default to now
-    std::chrono::system_clock::time_point const ts_now =
-      (timestamp == std::chrono::system_clock::time_point{}) ? std::chrono::system_clock::now() : timestamp;
-
     uint64_t const timestamp_ns = static_cast<uint64_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(ts_now.time_since_epoch()).count());
+      std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
 
     // Construct a filename
     return stem + "_" + format_datetime_string(timestamp_ns, timezone, with_time) + ext;
@@ -344,7 +342,8 @@ private:
    * @return Updated filename.
    */
   QUILL_NODISCARD quill::fs::path _get_updated_filename_with_appended_datetime(
-    quill::fs::path const& filename, quill::FilenameAppendOption append_to_filename_option, quill::Timezone timezone)
+    quill::fs::path const& filename, quill::FilenameAppendOption append_to_filename_option,
+    quill::Timezone timezone, std::chrono::system_clock::time_point timestamp)
   {
     if ((append_to_filename_option == quill::FilenameAppendOption::None) || (filename == "/dev/null"))
     {
@@ -353,12 +352,12 @@ private:
 
     if (append_to_filename_option == quill::FilenameAppendOption::StartDate)
     {
-      return append_datetime_to_filename(filename, false, timezone);
+      return append_datetime_to_filename(filename, false, timezone, timestamp);
     }
 
     if (append_to_filename_option == quill::FilenameAppendOption::StartDateTime)
     {
-      return append_datetime_to_filename(filename, true, timezone);
+      return append_datetime_to_filename(filename, true, timezone, timestamp);
     }
 
     return quill::fs::path{};
