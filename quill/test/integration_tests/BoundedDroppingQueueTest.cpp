@@ -50,7 +50,7 @@ TEST_CASE("bounded_dropping_queue")
     LOG_ERROR(logger, "Log something to fulfill the bound queue {}", i);
   }
 
-  logger->flush_log();
+  logger->flush_log(0);
 
   // Wait until the backend thread stops for test stability
   Backend::stop();

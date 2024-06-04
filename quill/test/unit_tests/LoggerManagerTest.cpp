@@ -120,6 +120,8 @@ TEST_CASE("create_get_remove_logger")
     REQUIRE_EQ(lm.get_all_loggers().size(), 0);
     REQUIRE_EQ(lm.get_number_of_loggers(), 0);
   }
+
+  REQUIRE_EQ(lm.get_valid_logger(), nullptr);
 }
 
 TEST_SUITE_END();
