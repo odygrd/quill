@@ -107,4 +107,4 @@ protected:
     }
   }
 };
-} // namespace quill
+} // namespace quill::detail

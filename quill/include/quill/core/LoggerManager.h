@@ -115,8 +115,8 @@ public:
   template <typename TLogger>
   LoggerBase* create_or_get_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
                                    std::string const& format_pattern,
-                                                   std::string const& time_pattern, Timezone timestamp_timezone,
-                                                   ClockSourceType clock_source, UserClockSource* user_clock)
+                                   std::string const& time_pattern, Timezone timestamp_timezone,
+                                   ClockSourceType clock_source, UserClockSource* user_clock)
   {
     std::lock_guard<std::recursive_mutex> const lock{_mutex};
 
@@ -125,7 +125,8 @@ public:
     if (!logger_ptr)
     {
       // If logger pointer is null, create a new logger instance.
-      std::unique_ptr<LoggerBase> new_logger{new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+      std::unique_ptr<LoggerBase> new_logger{
+        new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
                     format_pattern, time_pattern, timestamp_timezone, clock_source, user_clock}};
 
       _insert_logger(static_cast<std::unique_ptr<LoggerBase>&&>(new_logger));

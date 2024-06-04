@@ -30,7 +30,7 @@ TEST_CASE("append_date_to_file")
     REQUIRE_EQ(file_sink.get_filename().filename(), expected_filename);
     REQUIRE(fs::exists(expected_filename));
   }
-  
+
   testing::remove_file(expected_filename);
 }
 

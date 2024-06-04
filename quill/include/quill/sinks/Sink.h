@@ -106,8 +106,8 @@ public:
     std::lock_guard<std::recursive_mutex> const lock{_global_filters_lock};
 
     // Check if the same filter already exists
-    auto const search_filter_it =
-      std::find_if(_global_filters.cbegin(), _global_filters.cend(), [&filter](std::unique_ptr<Filter> const& elem_filter)
+    auto const search_filter_it = std::find_if(
+      _global_filters.cbegin(), _global_filters.cend(), [&filter](std::unique_ptr<Filter> const& elem_filter)
       { return elem_filter->get_filter_name() == filter->get_filter_name(); });
 
     if (QUILL_UNLIKELY(search_filter_it != _global_filters.cend()))

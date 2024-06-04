@@ -82,8 +82,8 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT
     std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedUnlimited) ||
                          (queue_type == QueueType::UnboundedDropping),
-                                                       UnboundedSPSCQueue, BoundedSPSCQueue>&
-  get_spsc_queue() noexcept
+                       UnboundedSPSCQueue, BoundedSPSCQueue>&
+    get_spsc_queue() noexcept
   {
     assert((_queue_type == queue_type) && "ThreadContext queue_type mismatch");
 
@@ -103,8 +103,8 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT
     std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedUnlimited) ||
                          (queue_type == QueueType::UnboundedDropping),
-                                                       UnboundedSPSCQueue, BoundedSPSCQueue> const&
-  get_spsc_queue() const noexcept
+                       UnboundedSPSCQueue, BoundedSPSCQueue> const&
+    get_spsc_queue() const noexcept
   {
     assert((_queue_type == queue_type) && "ThreadContext queue_type mismatch");
 

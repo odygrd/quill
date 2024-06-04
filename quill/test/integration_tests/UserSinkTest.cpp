@@ -6,10 +6,10 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <vector>
-#include <cmath>
 
 using namespace quill;
 
@@ -90,7 +90,7 @@ TEST_CASE("user_sink")
       FAIL("Exceeded maximum retry count");
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds {100});
+    std::this_thread::sleep_for(std::chrono::milliseconds{100});
     ++retry_count;
   }
 
@@ -103,8 +103,10 @@ TEST_CASE("user_sink")
 
   uint64_t const count_a_flush = reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load();
   uint64_t const count_b_flush = reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load();
-  uint64_t const count_a_periodic = reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt.load();
-  uint64_t const count_b_periodic = reinterpret_cast<UserSink*>(user_sink_b.get())->periodic_tasks_cnt.load();
+  uint64_t const count_a_periodic =
+    reinterpret_cast<UserSink*>(user_sink_a.get())->periodic_tasks_cnt.load();
+  uint64_t const count_b_periodic =
+    reinterpret_cast<UserSink*>(user_sink_b.get())->periodic_tasks_cnt.load();
 
   REQUIRE_GE(count_a_flush, 10);
   REQUIRE_GE(count_b_flush, 10);

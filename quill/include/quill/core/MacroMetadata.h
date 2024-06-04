@@ -30,7 +30,8 @@ public:
     Flush
   };
 
-  constexpr MacroMetadata(char const* source_location, char const* caller_function, char const* message_format, Tags const* tags, LogLevel log_level, Event event) noexcept
+  constexpr MacroMetadata(char const* source_location, char const* caller_function,
+                          char const* message_format, Tags const* tags, LogLevel log_level, Event event) noexcept
     : _source_location(source_location),
       _caller_function(caller_function),
       _message_format(message_format),
@@ -47,8 +48,7 @@ public:
 
   QUILL_NODISCARD char const* caller_function() const noexcept { return _caller_function; }
 
-  QUILL_NODISCARD char const* message_format() const noexcept
-  { return _message_format; }
+  QUILL_NODISCARD char const* message_format() const noexcept { return _message_format; }
 
   QUILL_NODISCARD char const* line() const noexcept
   {
@@ -85,9 +85,7 @@ public:
 
   QUILL_NODISCARD Tags const* tags() const noexcept { return _tags; }
 
-  QUILL_NODISCARD bool has_named_args() const noexcept {
-    return _format_flags & NAMED_ARGS_FLAG;
-  }
+  QUILL_NODISCARD bool has_named_args() const noexcept { return _format_flags & NAMED_ARGS_FLAG; }
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
 
