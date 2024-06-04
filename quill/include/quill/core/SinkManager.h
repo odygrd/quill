@@ -42,7 +42,7 @@ public:
   SinkManager& operator=(SinkManager const&) = delete;
 
   /***/
-  static SinkManager& instance() noexcept
+  QUILL_EXPORT static SinkManager& instance() noexcept
   {
     static SinkManager instance;
     return instance;

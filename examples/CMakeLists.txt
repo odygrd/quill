@@ -1,4 +1,5 @@
 add_subdirectory(recommended_usage)
+add_subdirectory(shared_library)
 add_subdirectory(advanced)
 
 add_executable(quill_example_backend_thread_notify backend_thread_notify.cpp)

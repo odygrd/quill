@@ -210,7 +210,7 @@ class ThreadContextManager
 {
 public:
   /***/
-  static ThreadContextManager& instance() noexcept
+  QUILL_EXPORT static ThreadContextManager& instance() noexcept
   {
     static ThreadContextManager instance;
     return instance;
@@ -358,9 +358,7 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext*
-
-  get_thread_context() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_thread_context() const noexcept
   {
     assert(_thread_context && "_thread_context can not be null");
     return _thread_context.get();
@@ -376,7 +374,7 @@ private:
 
 /***/
 template <typename TFrontendOptions>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT extern ThreadContext* get_local_thread_context() noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context() noexcept
 {
   thread_local ScopedThreadContext scoped_thread_context{
     TFrontendOptions::queue_type, TFrontendOptions::initial_queue_capacity, TFrontendOptions::huge_pages_enabled};

@@ -94,3 +94,21 @@
   #define QUILL_LIKELY(x) (x)
   #define QUILL_UNLIKELY(x) (x)
 #endif
+
+/**
+ * Visibility
+ */
+#if defined(_WIN32)
+  #if defined(QUILL_DLL_EXPORT)
+    #define QUILL_EXPORT __declspec(dllexport) // Exporting symbols when building the library
+  #elif defined(QUILL_DLL_IMPORT)
+    #define QUILL_EXPORT __declspec(dllimport) // Importing symbols when using the library
+  #else
+    #define QUILL_EXPORT // No special attribute needed for static or other builds
+  #endif
+#elif defined(__GNUC__) || defined(__clang__)
+  #define QUILL_EXPORT                                                                             \
+    __attribute__((visibility("default"))) // Using GCC/Clang visibility attribute
+#else
+  #define QUILL_EXPORT // Default for other compilers
+#endif
