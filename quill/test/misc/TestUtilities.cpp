@@ -130,17 +130,33 @@ uint64_t parse_timestamp(std::string const& timestamp_str)
 
 bool is_timestamp_ordered(std::vector<std::string> const& file_contents)
 {
+  constexpr int k_nearest_elements = 5;
   uint64_t previous_timestamp = 0;
   bool first = true;
 
-  for (auto const& line : file_contents)
+  for (int i = 0; i < static_cast<int>(file_contents.size()); ++i)
   {
+    auto const& line = file_contents[static_cast<size_t>(i)];
+
     uint64_t current_timestamp = parse_timestamp(line);
 
     if (!first)
     {
       if (current_timestamp < previous_timestamp)
       {
+        std::cout << "Timestamp out of order at index " << i << ". Printing "
+                  << k_nearest_elements * 2 << " elements around it:\n";
+
+        int start_index = std::max(0, i - k_nearest_elements);
+        int end_index = std::min(static_cast<int>(file_contents.size()) - 1, i + k_nearest_elements);
+
+        for (int j = start_index; j <= end_index; ++j)
+        {
+          std::cout << file_contents[static_cast<size_t>(j)] << '\n';
+        }
+
+        std::cout << "-------------------\n";
+
         return false;
       }
     }
