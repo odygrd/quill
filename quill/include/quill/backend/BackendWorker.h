@@ -359,11 +359,11 @@ private:
   QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues()
   {
     uint64_t const ts_now = _options.log_timestamp_ordering_grace_period.count()
-      ? static_cast<uint64_t>((std::chrono::duration_cast<std::chrono::microseconds>(
+      ? static_cast<uint64_t>((std::chrono::duration_cast<std::chrono::nanoseconds>(
                                  std::chrono::system_clock::now().time_since_epoch()) -
                                _options.log_timestamp_ordering_grace_period)
                                 .count())
-      : 0;
+      : std::numeric_limits<uint64_t>::max();
 
     size_t cached_transit_events_count{0};
 
@@ -527,12 +527,9 @@ private:
     }
 
     // Check if strict log timestamp order is enabled and the clock source is not User.
-    if (_options.log_timestamp_ordering_grace_period.count() &&
-        (transit_event->logger_base->clock_source != ClockSourceType::User))
+    if (transit_event->logger_base->clock_source != ClockSourceType::User)
     {
-      // Ensure the message timestamp is not greater than ts_now.
       // We skip checking against `ts_now` for custom timestamps by the user
-      uint64_t const event_ts = transit_event->timestamp / 1'000;
 
 #ifndef NDEBUG
       // Check the timestmaps we are comparign have the same digits
@@ -547,10 +544,11 @@ private:
         return digits;
       };
 
-      assert(count_digits(event_ts) == count_digits(ts_now));
+      assert(count_digits(transit_event->timestamp) == count_digits(ts_now));
 #endif
 
-      if (QUILL_UNLIKELY(event_ts > ts_now))
+      // Ensure the message timestamp is not greater than ts_now.
+      if (QUILL_UNLIKELY(transit_event->timestamp > ts_now))
       {
         // If the message timestamp is ahead of the current time, temporarily halt processing.
         // This guarantees the integrity of message order and avoids missed messages.
