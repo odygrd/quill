@@ -23,7 +23,7 @@ TEST_CASE("multi_frontend_threads")
 
   // Start the logging backend thread
   BackendOptions bo;
-  bo.log_timestamp_ordering_grace_period = std::chrono::microseconds{500};
+  bo.log_timestamp_ordering_grace_period = std::chrono::milliseconds{10};
   Backend::start();
 
   std::vector<std::thread> threads;
