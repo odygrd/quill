@@ -530,9 +530,9 @@ If you prefer manual integration, you can add the library as a dependency in you
 `cc_binary` rule demonstrating how to include the library. Ensure to replace `//quill_path` with the actual path to the
 directory containing the `BUILD.bazel` file for the quill library within your project structure.
 
-```bazel
-cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
-```
+  ```bazel
+  cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
+  ```
 
 ## Design
 
