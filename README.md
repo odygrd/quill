@@ -475,6 +475,14 @@ add_executable(my_project main.cpp)
 target_link_libraries(my_project PUBLIC quill::quill)
 ```
 
+#### Building Quill for Android NDK
+
+To build quill for Android NDK add the following flags when configuring the build:
+
+  ```
+  -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
+  ```
+
 #### Meson
 
 ##### Using WrapDB
@@ -525,14 +533,6 @@ directory containing the `BUILD.bazel` file for the quill library within your pr
 ```bazel
 cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
 ```
-
-#### Building Quill for Android NDK
-
-To build quill for Android NDK add the following flags when configuring the build:
-
-  ```
-  -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
-  ```
 
 ## Design
 
