@@ -111,7 +111,7 @@ struct BackendOptions
    *
    * Setting `log_timestamp_ordering_grace_period` to zero disables strict timestamp ordering.
    */
-  std::chrono::microseconds log_timestamp_ordering_grace_period{5};
+  std::chrono::microseconds log_timestamp_ordering_grace_period{1};
 
   /**
    * When this option is enabled and the application is terminating, the backend worker thread
