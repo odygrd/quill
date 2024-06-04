@@ -24,7 +24,7 @@ class BackendManager
 {
 public:
   /***/
-  static BackendManager& instance() noexcept
+  QUILL_EXPORT static BackendManager& instance() noexcept
   {
     static BackendManager instance;
     return instance;

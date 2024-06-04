@@ -33,7 +33,7 @@ public:
   LoggerManager& operator=(LoggerManager const&) = delete;
 
   /***/
-  static LoggerManager& instance() noexcept
+  QUILL_EXPORT static LoggerManager& instance() noexcept
   {
     static LoggerManager instance;
     return instance;
