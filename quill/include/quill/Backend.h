@@ -25,6 +25,7 @@ constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPa
 
 namespace quill
 {
+
 class Backend
 {
 public:
