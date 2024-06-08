@@ -14,6 +14,8 @@ function(set_common_compile_options target_name)
 
     # Additional MSVC specific options
     if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        target_compile_definitions(${target_name} ${COMPILE_OPTIONS_VISIBILITY} _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+        
         if (NOT QUILL_NO_EXCEPTIONS)
             target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY} /EHsc)
         endif ()
