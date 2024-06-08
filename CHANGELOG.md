@@ -66,8 +66,7 @@
 
 ## v4.4.0
 
-- Introduced `log_timestamp_ordering_grace_period parameter`, replacing `enable_strict_log_timestamp_order` in
-  `BackendOptions`. Enables strict timestamp ordering with configurable grace period.
+- Introduced `log_timestamp_ordering_grace_period parameter`, replacing `enable_strict_log_timestamp_order` in `BackendOptions`. Enables strict timestamp ordering with configurable grace period.
 - Fixed an issue where symbols were not properly exported with hidden visibility when compiling as a shared
   library. ([#463](https://github.com/odygrd/quill/issues/463))
 - Upstreamed `Meson` build integration. See details [here](https://github.com/odygrd/quill?tab=readme-ov-file#meson)
