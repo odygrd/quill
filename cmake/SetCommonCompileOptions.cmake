@@ -17,5 +17,7 @@ function(set_common_compile_options target_name)
         if (NOT QUILL_NO_EXCEPTIONS)
             target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY} /EHsc)
         endif ()
+
+        target_compile_definitions(${target_name} ${COMPILE_OPTIONS_VISIBILITY} _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
     endif ()
 endfunction()
