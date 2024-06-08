@@ -70,6 +70,7 @@
   `BackendOptions`. Enables strict timestamp ordering with configurable grace period.
 - Fixed an issue where symbols were not properly exported with hidden visibility when compiling as a shared
   library. ([#463](https://github.com/odygrd/quill/issues/463))
+- Move version info into quill namespace ([#465](https://github.com/odygrd/quill/issues/465))
 - Upstreamed `Meson` build integration. See details [here](https://github.com/odygrd/quill?tab=readme-ov-file#meson)
 - Upstreamed `Bazel` build integration. See details [here](https://github.com/odygrd/quill?tab=readme-ov-file#bazel)
 
