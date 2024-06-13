@@ -68,6 +68,8 @@
 ## v4.4.1
 
 - Fixed multiple definitions of `quill::detail::get_error_message` ([#469](https://github.com/odygrd/quill/issues/469))
+- Fixed an issue causing a `SIGABRT` when creating directories with a symlink folder path using GCC versions 8 or
+  9 ([#468](https://github.com/odygrd/quill/issues/468))
 
 ## v4.4.0
 

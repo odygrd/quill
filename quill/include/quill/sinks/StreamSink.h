@@ -79,12 +79,23 @@ public:
       if (!_filename.parent_path().empty())
       {
         parent_path = _filename.parent_path();
-        fs::create_directories(parent_path, ec);
-        if (ec)
+
+        // The call to fs::status is necessary due to a known issue in GCC versions 8.3.0 to 9.4.0.
+        // In these versions, fs::create_directories(path, ec) internally uses
+        // fs::symlink_status(path, ec) instead of fs::status(path, ec) for checking the path.
+        // This causes a problem because fs::symlink_status does not follow the symlink to the
+        // target directory. As a result,  it fails the is_directory() check but still indicates
+        // that the path exists, leading to a not_a_directory exception being set in the error code
+        auto const st = fs::status(parent_path, ec);
+        if (!is_directory(st))
         {
-          // use .string() to also support experimental fs
-          QUILL_THROW(QuillError{std::string{"cannot create directories for path "} +
-                                 parent_path.string() + std::string{" - error: "} + ec.message()});
+          fs::create_directories(parent_path, ec);
+          if (ec)
+          {
+            // use .string() to also support experimental fs
+            QUILL_THROW(QuillError{std::string{"cannot create directories for path "} +
+                                   parent_path.string() + std::string{" - error: "} + ec.message()});
+          }
         }
       }
       else
