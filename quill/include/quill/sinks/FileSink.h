@@ -268,17 +268,6 @@ protected:
       _file_event_notifier.before_open(filename);
     }
 
-    if (!filename.parent_path().empty())
-    {
-      std::error_code ec;
-      fs::create_directories(filename.parent_path(), ec);
-      if (ec)
-      {
-        QUILL_THROW(QuillError{std::string{"create directories failed path: "} +
-                               filename.parent_path().string() + " error: " + ec.message()});
-      }
-    }
-
     _file = fopen(filename.string().data(), mode.data());
 
     if (!_file)
