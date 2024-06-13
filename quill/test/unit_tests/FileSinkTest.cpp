@@ -81,4 +81,43 @@ TEST_CASE("create_directory")
   testing::remove_file(filename);
 }
 
+#if !defined(_WIN32)
+// Symlink test, currently for Linux only but can probably also expanded to windows later
+
+/***/
+TEST_CASE("use_symlink_directory")
+{
+  fs::path const target_folder = "./use_symlink_directory_actual";
+  fs::path const symlink_folder = "./use_symlink_directory_symlink_log";
+
+  std::error_code ec;
+
+  // create target folder
+  fs::create_directories(target_folder, ec);
+  REQUIRE_FALSE(ec);
+
+  // Create the symlink
+  fs::create_symlink(target_folder, symlink_folder, ec);
+  REQUIRE_FALSE(ec);
+
+  REQUIRE(fs::exists(target_folder));
+  REQUIRE(fs::exists(symlink_folder));
+
+  fs::path const filename = symlink_folder / fs::path{"use_symlink_directory.log"};
+
+  FileSinkConfig fsc;
+  fsc.set_filename_append_option(FilenameAppendOption::None);
+
+  {
+    FileSink file_sink{filename, fsc, FileEventNotifier{}, true};
+    REQUIRE(fs::exists(filename));
+  }
+
+  // Cleanup the symlink after tests
+  testing::remove_file(filename);
+  fs::remove(target_folder, ec);
+  fs::remove(symlink_folder, ec);
+}
+#endif
+
 TEST_SUITE_END();
