@@ -1,3 +1,4 @@
+- [v4.4.1](#v441)
 - [v4.4.0](#v440)
 - [v4.3.0](#v430)
 - [v4.2.1](#v421)
@@ -63,6 +64,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v4.4.1
+
+- Fixed multiple definitions of `quill::detail::get_error_message` ([#469](https://github.com/odygrd/quill/issues/469))
 
 ## v4.4.0
 

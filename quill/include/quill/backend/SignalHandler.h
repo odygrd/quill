@@ -184,7 +184,7 @@ void on_signal(int32_t signal_number)
 namespace detail
 {
 /***/
-char const* get_error_message(DWORD ex_code)
+inline char const* get_error_message(DWORD ex_code)
 {
   switch (ex_code)
   {
