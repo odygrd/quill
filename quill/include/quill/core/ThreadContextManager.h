@@ -335,6 +335,20 @@ public:
   ScopedThreadContext(QueueType queue_type, uint32_t spsc_queue_capacity, bool huge_pages_enabled)
     : _thread_context(std::make_shared<ThreadContext>(queue_type, spsc_queue_capacity, huge_pages_enabled))
   {
+#ifndef NDEBUG
+    // Thread-local flag to track if an instance has been created for this thread.
+    // This ensures that get_local_thread_context() is not called with different template arguments
+    // when using custom FrontendOptions. Having multiple thread contexts in a single thread is fine
+    // and functional but goes against the design principle of maintaining a single thread context
+    // per thread.
+    thread_local bool thread_local_instance_created = false;
+
+    assert(!thread_local_instance_created &&
+           R"(ScopedThreadContext can only be instantiated once per thread. It appears you may be combining default FrontendOptions with custom FrontendOptions. Ensure only one set of FrontendOptions is used to maintain a single thread context per thread.)");
+
+    thread_local_instance_created = true;
+#endif
+
     ThreadContextManager::instance().register_thread_context(_thread_context);
   }
 
