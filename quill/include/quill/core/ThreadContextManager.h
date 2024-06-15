@@ -343,9 +343,7 @@ public:
     thread_local bool thread_local_instance_created = false;
 
     assert(!thread_local_instance_created &&
-           "ScopedThreadContext can only be instantiated once per thread. It appears you may be "
-           "combining default FrontendOptions with custom FrontendOptions. Ensure only one set of "
-           "FrontendOptions is used to maintain a single thread context per thread.");
+           R"(ScopedThreadContext can only be instantiated once per thread. It appears you may be combining default FrontendOptions with custom FrontendOptions. Ensure only one set of FrontendOptions is used to maintain a single thread context per thread.)");
 
     ThreadContextManager::instance().register_thread_context(_thread_context);
     thread_local_instance_created = true;
