@@ -87,8 +87,8 @@ the capabilities of the library.
 
 - **Low Latency Logging**: Achieve fast logging performance with low latency. Refer to
   the [Benchmarks](http://github.com/odygrd/quill#performance) for more details.
-- **Asynchronous logging**: Log arguments and messages are formatted in a backend logging thread, effectively offloading
-  the formatting overhead from the critical path.
+- **Asynchronous logging**: Formatting and I/O are all delegated to a background logging thread,
+  effectively offloading the overhead from the critical path.
 - **Custom Formatters**: Customize log formatting based on user-defined patterns.
   Explore [Formatters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#formatters) for further details.
 - **Flexible Timestamp Generation**: Choose between rdtsc, chrono, or custom clocks (useful for simulations) for

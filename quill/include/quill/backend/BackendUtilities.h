@@ -25,7 +25,7 @@
 
   #include <windows.h>
 
-  #include "quill/core/ThreadUtilities.h" // for s2ws
+  #include "quill/core/ThreadUtilities.h"
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
