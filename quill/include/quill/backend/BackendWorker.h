@@ -1201,12 +1201,6 @@ private:
                          fmtquill::basic_format_args<fmtquill::format_context>{
                            format_args_store.get_types(), format_args_store.data()});
 
-    if (options.check_printable_char && format_args_store.has_string_related_type())
-    {
-      // if non-printable chars check is configured or if any of the provided arguments are strings
-      sanitize_non_printable_chars(formatted_values_str, options);
-    }
-
     // Split the formatted_values to isolate each value
     size_t start = 0;
     size_t end = 0;
@@ -1224,6 +1218,17 @@ private:
     if (idx < named_args.size())
     {
       named_args[idx].second = formatted_values_str.substr(start);
+    }
+
+    // We call sanitize_non_printable_chars for each value, because formatted_values_str already
+    // contains non-printable characters for the argument separation
+    if (options.check_printable_char && format_args_store.has_string_related_type())
+    {
+      // if non-printable chars check is configured or if any of the provided arguments are strings
+      for (size_t i = 0; i < named_args.size(); ++i)
+      {
+        sanitize_non_printable_chars(named_args[i].second, options);
+      }
     }
   }
 
