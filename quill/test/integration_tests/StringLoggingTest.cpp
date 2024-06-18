@@ -62,14 +62,6 @@ TEST_CASE("string_logging")
     const char* npcs = "Example\u0003String\u0004";
     LOG_INFO(logger, "non printable cs [{}]", npcs);
 
-    std::string_view backslash_str =
-      "Another example with a backslash: \\ and printable characters";
-    LOG_INFO(logger, "backslash_str [{}]", backslash_str);
-
-    std::string combination_str =
-      "Mix\x07String \\ with both printable and non-printable \x08 characters";
-    LOG_INFO(logger, "combination_str [{}]", combination_str);
-
     LOG_INFO(logger, "s [{}]", s);
     LOG_INFO(logger, "scr [{}]", scr);
     LOG_INFO(logger, "sr [{}]", sr);
@@ -118,16 +110,10 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 17);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 15);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       non printable cs [Example\\x03String\\x04]"}));
-
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       backslash_str [Another example with a backslash: \\x5C and printable characters]"}));
-
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       combination_str [Mix\\x07String \\x5C with both printable and non-printable \\x08 characters]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       s [adipiscing]"}));

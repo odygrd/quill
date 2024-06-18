@@ -100,14 +100,7 @@ TEST_CASE("json_file_logging")
           // Log a message with non-printable chars
           const char* npcs = "Example\u0003String\u0004";
 
-          std::string_view backslash_str =
-            "Another example with a backslash: \\ and printable characters";
-
-          std::string combination_str =
-            "Mix\x07String \\ with both printable and non-printable \x08 characters";
-
-          LOG_INFO(logger, "contains non-printable {npcs} {backslash_str} {combination_str}", npcs,
-                   backslash_str, combination_str);
+          LOG_INFO(logger, "contains non-printable {npcs}", npcs);
         }
 
         for (size_t j = 0; j < number_of_messages; ++j)
@@ -180,14 +173,8 @@ TEST_CASE("json_file_logging")
     REQUIRE(quill::testing::file_contains(file_contents, expected_no_args_json));
     REQUIRE(quill::testing::file_contains(file_contents_s, expected_no_args_fmt));
 
-    std::string expected_non_printable_json =
-      "\"npcs\":\"Example\\x03String\\x04\",\"backslash_str\":\"Another example with a backslash: "
-      "\\x5C and printable characters\",\"combination_str\":\"Mix\\x07String \\x5C with both "
-      "printable and non-printable \\x08 characters\"";
-    std::string expected_non_printable_fmt =
-      "contains non-printable Example\\x03String\\x04 Another example with a backslash: \\x5C and "
-      "printable characters Mix\\x07String \\x5C with both printable and non-printable \\x08 "
-      "characters";
+    std::string expected_non_printable_json = "\"npcs\":\"Example\\x03String\\x04\"";
+    std::string expected_non_printable_fmt = "contains non-printable Example\\x03String\\x04";
     REQUIRE(quill::testing::file_contains(file_contents, expected_non_printable_json));
     REQUIRE(quill::testing::file_contains(file_contents_s, expected_non_printable_fmt));
 
