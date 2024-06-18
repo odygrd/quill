@@ -173,5 +173,22 @@ struct BackendOptions
    * calls. Changing this value only affects the performance of the backend worker.
    */
   std::chrono::milliseconds rdtsc_resync_interval = std::chrono::milliseconds{500};
+
+  /**
+   * This option enables a check that verifies the log message contains only printable characters
+   * before forwarding it to the sinks. Any non-printable characters are converted to their
+   * equivalent hex value.
+   *
+   * This feature adds an extra layer of safety by filtering out non-printable characters from the
+   * log file. The backslash character is treated in this manner to prevent terminal escape sequence
+   * injection attacks.
+   *
+   * You can customize this callback to define your own range of printable characters if needed.
+   *
+   * To disable this check, you can provide:
+   *   std::function<bool(char c)> check_printable_char = {}
+   */
+  std::function<bool(char c)> check_printable_char = [](char c)
+  { return c >= ' ' && c <= '~' && c != '\\'; };
 };
 } // namespace quill
