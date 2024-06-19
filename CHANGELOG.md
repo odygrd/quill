@@ -68,7 +68,7 @@
 
 ## v4.5.0
 
-- The backend now automatically sanitizes non-printable characters and backslashes in log messages by converting them to
+- The backend now automatically sanitizes non-printable characters in log messages by converting them to
   their hexadecimal representation. This feature ensures logs contain only safe, readable characters. You can customize
   or disable this feature through the backend options by modifying the `check_printable_char` callback
   in `BackendOptions`.
