@@ -85,6 +85,7 @@ set(HEADER_FILES
         include/quill/Frontend.h
         include/quill/Logger.h
         include/quill/LogMacros.h
+        include/quill/StringRef.h
         include/quill/UserClockSource.h
         include/quill/Utility.h
 )

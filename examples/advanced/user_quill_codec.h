@@ -1,6 +1,7 @@
 #pragma once
 
 // Always required
+#include "quill/bundled/fmt/format.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 
@@ -15,14 +16,11 @@
 template <>
 struct fmtquill::formatter<User>
 {
-  template <typename FormatContext>
-  constexpr auto parse(FormatContext& ctx)
-  {
+  constexpr auto parse(format_parse_context& ctx) {
     return ctx.begin();
   }
 
-  template <typename FormatContext>
-  auto format(::User const& user, FormatContext& ctx) const
+  auto format(::User const& user, format_context& ctx) const
   {
     return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}",
                                user.name, user.surname, user.age, user.favorite_colors);
