@@ -73,6 +73,16 @@
   or disable this feature through the backend options by modifying the `check_printable_char` callback
   in `BackendOptions`.
 
+- Added `StringRef`, a utility for passing string arguments by reference without copying. Suitable for string literals
+  or immutable strings with a guaranteed persistent lifetime. For example
+
+  ```c++  
+  #include "quill/StringRef.h"
+  
+  static constexpr std::string_view sv {"string_view"};
+  LOG_INFO(logger, "{} {}", quill::utility::StringRef{sv}, quill::utility::StringRef{"string_literal"});
+  ```
+
 ## v4.4.1
 
 - Fixed multiple definitions of `quill::detail::get_error_message` ([#469](https://github.com/odygrd/quill/issues/469))
