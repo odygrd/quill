@@ -180,6 +180,8 @@ struct BackendOptions
    * non-printable characters from the log file. Any non-printable characters are converted to their
    * equivalent hex value.
    *
+   * The check applies only when at least one argument in a log statement is of type string.
+   *
    * You can customize this callback to define your own range of printable characters if needed.
    *
    * To disable this check, you can provide:
