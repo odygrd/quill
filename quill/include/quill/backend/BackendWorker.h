@@ -1172,13 +1172,14 @@ private:
   }
 
   /**
-   * This function takes an `arg_store` containing multiple arguments and formats them into
+   * This function takes an `format_args_store` containing multiple arguments and formats them into
    * a single string using a generated format string. Due to limitations in the ability to
    * iterate and format each argument individually in libfmt, this approach is used.
    * After formatting, the string is split to isolate each formatted value.
    */
   static void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& named_args,
-                                          DynamicFormatArgStore const& arg_store)
+                                          DynamicFormatArgStore const& format_args_store,
+                                          BackendOptions const& options)
   {
     // Generate a format string
     std::string format_string;
@@ -1197,7 +1198,8 @@ private:
     std::string formatted_values_str;
     fmtquill::vformat_to(
       std::back_inserter(formatted_values_str), format_string,
-      fmtquill::basic_format_args<fmtquill::format_context>{arg_store.get_types(), arg_store.data()});
+                         fmtquill::basic_format_args<fmtquill::format_context>{
+                           format_args_store.get_types(), format_args_store.data()});
 
     // Split the formatted_values to isolate each value
     size_t start = 0;
@@ -1216,6 +1218,17 @@ private:
     if (idx < named_args.size())
     {
       named_args[idx].second = formatted_values_str.substr(start);
+    }
+
+    // We call sanitize_non_printable_chars for each value, because formatted_values_str already
+    // contains non-printable characters for the argument separation
+    if (options.check_printable_char && format_args_store.has_string_related_type())
+    {
+      // if non-printable chars check is configured or if any of the provided arguments are strings
+      for (size_t i = 0; i < named_args.size(); ++i)
+      {
+        sanitize_non_printable_chars(named_args[i].second, options);
+      }
     }
   }
 
@@ -1240,7 +1253,10 @@ private:
     }
 
     // Then populate all the values of each arg
-    QUILL_TRY { _format_and_split_arguments(*transit_event->named_args, _format_args_store); }
+    QUILL_TRY
+    {
+      _format_and_split_arguments(*transit_event->named_args, _format_args_store, _options);
+    }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const&)
     {
@@ -1260,6 +1276,12 @@ private:
       fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg), message_format,
                            fmtquill::basic_format_args<fmtquill::format_context>{
                              _format_args_store.get_types(), _format_args_store.data()});
+
+      if (_options.check_printable_char && _format_args_store.has_string_related_type())
+      {
+        // if non-printable chars check is configured or if any of the provided arguments are strings
+        sanitize_non_printable_chars(transit_event->formatted_msg, _options);
+      }
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e)
@@ -1274,6 +1296,46 @@ private:
       _options.error_notifier(error);
     }
 #endif
+  }
+
+  template <typename TFormattedMsg>
+  static void sanitize_non_printable_chars(TFormattedMsg& formatted_msg, BackendOptions const& options)
+  {
+    // check for non printable characters in the formatted_msg
+    bool contains_non_printable_char{false};
+
+    for (char c : formatted_msg)
+    {
+      if (!options.check_printable_char(c))
+      {
+        contains_non_printable_char = true;
+        break;
+      }
+    }
+
+    if (contains_non_printable_char)
+    {
+      // in this rare event we will replace the non-printable chars with their hex values
+      std::string const formatted_msg_copy = {formatted_msg.data(), formatted_msg.size()};
+      formatted_msg.clear();
+
+      for (char c : formatted_msg_copy)
+      {
+        if (options.check_printable_char(c))
+        {
+          formatted_msg.append(std::string{c});
+        }
+        else
+        {
+          // convert non-printable character to hex
+          constexpr char hex[] = "0123456789ABCDEF";
+          formatted_msg.append(std::string{'\\'});
+          formatted_msg.append(std::string{'x'});
+          formatted_msg.append(std::string{hex[(c >> 4) & 0xF]});
+          formatted_msg.append(std::string{hex[c & 0xF]});
+        }
+      }
+    }
   }
 
 private:

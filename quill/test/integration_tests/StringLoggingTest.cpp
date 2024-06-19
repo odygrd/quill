@@ -59,6 +59,9 @@ TEST_CASE("string_logging")
     c_style_string_array_non_terminated[1] = 'B';
     c_style_string_array_non_terminated[2] = 'C';
 
+    const char* npcs = "Example\u0003String\u0004";
+    LOG_INFO(logger, "non printable cs [{}]", npcs);
+
     LOG_INFO(logger, "s [{}]", s);
     LOG_INFO(logger, "scr [{}]", scr);
     LOG_INFO(logger, "sr [{}]", sr);
@@ -107,7 +110,13 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 14);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 15);
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       non printable cs [Example\\x03String\\x04]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       s [adipiscing]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       s [adipiscing]"}));

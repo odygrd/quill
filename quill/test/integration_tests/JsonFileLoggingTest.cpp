@@ -96,6 +96,11 @@ TEST_CASE("json_file_logging")
         {
           // log a message without any args, only from the first thread
           LOG_INFO(logger, "Hello from thread");
+
+          // Log a message with non-printable chars
+          const char* npcs = "Example\u0003String\u0004";
+
+          LOG_INFO(logger, "contains non-printable {npcs}", npcs);
         }
 
         for (size_t j = 0; j < number_of_messages; ++j)
@@ -132,8 +137,8 @@ TEST_CASE("json_file_logging")
   std::vector<std::string> const file_contents = quill::testing::file_contents(json_filename);
   std::vector<std::string> const file_contents_s = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads + 2);
-  REQUIRE_EQ(file_contents_s.size(), number_of_messages * number_of_threads + 2);
+  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads + 3);
+  REQUIRE_EQ(file_contents_s.size(), number_of_messages * number_of_threads + 3);
 
   for (size_t i = 0; i < number_of_threads; ++i)
   {
@@ -167,6 +172,11 @@ TEST_CASE("json_file_logging")
     std::string expected_no_args_fmt = "Hello from thread";
     REQUIRE(quill::testing::file_contains(file_contents, expected_no_args_json));
     REQUIRE(quill::testing::file_contains(file_contents_s, expected_no_args_fmt));
+
+    std::string expected_non_printable_json = "\"npcs\":\"Example\\x03String\\x04\"";
+    std::string expected_non_printable_fmt = "contains non-printable Example\\x03String\\x04";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_non_printable_json));
+    REQUIRE(quill::testing::file_contains(file_contents_s, expected_non_printable_fmt));
 
     std::string expected_invalid_fmt_json =
       "\"log_level\":\"INFO\",\"message\":\"invalid format [{%f}]\"";

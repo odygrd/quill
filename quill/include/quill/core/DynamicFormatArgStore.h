@@ -62,6 +62,7 @@ private:
   // Storage of arguments not fitting into basic_format_arg must grow
   // without relocation because items in data_ refer to it.
   DynamicArgList _dynamic_arg_list;
+  bool _has_string_related_type{false};
 
   template <typename T>
   void emplace_arg(T const& arg)
@@ -110,6 +111,15 @@ public:
     {
       emplace_arg(arg);
     }
+
+    if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
+                  (mapped_type == fmtquill::detail::type::cstring_type) ||
+                  (mapped_type == fmtquill::detail::type::string_type) ||
+                  (mapped_type == fmtquill::detail::type::custom_type) ||
+                  (mapped_type == fmtquill::detail::type::char_type))
+    {
+      _has_string_related_type = true;
+    }
   }
 
   /** Erase all elements from the store */
@@ -117,6 +127,9 @@ public:
   {
     _data.clear();
     _dynamic_arg_list = DynamicArgList{};
+    _has_string_related_type = false;
   }
+
+  QUILL_NODISCARD bool has_string_related_type() const noexcept { return _has_string_related_type; }
 };
 } // namespace quill::detail
