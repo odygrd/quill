@@ -1,0 +1,3 @@
+add_executable(quill_single_logger_multiple_sink_formats single_logger_multiple_sink_formats.cpp)
+set_common_compile_options(quill_single_logger_multiple_sink_formats)
+target_link_libraries(quill_single_logger_multiple_sink_formats quill)

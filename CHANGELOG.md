@@ -83,6 +83,11 @@
   LOG_INFO(logger, "{} {}", quill::utility::StringRef{sv}, quill::utility::StringRef{"string_literal"});
   ```
 
+- Renamed `write_log_message` to `write_log` in `Sink`. The formatted `log_message` and `process_id` are now also
+  provided. This enhancement supports use cases where the formatted `log_statement` passed to the `Sink` can be ignored
+  and overwritten with a custom format, allowing a single `Logger` to output different formats to various Sinks.
+  ([#476](https://github.com/odygrd/quill/issues/476))
+
 ## v4.4.1
 
 - Fixed multiple definitions of `quill::detail::get_error_message` ([#469](https://github.com/odygrd/quill/issues/469))

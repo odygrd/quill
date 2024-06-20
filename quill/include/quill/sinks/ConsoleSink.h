@@ -342,16 +342,17 @@ public:
    * @param log_timestamp log timestamp
    * @param thread_id thread id
    * @param thread_name thread name
+   * @param process_id Process Id
    * @param logger_name logger name
    * @param log_level log level
    * @param named_args vector of key-value pairs of named args
    * @param log_message log message
    */
-  QUILL_ATTRIBUTE_HOT void write_log_message(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                             std::string_view thread_id, std::string_view thread_name,
-                                             std::string_view logger_name, LogLevel log_level,
-                                             std::vector<std::pair<std::string, std::string>> const* named_args,
-                                             std::string_view log_message) override
+  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
+                                     std::string_view thread_id, std::string_view thread_name,
+                                     std::string const& process_id, std::string_view logger_name, LogLevel log_level,
+                                     std::vector<std::pair<std::string, std::string>> const* named_args,
+                                     std::string_view log_message, std::string_view log_statement) override
   {
 #if defined(_WIN32)
     if (_console_colours.using_colours())
@@ -365,7 +366,7 @@ public:
 
       // Write to console
       bool const write_to_console = WriteConsoleA(
-        out_handle, log_message.data(), static_cast<DWORD>(log_message.size()), nullptr, nullptr);
+        out_handle, log_statement.data(), static_cast<DWORD>(log_statement.size()), nullptr, nullptr);
 
       if (QUILL_UNLIKELY(!write_to_console))
       {
@@ -386,8 +387,8 @@ public:
     else
     {
       // Write record to file
-      StreamSink::write_log_message(log_metadata, log_timestamp, thread_id, thread_name,
-                                    logger_name, log_level, named_args, log_message);
+      StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
+                            logger_name, log_level, named_args, log_message, log_statement);
     }
 #else
     if (_console_colours.can_use_colours())
@@ -398,8 +399,8 @@ public:
     }
 
     // Write record to file
-    StreamSink::write_log_message(log_metadata, log_timestamp, thread_id, thread_name, logger_name,
-                                  log_level, named_args, log_message);
+    StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
+                          logger_name, log_level, named_args, log_message, log_statement);
 
     if (_console_colours.can_use_colours())
     {

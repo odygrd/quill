@@ -18,13 +18,13 @@ struct UserSink final : public quill::Sink
   UserSink() = default;
 
   /***/
-  void write_log_message(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                         std::string_view thread_id, std::string_view thread_name,
-                         std::string_view logger_name, quill::LogLevel log_level,
-                         std::vector<std::pair<std::string, std::string>> const* named_args,
-                         std::string_view log_message) override
+  void write_log(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
+                 std::string_view thread_id, std::string_view thread_name,
+                 std::string const& process_id, std::string_view logger_name, quill::LogLevel log_level,
+                 std::vector<std::pair<std::string, std::string>> const* named_args,
+                 std::string_view log_message, std::string_view log_statement) override
   {
-    log_message_cnt.fetch_add(1);
+    log_statement_cnt.fetch_add(1);
   }
 
   /***/
@@ -33,7 +33,7 @@ struct UserSink final : public quill::Sink
   /***/
   void run_periodic_tasks() noexcept override { periodic_tasks_cnt.fetch_add(1); }
 
-  std::atomic<uint64_t> log_message_cnt{0};
+  std::atomic<uint64_t> log_statement_cnt{0};
   std::atomic<uint64_t> flush_sink_cnt{0};
   std::atomic<uint64_t> periodic_tasks_cnt{0};
 };
@@ -98,8 +98,8 @@ TEST_CASE("user_sink")
   Backend::stop();
 
   // user_sink_b will have twice the messages since logger_c is also logging there
-  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->log_message_cnt.load(), number_of_messages);
-  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_b.get())->log_message_cnt.load(), number_of_messages * 2);
+  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_a.get())->log_statement_cnt.load(), number_of_messages);
+  REQUIRE_EQ(reinterpret_cast<UserSink*>(user_sink_b.get())->log_statement_cnt.load(), number_of_messages * 2);
 
   uint64_t const count_a_flush = reinterpret_cast<UserSink*>(user_sink_a.get())->flush_sink_cnt.load();
   uint64_t const count_b_flush = reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load();
