@@ -21,8 +21,7 @@ public:
   {
   }
 
-  QUILL_ATTRIBUTE_HOT void write_log(quill::MacroMetadata const* log_metadata,
-                                     uint64_t log_timestamp, std::string_view thread_id,
+  void write_log(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
                                      std::string_view thread_name, std::string const& process_id,
                                      std::string_view logger_name, quill::LogLevel log_level,
                                      std::vector<std::pair<std::string, std::string>> const* named_args,
