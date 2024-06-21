@@ -122,5 +122,6 @@ TEST_CASE("flush_multiple_loggers")
     testing::remove_file(file);
   }
 
-  fs::remove_all(log_path);
+  std::error_code ec;
+  fs::remove_all(log_path, ec);
 }
