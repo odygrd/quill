@@ -32,16 +32,16 @@ TEST_CASE("rotating_file_sink_index_no_backup_limit")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, 0, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -96,16 +96,16 @@ TEST_CASE("rotating_file_sink_index_with_backup_limit_overwrite_rolled_files")
     for (size_t i = 0; i < 12; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, 0, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -157,16 +157,16 @@ TEST_CASE("rotating_file_sink_index_with_backup_limit_dont_overwrite_rolled_file
     for (size_t i = 0; i < 12; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, 0, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -243,16 +243,16 @@ TEST_CASE("rotating_file_sink_index_open_mode_write_clean_up_old_files")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, 0, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -332,16 +332,16 @@ TEST_CASE("rotating_file_sink_index_open_mode_write_dont_clean_up_old_files")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, 0, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -411,16 +411,16 @@ TEST_CASE("rotating_file_sink_index_open_mode_append")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, 0, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -501,46 +501,46 @@ TEST_CASE("rotating_file_sink_date_no_backup_limit")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230612, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     {
       std::string s{"Record [" + std::to_string(4) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230613, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     // change the date and rotate again
     for (size_t i = 5; i < 8; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230614, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -623,47 +623,47 @@ TEST_CASE("rotating_file_sink_date_with_backup_limit_overwrite_rolled_files")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230612, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     {
       // change the date and rotate again
       std::string s{"Record [" + std::to_string(4) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230613, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     // change the date and rotate again
     for (size_t i = 5; i < 8; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230614, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -726,47 +726,47 @@ TEST_CASE("rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230612, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     {
       // change the date and rotate again
       std::string s{"Record [" + std::to_string(4) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230613, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     // change the date and rotate again
     for (size_t i = 5; i < 8; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230614, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -854,16 +854,16 @@ TEST_CASE("rotating_file_sink_date_open_mode_write_clean_up_old_files")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230612, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -945,16 +945,16 @@ TEST_CASE("rotating_file_sink_date_open_mode_write_dont_clean_up_old_files")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230612, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -1035,16 +1035,16 @@ TEST_CASE("rotating_file_sink_data_open_mode_append")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230612, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -1136,63 +1136,63 @@ TEST_CASE("rotating_file_sink_dateandtime_no_backup_limit")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230612, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     {
       // change the date and rotate again
 
       std::string s{"Record [" + std::to_string(4) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230613, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     {
       // change the date and rotate again
       std::string s{"Record [" + std::to_string(5) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230613_2, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230613_2, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     // change the date and rotate again
     for (size_t i = 6; i < 9; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230614, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -1281,47 +1281,47 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_overwrite_rolled_fil
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, 0, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     {
       // change the date and rotate again
       std::string s{"Record [" + std::to_string(4) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230613, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     // change the date and rotate again
     for (size_t i = 5; i < 8; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230614, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -1391,47 +1391,47 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolle
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230612, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     {
       // change the date and rotate again
       std::string s{"Record [" + std::to_string(4) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230613, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     // change the date and rotate again
     for (size_t i = 5; i < 8; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp_20230614, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -1498,16 +1498,16 @@ TEST_CASE("time_rotation_minutes_rotating_file_sink_index")
     for (size_t i = 0; i < 5; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
 
       timestamp += std::chrono::nanoseconds(std::chrono::minutes(1)).count();
     }
@@ -1571,16 +1571,16 @@ TEST_CASE("time_rotation_hours_rotating_file_sink_index")
     for (size_t i = 0; i < 5; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, timestamp, std::string_view{}, std::string_view{},
-                            std::string_view{}, LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
 
       timestamp += std::chrono::nanoseconds(std::chrono::hours(1)).count();
     }
@@ -1648,16 +1648,16 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_index")
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [" + std::string(buffer) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, ts, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
 
       ts += std::chrono::nanoseconds(std::chrono::hours(24)).count();
     }
@@ -1737,11 +1737,11 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [0 " + std::string(buffer) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
-      rfh.write_log_message(nullptr, ts, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     {
@@ -1756,16 +1756,16 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [1 " + std::string(buffer) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, ts, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
 
     for (size_t i = 2; i < 4; ++i)
@@ -1781,11 +1781,11 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [" + std::to_string(i) + " " + std::string(buffer) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
-      rfh.write_log_message(nullptr, ts, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
 
       ts += std::chrono::nanoseconds(std::chrono::hours(24)).count();
     }
@@ -1802,16 +1802,16 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
       std::string s{"Record [4 " + std::string(buffer) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, ts, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 
@@ -1890,16 +1890,16 @@ TEST_CASE("rotating_file_sink_index_dont_remove_unrelated_files")
     for (size_t i = 0; i < 4; ++i)
     {
       std::string s{"Record [" + std::to_string(i) + "]"};
-      std::string formatted_log_message;
-      formatted_log_message.append(s.data(), s.data() + s.size());
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
 
       // Add a big string to rotate the file
       std::string f;
       f.resize(1024);
-      formatted_log_message.append(f.data(), f.data() + f.size());
+      formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log_message(nullptr, 0, std::string_view{}, std::string_view{}, std::string_view{},
-                            LogLevel::Info, nullptr, formatted_log_message);
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, nullptr, "", formatted_log_statement);
     }
   }
 

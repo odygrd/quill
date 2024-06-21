@@ -789,24 +789,24 @@ private:
    */
   QUILL_ATTRIBUTE_HOT void _write_transit_event_to_sinks(TransitEvent const& transit_event) const
   {
-    std::string_view const formatted_log_message = transit_event.logger_base->pattern_formatter->format(
+    std::string_view const log_message =
+      std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()};
+
+    std::string_view const log_statement = transit_event.logger_base->pattern_formatter->format(
       transit_event.timestamp, transit_event.thread_id, transit_event.thread_name, _process_id,
       transit_event.logger_base->logger_name, loglevel_to_string(transit_event.log_level()),
-      *transit_event.macro_metadata, transit_event.named_args.get(),
-      std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()});
+      *transit_event.macro_metadata, transit_event.named_args.get(), log_message);
 
     for (auto& sink : transit_event.logger_base->sinks)
     {
       // If all filters are okay we write this message to the file
       if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp,
                                   transit_event.thread_id, transit_event.thread_name,
-                                  transit_event.logger_base->logger_name, transit_event.log_level(),
-                                  formatted_log_message))
+                                  transit_event.logger_base->logger_name, transit_event.log_level(), log_statement))
       {
-        sink->write_log_message(transit_event.macro_metadata, transit_event.timestamp,
-                                transit_event.thread_id, transit_event.thread_name,
-                                transit_event.logger_base->logger_name, transit_event.log_level(),
-                                transit_event.named_args.get(), formatted_log_message);
+        sink->write_log(transit_event.macro_metadata, transit_event.timestamp, transit_event.thread_id,
+                        transit_event.thread_name, _process_id, transit_event.logger_base->logger_name,
+                        transit_event.log_level(), transit_event.named_args.get(), log_message, log_statement);
       }
     }
   }
@@ -1196,8 +1196,7 @@ private:
 
     // Format all values to a single string
     std::string formatted_values_str;
-    fmtquill::vformat_to(
-      std::back_inserter(formatted_values_str), format_string,
+    fmtquill::vformat_to(std::back_inserter(formatted_values_str), format_string,
                          fmtquill::basic_format_args<fmtquill::format_context>{
                            format_args_store.get_types(), format_args_store.data()});
 

@@ -124,12 +124,12 @@ public:
    * @brief Writes a formatted log message to the stream
    * @param log_message The log message to write
    */
-  QUILL_ATTRIBUTE_HOT void write_log_message(MacroMetadata const* /* log_metadata */,
-                                             uint64_t /* log_timestamp */, std::string_view /* thread_id */,
-                                             std::string_view /* thread_name */,
-                                             std::string_view /* logger_name */, LogLevel /* log_level */,
+  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* /* log_metadata */,
+                                     uint64_t /* log_timestamp */, std::string_view /* thread_id */,
+                                             std::string_view /* thread_name */, std::string const& /* process_id */,
+                                     std::string_view /* logger_name */, LogLevel /* log_level */,
                                              std::vector<std::pair<std::string, std::string>> const* /* named_args */,
-                                             std::string_view log_message) override
+                                     std::string_view /* log_message */, std::string_view log_statement) override
   {
     if (QUILL_UNLIKELY(!_file))
     {
@@ -139,13 +139,13 @@ public:
 
     if (_file_event_notifier.before_write)
     {
-      std::string const user_log_message = _file_event_notifier.before_write(log_message);
+      std::string const user_log_statement = _file_event_notifier.before_write(log_statement);
 
-      safe_fwrite(user_log_message.data(), sizeof(char), user_log_message.size(), _file);
+      safe_fwrite(user_log_statement.data(), sizeof(char), user_log_statement.size(), _file);
     }
     else
     {
-      safe_fwrite(log_message.data(), sizeof(char), log_message.size(), _file);
+      safe_fwrite(log_statement.data(), sizeof(char), log_statement.size(), _file);
     }
 
     _write_occurred = true;

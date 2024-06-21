@@ -49,15 +49,16 @@ public:
    * @param log_timestamp Timestamp of the log event.
    * @param thread_id ID of the thread.
    * @param thread_name Name of the thread.
+   * @param process_id Process Id
    * @param logger_name Name of the logger.
    * @param log_level Log level of the message.
    * @param named_args Vector of key-value pairs of named args
    */
-  QUILL_ATTRIBUTE_HOT void write_log_message(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                             std::string_view thread_id, std::string_view thread_name,
-                                             std::string_view logger_name, LogLevel log_level,
-                                             std::vector<std::pair<std::string, std::string>> const* named_args,
-                                             std::string_view) override
+  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
+                                     std::string_view thread_id, std::string_view thread_name,
+                                     std::string const& process_id, std::string_view logger_name, LogLevel log_level,
+                                     std::vector<std::pair<std::string, std::string>> const* named_args,
+                                     std::string_view, std::string_view) override
   {
     _json_message.clear();
 
@@ -80,9 +81,9 @@ public:
 
     _json_message.append("}\n");
 
-    StreamSink::write_log_message(log_metadata, log_timestamp, thread_id, thread_name, logger_name,
-                                  log_level, named_args,
-                                  std::string_view{_json_message.data(), _json_message.size()});
+    StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
+                          logger_name, log_level, named_args, std::string_view{},
+                          std::string_view{_json_message.data(), _json_message.size()});
   }
 
 private:
