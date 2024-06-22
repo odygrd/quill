@@ -106,17 +106,55 @@ TEST_CASE("flush_multiple_loggers")
 
   logger_a->flush_log();
 
-  REQUIRE_EQ(created_files.size(), 3);
+  // Check log is flushed after flush_log()
+  bool file_001_checked = false;
+  bool file_002_checked = false;
+  bool file_003_checked = false;
+
+  // Iterate all created files in our path
   fs::path const log_path = fs::current_path() / path_name;
+
+  REQUIRE_EQ(created_files.size(), 3);
   for (const auto& file : created_files)
   {
     std::vector<std::string> const file_contents = quill::testing::file_contents(file);
     REQUIRE_EQ(file_contents.size(), 1);
+
+    if (file.string().find("001") != std::string::npos)
+    {
+      file_001_checked = true;
+      REQUIRE(quill::testing::file_contains(
+        file_contents, std::string{"[INFO] [001::DOCTEST_ANON_FUNC_2]: hello! - logger_a"}));
+    }
+    else if (file.string().find("002") != std::string::npos)
+    {
+      file_002_checked = true;
+      REQUIRE(quill::testing::file_contains(
+        file_contents, std::string{"[002::DOCTEST_ANON_FUNC_2]: hello! - logger_b"}));
+    }
+    else if (file.string().find("003") != std::string::npos)
+    {
+      file_003_checked = true;
+      REQUIRE(quill::testing::file_contains(
+        file_contents, std::string{"[INFO] [003::DOCTEST_ANON_FUNC_2]: hello! - logger_c"}));
+    }
+  }
+
+  REQUIRE(file_001_checked);
+  REQUIRE(file_002_checked);
+  REQUIRE(file_003_checked);
+
+  // flush all log and remove all loggers
+  for (Logger* logger : Frontend::get_all_loggers())
+  {
+    logger->flush_log();
+    Frontend::remove_logger(logger);
   }
 
   // Wait until the backend thread stops for test stability
   Backend::stop();
 
+  // Remove all files
   for (const auto& file : created_files)
   {
     testing::remove_file(file);
