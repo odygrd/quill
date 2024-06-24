@@ -702,6 +702,12 @@ private:
     } // clang-format on
 #endif
 
+    // Finally clean up any remaining fields in the transit event
+    if (transit_event->named_args)
+    {
+      transit_event->named_args->clear();
+    }
+
     // Remove this event and move to the next.
     transit_buffer->pop_front();
 
@@ -1237,10 +1243,6 @@ private:
     {
       // named arg logs, we lazy initialise the named args buffer
       transit_event->named_args = std::make_unique<std::vector<std::pair<std::string, std::string>>>();
-    }
-    else
-    {
-      transit_event->named_args->clear();
     }
 
     transit_event->named_args->resize(arg_names.size());
