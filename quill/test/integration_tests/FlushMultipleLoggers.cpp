@@ -117,23 +117,26 @@ TEST_CASE("flush_multiple_loggers")
   REQUIRE_EQ(created_files.size(), 3);
   for (const auto& file : created_files)
   {
-    if (file.string().find("001") != std::string::npos)
+    std::vector<std::string> const file_contents = quill::testing::file_contents(file);
+    REQUIRE_EQ(file_contents.size(), 1);
+
+    if (file.string().find("PS_001") != std::string::npos)
     {
       file_001_checked = true;
-      std::vector<std::string> const file_contents = quill::testing::file_contents(file);
-      REQUIRE_EQ(file_contents.size(), 1);
+      REQUIRE(quill::testing::file_contains(
+        file_contents, std::string{"[INFO] [001::DOCTEST_ANON_FUNC_2]: hello! - logger_a"}));
     }
-    else if (file.string().find("002") != std::string::npos)
+    else if (file.string().find("PS_002") != std::string::npos)
     {
       file_002_checked = true;
-      std::vector<std::string> const file_contents = quill::testing::file_contents(file);
-      REQUIRE_EQ(file_contents.size(), 1);
+      REQUIRE(quill::testing::file_contains(
+        file_contents, std::string{"[002::DOCTEST_ANON_FUNC_2]: hello! - logger_b"}));
     }
-    else if (file.string().find("003") != std::string::npos)
+    else if (file.string().find("PS_003") != std::string::npos)
     {
       file_003_checked = true;
-      std::vector<std::string> const file_contents = quill::testing::file_contents(file);
-      REQUIRE_EQ(file_contents.size(), 1);
+      REQUIRE(quill::testing::file_contains(
+        file_contents, std::string{"[INFO] [003::DOCTEST_ANON_FUNC_2]: hello! - logger_c"}));
     }
   }
 
