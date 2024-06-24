@@ -88,6 +88,9 @@
   and overwritten with a custom format, allowing a single `Logger` to output different formats to various Sinks.
   ([#476](https://github.com/odygrd/quill/issues/476))
 
+- Fixed a bug in JSON logging where previously cached named arguments could erroneously append to subsequent log
+  statements. ([#482](https://github.com/odygrd/quill/issues/482))
+
 ## v4.4.1
 
 - Fixed multiple definitions of `quill::detail::get_error_message` ([#469](https://github.com/odygrd/quill/issues/469))
