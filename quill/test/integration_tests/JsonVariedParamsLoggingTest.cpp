@@ -94,11 +94,11 @@ TEST_CASE("json_varied_params_logging")
     }
     else if (i % 3 == 1)
     {
-      LOG_INFO(logger, "One parameter {param_1}", i);
+      LOG_WARNING(logger, "One parameter {param_1}", i);
     }
     else
     {
-      LOG_INFO(logger, "Two parameters {param_1} {param_2}", i, i);
+      LOG_ERROR(logger, "Two parameters {param_1} {param_2}", i, i);
     }
 
     // flush the log each time so that the transit events are reused
@@ -126,14 +126,14 @@ TEST_CASE("json_varied_params_logging")
     else if (i % 3 == 1)
     {
       std::string const expected_json_statement = fmtquill::format(
-        R"({{"logger":"root","log_level":"INFO","message":"One parameter {{param_1}}","param_1":"{}"}})", i);
+        R"({{"logger":"root","log_level":"WARNING","message":"One parameter {{param_1}}","param_1":"{}"}})", i);
 
       REQUIRE_EQ(file_contents[i], expected_json_statement);
     }
     else
     {
       std::string const expected_json_statement = fmtquill::format(
-        R"({{"logger":"root","log_level":"INFO","message":"Two parameters {{param_1}} {{param_2}}","param_1":"{}","param_2":"{}"}})",
+        R"({{"logger":"root","log_level":"ERROR","message":"Two parameters {{param_1}} {{param_2}}","param_1":"{}","param_2":"{}"}})",
         i, i);
 
       REQUIRE_EQ(file_contents[i], expected_json_statement);
