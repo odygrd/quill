@@ -73,6 +73,10 @@
   or disable this feature through the backend options by modifying the `check_printable_char` callback
   in `BackendOptions`.
 
+  ```c++  
+  std::function<bool(char c)> check_printable_char = [](char c) { return c >= ' ' && c <= '~'; };
+  ```
+  
 - Added `StringRef`, a utility for passing string arguments by reference without copying. Suitable for string literals
   or immutable strings with a guaranteed persistent lifetime. For example
 
