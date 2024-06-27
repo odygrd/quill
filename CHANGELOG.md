@@ -1,3 +1,4 @@
+- [v4.6.0](#v460)
 - [v4.5.0](#v450)
 - [v4.4.1](#v441)
 - [v4.4.0](#v440)
@@ -65,6 +66,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v4.6.0
+
+- Ensure `format.h` is always included when building with the Android NDK to resolve a linkage error in the release build. ([#484](https://github.com/odygrd/quill/issues/484))
 
 ## v4.5.0
 

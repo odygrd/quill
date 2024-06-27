@@ -11,6 +11,11 @@
 
 #include "quill/bundled/fmt/core.h"
 
+#if defined(__ANDROID__)
+  // Include format.h to prevent linkage errors with lubfmt in Android NDK release builds
+  #include "quill/bundled/fmt/format.h"
+#endif
+
 #include "quill/core/Attributes.h"
 #include "quill/core/DynamicFormatArgStore.h"
 
