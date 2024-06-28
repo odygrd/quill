@@ -1,6 +1,7 @@
-module(name = "quill",
-       version = "4.6.0",
-       compatibility_level = 1,
+module(
+    name = "quill",
+    version = "4.6.0",
+    compatibility_level = 1,
 )
 
 bazel_dep(name = "platforms", version = "0.0.10")

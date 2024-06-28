@@ -1,17 +1,22 @@
-package(default_visibility = ["//visibility:public"],)
+package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"]) # MIT
+licenses(["notice"])  # MIT
 
-cc_library(name = "quill",
-           hdrs = glob(["quill/include/**/*.h"]),
-           includes = ["quill/include"],
-           linkopts = select({
-               "@platforms//os:windows": [],
-               "@platforms//os:linux": ["-lpthread", "-lrt",],
-               "//conditions:default": ["-lpthread",]
-           }),
-           copts = select({
-               "@rules_cc//cc/compiler:gcc": ["Wno-gnu-zero-variadic-macro-arguments"],
-               "@rules_cc//cc/compiler:clang": ["Wno-gnu-zero-variadic-macro-arguments"],
-               "//conditions:default": [],
-           }),)
+cc_library(
+    name = "quill",
+    hdrs = glob(["quill/include/**/*.h"]),
+    copts = select({
+        "@rules_cc//cc/compiler:gcc": ["Wno-gnu-zero-variadic-macro-arguments"],
+        "@rules_cc//cc/compiler:clang": ["Wno-gnu-zero-variadic-macro-arguments"],
+        "//conditions:default": [],
+    }),
+    includes = ["quill/include"],
+    linkopts = select({
+        "@platforms//os:windows": [],
+        "@platforms//os:linux": [
+            "-lpthread",
+            "-lrt",
+        ],
+        "//conditions:default": ["-lpthread"],
+    }),
+)
