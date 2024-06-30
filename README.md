@@ -76,11 +76,11 @@ capabilities.
 ## Documentation
 
 For detailed documentation and usage instructions, please visit
-the [Quill Documentation on Read the Docs](http://quillcpp.readthedocs.io/). It provides comprehensive information on
-how to integrate and utilize Quill in your C++ applications.
 
-Additionally, you can explore the [examples](http://github.com/odygrd/quill/tree/master/examples) folder in the Quill
-repository on GitHub. These examples serve as valuable resources to understand different usage scenarios and demonstrate
+[Quill Documentation](http://quillcpp.readthedocs.io/)
+
+Additionally, you can explore the [examples](http://github.com/odygrd/quill/tree/master/examples) folder on GitHub.
+These examples serve as valuable resources to understand different usage scenarios and demonstrate
 the capabilities of the library.
 
 ## Features
