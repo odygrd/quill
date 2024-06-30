@@ -52,11 +52,8 @@ The queue size and type is configurable in runtime by providing custom a :cpp:cl
 Flush
 -----
 
-You can explicitly instruct the frontend thread to wait until the log up to the current timestamp is flushed.
-
-.. note:: The thread that calls :cpp:func:`flush_log` will **block** until every message up to that point is flushed.
-
-.. doxygenfunction:: flush_log
+You can explicitly instruct the frontend thread to wait until the log up to the current timestamp is flushed with
+:cpp:func:`quill::LoggerImpl::flush_log`. The caller thread will **block** until every log statement up to that point is flushed.
 
 Application Crash Policy
 ------------------------
@@ -66,9 +63,9 @@ When the program is terminated gracefully, quill will go through its destructor 
 However, if the applications crashes, log messages can be lost.
 
 To avoid losing messages when the application crashes due to a signal interrupt the user must setup a signal
-handler and call :cpp:func:`flush_log` inside the signal handler.
+handler and call :cpp:func:`quill::LoggerImpl::flush_log` inside the signal handler.
 
-There is a built-in signal handler that offers this crash-safe behaviour and can be enabled in :cpp:func:`start_with_signal_handler<quill::FrontendOptions>`
+There is a built-in signal handler that offers this crash-safe behaviour and can be enabled in :cpp:func:`quill::Backend::start_with_signal_handler`
 
 Log Messages Timestamp Order
 ----------------------------
@@ -84,9 +81,7 @@ Latency of the first log message
 --------------------------------
 
 A queue and an internal buffer will be allocated on the first log message of each thread. If the latency of the first
-log message is important it is recommended to call :cpp:func:`quill::preallocate`
-
-.. doxygenfunction:: preallocate()
+log message is important it is recommended to call :cpp:func:`quill::FrontendImpl::preallocate`
 
 Configuration
 -------------

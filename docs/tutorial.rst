@@ -30,10 +30,10 @@ In the example above, a console `Sink` is created and then passed to a `Logger` 
 
 Each `Sink` and `Logger` must be assigned a unique name during creation to facilitate retrieval later.
 
-Each :cpp:class:`quill::LoggerImpl<T>` contains a :cpp:class:`quill::PatternFormatter` object which is responsible for the
+Each :cpp:class:`quill::LoggerImpl` contains a :cpp:class:`quill::PatternFormatter` object which is responsible for the
 formatting of the message.
 
-Moreover, each :cpp:class:`quill::LoggerImpl<T>` contains single or multiple :cpp:class:`quill::Sink` objects. The sink
+Moreover, each :cpp:class:`quill::LoggerImpl` contains single or multiple :cpp:class:`quill::Sink` objects. The sink
 objects actually deliver the log message to their output source.
 
 A single backend thread is checking for new log messages periodically.
@@ -106,8 +106,13 @@ ConsoleSink
 The ``ConsoleSink`` class sends logging output to streams ``stdout`` or ``stderr``.
 Printing colour codes to terminal or windows console is also supported.
 
-FileHandler
-~~~~~~~~~~~
+FileSink
+~~~~~~~~
+
+The :cpp:class:`quill::FileSink` is a straightforward sink that outputs to a file. The filepath of the ``FileSink`` serves as a unique
+identifier, allowing you to retrieve the same sink later using :cpp:func:`quill::FrontendImpl::get_sink`.
+
+Each file can only have a single instance of ``FileSink``.
 
 .. code:: cpp
 
@@ -137,6 +142,8 @@ FileHandler
 RotatingFileSink
 ~~~~~~~~~~~~~~~~
 
+The :cpp:class:`quill::RotatingFileSink` is built on top of the ``FileSink`` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
+
 .. code:: cpp
 
       // Start the backend thread
@@ -164,8 +171,12 @@ RotatingFileSink
         LOG_INFO(logger, "Hello from rotating logger, index is {}", i);
       }
 
-JsonFileSink
-~~~~~~~~~~~~
+JsonFileSink/JsonConsoleSink
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :cpp:class:`quill::JsonFileSink` and :cpp:class:`quill::JsonConsoleSink` enable the creation of structured logs.
+To utilize this feature, provide named arguments in your log format string, as shown in the example below. The example demonstrates
+how to create a logger that emits both normal and structured logs, but it can also be configured to emit only structured logs.
 
 .. code:: cpp
 
@@ -219,12 +230,12 @@ A Filter class that can be used for filtering log records in the backend working
 This is a simple way to ensure that a logger or sink will only output desired log messages.
 
 One or several :cpp:class:`quill::Filter` can be added to a :cpp:class:`quill::Sink` instance using the
-:cpp:func:`void add_filter(std::unique_ptr<Filter> filter)`
+:cpp:func:`quill::Sink::add_filter`
 
 The sink stores all added filters in a vector. The final log message is logged if all filters of the sink return `true`.
 
-Filtering per sink
-~~~~~~~~~~~~~~~~~~
+Filtering Logs by Sink
+~~~~~~~~~~~~~~~~~~~~~~
 
 The below example logs all WARNING and higher log level messages to console and all INFO and lower level messages to a file.
 
@@ -306,7 +317,7 @@ Formatters
 
 The :cpp:class:`quill::PatternFormatter` specifies the layout of log records in the final output.
 
-Each :cpp:class:`quill::LoggerImpl<T>` object owns a ``PatternFormatter`` object.
+Each :cpp:class:`quill::LoggerImpl` object owns a ``PatternFormatter`` object.
 This means that each Logger can be customised to output in a different format.
 
 Customising the format output only be done during the creation of the logger.
@@ -418,12 +429,12 @@ The logger object are never instantiated directly. Instead they first have to ge
 
 :cpp:func:`Frontend::create_or_get_logger(std::string const& logger_name, std::initializer_list<std::shared_ptr<Sink>> sinks, std::string const& format_pattern = "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)", std::string const& time_pattern = "%H:%M:%S.%Qns", Timezone timestamp_timezone = Timezone::LocalTime, ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)`
 
-Logger access
-~~~~~~~~~~~~~
+Logger Retrieval
+~~~~~~~~~~~~~~~~
 
-:cpp:func:`Frontend::get_logger(std::string const& name)`
+.. doxygenfunction:: quill::FrontendImpl::get_logger
 
-Logger creation
+Logger Creation
 ~~~~~~~~~~~~~~~
 
 .. code:: cpp

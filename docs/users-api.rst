@@ -62,8 +62,32 @@ FileSinkConfig Class
 .. doxygenclass:: quill::FileSinkConfig
    :members:
 
+FileSink Class
+--------------------
+
+.. doxygenclass:: quill::FileSink
+   :members:
+
 RotatingFileSinkConfig Class
 ----------------------------
 
 .. doxygenclass:: quill::RotatingFileSinkConfig
+   :members:
+
+RotatingFileSink Class
+----------------------------
+
+.. doxygenclass:: quill::RotatingFileSink
+   :members:
+
+JsonFileSink Class
+------------------
+
+.. doxygenclass:: quill::JsonFileSink
+   :members:
+
+JsonConsoleSink Class
+---------------------
+
+.. doxygenclass:: quill::JsonConsoleSink
    :members:
