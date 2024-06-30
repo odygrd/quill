@@ -1,11 +1,10 @@
-.. _tutorial:
+.. title:: Tutorial
 
-##############################################################################
 Tutorial
-##############################################################################
+========
 
 Basic Example
-=============
+-------------
 
 .. code:: cpp
 
@@ -27,12 +26,14 @@ Basic Example
       LOG_INFO(logger, "This is a log info example {}", 123);
     }
 
-In the above example a logger to ``stdout`` is created with it's name set to “root”.
+In the example above, a console `Sink` is created and then passed to a `Logger` with its name set to 'root'.
 
-Each :cpp:class:`quill::LoggerImpl` contains a :cpp:class:`quill::PatternFormatter` object which is responsible for the
+Each `Sink` and `Logger` must be assigned a unique name during creation to facilitate retrieval later.
+
+Each :cpp:class:`quill::LoggerImpl<T>` contains a :cpp:class:`quill::PatternFormatter` object which is responsible for the
 formatting of the message.
 
-Moreover, each :cpp:class:`quill::LoggerImpl` contains single or multiple :cpp:class:`quill::Sink` objects. The sink
+Moreover, each :cpp:class:`quill::LoggerImpl<T>` contains single or multiple :cpp:class:`quill::Sink` objects. The sink
 objects actually deliver the log message to their output source.
 
 A single backend thread is checking for new log messages periodically.
@@ -45,7 +46,7 @@ Use of macros is unavoidable in order to achieve better runtime performance. The
 argument to a decoding function. A template instantiation per log statement is created.
 
 Logging Macros
-================
+--------------
 
 The following macros are provided for logging:
 
@@ -60,7 +61,7 @@ The following macros are provided for logging:
 .. c:macro:: LOG_BACKTRACE(logger, log_message_format, args)
 
 Sinks
-========
+-------------
 
 Sinks are the objects responsible for writing logs to their respective targets.
 
@@ -68,16 +69,17 @@ A :cpp:class:`quill::Sink` object serves as the base class for various sink-deri
 
 Each sink handles outputting logs to a single target, such as a file, console, or database.
 
-Upon creation, a sink object is registered and owned by a central manager object, the quill::detail::SinkManager.
+Upon creation, a sink object is registered and owned by a central manager object the ``SinkManager``.
 
-For files, one sink is created per filename, and the file is opened once. If a sink is requested that refers to an already opened file, the existing Sink object is returned. Users can create multiple stdout or stderr handles by providing a unique ID per handle.
+For files, one sink is created per filename, and the file is opened once. If a sink is requested that refers to an already opened file, the existing Sink object is returned.
 
 When creating a logger, one or more sinks for that logger can be specified. Sinks can only be registered during the logger creation.
 
 Sharing sinks between loggers
-==================================
+-----------------------------
 
-It is possible to share the same sink object between multiple logger objects.
+It is possible to share the same ``Sink`` object between multiple ``Logger`` objects.
+
 For example when all logger objects are writing to the same file. The following code is also thread-safe.
 
 .. code:: cpp
@@ -96,19 +98,16 @@ For example when all logger objects are writing to the same file. The following 
      quill::Logger* logger_b = Frontend::create_or_get_logger("logger_b", file_sink);
 
 Sink Types
-==================================
+----------
 
 ConsoleSink
---------------
+~~~~~~~~~~~
 
 The ``ConsoleSink`` class sends logging output to streams ``stdout`` or ``stderr``.
 Printing colour codes to terminal or windows console is also supported.
 
 FileHandler
------------
-
-Logging to file
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
 
 .. code:: cpp
 
@@ -136,10 +135,7 @@ Logging to file
     }
 
 RotatingFileSink
--------------------
-
-Rotating log by size or time
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. code:: cpp
 
@@ -169,10 +165,7 @@ Rotating log by size or time
       }
 
 JsonFileSink
------------------------
-
-Json log
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
 
 .. code:: cpp
 
@@ -219,7 +212,7 @@ Json log
       }
 
 Filters
-==================================
+-------
 
 A Filter class that can be used for filtering log records in the backend working thread.
 
@@ -231,7 +224,7 @@ One or several :cpp:class:`quill::Filter` can be added to a :cpp:class:`quill::S
 The sink stores all added filters in a vector. The final log message is logged if all filters of the sink return `true`.
 
 Filtering per sink
------------------------
+~~~~~~~~~~~~~~~~~~
 
 The below example logs all WARNING and higher log level messages to console and all INFO and lower level messages to a file.
 
@@ -309,10 +302,11 @@ The below example logs all WARNING and higher log level messages to console and 
         }
 
 Formatters
-==================================
+----------
+
 The :cpp:class:`quill::PatternFormatter` specifies the layout of log records in the final output.
 
-Each :cpp:class:`quill::LoggerImpl` object owns a PatternFormatter object.
+Each :cpp:class:`quill::LoggerImpl<T>` object owns a ``PatternFormatter`` object.
 This means that each Logger can be customised to output in a different format.
 
 Customising the format output only be done during the creation of the logger.
@@ -383,7 +377,7 @@ attributes.
 
 
 Customising the timestamp
------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The timestamp is customisable by :
 
@@ -403,8 +397,8 @@ By default ``"%H:%M:%S.%Qns"`` is used.
 
 .. note:: MinGW does not support all ``strftime(...)`` format specifiers and you might get a ``bad alloc`` if the format specifier is not supported
 
-Setting a custom format for logging to stdout
-----------------------------------------------------------
+Setting a custom format
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: cpp
 
@@ -415,7 +409,7 @@ Setting a custom format for logging to stdout
                                           "%H:%M:%S.%Qns", quill::Timezone::GmtTime);
 
 Logger
------------------------------
+------
 
 Logger instances can be created by the user with the desired name, sinks and formatter.
 The logger object are never instantiated directly. Instead they first have to get created
@@ -425,12 +419,12 @@ The logger object are never instantiated directly. Instead they first have to ge
 :cpp:func:`Frontend::create_or_get_logger(std::string const& logger_name, std::initializer_list<std::shared_ptr<Sink>> sinks, std::string const& format_pattern = "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)", std::string const& time_pattern = "%H:%M:%S.%Qns", Timezone timestamp_timezone = Timezone::LocalTime, ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)`
 
 Logger access
------------------------------
+~~~~~~~~~~~~~
 
 :cpp:func:`Frontend::get_logger(std::string const& name)`
 
 Logger creation
------------------------------
+~~~~~~~~~~~~~~~
 
 .. code:: cpp
 
@@ -441,13 +435,13 @@ Logger creation
      LOG_INFO(logger, "Hello from {}", "library foo");
 
 Avoiding the use of Logger objects
----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For some applications the use of the single root logger might be enough. In that case passing the logger everytime
 to the macro becomes inconvenient. The solution is to store the created Logger as a static variable and create your
 own macros. See `example <https://github.com/odygrd/quill/blob/master/examples/recommended_usage/quill_wrapper/include/quill_wrapper/overwrite_macros.h>`_
 
 Backtrace Logging
-====================
+-----------------
 
 Backtrace logging enables log messages to be stored in a ring buffer and either
 
@@ -459,13 +453,12 @@ Backtrace logging needs to be enabled first on the instance of :cpp:class:`quill
 .. doxygenfunction:: init_backtrace
 .. doxygenfunction:: flush_backtrace
 
-.. note:: Backtrace log messages store the original timestamp of the message. Since they are kept and flushed later the
-timestamp in the log file will be out of order.
+.. note:: Backtrace log messages store the original timestamp of the message. Since they are kept and flushed later the timestamp in the log file will be out of order.
 
 .. note:: Backtrace log messages are still pushed to the SPSC queue from the frontend to the backend.
 
 Store messages in the ring buffer and display them when ``LOG_ERROR`` is logged
---------------------------------------------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: cpp
 
@@ -506,20 +499,20 @@ Store messages in the ring buffer and display them when ``LOG_ERROR`` is logged
     LOG_CRITICAL(logger, "A critical error from the logger we had a backtrace.");
 
 Store messages in the ring buffer and display them on demand
---------------------------------------------------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: cpp
-       // Store maximum of two log messages. By default they will never be flushed since no LogLevel severity is specified
-       logger->init_backtrace(2);
 
-       LOG_INFO(logger, "BEFORE backtrace Example {}", 2);
+    // Store maximum of two log messages. By default they will never be flushed since no LogLevel severity is specified
+    logger->init_backtrace(2);
 
-       LOG_BACKTRACE(logger, "Backtrace log {}", 100);
-       LOG_BACKTRACE(logger, "Backtrace log {}", 200);
-       LOG_BACKTRACE(logger, "Backtrace log {}", 300);
+    LOG_INFO(logger, "BEFORE backtrace Example {}", 2);
 
-       LOG_INFO(logger, "AFTER backtrace Example {}", 2);
+    LOG_BACKTRACE(logger, "Backtrace log {}", 100);
+    LOG_BACKTRACE(logger, "Backtrace log {}", 200);
+    LOG_BACKTRACE(logger, "Backtrace log {}", 300);
 
-       // an error has happened - flush_log_messages the backtrace manually
-       logger->flush_backtrace();
+    LOG_INFO(logger, "AFTER backtrace Example {}", 2);
 
+    // an error has happened - flush_log_messages the backtrace manually
+    logger->flush_backtrace();
