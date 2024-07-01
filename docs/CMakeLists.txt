@@ -44,6 +44,7 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
         ${CMAKE_CURRENT_SOURCE_DIR}/basic_example.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/logging_macros.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/sinks.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/timestamp_types.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/sink_types.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/filters.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/formatters.rst

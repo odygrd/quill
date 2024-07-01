@@ -15,6 +15,12 @@ Backend Class
 .. doxygenclass:: quill::Backend
    :members:
 
+BackendTscClock Class
+-------------
+
+.. doxygenclass:: quill::BackendTscClock
+   :members:
+
 Frontend Options
 ----------------
 
