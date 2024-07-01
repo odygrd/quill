@@ -25,7 +25,7 @@ TEST_CASE("dynamic_format_arg_store")
 
   std::string result = fmtquill::vformat(
     "{} and {} and {} and {}",
-    fmtquill::basic_format_args<fmtquill::format_context>{store.get_types(), store.data()});
+                      fmtquill::basic_format_args<fmtquill::format_context>{store.data(), store.size()});
 
   REQUIRE_EQ(result, std::string{"42 and abc and 1.5 and efg"});
 }

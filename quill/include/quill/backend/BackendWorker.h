@@ -32,7 +32,7 @@
 #include "quill/core/UnboundedSPSCQueue.h"
 #include "quill/sinks/Sink.h"
 
-#include "quill/bundled/fmt/core.h"
+#include "quill/bundled/fmt/base.h"
 
 #include <algorithm>
 #include <atomic>
@@ -1204,7 +1204,7 @@ private:
     std::string formatted_values_str;
     fmtquill::vformat_to(std::back_inserter(formatted_values_str), format_string,
                          fmtquill::basic_format_args<fmtquill::format_context>{
-                           format_args_store.get_types(), format_args_store.data()});
+                           format_args_store.data(), format_args_store.size()});
 
     // Split the formatted_values to isolate each value
     size_t start = 0;
@@ -1276,7 +1276,7 @@ private:
     {
       fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg), message_format,
                            fmtquill::basic_format_args<fmtquill::format_context>{
-                             _format_args_store.get_types(), _format_args_store.data()});
+                             _format_args_store.data(), _format_args_store.size()});
 
       if (_options.check_printable_char && _format_args_store.has_string_related_type())
       {

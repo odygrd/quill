@@ -9,7 +9,7 @@
   #define __STDC_WANT_LIB_EXT1__ 1
 #endif
 
-#include "quill/bundled/fmt/core.h"
+#include "quill/bundled/fmt/base.h"
 
 #if defined(__ANDROID__)
   // Include format.h to prevent linkage errors with lubfmt in Android NDK release builds

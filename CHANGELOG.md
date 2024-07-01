@@ -71,6 +71,7 @@
 
 - Ensure `format.h` is always included when building with the Android NDK to resolve a linkage error in the release build. ([#484](https://github.com/odygrd/quill/issues/484))
 - Fix build failure on Windows Arm64 ([#485](https://github.com/odygrd/quill/issues/485))
+- Update bundled `libfmt` to `11.0.0`
 
 ## v4.5.0
 
