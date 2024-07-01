@@ -8,7 +8,7 @@
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 
-#include "quill/bundled/fmt/core.h"
+#include "quill/bundled/fmt/base.h"
 #include "quill/bundled/fmt/ranges.h"
 
 #include <cstddef>

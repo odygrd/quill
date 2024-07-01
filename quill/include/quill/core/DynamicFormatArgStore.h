@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "quill/bundled/fmt/core.h"
+#include "quill/bundled/fmt/base.h"
 #include "quill/core/Attributes.h"
 
 namespace quill::detail
@@ -73,10 +73,7 @@ private:
 public:
   DynamicFormatArgStore() = default;
 
-  QUILL_NODISCARD unsigned long long get_types() const
-  {
-    return fmtquill::detail::is_unpacked_bit | _data.size();
-  }
+  QUILL_NODISCARD int size() const { return static_cast<int>(_data.size()); }
 
   QUILL_NODISCARD fmtquill::basic_format_arg<fmtquill::format_context> const* data() const
   {

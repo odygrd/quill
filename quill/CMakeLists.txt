@@ -21,10 +21,10 @@ set(HEADER_FILES
         include/quill/backend/BackendUtilities.h
 
         include/quill/bundled/fmt/args.h
+        include/quill/bundled/fmt/base.h
         include/quill/bundled/fmt/chrono.h
         include/quill/bundled/fmt/color.h
         include/quill/bundled/fmt/compile.h
-        include/quill/bundled/fmt/core.h
         include/quill/bundled/fmt/format.h
         include/quill/bundled/fmt/format-inl.h
         include/quill/bundled/fmt/os.h
