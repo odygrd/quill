@@ -36,61 +36,54 @@ For standard library types you need to include the relevant file under the ``qui
 For user-defined types you should provide your own function to serialise the type or alternatively convert the type to string on the hot path for non latency sensitive code
 See `user-defined-type-logging-example <https://github.com/odygrd/quill/tree/master/examples/advanced>`_
 
-Guaranteed logging
-------------------
+Reliable Logging Mechanism
+--------------------------
 
-Quill employs a thread-local single-producer-single-consumer queue to relay logs to the backend thread,
-ensuring that log messages are never dropped.
-Initially, an unbounded queue with a small size is used for performance optimization.
-However, if the queue reaches full capacity, a new queue will be allocated, incurring a slight performance penalty for the frontend.
+Quill utilizes a thread-local single-producer-single-consumer queue to relay logs to the backend thread, ensuring that log messages are never dropped.
+Initially, an unbounded queue with a small size is used to optimize performance.
+However, if the queue reaches its capacity, a new queue will be allocated, which may cause a slight performance penalty for the frontend.
 
-The default unbounded queue can expand up to a size of 2GB. Should this limit be reached, the frontend thread will block.
-However, it's possible to alter the queue type within the FrontendOptions.
+The default unbounded queue can expand up to a size of 2GB. If this limit is reached, the caller thread will block.
+It's possible to change the queue type within the :cpp:class:`quill::FrontendOptions`.
 
-The queue size and type is configurable in runtime by providing custom a :cpp:class:`quill::FrontendOptions` class.
+The queue size and type are configurable at runtime by providing a custom :cpp:class:`quill::FrontendOptions` class.
 
-Flush
------
+Manual Log Flushing
+-------------------
 
-You can explicitly instruct the frontend thread to wait until the log up to the current timestamp is flushed with
-:cpp:func:`quill::LoggerImpl::flush_log`. The caller thread will **block** until every log statement up to that point is flushed.
+You can explicitly instruct the frontend thread to wait until all log entries up to the current timestamp are flushed
+using :cpp:func:`quill::LoggerImpl::flush_log`. The calling thread will **block** until every log statement up to that point has been flushed.
 
-Application Crash Policy
-------------------------
+Handling Application Crashes
+---------------------------
 
-When the program is terminated gracefully, quill will go through its destructor where all messages are guaranteed to be logged.
+During normal program termination, the library ensures all messages are logged as it goes through the ``BackendWorker`` destructor.
 
-However, if the applications crashes, log messages can be lost.
+However, in the event of an application crash, some log messages may be lost.
 
-To avoid losing messages when the application crashes due to a signal interrupt the user must setup a signal
-handler and call :cpp:func:`quill::LoggerImpl::flush_log` inside the signal handler.
+To prevent message loss during crashes caused by signal interrupts, users should set up a signal handler and invoke :cpp:func:`quill::LoggerImpl::flush_log` within it.
 
-There is a built-in signal handler that offers this crash-safe behaviour and can be enabled in :cpp:func:`quill::Backend::start_with_signal_handler`
+The library provides a built-in signal handler that ensures crash-safe behavior, which can be enabled via :cpp:func:`quill::Backend::start_with_signal_handler`.
 
 Log Messages Timestamp Order
 ----------------------------
 
-Quill creates a single worker backend thread which orders the messages in all queues by timestamp before printing them to the log file.
+The library employs a single worker backend thread that orders log messages from all queues by timestamp before printing them to the log file.
 
 Number of Backend Threads
 -------------------------
 
-Quill focus is on low latency and not high throughput. Therefore, there is only one backend thread that will process all logs.
+Quill prioritizes low latency over high throughput, hence it utilizes only one backend thread to process all logs efficiently. Multiple backend threads are not supported.
 
-Latency of the first log message
+Latency of the First Log Message
 --------------------------------
 
-A queue and an internal buffer will be allocated on the first log message of each thread. If the latency of the first
-log message is important it is recommended to call :cpp:func:`quill::FrontendImpl::preallocate`
+Upon the first log message from each thread, the library allocates a queue dynamically. For minimizing latency with initial log, consider calling :cpp:func:`quill::FrontendImpl::preallocate`.
 
 Configuration
 -------------
 
-Quill offers a few customization options, which are also well-documented.
+Quill offers various customization options, well-documented for ease of use.
 
-This customization can be applied to either the frontend or the backend.
-
-Frontend configuration occurs at compile time, thus requiring a custom FrontendOptions class to be provided
-:cpp:class:`quill::FrontendOptions`
-
-For customizing the backend, refer to :cpp:class:`quill::BackendOptions`
+- ``Frontend`` configuration is compile-time, requiring a custom :cpp:class:`quill::FrontendOptions` class.
+- For ``Backend`` customization, refer to :cpp:class:`quill::BackendOptions`.
