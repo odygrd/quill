@@ -7,6 +7,7 @@
 
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/Utf8Conv.h"
 
 #include "quill/bundled/fmt/base.h"
 #include "quill/bundled/fmt/std.h"

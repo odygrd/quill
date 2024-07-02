@@ -11,11 +11,6 @@
 
 #include "quill/bundled/fmt/base.h"
 
-#if defined(__ANDROID__)
-  // Include format.h to prevent linkage errors with lubfmt in Android NDK release builds
-  #include "quill/bundled/fmt/format.h"
-#endif
-
 #include "quill/core/Attributes.h"
 #include "quill/core/DynamicFormatArgStore.h"
 
@@ -27,20 +22,6 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
-
-#if defined(_WIN32)
-  #if !defined(WIN32_LEAN_AND_MEAN)
-    #define WIN32_LEAN_AND_MEAN
-  #endif
-
-  #if !defined(NOMINMAX)
-    // Mingw already defines this, so no need to redefine
-    #define NOMINMAX
-  #endif
-
-  #include <memory>
-  #include <windows.h>
-#endif
 
 namespace quill::detail
 {
@@ -66,62 +47,6 @@ constexpr auto strnlen =
   ::strnlen
 #endif
   ;
-
-#if defined(_WIN32)
-/**
- * @brief Convert a wide Unicode string to a UTF-8 encoded string.
- *
- * @param input_string_data Pointer to the wide string data.
- * @param input_string_length Length of the wide string.
- * @return The UTF-8 encoded string.
- *
- * @remarks If the input string is empty or the conversion fails, an empty string is returned.
- */
-inline std::string utf8_encode(std::byte const* data, size_t wide_str_len)
-{
-  // Check if the input is empty
-  if (wide_str_len == 0)
-  {
-    return std::string{};
-  }
-
-  // Create a unique_ptr to hold the buffer and one for the null terminator
-  std::unique_ptr<wchar_t[]> wide_buffer{new wchar_t[wide_str_len + 1]};
-
-  // Because we are using a std::byte* buffer and the data are coming from there we will cast
-  // back the data to char* and then copy them to a wide string buffer before accessing them
-  std::memcpy(wide_buffer.get(), data, wide_str_len * sizeof(wchar_t));
-  wide_buffer[wide_str_len] = L'\0';
-
-  // Calculate the size needed for the UTF-8 string
-  int const size_needed = WideCharToMultiByte(
-    CP_UTF8, 0, wide_buffer.get(), static_cast<int>(wide_str_len), nullptr, 0, nullptr, nullptr);
-
-  // Check for conversion failure
-  if (size_needed == 0)
-  {
-    return std::string{};
-  }
-
-  // Create a buffer to hold the UTF-8 string
-  std::string ret_val(static_cast<size_t>(size_needed), 0);
-
-  // Convert the wide string to UTF-8
-  if (WideCharToMultiByte(CP_UTF8, 0, wide_buffer.get(), static_cast<int>(wide_str_len),
-                          &ret_val[0], size_needed, nullptr, nullptr) == 0)
-  {
-    // conversion failure
-    return std::string{};
-  }
-
-  return ret_val;
-}
-
-inline std::string utf8_encode(std::wstring_view str)
-{
-  return utf8_encode(reinterpret_cast<std::byte const*>(str.data()), str.size());
-}
-#endif
 
 /** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
@@ -154,29 +79,6 @@ struct ArgSizeCalculator
       // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
       return sizeof(size_t) + arg.length();
     }
-#if defined(_WIN32)
-    else if constexpr (std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>,
-                                          std::is_same<Arg, std::wstring>, std::is_same<Arg, std::wstring_view>>)
-    {
-      // Calculate the size of the string in bytes
-      size_t len;
-
-      if constexpr (std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>>)
-      {
-        len = wcslen(arg);
-      }
-      else
-      {
-        len = arg.size();
-      }
-
-      conditional_arg_size_cache.push_back(len);
-
-      // also include the size of the string in the buffer as a separate variable
-      // we can retrieve it when we decode. We do not store the null terminator in the buffer
-      return static_cast<size_t>(sizeof(size_t) + (len * sizeof(wchar_t)));
-    }
-#endif
     else
     {
       static_assert(always_false_v<Arg>, "Unsupported type");
@@ -256,34 +158,6 @@ struct Encoder
 
       buffer += sizeof(len) + len;
     }
-#if defined(_WIN32)
-    else if constexpr (std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>,
-                                          std::is_same<Arg, std::wstring>, std::is_same<Arg, std::wstring_view>>)
-    {
-      // The wide string size in bytes
-      size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      std::memcpy(buffer, &len, sizeof(len));
-      buffer += sizeof(len);
-
-      if (len != 0)
-      {
-        // copy the string, no need to zero terminate it as we got the length and e.g a wstring_view
-        // might not always be zero terminated
-        size_t const size_in_bytes = len * sizeof(wchar_t);
-
-        if constexpr (std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>>)
-        {
-          std::memcpy(buffer, arg, size_in_bytes);
-        }
-        else
-        {
-          std::memcpy(buffer, arg.data(), size_in_bytes);
-        }
-
-        buffer += size_in_bytes;
-      }
-    }
-#endif
     else
     {
       static_assert(always_false_v<Arg>, "Unsupported type");
@@ -335,8 +209,10 @@ struct Decoder
 
       if (args_store)
       {
-        // pass the std::string_view to args_store to avoid the dynamic allocation
-        args_store->push_back(std::string_view{str, len});
+        // pass the string_view to args_store to avoid the dynamic allocation
+        // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
+        // for std::string_view we would need fmt/format.h
+        args_store->push_back(fmtquill::string_view{str, len});
       }
 
       return str;
@@ -354,33 +230,14 @@ struct Decoder
 
       if (args_store)
       {
-        args_store->push_back(v);
+        // pass the string_view to args_store to avoid the dynamic allocation
+        // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
+        // for std::string_view we would need fmt/format.h
+        args_store->push_back(fmtquill::string_view{v.data(), v.size()});
       }
 
       return v;
     }
-#if defined(_WIN32)
-    else if constexpr (std::disjunction_v<std::is_same<Arg, wchar_t*>, std::is_same<Arg, wchar_t const*>,
-                                          std::is_same<Arg, std::wstring>, std::is_same<Arg, std::wstring_view>>)
-    {
-      // we first need to retrieve the length
-      size_t len;
-      std::memcpy(&len, buffer, sizeof(len));
-      buffer += sizeof(len);
-
-      std::wstring_view wstr{reinterpret_cast<wchar_t const*>(buffer), len};
-
-      if (args_store)
-      {
-        std::string str = utf8_encode(buffer, len);
-        args_store->push_back(static_cast<std::string&&>(str));
-      }
-
-      size_t size_bytes = len * sizeof(wchar_t);
-      buffer += size_bytes;
-      return wstr;
-    }
-#endif
     else
     {
       static_assert(always_false_v<Arg>, "Unsupported type");

@@ -98,6 +98,7 @@ public:
     using stored_type = std::conditional_t<std::is_convertible_v<T, std::string>, std::string, T>;
 
     if constexpr (!(std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
+                    std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, fmtquill::string_view> ||
                     (mapped_type != fmtquill::detail::type::cstring_type &&
                      mapped_type != fmtquill::detail::type::string_type &&
                      mapped_type != fmtquill::detail::type::custom_type)))
@@ -110,6 +111,7 @@ public:
     }
 
     if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
+                  std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, fmtquill::string_view> ||
                   (mapped_type == fmtquill::detail::type::cstring_type) ||
                   (mapped_type == fmtquill::detail::type::string_type) ||
                   (mapped_type == fmtquill::detail::type::custom_type) ||

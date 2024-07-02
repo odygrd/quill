@@ -69,9 +69,11 @@
 
 ## v4.6.0
 
-- Ensure `format.h` is always included when building with the Android NDK to resolve a linkage error in the release build. ([#484](https://github.com/odygrd/quill/issues/484))
 - Fix build failure on Windows Arm64 ([#485](https://github.com/odygrd/quill/issues/485))
 - Update bundled `libfmt` to `11.0.0`
+- Previously, wide string support was included in `Codec.h`. To be in line with the requirements of `fmt/base.h`, wide
+  string functionality has now been moved to a separate header file, `WideStrings.h`. On Windows, logging wide strings
+  now requires the inclusion of `quill/std/WideStrings.h`.
 
 ## v4.5.0
 
@@ -83,7 +85,7 @@
   ```c++  
   std::function<bool(char c)> check_printable_char = [](char c) { return c >= ' ' && c <= '~'; };
   ```
-  
+
 - Added `StringRef`, a utility for passing string arguments by reference without copying. Suitable for string literals
   or immutable strings with a guaranteed persistent lifetime. For example
 
