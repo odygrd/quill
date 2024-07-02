@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 #include "quill/core/LogLevel.h"
+#include "quill/core/QuillError.h"
 
 #include <atomic>
 #include <cassert>
