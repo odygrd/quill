@@ -54,6 +54,7 @@ set(HEADER_FILES
         include/quill/core/ThreadUtilities.h
         include/quill/core/TimeUtilities.h
         include/quill/core/UnboundedSPSCQueue.h
+        include/quill/core/Utf8Conv.h
 
         include/quill/filters/Filter.h
 
@@ -79,6 +80,7 @@ set(HEADER_FILES
         include/quill/std/UnorderedMap.h
         include/quill/std/UnorderedSet.h
         include/quill/std/Vector.h
+        include/quill/std/WideString.h
 
         include/quill/Backend.h
         include/quill/BackendTscClock.h

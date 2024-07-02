@@ -17,6 +17,10 @@
 #include <string>
 #include <type_traits>
 
+#if defined(_WIN32)
+  #include "quill/std/WideString.h"
+#endif
+
 namespace quill::detail
 {
 /***/

@@ -19,6 +19,7 @@
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
 #include "quill/std/Vector.h"
+#include "quill/std/WideString.h"
 
 #include <array>
 #include <cstdio>
