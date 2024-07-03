@@ -3,24 +3,9 @@
 Overview
 ========
 
-The library is split into two parts, the frontend and the backend.
+The library adopts asynchronous logging to optimize performance, particularly well-suited for low-latency applications where minimizing hot path latency is crucial, such as trading systems.
 
-Backend
--------
-
-The backend consists of a single backend thread which takes care of formatting the log statements and the IO writing to files.
-
-Frontend
---------
-
-The frontend is the calling thread on the user side which is issuing the log statements. It consists of ``Loggers`` and ``Sinks``.
-
-- **Loggers:** A Logger contains a format pattern and can contain one or multiple output Sinks.
-
-- **Sinks:** The Sink is the output source, for example a file or console or any other source.
-
-Log messages are written using macros which accept a logger as their first argument,
-followed by a format string. The backend is using the {fmt} library for formatting.
+A dedicated backend thread manages log formatting and I/O operations, ensuring that even occasional log statements incur minimal overhead.
 
 Thread Safety
 -------------
@@ -33,7 +18,7 @@ Logging types
 
 For primitive types, ``std::string``, and ``std::string_view``, the library will perform a deep copy, and all formatting will occur asynchronously in the backend thread.
 For standard library types you need to include the relevant file under the ``quill/std`` folder.
-For user-defined types you should provide your own function to serialise the type or alternatively convert the type to string on the hot path for non latency sensitive code
+For user-defined types you should provide your own function to serialize the type or alternatively convert the type to a string on the hot path for non-latency-sensitive code.
 See `user-defined-type-logging-example <https://github.com/odygrd/quill/tree/master/examples/advanced>`_
 
 Reliable Logging Mechanism
@@ -55,7 +40,7 @@ You can explicitly instruct the frontend thread to wait until all log entries up
 using :cpp:func:`quill::LoggerImpl::flush_log`. The calling thread will **block** until every log statement up to that point has been flushed.
 
 Handling Application Crashes
----------------------------
+----------------------------
 
 During normal program termination, the library ensures all messages are logged as it goes through the ``BackendWorker`` destructor.
 
@@ -78,7 +63,7 @@ Quill prioritizes low latency over high throughput, hence it utilizes only one b
 Latency of the First Log Message
 --------------------------------
 
-Upon the first log message from each thread, the library allocates a queue dynamically. For minimizing latency with initial log, consider calling :cpp:func:`quill::FrontendImpl::preallocate`.
+Upon the first log message from each thread, the library allocates a queue dynamically. For minimizing latency with the initial log, consider calling :cpp:func:`quill::FrontendImpl::preallocate`.
 
 Configuration
 -------------
@@ -87,6 +72,44 @@ Quill offers various customization options, well-documented for ease of use.
 
 - ``Frontend`` configuration is compile-time, requiring a custom :cpp:class:`quill::FrontendOptions` class.
 - For ``Backend`` customization, refer to :cpp:class:`quill::BackendOptions`.
+
+Frontend (caller-thread)
+------------------------
+
+The frontend is the calling thread on the user side which issues log statements. It includes:
+
+- **Loggers:** A Logger contains a format pattern and can include one or multiple output Sinks.
+
+- **Sinks:** The Sink serves as the output destination, such as a file, console, or other sources.
+
+Log messages are written using macros that accept a logger as their first argument, followed by a format string. The backend utilizes the ``{fmt}`` library for formatting.
+
+When invoking a ``LOG_`` macro:
+
+1. Creates a static constexpr metadata object to store ``Metadata`` such as the format string and source location.
+
+2. Pushes the data to the SPSC lock-free queue. For each log message, the following variables are pushed:
+
++------------+---------------------------------------------------------------------------------------------------------------+
+| Variable   | Description                                                                                                   |
++============+===============================================================================================================+
+| timestamp  | Current timestamp                                                                                             |
++------------+---------------------------------------------------------------------------------------------------------------+
+| Metadata*  | Pointer to metadata information                                                                               |
++------------+---------------------------------------------------------------------------------------------------------------+
+| Logger*    | Pointer to the logger instance                                                                                |
++------------+---------------------------------------------------------------------------------------------------------------+
+| DecodeFunc | A pointer to a templated function containing all the log message argument types, used for decoding the message|
++------------+---------------------------------------------------------------------------------------------------------------+
+| Args...    | A serialized binary copy of each log message argument that was passed to the ``LOG_`` macro                   |
++------------+---------------------------------------------------------------------------------------------------------------+
+
+Backend
+-------
+
+The backend consists of a single backend thread which takes care of formatting the log statements and the IO writing to files.
+Consumes each message from the SPSC queue, retrieves all the necessary information, and then formats the message.
+Subsequently, forwards the log message to all ``Sinks`` associated with the Logger.
 
 Design
 ------
