@@ -87,3 +87,8 @@ Quill offers various customization options, well-documented for ease of use.
 
 - ``Frontend`` configuration is compile-time, requiring a custom :cpp:class:`quill::FrontendOptions` class.
 - For ``Backend`` customization, refer to :cpp:class:`quill::BackendOptions`.
+
+Design
+------
+
+.. image:: design.jpg

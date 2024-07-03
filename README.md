@@ -90,12 +90,12 @@ the capabilities of the library.
 - **Asynchronous logging**: Formatting and I/O are all delegated to a background logging thread,
   effectively offloading the overhead from the critical path.
 - **Custom Formatters**: Customize log formatting based on user-defined patterns.
-  Explore [Formatters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#formatters) for further details.
+  Explore [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html) for further details.
 - **Flexible Timestamp Generation**: Choose between rdtsc, chrono, or custom clocks (useful for simulations) for
   log message timestamp generation.
 - **Log Stack Traces**: Store log messages in a ring buffer and display them later in response to a higher severity log
   statement or on demand. Refer
-  to [Backtrace Logging](http://quillcpp.readthedocs.io/en/latest/tutorial.html#backtrace-logging) for more information.
+  to [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html) for more information.
 - **Multiple Logging Sinks**: Utilize various logging targets, including:
     - Console logging with color support.
     - File logging.
@@ -103,9 +103,9 @@ the capabilities of the library.
     - JSON logging.
     - Custom sinks.
 - **Log Message Filtering**: Apply filters to selectively process log messages. Learn more
-  about [Filters](http://quillcpp.readthedocs.io/en/latest/tutorial.html#filters).
+  about [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
 - **Structured Logging**: Generate JSON structured logs.
-  See [Structured-Log](http://quillcpp.readthedocs.io/en/latest/tutorial.html#json-log) for details.
+  See [JsonSink](https://quillcpp.readthedocs.io/en/latest/sink_types.html) for details.
 - **Blocking or Dropping Message Modes**: Choose between `blocking` or `dropping` message modes in the library.
   In `blocking` mode, the hot threads pause and wait when the queue is full until space becomes available, ensuring no
   message loss but introducing potential latency. In `dropping` mode, log messages beyond the queue's capacity may be
