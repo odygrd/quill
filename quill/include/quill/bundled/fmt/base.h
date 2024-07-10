@@ -27,7 +27,7 @@
 #endif
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMTQUILL_VERSION 110000
+#define FMTQUILL_VERSION 110001
 
 // Detect compiler versions.
 #if defined(__clang__) && !defined(__ibmxl__)
@@ -266,7 +266,7 @@
 #ifndef FMTQUILL_BEGIN_NAMESPACE
 #  define FMTQUILL_BEGIN_NAMESPACE \
     namespace fmtquill {           \
-    inline namespace v10 {
+    inline namespace v11 {
 #  define FMTQUILL_END_NAMESPACE \
     }                       \
     }
@@ -1764,7 +1764,7 @@ template <typename Context> class basic_format_arg {
    * `vis(value)` will be called with the value of type `double`.
    */
   template <typename Visitor>
-  FMTQUILL_CONSTEXPR auto visit(Visitor&& vis) -> decltype(vis(0)) {
+  FMTQUILL_CONSTEXPR auto visit(Visitor&& vis) const -> decltype(vis(0)) {
     switch (type_) {
     case detail::type::none_type:
       break;
