@@ -50,7 +50,7 @@ public:
     FileName,
     CallerFunction,
     LogLevel,
-    LogLevelId,
+    LogLevelShortCode,
     LineNumber,
     Logger,
     FullPath,
@@ -79,7 +79,7 @@ public:
    * %(full_path)               - Full path of the source file where the logging call was issued.
    * %(caller_function)         - Name of the function containing the logging call.
    * %(log_level)               - Textual representation of the logging level for the message.
-   * %(log_level_id)            - Single-letter identifier representing the logging level.
+   * %(log_level_short_code)    - Abbreviated log level name.
    * %(line_number)             - Line number in the source file where the logging call was issued.
    * %(logger)                  - Name of the logger used to log the call.
    * %(message)                 - The logged message itself.
@@ -117,8 +117,8 @@ public:
   ~PatternFormatter() = default;
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(
-    uint64_t timestamp, std::string_view thread_id, std::string_view thread_name, std::string_view process_id,
-    std::string_view logger, std::string_view log_level, MacroMetadata const& log_statement_metadata,
+    uint64_t timestamp, std::string_view thread_id, std::string_view thread_name, std::string_view process_id, std::string_view logger, std::string_view log_level_description,
+    std::string_view log_level_short_code, MacroMetadata const& log_statement_metadata,
     std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_msg)
   {
     if (_format_pattern.empty())
@@ -149,12 +149,12 @@ public:
 
     if (_is_set_in_pattern[Attribute::LogLevel])
     {
-      _set_arg_val<Attribute::LogLevel>(log_level);
+      _set_arg_val<Attribute::LogLevel>(log_level_description);
     }
 
-    if (_is_set_in_pattern[Attribute::LogLevelId])
+    if (_is_set_in_pattern[Attribute::LogLevelShortCode])
     {
-      _set_arg_val<Attribute::LogLevelId>(log_statement_metadata.log_level_id());
+      _set_arg_val<Attribute::LogLevelShortCode>(log_level_short_code);
     }
 
     if (_is_set_in_pattern[Attribute::LineNumber])
@@ -263,8 +263,8 @@ private:
     using namespace fmtquill::literals;
     std::tie(_fmt_format, _order_index) = _generate_fmt_format_string(
       _is_set_in_pattern, _format_pattern, "time"_a = "", "file_name"_a = "",
-      "caller_function"_a = "", "log_level"_a = "", "log_level_id"_a = "", "line_number"_a = "",
-      "logger"_a = "", "full_path"_a = "", "thread_id"_a = "", "thread_name"_a = "",
+      "caller_function"_a = "", "log_level"_a = "", "log_level_short_code"_a = "",
+      "line_number"_a = "", "logger"_a = "", "full_path"_a = "", "thread_id"_a = "", "thread_name"_a = "",
       "process_id"_a = "", "source_location"_a = "", "short_source_location"_a = "",
       "message"_a = "", "tags"_a = "", "named_args"_a = "");
 
@@ -272,7 +272,7 @@ private:
     _set_arg<Attribute::FileName>(std::string_view("file_name"));
     _set_arg<Attribute::CallerFunction>("caller_function");
     _set_arg<Attribute::LogLevel>(std::string_view("log_level"));
-    _set_arg<Attribute::LogLevelId>(std::string_view("log_level_id"));
+    _set_arg<Attribute::LogLevelShortCode>(std::string_view("log_level_short_code"));
     _set_arg<Attribute::LineNumber>("line_number");
     _set_arg<Attribute::Logger>(std::string_view("logger"));
     _set_arg<Attribute::FullPath>(std::string_view("full_path"));
@@ -312,7 +312,7 @@ private:
       {"file_name", PatternFormatter::Attribute::FileName},
       {"caller_function", PatternFormatter::Attribute::CallerFunction},
       {"log_level", PatternFormatter::Attribute::LogLevel},
-      {"log_level_id", PatternFormatter::Attribute::LogLevelId},
+      {"log_level_short_code", PatternFormatter::Attribute::LogLevelShortCode},
       {"line_number", PatternFormatter::Attribute::LineNumber},
       {"logger", PatternFormatter::Attribute::Logger},
       {"full_path", PatternFormatter::Attribute::FullPath},

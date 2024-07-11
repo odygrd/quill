@@ -73,16 +73,6 @@ public:
 
   QUILL_NODISCARD LogLevel log_level() const noexcept { return _log_level; }
 
-  QUILL_NODISCARD std::string_view log_level_string() const noexcept
-  {
-    return quill::loglevel_to_string(_log_level);
-  }
-
-  QUILL_NODISCARD std::string_view log_level_id() const noexcept
-  {
-    return quill::loglevel_to_string_id(_log_level);
-  }
-
   QUILL_NODISCARD Tags const* tags() const noexcept { return _tags; }
 
   QUILL_NODISCARD bool has_named_args() const noexcept { return _format_flags & NAMED_ARGS_FLAG; }

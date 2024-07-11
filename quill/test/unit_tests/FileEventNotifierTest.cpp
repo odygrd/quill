@@ -78,7 +78,7 @@ TEST_CASE("file_event_notifier_nullptr")
   {
     FileSink fs{file, FileSinkConfig{}, file_event_notifier};
     fs.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                 std::string_view{}, LogLevel::Info, nullptr, "", "test");
+                 std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", "test");
   }
 
   // Read file and check
@@ -141,7 +141,7 @@ TEST_CASE("file_event_notifier")
     REQUIRE_EQ(before_write_cnt, 0);
 
     fs.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                 std::string_view{}, LogLevel::Info, nullptr, "", output_msg);
+                 std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", output_msg);
 
     REQUIRE_EQ(before_open_cnt, 1);
     REQUIRE_EQ(after_open_cnt, 1);

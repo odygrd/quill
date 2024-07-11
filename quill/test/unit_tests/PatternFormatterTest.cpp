@@ -37,8 +37,8 @@ TEST_CASE("default_pattern_formatter")
   std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = default_pattern_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -54,7 +54,8 @@ TEST_CASE("default_pattern_formatter")
 TEST_CASE("custom_pattern_message_only")
 {
   // Message only
-  PatternFormatter custom_pattern_formatter{"%(log_level_id) %(message)", "%H:%M:%S.%Qns", Timezone::GmtTime};
+  PatternFormatter custom_pattern_formatter{"%(log_level_short_code) %(message)", "%H:%M:%S.%Qns",
+                                            Timezone::GmtTime};
 
   uint64_t const ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -74,8 +75,8 @@ TEST_CASE("custom_pattern_message_only")
   std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -110,14 +111,14 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:98 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:99 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_7]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -148,14 +149,14 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:136 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:137 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_9]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -186,14 +187,14 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:174 LOG_DEBUG test_logger This "
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:175 LOG_DEBUG test_logger This "
     "the 1234 formatter pattern [DOCTEST_ANON_FUNC_11]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -224,14 +225,14 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:212 LOG_DEBUG test_logger This the "
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:213 LOG_DEBUG test_logger This the "
     "1234 formatter pattern [DOCTEST_ANON_FUNC_13]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -265,14 +266,14 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
     std::vector<std::pair<std::string, std::string>> named_args;
 
     auto const& formatted_buffer = custom_pattern_formatter.format(
-      ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-      macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+      ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata,
+      &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
     // Convert the buffer to a string
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:251 "
+      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:252 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_15]\n";
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -307,14 +308,14 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
     std::vector<std::pair<std::string, std::string>> named_args;
 
     auto const& formatted_buffer = custom_pattern_formatter.format(
-      ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-      macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+      ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata,
+      &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
     // Convert the buffer to a string
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:293 "
+      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:294 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_17]\n";
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -365,14 +366,14 @@ TEST_CASE("custom_pattern")
   std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:353 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:354 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -404,8 +405,8 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
   std::vector<std::pair<std::string, std::string>> named_args;
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -437,9 +438,9 @@ TEST_CASE("empty_format_pattern")
 
   std::vector<std::pair<std::string, std::string>> named_args;
 
-  auto const& formatted_buffer = empty_formatter.format(
-    ts, thread_id, thread_name, process_id, logger_name, loglevel_to_string(macro_metadata.log_level()),
-    macro_metadata, &named_args, std::string_view{log_msg.data(), log_msg.size()});
+  auto const& formatted_buffer =
+    empty_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata,
+                           &named_args, std::string_view{log_msg.data(), log_msg.size()});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);

@@ -798,9 +798,17 @@ private:
     std::string_view const log_message =
       std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()};
 
+    std::string_view const log_level_description =
+      detail::log_level_to_string(transit_event.log_level(), _options.log_level_descriptions.data(),
+                                  _options.log_level_descriptions.size());
+
+    std::string_view const log_level_short_code =
+      detail::log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
+                                  _options.log_level_short_codes.size());
+
     std::string_view const log_statement = transit_event.logger_base->pattern_formatter->format(
       transit_event.timestamp, transit_event.thread_id, transit_event.thread_name, _process_id,
-      transit_event.logger_base->logger_name, loglevel_to_string(transit_event.log_level()),
+      transit_event.logger_base->logger_name, log_level_description, log_level_short_code,
       *transit_event.macro_metadata, transit_event.named_args.get(), log_message);
 
     for (auto& sink : transit_event.logger_base->sinks)
@@ -812,7 +820,8 @@ private:
       {
         sink->write_log(transit_event.macro_metadata, transit_event.timestamp, transit_event.thread_id,
                         transit_event.thread_name, _process_id, transit_event.logger_base->logger_name,
-                        transit_event.log_level(), transit_event.named_args.get(), log_message, log_statement);
+                        transit_event.log_level(), log_level_description, log_level_short_code,
+                        transit_event.named_args.get(), log_message, log_statement);
       }
     }
   }
