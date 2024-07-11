@@ -76,7 +76,7 @@ private:
       static constexpr quill::MacroMetadata macro_metadata{                                        \
         "SignalHandler:~", "", fmt, nullptr, log_level, quill::MacroMetadata::Event::Log};         \
                                                                                                    \
-      logger->log_message(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                  \
+      logger->template log_message<false>(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                  \
     }                                                                                              \
   } while (0)
 
