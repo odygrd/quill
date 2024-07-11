@@ -116,8 +116,10 @@ if (QUILL_DISABLE_NON_PREFIXED_MACROS)
     target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_DISABLE_NON_PREFIXED_MACROS)
 endif ()
 
-# Add target sources
-target_sources(${TARGET_NAME} PRIVATE ${HEADER_FILES})
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
+    # cmake prior to 3.19 does not support target_sources for interface libraries
+    target_sources(${TARGET_NAME} PRIVATE ${HEADER_FILES})
+endif()
 
 # Link dependencies
 target_link_libraries(${TARGET_NAME} PUBLIC INTERFACE Threads::Threads)
@@ -140,9 +142,6 @@ target_include_directories(${TARGET_NAME}
 # Compiler options
 target_compile_options(${TARGET_NAME} INTERFACE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wno-gnu-zero-variadic-macro-arguments>)
-
-# Properties
-set_target_properties(${TARGET_NAME} PROPERTIES VERSION ${QUILL_VERSION} SOVERSION ${QUILL_VERSION})
 
 # ---- Tests ---- #
 if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)

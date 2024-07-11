@@ -91,6 +91,7 @@
     ```
 - Renamed `log_message` to `log_statement` and `should_log_message` to `should_log_statement` in `Logger`
 - Replaced `%(log_level_id)` with `%(log_level_short_code)` in the `PatternFormatter`.
+- Fix a `CMakeLists` error for old `CMake` versions prior to `3.19`. ([#491](https://github.com/odygrd/quill/issues/491))
 
 ## v4.5.0
 
