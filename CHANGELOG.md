@@ -76,13 +76,13 @@
   now requires the inclusion of `quill/std/WideStrings.h`.
 - Added `QUILL_IMMEDIATE_FLUSH` preprocessor variable. This variable can be defined before including `LogMacros.h` or
   passed as a compiler flag. When `QUILL_IMMEDIATE_FLUSH` is defined, the library will flush the log on each log
-  statement. This causes the caller thread to wait for the log to be processed and written to the log file before
-  continuing, significantly impacting performance. This feature is useful for debugging the application when
-  synchronized logs are required. ([#489](https://github.com/odygrd/quill/issues/489))
+  statement. This causes the caller thread to wait for the log to be processed and written to the log file by the
+  backend thread before continuing, significantly impacting performance. This feature is useful for debugging the
+  application when synchronized logs are required. ([#488](https://github.com/odygrd/quill/issues/488))
 - Introduced `log_level_descriptions` and `log_level_short_codes` in `BackendOptions` to allow customization
   of `LogLevel` descriptions and short codes, replacing previously hardcoded values. This enhancement enables users to
   define their own descriptions and short codes for each log level. For instance, instead of displaying `LOG_WARNING`,
-  it can now be configured to show `LOG_WARN`. ([#488](https://github.com/odygrd/quill/issues/488))
+  it can now be configured to show `LOG_WARN`. ([#489](https://github.com/odygrd/quill/issues/489))
 
     ```c++  
     quill::BackendOptions backend_options;
@@ -90,7 +90,7 @@
     quill::Backend::start(backend_options);
     ```
 - Renamed `log_message` to `log_statement` and `should_log_message` to `should_log_statement` in `Logger`
-- Renamed `log_level_id` to `log_level_short_code` in `PatternFormatter`
+- Replaced `%(log_level_id)` with `%(log_level_short_code)` in the `PatternFormatter`.
 
 ## v4.5.0
 

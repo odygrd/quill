@@ -14,7 +14,6 @@
 int main()
 {
   quill::BackendOptions backend_options;
-  backend_options.log_level_descriptions[static_cast<uint32_t>(quill::LogLevel::Warning)] = "WARN";
   quill::Backend::start(backend_options);
 
   // Frontend
