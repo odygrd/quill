@@ -74,6 +74,11 @@
 - Previously, wide string support was included in `Codec.h`. To be in line with the requirements of `fmt/base.h`, wide
   string functionality has now been moved to a separate header file, `WideStrings.h`. On Windows, logging wide strings
   now requires the inclusion of `quill/std/WideStrings.h`.
+- Added `QUILL_IMMEDIATE_FLUSH` preprocessor variable. This variable can be defined before including `LogMacros.h` or 
+  passed as a compiler flag. When `QUILL_IMMEDIATE_FLUSH` is defined, the library will flush the log on each log 
+  statement. This causes the caller thread to wait for the log to be processed and written to the log file before 
+  continuing, significantly impacting performance. This feature is useful for debugging the application when 
+  synchronized logs are required.
 
 ## v4.5.0
 
