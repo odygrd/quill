@@ -21,14 +21,15 @@ public:
   using JsonFileSink::JsonFileSink;
 
   void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
-                 std::string_view thread_name, std::string const& process_id, std::string_view logger_name,
-                 LogLevel log_level, std::vector<std::pair<std::string, std::string>> const* named_args,
+                 std::string_view thread_name, std::string const& process_id, std::string_view logger_name, LogLevel log_level,
+                 std::string_view log_level_description, std::string_view log_level_short_code,
+                 std::vector<std::pair<std::string, std::string>> const* named_args,
                  std::string_view, std::string_view) override
   {
     _json_message.clear();
 
     _json_message.append(fmtquill::format(R"({{"logger":"{}","log_level":"{}","message":"{}")", logger_name,
-                                          loglevel_to_string(log_level), log_metadata->message_format()));
+                                          log_level_description, log_metadata->message_format()));
 
     if (named_args)
     {
@@ -44,8 +45,8 @@ public:
 
     _json_message.append("}\n");
 
-    StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                          logger_name, log_level, named_args, std::string_view{},
+    StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
+                          log_level_description, log_level_short_code, named_args, std::string_view{},
                           std::string_view{_json_message.data(), _json_message.size()});
   }
 

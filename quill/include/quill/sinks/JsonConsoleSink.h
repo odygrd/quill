@@ -37,11 +37,14 @@ public:
    * @param process_id Process Id
    * @param logger_name Name of the logger.
    * @param log_level Log level of the message.
+   * @param log_level_description Description of the log level.
+   * @param log_level_short_code Short code representing the log level.
    * @param named_args Vector of key-value pairs of named args
    */
   QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
                                      std::string_view thread_id, std::string_view thread_name,
-                                     std::string const& process_id, std::string_view logger_name, LogLevel log_level,
+                                     std::string const& process_id, std::string_view logger_name, LogLevel log_level, std::string_view log_level_description,
+                                     std::string_view log_level_short_code,
                                      std::vector<std::pair<std::string, std::string>> const* named_args,
                                      std::string_view, std::string_view) override
   {
@@ -50,7 +53,7 @@ public:
     _json_message.append(fmtquill::format(
       R"({{"timestamp":"{}","file_name":"{}","line":"{}","thread_id":"{}","logger":"{}","log_level":"{}","message":"{}")",
       std::to_string(log_timestamp), log_metadata->file_name(), log_metadata->line(), thread_id,
-      logger_name, loglevel_to_string(log_level), log_metadata->message_format()));
+      logger_name, log_level_description, log_metadata->message_format()));
 
     if (named_args)
     {
@@ -66,8 +69,8 @@ public:
 
     _json_message.append("}\n");
 
-    StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                          logger_name, log_level, named_args, std::string_view{},
+    StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
+                          log_level_description, log_level_short_code, named_args, std::string_view{},
                           std::string_view{_json_message.data(), _json_message.size()});
   }
 

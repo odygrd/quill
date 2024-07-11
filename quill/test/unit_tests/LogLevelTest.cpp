@@ -4,6 +4,8 @@
 #include "quill/core/LogLevel.h"
 #include "quill/core/QuillError.h"
 
+#include <array>
+
 TEST_SUITE_BEGIN("LogLevel");
 
 using namespace quill;
@@ -12,67 +14,107 @@ using namespace std::literals;
 /***/
 TEST_CASE("loglevel_to_string")
 {
+  std::array<std::string, 11> log_level_descriptions = {
+    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO",   "WARNING",
+    "ERROR",    "CRITICAL", "BACKTRACE", "NONE",  "DYNAMIC"};
+
   {
     LogLevel log_level{LogLevel::Dynamic};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "DYNAMIC");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "DYNAMIC");
   }
 
   {
     LogLevel log_level{LogLevel::None};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "NONE");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "NONE");
   }
 
   {
     LogLevel log_level{LogLevel::Backtrace};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "BACKTRACE");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "BACKTRACE");
   }
 
   {
     LogLevel log_level{LogLevel::Critical};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "CRITICAL");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "CRITICAL");
   }
 
   {
     LogLevel log_level{LogLevel::Error};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "ERROR");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "ERROR");
   }
 
   {
     LogLevel log_level{LogLevel::Warning};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "WARNING");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "WARNING");
   }
 
   {
     LogLevel log_level{LogLevel::Info};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "INFO");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "INFO");
   }
 
   {
     LogLevel log_level{LogLevel::Debug};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "DEBUG");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "DEBUG");
   }
 
   {
     LogLevel log_level{LogLevel::TraceL1};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "TRACE_L1");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "TRACE_L1");
   }
 
   {
     LogLevel log_level{LogLevel::TraceL2};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "TRACE_L2");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "TRACE_L2");
   }
 
   {
     LogLevel log_level{LogLevel::TraceL3};
-    REQUIRE_STREQ(loglevel_to_string(log_level).data(), "TRACE_L3");
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "TRACE_L3");
   }
 
   {
 #ifndef QUILL_NO_EXCEPTIONS
     LogLevel log_level;
     log_level = static_cast<LogLevel>(-1);
-    REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s = loglevel_to_string(log_level).data(), quill::QuillError);
-    REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s = loglevel_to_string_id(log_level).data(), quill::QuillError);
+    REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s =
+                        detail::log_level_to_string(log_level, log_level_descriptions.data(),
+                                                    log_level_descriptions.size())
+                          .data(),
+                      quill::QuillError);
 #endif
   }
 }

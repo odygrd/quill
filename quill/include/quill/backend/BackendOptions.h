@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -188,5 +189,23 @@ struct BackendOptions
    *   std::function<bool(char c)> check_printable_char = {}
    */
   std::function<bool(char c)> check_printable_char = [](char c) { return c >= ' ' && c <= '~'; };
+
+  /**
+   * Holds descriptive names for various log levels used in logging operations.
+   * The indices correspond to LogLevel enum values defined elsewhere in the codebase.
+   * These names provide human-readable identifiers for each log level.
+   */
+  std::array<std::string, 11> log_level_descriptions = {
+    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO",   "WARNING",
+    "ERROR",    "CRITICAL", "BACKTRACE", "NONE",  "DYNAMIC"};
+
+  /**
+   * @brief Short codes or identifiers for each log level.
+   *
+   * Provides short codes representing each log level for compact identification and usage.
+   * The indices correspond to LogLevel enum values defined elsewhere in the codebase.
+   */
+  std::array<std::string, 11> log_level_short_codes = {"T3", "T2", "T1", "D", "I", "W",
+                                                       "E",  "C",  "BT", "N", "DN"};
 };
 } // namespace quill

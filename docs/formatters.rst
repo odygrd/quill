@@ -37,7 +37,7 @@ attributes.
 |                         |                          | ‘DEBUG’, ‘INFO’, ‘WARNING’, ‘ERROR’,   |
 |                         |                          | ‘CRITICAL’, ‘BACKTRACE’).              |
 +-------------------------+--------------------------+----------------------------------------+
-| log_level_id            | %(log_level_id)          | Abbreviated level name (‘T3’, ‘T2’,    |
+| log_level_short_code    | %(log_level_short_code)  | Abbreviated log level (‘T3’, ‘T2’,     |
 |                         |                          | ‘T1’, ‘D’, ‘I’, ‘W’, ‘E’, ‘C’, ‘BT’).  |
 +-------------------------+--------------------------+----------------------------------------+
 | line_number             | %(line_number)           | Source line number where the logging   |
