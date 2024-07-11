@@ -1,4 +1,4 @@
-- [v4.6.0](#v460)
+- [v5.0.0](#v500)
 - [v4.5.0](#v450)
 - [v4.4.1](#v441)
 - [v4.4.0](#v440)
@@ -67,7 +67,7 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v4.6.0
+## v5.0.0
 
 - Fix build failure on Windows Arm64 ([#485](https://github.com/odygrd/quill/issues/485))
 - Update bundled `libfmt` to `11.0.1`
@@ -79,6 +79,7 @@
   statement. This causes the caller thread to wait for the log to be processed and written to the log file before 
   continuing, significantly impacting performance. This feature is useful for debugging the application when 
   synchronized logs are required.
+- Renamed `log_message` to `log_statement` and `should_log_message` to `should_log_statement` in `Logger`
 
 ## v4.5.0
 

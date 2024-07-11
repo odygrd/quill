@@ -52,19 +52,19 @@ TEST_CASE("logger_should_log")
     "LOG_%(log_level:<9) %(logger:<12) %(message)",
     "%H:%M:%S.%Qns", quill::Timezone::GmtTime, ClockSourceType::Tsc, nullptr));
 
-  REQUIRE_UNARY_FALSE(logger_1->should_log_message<LogLevel::Debug>());
-  REQUIRE(logger_1->should_log_message<LogLevel::Info>());
-  REQUIRE(logger_1->should_log_message<LogLevel::Error>());
+  REQUIRE_UNARY_FALSE(logger_1->should_log_statement<LogLevel::Debug>());
+  REQUIRE(logger_1->should_log_statement<LogLevel::Info>());
+  REQUIRE(logger_1->should_log_statement<LogLevel::Error>());
 
   // change log level
   logger_1->set_log_level(LogLevel::TraceL3);
-  REQUIRE(logger_1->should_log_message<LogLevel::TraceL3>());
-  REQUIRE(logger_1->should_log_message<LogLevel::Critical>());
+  REQUIRE(logger_1->should_log_statement<LogLevel::TraceL3>());
+  REQUIRE(logger_1->should_log_statement<LogLevel::Critical>());
 
   // change log level
   logger_1->set_log_level(LogLevel::None);
-  REQUIRE_UNARY_FALSE(logger_1->should_log_message<LogLevel::TraceL3>());
-  REQUIRE_UNARY_FALSE(logger_1->should_log_message<LogLevel::Critical>());
+  REQUIRE_UNARY_FALSE(logger_1->should_log_statement<LogLevel::TraceL3>());
+  REQUIRE_UNARY_FALSE(logger_1->should_log_statement<LogLevel::Critical>());
 }
 
 TEST_SUITE_END();

@@ -69,7 +69,7 @@ public:
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
   template <bool immediate_flush, typename... Args>
-  QUILL_ATTRIBUTE_HOT bool log_message(LogLevel dynamic_log_level,
+  QUILL_ATTRIBUTE_HOT bool log_statement(LogLevel dynamic_log_level,
                                        MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
@@ -223,7 +223,7 @@ public:
 
     // we pass this message to the queue and also pass capacity as arg
     // We do not want to drop the message if a dropping queue is used
-    while (!this->template log_message<false>(LogLevel::None, &macro_metadata, max_capacity))
+    while (!this->template log_statement<false>(LogLevel::None, &macro_metadata, max_capacity))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -242,7 +242,7 @@ public:
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->template log_message<false>(LogLevel::None, &macro_metadata))
+    while (!this->template log_statement<false>(LogLevel::None, &macro_metadata))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -273,7 +273,7 @@ public:
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->template log_message<false>(LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
+    while (!this->template log_statement<false>(LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if (sleep_duration_ns > 0)
       {

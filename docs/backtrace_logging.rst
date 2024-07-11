@@ -76,5 +76,5 @@ Store messages in the ring buffer and display them on demand
 
     LOG_INFO(logger, "AFTER backtrace Example {}", 2);
 
-    // an error has happened - flush_log_messages the backtrace manually
+    // an error has happened - flush the backtrace manually
     logger->flush_backtrace();
