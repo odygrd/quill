@@ -23,7 +23,7 @@
   std::size_t { 20 }
 
 #define ITERATIONS                                                                                 \
-  std::size_t { 100000 }
+  std::size_t { 10000 }
 
 /**
  * Min-Max wait duration between each iteration - This lets the backend thread catch up

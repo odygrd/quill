@@ -51,7 +51,7 @@ int main()
   }
 
   // block until all messages are flushed
-  logger->flush_log();
+  logger->flush_log(0);
 
   auto const end_time = std::chrono::steady_clock::now();
   auto const delta = end_time - start_time;
