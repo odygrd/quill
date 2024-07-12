@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "quill/bundled/fmt/base.h"
+#include "quill/bundled/fmt/core.h"
 
 #include <cstddef>
 #include <memory>
@@ -22,14 +22,11 @@ public:
   using value_type = char;
   using const_reference = char const&;
 
-  FormatBuffer() : fmtquill::detail::buffer<char>(grow) { this->set(nullptr, 0); }
+  FormatBuffer() { this->set(nullptr, 0); }
 
   ~FormatBuffer() noexcept { _deallocate(); }
 
-  FormatBuffer(FormatBuffer&& other) noexcept : fmtquill::detail::buffer<char>(grow)
-  {
-    _move(other);
-  }
+  FormatBuffer(FormatBuffer&& other) noexcept { _move(other); }
 
   FormatBuffer& operator=(FormatBuffer&& other) noexcept
   {
@@ -87,11 +84,9 @@ private:
   }
 
 protected:
-  static void grow(fmtquill::detail::buffer<char>& buf, size_t size)
+  void grow(size_t size) override
   {
-    auto& self = static_cast<FormatBuffer&>(buf);
-
-    size_t const old_capacity = buf.capacity();
+    size_t const old_capacity = this->capacity();
     size_t new_capacity = old_capacity * 2;
 
     if (size > new_capacity)
@@ -99,12 +94,12 @@ protected:
       new_capacity = size;
     }
 
-    char* old_data = buf.data();
+    char* old_data = this->data();
     char* new_data = new char[new_capacity];
 
     // The following code doesn't throw, so the raw pointer above doesn't leak.
-    std::uninitialized_copy_n(old_data, buf.size(), new_data);
-    self.set(new_data, new_capacity);
+    std::uninitialized_copy_n(old_data, this->size(), new_data);
+    this->set(new_data, new_capacity);
 
     if (old_data)
     {

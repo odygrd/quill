@@ -32,7 +32,7 @@
 #include "quill/core/UnboundedSPSCQueue.h"
 #include "quill/sinks/Sink.h"
 
-#include "quill/bundled/fmt/base.h"
+#include "quill/bundled/fmt/core.h"
 
 #include <algorithm>
 #include <atomic>
