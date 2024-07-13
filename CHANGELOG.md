@@ -70,7 +70,6 @@
 ## v5.0.0
 
 - Fix build failure on Windows Arm64 ([#485](https://github.com/odygrd/quill/issues/485))
-- Update bundled `libfmt` to `11.0.1`
 - Previously, wide string support was included in `Codec.h`. To be in line with the requirements of `fmt/base.h`, wide
   string functionality has now been moved to a separate header file, `WideStrings.h`. On Windows, logging wide strings
   now requires the inclusion of `quill/std/WideStrings.h`.
