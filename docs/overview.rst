@@ -39,6 +39,15 @@ Manual Log Flushing
 You can explicitly instruct the frontend thread to wait until all log entries up to the current timestamp are flushed
 using :cpp:func:`quill::LoggerImpl::flush_log`. The calling thread will **block** until every log statement up to that point has been flushed.
 
+Synchronized Logs for Debugging
+-------------------------------
+
+Sometimes, synchronized logging is necessary during application debugging. This can be achieved by configuring the logger to invoke :cpp:func:`quill::LoggerImpl::flush_log` with each log statement using the `QUILL_IMMEDIATE_FLUSH` preprocessor variable.
+
+Enabling `QUILL_IMMEDIATE_FLUSH` causes the calling thread to pause until the log is processed and written to the log file by the backend thread before proceeding, which may have a notable impact on performance.
+
+To enable this behavior, define `QUILL_IMMEDIATE_FLUSH` before including `LogMacros.h` or pass it as a compiler flag.
+
 Handling Application Crashes
 ----------------------------
 
