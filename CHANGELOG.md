@@ -102,9 +102,9 @@
   outputs `A message with two variables [a: 123, b: 3.17]`
 
 - Introduced `LOGJ_LEVEL`, `LOGJ_LEVEL_LIMIT`, and `LOGJ_LEVEL_WITH_TAGS` macros. These new macros simplify JSON logging
-  by automatically embedding the name of each passed variable as a named argument in the format string. This simplifies
-  JSON logging. Each macro can handle up to 26 arguments. The format string is concatenated at compile time, there is no
-  runtime overhead for using these macros. For example:
+  by automatically embedding the name of each passed variable as a named argument in the format string. Each macro can
+  handle up to 26 arguments. The format string is concatenated at compile time, there is no runtime overhead for using
+  these macros. For example:
 
   ```c++
     int var_a = 123;
