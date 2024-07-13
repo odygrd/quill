@@ -815,7 +815,8 @@ private:
       // If all filters are okay we write this message to the file
       if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp,
                                   transit_event.thread_id, transit_event.thread_name,
-                                  transit_event.logger_base->logger_name, transit_event.log_level(), log_statement))
+                                  transit_event.logger_base->logger_name, transit_event.log_level(),
+                                  log_message, log_statement))
       {
         sink->write_log(transit_event.macro_metadata, transit_event.timestamp, transit_event.thread_id,
                         transit_event.thread_name, _process_id, transit_event.logger_base->logger_name,

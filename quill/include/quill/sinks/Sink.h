@@ -61,12 +61,12 @@ public:
    * @param log_message The log message.
    * @param log_statement The log statement.
    */
-  QUILL_ATTRIBUTE_HOT virtual void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                             std::string_view thread_id, std::string_view thread_name,
-                                             std::string const& process_id,
-                                             std::string_view logger_name, LogLevel log_level, std::string_view log_level_description, std::string_view log_level_short_code,
+  QUILL_ATTRIBUTE_HOT virtual void write_log(
+    MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
+    std::string_view thread_name, std::string const& process_id, std::string_view logger_name,
+    LogLevel log_level, std::string_view log_level_description, std::string_view log_level_short_code,
     std::vector<std::pair<std::string, std::string>> const* named_args,
-                                             std::string_view log_message, std::string_view log_statement) = 0;
+    std::string_view log_message, std::string_view log_statement) = 0;
 
   /**
    * @brief Flushes the sink, synchronizing the associated sink with its controlled output sequence.
@@ -136,13 +136,14 @@ public:
    * @param thread_name Name of the thread.
    * @param logger_name Name of the logger.
    * @param log_level Log level of the message.
+   * @param log_message The log message.
    * @param log_statement The log message.
    * @return True if the log record passes all filters, false otherwise.
    */
   QUILL_NODISCARD bool apply_all_filters(MacroMetadata const* log_metadata, uint64_t log_timestamp,
                                          std::string_view thread_id, std::string_view thread_name,
                                          std::string_view logger_name, LogLevel log_level,
-                                         std::string_view log_statement)
+                                         std::string_view log_message, std::string_view log_statement)
   {
     if (log_level < _log_level.load(std::memory_order_relaxed))
     {
@@ -173,10 +174,10 @@ public:
     {
       return std::all_of(_local_filters.begin(), _local_filters.end(),
                          [log_metadata, log_timestamp, thread_id, thread_name, logger_name,
-                          log_level, log_statement](Filter* filter_elem)
+                          log_level, log_message, log_statement](Filter* filter_elem)
                          {
                            return filter_elem->filter(log_metadata, log_timestamp, thread_id, thread_name,
-                                                      logger_name, log_level, log_statement);
+                                                      logger_name, log_level, log_message, log_statement);
                          });
     }
   }
