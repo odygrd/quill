@@ -19,7 +19,6 @@
 #include "quill/core/Codec.h"
 #include "quill/core/Common.h"
 #include "quill/core/DynamicFormatArgStore.h"
-#include "quill/core/FormatBuffer.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/LoggerBase.h"
 #include "quill/core/LoggerManager.h"

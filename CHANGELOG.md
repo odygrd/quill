@@ -70,9 +70,10 @@
 ## v5.0.0
 
 - Fix build failure on Windows Arm64 ([#485](https://github.com/odygrd/quill/issues/485))
-- Previously, wide string support was included in `Codec.h`. Wide string functionality has now been moved to a separate
-  header file, `WideStrings.h`. On Windows, logging wide strings now requires the inclusion
-  of `quill/std/WideStrings.h`.
+- Update bundled `libfmt` to `11.0.1`
+- Previously, wide string support was included in `Codec.h`. To be in line with the requirements of `fmt/base.h`, wide
+  string functionality has now been moved to a separate header file, `WideStrings.h`. On Windows, logging wide strings
+  now requires the inclusion of `quill/std/WideStrings.h`.
 - Added `QUILL_IMMEDIATE_FLUSH` preprocessor variable. This variable can be defined before including `LogMacros.h` or
   passed as a compiler flag. When `QUILL_IMMEDIATE_FLUSH` is defined, the library will flush the log on each log
   statement. This causes the caller thread to wait for the log to be processed and written to the log file by the
@@ -88,6 +89,31 @@
     backend_options.log_level_descriptions[static_cast<uint32_t>(quill::LogLevel::Warning)] = "WARN";
     quill::Backend::start(backend_options);
     ```
+
+- Introduced `LOGV_LEVEL`, `LOGV_LEVEL_LIMIT`, and `LOGV_LEVEL_WITH_TAGS` macros. These new macros simplify logging by
+  automatically printing variable names and values without explicitly specifying each variable name or using `{}`
+  placeholders in the format string. Each macro can handle up to 26 arguments. The format string is concatenated at
+  compile time, there is no runtime overhead for using these macros. For example:
+
+  ```c++
+    int a = 123;
+    double b = 3.17;
+    LOGV_INFO(logger, "A message with two variables", a, b)
+  ```
+  outputs `A message with two variables [a: 123, b: 3.17]`
+
+- Introduced `LOGJ_LEVEL`, `LOGJ_LEVEL_LIMIT`, and `LOGJ_LEVEL_WITH_TAGS` macros. These new macros simplify JSON logging
+  by automatically embedding the name of each passed variable as a named argument in the format string. This simplifies
+  JSON logging. Each macro can handle up to 26 arguments. The format string is concatenated at compile time, there is no
+  runtime overhead for using these macros. For example:
+
+  ```c++
+    int var_a = 123;
+    std::string var_b = "test";
+    LOGJ_INFO(logger, "A json message", var_a, var_b);
+  ```
+  outputs `{"log_level":"INFO","message":"A json message {var_a}, {var_b}","var_a":"123","var_b":"test"}`
+
 - Renamed `log_message` to `log_statement` and `should_log_message` to `should_log_statement` in `Logger`
 - Replaced `%(log_level_id)` with `%(log_level_short_code)` in the `PatternFormatter`.
 - Fix a `CMakeLists` error for old `CMake` versions prior

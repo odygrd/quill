@@ -1,7 +1,8 @@
 Logging Macros
 ==============
 
-The following macros are provided for logging.
+Compile-Time Log Level Filtering
+--------------------------------
 
 To optimize performance by reducing branches in compiled code, you can enable compile-time filtering of log levels.
 
@@ -13,7 +14,7 @@ This is done by defining `QUILL_COMPILE_ACTIVE_LOG_LEVEL` as a compilation flag 
 
 Where `{DESIRED_LEVEL}` can be one of the following: `TRACE_L3`, `TRACE_L2`, `TRACE_L1`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
 
-For example, to compile with warnings and above, you would define:
+For example, to compile only with warnings and above, you would define:
 
 .. code-block:: c
 
@@ -97,9 +98,161 @@ Standard Logging Macros
 
 - :c:macro:`LOG_BACKTRACE(logger, fmt, ...)`
 
+Value-based Macros (LOGV)
+-------------------------
+
+The following enhanced macros simplify logging by automatically printing variable names and values without explicitly specifying each variable name or using `{}` placeholders in the format string.
+Each macro can handle up to 26 arguments. The format string is concatenated at compile time, there is no runtime overhead for using these macros.
+
+**Trace Level 3 (L3)**
+
+- :c:macro:`LOGV_TRACE_L3(logger, message, ...)`
+
+- :c:macro:`LOGV_TRACE_L3_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_TRACE_L3_WITH_TAGS(logger, tags, message, ...)`
+
+**Trace Level 2 (L2)**
+
+- :c:macro:`LOGV_TRACE_L2(logger, message, ...)`
+
+- :c:macro:`LOGV_TRACE_L2_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_TRACE_L2_WITH_TAGS(logger, tags, message, ...)`
+
+**Trace Level 1 (L1)**
+
+- :c:macro:`LOGV_TRACE_L1(logger, message, ...)`
+
+- :c:macro:`LOGV_TRACE_L1_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_TRACE_L1_WITH_TAGS(logger, tags, message, ...)`
+
+**Debug**
+
+- :c:macro:`LOGV_DEBUG(logger, message, ...)`
+
+- :c:macro:`LOGV_DEBUG_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_DEBUG_WITH_TAGS(logger, tags, message, ...)`
+
+**Info**
+
+- :c:macro:`LOGV_INFO(logger, message, ...)`
+
+- :c:macro:`LOGV_INFO_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_INFO_WITH_TAGS(logger, tags, message, ...)`
+
+**Warning**
+
+- :c:macro:`LOGV_WARNING(logger, message, ...)`
+
+- :c:macro:`LOGV_WARNING_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_WARNING_WITH_TAGS(logger, tags, message, ...)`
+
+**Error**
+
+- :c:macro:`LOGV_ERROR(logger, message, ...)`
+
+- :c:macro:`LOGV_ERROR_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_ERROR_WITH_TAGS(logger, tags, message, ...)`
+
+**Critical**
+
+- :c:macro:`LOGV_CRITICAL(logger, message, ...)`
+
+- :c:macro:`LOGV_CRITICAL_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_CRITICAL_WITH_TAGS(logger, tags, message, ...)`
+
+**Backtrace**
+
+- :c:macro:`LOGV_BACKTRACE(logger, message, ...)`
+
+JSON Logging Macros (LOGJ)
+--------------------------
+
+The following macros simplify JSON logging by automatically embedding the name of each passed variable as a named argument in the format string.
+Each macro can handle up to 26 arguments. The format string is concatenated at compile time, there is no runtime overhead for using these macros.
+
+**Trace Level 3 (L3)**
+
+- :c:macro:`LOGJ_TRACE_L3(logger, message, ...)`
+
+- :c:macro:`LOGJ_TRACE_L3_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_TRACE_L3_WITH_TAGS(logger, tags, message, ...)`
+
+**Trace Level 2 (L2)**
+
+- :c:macro:`LOGJ_TRACE_L2(logger, message, ...)`
+
+- :c:macro:`LOGJ_TRACE_L2_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_TRACE_L2_WITH_TAGS(logger, tags, message, ...)`
+
+**Trace Level 1 (L1)**
+
+- :c:macro:`LOGJ_TRACE_L1(logger, message, ...)`
+
+- :c:macro:`LOGJ_TRACE_L1_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_TRACE_L1_WITH_TAGS(logger, tags, message, ...)`
+
+**Debug**
+
+- :c:macro:`LOGJ_DEBUG(logger, message, ...)`
+
+- :c:macro:`LOGJ_DEBUG_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_DEBUG_WITH_TAGS(logger, tags, message, ...)`
+
+**Info**
+
+- :c:macro:`LOGJ_INFO(logger, message, ...)`
+
+- :c:macro:`LOGJ_INFO_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_INFO_WITH_TAGS(logger, tags, message, ...)`
+
+**Warning**
+
+- :c:macro:`LOGJ_WARNING(logger, message, ...)`
+
+- :c:macro:`LOGJ_WARNING_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_WARNING_WITH_TAGS(logger, tags, message, ...)`
+
+**Error**
+
+- :c:macro:`LOGJ_ERROR(logger, message, ...)`
+
+- :c:macro:`LOGJ_ERROR_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_ERROR_WITH_TAGS(logger, tags, message, ...)`
+
+**Critical**
+
+- :c:macro:`LOGJ_CRITICAL(logger, message, ...)`
+
+- :c:macro:`LOGJ_CRITICAL_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_CRITICAL_WITH_TAGS(logger, tags, message, ...)`
+
+**Backtrace**
+
+- :c:macro:`LOGJ_BACKTRACE(logger, message, ...)`
+
 Dynamic Logging Macros
 -----------------------
 
 Dynamic logging macros provide runtime log level flexibility with a small overhead. Prefer using the compile-time log level macros for zero-cost logging.
 
 - :c:macro:`LOG_DYNAMIC(logger, log_level, fmt, ...)`
+
+- :c:macro:`LOGV_DYNAMIC(logger, log_level, message, ...)`
+
+- :c:macro:`LOGJ_DYNAMIC(logger, log_level, message, ...)`
