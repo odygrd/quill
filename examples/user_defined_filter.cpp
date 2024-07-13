@@ -22,12 +22,27 @@ public:
   UserFilter() : quill::Filter("filter_1"){};
 
   bool filter(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
-              std::string_view thread_id, std::string_view thread_name, std::string_view logger_name,
-              quill::LogLevel log_level, std::string_view log_message) noexcept override
+              std::string_view thread_id, std::string_view thread_name, std::string_view logger_name, quill::LogLevel log_level,
+              std::string_view log_message, std::string_view log_statement) noexcept override
   {
-    // for example filter out lines 47 and 48 of any file
-    return (std::stoi(log_metadata->line()) != 47) && (std::stoi(log_metadata->line()) != 48);
+    // for example filter out duplicate log files
+    bool is_different = true;
+
+    if ((last_log_level == log_level) && (log_message == last_message))
+    {
+      is_different = false;
+    }
+
+    last_message = log_message;
+    last_log_level = log_level;
+
+    // return true to log the message, false otherwise
+    return is_different;
   }
+
+private:
+  std::string last_message;
+  quill::LogLevel last_log_level{quill::LogLevel::None};
 };
 
 int main()
@@ -47,12 +62,10 @@ int main()
   // Change the LogLevel to send everything
   logger->set_log_level(quill::LogLevel::TraceL3);
 
-  LOG_TRACE_L3(logger, "This is a log trace l3 example {}", 1);
-  LOG_TRACE_L2(logger, "This is a log trace l2 example {} {}", 2, 2.3);
-  LOG_TRACE_L1(logger, "This is a log trace l1 {} example", "string");
-  LOG_DEBUG(logger, "This is a log debug example {}", 4);
-  LOG_INFO(logger, "This is a log info example {}", sizeof(std::string));
-  LOG_WARNING(logger, "This is a log warning example {}", sizeof(std::string));
-  LOG_ERROR(logger, "This is a log error example {}", sizeof(std::string));
-  LOG_CRITICAL(logger, "This is a log critical example {}", sizeof(std::string));
+  LOG_INFO(logger, "This is a log info example {}", 123);
+  LOG_INFO(logger, "This is a log info example {}", 123);
+  LOG_INFO(logger, "This is a log info example {}", 123);
+  LOG_INFO(logger, "This is a log info example {}", 123);
+  LOG_INFO(logger, "This is a log info example {}", 456);
+  LOG_INFO(logger, "This is a log info example {}", 123);
 }
