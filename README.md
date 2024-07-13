@@ -189,9 +189,9 @@ The results presented in the tables below are measured in `nanoseconds (ns)`.
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.4 Bounded Dropping Queue](http://github.com/odygrd/quill) |  8   |  9   |  9   |  9   |  10  |   12   |
+| [Quill v5.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  6   |  7   |  8   |  8   |  9   |   10   |
+| [Quill v5.0 Unbounded Queue](http://github.com/odygrd/quill)        |  8   |  9   |  9   |  10  |  10  |   12   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  8   |  9   |  10  |  10  |  11  |   13   |
-| [Quill v4.4 Unbounded Queue](http://github.com/odygrd/quill)        |  11  |  11  |  11  |  12  |  13  |   17   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  12  |  13  |  16  |  17  |  20  |   25   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  19  |  19  |  19  |  20  |  56  |   83   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                |  25  |  27  |  29  |  31  |  33  |   39   |
@@ -204,10 +204,10 @@ The results presented in the tables below are measured in `nanoseconds (ns)`.
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
+| [Quill v5.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  7   |  8   |  9   |  9   |  10  |   11   |
 | [XTR](https://github.com/choll/xtr)                                 |  6   |  6   |  8   |  9   |  40  |   48   |
-| [Quill v4.4 Bounded Dropping Queue](http://github.com/odygrd/quill) |  8   |  9   |  9   |  10  |  11  |   13   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  8   |  9   |  9   |  10  |  12  |   14   |
-| [Quill v4.4 Unbounded Queue](http://github.com/odygrd/quill)        |  12  |  12  |  13  |  13  |  14  |   18   |
+| [Quill v5.0 Unbounded Queue](http://github.com/odygrd/quill)        |  9   |  9   |  11  |  11  |  12  |   14   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  13  |  15  |  18  |  21  |  25  |   28   |
 | [Reckless](http://github.com/mattiasflodin/reckless)                |  17  |  21  |  24  |  25  |  28  |   47   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  19  |  19  |  20  |  21  |  58  |   88   |
@@ -226,9 +226,9 @@ of `std::string`.
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.4 Bounded Dropping Queue](http://github.com/odygrd/quill) |  10  |  11  |  12  |  13  |  13  |   16   |
+| [Quill v5.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  10  |  12  |  13  |  14  |  16  |   17   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  10  |  12  |  13  |  14  |  16  |   17   | 
-| [Quill v4.4 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  13  |  14  |  15  |  16  |   19   |
+| [Quill v5.0 Unbounded Queue](http://github.com/odygrd/quill)        |  14  |  15  |  16  |  17  |  18  |   20   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  15  |  18  |  22  |  25  |  29  |   34   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  20  |  21  |  22  |  23  |  58  |   86   |
 | [XTR](https://github.com/choll/xtr)                                 |  8   |  8   |  29  |  30  |  33  |   49   |
@@ -241,9 +241,9 @@ of `std::string`.
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.4 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  11  |  13  |  13  |  14  |   17   |
+| [Quill v5.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  13  |  14  |  13  |  15  |   18   |
 | [XTR](https://github.com/choll/xtr)                                 |  9   |  11  |  13  |  14  |  31  |   39   |
-| [Quill v4.4 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  14  |  15  |  16  |  17  |   20   |
+| [Quill v5.0 Unbounded Queue](http://github.com/odygrd/quill)        |  13  |  15  |  16  |  16  |  19  |   20   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          |  12  |  13  |  16  |  16  |  19  |   21   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  21  |  22  |  23  |  25  |  60  |   90   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)        |  19  |  24  |  33  |  36  |  42  |   49   |
@@ -263,8 +263,8 @@ The strings used in the log message are over 35 characters to prevent the short 
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.4 Bounded Dropping Queue](http://github.com/odygrd/quill) |  50  |  52  |  54  |  56  |  59  |   74   |
-| [Quill v4.4 Unbounded Queue](http://github.com/odygrd/quill)        |  53  |  55  |  56  |  58  |  61  |   67   |
+| [Quill v5.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  48  |  50  |  53  |  54  |  57  |   60   |
+| [Quill v5.0 Unbounded Queue](http://github.com/odygrd/quill)        |  53  |  55  |  57  |  59  |  61  |   65   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  64  |  66  |  70  |  80  |  89  |  271   |
 | [XTR](https://github.com/choll/xtr)                                 | 282  | 290  | 338  | 343  | 350  |  575   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          | 721  | 750  | 779  | 793  | 821  |  847   |
@@ -274,9 +274,9 @@ The strings used in the log message are over 35 characters to prevent the short 
 
 | Library                                                             | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |---------------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill v4.4 Bounded Dropping Queue](http://github.com/odygrd/quill) |  53  |  55  |  57  |  59  |  62  |   80   |
+| [Quill v5.0 Bounded Dropping Queue](http://github.com/odygrd/quill) |  54  |  56  |  59  |  60  |  64  |   76   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)                |  66  |  68  |  71  |  74  |  87  |  295   | 
-| [Quill v4.4 Unbounded Queue](http://github.com/odygrd/quill)        |  88  |  95  | 103  | 108  | 119  |  135   |
+| [Quill v5.0 Unbounded Queue](http://github.com/odygrd/quill)        |  89  |  98  | 106  | 112  | 124  |  138   |
 | [XTR](https://github.com/choll/xtr)                                 | 535  | 730  | 786  | 819  | 885  |  971   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                          | 788  | 811  | 831  | 844  | 872  |  906   |
 | [spdlog](http://github.com/gabime/spdlog)                           | 6090 | 6165 | 6246 | 6337 | 7351 |  9322  |
@@ -374,11 +374,16 @@ int main()
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
 #include "quill/sinks/ConsoleSink.h"
+#include "quill/std/Array.h"
+
+#include <string>
+#include <utility>
 
 int main()
 {
-  // Start the backend thread
-  quill::Backend::start();
+  // Backend  
+  quill::BackendOptions backend_options;
+  quill::Backend::start(backend_options);
 
   // Frontend
   auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
@@ -387,20 +392,47 @@ int main()
   // Change the LogLevel to print everything
   logger->set_log_level(quill::LogLevel::TraceL3);
 
-  LOG_INFO(logger, "Welcome to Quill!");
-  LOG_ERROR(logger, "An error message. error code {}", 123);
-  LOG_WARNING(logger, "A warning message.");
-  LOG_CRITICAL(logger, "A critical error.");
-  LOG_DEBUG(logger, "Debugging foo {}", 1234);
+  // A log message with number 123
+  int a = 123;
+  std::string l = "log";
+  LOG_INFO(logger, "A {} message with number {}", l, a);
+
+  // libfmt formatting language is supported 3.14e+00
+  double pi = 3.141592653589793;
+  LOG_INFO(logger, "libfmt formatting language is supported {:.2e}", pi);
+
+  // Logging STD types is supported [1, 2, 3]
+  std::array<int, 3> arr = {1, 2, 3};
+  LOG_INFO(logger, "Logging STD types is supported {}", arr);
+
+  // Logging STD types is supported [arr: [1, 2, 3]]
+  LOGV_INFO(logger, "Logging STD types is supported", arr);
+
+  // A message with two variables [a: 123, b: 3.17]
+  double b = 3.17;
+  LOGV_INFO(logger, "A message with two variables", a, b);
+
+  for (uint32_t i = 0; i < 10; ++i)
+  {
+    // Will only log the message once per second
+    LOG_INFO_LIMIT(std::chrono::seconds{1}, logger, "A {} message with number {}", l, a);
+    LOGV_INFO_LIMIT(std::chrono::seconds{1}, logger, "A message with two variables", a, b);
+  }
+
   LOG_TRACE_L1(logger, "{:>30}", "right aligned");
   LOG_TRACE_L2(logger, "Positional arguments are {1} {0} ", "too", "supported");
   LOG_TRACE_L3(logger, "Support for floats {:03.2f}", 1.23456);
+  LOG_DEBUG(logger, "Debugging foo {}", 1234);
+  LOG_INFO(logger, "Welcome to Quill!");
+  LOG_WARNING(logger, "A warning message.");
+  LOG_ERROR(logger, "An error message. error code {}", 123);
+  LOG_CRITICAL(logger, "A critical error.");
 }
 ```
 
 ### Output
 
-[![Screenshot-2020-08-14-at-01-09-43.png](http://i.postimg.cc/02Vbt8LH/Screenshot-2020-08-14-at-01-09-43.png)](http://postimg.cc/LnZ95M4z)
+![example_output.png](docs%2Fexample_output.png)
 
 ## Usage
 
