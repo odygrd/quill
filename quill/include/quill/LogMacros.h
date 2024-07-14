@@ -40,10 +40,16 @@
   #define QUILL_IMMEDIATE_FLUSH 0
 #endif
 
+/** -- LOGV_ helpers begin -- **/
+
 // Helper macro to expand __VA_ARGS__ correctly in MSVC
 #define QUILL_EXPAND(x) x
 
-/** -- LOGV_ helpers begin -- **/
+// Macro to select the appropriate format generator based on the number of arguments
+#define QUILL_GET_FORMAT_GENERATOR_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13,   \
+                                         _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24,    \
+                                         _25, _26, _27, NAME, ...)                                 \
+  NAME
 
 // Helper macros to generate format strings with placeholders
 #define QUILL_GENERATE_FORMAT_STRING_0(text) text
@@ -91,55 +97,50 @@
        ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l         \
        ": {}, " #k ": {}, " #j ": {}]"
 #define QUILL_GENERATE_FORMAT_STRING_18(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i) \
-  text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s \
-       ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l         \
-       ": {}, " #k ": {}, " #j ": {}, " #i ": {}]"
-#define QUILL_GENERATE_FORMAT_STRING_19(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i, h) \
-  text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s \
-       ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l         \
-       ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}]"
-#define QUILL_GENERATE_FORMAT_STRING_20(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i, h, g) \
   text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s  \
        ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l          \
-       ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}]"
-#define QUILL_GENERATE_FORMAT_STRING_21(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i, h, g, f) \
+       ": {}, " #k ": {}, " #j ": {}, " #i ": {}]"
+#define QUILL_GENERATE_FORMAT_STRING_19(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i, h) \
   text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s     \
        ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l             \
+       ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}]"
+#define QUILL_GENERATE_FORMAT_STRING_20(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i, h, g) \
+  text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s        \
+       ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l                \
+       ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}]"
+#define QUILL_GENERATE_FORMAT_STRING_21(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i, h, g, f) \
+  text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s           \
+       ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l                   \
        ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}, " #f ": {}]"
 #define QUILL_GENERATE_FORMAT_STRING_22(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j,   \
                                         i, h, g, f, e)                                             \
-  text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s        \
-       ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l                \
+  text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s \
+       ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l         \
        ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}, " #f ": {}, " #e ": {}]"
 #define QUILL_GENERATE_FORMAT_STRING_23(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j,   \
                                         i, h, g, f, e, d)                                          \
-  text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s           \
-       ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l                   \
-       ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}, " #f ": {}, " #e                   \
+  text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s \
+       ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l         \
+       ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}, " #f ": {}, " #e         \
        ": {}, " #d ": {}]"
 #define QUILL_GENERATE_FORMAT_STRING_24(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j,   \
-                                        i, h, g, f, e, d, c)                                                   \
+                                        i, h, g, f, e, d, c)                                       \
   text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s \
        ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l         \
        ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}, " #f ": {}, " #e         \
        ": {}, " #d ": {}, " #c ": {}]"
 #define QUILL_GENERATE_FORMAT_STRING_25(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j,   \
-                                        i, h, g, f, e, d, c, b)                                                \
+                                        i, h, g, f, e, d, c, b)                                    \
   text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s \
        ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l         \
        ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}, " #f ": {}, " #e         \
        ": {}, " #d ": {}, " #c ": {}, " #b ": {}]"
 #define QUILL_GENERATE_FORMAT_STRING_26(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j,   \
-                                        i, h, g, f, e, d, c, b, a)                                             \
+                                        i, h, g, f, e, d, c, b, a)                                 \
   text " [" #x ": {}, " #y ": {}, " #z ": {}, " #w ": {}, " #v ": {}, " #u ": {}, " #t ": {}, " #s \
        ": {}, " #r ": {}, " #q ": {}, " #p ": {}, " #o ": {}, " #n ": {}, " #m ": {}, " #l         \
        ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}, " #f ": {}, " #e         \
        ": {}, " #d ": {}, " #c ": {}, " #b ": {}, " #a ": {}]"
-
-// Macro to select the appropriate format generator based on the number of arguments
-#define QUILL_GET_FORMAT_GENERATOR_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13,   \
-                                         _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, NAME, ...) \
-  NAME
 
 // Main macro to generate format strings (up to 26 variables plus the text)
 #define QUILL_GENERATE_FORMAT_STRING(...)                                                              \
@@ -195,63 +196,57 @@
   text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_16(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k) \
-  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
+  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r      \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_17(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j) \
-  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
+  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r         \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_18(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i) \
-  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r      \
+  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r            \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_19(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l, k, j, i, h) \
-  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r         \
-       "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i       \
+  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r               \
+       "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i             \
        "}, {" #h "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_20(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l,   \
                                               k, j, i, h, g)                                       \
-  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r            \
-       "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i          \
+  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
+       "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i   \
        "}, {" #h "}, {" #g "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_21(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l,   \
                                               k, j, i, h, g, f)                                    \
-  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r               \
-       "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i             \
+  text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
+       "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i   \
        "}, {" #h "}, {" #g "}, {" #f "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_22(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l,   \
-                                              k, j, i, h, g, f, e)                                             \
+                                              k, j, i, h, g, f, e)                                 \
   text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i   \
        "}, {" #h "}, {" #g "}, {" #f "}, {" #e "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_23(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l,   \
-                                              k, j, i, h, g, f, e, d)                                          \
+                                              k, j, i, h, g, f, e, d)                              \
   text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i   \
        "}, {" #h "}, {" #g "}, {" #f "}, {" #e "}, {" #d "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_24(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l,   \
-                                              k, j, i, h, g, f, e, d, c)                                       \
+                                              k, j, i, h, g, f, e, d, c)                           \
   text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i   \
        "}, {" #h "}, {" #g "}, {" #f "}, {" #e "}, {" #d "}, {" #c "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_25(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l,   \
-                                              k, j, i, h, g, f, e, d, c, b)                                    \
+                                              k, j, i, h, g, f, e, d, c, b)                        \
   text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i   \
        "}, {" #h "}, {" #g "}, {" #f "}, {" #e "}, {" #d "}, {" #c "}, {" #b "}"
 #define QUILL_GENERATE_NAMED_FORMAT_STRING_26(text, x, y, z, w, v, u, t, s, r, q, p, o, n, m, l,   \
-                                              k, j, i, h, g, f, e, d, c, b, a)                                 \
+                                              k, j, i, h, g, f, e, d, c, b, a)                     \
   text " {" #x "}, {" #y "}, {" #z "}, {" #w "}, {" #v "}, {" #u "}, {" #t "}, {" #s "}, {" #r     \
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i   \
        "}, {" #h "}, {" #g "}, {" #f "}, {" #e "}, {" #d "}, {" #c "}, {" #b "}, {" #a "}"
 
-// Macro to select the appropriate format generator based on the number of arguments
-#define QUILL_GET_NAMED_FORMAT_GENERATOR_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12,  \
-                                               _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24,    \
-                                         _25, _26, _27, NAME, ...)                                 \
-  NAME
-
 // Main macro to generate format strings (up to 26 variables plus the text)
 #define QUILL_GENERATE_NAMED_FORMAT_STRING(...)                                                                       \
-  QUILL_EXPAND(QUILL_GET_NAMED_FORMAT_GENERATOR_MACRO(                                                                \
+  QUILL_EXPAND(QUILL_GET_FORMAT_GENERATOR_MACRO(                                                                      \
     __VA_ARGS__, QUILL_GENERATE_NAMED_FORMAT_STRING_26, QUILL_GENERATE_NAMED_FORMAT_STRING_25,                        \
     QUILL_GENERATE_NAMED_FORMAT_STRING_24, QUILL_GENERATE_NAMED_FORMAT_STRING_23,                                     \
     QUILL_GENERATE_NAMED_FORMAT_STRING_22, QUILL_GENERATE_NAMED_FORMAT_STRING_21,                                     \
