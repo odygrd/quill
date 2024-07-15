@@ -18,60 +18,55 @@ attributes.
 +-------------------------+--------------------------+----------------------------------------+
 | Name                    | Format                   | Description                            |
 +=========================+==========================+========================================+
-| time                    | %(time)                  | Human-readable time when the LogRecord |
-|                         |                          | was created. By default this is of the |
-|                         |                          | form '2003-07-08 16:49:45.896' (the    |
-|                         |                          | numbers after the period are the       |
-|                         |                          | millisecond portion of the time).      |
+| time                    | %(time)                  | Human-readable timestamp when the log  |
+|                         |                          | statement was issued                   |
 +-------------------------+--------------------------+----------------------------------------+
-| file_name               | %(file_name)             | Filename portion of pathname.          |
+| file_name               | %(file_name)             | Filename only, excluding the full path |
 +-------------------------+--------------------------+----------------------------------------+
 | full_path               | %(full_path)             | Full path of the source file where the |
-|                         |                          | logging call was issued.               |
+|                         |                          | logging call was issued                |
 +-------------------------+--------------------------+----------------------------------------+
 | caller_function         | %(caller_function)       | Name of function containing the        |
-|                         |                          | logging call.                          |
+|                         |                          | logging call                           |
 +-------------------------+--------------------------+----------------------------------------+
-| log_level               | %(log_level)             | Text logging level for the message     |
+| log_level               | %(log_level)             | Log level description                  |
 |                         |                          | (‘TRACEL3’, ‘TRACEL2’, ‘TRACEL1’,      |
 |                         |                          | ‘DEBUG’, ‘INFO’, ‘WARNING’, ‘ERROR’,   |
-|                         |                          | ‘CRITICAL’, ‘BACKTRACE’).              |
+|                         |                          | ‘CRITICAL’, ‘BACKTRACE’)               |
 +-------------------------+--------------------------+----------------------------------------+
 | log_level_short_code    | %(log_level_short_code)  | Abbreviated log level (‘T3’, ‘T2’,     |
-|                         |                          | ‘T1’, ‘D’, ‘I’, ‘W’, ‘E’, ‘C’, ‘BT’).  |
+|                         |                          | ‘T1’, ‘D’, ‘I’, ‘W’, ‘E’, ‘C’, ‘BT’)   |
 +-------------------------+--------------------------+----------------------------------------+
 | line_number             | %(line_number)           | Source line number where the logging   |
-|                         |                          | call was issued (if available).        |
+|                         |                          | call was issued                        |
 +-------------------------+--------------------------+----------------------------------------+
-| logger                  | %(logger)                | Name of the logger used to log the     |
-|                         |                          | call.                                  |
+| logger                  | %(logger)                | Name of the logger                     |
 +-------------------------+--------------------------+----------------------------------------+
-| message                 | %(message)               | The logged message, computed as msg %  |
-|                         |                          | args. This is set when Formatter.      |
-|                         |                          | format() is invoked.                   |
+| message                 | %(message)               | The log message                        |
 +-------------------------+--------------------------+----------------------------------------+
-| thread_id               | %(thread_id)             | Thread ID (if available).              |
+| thread_id               | %(thread_id)             | Thread ID, if available                |
 +-------------------------+--------------------------+----------------------------------------+
-| thread_name             | %(thread_name)           | Thread name if set. The name of the    |
+| thread_name             | %(thread_name)           | Thread name, if set. The name of the   |
 |                         |                          | thread must be set prior to issuing    |
-|                         |                          | any log statement on that thread.      |
+|                         |                          | any log statement on that thread       |
 +-------------------------+--------------------------+----------------------------------------+
 | process_id              | %(process_id)            | Process ID                             |
 +-------------------------+--------------------------+----------------------------------------+
 | source_location         | %(source_location)       | Full source file path and line number  |
 |                         |                          | as a single string                     |
 +-------------------------+--------------------------+----------------------------------------+
-| short_source_location   | %(short_source_location) | Full source file path and line         |
-|                         |                          | number as a single string              |
+| short_source_location   | %(short_source_location) | Filename and line number as a single   |
+|                         |                          | string formatted as filename:line,     |
+|                         |                          | excluding the full file path           |
 +-------------------------+--------------------------+----------------------------------------+
 | tags                    | %(tags)                  | Additional custom tags appended to the |
 |                         |                          | message when _WITH_TAGS macros are     |
-|                         |                          | used.                                  |
+|                         |                          | used                                   |
 +-------------------------+--------------------------+----------------------------------------+
 | named_args              | %(named_args)            | Key-value pairs appended to the        |
 |                         |                          | message. Only applicable with          |
-|                         |                          | for a named args log format;           |
-|                         |                          | remains empty otherwise.               |
+|                         |                          | for a named args format string;        |
+|                         |                          | remains empty otherwise                |
 +-------------------------+--------------------------+----------------------------------------+
 
 Customising the timestamp
