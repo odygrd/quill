@@ -1,3 +1,4 @@
+- [v5.1.0](#v510)
 - [v5.0.0](#v500)
 - [v4.5.0](#v450)
 - [v4.4.1](#v441)
@@ -66,6 +67,13 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v5.1.0
+
+- Fix unit tests on FreeBSD ([#496](https://github.com/odygrd/quill/issues/496))
+- Resolved unused variable warning on MSVC.
+- Updated CMake to avoid adding `-fno-exceptions` to the entire target
+  when `QUILL_NO_EXCEPTIONS=ON` ([#499](https://github.com/odygrd/quill/issues/499))
 
 ## v5.0.0
 
