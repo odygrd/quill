@@ -98,10 +98,6 @@ add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
 
 if (QUILL_NO_EXCEPTIONS)
     target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_NO_EXCEPTIONS)
-
-    if (NOT MSVC)
-        target_compile_options(${TARGET_NAME} PUBLIC INTERFACE -fno-exceptions)
-    endif ()
 endif ()
 
 if (QUILL_NO_THREAD_NAME_SUPPORT)

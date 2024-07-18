@@ -5,8 +5,8 @@ project(quill)
 # Options
 #-------------------------------------------------------------------------------------------------------
 
-# Builds Quill without exceptions by adding the -fno-exceptions flag to the compiler.
-option(QUILL_NO_EXCEPTIONS "Build without exceptions using -fno-exceptions flag" OFF)
+# Builds Quill without exceptions
+option(QUILL_NO_EXCEPTIONS "Build without exceptions" OFF)
 
 # Disables features that rely on retrieving the thread name, which is not supported in older versions of Windows (e.g., Windows Server 2012/2016).
 # Enabling this option ensures compatibility with older Windows versions.
