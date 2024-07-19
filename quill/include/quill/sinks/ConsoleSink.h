@@ -7,6 +7,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"
+#include "quill/core/QuillError.h"
 #include "quill/sinks/StreamSink.h"
 
 #include <array>
@@ -361,9 +362,33 @@ public:
     if (_console_colours.using_colours())
     {
       WORD const colour_code = _console_colours.colour_code(log_level);
+      WORD orig_attribs{0};
 
-      // Set foreground colour and store the original attributes
-      WORD const orig_attribs = _set_foreground_colour(colour_code);
+      QUILL_TRY
+      {
+        // Set foreground colour and store the original attributes
+        orig_attribs = _set_foreground_colour(colour_code);
+      }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(std::exception const& e)
+      {
+        // GetConsoleScreenBufferInfo can fail sometimes on windows, in that case still write
+        // the log without colours
+        StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
+                              logger_name, log_level, log_level_description, log_level_short_code,
+                              named_args, log_message, log_statement);
+
+        if (!_report_write_log_error_once)
+        {
+          // Report the error once
+          _report_write_log_error_once = true;
+          QUILL_THROW(QuillError{e.what()});
+        }
+
+        // do not resume further, we already wrote the log statement
+        return;
+      }
+  #endif
 
       auto out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file)));
 
@@ -389,7 +414,6 @@ public:
     }
     else
     {
-      // Write record to file
       StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
                             logger_name, log_level, log_level_description, log_level_short_code,
                             named_args, log_message, log_statement);
@@ -459,5 +483,9 @@ private:
 protected:
   // protected in case someone wants to derive from this class and create a custom one, e.g. for json logging to stdout
   ConsoleColours _console_colours;
+
+#if defined(_WIN32)
+  bool _report_write_log_error_once{false};
+#endif
 };
 } // namespace quill

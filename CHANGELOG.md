@@ -80,6 +80,9 @@
 - The newline character `\n` is now considered printable by default and will no longer be sanitized. Users can now
   include new lines in their logs directly. In versions `4.4.1` and earlier, `\n` was not sanitized, and this behavior
   is restored in this update, eliminating the need for a custom `check_printable_char` function in `BackendOptions`.
+- On Windows, when colors are enabled in `ConsoleSink`, `GetConsoleScreenBufferInfo` may fail in the debug console.
+  Previously, this would result in an error being displayed but no logs being written. This issue is now resolved: the
+  error is reported once, and logs will be written to the console without colors.
 
 ## v5.0.0
 
