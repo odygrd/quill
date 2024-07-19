@@ -71,21 +71,15 @@ public:
     if (_time_zone == Timezone::LocalTime)
     {
       // If localtime is used we will recalculate every 1 hour - this is because of the DST changes
-      // and an easy work-around
 
-      // Then round it down to the nearest hour
-      timestamp = _nearest_hour_timestamp(timestamp);
-
-      // Also calculate and store the next hour timestamp
-      _next_recalculation_timestamp = _next_hour_timestamp(timestamp);
+      // calculate and store the next hour timestamp
+      _next_recalculation_timestamp = _next_full_hour_timestamp(timestamp);
     }
     else if (_time_zone == Timezone::GmtTime)
     {
       // otherwise we will only recalculate every noon and midnight. the reason for this is in case
       // user is using PM, AM format etc
-      _next_recalculation_timestamp = _next_noon_or_midnight_timestamp(timestamp, _time_zone);
-
-      // we don't need to modify timestamp in the case of UTC
+      _next_recalculation_timestamp = _next_noon_or_midnight_timestamp(timestamp);
     }
 
     // Now populate a pre formatted string for this hour,
@@ -119,11 +113,11 @@ public:
 
       if (_time_zone == Timezone::LocalTime)
       {
-        _next_recalculation_timestamp = _next_hour_timestamp(timestamp);
+        _next_recalculation_timestamp = _next_full_hour_timestamp(timestamp);
       }
       else if (_time_zone == Timezone::GmtTime)
       {
-        _next_recalculation_timestamp = _next_noon_or_midnight_timestamp(timestamp + 1, _time_zone);
+        _next_recalculation_timestamp = _next_noon_or_midnight_timestamp(timestamp);
       }
     }
 
@@ -456,26 +450,18 @@ protected:
   }
 
   /***/
-  QUILL_NODISCARD static time_t _next_hour_timestamp(time_t timestamp) noexcept
+  QUILL_NODISCARD static time_t _next_full_hour_timestamp(time_t timestamp) noexcept
   {
     time_t const next_hour_ts = _nearest_hour_timestamp(timestamp) + 3600;
     return next_hour_ts;
   }
 
   /***/
-  QUILL_NODISCARD static time_t _next_noon_or_midnight_timestamp(time_t timestamp, Timezone timezone) noexcept
+  QUILL_NODISCARD static time_t _next_noon_or_midnight_timestamp(time_t timestamp) noexcept
   {
     // Get the current date and time now as time_info
     tm time_info;
-
-    if (timezone == Timezone::GmtTime)
-    {
-      gmtime_rs(&timestamp, &time_info);
-    }
-    else
-    {
-      localtime_rs(&timestamp, &time_info);
-    }
+    gmtime_rs(&timestamp, &time_info);
 
     if (time_info.tm_hour < 12)
     {
@@ -493,9 +479,8 @@ protected:
     }
 
     // convert back to time since epoch
-    std::chrono::system_clock::time_point const next_midnight = (timezone == Timezone::GmtTime)
-      ? std::chrono::system_clock::from_time_t(detail::timegm(&time_info))
-      : std::chrono::system_clock::from_time_t(std::mktime(&time_info));
+    std::chrono::system_clock::time_point const next_midnight =
+      std::chrono::system_clock::from_time_t(detail::timegm(&time_info));
 
     // returns seconds since epoch of the next midnight.
     return std::chrono::duration_cast<std::chrono::seconds>(next_midnight.time_since_epoch()).count() + 1;

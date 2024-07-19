@@ -342,9 +342,9 @@ TEST_CASE("string_from_time_localtime_format_s")
 class StringFromTimeMock : public quill::detail::StringFromTime
 {
 public:
-  static time_t next_noon_or_midnight_timestamp(time_t timestamp, Timezone timezone) noexcept
+  static time_t next_noon_or_midnight_timestamp(time_t timestamp) noexcept
   {
-    return quill::detail::StringFromTime::_next_noon_or_midnight_timestamp(timestamp, timezone);
+    return quill::detail::StringFromTime::_next_noon_or_midnight_timestamp(timestamp);
   }
 
   static time_t nearest_hour_timestamp(time_t timestamp) noexcept
@@ -352,9 +352,9 @@ public:
     return quill::detail::StringFromTime::_nearest_hour_timestamp(timestamp);
   }
 
-  static time_t next_hour_timestamp(time_t timestamp) noexcept
+  static time_t next_full_hour_timestamp(time_t timestamp) noexcept
   {
-    return quill::detail::StringFromTime::_next_hour_timestamp(timestamp);
+    return quill::detail::StringFromTime::_next_full_hour_timestamp(timestamp);
   }
 
   static std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone timezone)
@@ -373,7 +373,7 @@ TEST_CASE("next_noon_or_midnight_timestamp")
     // Noon utc
     time_t constexpr timestamp{1599033200};
     time_t constexpr expected_timestamp{1599048000};
-    time_t const res = StringFromTimeMock::next_noon_or_midnight_timestamp(timestamp, Timezone::GmtTime);
+    time_t const res = StringFromTimeMock::next_noon_or_midnight_timestamp(timestamp);
     REQUIRE_EQ(res, expected_timestamp);
   }
 
@@ -381,7 +381,7 @@ TEST_CASE("next_noon_or_midnight_timestamp")
     // Midnight utc
     time_t constexpr timestamp{1599079200};
     time_t constexpr expected_timestamp{1599091200};
-    time_t const res = StringFromTimeMock::next_noon_or_midnight_timestamp(timestamp, Timezone::GmtTime);
+    time_t const res = StringFromTimeMock::next_noon_or_midnight_timestamp(timestamp);
     REQUIRE_EQ(res, expected_timestamp);
   }
 }
@@ -395,11 +395,11 @@ TEST_CASE("nearest_hour_timestamp")
 }
 
 /***/
-TEST_CASE("next_hour_timestamp")
+TEST_CASE("next_full_hour_timestamp")
 {
   time_t constexpr timestamp = 1599473669;
   time_t constexpr expected_timestamp = 1599476400;
-  REQUIRE_EQ(StringFromTimeMock::next_hour_timestamp(timestamp), expected_timestamp);
+  REQUIRE_EQ(StringFromTimeMock::next_full_hour_timestamp(timestamp), expected_timestamp);
 }
 
 /***/
