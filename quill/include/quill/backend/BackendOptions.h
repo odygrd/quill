@@ -188,7 +188,8 @@ struct BackendOptions
    * To disable this check, you can provide:
    *   std::function<bool(char c)> check_printable_char = {}
    */
-  std::function<bool(char c)> check_printable_char = [](char c) { return c >= ' ' && c <= '~'; };
+  std::function<bool(char c)> check_printable_char = [](char c)
+  { return (c >= ' ' && c <= '~') || (c == '\n'); };
 
   /**
    * Holds descriptive names for various log levels used in logging operations.

@@ -77,6 +77,9 @@
 - Fix an issue where timestamps were incorrectly calculated when using `quill::Timezone::LocalTime`. This bug affected
   timezones that did not have an exact hour difference from UTC, leading to incorrect timestamp
   calculations. ([#498](https://github.com/odygrd/quill/issues/498))
+- The newline character `\n` is now considered printable by default and will no longer be sanitized. Users can now
+  include new lines in their logs directly. In versions `4.4.1` and earlier, `\n` was not sanitized, and this behavior
+  is restored in this update, eliminating the need for a custom `check_printable_char` function in `BackendOptions`.
 
 ## v5.0.0
 
