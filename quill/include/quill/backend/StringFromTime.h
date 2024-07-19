@@ -147,12 +147,12 @@ public:
     // adding the difference.
     _cached_seconds += static_cast<uint32_t>(timestamp_diff);
 
-    uint32_t cached_seconds = _cached_seconds;
-    uint32_t const hours = cached_seconds / 3600;
-    cached_seconds = cached_seconds % 3600;
-    uint32_t const minutes = cached_seconds / 60;
-    cached_seconds = cached_seconds % 60;
-    uint32_t const seconds = cached_seconds;
+    uint32_t total_seconds = _cached_seconds;
+    uint32_t const hours = total_seconds / 3600;
+    total_seconds -= hours * 3600;
+    uint32_t const minutes = total_seconds / 60;
+    total_seconds -= minutes * 60;
+    uint32_t const seconds = total_seconds;
 
     std::string to_replace;
 
