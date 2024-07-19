@@ -70,10 +70,10 @@ public:
 
     if (_time_zone == Timezone::LocalTime)
     {
-      // If localtime is used we will recalculate every 1 hour - this is because of the DST changes
-
-      // calculate and store the next hour timestamp
-      _next_recalculation_timestamp = _next_full_hour_timestamp(timestamp);
+      // If localtime is used, we will recalculate every 15 minutes. This approach accounts for DST
+      // changes and simplifies handling transitions around midnight. Recalculating every 15 minutes
+      // ensures coverage for all possible timezones without additional computations.
+      _next_recalculation_timestamp = _next_quarter_hour_timestamp(timestamp);
     }
     else if (_time_zone == Timezone::GmtTime)
     {
@@ -82,7 +82,7 @@ public:
       _next_recalculation_timestamp = _next_noon_or_midnight_timestamp(timestamp);
     }
 
-    // Now populate a pre formatted string for this hour,
+    // Now populate a pre-formatted string for this hour,
     // also cache any indexes of the time modifier in the string
     _populate_pre_formatted_string_and_cached_indexes(timestamp);
   }
@@ -113,7 +113,7 @@ public:
 
       if (_time_zone == Timezone::LocalTime)
       {
-        _next_recalculation_timestamp = _next_full_hour_timestamp(timestamp);
+        _next_recalculation_timestamp = _next_quarter_hour_timestamp(timestamp);
       }
       else if (_time_zone == Timezone::GmtTime)
       {
@@ -443,17 +443,17 @@ protected:
   }
 
   /***/
-  QUILL_NODISCARD static time_t _nearest_hour_timestamp(time_t timestamp) noexcept
+  QUILL_NODISCARD static time_t _nearest_quarter_hour_timestamp(time_t timestamp) noexcept
   {
-    time_t const nearest_hour_ts = timestamp - (timestamp % 3600);
-    return nearest_hour_ts;
+    time_t const nearest_quarter_hour_ts = timestamp - (timestamp % 900);
+    return nearest_quarter_hour_ts;
   }
 
   /***/
-  QUILL_NODISCARD static time_t _next_full_hour_timestamp(time_t timestamp) noexcept
+  QUILL_NODISCARD static time_t _next_quarter_hour_timestamp(time_t timestamp) noexcept
   {
-    time_t const next_hour_ts = _nearest_hour_timestamp(timestamp) + 3600;
-    return next_hour_ts;
+    time_t const next_quarter_hour_ts = _nearest_quarter_hour_timestamp(timestamp) + 900;
+    return next_quarter_hour_ts;
   }
 
   /***/

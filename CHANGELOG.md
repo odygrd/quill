@@ -74,6 +74,9 @@
 - Resolved unused variable warning on MSVC.
 - Updated CMake to avoid adding `-fno-exceptions` to the entire target
   when `QUILL_NO_EXCEPTIONS=ON` ([#499](https://github.com/odygrd/quill/issues/499))
+- Fix an issue where timestamps were incorrectly calculated when using `quill::Timezone::LocalTime`. This bug affected
+  timezones that did not have an exact hour difference from UTC, leading to incorrect timestamp
+  calculations. ([#498](https://github.com/odygrd/quill/issues/498))
 
 ## v5.0.0
 

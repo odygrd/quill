@@ -347,14 +347,14 @@ public:
     return quill::detail::StringFromTime::_next_noon_or_midnight_timestamp(timestamp);
   }
 
-  static time_t nearest_hour_timestamp(time_t timestamp) noexcept
+  static time_t nearest_quarter_hour_timestamp(time_t timestamp) noexcept
   {
-    return quill::detail::StringFromTime::_nearest_hour_timestamp(timestamp);
+    return quill::detail::StringFromTime::_nearest_quarter_hour_timestamp(timestamp);
   }
 
-  static time_t next_full_hour_timestamp(time_t timestamp) noexcept
+  static time_t next_quarter_hour_timestamp(time_t timestamp) noexcept
   {
-    return quill::detail::StringFromTime::_next_full_hour_timestamp(timestamp);
+    return quill::detail::StringFromTime::_next_quarter_hour_timestamp(timestamp);
   }
 
   static std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone timezone)
@@ -387,19 +387,27 @@ TEST_CASE("next_noon_or_midnight_timestamp")
 }
 
 /***/
-TEST_CASE("nearest_hour_timestamp")
+TEST_CASE("nearest_quarter_hour_timestamp")
 {
   time_t constexpr timestamp = 1599473669;
   time_t constexpr expected_timestamp = 1599472800;
-  REQUIRE_EQ(StringFromTimeMock::nearest_hour_timestamp(timestamp), expected_timestamp);
+  REQUIRE_EQ(StringFromTimeMock::nearest_quarter_hour_timestamp(timestamp), expected_timestamp);
 }
 
 /***/
-TEST_CASE("next_full_hour_timestamp")
+TEST_CASE("next_quarter_hour_timestamp")
 {
-  time_t constexpr timestamp = 1599473669;
-  time_t constexpr expected_timestamp = 1599476400;
-  REQUIRE_EQ(StringFromTimeMock::next_full_hour_timestamp(timestamp), expected_timestamp);
+  {
+    time_t constexpr timestamp = 1599473669;
+    time_t constexpr expected_timestamp = 1599473700;
+    REQUIRE_EQ(StringFromTimeMock::next_quarter_hour_timestamp(timestamp), expected_timestamp);
+  }
+
+  {
+    time_t constexpr timestamp = 1599473700;
+    time_t constexpr expected_timestamp = 1599474600;
+    REQUIRE_EQ(StringFromTimeMock::next_quarter_hour_timestamp(timestamp), expected_timestamp);
+  }
 }
 
 /***/
