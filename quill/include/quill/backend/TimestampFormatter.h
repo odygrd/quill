@@ -118,11 +118,8 @@ public:
     // convert timestamp to seconds
     int64_t const timestamp_secs = timestamp_ns / 1'000'000'000;
 
-    // First always clear our cached string
-    _formatted_date.clear();
-
-    // 1. we always format part 1
-    _formatted_date += _strftime_part_1.format_timestamp(timestamp_secs);
+    // 1. we always start from part 1
+    _formatted_date = _strftime_part_1.format_timestamp(timestamp_secs);
 
     // 2. We add any special ms/us/ns specifier if any
     auto const extracted_ns = static_cast<uint32_t>(timestamp_ns - (timestamp_secs * 1'000'000'000));
