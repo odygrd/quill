@@ -13,6 +13,7 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <map>
@@ -154,7 +155,7 @@ public:
     total_seconds -= minutes * 60;
     uint32_t const seconds = total_seconds;
 
-    std::string to_replace;
+    char buffer[12];
 
     for (auto const& index : _cached_indexes)
     {
@@ -162,79 +163,32 @@ public:
       switch (index.second)
       {
       case format_type::H:
-        to_replace = std::to_string(hours);
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, '0');
-        }
-
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        snprintf(buffer, sizeof(buffer), "%02u", hours);
+        _pre_formatted_ts.replace(index.first, 2, buffer);
         break;
       case format_type::M:
-        to_replace = std::to_string(minutes);
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, '0');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        snprintf(buffer, sizeof(buffer), "%02u", minutes);
+        _pre_formatted_ts.replace(index.first, 2, buffer);
         break;
       case format_type::S:
-        to_replace = std::to_string(seconds);
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, '0');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        snprintf(buffer, sizeof(buffer), "%02u", seconds);
+        _pre_formatted_ts.replace(index.first, 2, buffer);
         break;
       case format_type::I:
-        if (hours != 0)
-        {
-          to_replace = std::to_string(hours > 12 ? hours - 12 : hours);
-        }
-        else
-        {
-          // if hours is `00` we need to replace than with '12' instead in this format
-          to_replace = std::to_string(12);
-        }
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, '0');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
-        break;
-      case format_type::k:
-        to_replace = std::to_string(hours);
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, ' ');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        snprintf(buffer, sizeof(buffer), "%02u", (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
+        _pre_formatted_ts.replace(index.first, 2, buffer);
         break;
       case format_type::l:
-        if (hours != 0)
-        {
-          to_replace = std::to_string(hours > 12 ? hours - 12 : hours);
-        }
-        else
-        {
-          // if hours is `00` we need to replace than with '12' instead in this format
-          to_replace = std::to_string(12);
-        }
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, ' ');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        snprintf(buffer, sizeof(buffer), "%2u", (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
+        _pre_formatted_ts.replace(index.first, 2, buffer);
+        break;
+      case format_type::k:
+        snprintf(buffer, sizeof(buffer), "%2u", hours);
+        _pre_formatted_ts.replace(index.first, 2, buffer);
         break;
       case format_type::s:
-        to_replace = std::to_string(_cached_timestamp);
-        _pre_formatted_ts.replace(index.first, 10, to_replace);
+        snprintf(buffer, sizeof(buffer), "%10lu", static_cast<unsigned long>(_cached_timestamp));
+        _pre_formatted_ts.replace(index.first, 10, buffer);
         break;
       default:
         abort();
