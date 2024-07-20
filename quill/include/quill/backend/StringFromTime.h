@@ -156,8 +156,6 @@ public:
     total_seconds -= minutes * 60;
     uint32_t const seconds = total_seconds;
 
-    char buffer[12];
-
     for (auto const& index : _cached_indexes)
     {
       // for each cached index we have, replace it when the new value
