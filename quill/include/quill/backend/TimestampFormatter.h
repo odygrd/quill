@@ -92,22 +92,25 @@ public:
     {
       // If no additional specifier was found then we can simply store the whole format string
       assert(_additional_format_specifier == AdditionalSpecifier::None);
-      _format_part_1 = _time_format;
+      _strftime_part_1.init(_time_format, _timestamp_timezone);
     }
     else
     {
       // We now the index where the specifier begins so copy everything until there from beginning
-      _format_part_1 = _time_format.substr(0, specifier_begin);
+      std::string const format_part_1 = _time_format.substr(0, specifier_begin);
+      _strftime_part_1.init(format_part_1, _timestamp_timezone);
 
       // Now copy the remaining format string, ignoring the specifier
       size_t const specifier_end = specifier_begin + specifier_length;
+      std::string const format_part_2 =
+        _time_format.substr(specifier_end, _time_format.length() - specifier_end);
 
-      _format_part_2 = _time_format.substr(specifier_end, _time_format.length() - specifier_end);
+      if (!format_part_2.empty())
+      {
+        _strftime_part_2.init(format_part_2, _timestamp_timezone);
+        _has_format_part_2 = true;
+      }
     }
-
-    // Now init two custom string from time classes with pre-formatted strings
-    _strftime_part_1.init(_format_part_1, _timestamp_timezone);
-    _strftime_part_2.init(_format_part_2, _timestamp_timezone);
   }
 
   /***/
@@ -158,7 +161,7 @@ public:
     }
 
     // 3. format part 2 after fractional seconds - if any
-    if (!_format_part_2.empty())
+    if (_has_format_part_2)
     {
       _formatted_date += _strftime_part_2.format_timestamp(timestamp_secs);
     }
@@ -196,10 +199,6 @@ private:
   /** As class member to avoid re-allocating **/
   std::string _formatted_date;
 
-  /** The format string is broken down to two parts. Before and after our additional specifiers */
-  std::string _format_part_1;
-  std::string _format_part_2;
-
   /** Strftime cache for both parts of the string */
   StringFromTime _strftime_part_1;
   StringFromTime _strftime_part_2;
@@ -209,6 +208,7 @@ private:
 
   /** fractional seconds */
   AdditionalSpecifier _additional_format_specifier{AdditionalSpecifier::None};
+  bool _has_format_part_2{false};
 };
 
 } // namespace quill::detail
