@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/bundled/fmt/format.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 #include "quill/core/QuillError.h"
@@ -163,32 +164,27 @@ public:
       switch (index.second)
       {
       case format_type::H:
-        snprintf(buffer, sizeof(buffer), "%02u", hours);
-        _pre_formatted_ts.replace(index.first, 2, buffer);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", hours);
         break;
       case format_type::M:
-        snprintf(buffer, sizeof(buffer), "%02u", minutes);
-        _pre_formatted_ts.replace(index.first, 2, buffer);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", minutes);
         break;
       case format_type::S:
-        snprintf(buffer, sizeof(buffer), "%02u", seconds);
-        _pre_formatted_ts.replace(index.first, 2, buffer);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", seconds);
         break;
       case format_type::I:
-        snprintf(buffer, sizeof(buffer), "%02u", (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
-        _pre_formatted_ts.replace(index.first, 2, buffer);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}",
+                            (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
         break;
       case format_type::l:
-        snprintf(buffer, sizeof(buffer), "%2u", (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
-        _pre_formatted_ts.replace(index.first, 2, buffer);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:2}",
+                            (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
         break;
       case format_type::k:
-        snprintf(buffer, sizeof(buffer), "%2u", hours);
-        _pre_formatted_ts.replace(index.first, 2, buffer);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:2}", hours);
         break;
       case format_type::s:
-        snprintf(buffer, sizeof(buffer), "%10lu", static_cast<unsigned long>(_cached_timestamp));
-        _pre_formatted_ts.replace(index.first, 10, buffer);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:10}", _cached_timestamp);
         break;
       default:
         abort();
