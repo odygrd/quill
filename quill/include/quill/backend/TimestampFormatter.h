@@ -92,22 +92,25 @@ public:
     {
       // If no additional specifier was found then we can simply store the whole format string
       assert(_additional_format_specifier == AdditionalSpecifier::None);
-      _format_part_1 = _time_format;
+      _strftime_part_1.init(_time_format, _timestamp_timezone);
     }
     else
     {
       // We now the index where the specifier begins so copy everything until there from beginning
-      _format_part_1 = _time_format.substr(0, specifier_begin);
+      std::string const format_part_1 = _time_format.substr(0, specifier_begin);
+      _strftime_part_1.init(format_part_1, _timestamp_timezone);
 
       // Now copy the remaining format string, ignoring the specifier
       size_t const specifier_end = specifier_begin + specifier_length;
+      std::string const format_part_2 =
+        _time_format.substr(specifier_end, _time_format.length() - specifier_end);
 
-      _format_part_2 = _time_format.substr(specifier_end, _time_format.length() - specifier_end);
+      if (!format_part_2.empty())
+      {
+        _strftime_part_2.init(format_part_2, _timestamp_timezone);
+        _has_format_part_2 = true;
+      }
     }
-
-    // Now init two custom string from time classes with pre-formatted strings
-    _strftime_part_1.init(_format_part_1, _timestamp_timezone);
-    _strftime_part_2.init(_format_part_2, _timestamp_timezone);
   }
 
   /***/
@@ -122,7 +125,7 @@ public:
     _formatted_date.clear();
 
     // 1. we always format part 1
-    _formatted_date += _strftime_part_1.format_timestamp(timestamp_secs);
+    _formatted_date.append(_strftime_part_1.format_timestamp(timestamp_secs));
 
     // 2. We add any special ms/us/ns specifier if any
     auto const extracted_ns = static_cast<uint32_t>(timestamp_ns - (timestamp_secs * 1'000'000'000));
@@ -130,40 +133,39 @@ public:
     if (_additional_format_specifier == AdditionalSpecifier::Qms)
     {
       uint32_t const extracted_ms = extracted_ns / 1'000'000;
-      constexpr char const* zeros = "000";
 
       // Add as many zeros as the extracted_fractional_seconds_length
-      _formatted_date += zeros;
+      static constexpr std::string_view zeros{"000"};
+      _formatted_date.append(zeros);
 
-      _append_fractional_seconds(extracted_ms);
+      _write_fractional_seconds(extracted_ms);
     }
     else if (_additional_format_specifier == AdditionalSpecifier::Qus)
     {
       uint32_t const extracted_us = extracted_ns / 1'000;
-      constexpr char const* zeros = "000000";
 
       // Add as many zeros as the extracted_fractional_seconds_length
-      _formatted_date += zeros;
+      static constexpr std::string_view zeros{"000000"};
+      _formatted_date.append(zeros);
 
-      _append_fractional_seconds(extracted_us);
+      _write_fractional_seconds(extracted_us);
     }
     else if (_additional_format_specifier == AdditionalSpecifier::Qns)
     {
-      constexpr char const* zeros = "000000000";
-
       // Add as many zeros as the extracted_fractional_seconds_length
-      _formatted_date += zeros;
+      static constexpr std::string_view zeros{"000000000"};
+      _formatted_date.append(zeros);
 
-      _append_fractional_seconds(extracted_ns);
+      _write_fractional_seconds(extracted_ns);
     }
 
     // 3. format part 2 after fractional seconds - if any
-    if (!_format_part_2.empty())
+    if (_has_format_part_2)
     {
-      _formatted_date += _strftime_part_2.format_timestamp(timestamp_secs);
+      _formatted_date.append(_strftime_part_2.format_timestamp(timestamp_secs));
     }
 
-    return _formatted_date;
+    return std::string_view{_formatted_date.data(), _formatted_date.size()};
   }
 
   /***/
@@ -174,7 +176,7 @@ public:
 
 private:
   /***/
-  void _append_fractional_seconds(uint32_t extracted_fractional_seconds)
+  void _write_fractional_seconds(uint32_t extracted_fractional_seconds)
   {
     // Format the seconds and add them
     fmtquill::format_int const extracted_ms_string{extracted_fractional_seconds};
@@ -192,13 +194,7 @@ private:
   static constexpr size_t specifier_length = 4u;
 
   std::string _time_format;
-
-  /** As class member to avoid re-allocating **/
-  std::string _formatted_date;
-
-  /** The format string is broken down to two parts. Before and after our additional specifiers */
-  std::string _format_part_1;
-  std::string _format_part_2;
+  fmtquill::basic_memory_buffer<char, 32> _formatted_date;
 
   /** Strftime cache for both parts of the string */
   StringFromTime _strftime_part_1;
@@ -209,6 +205,7 @@ private:
 
   /** fractional seconds */
   AdditionalSpecifier _additional_format_specifier{AdditionalSpecifier::None};
+  bool _has_format_part_2{false};
 };
 
 } // namespace quill::detail

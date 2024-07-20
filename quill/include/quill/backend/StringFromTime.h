@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/bundled/fmt/format.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 #include "quill/core/QuillError.h"
@@ -154,87 +155,33 @@ public:
     total_seconds -= minutes * 60;
     uint32_t const seconds = total_seconds;
 
-    std::string to_replace;
-
     for (auto const& index : _cached_indexes)
     {
       // for each cached index we have, replace it when the new value
       switch (index.second)
       {
       case format_type::H:
-        to_replace = std::to_string(hours);
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, '0');
-        }
-
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", hours);
         break;
       case format_type::M:
-        to_replace = std::to_string(minutes);
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, '0');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", minutes);
         break;
       case format_type::S:
-        to_replace = std::to_string(seconds);
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, '0');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", seconds);
         break;
       case format_type::I:
-        if (hours != 0)
-        {
-          to_replace = std::to_string(hours > 12 ? hours - 12 : hours);
-        }
-        else
-        {
-          // if hours is `00` we need to replace than with '12' instead in this format
-          to_replace = std::to_string(12);
-        }
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, '0');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
-        break;
-      case format_type::k:
-        to_replace = std::to_string(hours);
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, ' ');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}",
+                            (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
         break;
       case format_type::l:
-        if (hours != 0)
-        {
-          to_replace = std::to_string(hours > 12 ? hours - 12 : hours);
-        }
-        else
-        {
-          // if hours is `00` we need to replace than with '12' instead in this format
-          to_replace = std::to_string(12);
-        }
-
-        if (to_replace.size() == 1)
-        {
-          to_replace.insert(0, 1, ' ');
-        }
-        _pre_formatted_ts.replace(index.first, 2, to_replace);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:2}",
+                            (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
+        break;
+      case format_type::k:
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:2}", hours);
         break;
       case format_type::s:
-        to_replace = std::to_string(_cached_timestamp);
-        _pre_formatted_ts.replace(index.first, 10, to_replace);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:10}", _cached_timestamp);
         break;
       default:
         abort();

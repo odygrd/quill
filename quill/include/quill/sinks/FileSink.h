@@ -330,7 +330,7 @@ private:
    * @param timezone Timezone to use.
    * @return Updated filename.
    */
-  QUILL_NODISCARD quill::fs::path _get_updated_filename_with_appended_datetime(
+  QUILL_NODISCARD static quill::fs::path _get_updated_filename_with_appended_datetime(
     quill::fs::path const& filename, quill::FilenameAppendOption append_to_filename_option,
     quill::Timezone timezone, std::chrono::system_clock::time_point timestamp)
   {
