@@ -14,7 +14,6 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <map>
