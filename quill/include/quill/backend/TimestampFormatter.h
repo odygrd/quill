@@ -130,7 +130,7 @@ public:
     if (_additional_format_specifier == AdditionalSpecifier::Qms)
     {
       uint32_t const extracted_ms = extracted_ns / 1'000'000;
-      constexpr char const* zeros = "000";
+      static constexpr std::string_view zeros{"000"};
 
       // Add as many zeros as the extracted_fractional_seconds_length
       _formatted_date += zeros;
@@ -140,7 +140,7 @@ public:
     else if (_additional_format_specifier == AdditionalSpecifier::Qus)
     {
       uint32_t const extracted_us = extracted_ns / 1'000;
-      constexpr char const* zeros = "000000";
+      static constexpr std::string_view zeros{"000000"};
 
       // Add as many zeros as the extracted_fractional_seconds_length
       _formatted_date += zeros;
@@ -149,7 +149,7 @@ public:
     }
     else if (_additional_format_specifier == AdditionalSpecifier::Qns)
     {
-      constexpr char const* zeros = "000000000";
+      static constexpr std::string_view zeros{"000000000"};
 
       // Add as many zeros as the extracted_fractional_seconds_length
       _formatted_date += zeros;
