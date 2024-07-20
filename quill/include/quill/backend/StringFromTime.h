@@ -122,18 +122,18 @@ public:
       }
     }
 
-    if (_cached_indexes.empty())
-    {
-      // if we don't have to format any hours minutes or seconds we can just return here
-      return _pre_formatted_ts;
-    }
-
     if (_cached_timestamp == timestamp)
     {
       // This has 2 usages:
       // 1. Any timestamps in seconds precision that are the same, we don't need to do anything.
       // 2. This checks happens after the _next_recalculation_timestamp calculation. The _next_recalculation_timestamp
       // will mutate _cached_timestamp and if they are similar we will just return here anyway
+      return _pre_formatted_ts;
+    }
+
+    if (_cached_indexes.empty())
+    {
+      // if we don't have to format any hours minutes or seconds we can just return here
       return _pre_formatted_ts;
     }
 
