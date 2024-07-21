@@ -298,7 +298,7 @@ The maximum throughput is measured by determining the maximum number of log mess
 write to the log file per second.
 
 When measured on the same system as the latency benchmarks mentioned above the average throughput of the backend
-logging thread when formatting a log message consisting of an int and a double is ~`4.40 million msgs/sec`
+logging thread when formatting a log message consisting of an int and a double is ~`4.50 million msgs/sec`
 
 While the primary focus of the library is not on throughput, it does provide efficient handling of log messages across
 multiple threads. The backend logging thread, responsible for formatting and ordering log messages from hot threads,
