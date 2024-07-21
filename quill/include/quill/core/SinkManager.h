@@ -7,11 +7,11 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
+#include "quill/core/Spinlock.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -52,7 +52,7 @@ public:
   QUILL_NODISCARD std::shared_ptr<Sink> get_sink(std::string const& sink_name) const
   {
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
-    std::lock_guard<std::mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
 
     std::shared_ptr<Sink> sink = _find_sink(sink_name);
 
@@ -69,7 +69,7 @@ public:
   std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
-    std::lock_guard<std::mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
 
     std::shared_ptr<Sink> sink = _find_sink(sink_name);
 
@@ -95,7 +95,8 @@ public:
   {
     // this needs to take a lock each time. The backend logging thread should be carefully call
     // it only when needed
-    std::lock_guard<std::mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
+
     uint32_t cnt{0};
     for (auto it = _sinks.begin(); it != _sinks.end();)
     {
@@ -146,7 +147,7 @@ private:
 
 private:
   std::vector<SinkInfo> _sinks;
-  mutable std::mutex _mutex;
+  mutable Spinlock _spinlock;
 };
 } // namespace detail
 } // namespace quill

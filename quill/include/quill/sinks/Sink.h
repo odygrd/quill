@@ -8,13 +8,13 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/QuillError.h"
+#include "quill/core/Spinlock.h"
 #include "quill/filters/Filter.h"
 
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -109,7 +109,7 @@ public:
   void add_filter(std::unique_ptr<Filter> filter)
   {
     // Lock and add this filter to our global collection
-    std::lock_guard<std::recursive_mutex> const lock{_global_filters_lock};
+    detail::LockGuard const lock{_global_filters_lock};
 
     // Check if the same filter already exists
     auto const search_filter_it = std::find_if(
@@ -156,7 +156,8 @@ public:
       // if there is a new filter we have to update
       _local_filters.clear();
 
-      std::lock_guard<std::recursive_mutex> const lock{_global_filters_lock};
+      detail::LockGuard const lock{_global_filters_lock};
+
       for (auto const& filter : _global_filters)
       {
         _local_filters.push_back(filter.get());
@@ -188,12 +189,11 @@ private:
 
   /** Global filter for this sink **/
   std::vector<std::unique_ptr<Filter>> _global_filters;
-  std::recursive_mutex _global_filters_lock;
-
-  std::atomic<LogLevel> _log_level{LogLevel::TraceL3};
-
+  detail::Spinlock _global_filters_lock;
   /** Indicator that a new filter was added **/
   std::atomic<bool> _new_filter{false};
+
+  std::atomic<LogLevel> _log_level{LogLevel::TraceL3};
 };
 
 } // namespace quill

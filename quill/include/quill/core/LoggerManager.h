@@ -8,13 +8,13 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 #include "quill/core/LoggerBase.h"
+#include "quill/core/Spinlock.h"
 
 #include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <initializer_list>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -42,7 +42,7 @@ public:
   /***/
   QUILL_NODISCARD LoggerBase* get_logger(std::string const& logger_name) const
   {
-    std::lock_guard<std::recursive_mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
     LoggerBase* logger = _find_logger(logger_name);
     return logger && logger->is_valid_logger() ? logger : nullptr;
   }
@@ -50,7 +50,7 @@ public:
   /***/
   QUILL_NODISCARD std::vector<LoggerBase*> get_all_loggers() const
   {
-    std::lock_guard<std::recursive_mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
 
     std::vector<LoggerBase*> loggers;
 
@@ -70,7 +70,7 @@ public:
   QUILL_NODISCARD LoggerBase* get_valid_logger() const
   {
     // Retrieves any valid logger without the need for constructing a vector
-    std::lock_guard<std::recursive_mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
 
     for (auto const& elem : _loggers)
     {
@@ -87,7 +87,7 @@ public:
   /***/
   QUILL_NODISCARD size_t get_number_of_loggers() const noexcept
   {
-    std::lock_guard<std::recursive_mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
     return _loggers.size();
   }
 
@@ -97,7 +97,7 @@ public:
   template <typename TCallback>
   void for_each_logger(TCallback cb) const
   {
-    std::lock_guard<std::recursive_mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
 
     for (auto const& elem : _loggers)
     {
@@ -118,7 +118,7 @@ public:
                                    std::string const& time_pattern, Timezone timestamp_timezone,
                                    ClockSourceType clock_source, UserClockSource* user_clock)
   {
-    std::lock_guard<std::recursive_mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
 
     LoggerBase* logger_ptr = _find_logger(logger_name);
 
@@ -159,7 +159,7 @@ public:
     {
       _has_invalidated_loggers.store(false, std::memory_order_release);
 
-      std::lock_guard<std::recursive_mutex> const lock{_mutex};
+      LockGuard const lock{_spinlock};
       for (auto it = _loggers.begin(); it != _loggers.end();)
       {
         if (!it->get()->is_valid_logger())
@@ -221,7 +221,7 @@ private:
 
 private:
   std::vector<std::unique_ptr<LoggerBase>> _loggers;
-  mutable std::recursive_mutex _mutex;
+  mutable Spinlock _spinlock;
   std::atomic<bool> _has_invalidated_loggers{false};
 };
 } // namespace detail

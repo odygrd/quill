@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
+#include "quill/core/Spinlock.h"
 #include "quill/core/ThreadUtilities.h"
 #include "quill/core/UnboundedSPSCQueue.h"
 
@@ -16,7 +17,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
-#include <mutex>
 #include <new>
 #include <string>
 #include <string_view>
@@ -224,7 +224,7 @@ public:
   template <typename TCallback>
   void for_each_thread_context(TCallback cb)
   {
-    std::lock_guard<std::mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
 
     for (auto const& elem : _thread_contexts)
     {
@@ -235,9 +235,9 @@ public:
   /***/
   void register_thread_context(std::shared_ptr<ThreadContext> const& thread_context)
   {
-    _mutex.lock();
+    _spinlock.lock();
     _thread_contexts.push_back(thread_context);
-    _mutex.unlock();
+    _spinlock.unlock();
     _new_thread_context_flag.store(true, std::memory_order_release);
   }
 
@@ -274,7 +274,7 @@ public:
   /***/
   void remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
   {
-    std::lock_guard<std::mutex> const lock{_mutex};
+    LockGuard const lock{_spinlock};
 
     // We could use std::find_if, but since this header is included in Logger.h, which is essential
     // for logging purposes, we aim to minimize the number of includes in that path.
@@ -321,11 +321,10 @@ private:
   ~ThreadContextManager() = default;
 
 private:
-  std::mutex _mutex; /**< Protect access when register contexts or removing contexts */
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
-
-  alignas(CACHE_LINE_ALIGNED) std::atomic<bool> _new_thread_context_flag{false};
-  alignas(CACHE_LINE_ALIGNED) std::atomic<uint8_t> _invalid_thread_context_count{0};
+  Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+  std::atomic<bool> _new_thread_context_flag{false};
+  std::atomic<uint8_t> _invalid_thread_context_count{0};
 };
 
 class ScopedThreadContext
