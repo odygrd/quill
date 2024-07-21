@@ -25,6 +25,16 @@ QUILL_NODISCARD constexpr bool is_power_of_two(uint64_t number) noexcept
 }
 
 /**
+ * Helper function to calculate the maximum power of two for type T
+ * @return maximum power of two for type T
+ */
+template <typename T>
+QUILL_NODISCARD constexpr T max_power_of_two() noexcept
+{
+  return (std::numeric_limits<T>::max() >> 1) + 1;
+}
+
+/**
  * Round up to the next power of 2
  * @param n input
  * @return the next power of 2
@@ -32,7 +42,7 @@ QUILL_NODISCARD constexpr bool is_power_of_two(uint64_t number) noexcept
 template <typename T>
 QUILL_NODISCARD T next_power_of_two(T n)
 {
-  constexpr T max_power_of_2 = (std::numeric_limits<T>::max() >> 1) + 1;
+  constexpr T max_power_of_2 = max_power_of_two<T>();
 
   if (n >= max_power_of_2)
   {

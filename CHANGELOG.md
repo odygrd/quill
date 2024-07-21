@@ -84,6 +84,10 @@
   Previously, this would result in an error being displayed but no logs being written. This issue is now resolved: the
   error is reported once, and logs will be written to the console without colors.
 - Improved performance of `StringFromTime` and `TimestampFormatter` used by the backend worker thread.
+- Replaced `std::mutex` with a spinlock, resulting in minor performance improvement for backend worker. This change
+  also avoids including `<mutex>` in the frontend, particularly when following the
+  [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
+  example
 - Update bundled `libfmt` to `11.0.2`
 
 ## v5.0.0

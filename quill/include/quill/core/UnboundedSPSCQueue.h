@@ -9,12 +9,12 @@
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
 #include "quill/core/QuillError.h"
+#include "quill/core/MathUtils.h"
 
 #include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <string>
 
 namespace quill::detail
@@ -121,8 +121,7 @@ public:
     }
 
     // bounded queue max power of 2 capacity since uint32_t type is used to hold the value 2147483648 bytes
-    uint64_t constexpr max_bounded_queue_capacity =
-      (std::numeric_limits<BoundedSPSCQueue::integer_type>::max() >> 1) + 1;
+    uint64_t constexpr max_bounded_queue_capacity = max_power_of_two<BoundedSPSCQueue::integer_type>();
 
     if (QUILL_UNLIKELY(capacity > max_bounded_queue_capacity))
     {
