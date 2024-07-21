@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "quill/bundled/fmt/core.h"
+#include "quill/bundled/fmt/base.h"
 #include "quill/core/Attributes.h"
 
 namespace quill::detail

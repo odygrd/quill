@@ -84,6 +84,7 @@
   Previously, this would result in an error being displayed but no logs being written. This issue is now resolved: the
   error is reported once, and logs will be written to the console without colors.
 - Improved performance of `StringFromTime` and `TimestampFormatter` used by the backend worker thread.
+- Update bundled `libfmt` to `11.0.2`
 
 ## v5.0.0
 
