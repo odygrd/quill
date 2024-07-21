@@ -9,7 +9,7 @@
   #define __STDC_WANT_LIB_EXT1__ 1
 #endif
 
-#include "quill/bundled/fmt/core.h"
+#include "quill/bundled/fmt/base.h"
 
 #include "quill/core/Attributes.h"
 #include "quill/core/DynamicFormatArgStore.h"
@@ -210,7 +210,7 @@ struct Decoder
       if (args_store)
       {
         // pass the string_view to args_store to avoid the dynamic allocation
-        // we pass fmtquill::string_view since fmt/core.h includes a formatter for that type.
+        // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
         // for std::string_view we would need fmt/format.h
         args_store->push_back(fmtquill::string_view{str, len});
       }
@@ -231,7 +231,7 @@ struct Decoder
       if (args_store)
       {
         // pass the string_view to args_store to avoid the dynamic allocation
-        // we pass fmtquill::string_view since fmt/core.h includes a formatter for that type.
+        // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
         // for std::string_view we would need fmt/format.h
         args_store->push_back(fmtquill::string_view{v.data(), v.size()});
       }
