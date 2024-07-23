@@ -24,6 +24,54 @@
 
 namespace quill::detail
 {
+/** Specialization for arrays of arithmetic types and enums **/
+template <typename T>
+struct ArgSizeCalculator<
+  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<remove_cvref_t<std::remove_extent_t<T>>>>>>>
+{
+  static size_t calculate(std::vector<size_t>&, T const&) noexcept { return sizeof(T); }
+};
+
+/***/
+template <typename T>
+struct Encoder<
+  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<remove_cvref_t<std::remove_extent_t<T>>>>>>>
+{
+  static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, T const& arg) noexcept
+  {
+    std::memcpy(buffer, &arg, sizeof(T));
+    buffer += sizeof(T);
+  }
+};
+
+/***/
+template <typename T>
+struct Decoder<
+  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<remove_cvref_t<std::remove_extent_t<T>>>>>>>
+{
+  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    using TElem = remove_cvref_t<std::remove_extent_t<T>>;
+    static constexpr size_t N = std::extent_v<T>;
+    using array_t = std::array<TElem, N>;
+
+    array_t arg;
+
+    for (size_t i = 0; i < N; ++i)
+    {
+      TElem elem;
+      std::memcpy(&elem, buffer, sizeof(TElem));
+      arg[i] = elem;
+      buffer += sizeof(TElem);
+    }
+
+    if (args_store)
+    {
+      args_store->push_back(arg);
+    }
+  }
+};
+
 /***/
 template <typename T, size_t N>
 struct ArgSizeCalculator<std::array<T, N>>

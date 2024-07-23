@@ -43,6 +43,7 @@ endfunction()
 
 include(${PROJECT_SOURCE_DIR}/cmake/doctest.cmake)
 
+quill_add_test(TEST_ArithmeticArrayTypesLogging ArithmeticArrayTypesLoggingTest.cpp)
 quill_add_test(TEST_ArithmeticTypesLogging ArithmeticTypesLoggingTest.cpp)
 quill_add_test(TEST_BackendExceptionNotifier BackendExceptionNotifierTest.cpp)
 quill_add_test(TEST_BackendLongSleepAndNotify BackendLongSleepAndNotifyTest.cpp)
