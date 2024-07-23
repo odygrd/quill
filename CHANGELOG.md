@@ -1,3 +1,4 @@
+- [v5.2.0](#v520)
 - [v5.1.0](#v510)
 - [v5.0.0](#v500)
 - [v4.5.0](#v450)
@@ -67,6 +68,17 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v5.2.0
+
+- Added support for passing arithmetic or enum c style arrays when `std/Array.h` is included. For example
+
+  ```c++
+      #include "quill/std/Array.h"
+      
+      int a[6] = {123, 456};
+      LOG_INFO(logger, "a {}", a);
+  ```
 
 ## v5.1.0
 
