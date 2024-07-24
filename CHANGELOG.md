@@ -79,6 +79,13 @@
       int a[6] = {123, 456};
       LOG_INFO(logger, "a {}", a);
   ```
+- Added support for `void const*` formatting. For example
+
+  ```c++
+      int a = 123;
+      int* b = &a;
+      LOG_INFO(logger, "{}", fmt::ptr(b));
+  ```
 
 ## v5.1.0
 
