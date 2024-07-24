@@ -73,18 +73,54 @@
 
 - Added support for passing arithmetic or enum c style arrays when `std/Array.h` is included. For example
 
-  ```c++
+    ```c++
       #include "quill/std/Array.h"
       
       int a[6] = {123, 456};
       LOG_INFO(logger, "a {}", a);
-  ```
+    ```
 - Added support for `void const*` formatting. For example
 
   ```c++
       int a = 123;
       int* b = &a;
       LOG_INFO(logger, "{}", fmt::ptr(b));
+  ```
+
+- Added `QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC` macro in `TriviallyCopyableCodec.h` to facilitate serialization for
+  trivially copyable user-defined types. This macro provides automatic specializations for
+  the `ArgSizeCalculator`, `Encoder`, and `Decoder` templates
+
+  ```c++
+  struct TCStruct
+  {
+    int a;
+    double b;
+    char c[12];
+    
+    friend std::ostream& operator<<(std::ostream& os, TCStruct const& arg)
+    {
+      os << "a: " << arg.a << ", b: " << arg.b << ", c: " << arg.c;
+      return os;
+    }
+  };
+  
+  template <>
+  struct fmtquill::formatter<TCStruct> : fmtquill::ostream_formatter
+  {
+  };
+  
+  QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(TCStruct);
+  
+  int main()
+  {
+      // init code ...
+    TCStruct tc;
+    tc.a = 123;
+    tc.b = 321;
+    tc.c[0] = '\0';
+    LOG_INFO(logger, "{}", tc);
+  }
   ```
 
 ## v5.1.0
