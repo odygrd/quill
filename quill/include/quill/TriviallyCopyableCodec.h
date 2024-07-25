@@ -79,7 +79,7 @@
                                                                                                              \
   struct quill::Decoder<Arg>                                                                                 \
   {                                                                                                          \
-    static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)                                \
+    static ::Arg decode(std::byte*& buffer, DynamicFormatArgStore* args_store)                               \
     {                                                                                                        \
       ::Arg arg;                                                                                             \
       std::memcpy(&arg, buffer, sizeof(arg));                                                                \
@@ -88,5 +88,6 @@
       {                                                                                                      \
         args_store->push_back(arg);                                                                          \
       }                                                                                                      \
+      return arg;                                                                                            \
     }                                                                                                        \
   };
