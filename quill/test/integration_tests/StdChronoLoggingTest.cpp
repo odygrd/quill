@@ -16,9 +16,9 @@
 using namespace quill;
 
 /***/
-TEST_CASE("arithmetic_types_logging")
+TEST_CASE("std_chrono_logging")
 {
-  static constexpr char const* filename = "arithmetic_types_logging.log";
+  static constexpr char const* filename = "std_chrono_logging.log";
   static std::string const logger_name = "logger";
 
   // Start the logging backend thread
