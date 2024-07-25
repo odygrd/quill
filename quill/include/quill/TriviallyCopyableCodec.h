@@ -51,7 +51,10 @@
 
 #define QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(Arg)                                                           \
                                                                                                              \
-  static_assert(std::is_trivially_copyable_v<Arg>, "Arg needs to be trivially copyable");                    \
+  static_assert(std::is_trivially_copyable_v<Arg>,                                                           \
+                "Arg must be trivially copyable for this serialization macro. Non-trivially "                \
+                "copyable types can still be logged, but you will need a different approach. "               \
+                "Please refer to the documentation or examples for alternative methods.");                   \
                                                                                                              \
   template <>                                                                                                \
   struct quill::detail::ArgSizeCalculator<Arg>                                                               \

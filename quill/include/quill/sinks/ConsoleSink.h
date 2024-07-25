@@ -438,14 +438,6 @@ public:
 #endif
   }
 
-  /**
-   * Used internally to enable the console colours on "stdout" sink
-   */
-  QUILL_ATTRIBUTE_COLD void enable_console_colours() noexcept
-  {
-    _console_colours.set_default_colours();
-  }
-
 private:
 #if defined(_WIN32)
   QUILL_NODISCARD ConsoleColours::WORD _set_foreground_colour(ConsoleColours::WORD attributes)
