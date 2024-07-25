@@ -43,7 +43,7 @@ private:
 
 /***/
 template <>
-struct quill::detail::ArgSizeCalculator<quill::utility::StringRef>
+struct quill::ArgSizeCalculator<quill::utility::StringRef>
 {
   static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
                           quill::utility::StringRef const& no_copy) noexcept
@@ -54,7 +54,7 @@ struct quill::detail::ArgSizeCalculator<quill::utility::StringRef>
 
 /***/
 template <>
-struct quill::detail::Encoder<quill::utility::StringRef>
+struct quill::Encoder<quill::utility::StringRef>
 {
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, quill::utility::StringRef const& no_copy) noexcept
@@ -71,7 +71,7 @@ struct quill::detail::Encoder<quill::utility::StringRef>
 
 /***/
 template <>
-struct quill::detail::Decoder<quill::utility::StringRef>
+struct quill::Decoder<quill::utility::StringRef>
 {
   static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {

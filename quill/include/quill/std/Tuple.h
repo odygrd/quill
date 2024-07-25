@@ -16,7 +16,7 @@
 #include <tuple>
 #include <vector>
 
-namespace quill::detail
+namespace quill
 {
 /***/
 template <typename... Types>
@@ -75,4 +75,4 @@ struct Decoder<std::tuple<Types...>>
     return arg;
   }
 };
-} // namespace quill::detail
+} // namespace quill

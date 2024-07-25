@@ -29,7 +29,7 @@ struct fmtquill::formatter<User>
 
 /***/
 template <>
-struct quill::detail::ArgSizeCalculator<User>
+struct quill::ArgSizeCalculator<User>
 {
   static size_t calculate(std::vector<size_t>& conditional_arg_size_cache, ::User const& user) noexcept
   {
@@ -40,7 +40,7 @@ struct quill::detail::ArgSizeCalculator<User>
 
 /***/
 template <>
-struct quill::detail::Encoder<User>
+struct quill::Encoder<User>
 {
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::User const& user) noexcept
@@ -53,7 +53,7 @@ struct quill::detail::Encoder<User>
 
 /***/
 template <>
-struct quill::detail::Decoder<User>
+struct quill::Decoder<User>
 {
   static ::User decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {

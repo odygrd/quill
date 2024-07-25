@@ -23,7 +23,9 @@
 #include <type_traits>
 #include <vector>
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 /**
  * C++14 implementation of C++20's remove_cvref
@@ -47,6 +49,7 @@ constexpr auto strnlen =
   ::strnlen
 #endif
   ;
+} // namespace detail
 
 /** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
@@ -59,7 +62,7 @@ struct ArgSizeCalculator
     {
       return sizeof(Arg);
     }
-    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
+    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
     {
       size_t constexpr N = std::extent_v<Arg>;
       conditional_arg_size_cache.push_back(static_cast<size_t>(strnlen(arg, N) + 1u));
@@ -81,11 +84,13 @@ struct ArgSizeCalculator
     }
     else
     {
-      static_assert(always_false_v<Arg>, "Unsupported type");
+      static_assert(detail::always_false_v<Arg>, "Unsupported type");
     }
   }
 };
 
+namespace detail
+{
 /**
  * @brief Calculates the total size required to encode the provided arguments
 
@@ -99,9 +104,10 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t calculate_args_size_and_populate_stri
 {
   // Do not use fold expression with '+ ...' as we need a guaranteed sequence for the args here
   size_t total_sum{0};
-  ((total_sum += ArgSizeCalculator<remove_cvref_t<Args>>::calculate(conditional_arg_size_cache, args)), ...);
+  ((total_sum += ArgSizeCalculator<detail::remove_cvref_t<Args>>::calculate(conditional_arg_size_cache, args)), ...);
   return total_sum;
 }
+} // namespace detail
 
 /** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
@@ -117,7 +123,7 @@ struct Encoder
       std::memcpy(buffer, &arg, sizeof(Arg));
       buffer += sizeof(Arg);
     }
-    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
+    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
     {
       size_t constexpr N = std::extent_v<Arg>;
       size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
@@ -160,11 +166,13 @@ struct Encoder
     }
     else
     {
-      static_assert(always_false_v<Arg>, "Unsupported type");
+      static_assert(detail::always_false_v<Arg>, "Unsupported type");
     }
   }
 };
 
+namespace detail
+{
 /**
  * @brief Encoders multiple arguments into a buffer.
  * @param buffer Pointer to the buffer for encoding.
@@ -176,9 +184,11 @@ QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& c
                                 Args const&... args) noexcept
 {
   QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
-  (Encoder<remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, args),
+  (Encoder<detail::remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache,
+                                                 conditional_arg_size_cache_index, args),
    ...);
 }
+} // namespace detail
 
 /** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
@@ -200,7 +210,7 @@ struct Decoder
       return arg;
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>,
-                                          std::conjunction<std::is_array<Arg>, std::is_same<remove_cvref_t<std::remove_extent_t<Arg>>, char>>>)
+                                          std::conjunction<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>>)
     {
       // c strings or char array
       char const* str = reinterpret_cast<char const*>(buffer);
@@ -240,11 +250,13 @@ struct Decoder
     }
     else
     {
-      static_assert(always_false_v<Arg>, "Unsupported type");
+      static_assert(detail::always_false_v<Arg>, "Unsupported type");
     }
   }
 };
 
+namespace detail
+{
 template <typename... Args>
 void decode(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatArgStore* args_store) noexcept
 {
@@ -262,6 +274,7 @@ void decode_and_populate_format_args(std::byte*& buffer, DynamicFormatArgStore& 
   args_store.clear();
   decode<Args...>(buffer, &args_store);
 }
+} // namespace detail
 
 /** Codec helpers for user defined types convenience **/
 /***/
@@ -269,7 +282,8 @@ template <typename... TMembers>
 size_t calculate_total_size(std::vector<size_t>& conditional_arg_size_cache, TMembers const&... members)
 {
   size_t total_size{0};
-  ((total_size += ArgSizeCalculator<remove_cvref_t<TMembers>>::calculate(conditional_arg_size_cache, members)), ...);
+  ((total_size += ArgSizeCalculator<detail::remove_cvref_t<TMembers>>::calculate(conditional_arg_size_cache, members)),
+   ...);
   return total_size;
 }
 
@@ -278,8 +292,8 @@ template <typename... TMembers>
 void encode_members(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                     uint32_t& conditional_arg_size_cache_index, TMembers const&... members)
 {
-  ((Encoder<remove_cvref_t<TMembers>>::encode(buffer, conditional_arg_size_cache,
-                                              conditional_arg_size_cache_index, members)),
+  ((Encoder<detail::remove_cvref_t<TMembers>>::encode(buffer, conditional_arg_size_cache,
+                                                      conditional_arg_size_cache_index, members)),
    ...);
 }
 
@@ -287,11 +301,11 @@ void encode_members(std::byte*& buffer, std::vector<size_t> const& conditional_a
 template <typename T, typename... TMembers>
 void decode_and_assign_members(std::byte*& buffer, DynamicFormatArgStore* args_store, T& arg, TMembers&... members)
 {
-  ((members = Decoder<remove_cvref_t<TMembers>>::decode(buffer, nullptr)), ...);
+  ((members = Decoder<detail::remove_cvref_t<TMembers>>::decode(buffer, nullptr)), ...);
 
   if (args_store)
   {
     args_store->push_back(arg);
   }
 }
-} // namespace quill::detail
+} // namespace quill

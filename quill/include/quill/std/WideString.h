@@ -20,7 +20,7 @@
   #include <type_traits>
   #include <vector>
 
-namespace quill::detail
+namespace quill
 {
 /***/
 template <typename T>
@@ -100,7 +100,7 @@ struct Decoder<T,
 
     if (args_store)
     {
-      std::string str = utf8_encode(buffer, len);
+      std::string str = detail::utf8_encode(buffer, len);
       args_store->push_back(static_cast<std::string&&>(str));
     }
 
@@ -109,5 +109,5 @@ struct Decoder<T,
     return wstr;
   }
 };
-} // namespace quill::detail
+} // namespace quill
 #endif

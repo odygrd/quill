@@ -20,7 +20,7 @@
 #include <utility>
 #include <vector>
 
-namespace quill::detail
+namespace quill
 {
 /***/
 template <template <typename...> class MapType, typename Key, typename T, typename Compare, typename Allocator>
@@ -149,7 +149,7 @@ struct Decoder<
         {
           std::pair<std::string, T> elem;
           std::wstring_view v = Decoder<Key>::decode(buffer, nullptr);
-          elem.first = utf8_encode(v);
+          elem.first = detail::utf8_encode(v);
           elem.second = Decoder<T>::decode(buffer, nullptr);
           encoded_values.emplace_back(elem);
         }
@@ -166,7 +166,7 @@ struct Decoder<
           std::pair<Key, std::string> elem;
           elem.first = Decoder<Key>::decode(buffer, nullptr);
           std::wstring_view v = Decoder<T>::decode(buffer, nullptr);
-          elem.second = utf8_encode(v);
+          elem.second = detail::utf8_encode(v);
           encoded_values.emplace_back(elem);
         }
 
@@ -181,9 +181,9 @@ struct Decoder<
         {
           std::pair<std::string, std::string> elem;
           std::wstring_view v1 = Decoder<Key>::decode(buffer, nullptr);
-          elem.first = utf8_encode(v1);
+          elem.first = detail::utf8_encode(v1);
           std::wstring_view v2 = Decoder<T>::decode(buffer, nullptr);
-          elem.second = utf8_encode(v2);
+          elem.second = detail::utf8_encode(v2);
           encoded_values.emplace_back(elem);
         }
 
@@ -193,4 +193,4 @@ struct Decoder<
   }
 };
 #endif
-} // namespace quill::detail
+} // namespace quill

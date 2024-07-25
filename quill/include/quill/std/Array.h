@@ -22,12 +22,12 @@
   #include <string>
 #endif
 
-namespace quill::detail
+namespace quill
 {
 /** Specialization for arrays of arithmetic types and enums **/
 template <typename T>
 struct ArgSizeCalculator<
-  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<remove_cvref_t<std::remove_extent_t<T>>>>>>>
+  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<detail::remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<detail::remove_cvref_t<std::remove_extent_t<T>>>>>>>
 {
   static size_t calculate(std::vector<size_t>&, T const&) noexcept { return sizeof(T); }
 };
@@ -35,7 +35,7 @@ struct ArgSizeCalculator<
 /***/
 template <typename T>
 struct Encoder<
-  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<remove_cvref_t<std::remove_extent_t<T>>>>>>>
+  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<detail::remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<detail::remove_cvref_t<std::remove_extent_t<T>>>>>>>
 {
   static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, T const& arg) noexcept
   {
@@ -47,11 +47,11 @@ struct Encoder<
 /***/
 template <typename T>
 struct Decoder<
-  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<remove_cvref_t<std::remove_extent_t<T>>>>>>>
+  T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<detail::remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<detail::remove_cvref_t<std::remove_extent_t<T>>>>>>>
 {
   static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    using TElem = remove_cvref_t<std::remove_extent_t<T>>;
+    using TElem = detail::remove_cvref_t<std::remove_extent_t<T>>;
     static constexpr size_t N = std::extent_v<T>;
     using array_t = std::array<TElem, N>;
 
@@ -162,7 +162,7 @@ struct Decoder<std::array<T, N>,
       for (size_t i = 0; i < N; ++i)
       {
         std::wstring_view v = Decoder<T>::decode(buffer, nullptr);
-        encoded_values.emplace_back(utf8_encode(v));
+        encoded_values.emplace_back(detail::utf8_encode(v));
       }
 
       args_store->push_back(encoded_values);
@@ -170,4 +170,4 @@ struct Decoder<std::array<T, N>,
   }
 };
 #endif
-} // namespace quill::detail
+} // namespace quill

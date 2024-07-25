@@ -22,7 +22,7 @@
   #include <string>
 #endif
 
-namespace quill::detail
+namespace quill
 {
 /***/
 template <typename T, typename Allocator>
@@ -125,7 +125,7 @@ struct Decoder<std::list<T, Allocator>,
       for (size_t i = 0; i < number_of_elements; ++i)
       {
         std::wstring_view v = Decoder<T>::decode(buffer, nullptr);
-        encoded_values.emplace_back(utf8_encode(v));
+        encoded_values.emplace_back(detail::utf8_encode(v));
       }
 
       args_store->push_back(encoded_values);
@@ -133,4 +133,4 @@ struct Decoder<std::list<T, Allocator>,
   }
 };
 #endif
-} // namespace quill::detail
+} // namespace quill

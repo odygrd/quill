@@ -16,7 +16,7 @@
 #include <cstdint>
 #include <utility>
 
-namespace quill::detail
+namespace quill
 {
 /***/
 template <typename T1, typename T2>
@@ -95,7 +95,7 @@ struct Decoder<
         std::pair<std::string, T2> arg;
 
         std::wstring_view v = Decoder<T1>::decode(buffer, nullptr);
-        arg.first = utf8_encode(v);
+        arg.first = detail::utf8_encode(v);
 
         arg.second = Decoder<T2>::decode(buffer, nullptr);
 
@@ -108,7 +108,7 @@ struct Decoder<
         arg.first = Decoder<T1>::decode(buffer, nullptr);
 
         std::wstring_view v = Decoder<T2>::decode(buffer, nullptr);
-        arg.second = utf8_encode(v);
+        arg.second = detail::utf8_encode(v);
 
         args_store->push_back(arg);
       }
@@ -116,10 +116,11 @@ struct Decoder<
       {
         std::wstring_view v1 = Decoder<T1>::decode(buffer, nullptr);
         std::wstring_view v2 = Decoder<T2>::decode(buffer, nullptr);
-        args_store->push_back(std::pair<std::string, std::string>{utf8_encode(v1), utf8_encode(v2)});
+        args_store->push_back(
+          std::pair<std::string, std::string>{detail::utf8_encode(v1), detail::utf8_encode(v2)});
       }
     }
   }
 };
 #endif
-} // namespace quill::detail
+} // namespace quill

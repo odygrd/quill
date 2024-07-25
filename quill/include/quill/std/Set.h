@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace quill::detail
+namespace quill
 {
 /***/
 template <template <typename...> class SetType, typename Key, typename Compare, typename Allocator>
@@ -136,7 +136,7 @@ struct Decoder<
       for (size_t i = 0; i < number_of_elements; ++i)
       {
         std::wstring_view v = Decoder<Key>::decode(buffer, nullptr);
-        encoded_values.emplace_back(utf8_encode(v));
+        encoded_values.emplace_back(detail::utf8_encode(v));
       }
 
       args_store->push_back(encoded_values);
@@ -144,4 +144,4 @@ struct Decoder<
   }
 };
 #endif
-} // namespace quill::detail
+} // namespace quill
