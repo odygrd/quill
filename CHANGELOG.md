@@ -1,4 +1,4 @@
-- [v5.2.0](#v520)
+- [v6.0.0](#v600)
 - [v5.1.0](#v510)
 - [v5.0.0](#v500)
 - [v4.5.0](#v450)
@@ -69,7 +69,13 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v5.2.0
+## v6.0.0
+
+- Moved `ArgSizeCalculator`, `Encoder`, `Decoder`, and `DynamicFormatArgStore` from the `quill::detail` namespace to the
+  `quill` namespace. Since these components are used for user-defined type serialization, they have been promoted to the
+  public namespace for broader accessibility and use.
+
+- Removed unused method from `ConsoleSink`
 
 - Added support for passing arithmetic or enum c style arrays when `std/Array.h` is included. For example
 

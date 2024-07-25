@@ -14,7 +14,9 @@
 #include "quill/bundled/fmt/base.h"
 #include "quill/core/Attributes.h"
 
-namespace quill::detail
+namespace quill
+{
+namespace detail
 {
 class DynamicArgList
 {
@@ -48,6 +50,7 @@ public:
     return value;
   }
 };
+} // namespace detail
 
 /**
  * Similar to fmt::dynamic_arg_store but better suited to our needs
@@ -61,7 +64,7 @@ private:
 
   // Storage of arguments not fitting into basic_format_arg must grow
   // without relocation because items in data_ refer to it.
-  DynamicArgList _dynamic_arg_list;
+  detail::DynamicArgList _dynamic_arg_list;
   bool _has_string_related_type{false};
 
   template <typename T>
@@ -125,10 +128,10 @@ public:
   void clear()
   {
     _data.clear();
-    _dynamic_arg_list = DynamicArgList{};
+    _dynamic_arg_list = detail::DynamicArgList{};
     _has_string_related_type = false;
   }
 
   QUILL_NODISCARD bool has_string_related_type() const noexcept { return _has_string_related_type; }
 };
-} // namespace quill::detail
+} // namespace quill

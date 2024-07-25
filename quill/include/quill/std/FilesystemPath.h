@@ -21,7 +21,7 @@
   #include "quill/std/WideString.h"
 #endif
 
-namespace quill::detail
+namespace quill
 {
 /***/
 template <>
@@ -91,4 +91,4 @@ struct Decoder<fs::path>
     return arg;
   }
 };
-} // namespace quill::detail
+} // namespace quill

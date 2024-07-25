@@ -21,7 +21,7 @@
   #include <string>
 #endif
 
-namespace quill::detail
+namespace quill
 {
 /***/
 template <typename T>
@@ -108,7 +108,7 @@ struct Decoder<std::optional<T>,
       {
         std::wstring_view arg = Decoder<T>::decode(buffer, nullptr);
         encoded_value = "optional(\"";
-        encoded_value += utf8_encode(arg);
+        encoded_value += detail::utf8_encode(arg);
         encoded_value += "\")";
       }
 
@@ -117,4 +117,4 @@ struct Decoder<std::optional<T>,
   }
 };
 #endif
-} // namespace quill::detail
+} // namespace quill

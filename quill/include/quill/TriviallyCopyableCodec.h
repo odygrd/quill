@@ -57,7 +57,7 @@
                 "Please refer to the documentation or examples for alternative methods.");                   \
                                                                                                              \
   template <>                                                                                                \
-  struct quill::detail::ArgSizeCalculator<Arg>                                                               \
+  struct quill::ArgSizeCalculator<Arg>                                                                       \
   {                                                                                                          \
     static size_t calculate(std::vector<size_t>&, ::Arg const& arg) noexcept                                 \
     {                                                                                                        \
@@ -66,7 +66,7 @@
   };                                                                                                         \
                                                                                                              \
   template <>                                                                                                \
-  struct quill::detail::Encoder<Arg>                                                                         \
+  struct quill::Encoder<Arg>                                                                                 \
   {                                                                                                          \
     static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, ::Arg const& arg) noexcept \
     {                                                                                                        \
@@ -77,7 +77,7 @@
                                                                                                              \
   template <>                                                                                                \
                                                                                                              \
-  struct quill::detail::Decoder<Arg>                                                                         \
+  struct quill::Decoder<Arg>                                                                                 \
   {                                                                                                          \
     static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)                                \
     {                                                                                                        \
