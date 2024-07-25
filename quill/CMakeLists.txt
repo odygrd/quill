@@ -69,6 +69,7 @@ set(HEADER_FILES
         include/quill/sinks/StreamSink.h
 
         include/quill/std/Array.h
+        include/quill/std/Chrono.h
         include/quill/std/Deque.h
         include/quill/std/FilesystemPath.h
         include/quill/std/ForwardList.h
