@@ -7,6 +7,7 @@
 #include "quill/Utility.h"
 #include "quill/sinks/FileSink.h"
 
+#include "quill/TriviallyCopyableCodec.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/std/Array.h"
@@ -19,9 +20,7 @@
 
 using namespace quill;
 
-/**
- * CustomType defined type
- */
+/***/
 struct CustomType
 {
   std::string name;
@@ -89,6 +88,34 @@ struct quill::detail::Decoder<CustomType>
 };
 
 /***/
+struct CustomTypeTC
+{
+  int name;
+  double surname;
+  uint32_t age;
+};
+
+/***/
+template <>
+struct fmtquill::formatter<CustomTypeTC>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::CustomTypeTC const& custom_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}", custom_type.name,
+                               custom_type.surname, custom_type.age);
+  }
+};
+
+QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(CustomTypeTC);
+
+/***/
 TEST_CASE("custom_type_defined_type_logging")
 {
   static constexpr char const* filename = "custom_type_defined_type_logging.log";
@@ -132,6 +159,13 @@ TEST_CASE("custom_type_defined_type_logging")
 
   LOG_INFO(logger, "The answers are {}", custom_types);
 
+  CustomTypeTC custom_type_tc;
+  custom_type_tc.age = 12;
+  custom_type_tc.name = 1222;
+  custom_type_tc.surname = 13.12;
+
+  LOG_INFO(logger, "CustomTypeTC {}", custom_type_tc);
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -140,13 +174,16 @@ TEST_CASE("custom_type_defined_type_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE_EQ(file_contents.size(), 3);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       The answer is Name: Quill, Surname: Library, Age: 4, Favorite Colors: [\"red\", \"green\", \"blue\"]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       The answers are [Name: Alice, Surname: Doe, Age: 25, Favorite Colors: [\"red\", \"green\", \"\"], Name: Bob, Surname: Smith, Age: 30, Favorite Colors: [\"blue\", \"yellow\", \"\"], Name: Charlie, Surname: Johnson, Age: 35, Favorite Colors: [\"green\", \"orange\", \"\"], Name: David, Surname: Brown, Age: 40, Favorite Colors: [\"red\", \"blue\", \"yellow\"]]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
 
   testing::remove_file(filename);
 }
