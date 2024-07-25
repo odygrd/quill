@@ -129,6 +129,16 @@
   }
   ```
 
+- Added support for formatting `std::chrono::time_point` and `std::chrono::duration` with the inclusion
+  of `quill/std/Chrono.h`
+
+   ```c++
+   #include "quill/std/Chrono.h"
+  
+   std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+   LOG_INFO(logger, "time is {}", now);
+   ```
+
 ## v5.1.0
 
 - Fix unit tests on FreeBSD ([#496](https://github.com/odygrd/quill/issues/496))
