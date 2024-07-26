@@ -11,7 +11,6 @@
     {                                                                                              \
     inline namespace v6                                                                            \
     {
-
   #define QUILL_END_NAMESPACE                                                                      \
     }                                                                                              \
     }
