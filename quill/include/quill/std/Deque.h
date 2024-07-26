@@ -81,25 +81,25 @@ struct Decoder<std::deque<T, Allocator>,
 struct Decoder<std::deque<T, Allocator>>
 #endif
 {
-  static std::deque<T, Allocator> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::deque<T, Allocator> decode_arg(std::byte*& buffer)
   {
-    std::deque<T, Allocator> arg;
+    // Read the size
+    size_t const number_of_elements = Decoder<size_t>::decode_arg(buffer);
 
-    // Read the size of the deque
-    size_t const number_of_elements = Decoder<size_t>::decode(buffer, nullptr);
+    std::deque<T, Allocator> arg;
     arg.resize(number_of_elements);
 
     for (size_t i = 0; i < number_of_elements; ++i)
     {
-      arg[i] = Decoder<T>::decode(buffer, nullptr);
-    }
-
-    if (args_store)
-    {
-      args_store->push_back(arg);
+      arg[i] = Decoder<T>::decode_arg(buffer);
     }
 
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 
@@ -110,27 +110,26 @@ struct Decoder<std::deque<T, Allocator>,
                std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                                    std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
 {
-  /**
-   * Chaining stl types not supported for wstrings so we do not return anything
-   */
-  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::vector<std::string> decode_arg(std::byte*& buffer)
   {
-    if (args_store)
+    // Read the size
+    size_t const number_of_elements = Decoder<size_t>::decode_arg(buffer);
+
+    std::vector<std::string> arg;
+    arg.reserve(number_of_elements);
+
+    for (size_t i = 0; i < number_of_elements; ++i)
     {
-      // Read the size of the vector
-      size_t const number_of_elements = Decoder<size_t>::decode(buffer, nullptr);
-
-      std::vector<std::string> encoded_values;
-      encoded_values.reserve(number_of_elements);
-
-      for (size_t i = 0; i < number_of_elements; ++i)
-      {
-        std::wstring_view v = Decoder<T>::decode(buffer, nullptr);
-        encoded_values.emplace_back(detail::utf8_encode(v));
-      }
-
-      args_store->push_back(encoded_values);
+      std::wstring_view const v = Decoder<T>::decode_arg(buffer);
+      arg.emplace_back(detail::utf8_encode(v));
     }
+
+    return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 #endif

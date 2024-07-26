@@ -68,22 +68,22 @@ struct Decoder<std::optional<T>,
 struct Decoder<std::optional<T>>
 #endif
 {
-  static std::optional<T> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::optional<T> decode_arg(std::byte*& buffer)
   {
     std::optional<T> arg{std::nullopt};
 
-    bool const has_value = Decoder<bool>::decode(buffer, nullptr);
+    bool const has_value = Decoder<bool>::decode_arg(buffer);
     if (has_value)
     {
-      arg = Decoder<T>::decode(buffer, nullptr);
-    }
-
-    if (args_store)
-    {
-      args_store->push_back(arg);
+      arg = Decoder<T>::decode_arg(buffer);
     }
 
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 
@@ -94,26 +94,25 @@ struct Decoder<std::optional<T>,
                std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                                    std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
 {
-  /**
-   * Chaining stl types not supported for wstrings so we do not return anything
-   */
-  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::string decode_arg(std::byte*& buffer)
   {
-    if (args_store)
+    std::string encoded_value{"none"};
+
+    bool const has_value = Decoder<bool>::decode_arg(buffer);
+    if (has_value)
     {
-      std::string encoded_value{"none"};
-
-      bool const has_value = Decoder<bool>::decode(buffer, nullptr);
-      if (has_value)
-      {
-        std::wstring_view arg = Decoder<T>::decode(buffer, nullptr);
-        encoded_value = "optional(\"";
-        encoded_value += detail::utf8_encode(arg);
-        encoded_value += "\")";
-      }
-
-      args_store->push_back(encoded_value);
+      std::wstring_view arg = Decoder<T>::decode_arg(buffer);
+      encoded_value = "optional(\"";
+      encoded_value += detail::utf8_encode(arg);
+      encoded_value += "\")";
     }
+
+    return encoded_value;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 #endif

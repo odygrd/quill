@@ -16,9 +16,7 @@
 template <>
 struct fmtquill::formatter<User>
 {
-  constexpr auto parse(format_parse_context& ctx) {
-    return ctx.begin();
-  }
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   auto format(::User const& user, format_context& ctx) const
   {
@@ -55,29 +53,29 @@ struct quill::Encoder<User>
 template <>
 struct quill::Decoder<User>
 {
-  static ::User decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static ::User decode_arg(std::byte*& buffer)
   {
     // You must decode the same members and in the same order as in the Encoder::encode
     ::User user;
-    decode_and_assign_members(buffer, args_store, user, user.name, user.surname, user.age, user.favorite_colors);
+    decode_members(buffer, user, user.name, user.surname, user.age, user.favorite_colors);
     return user;
 
     // note:
-    // If the object is not default constructible you have to do it manually without
+    // If the object is not default constructible you can also do it manually without
     // decode_members helper
 
-    // auto name = Decoder<decltype(std::declval<::User>().name)>::decode(buffer, nullptr);
-    // auto surname = Decoder<decltype(std::declval<::User>().surname)>::decode(buffer, nullptr);
-    // auto age = Decoder<decltype(std::declval<::User>().age)>::decode(buffer, nullptr);
-    // auto favorite_colors = Decoder<decltype(std::declval<::User>().favorite_colors)>::decode(buffer, nullptr);
+    // auto name = Decoder<decltype(std::declval<::User>().name)>::decode_arg(buffer);
+    // auto surname = Decoder<decltype(std::declval<::User>().surname)>::decode_arg(buffer);
+    // auto age = Decoder<decltype(std::declval<::User>().age)>::decode_arg(buffer);
+    // auto favorite_colors = Decoder<decltype(std::declval<::User>().favorite_colors)>::decode_arg(buffer);
 
     // ::User user{name, surname, age, favorite_colors};
 
-    // if (args_store)
-    // {
-    //  args_store->push_back(user);
-    // }
-
     // return user;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };

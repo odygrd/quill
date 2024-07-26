@@ -98,26 +98,25 @@ struct Decoder<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
                  std::is_same<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>, std::unordered_multimap<Key, T, Hash, KeyEqual, Allocator>>>>>
 #endif
 {
-  static UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> decode(std::byte*& buffer,
-                                                                    DynamicFormatArgStore* args_store)
+  static UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> decode_arg(std::byte*& buffer)
   {
     UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> arg;
 
     // Read the size of the set
-    size_t const number_of_elements = Decoder<size_t>::decode(buffer, nullptr);
+    size_t const number_of_elements = Decoder<size_t>::decode_arg(buffer);
     arg.reserve(number_of_elements);
 
     for (size_t i = 0; i < number_of_elements; ++i)
     {
-      arg.insert(Decoder<std::pair<Key, T>>::decode(buffer, nullptr));
-    }
-
-    if (args_store)
-    {
-      args_store->push_back(arg);
+      arg.insert(Decoder<std::pair<Key, T>>::decode_arg(buffer));
     }
 
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 
@@ -132,72 +131,71 @@ struct Decoder<
     std::disjunction<std::is_same<Key, wchar_t*>, std::is_same<Key, wchar_t const*>, std::is_same<Key, std::wstring>, std::is_same<Key, std::wstring_view>,
                      std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>, std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>>
 {
-  /**
-   * Chaining stl types not supported for wstrings so we do not return anything
-   */
-  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static auto decode_arg(std::byte*& buffer)
   {
-    if (args_store)
+    // Read the size of the vector
+    size_t const number_of_elements = Decoder<size_t>::decode_arg(buffer);
+
+    constexpr bool wide_key_t = std::is_same_v<Key, wchar_t*> || std::is_same_v<Key, wchar_t const*> ||
+      std::is_same_v<Key, std::wstring> || std::is_same_v<Key, std::wstring_view>;
+
+    constexpr bool wide_value_t = std::is_same_v<T, wchar_t*> || std::is_same_v<T, wchar_t const*> ||
+      std::is_same_v<T, std::wstring> || std::is_same_v<T, std::wstring_view>;
+
+    if constexpr (wide_key_t && !wide_value_t)
     {
-      // Read the size of the vector
-      size_t const number_of_elements = Decoder<size_t>::decode(buffer, nullptr);
+      std::vector<std::pair<std::string, T>> encoded_values;
+      encoded_values.reserve(number_of_elements);
 
-      constexpr bool wide_key_t = std::is_same_v<Key, wchar_t*> || std::is_same_v<Key, wchar_t const*> ||
-        std::is_same_v<Key, std::wstring> || std::is_same_v<Key, std::wstring_view>;
-
-      constexpr bool wide_value_t = std::is_same_v<T, wchar_t*> || std::is_same_v<T, wchar_t const*> ||
-        std::is_same_v<T, std::wstring> || std::is_same_v<T, std::wstring_view>;
-
-      if constexpr (wide_key_t && !wide_value_t)
+      for (size_t i = 0; i < number_of_elements; ++i)
       {
-        std::vector<std::pair<std::string, T>> encoded_values;
-        encoded_values.reserve(number_of_elements);
-
-        for (size_t i = 0; i < number_of_elements; ++i)
-        {
-          std::pair<std::string, T> elem;
-          std::wstring_view v = Decoder<Key>::decode(buffer, nullptr);
-          elem.first = detail::utf8_encode(v);
-          elem.second = Decoder<T>::decode(buffer, nullptr);
-          encoded_values.emplace_back(elem);
-        }
-
-        args_store->push_back(encoded_values);
+        std::pair<std::string, T> elem;
+        std::wstring_view v = Decoder<Key>::decode_arg(buffer);
+        elem.first = detail::utf8_encode(v);
+        elem.second = Decoder<T>::decode_arg(buffer);
+        encoded_values.emplace_back(elem);
       }
-      else if constexpr (!wide_key_t && wide_value_t)
-      {
-        std::vector<std::pair<Key, std::string>> encoded_values;
-        encoded_values.reserve(number_of_elements);
 
-        for (size_t i = 0; i < number_of_elements; ++i)
-        {
-          std::pair<Key, std::string> elem;
-          elem.first = Decoder<Key>::decode(buffer, nullptr);
-          std::wstring_view v = Decoder<T>::decode(buffer, nullptr);
-          elem.second = detail::utf8_encode(v);
-          encoded_values.emplace_back(elem);
-        }
-
-        args_store->push_back(encoded_values);
-      }
-      else
-      {
-        std::vector<std::pair<std::string, std::string>> encoded_values;
-        encoded_values.reserve(number_of_elements);
-
-        for (size_t i = 0; i < number_of_elements; ++i)
-        {
-          std::pair<std::string, std::string> elem;
-          std::wstring_view v1 = Decoder<Key>::decode(buffer, nullptr);
-          elem.first = detail::utf8_encode(v1);
-          std::wstring_view v2 = Decoder<T>::decode(buffer, nullptr);
-          elem.second = detail::utf8_encode(v2);
-          encoded_values.emplace_back(elem);
-        }
-
-        args_store->push_back(encoded_values);
-      }
+      return encoded_values;
     }
+    else if constexpr (!wide_key_t && wide_value_t)
+    {
+      std::vector<std::pair<Key, std::string>> encoded_values;
+      encoded_values.reserve(number_of_elements);
+
+      for (size_t i = 0; i < number_of_elements; ++i)
+      {
+        std::pair<Key, std::string> elem;
+        elem.first = Decoder<Key>::decode_arg(buffer);
+        std::wstring_view v = Decoder<T>::decode_arg(buffer);
+        elem.second = detail::utf8_encode(v);
+        encoded_values.emplace_back(elem);
+      }
+
+      return encoded_values;
+    }
+    else
+    {
+      std::vector<std::pair<std::string, std::string>> encoded_values;
+      encoded_values.reserve(number_of_elements);
+
+      for (size_t i = 0; i < number_of_elements; ++i)
+      {
+        std::pair<std::string, std::string> elem;
+        std::wstring_view v1 = Decoder<Key>::decode_arg(buffer);
+        elem.first = detail::utf8_encode(v1);
+        std::wstring_view v2 = Decoder<T>::decode_arg(buffer);
+        elem.second = detail::utf8_encode(v2);
+        encoded_values.emplace_back(elem);
+      }
+
+      return encoded_values;
+    }
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 #endif

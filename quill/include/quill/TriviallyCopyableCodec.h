@@ -79,15 +79,16 @@
                                                                                                              \
   struct quill::Decoder<Arg>                                                                                 \
   {                                                                                                          \
-    static ::Arg decode(std::byte*& buffer, DynamicFormatArgStore* args_store)                               \
+    static ::Arg decode_arg(std::byte*& buffer)                                                              \
     {                                                                                                        \
       ::Arg arg;                                                                                             \
       std::memcpy(&arg, buffer, sizeof(arg));                                                                \
       buffer += sizeof(arg);                                                                                 \
-      if (args_store)                                                                                        \
-      {                                                                                                      \
-        args_store->push_back(arg);                                                                          \
-      }                                                                                                      \
       return arg;                                                                                            \
+    }                                                                                                        \
+                                                                                                             \
+    static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)                  \
+    {                                                                                                        \
+      args_store->push_back(decode_arg(buffer));                                                             \
     }                                                                                                        \
   };

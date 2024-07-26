@@ -77,13 +77,18 @@ struct quill::Encoder<CustomType>
 template <>
 struct quill::Decoder<CustomType>
 {
-  static ::CustomType decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static ::CustomType decode_arg(std::byte*& buffer)
   {
     // You must decode the same members and in the same order as in the Encoder::encode
     ::CustomType custom_type;
-    decode_and_assign_members(buffer, args_store, custom_type, custom_type.name,
-                              custom_type.surname, custom_type.age, custom_type.favorite_colors);
+    decode_members(buffer, custom_type, custom_type.name, custom_type.surname, custom_type.age,
+                   custom_type.favorite_colors);
     return custom_type;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 

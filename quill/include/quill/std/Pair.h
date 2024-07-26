@@ -53,19 +53,17 @@ struct Decoder<
 struct Decoder<std::pair<T1, T2>>
 #endif
 {
-  static std::pair<T1, T2> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::pair<T1, T2> decode_arg(std::byte*& buffer)
   {
     std::pair<T1, T2> arg;
-
-    arg.first = Decoder<T1>::decode(buffer, nullptr);
-    arg.second = Decoder<T2>::decode(buffer, nullptr);
-
-    if (args_store)
-    {
-      args_store->push_back(arg);
-    }
-
+    arg.first = Decoder<T1>::decode_arg(buffer);
+    arg.second = Decoder<T2>::decode_arg(buffer);
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 
@@ -77,10 +75,7 @@ struct Decoder<
                                       std::is_same<T1, std::wstring_view>, std::is_same<T2, wchar_t*>, std::is_same<T2, wchar_t const*>,
                                       std::is_same<T2, std::wstring>, std::is_same<T2, std::wstring_view>>>>
 {
-  /**
-   * Chaining stl types not supported for wstrings so we do not return anything
-   */
-  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static auto decode_arg(std::byte*& buffer)
   {
     constexpr bool wide_t1 = std::is_same_v<T1, wchar_t*> || std::is_same_v<T1, wchar_t const*> ||
       std::is_same_v<T1, std::wstring> || std::is_same_v<T1, std::wstring_view>;
@@ -88,38 +83,44 @@ struct Decoder<
     constexpr bool wide_t2 = std::is_same_v<T2, wchar_t*> || std::is_same_v<T2, wchar_t const*> ||
       std::is_same_v<T2, std::wstring> || std::is_same_v<T2, std::wstring_view>;
 
-    if (args_store)
+    if constexpr (wide_t1 && !wide_t2)
     {
-      if constexpr (wide_t1 && !wide_t2)
-      {
-        std::pair<std::string, T2> arg;
+      std::pair<std::string, T2> arg;
 
-        std::wstring_view v = Decoder<T1>::decode(buffer, nullptr);
-        arg.first = detail::utf8_encode(v);
+      std::wstring_view v = Decoder<T1>::decode_arg(buffer);
+      arg.first = detail::utf8_encode(v);
 
-        arg.second = Decoder<T2>::decode(buffer, nullptr);
+      arg.second = Decoder<T2>::decode_arg(buffer);
 
-        args_store->push_back(arg);
-      }
-      else if constexpr (!wide_t1 && wide_t2)
-      {
-        std::pair<T1, std::string> arg;
-
-        arg.first = Decoder<T1>::decode(buffer, nullptr);
-
-        std::wstring_view v = Decoder<T2>::decode(buffer, nullptr);
-        arg.second = detail::utf8_encode(v);
-
-        args_store->push_back(arg);
-      }
-      else
-      {
-        std::wstring_view v1 = Decoder<T1>::decode(buffer, nullptr);
-        std::wstring_view v2 = Decoder<T2>::decode(buffer, nullptr);
-        args_store->push_back(
-          std::pair<std::string, std::string>{detail::utf8_encode(v1), detail::utf8_encode(v2)});
-      }
+      return arg;
     }
+    else if constexpr (!wide_t1 && wide_t2)
+    {
+      std::pair<T1, std::string> arg;
+
+      arg.first = Decoder<T1>::decode_arg(buffer);
+
+      std::wstring_view v = Decoder<T2>::decode_arg(buffer);
+      arg.second = detail::utf8_encode(v);
+
+      return arg;
+    }
+    else
+    {
+      std::pair<std::string, std::string> arg;
+      std::wstring_view v1 = Decoder<T1>::decode_arg(buffer);
+      arg.first = detail::utf8_encode(v1);
+
+      std::wstring_view v2 = Decoder<T2>::decode_arg(buffer);
+      arg.second = detail::utf8_encode(v2);
+
+      return arg;
+    }
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 #endif

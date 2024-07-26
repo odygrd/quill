@@ -73,7 +73,7 @@ struct quill::Encoder<quill::utility::StringRef>
 template <>
 struct quill::Decoder<quill::utility::StringRef>
 {
-  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::string_view decode_arg(std::byte*& buffer)
   {
     char const* data;
     std::memcpy(&data, buffer, sizeof(uintptr_t));
@@ -83,6 +83,11 @@ struct quill::Decoder<quill::utility::StringRef>
     std::memcpy(&size, buffer, sizeof(size_t));
     buffer += sizeof(size_t);
 
-    args_store->push_back(std::string_view{data, size});
+    return std::string_view{data, size};
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };

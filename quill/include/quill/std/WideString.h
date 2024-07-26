@@ -89,24 +89,20 @@ struct Decoder<T,
                std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                                    std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
 {
-  static auto decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::wstring_view decode_arg(std::byte*& buffer)
   {
-    // we first need to retrieve the length
     size_t len;
     std::memcpy(&len, buffer, sizeof(len));
     buffer += sizeof(len);
+    auto arg = std::wstring_view{reinterpret_cast<wchar_t const*>(buffer), len};
+    buffer += len * sizeof(wchar_t);
+    return arg;
+  }
 
-    std::wstring_view wstr{reinterpret_cast<wchar_t const*>(buffer), len};
-
-    if (args_store)
-    {
-      std::string str = detail::utf8_encode(buffer, len);
-      args_store->push_back(static_cast<std::string&&>(str));
-    }
-
-    size_t size_bytes = len * sizeof(wchar_t);
-    buffer += size_bytes;
-    return wstr;
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    std::wstring_view const arg = decode_arg(buffer);
+    args_store->push_back(detail::utf8_encode(reinterpret_cast<std::byte const*>(arg.data()), arg.size()));
   }
 };
 } // namespace quill

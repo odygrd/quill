@@ -80,16 +80,16 @@ struct Decoder<std::forward_list<T, Allocator>,
 struct Decoder<std::forward_list<T, Allocator>>
 #endif
 {
-  static std::forward_list<T, Allocator> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::forward_list<T, Allocator> decode_arg(std::byte*& buffer)
   {
-    std::forward_list<T, Allocator> arg;
-
     // Read the size
-    size_t const number_of_elements = Decoder<size_t>::decode(buffer, nullptr);
+    size_t const number_of_elements = Decoder<size_t>::decode_arg(buffer);
+
+    std::forward_list<T, Allocator> arg;
 
     if (number_of_elements > 0)
     {
-      arg.emplace_front(Decoder<T>::decode(buffer, nullptr));
+      arg.emplace_front(Decoder<T>::decode_arg(buffer));
     }
 
     for (size_t i = 1; i < number_of_elements; ++i)
@@ -101,15 +101,15 @@ struct Decoder<std::forward_list<T, Allocator>>
       }
 
       // Insert after the last element
-      arg.emplace_after(it, Decoder<T>::decode(buffer, nullptr));
-    }
-
-    if (args_store)
-    {
-      args_store->push_back(arg);
+      arg.emplace_after(it, Decoder<T>::decode_arg(buffer));
     }
 
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 
@@ -120,27 +120,26 @@ struct Decoder<std::forward_list<T, Allocator>,
                std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                                    std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
 {
-  /**
-   * Chaining stl types not supported for wstrings so we do not return anything
-   */
-  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::vector<std::string> decode_arg(std::byte*& buffer)
   {
-    if (args_store)
+    // Read the size
+    size_t const number_of_elements = Decoder<size_t>::decode_arg(buffer);
+
+    std::vector<std::string> arg;
+    arg.reserve(number_of_elements);
+
+    for (size_t i = 0; i < number_of_elements; ++i)
     {
-      // Read the size of the vector
-      size_t const number_of_elements = Decoder<size_t>::decode(buffer, nullptr);
-
-      std::vector<std::string> encoded_values;
-      encoded_values.reserve(number_of_elements);
-
-      for (size_t i = 0; i < number_of_elements; ++i)
-      {
-        std::wstring_view v = Decoder<T>::decode(buffer, nullptr);
-        encoded_values.emplace_back(detail::utf8_encode(v));
-      }
-
-      args_store->push_back(encoded_values);
+      std::wstring_view const v = Decoder<T>::decode_arg(buffer);
+      arg.emplace_back(detail::utf8_encode(v));
     }
+
+    return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 #endif

@@ -194,59 +194,69 @@ QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& c
 template <typename Arg, typename = void>
 struct Decoder
 {
-  static auto decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  // We use two separate functions, decode_arg and decode_and_store_arg, because there are
+  // scenarios where we need to decode an argument without storing it in args_store, such as when
+  // dealing with nested types. Storing the argument requires a fmtquill formatter, so having
+  // two distinct functions allows us to avoid this requirement in cases where only decoding is needed.
+
+  static auto decode_arg(std::byte*& buffer)
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
     {
       Arg arg;
       std::memcpy(&arg, buffer, sizeof(Arg));
       buffer += sizeof(Arg);
-
-      if (args_store)
-      {
-        args_store->push_back(arg);
-      }
-
       return arg;
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>,
                                           std::conjunction<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>>)
     {
       // c strings or char array
-      char const* str = reinterpret_cast<char const*>(buffer);
-      size_t const len = strlen(str);
-      buffer += len + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
-
-      if (args_store)
-      {
-        // pass the string_view to args_store to avoid the dynamic allocation
-        // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
-        // for std::string_view we would need fmt/format.h
-        args_store->push_back(fmtquill::string_view{str, len});
-      }
-
-      return str;
+      char const* arg = reinterpret_cast<char const*>(buffer);
+      buffer += strlen(arg) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
+      return arg;
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, std::string>, std::is_same<Arg, std::string_view>>)
     {
       // for std::string we first need to retrieve the length
       size_t len;
       std::memcpy(&len, buffer, sizeof(len));
+      std::string_view arg = std::string_view{reinterpret_cast<char const*>(buffer + sizeof(size_t)), len};
+      buffer += sizeof(len) + len;
+      return arg;
+    }
+    else
+    {
+      static_assert(detail::always_false_v<Arg>, "Unsupported type");
+      return 0;
+    }
+  }
 
-      // retrieve the rest of the string
-      char const* str = reinterpret_cast<char const*>(buffer + sizeof(size_t));
-      std::string_view v{str, len};
-      buffer += sizeof(len) + v.length();
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
+    {
+      args_store->push_back(decode_arg(buffer));
+    }
+    else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>,
+                                          std::conjunction<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>>)
+    {
+      // c strings or char array
+      char const* arg = decode_arg(buffer);
 
-      if (args_store)
-      {
-        // pass the string_view to args_store to avoid the dynamic allocation
-        // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
-        // for std::string_view we would need fmt/format.h
-        args_store->push_back(fmtquill::string_view{v.data(), v.size()});
-      }
+      // pass the string_view to args_store to avoid the dynamic allocation
+      // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
+      // for std::string_view we would need fmt/format.h
+      args_store->push_back(fmtquill::string_view{arg, strlen(arg)});
+    }
+    else if constexpr (std::disjunction_v<std::is_same<Arg, std::string>, std::is_same<Arg, std::string_view>>)
+    {
+      std::string_view arg = decode_arg(buffer);
 
-      return v;
+      // pass the string_view to args_store to avoid the dynamic allocation
+      // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
+      // for std::string_view we would need fmt/format.h
+      args_store->push_back(fmtquill::string_view{arg.data(), arg.size()});
     }
     else
     {
@@ -258,9 +268,9 @@ struct Decoder
 namespace detail
 {
 template <typename... Args>
-void decode(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatArgStore* args_store) noexcept
+void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store) noexcept
 {
-  (Decoder<Args>::decode(buffer, args_store), ...);
+  (Decoder<Args>::decode_and_store_arg(buffer, args_store), ...);
 }
 
 /**
@@ -269,10 +279,10 @@ void decode(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatArgStore* args_s
 using FormatArgsDecoder = void (*)(std::byte*& data, DynamicFormatArgStore& args_store);
 
 template <typename... Args>
-void decode_and_populate_format_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
+void decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
 {
   args_store.clear();
-  decode<Args...>(buffer, &args_store);
+  decode_and_store_arg<Args...>(buffer, &args_store);
 }
 } // namespace detail
 
@@ -299,13 +309,8 @@ void encode_members(std::byte*& buffer, std::vector<size_t> const& conditional_a
 
 /***/
 template <typename T, typename... TMembers>
-void decode_and_assign_members(std::byte*& buffer, DynamicFormatArgStore* args_store, T& arg, TMembers&... members)
+void decode_members(std::byte*& buffer, T& arg, TMembers&... members)
 {
-  ((members = Decoder<detail::remove_cvref_t<TMembers>>::decode(buffer, nullptr)), ...);
-
-  if (args_store)
-  {
-    args_store->push_back(arg);
-  }
+  ((members = Decoder<detail::remove_cvref_t<TMembers>>::decode_arg(buffer)), ...);
 }
 } // namespace quill

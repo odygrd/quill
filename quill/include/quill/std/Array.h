@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #if defined(_WIN32)
@@ -49,26 +50,24 @@ template <typename T>
 struct Decoder<
   T, std::enable_if_t<std::conjunction_v<std::is_array<T>, std::disjunction<std::is_arithmetic<detail::remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<detail::remove_cvref_t<std::remove_extent_t<T>>>>>>>
 {
-  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  using element_type = detail::remove_cvref_t<std::remove_extent_t<T>>;
+  static constexpr size_t N = std::extent_v<T>;
+  using array_type = std::array<element_type, N>;
+
+  static auto decode_arg(std::byte*& buffer)
   {
-    using TElem = detail::remove_cvref_t<std::remove_extent_t<T>>;
-    static constexpr size_t N = std::extent_v<T>;
-    using array_t = std::array<TElem, N>;
-
-    array_t arg;
-
+    array_type arg;
     for (size_t i = 0; i < N; ++i)
     {
-      TElem elem;
-      std::memcpy(&elem, buffer, sizeof(TElem));
-      arg[i] = elem;
-      buffer += sizeof(TElem);
+      std::memcpy(&arg[i], buffer, sizeof(element_type));
+      buffer += sizeof(element_type);
     }
+    return arg;
+  }
 
-    if (args_store)
-    {
-      args_store->push_back(arg);
-    }
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 
@@ -124,21 +123,21 @@ struct Decoder<std::array<T, N>,
 struct Decoder<std::array<T, N>>
 #endif
 {
-  static std::array<T, N> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static auto decode_arg(std::byte*& buffer)
   {
     std::array<T, N> arg;
 
     for (size_t i = 0; i < N; ++i)
     {
-      arg[i] = Decoder<T>::decode(buffer, nullptr);
-    }
-
-    if (args_store)
-    {
-      args_store->push_back(arg);
+      arg[i] = Decoder<T>::decode_arg(buffer);
     }
 
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 
@@ -149,24 +148,23 @@ struct Decoder<std::array<T, N>,
                std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                                    std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
 {
-  /**
-   * Chaining stl types not supported for wstrings so we do not return anything
-   */
-  static void decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::vector<std::string> decode_arg(std::byte*& buffer)
   {
-    if (args_store)
+    std::vector<std::string> arg;
+    arg.reserve(N);
+
+    for (size_t i = 0; i < N; ++i)
     {
-      std::vector<std::string> encoded_values;
-      encoded_values.reserve(N);
-
-      for (size_t i = 0; i < N; ++i)
-      {
-        std::wstring_view v = Decoder<T>::decode(buffer, nullptr);
-        encoded_values.emplace_back(detail::utf8_encode(v));
-      }
-
-      args_store->push_back(encoded_values);
+      std::wstring_view v = Decoder<T>::decode_arg(buffer);
+      arg.emplace_back(detail::utf8_encode(v));
     }
+
+    return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 #endif

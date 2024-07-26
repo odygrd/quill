@@ -68,27 +68,23 @@ struct Encoder<fs::path>
 template <>
 struct Decoder<fs::path>
 {
-  static fs::path decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static fs::path decode_arg(std::byte*& buffer)
   {
-    fs::path arg;
-
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {
-      arg = Decoder<std::string_view>::decode(buffer, nullptr);
+      return fs::path{Decoder<std::string_view>::decode_arg(buffer)};
     }
 #if defined(_WIN32)
     else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
     {
-      arg = Decoder<std::wstring_view>::decode(buffer, nullptr);
+      return fs::path{Decoder<std::wstring_view>::decode_arg(buffer)};
     }
 #endif
+  }
 
-    if (args_store)
-    {
-      args_store->push_back(arg);
-    }
-
-    return arg;
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 } // namespace quill

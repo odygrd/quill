@@ -45,16 +45,17 @@ struct Encoder<std::chrono::time_point<Clock, Duration>>
 template <typename Clock, typename Duration>
 struct Decoder<std::chrono::time_point<Clock, Duration>>
 {
-  static std::chrono::time_point<Clock, Duration> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::chrono::time_point<Clock, Duration> decode_arg(std::byte*& buffer)
   {
     std::chrono::time_point<Clock, Duration> arg;
     std::memcpy(&arg, buffer, sizeof(arg));
     buffer += sizeof(arg);
-    if (args_store)
-    {
-      args_store->push_back(arg);
-    }
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 
@@ -84,16 +85,17 @@ struct Encoder<std::chrono::duration<Rep, Period>>
 template <typename Rep, typename Period>
 struct Decoder<std::chrono::duration<Rep, Period>>
 {
-  static std::chrono::duration<Rep, Period> decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static std::chrono::duration<Rep, Period> decode_arg(std::byte*& buffer)
   {
     std::chrono::duration<Rep, Period> arg;
     std::memcpy(&arg, buffer, sizeof(arg));
     buffer += sizeof(arg);
-    if (args_store)
-    {
-      args_store->push_back(arg);
-    }
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 } // namespace quill

@@ -60,19 +60,19 @@ struct Encoder<std::tuple<Types...>>
 template <typename... Types>
 struct Decoder<std::tuple<Types...>>
 {
-  static auto decode(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  static auto decode_arg(std::byte*& buffer)
   {
-    std::tuple<Types...> arg{};
+    std::tuple<Types...> arg;
 
     std::apply([&buffer](auto&... elems)
-               { ((elems = Decoder<std::decay_t<decltype(elems)>>::decode(buffer, nullptr)), ...); }, arg);
-
-    if (args_store)
-    {
-      args_store->push_back(arg);
-    }
+               { ((elems = Decoder<std::decay_t<decltype(elems)>>::decode_arg(buffer)), ...); }, arg);
 
     return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
 } // namespace quill

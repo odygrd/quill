@@ -175,7 +175,7 @@ public:
     std::memcpy(write_buffer, &logger_context, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
-    detail::FormatArgsDecoder ftf = detail::decode_and_populate_format_args<detail::remove_cvref_t<Args>...>;
+    detail::FormatArgsDecoder ftf = detail::decode_and_store_args<detail::remove_cvref_t<Args>...>;
     std::memcpy(write_buffer, &ftf, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
