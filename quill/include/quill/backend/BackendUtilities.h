@@ -52,7 +52,9 @@
   #include <unistd.h>
 #endif
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /***/
 QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
@@ -149,4 +151,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_COLD inline uint32_t get_process_id() noexcept
   return static_cast<uint32_t>(getpid());
 #endif
 }
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

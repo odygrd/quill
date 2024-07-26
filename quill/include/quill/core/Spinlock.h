@@ -9,7 +9,9 @@
 #include <atomic>
 #include <cstdint>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /***/
 class Spinlock
@@ -67,4 +69,6 @@ public:
 private:
   Spinlock& _spinlock;
 };
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

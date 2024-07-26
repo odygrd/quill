@@ -16,7 +16,9 @@
 // Forward declaration
 struct tm;
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * Portable gmtime_r or _s per operating system
@@ -101,4 +103,6 @@ inline time_t timegm(tm* tm)
   return ret_val;
 #endif
 }
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

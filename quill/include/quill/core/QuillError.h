@@ -35,8 +35,8 @@
   #define QUILL_CATCH_ALL() catch (...)
 #endif
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /**
  * custom exception
  */
@@ -52,4 +52,4 @@ private:
   std::string _error;
 };
 
-} // namespace quill
+QUILL_END_NAMESPACE

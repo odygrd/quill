@@ -32,7 +32,9 @@
   #endif
 #endif
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 #if defined(__aarch64__)
 // arm64
@@ -83,4 +85,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept { return __rdtsc(); }
 #endif
 
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

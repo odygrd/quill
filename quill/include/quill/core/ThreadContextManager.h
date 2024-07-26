@@ -23,7 +23,9 @@
 #include <type_traits>
 #include <vector>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /** Forward Declarations **/
 class UnboundedTransitEventBuffer;
@@ -394,4 +396,6 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context() no
 
   return scoped_thread_context.get_thread_context();
 }
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

@@ -15,13 +15,17 @@
     #define NOMINMAX
   #endif
 
+  #include "quill/core/Attributes.h"
+
   #include <cstddef>
   #include <cstring>
   #include <memory>
   #include <string>
   #include <windows.h>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * @brief Convert a wide Unicode string to a UTF-8 encoded string.
@@ -76,5 +80,8 @@ inline std::string utf8_encode(std::wstring_view str)
 {
   return utf8_encode(reinterpret_cast<std::byte const*>(str.data()), str.size());
 }
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE
+
 #endif

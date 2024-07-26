@@ -5,14 +5,15 @@
 
 #pragma once
 
-/**
- * C++ language standard detection
- */
-#if (defined(__cplusplus) && __cplusplus >= 201703L) || (defined(_HAS_CXX17) && _HAS_CXX17 == 1) // fix for issue #464
-  #define QUILL_HAS_CPP_17
-  #define QUILL_HAS_CPP_14
-#elif (defined(__cplusplus) && __cplusplus >= 201402L) || (defined(_HAS_CXX14) && _HAS_CXX14 == 1)
-  #define QUILL_HAS_CPP_14
+#ifndef QUILL_BEGIN_NAMESPACE
+  #define QUILL_BEGIN_NAMESPACE                                                                    \
+    namespace quill                                                                                \
+    {                                                                                              \
+    inline namespace v6                                                                            \
+    {
+  #define QUILL_END_NAMESPACE                                                                      \
+    }                                                                                              \
+    }
 #endif
 
 /**
@@ -44,11 +45,7 @@
  * Portable no discard warnings
  */
 #if QUILL_HAS_CPP_ATTRIBUTE(nodiscard)
-  #if defined(__clang__) && !defined(QUILL_HAS_CPP_17)
-    #define QUILL_NODISCARD
-  #else
-    #define QUILL_NODISCARD [[nodiscard]]
-  #endif
+  #define QUILL_NODISCARD [[nodiscard]]
 #elif QUILL_HAS_CPP_ATTRIBUTE(gnu::warn_unused_result)
   #define QUILL_NODISCARD [[gnu::warn_unused_result]]
 #else

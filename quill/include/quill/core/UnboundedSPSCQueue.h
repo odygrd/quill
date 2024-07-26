@@ -17,7 +17,9 @@
 #include <cstdint>
 #include <string>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * A singe-producer single-consumer FIFO circular buffer
@@ -257,4 +259,6 @@ private:
   alignas(CACHE_LINE_ALIGNED) Node* _consumer{nullptr};
 };
 
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

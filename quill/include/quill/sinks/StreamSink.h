@@ -22,8 +22,8 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /** Forward Declaration **/
 class MacroMetadata;
 
@@ -204,4 +204,5 @@ protected:
   bool _is_null{false};
   bool _write_occurred{false};
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

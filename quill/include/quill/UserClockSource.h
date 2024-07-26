@@ -8,8 +8,8 @@
 #include "quill/core/Attributes.h"
 #include <cstdint>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /**
  * @brief Base class that provides a timestamp for log statements based on a user-provided clock source.
  *
@@ -35,4 +35,5 @@ public:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT virtual uint64_t now() const = 0;
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

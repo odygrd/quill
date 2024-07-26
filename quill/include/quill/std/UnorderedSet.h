@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/Utf8Conv.h"
@@ -18,8 +19,8 @@
 #include <unordered_set>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 template <template <typename...> class UnorderedSetType, typename Key, typename Hash, typename KeyEqual, typename Allocator>
 struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
   std::enable_if_t<std::disjunction_v<std::is_same<UnorderedSetType<Key, Hash, KeyEqual, Allocator>, std::unordered_set<Key, Hash, KeyEqual, Allocator>>,
@@ -111,4 +112,5 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
     args_store->push_back(decode_arg(buffer));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

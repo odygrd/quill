@@ -12,8 +12,8 @@
 #include <chrono>
 #include <cstdint>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /**
  * @brief A utility class for accessing the Time Stamp Counter (TSC) clock used by the backend logging thread.
  *
@@ -91,4 +91,5 @@ public:
       detail::BackendManager::instance().convert_rdtsc_to_epoch_time(rdtsc.value())}};
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

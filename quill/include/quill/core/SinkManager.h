@@ -16,8 +16,8 @@
 #include <type_traits>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /** Forward declarations **/
 class FileSink;
 class Sink;
@@ -150,4 +150,5 @@ private:
   mutable Spinlock _spinlock;
 };
 } // namespace detail
-} // namespace quill
+
+QUILL_END_NAMESPACE

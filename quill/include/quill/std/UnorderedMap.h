@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/Utf8Conv.h"
@@ -20,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 template <template <typename...> class UnorderedMapType, typename Key, typename T, typename Hash, typename KeyEqual, typename Allocator>
 struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
              std::enable_if_t<std::disjunction_v<
@@ -164,4 +165,5 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
     args_store->push_back(decode_arg(buffer));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

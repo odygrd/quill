@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/Utf8Conv.h"
@@ -18,8 +19,8 @@
 #include <type_traits>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 template <template <typename...> class SetType, typename Key, typename Compare, typename Allocator>
 struct Codec<SetType<Key, Compare, Allocator>,
              std::enable_if_t<std::disjunction_v<std::is_same<SetType<Key, Compare, Allocator>, std::set<Key, Compare, Allocator>>,
@@ -109,4 +110,5 @@ struct Codec<SetType<Key, Compare, Allocator>,
     args_store->push_back(decode_arg(buffer));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

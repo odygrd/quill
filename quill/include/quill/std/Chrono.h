@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 
@@ -17,8 +18,8 @@
 #include <cstring>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 template <typename Clock, typename Duration>
 struct Codec<std::chrono::time_point<Clock, Duration>>
 {
@@ -76,4 +77,5 @@ struct Codec<std::chrono::duration<Rep, Period>>
     args_store->push_back(decode_arg(buffer));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

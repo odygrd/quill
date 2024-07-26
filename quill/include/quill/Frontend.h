@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 template <typename TFrontendOptions>
 class FrontendImpl
 {
@@ -208,4 +208,5 @@ private:
 };
 
 using Frontend = FrontendImpl<FrontendOptions>;
-} // namespace quill
+
+QUILL_END_NAMESPACE

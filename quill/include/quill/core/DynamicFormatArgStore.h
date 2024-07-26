@@ -14,8 +14,8 @@
 #include "quill/bundled/fmt/base.h"
 #include "quill/core/Attributes.h"
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 namespace detail
 {
 class DynamicArgList
@@ -134,4 +134,5 @@ public:
 
   QUILL_NODISCARD bool has_string_related_type() const noexcept { return _has_string_related_type; }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

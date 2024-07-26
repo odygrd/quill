@@ -26,8 +26,8 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 class PatternFormatter
 {
   /** Public classes **/
@@ -505,4 +505,5 @@ private:
   fmtquill::basic_memory_buffer<char, 512> _formatted_log_message_buffer;
   fmtquill::basic_memory_buffer<char, 512> _formatted_named_args_buffer;
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

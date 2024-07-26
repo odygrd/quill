@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/Utf8Conv.h"
@@ -16,8 +17,8 @@
 #include <cstdint>
 #include <utility>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 template <typename T1, typename T2>
 struct Codec<std::pair<T1, T2>>
 {
@@ -102,4 +103,5 @@ struct Codec<std::pair<T1, T2>>
     args_store->push_back(decode_arg(buffer));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

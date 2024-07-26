@@ -17,7 +17,9 @@
 #include <cstdio>
 #include <ratio>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * Converts tsc ticks to nanoseconds since epoch
@@ -209,4 +211,6 @@ private:
   alignas(CACHE_LINE_ALIGNED) mutable std::atomic<uint32_t> _version{0};
   mutable std::array<BaseTimeTsc, 2> _base{};
 };
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

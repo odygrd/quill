@@ -37,8 +37,7 @@
   #include <unistd.h>
 #endif
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
 
 /** Forward Declaration **/
 class MacroMetadata;
@@ -480,4 +479,5 @@ protected:
   bool _report_write_log_error_once{false};
 #endif
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

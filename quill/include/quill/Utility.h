@@ -13,10 +13,9 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 
-/**
- * Contains useful utilities to assist with logging
- */
-namespace quill::utility
+QUILL_BEGIN_NAMESPACE
+
+namespace utility
 {
 /**
  * @brief Formats the given buffer to hexadecimal representation.
@@ -85,4 +84,6 @@ private:
   std::tuple<TTags...> _tags;
   std::string_view _delim;
 };
-} // namespace quill::utility
+} // namespace utility
+
+QUILL_END_NAMESPACE

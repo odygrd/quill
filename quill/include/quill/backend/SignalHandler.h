@@ -39,8 +39,8 @@
   #include <unistd.h>
 #endif
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 namespace detail
 {
 /***/
@@ -371,4 +371,4 @@ void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals
 } // namespace detail
 #endif
 
-} // namespace quill
+QUILL_END_NAMESPACE

@@ -16,8 +16,8 @@
 #include <string>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /** Forward Declarations **/
 class Sink;
 class PatternFormatter;
@@ -139,4 +139,5 @@ protected:
   std::atomic<bool> valid{true}; /* Updated by the frontend at any time, accessed by the backend */
 };
 } // namespace detail
-} // namespace quill
+
+QUILL_END_NAMESPACE

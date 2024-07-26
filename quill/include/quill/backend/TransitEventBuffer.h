@@ -15,7 +15,9 @@
 #include <limits>
 #include <vector>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 template <typename T>
 class BoundedTransitEventBufferImpl
@@ -208,4 +210,6 @@ private:
   Node* _writer{nullptr};
   Node* _reader{nullptr};
 };
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

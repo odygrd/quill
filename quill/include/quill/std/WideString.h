@@ -7,6 +7,7 @@
 
 #if defined(_WIN32)
 
+  #include "quill/core/Attributes.h"
   #include "quill/core/Codec.h"
   #include "quill/core/DynamicFormatArgStore.h"
   #include "quill/core/Utf8Conv.h"
@@ -20,8 +21,7 @@
   #include <type_traits>
   #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
 
 /** Specialization for arrays of arithmetic types and enums **/
 template <typename T>
@@ -90,5 +90,7 @@ struct Codec<T, std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, s
     args_store->push_back(detail::utf8_encode(reinterpret_cast<std::byte const*>(arg.data()), arg.size()));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE
+
 #endif

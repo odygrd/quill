@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /** Forward Declarations **/
 class Sink;
 class UserClockSource;
@@ -225,4 +225,5 @@ private:
   std::atomic<bool> _has_invalidated_loggers{false};
 };
 } // namespace detail
-} // namespace quill
+
+QUILL_END_NAMESPACE

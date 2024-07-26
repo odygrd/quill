@@ -12,7 +12,9 @@
 #include <cstdint>
 #include <mutex>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * Provides access to common collection class that are used by both the frontend and the backend
@@ -77,4 +79,6 @@ private:
   BackendWorker _backend_worker;
   std::once_flag _start_once_flag;
 };
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE
