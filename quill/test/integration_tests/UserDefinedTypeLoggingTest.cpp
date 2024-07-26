@@ -50,20 +50,16 @@ struct fmtquill::formatter<CustomType>
 
 /***/
 template <>
-struct quill::ArgSizeCalculator<CustomType>
+struct quill::Codec<CustomType>
 {
-  static size_t calculate(std::vector<size_t>& conditional_arg_size_cache, ::CustomType const& custom_type) noexcept
+  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+                                     ::CustomType const& custom_type) noexcept
   {
     // pass as arguments the class members you want to serialize
-    return calculate_total_size(conditional_arg_size_cache, custom_type.name, custom_type.surname,
-                                custom_type.age, custom_type.favorite_colors);
+    return compute_total_encoded_size(conditional_arg_size_cache, custom_type.name, custom_type.surname,
+                                      custom_type.age, custom_type.favorite_colors);
   }
-};
 
-/***/
-template <>
-struct quill::Encoder<CustomType>
-{
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::CustomType const& custom_type) noexcept
   {
@@ -71,12 +67,7 @@ struct quill::Encoder<CustomType>
     encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
                    custom_type.name, custom_type.surname, custom_type.age, custom_type.favorite_colors);
   }
-};
 
-/***/
-template <>
-struct quill::Decoder<CustomType>
-{
   static ::CustomType decode_arg(std::byte*& buffer)
   {
     // You must decode the same members and in the same order as in the Encoder::encode

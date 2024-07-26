@@ -43,19 +43,14 @@ private:
 
 /***/
 template <>
-struct quill::ArgSizeCalculator<quill::utility::StringRef>
+struct quill::Codec<quill::utility::StringRef>
 {
-  static size_t calculate(std::vector<size_t>& conditional_arg_size_cache,
-                          quill::utility::StringRef const& no_copy) noexcept
+  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+                                     quill::utility::StringRef const& no_copy) noexcept
   {
     return sizeof(size_t) + sizeof(uintptr_t);
   }
-};
 
-/***/
-template <>
-struct quill::Encoder<quill::utility::StringRef>
-{
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, quill::utility::StringRef const& no_copy) noexcept
   {
@@ -67,12 +62,7 @@ struct quill::Encoder<quill::utility::StringRef>
     std::memcpy(buffer, &size, sizeof(size_t));
     buffer += sizeof(size_t);
   }
-};
 
-/***/
-template <>
-struct quill::Decoder<quill::utility::StringRef>
-{
   static std::string_view decode_arg(std::byte*& buffer)
   {
     char const* data;

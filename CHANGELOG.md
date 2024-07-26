@@ -71,9 +71,9 @@
 
 ## v6.0.0
 
-- Moved `ArgSizeCalculator`, `Encoder`, `Decoder`, and `DynamicFormatArgStore` from the `quill::detail` namespace to the
-  `quill` namespace. Since these components are used for user-defined type serialization, they have been promoted to the
-  public namespace for broader accessibility and use.
+- Removed `ArgSizeCalculator<>`, `Encoder<>`, and `Decoder<>` classes: These have been consolidated into a
+  single `Codec` class. Users who wish to pass user-defined objects should now specialize this single `Codec` class
+  instead of managing three separate classes. For guidance, please refer to the updated advanced example.
 
 - Removed unused method from `ConsoleSink`
 

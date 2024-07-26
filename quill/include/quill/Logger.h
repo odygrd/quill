@@ -88,7 +88,7 @@ public:
 
     // Need to reserve additional space as we will be aligning the pointer
     size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
-      detail::calculate_args_size_and_populate_string_lengths(
+      detail::compute_encoded_size_and_cache_string_lengths(
                           thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
     if (dynamic_log_level != LogLevel::None)

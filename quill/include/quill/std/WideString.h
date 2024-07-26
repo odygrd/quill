@@ -22,14 +22,13 @@
 
 namespace quill
 {
-/***/
+
+/** Specialization for arrays of arithmetic types and enums **/
 template <typename T>
-struct ArgSizeCalculator<
-  T, std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>, std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
+struct Codec<T, std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>, std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
 {
-  static size_t calculate(std::vector<size_t>& conditional_arg_size_cache, T const& arg) noexcept
+  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache, T const& arg) noexcept
   {
-    // Calculate the size of the string in bytes
     size_t len;
 
     if constexpr (std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>>)
@@ -47,14 +46,7 @@ struct ArgSizeCalculator<
     // we can retrieve it when we decode. We do not store the null terminator in the buffer
     return static_cast<size_t>(sizeof(size_t) + (len * sizeof(wchar_t)));
   }
-};
 
-/***/
-template <typename T>
-struct Encoder<T,
-               std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
-                                                   std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
-{
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, T const& arg) noexcept
   {
@@ -81,14 +73,7 @@ struct Encoder<T,
       buffer += size_in_bytes;
     }
   }
-};
 
-/***/
-template <typename T>
-struct Decoder<T,
-               std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
-                                                   std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
-{
   static std::wstring_view decode_arg(std::byte*& buffer)
   {
     size_t len;

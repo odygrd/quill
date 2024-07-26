@@ -53,10 +53,11 @@ constexpr auto strnlen =
 
 /** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
-struct ArgSizeCalculator
+struct Codec
 {
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t calculate(QUILL_MAYBE_UNUSED std::vector<size_t>& conditional_arg_size_cache,
-                                                              QUILL_MAYBE_UNUSED Arg const& arg) noexcept
+  /***/
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t compute_encoded_size(
+    QUILL_MAYBE_UNUSED std::vector<size_t>& conditional_arg_size_cache, QUILL_MAYBE_UNUSED Arg const& arg) noexcept
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
     {
@@ -87,32 +88,8 @@ struct ArgSizeCalculator
       static_assert(detail::always_false_v<Arg>, "Unsupported type");
     }
   }
-};
 
-namespace detail
-{
-/**
- * @brief Calculates the total size required to encode the provided arguments
-
- * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
- * @param args The arguments to be encoded.
- * @return The total size required to encode the arguments.
- */
-template <typename... Args>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t calculate_args_size_and_populate_string_lengths(
-  QUILL_MAYBE_UNUSED std::vector<size_t>& conditional_arg_size_cache, Args const&... args) noexcept
-{
-  // Do not use fold expression with '+ ...' as we need a guaranteed sequence for the args here
-  size_t total_sum{0};
-  ((total_sum += ArgSizeCalculator<detail::remove_cvref_t<Args>>::calculate(conditional_arg_size_cache, args)), ...);
-  return total_sum;
-}
-} // namespace detail
-
-/** typename = void for specializations with enable_if **/
-template <typename Arg, typename = void>
-struct Encoder
-{
+  /***/
   QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer,
                                          QUILL_MAYBE_UNUSED std::vector<size_t> const& conditional_arg_size_cache,
                                          QUILL_MAYBE_UNUSED uint32_t& conditional_arg_size_cache_index,
@@ -169,36 +146,13 @@ struct Encoder
       static_assert(detail::always_false_v<Arg>, "Unsupported type");
     }
   }
-};
 
-namespace detail
-{
-/**
- * @brief Encoders multiple arguments into a buffer.
- * @param buffer Pointer to the buffer for encoding.
- * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
- * @param args The arguments to be encoded.
- */
-template <typename... Args>
-QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
-                                Args const&... args) noexcept
-{
-  QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
-  (Encoder<detail::remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache,
-                                                 conditional_arg_size_cache_index, args),
-   ...);
-}
-} // namespace detail
-
-/** typename = void for specializations with enable_if **/
-template <typename Arg, typename = void>
-struct Decoder
-{
   // We use two separate functions, decode_arg and decode_and_store_arg, because there are
   // scenarios where we need to decode an argument without storing it in args_store, such as when
   // dealing with nested types. Storing the argument requires a fmtquill formatter, so having
   // two distinct functions allows us to avoid this requirement in cases where only decoding is needed.
 
+  /***/
   static auto decode_arg(std::byte*& buffer)
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
@@ -232,6 +186,7 @@ struct Decoder
     }
   }
 
+  /***/
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
@@ -267,10 +222,43 @@ struct Decoder
 
 namespace detail
 {
+/**
+ * @brief Calculates the total size required to encode the provided arguments
+
+ * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
+ * @param args The arguments to be encoded.
+ * @return The total size required to encode the arguments.
+ */
 template <typename... Args>
-void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store) noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
+  QUILL_MAYBE_UNUSED std::vector<size_t>& conditional_arg_size_cache, Args const&... args) noexcept
 {
-  (Decoder<Args>::decode_and_store_arg(buffer, args_store), ...);
+  // Do not use fold expression with '+ ...' as we need a guaranteed sequence for the args here
+  size_t total_sum{0};
+  ((total_sum += Codec<detail::remove_cvref_t<Args>>::compute_encoded_size(conditional_arg_size_cache, args)), ...);
+  return total_sum;
+}
+
+/**
+ * @brief Encoders multiple arguments into a buffer.
+ * @param buffer Pointer to the buffer for encoding.
+ * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
+ * @param args The arguments to be encoded.
+ */
+template <typename... Args>
+QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+                                Args const&... args) noexcept
+{
+  QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
+  (Codec<detail::remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache,
+                                               conditional_arg_size_cache_index, args),
+   ...);
+}
+
+template <typename... Args>
+void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+{
+  (Codec<Args>::decode_and_store_arg(buffer, args_store), ...);
 }
 
 /**
@@ -289,10 +277,10 @@ void decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store
 /** Codec helpers for user defined types convenience **/
 /***/
 template <typename... TMembers>
-size_t calculate_total_size(std::vector<size_t>& conditional_arg_size_cache, TMembers const&... members)
+size_t compute_total_encoded_size(std::vector<size_t>& conditional_arg_size_cache, TMembers const&... members)
 {
   size_t total_size{0};
-  ((total_size += ArgSizeCalculator<detail::remove_cvref_t<TMembers>>::calculate(conditional_arg_size_cache, members)),
+  ((total_size += Codec<detail::remove_cvref_t<TMembers>>::compute_encoded_size(conditional_arg_size_cache, members)),
    ...);
   return total_size;
 }
@@ -302,8 +290,8 @@ template <typename... TMembers>
 void encode_members(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                     uint32_t& conditional_arg_size_cache_index, TMembers const&... members)
 {
-  ((Encoder<detail::remove_cvref_t<TMembers>>::encode(buffer, conditional_arg_size_cache,
-                                                      conditional_arg_size_cache_index, members)),
+  ((Codec<detail::remove_cvref_t<TMembers>>::encode(buffer, conditional_arg_size_cache,
+                                                    conditional_arg_size_cache_index, members)),
    ...);
 }
 
@@ -311,6 +299,6 @@ void encode_members(std::byte*& buffer, std::vector<size_t> const& conditional_a
 template <typename T, typename... TMembers>
 void decode_members(std::byte*& buffer, T& arg, TMembers&... members)
 {
-  ((members = Decoder<detail::remove_cvref_t<TMembers>>::decode_arg(buffer)), ...);
+  ((members = Codec<detail::remove_cvref_t<TMembers>>::decode_arg(buffer)), ...);
 }
 } // namespace quill

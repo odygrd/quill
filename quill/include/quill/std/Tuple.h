@@ -18,54 +18,44 @@
 
 namespace quill
 {
-/***/
 template <typename... Types>
-struct ArgSizeCalculator<std::tuple<Types...>>
+struct Codec<std::tuple<Types...>>
 {
-  static size_t calculate(std::vector<size_t>& conditional_arg_size_cache, std::tuple<Types...> const& arg) noexcept
+  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+                                     std::tuple<Types...> const& arg) noexcept
   {
     size_t total_size{0};
 
     std::apply(
       [&total_size, &conditional_arg_size_cache](auto const&... elems)
       {
-        ((total_size += ArgSizeCalculator<std::decay_t<decltype(elems)>>::calculate(conditional_arg_size_cache, elems)),
+        ((total_size += Codec<std::decay_t<decltype(elems)>>::compute_encoded_size(conditional_arg_size_cache, elems)),
          ...);
       },
       arg);
 
     return total_size;
   }
-};
 
-/***/
-template <typename... Types>
-struct Encoder<std::tuple<Types...>>
-{
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::tuple<Types...> const& arg) noexcept
   {
     std::apply(
       [&conditional_arg_size_cache, &conditional_arg_size_cache_index, &buffer](auto const&... elems)
       {
-        ((Encoder<std::decay_t<decltype(elems)>>::encode(buffer, conditional_arg_size_cache,
-                                                         conditional_arg_size_cache_index, elems)),
+        ((Codec<std::decay_t<decltype(elems)>>::encode(buffer, conditional_arg_size_cache,
+                                                       conditional_arg_size_cache_index, elems)),
          ...);
       },
       arg);
   }
-};
 
-/***/
-template <typename... Types>
-struct Decoder<std::tuple<Types...>>
-{
   static auto decode_arg(std::byte*& buffer)
   {
     std::tuple<Types...> arg;
 
     std::apply([&buffer](auto&... elems)
-               { ((elems = Decoder<std::decay_t<decltype(elems)>>::decode_arg(buffer)), ...); }, arg);
+               { ((elems = Codec<std::decay_t<decltype(elems)>>::decode_arg(buffer)), ...); }, arg);
 
     return arg;
   }

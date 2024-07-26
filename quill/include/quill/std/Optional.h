@@ -23,11 +23,11 @@
 
 namespace quill
 {
-/***/
 template <typename T>
-struct ArgSizeCalculator<std::optional<T>>
+struct Codec<std::optional<T>>
 {
-  static size_t calculate(std::vector<size_t>& conditional_arg_size_cache, std::optional<T> const& arg) noexcept
+  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+                                     std::optional<T> const& arg) noexcept
   {
     // We need to store the size of the vector in the buffer, so we reserve space for it.
     // We add sizeof(bool) bytes to accommodate the size information.
@@ -35,50 +35,58 @@ struct ArgSizeCalculator<std::optional<T>>
 
     if (arg.has_value())
     {
-      total_size += ArgSizeCalculator<T>::calculate(conditional_arg_size_cache, *arg);
+      total_size += Codec<T>::compute_encoded_size(conditional_arg_size_cache, *arg);
     }
 
     return total_size;
   }
-};
 
-/***/
-template <typename T>
-struct Encoder<std::optional<T>>
-{
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::optional<T> const& arg) noexcept
   {
-    Encoder<bool>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.has_value());
+    Codec<bool>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.has_value());
 
     if (arg.has_value())
     {
-      Encoder<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, *arg);
+      Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, *arg);
     }
   }
-};
 
-/***/
-template <typename T>
-#if defined(_WIN32)
-struct Decoder<std::optional<T>,
-               std::enable_if_t<std::negation_v<std::disjunction<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
-                                                                 std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>>
-#else
-struct Decoder<std::optional<T>>
-#endif
-{
-  static std::optional<T> decode_arg(std::byte*& buffer)
+  static auto decode_arg(std::byte*& buffer)
   {
-    std::optional<T> arg{std::nullopt};
-
-    bool const has_value = Decoder<bool>::decode_arg(buffer);
-    if (has_value)
+#if defined(_WIN32)
+    if constexpr (std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
+                                     std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>)
     {
-      arg = Decoder<T>::decode_arg(buffer);
-    }
+      std::string encoded_value{"none"};
 
-    return arg;
+      bool const has_value = Codec<bool>::decode_arg(buffer);
+      if (has_value)
+      {
+        std::wstring_view arg = Codec<T>::decode_arg(buffer);
+        encoded_value = "optional(\"";
+        encoded_value += detail::utf8_encode(arg);
+        encoded_value += "\")";
+      }
+
+      return encoded_value;
+    }
+    else
+    {
+#endif
+      std::optional<T> arg{std::nullopt};
+
+      bool const has_value = Codec<bool>::decode_arg(buffer);
+      if (has_value)
+      {
+        arg = Codec<T>::decode_arg(buffer);
+      }
+
+      return arg;
+
+#if defined(_WIN32)
+    }
+#endif
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
@@ -86,34 +94,4 @@ struct Decoder<std::optional<T>>
     args_store->push_back(decode_arg(buffer));
   }
 };
-
-#if defined(_WIN32)
-/***/
-template <typename T>
-struct Decoder<std::optional<T>,
-               std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
-                                                   std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
-{
-  static std::string decode_arg(std::byte*& buffer)
-  {
-    std::string encoded_value{"none"};
-
-    bool const has_value = Decoder<bool>::decode_arg(buffer);
-    if (has_value)
-    {
-      std::wstring_view arg = Decoder<T>::decode_arg(buffer);
-      encoded_value = "optional(\"";
-      encoded_value += detail::utf8_encode(arg);
-      encoded_value += "\")";
-    }
-
-    return encoded_value;
-  }
-
-  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
-  {
-    args_store->push_back(decode_arg(buffer));
-  }
-};
-#endif
 } // namespace quill
