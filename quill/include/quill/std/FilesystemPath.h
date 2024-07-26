@@ -23,61 +23,50 @@
 
 namespace quill
 {
-/***/
 template <>
-struct ArgSizeCalculator<fs::path>
+struct Codec<fs::path>
 {
-  static size_t calculate(std::vector<size_t>& conditional_arg_size_cache, fs::path const& arg) noexcept
+  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache, fs::path const& arg) noexcept
   {
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {
-      return ArgSizeCalculator<std::string>::calculate(conditional_arg_size_cache, arg.string());
+      return Codec<std::string>::compute_encoded_size(conditional_arg_size_cache, arg.string());
     }
 #if defined(_WIN32)
     else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
     {
-      return ArgSizeCalculator<std::wstring>::calculate(conditional_arg_size_cache, arg.wstring());
+      return Codec<std::wstring>::compute_encoded_size(conditional_arg_size_cache, arg.wstring());
     }
 #endif
   }
-};
 
-/***/
-template <>
-struct Encoder<fs::path>
-{
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, fs::path const& arg) noexcept
   {
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {
-      Encoder<std::string>::encode(buffer, conditional_arg_size_cache,
-                                   conditional_arg_size_cache_index, arg.string());
+      Codec<std::string>::encode(buffer, conditional_arg_size_cache,
+                                 conditional_arg_size_cache_index, arg.string());
     }
 #if defined(_WIN32)
     else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
     {
-      Encoder<std::wstring>::encode(buffer, conditional_arg_size_cache,
-                                    conditional_arg_size_cache_index, arg.wstring());
+      Codec<std::wstring>::encode(buffer, conditional_arg_size_cache,
+                                  conditional_arg_size_cache_index, arg.wstring());
     }
 #endif
   }
-};
 
-/***/
-template <>
-struct Decoder<fs::path>
-{
   static fs::path decode_arg(std::byte*& buffer)
   {
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {
-      return fs::path{Decoder<std::string_view>::decode_arg(buffer)};
+      return fs::path{Codec<std::string_view>::decode_arg(buffer)};
     }
 #if defined(_WIN32)
     else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
     {
-      return fs::path{Decoder<std::wstring_view>::decode_arg(buffer)};
+      return fs::path{Codec<std::wstring_view>::decode_arg(buffer)};
     }
 #endif
   }

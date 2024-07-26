@@ -48,37 +48,26 @@
  * }
  * \endcode
  */
-
 #define QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(Arg)                                                           \
-                                                                                                             \
-  static_assert(std::is_trivially_copyable_v<Arg>,                                                           \
-                "Arg must be trivially copyable for this serialization macro. Non-trivially "                \
-                "copyable types can still be logged, but you will need a different approach. "               \
-                "Please refer to the documentation or examples for alternative methods.");                   \
-                                                                                                             \
   template <>                                                                                                \
-  struct quill::ArgSizeCalculator<Arg>                                                                       \
+  struct quill::Codec<Arg>                                                                                   \
   {                                                                                                          \
-    static size_t calculate(std::vector<size_t>&, ::Arg const& arg) noexcept                                 \
+    static_assert(std::is_trivially_copyable_v<Arg>,                                                         \
+                  "Arg must be trivially copyable for this serialization macro. Non-trivially "              \
+                  "copyable types can still be logged, but you will need a different approach. "             \
+                  "Please refer to the documentation or examples for alternative methods.");                 \
+                                                                                                             \
+    static size_t compute_encoded_size(std::vector<size_t>&, ::Arg const& arg) noexcept                      \
     {                                                                                                        \
       return sizeof(arg);                                                                                    \
     }                                                                                                        \
-  };                                                                                                         \
                                                                                                              \
-  template <>                                                                                                \
-  struct quill::Encoder<Arg>                                                                                 \
-  {                                                                                                          \
     static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, ::Arg const& arg) noexcept \
     {                                                                                                        \
       std::memcpy(buffer, &arg, sizeof(arg));                                                                \
       buffer += sizeof(arg);                                                                                 \
     }                                                                                                        \
-  };                                                                                                         \
                                                                                                              \
-  template <>                                                                                                \
-                                                                                                             \
-  struct quill::Decoder<Arg>                                                                                 \
-  {                                                                                                          \
     static ::Arg decode_arg(std::byte*& buffer)                                                              \
     {                                                                                                        \
       ::Arg arg;                                                                                             \
