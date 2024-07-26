@@ -4,6 +4,7 @@
 #include "quill/Logger.h"
 #include "quill/sinks/ConsoleSink.h"
 
+#include "quill/TriviallyCopyableCodec.h"
 #include "quill/bundled/fmt/ostream.h"
 #include "quill/std/Array.h"
 #include "quill/std/Chrono.h"
@@ -12,23 +13,10 @@
 #include <string>
 #include <utility>
 
-struct TCStruct
-{
-  int a;
-  double b;
-  char c[12];
-
-  friend std::ostream& operator<<(std::ostream& os, TCStruct const& arg)
-  {
-    os << "a: " << arg.a << ", b: " << arg.b << ", c: " << arg.c;
-    return os;
-  }
-};
-
-template <>
-struct fmtquill::formatter<TCStruct> : fmtquill::ostream_formatter
-{
-};
+/**
+ * Trivial logging example to console
+ * Note: You can also pass STL types by including the relevant header files from quill/std/
+ */
 
 int main()
 {
@@ -42,6 +30,30 @@ int main()
   // Change the LogLevel to print everything
   logger->set_log_level(quill::LogLevel::TraceL3);
 
-  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-  LOG_INFO(logger, "time is {}", now);
+  // A log message with number 123
+  int a = 123;
+  std::string l = "log";
+  LOG_INFO(logger, "A {} message with number {}", l, a);
+
+  // libfmt formatting language is supported 3.14e+00
+  double pi = 3.141592653589793;
+  LOG_INFO(logger, "libfmt formatting language is supported {:.2e}", pi);
+
+  // Logging STD types is supported [1, 2, 3]
+  std::array<int, 3> arr = {1, 2, 3};
+  LOG_INFO(logger, "Logging STD types is supported {}", arr);
+
+  // Logging STD types is supported [arr: [1, 2, 3]]
+  LOGV_INFO(logger, "Logging STD types is supported", arr);
+
+  // A message with two variables [a: 123, b: 3.17]
+  double b = 3.17;
+  LOGV_INFO(logger, "A message with two variables", a, b);
+
+  for (uint32_t i = 0; i < 10; ++i)
+  {
+    // Will only log the message once per second
+    LOG_INFO_LIMIT(std::chrono::seconds{1}, logger, "A {} message with number {}", l, a);
+    LOGV_INFO_LIMIT(std::chrono::seconds{1}, logger, "A message with two variables", a, b);
+  }
 }

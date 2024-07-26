@@ -70,9 +70,23 @@ public:
    */
   template <bool immediate_flush, typename... Args>
   QUILL_ATTRIBUTE_HOT bool log_statement(LogLevel dynamic_log_level,
-                                       MacroMetadata const* macro_metadata, Args&&... fmt_args)
+                                         MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
+#ifndef NDEBUG
+    if (dynamic_log_level != quill::LogLevel::None)
+    {
+      assert((macro_metadata->log_level() == quill::LogLevel::Dynamic) &&
+             "MacroMetadata LogLevel must be Dynamic when using a dynamic_log_level");
+    }
+
+    if (macro_metadata->log_level() != quill::LogLevel::Dynamic)
+    {
+      assert((dynamic_log_level == quill::LogLevel::None) &&
+             "No dynamic_log_level should be set when MacroMetadata LogLevel is not Dynamic");
+    }
+
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
+#endif
 
     // Store the timestamp of the log statement at the start of the call. This gives more accurate
     // timestamp especially if the queue is full
@@ -273,7 +287,8 @@ public:
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->template log_statement<false>(LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
+    while (!this->template log_statement<false>(
+      LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if (sleep_duration_ns > 0)
       {
