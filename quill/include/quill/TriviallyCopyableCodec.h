@@ -48,7 +48,6 @@
  * }
  * \endcode
  */
-
 #define QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(Arg)                                                           \
   template <>                                                                                                \
   struct quill::Codec<Arg>                                                                                   \
