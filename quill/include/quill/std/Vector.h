@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/Utf8Conv.h"
@@ -17,8 +18,8 @@
 #include <type_traits>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 template <typename T, typename Allocator>
 struct Codec<std::vector<T, Allocator>>
 {
@@ -104,4 +105,5 @@ struct Codec<std::vector<T, Allocator>>
     args_store->push_back(decode_arg(buffer));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

@@ -20,7 +20,9 @@
 #include <utility>
 #include <vector>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /** Forward declaration */
 class LoggerBase;
@@ -90,4 +92,6 @@ struct TransitEvent
   LogLevel dynamic_log_level{LogLevel::None};
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
 };
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

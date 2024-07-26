@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 
@@ -16,8 +17,8 @@
 #include <tuple>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 template <typename... Types>
 struct Codec<std::tuple<Types...>>
 {
@@ -65,4 +66,5 @@ struct Codec<std::tuple<Types...>>
     args_store->push_back(decode_arg(buffer));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

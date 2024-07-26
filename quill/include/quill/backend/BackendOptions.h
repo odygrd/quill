@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
+
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -17,8 +19,8 @@
   #include <iostream>
 #endif
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 struct BackendOptions
 {
   /**
@@ -209,4 +211,5 @@ struct BackendOptions
   std::array<std::string, 11> log_level_short_codes = {"T3", "T2", "T1", "D", "I", "W",
                                                        "E",  "C",  "BT", "N", "DN"};
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

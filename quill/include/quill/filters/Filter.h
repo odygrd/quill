@@ -13,8 +13,8 @@
 #include <string_view>
 #include <utility>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /** Forward Declaration **/
 class MacroMetadata;
 
@@ -67,4 +67,5 @@ public:
 private:
   std::string _filter_name;
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

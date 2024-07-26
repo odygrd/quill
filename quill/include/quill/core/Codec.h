@@ -23,8 +23,8 @@
 #include <type_traits>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 namespace detail
 {
 /**
@@ -301,4 +301,5 @@ void decode_members(std::byte*& buffer, T& arg, TMembers&... members)
 {
   ((members = Codec<detail::remove_cvref_t<TMembers>>::decode_arg(buffer)), ...);
 }
-} // namespace quill
+
+QUILL_END_NAMESPACE

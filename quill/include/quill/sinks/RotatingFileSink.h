@@ -27,8 +27,8 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /** Forward Declaration **/
 class MacroMetadata;
 
@@ -799,4 +799,4 @@ private:
   RotatingFileSinkConfig _config;
 };
 
-} // namespace quill
+QUILL_END_NAMESPACE

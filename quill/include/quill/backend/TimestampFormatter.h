@@ -21,7 +21,9 @@
 #include <string_view>
 #include <utility>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 
 /**
@@ -208,4 +210,6 @@ private:
   bool _has_format_part_2{false};
 };
 
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

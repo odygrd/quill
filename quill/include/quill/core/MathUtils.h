@@ -11,7 +11,9 @@
 #include <cstdint>
 #include <limits>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * Check if a number is a power of 2
@@ -64,4 +66,6 @@ QUILL_NODISCARD T next_power_of_two(T n)
 
   return result;
 }
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

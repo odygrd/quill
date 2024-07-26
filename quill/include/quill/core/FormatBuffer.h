@@ -6,12 +6,15 @@
 #pragma once
 
 #include "quill/bundled/fmt/base.h"
+#include "quill/core/Attributes.h"
 
 #include <cstddef>
 #include <memory>
 #include <string>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * This is a replication of fmt::basic_memory_buffer with only dynamic storage
@@ -112,4 +115,6 @@ protected:
     }
   }
 };
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

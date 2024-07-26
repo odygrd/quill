@@ -51,8 +51,7 @@
   #include <unistd.h>
 #endif
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
 
 enum class FilenameAppendOption : uint8_t
 {
@@ -355,4 +354,5 @@ private:
 private:
   FileSinkConfig _config;
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

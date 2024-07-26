@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
+
 #if !defined(QUILL_HAS_FILESYSTEM) && !defined(QUILL_HAS_EXPERIMENTAL_FILESYSTEM)
   #if defined(__cpp_lib_filesystem)
     #define QUILL_HAS_FILESYSTEM 1
@@ -48,16 +50,18 @@
 #if QUILL_HAS_EXPERIMENTAL_FILESYSTEM
   #include <experimental/filesystem>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 namespace fs = std::experimental::filesystem;
-} // namespace quill
+
+QUILL_END_NAMESPACE
 
 #elif QUILL_HAS_FILESYSTEM
   #include <filesystem>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 namespace fs = std::filesystem;
-} // namespace quill
+
+QUILL_END_NAMESPACE
 #endif

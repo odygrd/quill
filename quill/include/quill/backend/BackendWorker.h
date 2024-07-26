@@ -57,7 +57,9 @@
 #include <utility>
 #include <vector>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 class BackendWorker
 {
@@ -1372,4 +1374,6 @@ private:
   std::condition_variable _wake_up_cv;
   bool _wake_up_flag{false};
 };
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -15,8 +17,8 @@
 #define QUILL_AS_STR(x) #x
 #define QUILL_STRINGIFY(x) QUILL_AS_STR(x)
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 namespace detail
 {
 /**
@@ -86,4 +88,4 @@ public:
   #pragma warning(pop)
 #endif
 
-} // namespace quill
+QUILL_END_NAMESPACE

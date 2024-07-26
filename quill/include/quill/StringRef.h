@@ -14,7 +14,9 @@
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 
-namespace quill::utility
+QUILL_BEGIN_NAMESPACE
+
+namespace utility
 {
 /**
  * StringRef is used to specify that a string argument should be passed by reference instead of by
@@ -39,11 +41,11 @@ public:
 private:
   std::string_view _str_view;
 };
-} // namespace quill::utility
+} // namespace utility
 
 /***/
 template <>
-struct quill::Codec<quill::utility::StringRef>
+struct Codec<quill::utility::StringRef>
 {
   static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
                                      quill::utility::StringRef const& no_copy) noexcept
@@ -81,3 +83,5 @@ struct quill::Codec<quill::utility::StringRef>
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_NAMESPACE

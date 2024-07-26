@@ -5,10 +5,14 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+
 #include <cstring>
 #include <type_traits>
+
+QUILL_BEGIN_NAMESPACE
 
 /**
  * @brief Defines serialization (codec) functionality for trivially copyable userdefined types.
@@ -51,8 +55,7 @@
  * }
  * \endcode
  */
-namespace quill
-{
+
 template <typename T>
 struct TriviallyCopyableTypeCodec
 {
@@ -85,4 +88,5 @@ struct TriviallyCopyableTypeCodec
     args_store->push_back(decode_arg(buffer));
   }
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

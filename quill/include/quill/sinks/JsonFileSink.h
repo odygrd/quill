@@ -21,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /**
  * The JsonFileSinkConfig class holds the configuration options for the JsonFileSink
  */
@@ -92,4 +92,5 @@ public:
 private:
   detail::FormatBuffer _json_message;
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

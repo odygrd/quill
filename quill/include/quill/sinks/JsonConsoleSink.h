@@ -19,8 +19,8 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 class JsonConsoleSink : public StreamSink
 {
 public:
@@ -77,4 +77,5 @@ public:
 private:
   detail::FormatBuffer _json_message;
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

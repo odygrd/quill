@@ -45,7 +45,9 @@
   #include <unistd.h>
 #endif
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 #if defined(_WIN32)
 
@@ -194,4 +196,6 @@ QUILL_NODISCARD inline uint32_t get_thread_id() noexcept
   return reinterpret_cast<uintptr_t>(pthread_self()); // (Ab)use pthread_self as a last resort option
 #endif
 }
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

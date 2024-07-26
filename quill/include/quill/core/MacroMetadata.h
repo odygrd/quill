@@ -14,8 +14,8 @@
 #include <cstdint>
 #include <string_view>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /**
  * Captures and stores information about a logging event in compile time
  */
@@ -205,4 +205,5 @@ private:
 
 static_assert(sizeof(MacroMetadata) <= detail::CACHE_LINE_SIZE,
               "Size of MacroMetadata exceeds the cache line size");
-} // namespace quill
+
+QUILL_END_NAMESPACE

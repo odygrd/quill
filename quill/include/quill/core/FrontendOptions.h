@@ -5,11 +5,13 @@
 
 #pragma once
 
+#include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
+
 #include <cstdint>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 struct FrontendOptions
 {
   /**
@@ -41,4 +43,5 @@ struct FrontendOptions
    */
   static constexpr bool huge_pages_enabled = false;
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

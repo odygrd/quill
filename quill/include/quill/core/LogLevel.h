@@ -13,8 +13,8 @@
 #include <string>
 #include <string_view>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /**
  * Log level enum
  */
@@ -123,4 +123,5 @@ QUILL_NODISCARD LogLevel inline loglevel_from_string(std::string log_level)
   std::string const error_msg = "LogLevel enum value does not exist for \"" + log_level + "\"";
   QUILL_THROW(QuillError{error_msg});
 }
-} // namespace quill
+
+QUILL_END_NAMESPACE

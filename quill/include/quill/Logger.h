@@ -27,8 +27,7 @@
 #include <thread>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
 
 /** Forward Declarations **/
 class Sink;
@@ -337,4 +336,5 @@ private:
 };
 
 using Logger = LoggerImpl<FrontendOptions>;
-} // namespace quill
+
+QUILL_END_NAMESPACE

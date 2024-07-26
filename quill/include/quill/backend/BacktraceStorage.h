@@ -18,7 +18,9 @@
 #include <utility>
 #include <vector>
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * Stores N max messages per logger name in a vector.
@@ -133,4 +135,6 @@ private:
   uint32_t _index{0};
   std::vector<StoredTransitEvent> _stored_events;
 };
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

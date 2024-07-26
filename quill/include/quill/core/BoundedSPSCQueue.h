@@ -60,7 +60,9 @@
   #endif
 #endif
 
-namespace quill::detail
+QUILL_BEGIN_NAMESPACE
+
+namespace detail
 {
 /**
  * A bounded single producer single consumer ring buffer.
@@ -324,4 +326,6 @@ private:
 };
 
 using BoundedSPSCQueue = BoundedSPSCQueueImpl<uint32_t>;
-} // namespace quill::detail
+} // namespace detail
+
+QUILL_END_NAMESPACE

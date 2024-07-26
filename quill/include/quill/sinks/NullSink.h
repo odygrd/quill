@@ -15,8 +15,8 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /** Forward Declaration **/
 class MacroMetadata;
 
@@ -34,4 +34,5 @@ public:
 
   QUILL_ATTRIBUTE_HOT void flush_sink() override {}
 };
-} // namespace quill
+
+QUILL_END_NAMESPACE

@@ -20,8 +20,8 @@
 #include <utility>
 #include <vector>
 
-namespace quill
-{
+QUILL_BEGIN_NAMESPACE
+
 /** Forward Declaration **/
 class MacroMetadata;
 
@@ -196,4 +196,4 @@ private:
   std::atomic<LogLevel> _log_level{LogLevel::TraceL3};
 };
 
-} // namespace quill
+QUILL_END_NAMESPACE
