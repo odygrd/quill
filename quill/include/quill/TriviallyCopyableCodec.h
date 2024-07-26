@@ -13,7 +13,7 @@
 /**
  * @brief Defines serialization (codec) functionality for trivially copyable userdefined types.
  *
- * This macro provides specializations for the `ArgSizeCalculator`, `Encoder`, and `Decoder`
+ * This macro provides specializations for the `TSizeCalculator`, `Encoder`, and `Decoder`
  * templates in the `quill` namespace. It is designed for types that are trivially copyable,
  * meaning they can be copied with a simple `memcpy` operation.
  *
@@ -38,7 +38,10 @@
  * {
  * };
  *
- * QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(TCStruct);
+ * template <>
+ * struct quill::Codec<TCStruct> : TriviallyCopyableTypeCodec<TCStruct>
+ * {
+ * };
  *
  * int main()
  * {
@@ -48,36 +51,38 @@
  * }
  * \endcode
  */
-#define QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(Arg)                                                           \
-  template <>                                                                                                \
-  struct quill::Codec<Arg>                                                                                   \
-  {                                                                                                          \
-    static_assert(std::is_trivially_copyable_v<Arg>,                                                         \
-                  "Arg must be trivially copyable for this serialization macro. Non-trivially "              \
-                  "copyable types can still be logged, but you will need a different approach. "             \
-                  "Please refer to the documentation or examples for alternative methods.");                 \
-                                                                                                             \
-    static size_t compute_encoded_size(std::vector<size_t>&, ::Arg const& arg) noexcept                      \
-    {                                                                                                        \
-      return sizeof(arg);                                                                                    \
-    }                                                                                                        \
-                                                                                                             \
-    static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, ::Arg const& arg) noexcept \
-    {                                                                                                        \
-      std::memcpy(buffer, &arg, sizeof(arg));                                                                \
-      buffer += sizeof(arg);                                                                                 \
-    }                                                                                                        \
-                                                                                                             \
-    static ::Arg decode_arg(std::byte*& buffer)                                                              \
-    {                                                                                                        \
-      ::Arg arg;                                                                                             \
-      std::memcpy(&arg, buffer, sizeof(arg));                                                                \
-      buffer += sizeof(arg);                                                                                 \
-      return arg;                                                                                            \
-    }                                                                                                        \
-                                                                                                             \
-    static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)                  \
-    {                                                                                                        \
-      args_store->push_back(decode_arg(buffer));                                                             \
-    }                                                                                                        \
-  };
+namespace quill
+{
+template <typename T>
+struct TriviallyCopyableTypeCodec
+{
+  static_assert(std::is_trivially_copyable_v<T>,
+                "T must be trivially copyable. Non-trivially copyable types can still be logged, "
+                "but you will need a different approach. Please refer to the documentation or "
+                "examples for alternative methods.");
+
+  static size_t compute_encoded_size(std::vector<size_t>&, T const& arg) noexcept
+  {
+    return sizeof(arg);
+  }
+
+  static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, T const& arg) noexcept
+  {
+    std::memcpy(buffer, &arg, sizeof(arg));
+    buffer += sizeof(arg);
+  }
+
+  static T decode_arg(std::byte*& buffer)
+  {
+    T arg;
+    std::memcpy(&arg, buffer, sizeof(arg));
+    buffer += sizeof(arg);
+    return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
+  }
+};
+} // namespace quill

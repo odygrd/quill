@@ -75,8 +75,7 @@
   single `Codec` class. Users who wish to pass user-defined objects should now specialize this single `Codec` class
   instead of managing three separate classes. For guidance, please refer to the updated advanced example
 
-- Added `QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC` macro in `TriviallyCopyableCodec.h` to facilitate serialization for
-  trivially copyable user-defined types. This macro provides automatic specializations for the `Codec` class
+- Added `TriviallyCopyableCodec.h` to facilitate serialization for trivially copyable user-defined types. For example
 
   ```c++
     struct TCStruct
@@ -97,11 +96,15 @@
     {
     };
     
-    QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(TCStruct);
+    template <>
+    struct quill::Codec<TCStruct> : quill::TriviallyCopyableTypeCodec<TCStruct>
+    {
+    };
     
     int main()
     {
-        // init code ...
+      // init code ...
+      
       TCStruct tc;
       tc.a = 123;
       tc.b = 321;

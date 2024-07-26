@@ -20,6 +20,12 @@
 
 using namespace quill;
 
+enum class Gender : uint8_t
+{
+  Male,
+  Female
+};
+
 /***/
 struct CustomType
 {
@@ -27,6 +33,7 @@ struct CustomType
   std::string surname;
   uint32_t age;
   std::array<std::string, 3> favorite_colors;
+  Gender gender{Gender::Male}; // This should not require a fmtquill::formatter
 };
 
 /***/
@@ -57,15 +64,15 @@ struct quill::Codec<CustomType>
   {
     // pass as arguments the class members you want to serialize
     return compute_total_encoded_size(conditional_arg_size_cache, custom_type.name, custom_type.surname,
-                                      custom_type.age, custom_type.favorite_colors);
+                                      custom_type.age, custom_type.favorite_colors, custom_type.gender);
   }
 
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::CustomType const& custom_type) noexcept
   {
     // You must encode the same members and in the same order as in the ArgSizeCalculator::calculate
-    encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
-                   custom_type.name, custom_type.surname, custom_type.age, custom_type.favorite_colors);
+    encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, custom_type.name,
+                   custom_type.surname, custom_type.age, custom_type.favorite_colors, custom_type.gender);
   }
 
   static ::CustomType decode_arg(std::byte*& buffer)
@@ -73,7 +80,7 @@ struct quill::Codec<CustomType>
     // You must decode the same members and in the same order as in the Encoder::encode
     ::CustomType custom_type;
     decode_members(buffer, custom_type, custom_type.name, custom_type.surname, custom_type.age,
-                   custom_type.favorite_colors);
+                   custom_type.favorite_colors, custom_type.gender);
     return custom_type;
   }
 
@@ -109,7 +116,10 @@ struct fmtquill::formatter<CustomTypeTC>
   }
 };
 
-QUILL_DEFINE_TRIVIALLY_COPYABLE_CODEC(CustomTypeTC);
+template <>
+struct quill::Codec<CustomTypeTC> : quill::TriviallyCopyableTypeCodec<CustomTypeTC>
+{
+};
 
 /***/
 TEST_CASE("custom_type_defined_type_logging")
@@ -162,6 +172,13 @@ TEST_CASE("custom_type_defined_type_logging")
 
   LOG_INFO(logger, "CustomTypeTC {}", custom_type_tc);
 
+  std::vector<CustomTypeTC> custom_type_tc_vec;
+  custom_type_tc_vec.emplace_back(CustomTypeTC{111, 1.1, 13});
+  custom_type_tc_vec.emplace_back(CustomTypeTC{123, 12.1, 23});
+  custom_type_tc_vec.emplace_back(CustomTypeTC{456, 13.1, 33});
+
+  LOG_INFO(logger, "CustomTypeTC Vec {}", custom_type_tc_vec);
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -170,7 +187,7 @@ TEST_CASE("custom_type_defined_type_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 3);
+  REQUIRE_EQ(file_contents.size(), 4);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       The answer is Name: Quill, Surname: Library, Age: 4, Favorite Colors: [\"red\", \"green\", \"blue\"]"}));
@@ -180,6 +197,9 @@ TEST_CASE("custom_type_defined_type_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Vec [Name: 111, Surname: 1.1, Age: 13, Name: 123, Surname: 12.1, Age: 23, Name: 456, Surname: 13.1, Age: 33]"}));
 
   testing::remove_file(filename);
 }
