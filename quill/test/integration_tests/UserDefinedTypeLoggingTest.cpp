@@ -70,14 +70,14 @@ struct quill::Codec<CustomType>
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::CustomType const& custom_type) noexcept
   {
-    // You must encode the same members and in the same order as in the ArgSizeCalculator::calculate
+    // You must encode the same members and in the same order as in compute_total_encoded_size
     encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, custom_type.name,
                    custom_type.surname, custom_type.age, custom_type.favorite_colors, custom_type.gender);
   }
 
   static ::CustomType decode_arg(std::byte*& buffer)
   {
-    // You must decode the same members and in the same order as in the Encoder::encode
+    // You must decode the same members and in the same order as in encode
     ::CustomType custom_type;
     decode_members(buffer, custom_type, custom_type.name, custom_type.surname, custom_type.age,
                    custom_type.favorite_colors, custom_type.gender);

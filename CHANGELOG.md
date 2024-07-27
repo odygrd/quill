@@ -71,6 +71,9 @@
 
 ## v6.0.0
 
+- Added a [Cheat Sheet](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html) to help users get the most out of
+  the logging library
+
 - Removed `ArgSizeCalculator<>`, `Encoder<>`, and `Decoder<>` classes. These have been consolidated into a
   single `Codec` class. Users who wish to pass user-defined objects should now specialize this single `Codec` class
   instead of managing three separate classes. For guidance, please refer to the updated advanced example

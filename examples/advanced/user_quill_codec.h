@@ -39,14 +39,14 @@ struct quill::Codec<User>
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::User const& user) noexcept
   {
-    // You must encode the same members and in the same order as in the ArgSizeCalculator::calculate
+    // You must encode the same members and in the same order as in compute_total_encoded_size
     encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, user.name,
                    user.surname, user.age, user.favorite_colors);
   }
 
   static ::User decode_arg(std::byte*& buffer)
   {
-    // You must decode the same members and in the same order as in the Encoder::encode
+    // You must decode the same members and in the same order as in encode
     ::User user;
     decode_members(buffer, user, user.name, user.surname, user.age, user.favorite_colors);
     return user;
@@ -55,10 +55,10 @@ struct quill::Codec<User>
     // If the object is not default constructible you can also do it manually without
     // decode_members helper
 
-    // auto name = Decoder<decltype(std::declval<::User>().name)>::decode_arg(buffer);
-    // auto surname = Decoder<decltype(std::declval<::User>().surname)>::decode_arg(buffer);
-    // auto age = Decoder<decltype(std::declval<::User>().age)>::decode_arg(buffer);
-    // auto favorite_colors = Decoder<decltype(std::declval<::User>().favorite_colors)>::decode_arg(buffer);
+    // auto name = Codec<decltype(std::declval<::User>().name)>::decode_arg(buffer);
+    // auto surname = Codec<decltype(std::declval<::User>().surname)>::decode_arg(buffer);
+    // auto age = Codec<decltype(std::declval<::User>().age)>::decode_arg(buffer);
+    // auto favorite_colors = Codec<decltype(std::declval<::User>().favorite_colors)>::decode_arg(buffer);
 
     // ::User user{name, surname, age, favorite_colors};
 

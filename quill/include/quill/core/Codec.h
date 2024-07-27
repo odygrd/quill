@@ -240,7 +240,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string
 }
 
 /**
- * @brief Encoders multiple arguments into a buffer.
+ * @brief Encodes multiple arguments into a buffer.
  * @param buffer Pointer to the buffer for encoding.
  * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
  * @param args The arguments to be encoded.
@@ -262,7 +262,7 @@ void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
 }
 
 /**
- * Decoder functions
+ * Decode functions
  */
 using FormatArgsDecoder = void (*)(std::byte*& data, DynamicFormatArgStore& args_store);
 

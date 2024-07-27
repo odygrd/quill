@@ -15,11 +15,7 @@
 QUILL_BEGIN_NAMESPACE
 
 /**
- * @brief Defines serialization (codec) functionality for trivially copyable userdefined types.
- *
- * This macro provides specializations for the `TSizeCalculator`, `Encoder`, and `Decoder`
- * templates in the `quill` namespace. It is designed for types that are trivially copyable,
- * meaning they can be copied with a simple `memcpy` operation.
+ * @brief Defines serialization (codec) functionality for trivially copyable user defined types.
  *
  * Example usage:
  *
