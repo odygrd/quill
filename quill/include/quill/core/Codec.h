@@ -256,7 +256,7 @@ QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& c
 }
 
 template <typename... Args>
-void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+void decode_and_store_arg(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatArgStore* args_store)
 {
   (Codec<Args>::decode_and_store_arg(buffer, args_store), ...);
 }
@@ -297,8 +297,9 @@ void encode_members(std::byte*& buffer, std::vector<size_t> const& conditional_a
 
 /***/
 template <typename T, typename... TMembers>
-void decode_members(std::byte*& buffer, T& arg, TMembers&... members)
+void decode_members(std::byte*& buffer, T&, TMembers&... members)
 {
+  // T& arg is not used but if we remove it, it will crash all users who are passing the extra argument without a compile time error
   ((members = Codec<detail::remove_cvref_t<TMembers>>::decode_arg(buffer)), ...);
 }
 
