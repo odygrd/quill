@@ -272,10 +272,11 @@ For log statements on the critical path, it is advisable to provide serialisatio
 
   1. Template specializations of ``quill::Codec<T>`` within the ``quill`` namespace.
   2. Template specializations of ``fmtquill::formatter<T>` within the ``fmtquill`` namespace.
+  3. The user-defined type must have a default constructor and a copy constructor.
 
-Serialising Trivially Copyable Types With Public Members
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Use the ``quill::TriviallyCopyableTypeCodec`` helper. Note that a default constructor is required.
+Serialising Trivially Copyable Types With Default Constructor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Use the ``quill::TriviallyCopyableTypeCodec`` helper.
 
 .. code:: cpp
 
@@ -320,9 +321,9 @@ Outputs:
 
     Order [order: symbol=AAPL price=220.1 quantity=100]
 
-Serialising Trivially Copyable Types With Private Members
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For trivially copyable types with private members, make ``quill::TriviallyCopyableTypeCodec<T>`` a friend and ensure there is a private default constructor if a public one is not available.
+Serialising Trivially Copyable Types With Non-Default Constructor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For trivially copyable types with a non-default constructor, make ``quill::TriviallyCopyableTypeCodec<T>`` a friend and ensure there is a private default constructor.
 
 .. code:: cpp
 
