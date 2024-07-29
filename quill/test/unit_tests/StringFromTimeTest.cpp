@@ -444,8 +444,12 @@ TEST_CASE("safe_strftime_empty")
   quill::detail::localtime_rs(&raw_ts, &time_info);
 
   char expected_result[256];
-  std::strftime(expected_result, 256, "", &time_info);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+  std::strftime(expected_result, 256, "", &time_info);
+#pragma GCC diagnostic pop
+  
   // Also try our version
   std::string const safe_strftime_result =
     std::string{StringFromTimeMock::safe_strftime("", raw_ts, Timezone::LocalTime).data()};
