@@ -21,9 +21,10 @@ class UserFilter : public quill::Filter
 public:
   UserFilter() : quill::Filter("filter_1"){};
 
-  bool filter(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
-              std::string_view thread_id, std::string_view thread_name, std::string_view logger_name, quill::LogLevel log_level,
-              std::string_view log_message, std::string_view log_statement) noexcept override
+  bool filter(quill::MacroMetadata const* /** log_metadata **/, uint64_t /** log_timestamp **/,
+              std::string_view /** thread_id **/, std::string_view /** thread_name **/,
+              std::string_view /** logger_name **/, quill::LogLevel log_level,
+              std::string_view log_message, std::string_view /** log_statement **/) noexcept override
   {
     // for example filter out duplicate log files
     bool is_different = true;

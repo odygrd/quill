@@ -21,12 +21,13 @@ public:
   UserSink() = default;
 
   /***/
-  void write_log(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                 std::string_view thread_id, std::string_view thread_name,
-                 std::string const& process_id, std::string_view logger_name, quill::LogLevel log_level,
-                 std::string_view log_level_description, std::string_view log_level_short_code,
-                 std::vector<std::pair<std::string, std::string>> const* named_args,
-                 std::string_view log_message, std::string_view log_statement) override
+  void write_log(quill::MacroMetadata const* /** log_metadata **/, uint64_t /** log_timestamp **/,
+                 std::string_view /** thread_id **/, std::string_view /** thread_name **/,
+                 std::string const& /** process_id **/, std::string_view /** logger_name **/,
+                 quill::LogLevel /** log_level **/, std::string_view /** log_level_description **/,
+                 std::string_view /** log_level_short_code **/,
+                 std::vector<std::pair<std::string, std::string>> const* /** named_args **/,
+                 std::string_view /** log_message **/, std::string_view log_statement) override
   {
     // Called by the logger backend worker thread for each LOG_* macro
     // last character is '\n' and we exclude it using size() - 1

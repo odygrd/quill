@@ -24,14 +24,14 @@ TEST_CASE("file_event_notifier_no_open")
   };
 
   uint32_t after_open_cnt{0};
-  file_event_notifier.after_open = [&after_open_cnt, &file](fs::path const& filename, FILE* f) mutable
+  file_event_notifier.after_open = [&after_open_cnt, &file](fs::path const& filename, FILE*) mutable
   {
     ++after_open_cnt;
     REQUIRE_EQ(file.string(), filename.string());
   };
 
   uint32_t before_close_cnt{0};
-  file_event_notifier.before_close = [&before_close_cnt, &file](fs::path const& filename, FILE* f) mutable
+  file_event_notifier.before_close = [&before_close_cnt, &file](fs::path const& filename, FILE*) mutable
   {
     ++before_close_cnt;
     REQUIRE_EQ(file.string(), filename.string());
@@ -102,14 +102,14 @@ TEST_CASE("file_event_notifier")
   };
 
   uint32_t after_open_cnt{0};
-  file_event_notifier.after_open = [&after_open_cnt, &file](fs::path const& file_path, FILE* f) mutable
+  file_event_notifier.after_open = [&after_open_cnt, &file](fs::path const& file_path, FILE*) mutable
   {
     ++after_open_cnt;
     REQUIRE_EQ(file.string(), file_path.filename().string());
   };
 
   uint32_t before_close_cnt{0};
-  file_event_notifier.before_close = [&before_close_cnt, &file](fs::path const& file_path, FILE* f) mutable
+  file_event_notifier.before_close = [&before_close_cnt, &file](fs::path const& file_path, FILE*) mutable
   {
     ++before_close_cnt;
     REQUIRE_EQ(file.string(), file_path.filename().string());

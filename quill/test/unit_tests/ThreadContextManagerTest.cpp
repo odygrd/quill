@@ -105,7 +105,7 @@ TEST_CASE("add_and_remove_thread_contexts")
 
     // Check all are removed
     bool tc_found = false;
-    ThreadContextManager::instance().for_each_thread_context([&tc_found](ThreadContext const* tc)
+    ThreadContextManager::instance().for_each_thread_context([&tc_found](ThreadContext const*)
                                                              { tc_found = true; });
 
     REQUIRE_FALSE(tc_found);

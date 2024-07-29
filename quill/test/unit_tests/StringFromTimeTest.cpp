@@ -443,7 +443,6 @@ TEST_CASE("safe_strftime_empty")
   std::tm time_info{};
   quill::detail::localtime_rs(&raw_ts, &time_info);
 
-  // we will format a string greater than 32
   char expected_result[256];
   std::strftime(expected_result, 256, "", &time_info);
 

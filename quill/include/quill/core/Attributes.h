@@ -34,13 +34,6 @@
   #define QUILL_HAS_CPP_ATTRIBUTE(x) 0
 #endif
 
-#if defined(__has_include) && !defined(__INTELLISENSE__) &&                                        \
-  !(defined(__INTEL_COMPILER) && __INTEL_COMPILER < 1600)
-  #define QUILL_HAS_INCLUDE(x) __has_include(x)
-#else
-  #define QUILL_HAS_INCLUDE(x) 0
-#endif
-
 /**
  * Portable no discard warnings
  */
@@ -59,6 +52,8 @@
   #define QUILL_MAYBE_UNUSED [[maybe_unused]]
 #elif QUILL_HAS_ATTRIBUTE(__unused__) || defined(__GNUC__)
   #define QUILL_MAYBE_UNUSED __attribute__((__unused__))
+#elif defined(_MSC_VER)
+  #define QUILL_MAYBE_UNUSED __pragma(warning(suppress : 4100))
 #else
   #define QUILL_MAYBE_UNUSED
 #endif

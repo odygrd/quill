@@ -9,13 +9,11 @@ function(set_common_compile_options target_name)
 
     target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
             $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-            -Wall -Wextra -Wconversion -pedantic -Wfatal-errors -Wno-unused-private-field -Wno-unused-parameter>
-            $<$<CXX_COMPILER_ID:MSVC>:/bigobj /WX /W4 /wd4324 /wd4189 /wd4996 /wd4100 /wd4127 /wd4702>)
+            -Wall -Wextra -Wconversion -pedantic -Wfatal-errors>
+            $<$<CXX_COMPILER_ID:MSVC>:/bigobj /WX /W4 /wd4324 /wd4996>)
 
     # Additional MSVC specific options
     if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        target_compile_definitions(${target_name} ${COMPILE_OPTIONS_VISIBILITY} _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
-        
         if (NOT QUILL_NO_EXCEPTIONS)
             target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY} /EHsc)
         endif ()
