@@ -74,7 +74,10 @@ struct TriviallyCopyableTypeCodec
   static T decode_arg(std::byte*& buffer)
   {
     T arg;
-    std::memcpy(&arg, buffer, sizeof(arg));
+
+    // Cast to void* to silence compiler warning about private members
+    std::memcpy(static_cast<void*>(&arg), buffer, sizeof(arg));
+
     buffer += sizeof(arg);
     return arg;
   }
