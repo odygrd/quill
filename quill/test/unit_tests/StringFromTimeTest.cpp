@@ -447,9 +447,9 @@ TEST_CASE("safe_strftime_empty")
 
 #if !defined(_WIN32)
   #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-zero-length"
+  #pragma GCC diagnostic ignored "-Wformat-zero-length"
   std::strftime(expected_result, 256, "", &time_info);
-#pragma GCC diagnostic pop
+  #pragma GCC diagnostic pop
 #endif
 
   // Also try our version
