@@ -109,7 +109,7 @@ TEST_CASE("loglevel_to_string")
   {
 #ifndef QUILL_NO_EXCEPTIONS
     LogLevel log_level;
-    log_level = static_cast<LogLevel>(-1);
+    log_level = static_cast<LogLevel>(100);
     REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s =
                         detail::log_level_to_string(log_level, log_level_descriptions.data(),
                                                     log_level_descriptions.size())

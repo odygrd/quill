@@ -28,10 +28,10 @@ public:
     file_notifier.before_open = [](quill::fs::path const& filename)
     { std::cout << "file_notifier - preparing to open file " << filename << std::endl; };
 
-    file_notifier.after_open = [](quill::fs::path const& filename, FILE* f)
+    file_notifier.after_open = [](quill::fs::path const& filename, FILE*)
     { std::cout << "file_notifier - opened file " << filename << std::endl; };
 
-    file_notifier.before_close = [](quill::fs::path const& filename, FILE* f)
+    file_notifier.before_close = [](quill::fs::path const& filename, FILE*)
     { std::cout << "file_notifier - preparing to close file " << filename << std::endl; };
 
     file_notifier.after_close = [](quill::fs::path const& filename)
