@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <type_traits>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
@@ -23,6 +24,9 @@ QUILL_BEGIN_NAMESPACE
 template <typename Clock, typename Duration>
 struct Codec<std::chrono::time_point<Clock, Duration>>
 {
+  static_assert(std::is_trivially_copyable_v<std::chrono::time_point<Clock, Duration>>,
+                "std::chrono::time_point must be trivially copyable");
+
   static size_t compute_encoded_size(std::vector<size_t>&, std::chrono::time_point<Clock, Duration> const& arg) noexcept
   {
     return sizeof(arg);
@@ -38,7 +42,10 @@ struct Codec<std::chrono::time_point<Clock, Duration>>
   static std::chrono::time_point<Clock, Duration> decode_arg(std::byte*& buffer)
   {
     std::chrono::time_point<Clock, Duration> arg;
-    std::memcpy(&arg, buffer, sizeof(arg));
+
+    // Cast to void* to silence compiler warning about private members
+    std::memcpy(static_cast<void*>(&arg), buffer, sizeof(arg));
+
     buffer += sizeof(arg);
     return arg;
   }
@@ -52,6 +59,9 @@ struct Codec<std::chrono::time_point<Clock, Duration>>
 template <typename Rep, typename Period>
 struct Codec<std::chrono::duration<Rep, Period>>
 {
+  static_assert(std::is_trivially_copyable_v<std::chrono::duration<Rep, Period>>,
+                "std::chrono::duration must be trivially copyable");
+
   static size_t compute_encoded_size(std::vector<size_t>&, std::chrono::duration<Rep, Period> const& arg) noexcept
   {
     return sizeof(arg);
@@ -67,7 +77,10 @@ struct Codec<std::chrono::duration<Rep, Period>>
   static std::chrono::duration<Rep, Period> decode_arg(std::byte*& buffer)
   {
     std::chrono::duration<Rep, Period> arg;
-    std::memcpy(&arg, buffer, sizeof(arg));
+
+    // Cast to void* to silence compiler warning about private members
+    std::memcpy(static_cast<void*>(&arg), buffer, sizeof(arg));
+
     buffer += sizeof(arg);
     return arg;
   }
