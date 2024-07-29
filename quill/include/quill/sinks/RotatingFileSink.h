@@ -302,9 +302,9 @@ public:
    * @param log_level Log level of the message.
    * @param log_level_description Description of the log level.
    * @param log_level_short_code Short code representing the log level.
-   * @param log_level The log level of the message
    * @param named_args Structured key-value pairs associated with the log message
    * @param log_message The log message to write
+   * @param log_statement The full log statement
    */
   QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
                                      std::string_view thread_id, std::string_view thread_name,
