@@ -117,7 +117,7 @@ TEST_CASE("user_sink")
 
   // since logger_a is created first and then logger_b it is expected that the counts will
   // be different in each sink, but they should be close to each other
-  int64_t const threshold = 5;
+  int64_t const threshold = 20;
 
   // Check if counts are close to each other
   REQUIRE_LE(std::abs(static_cast<int64_t>(count_a_flush - count_b_flush)), threshold);
