@@ -110,11 +110,15 @@ TEST_CASE("loglevel_to_string")
 #ifndef QUILL_NO_EXCEPTIONS
     LogLevel log_level;
     log_level = static_cast<LogLevel>(100);
-    REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto s =
-                        detail::log_level_to_string(log_level, log_level_descriptions.data(),
-                                                    log_level_descriptions.size())
-                          .data(),
-                      quill::QuillError);
+    auto func = [log_level, log_level_descriptions]()
+    {
+      auto s = detail::log_level_to_string(log_level, log_level_descriptions.data(),
+                                           log_level_descriptions.size())
+                 .data();
+      return s;
+    };
+
+    REQUIRE_THROWS_AS(func(), quill::QuillError);
 #endif
   }
 }
@@ -180,7 +184,12 @@ TEST_CASE("loglevel_from_string")
   {
 #ifndef QUILL_NO_EXCEPTIONS
     std::string log_level{"dummy"};
-    REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto res = loglevel_from_string(log_level), quill::QuillError);
+    auto func = [log_level]()
+    {
+      auto res = loglevel_from_string(log_level);
+      return res;
+    };
+    REQUIRE_THROWS_AS(func(), quill::QuillError);
 #endif
   }
 }

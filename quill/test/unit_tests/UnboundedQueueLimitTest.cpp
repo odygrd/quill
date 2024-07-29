@@ -13,9 +13,9 @@ TEST_CASE("unbounded_queue_max_limit")
 {
   UnboundedSPSCQueue buffer{1024};
 
-  constexpr uint64_t half_gb = 500u * 1024u * 1024u;
-  constexpr uint64_t two_gb = 2u * 1024u * 1024u * 1024u - 1;
-  constexpr uint64_t three_gb = 3u * 1024u * 1024u * 1024u;
+  constexpr static uint64_t half_gb = 500u * 1024u * 1024u;
+  constexpr static uint64_t two_gb = 2u * 1024u * 1024u * 1024u - 1;
+  constexpr static uint64_t three_gb = 3u * 1024u * 1024u * 1024u;
 
   auto* write_buffer_a = buffer.prepare_write(half_gb, quill::QueueType::UnboundedUnlimited);
   REQUIRE(write_buffer_a);
@@ -42,9 +42,12 @@ TEST_CASE("unbounded_queue_max_limit")
   buffer.commit_write();
 
   // Try to allocate over 2GB
-  REQUIRE_THROWS_AS(QUILL_MAYBE_UNUSED auto* write_buffer_z =
-                      buffer.prepare_write(three_gb, quill::QueueType::UnboundedUnlimited),
-                    quill::QuillError);
+  auto func = [&buffer]()
+  {
+    auto* write_buffer_z = buffer.prepare_write(three_gb, quill::QueueType::UnboundedUnlimited);
+    return write_buffer_z;
+  };
+  REQUIRE_THROWS_AS(func(), quill::QuillError);
 
   auto read_result_a = buffer.prepare_read();
   REQUIRE(read_result_a.read_pos);
