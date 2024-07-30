@@ -27,31 +27,32 @@
 QUILL_BEGIN_NAMESPACE
 
 /** Specialization for arrays of arithmetic types and enums **/
-template <typename T>
-struct Codec<T,
-             std::enable_if_t<std::conjunction_v<
-               std::is_array<T>, std::disjunction<std::is_arithmetic<detail::remove_cvref_t<std::remove_extent_t<T>>>, std::is_enum<detail::remove_cvref_t<std::remove_extent_t<T>>>>>>>
+template <typename T, std::size_t N>
+struct Codec<T[N],
+             std::enable_if_t<std::disjunction_v<std::is_arithmetic<std::remove_cv_t<std::remove_reference_t<T>>>,
+                                                 std::is_enum<std::remove_cv_t<std::remove_reference_t<T>>>>>>
 {
-  using element_type = detail::remove_cvref_t<std::remove_extent_t<T>>;
-  static constexpr size_t N = std::extent_v<T>;
-  using array_type = std::array<element_type, N>;
-
-  static size_t compute_encoded_size(std::vector<size_t>&, T const&) noexcept { return sizeof(T); }
-
-  static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, T const& arg) noexcept
+  static size_t compute_encoded_size(std::vector<size_t>&, const T (&arg)[N]) noexcept
   {
-    std::memcpy(buffer, &arg, sizeof(T));
-    buffer += sizeof(T);
+    return sizeof(arg);
+  }
+
+  static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, const T (&arg)[N]) noexcept
+  {
+    std::memcpy(buffer, &arg, sizeof(arg));
+    buffer += sizeof(arg);
   }
 
   static auto decode_arg(std::byte*& buffer)
   {
-    array_type arg;
+    std::array<T, N> arg;
+
     for (size_t i = 0; i < N; ++i)
     {
-      std::memcpy(&arg[i], buffer, sizeof(element_type));
-      buffer += sizeof(element_type);
+      std::memcpy(&arg[i], buffer, sizeof(T));
+      buffer += sizeof(T);
     }
+
     return arg;
   }
 
