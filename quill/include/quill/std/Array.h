@@ -28,9 +28,7 @@ QUILL_BEGIN_NAMESPACE
 
 /** Specialization for arrays of arithmetic types and enums **/
 template <typename T, std::size_t N>
-struct Codec<T[N],
-             std::enable_if_t<std::disjunction_v<std::is_arithmetic<std::remove_cv_t<std::remove_reference_t<T>>>,
-                                                 std::is_enum<std::remove_cv_t<std::remove_reference_t<T>>>>>>
+struct Codec<T[N], std::enable_if_t<std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>>>
 {
   static size_t compute_encoded_size(std::vector<size_t>&, const T (&arg)[N]) noexcept
   {
