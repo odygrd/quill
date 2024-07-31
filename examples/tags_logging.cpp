@@ -77,7 +77,7 @@ int main()
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "root", std::move(console_sink),
     "%(time) [%(thread_id)] %(short_source_location:<28) %(log_level:<9) %(logger:<16) "
-    "[%(custom_tags)] %(message)",
+    "[%(tags)] %(message)",
     "%Y-%m-%d %H:%M:%S.%Qms", quill::Timezone::GmtTime);
 
   LOG_TRACE_L3_WITH_TAGS(logger, tags_a, "TraceL3 with custom tags");
