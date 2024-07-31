@@ -93,10 +93,23 @@ struct quill::Codec<CustomType>
 /***/
 struct CustomTypeTC
 {
+  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a){};
+
+private:
+  template <typename T, typename Char, typename Enable>
+  friend struct fmtquill::formatter;
+
+  template <typename T>
+  friend struct quill::TriviallyCopyableTypeCodec;
+
+  CustomTypeTC() = default;
+
   int name;
   double surname;
   uint32_t age;
 };
+
+static_assert(std::is_trivially_copyable_v<CustomTypeTC>, "CustomTypeTC must be trivially copyable");
 
 /***/
 template <>
@@ -165,10 +178,7 @@ TEST_CASE("custom_type_defined_type_logging")
 
   LOG_INFO(logger, "The answers are {}", custom_types);
 
-  CustomTypeTC custom_type_tc;
-  custom_type_tc.age = 12;
-  custom_type_tc.name = 1222;
-  custom_type_tc.surname = 13.12;
+  CustomTypeTC custom_type_tc{1222, 13.12, 12};
 
   LOG_INFO(logger, "CustomTypeTC {}", custom_type_tc);
 

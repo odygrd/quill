@@ -4,6 +4,7 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
+#include "quill/TriviallyCopyableCodec.h"
 #include "quill/sinks/FileSink.h"
 #include "quill/std/Vector.h"
 
@@ -13,6 +14,53 @@
 #include <vector>
 
 using namespace quill;
+
+/***/
+struct CustomTypeTC
+{
+  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a){};
+
+private:
+  template <typename T, typename Char, typename Enable>
+  friend struct fmtquill::formatter;
+
+  template <typename T>
+  friend struct quill::TriviallyCopyableTypeCodec;
+
+  template <typename T, size_t N>
+  friend class std::array;
+
+  CustomTypeTC() = default;
+
+  int name;
+  double surname;
+  uint32_t age;
+};
+
+static_assert(std::is_trivially_copyable_v<CustomTypeTC>, "CustomTypeTC must be trivially copyable");
+
+/***/
+template <>
+struct fmtquill::formatter<CustomTypeTC>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::CustomTypeTC const& custom_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}", custom_type.name,
+                               custom_type.surname, custom_type.age);
+  }
+};
+
+template <>
+struct quill::Codec<CustomTypeTC> : quill::TriviallyCopyableTypeCodec<CustomTypeTC>
+{
+};
 
 /***/
 TEST_CASE("std_vector_logging")
@@ -163,6 +211,10 @@ TEST_CASE("std_vector_logging")
 
     std::vector<int> empt;
     LOG_INFO(logger, "empt {}", empt);
+
+    std::vector<CustomTypeTC> custom_type_tc = {CustomTypeTC{1, 2, 3}, CustomTypeTC{4, 5, 6},
+                                                CustomTypeTC{7, 8, 9}, CustomTypeTC{10, 11, 12}};
+    LOG_INFO(logger, "custom_type_tc {}", custom_type_tc);
   }
 
   logger->flush_log();
@@ -250,6 +302,9 @@ TEST_CASE("std_vector_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empt []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       custom_type_tc [Name: 1, Surname: 2, Age: 3, Name: 4, Surname: 5, Age: 6, Name: 7, Surname: 8, Age: 9, Name: 10, Surname: 11, Age: 12]"}));
 
   testing::remove_file(filename);
 }

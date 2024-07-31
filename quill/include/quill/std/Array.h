@@ -69,7 +69,8 @@ struct Codec<std::array<T, N>>
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)
     {
-      // For built-in types, such as arithmetic or enum types, iteration is unnecessary
+      // Built-in types (arithmetic or enum) don't require iteration.
+      // Note: This excludes all trivially copyable types; e.g., std::string_view should not fall into this branch.
       return sizeof(T) * N;
     }
     else
@@ -91,9 +92,19 @@ struct Codec<std::array<T, N>>
   static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::array<T, N> const& arg) noexcept
   {
-    for (auto const& elem : arg)
+    if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)
     {
-      Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
+      // Built-in types (arithmetic or enum) don't require iteration.
+      // Note: This excludes all trivially copyable types; e.g., std::string_view should not fall into this branch.
+      std::memcpy(buffer, arg.data(), sizeof(T) * N);
+      buffer += sizeof(T) * N;
+    }
+    else
+    {
+      for (auto const& elem : arg)
+      {
+        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
+      }
     }
   }
 
