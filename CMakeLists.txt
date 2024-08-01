@@ -23,7 +23,7 @@ option(QUILL_DISABLE_NON_PREFIXED_MACROS "Disable non-prefixed macros" OFF)
 
 option(QUILL_BUILD_EXAMPLES "Build the examples" OFF)
 
-option(QUILL_BUILD_TESTS "Build the tests (Requires https://github.com/google/googletest to be installed)" OFF)
+option(QUILL_BUILD_TESTS "Build the tests" OFF)
 
 option(QUILL_BUILD_BENCHMARKS "Build the benchmarks" OFF)
 
