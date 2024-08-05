@@ -1,3 +1,4 @@
+- [v6.1.0](#v610)
 - [v6.0.0](#v600)
 - [v5.1.0](#v510)
 - [v5.0.0](#v500)
@@ -69,6 +70,34 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+## v6.1.0
+
+- Fix various compiler warnings
+- Minor serialization improvements in `Array.h` and `Chrono.h`
+- Add new `CsvWriter` utility class for asynchronous CSV file writing. For example:
+
+  ```c++
+  #include "quill/Backend.h"
+  #include "quill/core/FrontendOptions.h"
+  #include "quill/CsvWriter.h"
+  
+  struct OrderCsvSchema
+  {
+    static constexpr char const* header = "order_id,symbol,quantity,price,side";
+    static constexpr char const* format = "{},{},{},{:.2f},{}";
+  };
+  
+  int main()
+  {
+    quill::BackendOptions backend_options;
+    quill::Backend::start(backend_options);
+    
+    quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writter {"orders.csv"};
+    csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
+    csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
+    csv_writter.append_row(13212123, "AAPL", 120, 210.42321, "BUY");
+  }
+  ```
 ## v6.0.0
 
 - Added a [Cheat Sheet](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html) to help users get the most out of
