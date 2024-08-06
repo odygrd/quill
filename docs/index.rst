@@ -32,6 +32,7 @@ Quill is an open source, cross platform C++17 logging library designed for laten
    backtrace_logging
    wide_strings
    csv_writing
+   json_logging
 
 .. toctree::
    :maxdepth: 2

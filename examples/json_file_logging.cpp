@@ -26,12 +26,12 @@ int main()
 
   // Create a json file for output
   auto json_sink = quill::Frontend::create_or_get_sink<quill::JsonFileSink>(
-    "json_sink_logging.log",
+    "example_json.log",
     []()
     {
       quill::JsonFileSinkConfig cfg;
       cfg.set_open_mode('w');
-      cfg.set_filename_append_option(quill::FilenameAppendOption::StartDateTime);
+      cfg.set_filename_append_option(quill::FilenameAppendOption::None);
       return cfg;
     }(),
     quill::FileEventNotifier{});
@@ -47,7 +47,7 @@ int main()
 
   // It is also possible to create a logger than logs to both the json file and stdout
   // with the appropriate format
-  auto json_sink_2 = quill::Frontend::get_sink("json_sink_logging.log");
+  auto json_sink_2 = quill::Frontend::get_sink("example_json.log");
   auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console_sink_id_1");
 
   // We set a custom format pattern here to also include the named_args

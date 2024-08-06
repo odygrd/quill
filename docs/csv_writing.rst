@@ -5,7 +5,7 @@ CSV Writing
 
 The library provides functionality for asynchronously writing CSV files. Formatting and I/O operations are managed by the backend thread, allowing for efficient and minimal-overhead CSV file writing on the hot path. This feature can be used alongside regular logging.
 
-The `CsvWriter` class is a utility designed to facilitate asynchronous CSV file writing.
+The ``CsvWriter`` class is a utility designed to facilitate asynchronous CSV file writing.
 
 CSV Writing Example
 -------------------
