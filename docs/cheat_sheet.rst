@@ -268,7 +268,7 @@ Outputs:
 
 Hot Path Logging
 ~~~~~~~~~~~~~~~~~
-For log statements on the critical path, it is advisable to provide serialisation methods so that only a binary copy is made during the critical path operations. The type will be encoded on the critical path, then decoded and reconstructed on a backend thread before being passed to ``libfmt`` for formatting. To serialise user defined types types, the library requires:
+For log statements on the critical path, it is advisable to provide serialisation methods so that only a binary copy is made during the critical path operations. The type will be encoded on the critical path, then decoded and reconstructed on the backend thread before being passed to ``libfmt`` for formatting. To serialise user defined types types, the library requires:
 
   1. Template specializations of ``quill::Codec<T>`` within the ``quill`` namespace.
   2. Template specializations of ``fmtquill::formatter<T>` within the ``fmtquill`` namespace.

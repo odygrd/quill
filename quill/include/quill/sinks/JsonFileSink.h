@@ -35,7 +35,8 @@ public:
 class JsonFileSink : public FileSink
 {
 public:
-  JsonFileSink(fs::path const& filename, JsonFileSinkConfig const& config, FileEventNotifier file_event_notifier)
+  JsonFileSink(fs::path const& filename, JsonFileSinkConfig const& config,
+               FileEventNotifier file_event_notifier = FileEventNotifier{})
     : FileSink(filename, static_cast<FileSinkConfig const&>(config), std::move(file_event_notifier))
   {
   }

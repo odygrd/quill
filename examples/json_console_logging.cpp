@@ -6,15 +6,6 @@
 
 #include <string>
 
-/**
- * This example showcases the usage of the JsonFileSink to generate JSON-formatted logs.
- * Additionally, it demonstrates how to simultaneously log in both the standard logger output
- * format, e.g., to console and the corresponding JSON format to a JSON output sink.
- *
- * For successful JSON logging, it's essential to use named placeholders within the provided
- * format string, such as "{method}" and "{endpoint}".
- */
-
 int main()
 {
   // Start the backend thread

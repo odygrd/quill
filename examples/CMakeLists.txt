@@ -71,6 +71,10 @@ add_executable(quill_example_json_console_logging json_console_logging.cpp)
 set_common_compile_options(quill_example_json_console_logging)
 target_link_libraries(quill_example_json_console_logging quill)
 
+add_executable(quill_csv_writing csv_writing.cpp)
+set_common_compile_options(quill_csv_writing)
+target_link_libraries(quill_csv_writing quill)
+
 add_executable(quill_example_json_file_logging json_file_logging.cpp)
 set_common_compile_options(quill_example_json_file_logging)
 target_link_libraries(quill_example_json_file_logging quill)
