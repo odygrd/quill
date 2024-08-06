@@ -92,10 +92,10 @@
     quill::BackendOptions backend_options;
     quill::Backend::start(backend_options);
     
-    quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writter {"orders.csv"};
-    csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
-    csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
-    csv_writter.append_row(13212123, "AAPL", 120, 210.42321, "BUY");
+    quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writer {"orders.csv"};
+    csv_writer.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
+    csv_writer.append_row(132121123, "META", 300, 478.32321, "SELL");
+    csv_writer.append_row(13212123, "AAPL", 120, 210.42321, "BUY");
   }
   ```
 ## v6.0.0
