@@ -73,7 +73,7 @@
 ## v6.1.0
 
 - Fix various compiler warnings
-- Minor serialization improvements in `Array.h` and `Chrono.h`
+- Minor serialisation improvements in `Array.h` and `Chrono.h`
 - Add new `CsvWriter` utility class for asynchronous CSV file writing. For example:
 
   ```c++
