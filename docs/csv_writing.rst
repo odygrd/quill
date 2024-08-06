@@ -38,3 +38,12 @@ CSV Writing Example
       csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
       csv_writter.append_row(13212123, "AAPL", 120, 210.42321, "BUY");
     }
+
+Csv output (orders.csv):
+
+.. code-block:: shell
+
+    order_id,symbol,quantity,price,side
+    13212123,AAPL,100,210.32,BUY
+    132121123,META,300,478.32,SELL
+    13212123,AAPL,120,210.42,BUY
