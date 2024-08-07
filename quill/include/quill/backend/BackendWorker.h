@@ -870,13 +870,13 @@ private:
    * @param fmt_template a log message containing named arguments
    * @return first: fmt string without the named arguments, second: a vector extracted keys
    */
-  QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::string>> _process_named_args_format_message(
+  QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::pair<std::string, std::string>>> _process_named_args_format_message(
     std::string_view fmt_template) noexcept
   {
     // It would be nice to do this at compile time and store it in macro metadata, but without
     // constexpr vector and string in c++17 it is not possible
     std::string fmt_str;
-    std::vector<std::string> keys;
+    std::vector<std::pair<std::string, std::string>> keys;
 
     size_t cur_pos = 0;
 
@@ -912,11 +912,30 @@ private:
         }
 
         // construct a fmt string excluding the characters inside the brackets { }
-        fmt_str += std::string{fmt_template.substr(cur_pos, open_bracket_pos - cur_pos)} + "{}";
+        std::string_view const text_inside_placeholders =
+          fmt_template.substr(open_bracket_pos + 1, close_bracket_pos - (open_bracket_pos + 1));
+        std::string_view arg_syntax;
+        std::string_view arg_name;
+
+        // look in text_inside_placeholders for special syntax formating following the named arg e.g. arg:.2f
+        if (size_t const syntax_separator = text_inside_placeholders.find(':');
+            syntax_separator != std::string_view::npos)
+        {
+          arg_syntax = text_inside_placeholders.substr(
+            syntax_separator, text_inside_placeholders.size() - syntax_separator);
+          arg_name = text_inside_placeholders.substr(0, syntax_separator);
+        }
+        else
+        {
+          arg_name = text_inside_placeholders;
+        }
+
+        fmt_str += fmtquill::format(
+          "{}{{{}}}", fmt_template.substr(cur_pos, open_bracket_pos - cur_pos), arg_syntax);
         cur_pos = close_bracket_pos + 1;
 
         // also add the keys to the vector
-        keys.emplace_back(fmt_template.substr(open_bracket_pos + 1, (close_bracket_pos - open_bracket_pos - 1)));
+        keys.emplace_back(arg_name, arg_syntax);
 
         break;
       }
@@ -1194,7 +1213,8 @@ private:
    * iterate and format each argument individually in libfmt, this approach is used.
    * After formatting, the string is split to isolate each formatted value.
    */
-  static void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>>& named_args,
+  static void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>> const& orig_arg_names,
+                                          std::vector<std::pair<std::string, std::string>>& named_args,
                                           DynamicFormatArgStore const& format_args_store,
                                           BackendOptions const& options)
   {
@@ -1204,7 +1224,16 @@ private:
 
     for (size_t i = 0; i < named_args.size(); ++i)
     {
-      format_string += "{}";
+      // orig_arg_names[i].second is special format syntax for the named argument if provided, eg name:.2f
+      if (!orig_arg_names[i].second.empty())
+      {
+        format_string += fmtquill::format("{{{}}}", orig_arg_names[i].second);
+      }
+      else
+      {
+        format_string += "{}";
+      }
+
       if (i < named_args.size() - 1)
       {
         format_string += delimiter;
@@ -1248,7 +1277,8 @@ private:
     }
   }
 
-  void _populate_formatted_named_args(TransitEvent* transit_event, std::vector<std::string> const& arg_names)
+  void _populate_formatted_named_args(TransitEvent* transit_event,
+                                      std::vector<std::pair<std::string, std::string>> const& arg_names)
   {
     if (!transit_event->named_args)
     {
@@ -1261,13 +1291,13 @@ private:
     // We first populate the arg names in the transit buffer
     for (size_t i = 0; i < arg_names.size(); ++i)
     {
-      (*transit_event->named_args)[i].first = arg_names[i];
+      (*transit_event->named_args)[i].first = arg_names[i].first;
     }
 
     // Then populate all the values of each arg
     QUILL_TRY
     {
-      _format_and_split_arguments(*transit_event->named_args, _format_args_store, _options);
+      _format_and_split_arguments(arg_names, *transit_event->named_args, _format_args_store, _options);
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const&)
@@ -1360,7 +1390,7 @@ private:
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
-  std::unordered_map<std::string, std::pair<std::string, std::vector<std::string>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
+  std::unordered_map<std::string, std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
 
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/

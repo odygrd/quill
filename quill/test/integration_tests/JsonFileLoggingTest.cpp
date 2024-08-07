@@ -106,8 +106,9 @@ TEST_CASE("json_file_logging")
         for (size_t j = 0; j < number_of_messages; ++j)
         {
           LOG_INFO(logger,
-                   "Hello from thread {thread_index} this is message {message_num} [{custom}]", i,
-                   j, fmtquill::format("{}", UserDefinedType{j, std::to_string(j)}));
+                   "Hello from thread {thread_index} this is message {message_num} [{custom}, "
+                   "{double:.2f}]",
+                   i, j, fmtquill::format("{}", UserDefinedType{j, std::to_string(j)}), 3.17312);
         }
 
         if (i == 0)
@@ -150,11 +151,11 @@ TEST_CASE("json_file_logging")
         std::to_string(i) +
         std::string{
           "\",\"log_level\":\"INFO\",\"message\":\"Hello from thread {thread_index} this is "
-          "message {message_num} [{custom}]\","} +
+          "message {message_num} [{custom}, {double:.2f}]\","} +
         std::string{"\"thread_index\":\""} + std::to_string(i) +
         std::string{"\",\"message_num\":\""} + std::to_string(j) +
         std::string{"\",\"custom\":\"i: "} + std::to_string(j) + ", s: " + std::to_string(j) +
-        std::string{"\""};
+        std::string{"\",\"double\":\"3.17\""};
 
       REQUIRE(quill::testing::file_contains(file_contents, expected_json_string));
 
@@ -163,7 +164,7 @@ TEST_CASE("json_file_logging")
       std::string expected_string = logger_name_prefix + std::to_string(i) +
         "     Hello from thread " + std::to_string(i) + " this is message " + std::to_string(j) +
         +" [i: " + std::to_string(j) + ", s: " + std::to_string(j) +
-        "] [thread_index: " + std::to_string(i) + ", message_num: " + std::to_string(j) + ", ";
+        ", 3.17] [thread_index: " + std::to_string(i) + ", message_num: " + std::to_string(j) + ", ";
 
       REQUIRE(quill::testing::file_contains(file_contents_s, expected_string));
     }
