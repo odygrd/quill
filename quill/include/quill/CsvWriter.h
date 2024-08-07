@@ -9,9 +9,12 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/LoggerBase.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/sinks/Sink.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <utility>
 
 QUILL_BEGIN_NAMESPACE
 
@@ -39,14 +42,14 @@ class CsvWriter
 {
 public:
   /**
-   * Constructs a CsvWriter object.
+   * Constructs a CsvWriter object that writes to a file.
    *
    * @param filename The name of the CSV file to write to.
    * @param open_mode The mode in which to open the file ('w' for write, 'a' for append).
    * @param filename_append Option to append to the filename (None, Date, DateTime).
    */
-  CsvWriter(std::string const& filename, char open_mode = 'w',
-            FilenameAppendOption filename_append = FilenameAppendOption::None)
+  explicit CsvWriter(std::string const& filename, char open_mode = 'w',
+                     FilenameAppendOption filename_append = FilenameAppendOption::None)
   {
     _logger = Frontend::create_or_get_logger(
       filename + "_csv",
@@ -59,6 +62,33 @@ public:
                                                return cfg;
                                              }()),
       "%(message)", "", Timezone::GmtTime);
+
+    _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
+  }
+
+  /**
+   * Constructs a CsvWriter object that writes to a specified sink.
+   *
+   * @param unique_name A unique name for this CsvWriter instance.
+   * @param sink The sink to output the data to (e.g., a ConsoleSink or a user-defined Sink).
+   */
+  CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink)
+  {
+    _logger = Frontend::create_or_get_logger(unique_name + "_csv", std::move(sink), "%(message)",
+                                             "", Timezone::GmtTime);
+
+    _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
+  }
+
+  /**
+   * Constructs a CsvWriter object that writes to multiple sinks.
+   *
+   * @param unique_name A unique name for this CsvWriter instance.
+   * @param sinks An initializer list of sinks to output the data to.
+   */
+  CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks)
+  {
+    _logger = Frontend::create_or_get_logger(unique_name + "_csv", sinks, "%(message)", "", Timezone::GmtTime);
 
     _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
   }
