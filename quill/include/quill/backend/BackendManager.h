@@ -7,6 +7,7 @@
 
 #include "quill/backend/BackendOptions.h"
 #include "quill/backend/BackendWorker.h"
+#include "quill/backend/ManualBackendWorker.h"
 #include "quill/core/Attributes.h"
 
 #include <cstdint>
@@ -70,6 +71,12 @@ public:
     return _backend_worker.time_since_epoch(rdtsc_value);
   }
 
+  /***/
+  QUILL_NODISCARD ManualBackendWorker* get_manual_backend_worker() noexcept
+  {
+    return &_manual_backend_worker;
+  }
+
 private:
   /***/
   BackendManager() = default;
@@ -77,6 +84,7 @@ private:
 
 private:
   BackendWorker _backend_worker;
+  ManualBackendWorker _manual_backend_worker{&_backend_worker};
   std::once_flag _start_once_flag;
 };
 } // namespace detail
