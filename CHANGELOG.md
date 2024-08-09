@@ -100,6 +100,7 @@
     csv_writer.append_row(13212123, "AAPL", 120, 210.42321, "BUY");
   }
   ```
+
 ## v6.0.0
 
 - Added a [Cheat Sheet](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html) to help users get the most out of
