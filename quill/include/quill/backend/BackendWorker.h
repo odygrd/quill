@@ -59,6 +59,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+class ManualBackendWorker; // Forward declaration
+
 namespace detail
 {
 class BackendWorker
@@ -125,11 +127,11 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void run(BackendOptions const& options)
   {
-    _options = options;
-
     std::thread worker(
-      [this]()
+      [this, &options]()
       {
+        _init(options);
+
         QUILL_TRY
         {
           if (_options.backend_cpu_affinity != (std::numeric_limits<uint16_t>::max)())
@@ -153,21 +155,6 @@ public:
         QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
 
-        // Cache this thread's id
-        _worker_thread_id.store(get_thread_id());
-
-        // Double check or modify some backend options before we start
-        if (_options.transit_events_hard_limit == 0)
-        {
-          // transit_events_hard_limit of 0 makes no sense as we can't process anything
-          _options.transit_events_hard_limit = 1;
-        }
-
-        if (_options.transit_events_soft_limit == 0)
-        {
-          _options.transit_events_soft_limit = 1;
-        }
-
         // All okay, set the backend worker thread running flag
         _is_worker_running.store(true);
 
@@ -175,7 +162,7 @@ public:
         while (QUILL_LIKELY(_is_worker_running.load(std::memory_order_relaxed)))
         {
           // main loop
-          QUILL_TRY { _main_loop(); }
+          QUILL_TRY { _poll(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
           QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
           QUILL_CATCH_ALL()
@@ -248,7 +235,7 @@ private:
   /**
    * Backend worker thread main function
    */
-  QUILL_ATTRIBUTE_HOT void _main_loop()
+  QUILL_ATTRIBUTE_HOT void _poll()
   {
     // load all contexts locally
     _update_active_thread_contexts_cache();
@@ -318,6 +305,29 @@ private:
           std::this_thread::yield();
         }
       }
+    }
+  }
+
+  /**
+   * Logging thread init function
+   */
+  QUILL_ATTRIBUTE_COLD void _init(BackendOptions const& options)
+  {
+    _options = options;
+
+    // Cache this thread's id
+    _worker_thread_id.store(get_thread_id());
+
+    // Double check or modify some backend options before we start
+    if (_options.transit_events_hard_limit == 0)
+    {
+      // transit_events_hard_limit of 0 makes no sense as we can't process anything
+      _options.transit_events_hard_limit = 1;
+    }
+
+    if (_options.transit_events_soft_limit == 0)
+    {
+      _options.transit_events_soft_limit = 1;
     }
   }
 
@@ -1381,6 +1391,8 @@ private:
   }
 
 private:
+  friend class quill::ManualBackendWorker;
+
   ThreadContextManager& _thread_context_manager = ThreadContextManager::instance();
   SinkManager& _sink_manager = SinkManager::instance();
   LoggerManager& _logger_manager = LoggerManager::instance();

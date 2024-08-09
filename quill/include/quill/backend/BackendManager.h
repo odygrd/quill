@@ -7,6 +7,7 @@
 
 #include "quill/backend/BackendOptions.h"
 #include "quill/backend/BackendWorker.h"
+#include "quill/backend/ManualBackendWorker.h"
 #include "quill/core/Attributes.h"
 
 #include <cstdint>
@@ -14,8 +15,11 @@
 
 QUILL_BEGIN_NAMESPACE
 
+class Backend; // Forward declaration
+
 namespace detail
 {
+
 /**
  * Provides access to common collection class that are used by both the frontend and the backend
  * components of the logging system
@@ -35,6 +39,13 @@ public:
   /***/
   BackendManager(BackendManager const&) = delete;
   BackendManager& operator=(BackendManager const&) = delete;
+
+private:
+  friend class quill::Backend;
+
+  /***/
+  BackendManager() = default;
+  ~BackendManager() = default;
 
   /***/
   QUILL_ATTRIBUTE_COLD void start_backend_thread(BackendOptions const& options)
@@ -70,13 +81,14 @@ public:
     return _backend_worker.time_since_epoch(rdtsc_value);
   }
 
-private:
   /***/
-  BackendManager() = default;
-  ~BackendManager() = default;
-
+  QUILL_NODISCARD ManualBackendWorker* get_manual_backend_worker() noexcept
+  {
+    return &_manual_backend_worker;
+  }
 private:
   BackendWorker _backend_worker;
+  ManualBackendWorker _manual_backend_worker{&_backend_worker};
   std::once_flag _start_once_flag;
 };
 } // namespace detail
