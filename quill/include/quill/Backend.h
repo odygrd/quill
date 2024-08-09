@@ -9,6 +9,7 @@
 #include "quill/backend/BackendOptions.h"
 #include "quill/backend/SignalHandler.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/QuillError.h"
 
 #include <atomic>
 #include <csignal>
@@ -168,6 +169,47 @@ public:
   QUILL_NODISCARD static uint64_t convert_rdtsc_to_epoch_time(uint64_t rdtsc_value) noexcept
   {
     return detail::BackendManager::instance().convert_rdtsc_to_epoch_time(rdtsc_value);
+  }
+
+  /**
+   * This feature is designed for advanced users who need to run the backend worker on their own thread,
+   * providing more flexibility at the cost of complexity and potential pitfalls.
+   *
+   * This approach is generally not recommended due to the potential for inefficiency and complexity
+   * in managing the backend worker outside the provided mechanisms.
+   *
+   * Important notes:
+   *   - Do not run the frontend and backend in the same thread. This will lead to severe inefficiencies.
+   *     The design of this logging library assumes that the backend worker operates in a separate thread from the frontend threads that issue log statements.
+   *   - The thread running the `ManualBackendWorker` must not call `logger->flush_log()`, as this can
+   *     lead to a deadlock situation.
+   *   - The `ManualBackendWorker` should only be used in a single thread. It is not designed to handle
+   *     multiple threads calling `poll()` simultaneously.
+   *   - The built-in signal handler is not set up with `ManualBackendWorker`. If signal handling is
+   *     required, you must manually set up the signal handler and block signals from reaching the `ManualBackendWorker` thread.
+   *     See the `start_with_signal_handler()` implementation for guidance on how to do this.
+   *   - The following options are not supported when using `ManualBackendWorker`: `backend_cpu_affinity`,
+   *     `thread_name`, `sleep_duration`, and `enable_yield_when_idle`.
+   *   - You must set up the thread to busy-wait and periodically call `poll()` to process log statements.
+   *   - Logging from within the thread running `ManualBackendWorker` is highly inefficient and should be
+   *     avoided whenever possible.
+   */
+  QUILL_ATTRIBUTE_COLD static ManualBackendWorker* get_manual_backend_worker()
+  {
+    ManualBackendWorker* manual_backend_worker{nullptr};
+
+    std::call_once(
+      detail::BackendManager::instance().get_start_once_flag(), [&manual_backend_worker]() mutable
+      { manual_backend_worker = detail::BackendManager::instance().get_manual_backend_worker(); });
+
+    if (!manual_backend_worker)
+    {
+      QUILL_THROW(QuillError{
+        "get_manual_backend_worker() can only be called once per process. Additionally, it should "
+        "not be called when start() or start_with_signal_handler() has been invoked"});
+    }
+
+    return manual_backend_worker;
   }
 };
 

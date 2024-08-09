@@ -11,6 +11,7 @@ set(HEADER_FILES
         include/quill/backend/BackendOptions.h
         include/quill/backend/BackendWorker.h
         include/quill/backend/BacktraceStorage.h
+        include/quill/backend/ManualBackendWorker.h
         include/quill/backend/PatternFormatter.h
         include/quill/backend/RdtscClock.h
         include/quill/backend/SignalHandler.h

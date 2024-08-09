@@ -59,6 +59,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+class ManualBackendWorker; // Forward declaration
+
 namespace detail
 {
 class BackendWorker
@@ -1381,6 +1383,8 @@ private:
   }
 
 private:
+  friend class quill::ManualBackendWorker;
+
   ThreadContextManager& _thread_context_manager = ThreadContextManager::instance();
   SinkManager& _sink_manager = SinkManager::instance();
   LoggerManager& _logger_manager = LoggerManager::instance();
