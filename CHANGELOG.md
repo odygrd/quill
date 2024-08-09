@@ -74,8 +74,10 @@
 
 - Fix various compiler warnings
 - Minor serialisation improvements in `Array.h` and `Chrono.h`
+- Introduced `Backend::acquire_manual_backend_worker()` as an advanced feature, enabling users to manage the backend
+  worker on a custom thread. This feature is intended for advanced use cases where greater control over threading is
+  required. ([#519](https://github.com/odygrd/quill/issues/519))
 - Add new `CsvWriter` utility class for asynchronous CSV file writing. For example:
-
   ```c++
   #include "quill/Backend.h"
   #include "quill/core/FrontendOptions.h"

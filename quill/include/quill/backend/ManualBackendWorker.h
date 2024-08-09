@@ -38,19 +38,7 @@ public:
   {
     options.sleep_duration = std::chrono::nanoseconds{0};
     options.enable_yield_when_idle = false;
-
-    if (options.transit_events_hard_limit == 0)
-    {
-      options.transit_events_hard_limit = 1;
-    }
-
-    if (options.transit_events_soft_limit == 0)
-    {
-      options.transit_events_soft_limit = 1;
-    }
-
-    _backend_worker->_worker_thread_id.store(detail::get_thread_id());
-    _backend_worker->_options = options;
+    _backend_worker->_init(options);
   }
 
   /**
@@ -67,8 +55,12 @@ public:
            "call init() prior to calling this function");
     assert((_backend_worker->_options.enable_yield_when_idle == false) &&
            "call init() prior to calling this function");
+    assert((_backend_worker->_worker_thread_id.load() != 0) &&
+           "call init() prior to calling this function");
+    assert((_backend_worker->_worker_thread_id.load() == detail::get_thread_id()) &&
+           "poll() must be always called from the same thread");
 
-    QUILL_TRY { _backend_worker->_main_loop(); }
+    QUILL_TRY { _backend_worker->_poll(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e) { _backend_worker->_options.error_notifier(e.what()); }
     QUILL_CATCH_ALL()
