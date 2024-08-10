@@ -235,6 +235,9 @@ For log statements made during program initialization, or for debug logs that ar
 
 .. code:: cpp
 
+    #include "quill/bundled/fmt/ostream.h"
+    #include "quill/bundled/fmt/format.h"
+
     class Config
     {
       public:
@@ -279,6 +282,9 @@ Serialising Trivially Copyable Types With Default Constructor
 Use the ``quill::TriviallyCopyableTypeCodec`` helper.
 
 .. code:: cpp
+
+    #include "quill/bundled/fmt/ostream.h"
+    #include "quill/bundled/fmt/format.h"
 
     #include "quill/TriviallyCopyableCodec.h"
 
@@ -326,6 +332,9 @@ Serialising Trivially Copyable Types With Non-Default Constructor
 For trivially copyable types with a non-default constructor, make ``quill::TriviallyCopyableTypeCodec<T>`` a friend and ensure there is a private default constructor.
 
 .. code:: cpp
+
+    #include "quill/bundled/fmt/ostream.h"
+    #include "quill/bundled/fmt/format.h"
 
     #include "quill/TriviallyCopyableCodec.h"
 
@@ -382,6 +391,9 @@ For user-defined types with non-trivially copyable types as members, it is neces
 Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members`` as long as the relevant header file from ``quill/std/`` for that type is included.
 
 .. code:: cpp
+
+    #include "quill/bundled/fmt/ostream.h"
+    #include "quill/bundled/fmt/format.h"
 
     #include "quill/core/Codec.h"
     #include "quill/core/DynamicFormatArgStore.h"
@@ -450,6 +462,9 @@ For user-defined types with non-trivially copyable types as private members, the
 Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members`` as long as the relevant header file from ``quill/std/`` for that type is included. In this example, ``quill/std/Chrono.h`` is included to ``encode`` and ``decode`` the ``std::chrono::system_clock::time_point``.
 
 .. code:: cpp
+
+    #include "quill/bundled/fmt/ostream.h"
+    #include "quill/bundled/fmt/format.h"
 
     #include "quill/core/Codec.h"
     #include "quill/core/DynamicFormatArgStore.h"
