@@ -65,6 +65,7 @@
 |      Conda      |      `conda install -c conda-forge quill`      |
 |     Bzlmod      | `bazel_dep(name = "quill", version = "x.y.z")` |
 |      xmake      |             `xrepo install quill`              |
+|       nix       |            `nix-shell -p quill-log`            |
 
 ## Introduction
 
