@@ -20,10 +20,10 @@
 
 QUILL_BEGIN_NAMESPACE
 
-/** Version Info **/
-constexpr uint32_t VersionMajor{6};
-constexpr uint32_t VersionMinor{1};
-constexpr uint32_t VersionPatch{2};
+/** Version Info - When updating VersionMajor please also update the namespace in Attributes.h **/
+constexpr uint32_t VersionMajor{7};
+constexpr uint32_t VersionMinor{0};
+constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 class Backend
