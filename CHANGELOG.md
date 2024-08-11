@@ -1,3 +1,4 @@
+- [v7.0.0](#v700)
 - [v6.1.0](#v610)
 - [v6.0.0](#v600)
 - [v5.1.0](#v510)
@@ -69,6 +70,13 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v7.0.0 - TBD
+
+- Simplified the log tags API. The `Tags` class has been removed. You now pass a `char const*` directly to the macros.
+  Additionally, macros previously named `WITH_TAGS` have been renamed to `_TAGS`. For example, `LOG_INFO_WITH_TAGS` is
+  now `LOG_INFO_TAGS`.
+- Renamed `backend_cpu_affinity` to `cpu_affinity`** in `BackendOptions` to improve consistency.
 
 ## v6.1.0
 
