@@ -60,8 +60,7 @@ attributes.
 |                         |                          | excluding the full file path           |
 +-------------------------+--------------------------+----------------------------------------+
 | tags                    | %(tags)                  | Additional custom tags appended to the |
-|                         |                          | message when _WITH_TAGS macros are     |
-|                         |                          | used                                   |
+|                         |                          | message when _TAGS macros are used     |
 +-------------------------+--------------------------+----------------------------------------+
 | named_args              | %(named_args)            | Key-value pairs appended to the        |
 |                         |                          | message. Only applicable with          |
