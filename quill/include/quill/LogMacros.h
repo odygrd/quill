@@ -275,15 +275,20 @@
 #define QUILL_GENERATE_TAG_5(a, b, c, d, e)                                                        \
   QUILL_ADD_HASH(a)                                                                                \
   " " QUILL_ADD_HASH(b) " " QUILL_ADD_HASH(c) " " QUILL_ADD_HASH(d) " " QUILL_ADD_HASH(e) " "
+#define QUILL_GENERATE_TAG_6(a, b, c, d, e, f)                                                     \
+  QUILL_ADD_HASH(a)                                                                                \
+  " " QUILL_ADD_HASH(b) " " QUILL_ADD_HASH(c) " " QUILL_ADD_HASH(d) " " QUILL_ADD_HASH(            \
+    e) " " QUILL_ADD_HASH(f) " "
 
 // Fix the variadic macro to handle the case with a single argument without triggering the warning
 #define QUILL_GET_TAG_GENERATOR_MACRO(...)                                                         \
   QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO_IMPL(__VA_ARGS__))
-#define QUILL_GET_TAG_GENERATOR_MACRO_IMPL(_1, _2, _3, _4, _5, NAME, ...) NAME
+#define QUILL_GET_TAG_GENERATOR_MACRO_IMPL(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
 
 // Main macro to generate tags, up to 5 tags
-#define QUILL_TAGS(...)                                                                                                     \
-  QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO(__VA_ARGS__, QUILL_GENERATE_TAG_5, QUILL_GENERATE_TAG_4, QUILL_GENERATE_TAG_3, \
+#define QUILL_TAGS(...)                                                                               \
+  QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO(__VA_ARGS__, QUILL_GENERATE_TAG_6, QUILL_GENERATE_TAG_5, \
+                                             QUILL_GENERATE_TAG_4, QUILL_GENERATE_TAG_3,              \
                                              QUILL_GENERATE_TAG_2, QUILL_GENERATE_TAG_1)(__VA_ARGS__))
 
 /** -- LOGJ_ helpers end -- **/
