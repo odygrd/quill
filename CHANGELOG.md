@@ -1,4 +1,5 @@
 - [v7.0.0](#v700)
+- [v6.1.1](#v611)
 - [v6.1.0](#v610)
 - [v6.0.0](#v600)
 - [v5.1.0](#v510)
@@ -77,6 +78,10 @@
   Additionally, macros previously named `WITH_TAGS` have been renamed to `_TAGS`. For example, `LOG_INFO_WITH_TAGS` is
   now `LOG_INFO_TAGS`.
 - Renamed `backend_cpu_affinity` to `cpu_affinity`** in `BackendOptions` to improve consistency.
+
+## v6.1.1
+
+- Fix pkg-config file
 
 ## v6.1.0
 
