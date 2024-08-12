@@ -134,10 +134,10 @@ public:
 
         QUILL_TRY
         {
-          if (_options.cpu_affinity != (std::numeric_limits<uint16_t>::max)())
+          if (_options.backend_cpu_affinity != (std::numeric_limits<uint16_t>::max)())
           {
             // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
-            set_cpu_affinity(_options.cpu_affinity);
+            set_cpu_affinity(_options.backend_cpu_affinity);
           }
         }
 #if !defined(QUILL_NO_EXCEPTIONS)

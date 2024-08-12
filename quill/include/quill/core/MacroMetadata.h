@@ -31,7 +31,7 @@ public:
   };
 
   constexpr MacroMetadata(char const* source_location, char const* caller_function,
-                          char const* message_format, char const* tags, LogLevel log_level, Event event) noexcept
+                          char const* message_format, Tags const* tags, LogLevel log_level, Event event) noexcept
     : _source_location(source_location),
       _caller_function(caller_function),
       _message_format(message_format),
@@ -73,7 +73,7 @@ public:
 
   QUILL_NODISCARD LogLevel log_level() const noexcept { return _log_level; }
 
-  QUILL_NODISCARD char const* tags() const noexcept { return _tags; }
+  QUILL_NODISCARD Tags const* tags() const noexcept { return _tags; }
 
   QUILL_NODISCARD bool has_named_args() const noexcept { return _format_flags & NAMED_ARGS_FLAG; }
 
@@ -195,7 +195,7 @@ private:
   char const* _source_location;
   char const* _caller_function;
   char const* _message_format;
-  char const* _tags;
+  Tags const* _tags;
   uint16_t _colon_separator_pos;
   uint16_t _file_name_pos;
   LogLevel _log_level;

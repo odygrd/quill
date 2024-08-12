@@ -20,9 +20,9 @@
 
 QUILL_BEGIN_NAMESPACE
 
-/** Version Info - When updating VersionMajor please also update the namespace in Attributes.h **/
-constexpr uint32_t VersionMajor{7};
-constexpr uint32_t VersionMinor{0};
+/** Version Info **/
+constexpr uint32_t VersionMajor{6};
+constexpr uint32_t VersionMinor{1};
 constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
@@ -188,7 +188,7 @@ public:
    *   - The built-in signal handler is not set up with `ManualBackendWorker`. If signal handling is
    *     required, you must manually set up the signal handler and block signals from reaching the `ManualBackendWorker` thread.
    *     See the `start_with_signal_handler()` implementation for guidance on how to do this.
-   *   - The following options are not supported when using `ManualBackendWorker`: `cpu_affinity`,
+   *   - The following options are not supported when using `ManualBackendWorker`: `backend_cpu_affinity`,
    *     `thread_name`, `sleep_duration`, and `enable_yield_when_idle`.
    *   - Avoid performing very heavy tasks in your custom thread. Significant delays in calling `poll()`
    *     can lead to the SPSC queues of the frontend threads becoming full. When this happens, the
