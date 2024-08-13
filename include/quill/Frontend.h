@@ -198,14 +198,15 @@ private:
   {
     assert(logger_base);
 
-    auto* logger = dynamic_cast<logger_t*>(logger_base);
+    // MSVC can complain that another variable with the same name hides this variable
+    auto* _logger_cast = dynamic_cast<logger_t*>(logger_base);
 
-    if (QUILL_UNLIKELY(!logger))
+    if (QUILL_UNLIKELY(!_logger_cast))
     {
       QUILL_THROW(QuillError{"Failed to cast logger. Invalid logger type."});
     }
 
-    return logger;
+    return _logger_cast;
   }
 };
 
