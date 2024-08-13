@@ -317,6 +317,12 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
     set(QUILL_PKGCONFIG_DIR ${CMAKE_INSTALL_PREFIX}/pkgconfig CACHE PATH
             "Installation directory for pkgconfig (.pc) files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
+    if (WIN32)
+        set(QUILL_PTHREAD_LIBS "")
+    else ()
+        set(QUILL_PTHREAD_LIBS "-lpthread")
+    endif ()
+
     # Generate pkgconfig
     configure_file(
             "${CMAKE_CURRENT_LIST_DIR}/cmake/quill.pc.in"
