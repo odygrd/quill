@@ -451,12 +451,17 @@ cmake ..
 make install
 ```
 
-Note: To install in custom directory invoke cmake with `-DCMAKE_INSTALL_PREFIX=/quill/install-dir/`
+- To install in a custom directory, specify `-DCMAKE_INSTALL_PREFIX=/path/to/install/dir`
+- To enable the installation of examples, use the `-DQUILL_BUILD_EXAMPLES=ON` option
 
-Then use the library from a CMake project, you can locate it directly with `find_package()`
+To use Quill in your own CMake-based project, locate it with `find_package()`:
+
+```cmake
+find_package(quill REQUIRED)
+target_link_libraries(your_target PUBLIC quill::quill)
+```
 
 ##### Directory Structure
-
 ```
 my_project/
 ├── CMakeLists.txt
@@ -466,26 +471,32 @@ my_project/
 ##### CMakeLists.txt
 
 ```cmake
-# Set only if needed - quill was installed under a custom non-standard directory
-set(CMAKE_PREFIX_PATH /test_quill/usr/local/)
+# Specify the path to Quill if it is installed in a custom, non-standard directory.
+# This is necessary if Quill is not located in one of the default search paths.
+# Replace `/path/to/quill` with the actual path to your Quill installation.
+set(CMAKE_PREFIX_PATH /path/to/quill)
 
+# Locate the Quill package.
 find_package(quill REQUIRED)
 
-# Linking your project against quill
+# Define your executable target and link it against Quill.
 add_executable(example main.cpp)
+
+# Link your target against the Quill library.
+# This makes the Quill library available to your executable.
 target_link_libraries(example PUBLIC quill::quill)
 ```
 
 #### Embedded CMake
 
-To embed the library directly, copy the source [folder](http://github.com/odygrd/quill/tree/master/quill/quill) to your
-project and call `add_subdirectory()` in your `CMakeLists.txt` file
+To embed directly into your project, you can include its source code and use `add_subdirectory()` in
+your `CMakeLists.txt` file.
 
 ##### Directory Structure
 
 ```
 my_project/
-├── quill/            (source folder)
+├── quill/            (repo folder)
 ├── CMakeLists.txt
 ├── main.cpp
 ```
@@ -497,6 +508,7 @@ cmake_minimum_required(VERSION 3.1.0)
 project(my_project)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(quill)
 

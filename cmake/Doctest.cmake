@@ -185,5 +185,5 @@ endfunction()
 ###############################################################################
 
 set(_DOCTEST_DISCOVER_TESTS_SCRIPT
-        ${CMAKE_CURRENT_LIST_DIR}/doctestAddTests.cmake
+        ${CMAKE_CURRENT_LIST_DIR}/DoctestAddTests.cmake
         )
