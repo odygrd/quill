@@ -42,7 +42,7 @@ TEST_CASE("backend_exception_notifier")
   #if !defined(__FreeBSD__)
   // On FreeBSD CPU_SET(cpu_id, &cpuset); with a big number crashes.
   // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
-  backend_options.cpu_affinity = static_cast<uint16_t>(std::numeric_limits<uint16_t>::max() - 1);
+  backend_options.backend_cpu_affinity = static_cast<uint16_t>(std::numeric_limits<uint16_t>::max() - 1);
   #endif
 
   backend_options.thread_name =

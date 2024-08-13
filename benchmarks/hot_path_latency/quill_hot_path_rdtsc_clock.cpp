@@ -32,7 +32,7 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
   quill::detail::set_cpu_affinity(0);
 
   quill::BackendOptions backend_options;
-  backend_options.cpu_affinity = 5;
+  backend_options.backend_cpu_affinity = 5;
 
   // Start the logging backend thread and give it some tiem to init
   quill::Backend::start(backend_options);

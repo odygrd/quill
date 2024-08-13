@@ -87,7 +87,7 @@ public:
    * %(process_id)              - ID of the process in which the logging call was made.
    * %(source_location)         - Full source file path and line number as a single string.
    * %(short_source_location)   - Shortened source file name and line number as a single string.
-   * %(tags)                    - Additional custom tags appended to the message when _TAGS macros are used.
+   * %(tags)                    - Additional custom tags appended to the message when _WITH_TAGS macros are used.
    * %(named_args)              - Key-value pairs appended to the message. Only applicable when the message has named args; remains empty otherwise.
    *
    * @param time_format The format of the date. Same as strftime() format with extra specifiers `%Qms` `%Qus` `Qns`
@@ -116,8 +116,7 @@ public:
   ~PatternFormatter() = default;
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(
-    uint64_t timestamp, std::string_view thread_id, std::string_view thread_name,
-    std::string_view process_id, std::string_view logger, std::string_view log_level_description,
+    uint64_t timestamp, std::string_view thread_id, std::string_view thread_name, std::string_view process_id, std::string_view logger, std::string_view log_level_description,
     std::string_view log_level_short_code, MacroMetadata const& log_statement_metadata,
     std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_msg)
   {
@@ -224,11 +223,13 @@ public:
     {
       if (log_statement_metadata.tags())
       {
-        _set_arg_val<Attribute::Tags>(std::string_view{log_statement_metadata.tags()});
+        _tags.clear();
+        log_statement_metadata.tags()->format(_tags);
+        _set_arg_val<Attribute::Tags>(_tags);
       }
       else
       {
-        _set_arg_val<Attribute::Tags>(std::string_view{});
+        _set_arg_val<Attribute::Tags>(std::string{});
       }
     }
 
@@ -262,9 +263,9 @@ private:
     std::tie(_fmt_format, _order_index) = _generate_fmt_format_string(
       _is_set_in_pattern, _format_pattern, "time"_a = "", "file_name"_a = "",
       "caller_function"_a = "", "log_level"_a = "", "log_level_short_code"_a = "",
-      "line_number"_a = "", "logger"_a = "", "full_path"_a = "", "thread_id"_a = "",
-      "thread_name"_a = "", "process_id"_a = "", "source_location"_a = "",
-      "short_source_location"_a = "", "message"_a = "", "tags"_a = "", "named_args"_a = "");
+      "line_number"_a = "", "logger"_a = "", "full_path"_a = "", "thread_id"_a = "", "thread_name"_a = "",
+      "process_id"_a = "", "source_location"_a = "", "short_source_location"_a = "",
+      "message"_a = "", "tags"_a = "", "named_args"_a = "");
 
     _set_arg<Attribute::Time>(std::string_view("time"));
     _set_arg<Attribute::FileName>(std::string_view("file_name"));
@@ -489,6 +490,7 @@ private:
 private:
   std::string _format_pattern;
   std::string _fmt_format;
+  std::string _tags;
 
   /** Each named argument in the format_pattern is mapped in order to this array **/
   std::array<size_t, Attribute::ATTR_NR_ITEMS> _order_index{};
