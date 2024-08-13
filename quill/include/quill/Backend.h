@@ -23,7 +23,7 @@ QUILL_BEGIN_NAMESPACE
 /** Version Info **/
 constexpr uint32_t VersionMajor{6};
 constexpr uint32_t VersionMinor{1};
-constexpr uint32_t VersionPatch{1};
+constexpr uint32_t VersionPatch{2};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 class Backend
