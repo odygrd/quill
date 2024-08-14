@@ -1,6 +1,6 @@
 ---
 name: Ideas & Questions
-about: Share your suggestions, ideas, or general inquiries
+about: Share general suggestions or ask questions
 title: ''
 labels: ''
 assignees: ''
