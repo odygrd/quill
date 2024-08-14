@@ -1,6 +1,6 @@
 ---
 name: Ideas & Questions
-about: Describe this issue template's purpose here.
+about: Share your suggestions, ideas, or general inquiries
 title: ''
 labels: ''
 assignees: ''
