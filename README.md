@@ -1,8 +1,9 @@
 <div align="center">
-  <a href="https://github.com/odygrd/quill">
-    <img width="125" src="https://i.postimg.cc/DZrH8HkX/quill-circle-photos-v2-x2-colored-toned.png" alt="Quill logo">
-  </a>
+  <br>
+  <img src="docs/logo.png" alt="logo" width="200" height="auto" />
   <h1>Quill</h1>
+
+  <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
 
   <div>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Alinux">
@@ -37,24 +38,49 @@
     </a>
   </div>
 
-  <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
+<h4>
+    <a href="https://quillcpp.readthedocs.io" title="Explore the full documentation">📚 Documentation</a>
+  <span> · </span>
+    <a href="https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html" title="Quick reference for common tasks">⚡ Cheat Sheet</a>
+  <span> · </span>
+    <a href="https://github.com/odygrd/quill/issues/new?assignees=&labels=&projects=&template=bug-report.md&title=" title="Report a bug or issue">🐛 Report Bug</a>
+  <span> · </span>
+    <a href="https://github.com/odygrd/quill/issues/new?assignees=&labels=&projects=&template=feature_request.md&title=">💡 Request Feature</a>
+  </h4>
+
+<div align="center"><img src="docs/quill_demo.gif" width="75%" ></div>
 
 </div>
 
+## 🧭 Table of Contents
 
-<br>
+- [Introduction](#-introduction)
+- [Quick Start](#-quick-start)
+- [Features](#-features)
+- [Usage](#-usage)
+- [Performance](#-performance)
+- [Documentation](#-documentation)
+- [Design](#-design)
+- [Caveats](#-caveats)
+- [License](#-license)
 
-- [Introduction](#introduction)
-- [Documentation](#documentation)
-- [Features](#features)
-- [Caveats](#caveats)
-- [Performance](#performance)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Design](#design)
-- [License](#license)
+## ✨ Introduction
 
-<br>
+Quill is a fast, feature-rich cross-platform logging library for C++ designed for low-latency and reliable logging.
+
+- Low Latency Logging: Optimized to ensure minimal delay and efficient performance on the hot path.
+- Battle-Tested: Proven in demanding production environments.
+- Feature-Rich: Packed with advanced features to meet diverse logging needs.
+- Extensive Documentation: Easy-to-follow guides and cheat sheets.
+- Community-Driven: Contributions, feedback and feature requests are welcome!
+
+## ⏩ Quick Start
+
+Getting started is easy and straightforward. Follow these steps to integrate the library into your project:
+
+### Installation
+
+You can install Quill using the package manager of your choice:
 
 | Package Manager |              Installation Command              |
 |:---------------:|:----------------------------------------------:|
@@ -67,118 +93,257 @@
 |      xmake      |             `xrepo install quill`              |
 |       nix       |            `nix-shell -p quill-log`            |
 
-## Introduction
+### Setup
 
-Quill is a high-performance, cross-platform logging library designed for C++17 and onwards.
-Quill is a production-ready logging library that has undergone extensive unit testing. It has been successfully utilized
-in production environments, including financial trading applications, providing high-performance and reliable logging
-capabilities.
-
-## Documentation
-
-For detailed documentation and usage instructions, please visit
-
-[Quill Documentation](http://quillcpp.readthedocs.io/)
-
-[Cheat Sheet](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html)
-
-Additionally, you can explore the [examples](http://github.com/odygrd/quill/tree/master/examples) folder on GitHub.
-These examples serve as valuable resources to understand different usage scenarios and demonstrate
-the capabilities of the library.
-
-## Features
-
-- **Low Latency Logging**: Achieve fast logging performance with low latency. Refer to
-  the [Benchmarks](http://github.com/odygrd/quill#performance) for more details.
-- **Asynchronous logging**: Formatting and I/O are all delegated to a background logging thread,
-  effectively offloading the overhead from the critical path.
-- **Custom Formatters**: Customize log formatting based on user-defined patterns.
-  Explore [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html) for further details.
-- **Flexible Timestamp Generation**: Choose between rdtsc, chrono, or custom clocks (useful for simulations) for
-  log message timestamp generation.
-- **Log Stack Traces**: Store log messages in a ring buffer and display them later in response to a higher severity log
-  statement or on demand. Refer
-  to [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html) for more information.
-- **Multiple Logging Sinks**: Utilize various logging targets, including:
-    - Console logging with color support.
-    - File logging.
-    - Rotating log files based on time or size.
-    - JSON logging.
-    - Custom sinks.
-- **Log Message Filtering**: Apply filters to selectively process log messages. Learn more
-  about [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
-- **Structured Logging**: Generate JSON structured logs.
-  See [JsonSink](https://quillcpp.readthedocs.io/en/latest/sink_types.html) for details.
-- **Blocking or Dropping Message Modes**: Choose between `blocking` or `dropping` message modes in the library.
-  In `blocking` mode, the hot threads pause and wait when the queue is full until space becomes available, ensuring no
-  message loss but introducing potential latency. In `dropping` mode, log messages beyond the queue's capacity may be
-  dropped to prioritize low latency. The library provides reports on dropped messages, queue reallocations, and blocked
-  hot threads for monitoring purposes.
-- **Queue Types**: The library supports different types of queues for transferring logs from the hot path to the backend
-  thread: bounded queues with a fixed capacity and unbounded queues that start small and can dynamically grow.
-- **Wide Character Support**: Wide strings compatible with ASCII encoding are supported, applicable to Windows only.
-  Additionally, there is support for logging STL containers consisting of wide strings. Note that chaining STL types,
-  such as `std::vector<std::vector<std::wstring>>` is not supported for wide strings.
-- **Ordered Log Statements**: Log statements are ordered by timestamp even when produced by different threads,
-  facilitating easier debugging of multithreaded applications.
-- **Compile-Time Log Level Stripping**: Completely strip out log levels at compile time, reducing `if` branches.
-- **Clean and Warning-Free Codebase**: Ensure a clean and warning-free codebase, even with high compiler warning levels.
-- **Crash-Safe Behavior**: Benefit from crash-safe behavior with a built-in signal handler.
-- **Type-Safe API**: Type safe api using the excellent [{fmt}](http://github.com/fmtlib/fmt) library.
-- **Huge Pages**: Benefit from support for huge pages on the hot path. This feature allows for improved performance and
-  efficiency.
-
-## Caveats
-
-Quill may not work well with `fork()` since it spawns a background thread and `fork()` doesn't work well
-with multithreading.
-
-If your application uses `fork()` and you want to log in the child processes as well, you should call
-`quill::start()` after the `fork()` call. Additionally, you should ensure that you write to different
-files in the parent and child processes to avoid conflicts.
-
-For example :
+Once installed, you can start using Quill with the following code:
 
 ```c++
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
-#include "quill/sinks/FileSink.h"
+#include "quill/sinks/ConsoleSink.h"
+#include <string_view>
 
 int main()
 {
-  // DO NOT CALL THIS BEFORE FORK
-  // quill::Backend::start();
+  quill::Backend::start();
 
-  if (fork() == 0)
-  {
-    quill::Backend::start();
-        
-    // Get or create a handler to the file - Write to a different file
-    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
-      "child.log");
-    
-    quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
+  quill::Logger* logger = quill::Frontend::create_or_get_logger(
+    "root", quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1"));
 
-    QUILL_LOG_INFO(logger, "Hello from Child {}", 123);
-  }
-  else
-  {
-    quill::Backend::start();
-          
-    // Get or create a handler to the file - Write to a different file
-    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
-      "parent.log");
-    
-    quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-    
-    QUILL_LOG_INFO(logger, "Hello from Parent {}", 123);
-  }
+  LOG_INFO(logger, "Hello from {}!", std::string_view{"Quill"});
 }
 ```
 
-## Performance
+## 🎯 Features
+
+- **Lightning-Fast Logging**: Achieve low latency with fast logging performance. For detailed metrics, check out
+  the [Benchmarks](http://github.com/odygrd/quill#performance).
+- **Asynchronous Efficiency**: Offload formatting and I/O to a background thread, keeping your main thread efficient and
+  responsive.
+- **Customizable Formatters**: Tailor your log output with user-defined formatting patterns. Explore the possibilities
+  in [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
+- **Versatile Timestamps**: Select from various timestamp generation methods. `rdtsc`, `chrono`, or
+  even `custom clocks`, ideal for simulations and more.
+- **Stack Trace Logging**: Log messages can be stored in a ring buffer, ready to be displayed on demand or in response
+  to critical errors. Learn more
+  in [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html)
+- **Multiple Output Sinks**: Direct logs to multiple targets, including:
+  - Console with color support
+  - Files with rotation options
+  - JSON format
+  - Custom sinks of your design
+- **Targeted Log Filtering**: Apply filters to ensure that only relevant log messages are processed. Details can be
+  found in [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
+- **Structured JSON Logging**: Generate structured logs in JSON format for more organized data management.
+  See [JSON Logging](https://quillcpp.readthedocs.io/en/latest/json_logging.html)
+- **Message Handling Modes**: Choose between `blocking` or `dropping` modes for message handling. In `blocking` mode,
+  the hot threads pause and wait when the queue is full until space becomes available, ensuring no message loss but
+  introducing potential latency. In `dropping` mode, log messages beyond the queue's capacity may be dropped to
+  prioritize low latency. The library provides reports on dropped messages, queue reallocations, and blocked hot threads
+  for monitoring purposes.
+- **Wide Character Support**: Wide strings compatible with ASCII encoding are supported, applicable to Windows only.
+  Additionally, there is support for logging STL containers consisting of wide strings. Note that chaining STL types,
+  such as `std::vector<std::vector<std::wstring>>` is not supported for wide strings.
+- **Timestamp-Ordered Logs**: Ensure logs are ordered by timestamp, even across different threads, simplifying the
+  debugging of multithreaded applications.
+- **Compile-Time Optimization**: Strip out specific log levels at compile time to reduce runtime overhead and enhance
+  performance.
+- **Clean, Warning-Free Code**: The codebase is meticulously maintained to be clean and free of compiler warnings, even
+  with strict warning levels.
+- **Crash Resilience**: With built-in signal handler, the library is designed to handle unexpected crashes gracefully.
+- **Type-Safe API**: The API is type-safe, built on the robust [{fmt}](http://github.com/fmtlib/fmt) library.
+- **Support for Huge Pages**: Leverage huge pages on the hot path for improved performance and efficiency.
+
+## 🧩 Usage
+
+```c++
+#include "quill/Backend.h"
+#include "quill/Frontend.h"
+#include "quill/LogMacros.h"
+#include "quill/Logger.h"
+#include "quill/sinks/ConsoleSink.h"
+#include "quill/std/Array.h"
+
+#include <string>
+#include <utility>
+
+int main()
+{
+  // Backend  
+  quill::BackendOptions backend_options;
+  quill::Backend::start(backend_options);
+
+  // Frontend
+  auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
+  quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
+
+  // Change the LogLevel to print everything
+  logger->set_log_level(quill::LogLevel::TraceL3);
+
+  // A log message with number 123
+  int a = 123;
+  std::string l = "log";
+  LOG_INFO(logger, "A {} message with number {}", l, a);
+
+  // libfmt formatting language is supported 3.14e+00
+  double pi = 3.141592653589793;
+  LOG_INFO(logger, "libfmt formatting language is supported {:.2e}", pi);
+
+  // Logging STD types is supported [1, 2, 3]
+  std::array<int, 3> arr = {1, 2, 3};
+  LOG_INFO(logger, "Logging STD types is supported {}", arr);
+
+  // Logging STD types is supported [arr: [1, 2, 3]]
+  LOGV_INFO(logger, "Logging STD types is supported", arr);
+
+  // A message with two variables [a: 123, b: 3.17]
+  double b = 3.17;
+  LOGV_INFO(logger, "A message with two variables", a, b);
+
+  for (uint32_t i = 0; i < 10; ++i)
+  {
+    // Will only log the message once per second
+    LOG_INFO_LIMIT(std::chrono::seconds{1}, logger, "A {} message with number {}", l, a);
+    LOGV_INFO_LIMIT(std::chrono::seconds{1}, logger, "A message with two variables", a, b);
+  }
+
+  LOG_TRACE_L3(logger, "Support for floats {:03.2f}", 1.23456);
+  LOG_TRACE_L2(logger, "Positional arguments are {1} {0} ", "too", "supported");
+  LOG_TRACE_L1(logger, "{:>30}", "right aligned");
+  LOG_DEBUG(logger, "Debugging foo {}", 1234);
+  LOG_INFO(logger, "Welcome to Quill!");
+  LOG_WARNING(logger, "A warning message.");
+  LOG_ERROR(logger, "An error message. error code {}", 123);
+  LOG_CRITICAL(logger, "A critical error.");
+}
+```
+
+### Output
+
+![example_output.png](docs%2Fexample_output.png)
+
+### External CMake
+
+#### Building and Installing Quill
+
+To get started with Quill, clone the repository and install it using CMake:
+
+```bash
+git clone http://github.com/odygrd/quill.git
+mkdir cmake_build
+cd cmake_build
+cmake ..
+make install
+```
+
+- **Custom Installation**: Specify a custom directory with `-DCMAKE_INSTALL_PREFIX=/path/to/install/dir`.
+- **Build Examples**: Include examples with `-DQUILL_BUILD_EXAMPLES=ON`.
+
+Next, add Quill to your project using `find_package()`:
+
+```cmake
+find_package(quill REQUIRED)
+target_link_libraries(your_target PUBLIC quill::quill)
+```
+
+#### Sample Directory Structure
+
+Organize your project directory like this:
+
+```
+my_project/
+├── CMakeLists.txt
+├── main.cpp
+```
+
+#### Sample CMakeLists.txt
+
+Here’s a sample `CMakeLists.txt` to get you started:
+
+```cmake
+# If Quill is in a non-standard directory, specify its path.
+set(CMAKE_PREFIX_PATH /path/to/quill)
+
+# Find and link the Quill library.
+find_package(quill REQUIRED)
+add_executable(example main.cpp)
+target_link_libraries(example PUBLIC quill::quill)
+```
+
+### Embedded CMake
+
+For a more integrated approach, embed Quill directly into your project:
+
+#### Sample Directory Structure
+
+```
+my_project/
+├── quill/            # Quill repo folder
+├── CMakeLists.txt
+├── main.cpp
+```
+
+#### Sample CMakeLists.txt
+
+Use this `CMakeLists.txt` to include Quill directly:
+
+```cmake
+cmake_minimum_required(VERSION 3.1.0)
+project(my_project)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_subdirectory(quill)
+add_executable(my_project main.cpp)
+target_link_libraries(my_project PUBLIC quill::quill)
+```
+
+### Android NDK
+
+Building Quill for Android? Add this flag during configuration:
+
+```bash
+-DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
+```
+
+### Meson
+
+#### Using WrapDB
+
+Easily integrate Quill with Meson’s `wrapdb`:
+
+```bash
+meson wrap install quill
+```
+
+#### Manual Integration
+
+Copy the repository contents to your `subprojects` directory and add the following to your `meson.build`:
+
+```meson
+quill = subproject('quill')
+quill_dep = quill.get_variable('quill_dep')
+my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], install : true)
+```
+
+### Bazel
+
+#### Using Blzmod
+
+Quill is available on `BLZMOD` for easy integration.
+
+#### Manual Integration
+
+For manual setup, add Quill to your `BUILD.bazel` file like this:
+
+```bazel
+cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
+```
+
+## 🚀 Performance
 
 ### Latency
 
@@ -304,17 +469,17 @@ When measured on the same system as the latency benchmarks mentioned above the a
 logging thread when formatting a log message consisting of an int and a double is ~`4.50 million msgs/sec`
 
 While the primary focus of the library is not on throughput, it does provide efficient handling of log messages across
-multiple threads. The backend logging thread, responsible for formatting and ordering log messages from hot threads,
-ensures that all queues are emptied on a high priority basis. The backend thread internally buffers the log messages
-and then writes them later when the caller thread queues are empty or when a predefined limit,
+multiple threads. The backend logging thread, responsible for formatting and ordering log messages from the frontend
+threads, ensures that all queues are emptied on a high priority basis. The backend thread internally buffers the log
+messages and then writes them later when the caller thread queues are empty or when a predefined limit,
 `backend_thread_transit_events_soft_limit`, is reached. This approach prevents the need for allocating new queues
 or dropping messages on the hot path.
 
 Comparing throughput with other logging libraries in an asynchronous logging scenario has proven challenging. Some
 libraries may drop log messages, resulting in smaller log files than expected, while others only offer asynchronous
 flush, making it difficult to determine when the logging thread has finished processing all messages.
-In contrast, Quill provides a blocking flush log guarantee, ensuring that every log message from the hot threads up to
-that point is flushed to the file.
+In contrast, Quill provides a blocking flush log guarantee, ensuring that every log message from the frontend threads up
+to that point is flushed to the file.
 
 For benchmarking purposes, you can find the
 code [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throughput/quill_backend_throughput.cpp).
@@ -336,234 +501,7 @@ approximately 30 seconds to compile.
 
 ![quill_v5_1_compiler_bench.speedscope.png](docs%2Fquill_v5_1_compiler_bench.speedscope.png)
 
-## Quick Start
-
-```c++
-#include "quill/Backend.h"
-#include "quill/Frontend.h"
-#include "quill/LogMacros.h"
-#include "quill/Logger.h"
-#include "quill/sinks/FileSink.h"
-
-int main()
-{
-  // Start the backend thread
-  quill::Backend::start();
-
-  // Log to file
-  auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
-    "example_file_logging.log");
-
-  quill::Logger* logger =
-    quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-
-  // set the log level of the logger to trace_l3 (default is info)
-  logger->set_log_level(quill::LogLevel::TraceL3);
-  
-  LOG_INFO(logger, "Welcome to Quill!");
-  LOG_ERROR(logger, "An error message. error code {}", 123);
-  LOG_WARNING(logger, "A warning message.");
-  LOG_CRITICAL(logger, "A critical error.");
-  LOG_DEBUG(logger, "Debugging foo {}", 1234);
-  LOG_TRACE_L1(logger, "{:>30}", "right aligned");
-  LOG_TRACE_L2(logger, "Positional arguments are {1} {0} ", "too", "supported");
-  LOG_TRACE_L3(logger, "Support for floats {:03.2f}", 1.23456);
-}
-```
-
-```c++
-#include "quill/Backend.h"
-#include "quill/Frontend.h"
-#include "quill/LogMacros.h"
-#include "quill/Logger.h"
-#include "quill/sinks/ConsoleSink.h"
-#include "quill/std/Array.h"
-
-#include <string>
-#include <utility>
-
-int main()
-{
-  // Backend  
-  quill::BackendOptions backend_options;
-  quill::Backend::start(backend_options);
-
-  // Frontend
-  auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
-  quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
-
-  // Change the LogLevel to print everything
-  logger->set_log_level(quill::LogLevel::TraceL3);
-
-  // A log message with number 123
-  int a = 123;
-  std::string l = "log";
-  LOG_INFO(logger, "A {} message with number {}", l, a);
-
-  // libfmt formatting language is supported 3.14e+00
-  double pi = 3.141592653589793;
-  LOG_INFO(logger, "libfmt formatting language is supported {:.2e}", pi);
-
-  // Logging STD types is supported [1, 2, 3]
-  std::array<int, 3> arr = {1, 2, 3};
-  LOG_INFO(logger, "Logging STD types is supported {}", arr);
-
-  // Logging STD types is supported [arr: [1, 2, 3]]
-  LOGV_INFO(logger, "Logging STD types is supported", arr);
-
-  // A message with two variables [a: 123, b: 3.17]
-  double b = 3.17;
-  LOGV_INFO(logger, "A message with two variables", a, b);
-
-  for (uint32_t i = 0; i < 10; ++i)
-  {
-    // Will only log the message once per second
-    LOG_INFO_LIMIT(std::chrono::seconds{1}, logger, "A {} message with number {}", l, a);
-    LOGV_INFO_LIMIT(std::chrono::seconds{1}, logger, "A message with two variables", a, b);
-  }
-
-  LOG_TRACE_L3(logger, "Support for floats {:03.2f}", 1.23456);
-  LOG_TRACE_L2(logger, "Positional arguments are {1} {0} ", "too", "supported");
-  LOG_TRACE_L1(logger, "{:>30}", "right aligned");
-  LOG_DEBUG(logger, "Debugging foo {}", 1234);
-  LOG_INFO(logger, "Welcome to Quill!");
-  LOG_WARNING(logger, "A warning message.");
-  LOG_ERROR(logger, "An error message. error code {}", 123);
-  LOG_CRITICAL(logger, "A critical error.");
-}
-```
-
-### Output
-
-![example_output.png](docs%2Fexample_output.png)
-
-## Usage
-
-#### External CMake
-
-##### Building and Installing Quill
-
-```
-git clone http://github.com/odygrd/quill.git
-mkdir cmake_build
-cd cmake_build
-cmake ..
-make install
-```
-
-Note: To install in custom directory invoke cmake with `-DCMAKE_INSTALL_PREFIX=/quill/install-dir/`
-
-Then use the library from a CMake project, you can locate it directly with `find_package()`
-
-##### Directory Structure
-
-```
-my_project/
-├── CMakeLists.txt
-├── main.cpp
-```
-
-##### CMakeLists.txt
-
-```cmake
-# Set only if needed - quill was installed under a custom non-standard directory
-set(CMAKE_PREFIX_PATH /test_quill/usr/local/)
-
-find_package(quill REQUIRED)
-
-# Linking your project against quill
-add_executable(example main.cpp)
-target_link_libraries(example PUBLIC quill::quill)
-```
-
-#### Embedded CMake
-
-To embed the library directly, copy the source [folder](http://github.com/odygrd/quill/tree/master/quill/quill) to your
-project and call `add_subdirectory()` in your `CMakeLists.txt` file
-
-##### Directory Structure
-
-```
-my_project/
-├── quill/            (source folder)
-├── CMakeLists.txt
-├── main.cpp
-```
-
-##### CMakeLists.txt
-
-```cmake
-cmake_minimum_required(VERSION 3.1.0)
-project(my_project)
-
-set(CMAKE_CXX_STANDARD 17)
-
-add_subdirectory(quill)
-
-add_executable(my_project main.cpp)
-target_link_libraries(my_project PUBLIC quill::quill)
-```
-
-#### Building Quill for Android NDK
-
-To build quill for Android NDK add the following flags when configuring the build:
-
-  ```
-  -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
-  ```
-
-#### Meson
-
-##### Using WrapDB
-
-Meson's `wrapdb` includes a quill package, which repackages quill to be built by meson as a subproject.
-
-- Install quill subproject from the wrapdb by running from the root of your project
-
-  ```meson
-  meson wrap install quill
-  ```
-
-##### Manual Integration
-
-If you prefer not to use WrapDB, you can manually integrate Quill into your project by following these steps:
-
-- Copy the contents of this repository under the subprojects directory in your project.
-
-##### Integration Steps
-
-Once the library is integrated into your Meson project, follow these steps to ensure proper usage:
-
-- In your project’s `meson.build` file, add an entry for the new subproject
-
-  ```meson
-  quill = subproject('quill')
-  quill_dep = quill.get_variable('quill_dep')
-  ```
-
-- Include the new dependency object to link with quill
-
-  ```meson
-  my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], install : true)
-  ```
-
-#### Bazel
-
-##### Using Blzmod
-
-The library is available on BLZMOD, allowing for easy integration into your project.
-
-##### Manual Integration
-
-If you prefer manual integration, you can add the library as a dependency in your `BUILD.bazel` file. Below is a sample
-`cc_binary` rule demonstrating how to include the library. Ensure to replace `//quill_path` with the actual path to the
-directory containing the `BUILD.bazel` file for the quill library within your project structure.
-
-  ```bazel
-  cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
-  ```
-
-## Design
+## 📐 Design
 
 ### Frontend (caller-thread)
 
@@ -588,12 +526,62 @@ Subsequently, forwards the log message to all Sinks associated with the Logger.
 
 ![design.jpg](docs%2Fdesign.jpg)
 
-## License
+## 🚨 Caveats
+
+Quill may not work well with `fork()` since it spawns a background thread and `fork()` doesn't work well with
+multithreading.
+
+If your application uses `fork()` and you want to log in the child processes as well, you should call `quill::start()`
+after the `fork()` call. Additionally, you should ensure that you write to different files in the parent and child
+processes to avoid conflicts.
+
+For example :
+
+```c++
+#include "quill/Backend.h"
+#include "quill/Frontend.h"
+#include "quill/LogMacros.h"
+#include "quill/Logger.h"
+#include "quill/sinks/FileSink.h"
+
+int main()
+{
+  // DO NOT CALL THIS BEFORE FORK
+  // quill::Backend::start();
+
+  if (fork() == 0)
+  {
+    quill::Backend::start();
+        
+    // Get or create a handler to the file - Write to a different file
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
+      "child.log");
+    
+    quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
+
+    QUILL_LOG_INFO(logger, "Hello from Child {}", 123);
+  }
+  else
+  {
+    quill::Backend::start();
+          
+    // Get or create a handler to the file - Write to a different file
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
+      "parent.log");
+    
+    quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
+    
+    QUILL_LOG_INFO(logger, "Hello from Parent {}", 123);
+  }
+}
+```
+
+## 📝 License
 
 Quill is licensed under the [MIT License](http://opensource.org/licenses/MIT)
 
 Quill depends on third party libraries with separate copyright notices and license terms.
 Your use of the source code for these subcomponents is subject to the terms and conditions of the following licenses.
 
-- ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (http://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
-- ([MIT License](http://opensource.org/licenses/MIT)) doctest (http://github.com/onqtam/doctest/blob/master/LICENSE.txt)
+- ([MIT License](http://opensource.org/licenses/MIT)) [{fmt}](http://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
+- ([MIT License](http://opensource.org/licenses/MIT)) [doctest](http://github.com/onqtam/doctest/blob/master/LICENSE.txt)

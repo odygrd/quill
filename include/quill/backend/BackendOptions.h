@@ -136,7 +136,7 @@ struct BackendOptions
    * It is recommended to pin the backend to a shared non-critical CPU.
    * Use `std::numeric_limits<uint16_t>::max()` as an undefined value to avoid setting CPU affinity.
    */
-  uint16_t backend_cpu_affinity = (std::numeric_limits<uint16_t>::max)();
+  uint16_t cpu_affinity = (std::numeric_limits<uint16_t>::max)();
 
   /**
    * The backend may encounter exceptions that cannot be caught within user threads.

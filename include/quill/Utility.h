@@ -6,9 +6,8 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
-#include <string_view>
-#include <tuple>
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
@@ -54,36 +53,6 @@ QUILL_NODISCARD std::string to_hex(T* buffer, size_t size) noexcept
 
   return hex_string;
 }
-
-/**
- * @brief Helper class for combining quill::Tag objects.
- * This class combines multiple quill::Tag objects into a single Tag object.
- */
-template <typename... TTags>
-class CombinedTags : public Tags
-{
-public:
-  constexpr CombinedTags(TTags... tags, std::string_view delim = ", ")
-    : _tags(std::move(tags)...), _delim(delim)
-  {
-  }
-
-  void format(std::string& out) const override
-  {
-    std::apply([&out, this](const auto&... tags)
-               { (((tags.format(out)), out.append(_delim.data())), ...); }, _tags);
-
-    if (!out.empty())
-    {
-      // erase last delim
-      out.erase(out.length() - _delim.length(), _delim.length());
-    }
-  }
-
-private:
-  std::tuple<TTags...> _tags;
-  std::string_view _delim;
-};
 } // namespace utility
 
 QUILL_END_NAMESPACE

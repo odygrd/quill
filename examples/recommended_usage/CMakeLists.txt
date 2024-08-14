@@ -1,9 +1,20 @@
 add_subdirectory(quill_wrapper)
 
-add_executable(quill_example_recommended_usage recommended_usage.cpp)
-set_common_compile_options(quill_example_recommended_usage)
-target_link_libraries(quill_example_recommended_usage quill_wrapper_recommended)
+set(EXAMPLE_TARGETS
+        quill_example_recommended_usage
+        quill_example_use_overwrite_macros
+)
 
-add_executable(quill_example_use_overwrite_macros use_overwrite_macros.cpp)
-set_common_compile_options(quill_example_use_overwrite_macros)
-target_link_libraries(quill_example_use_overwrite_macros quill_wrapper_recommended)
+# Add example executables
+foreach (example_target ${EXAMPLE_TARGETS})
+    # Determine the source file from the target name
+    string(REPLACE "quill_example_" "" source_name ${example_target})
+    set(source_file "${source_name}.cpp")
+
+    add_executable(${example_target} ${source_file})
+    set_common_compile_options(${example_target})
+    target_link_libraries(${example_target} quill_wrapper_recommended)
+endforeach ()
+
+install(TARGETS ${EXAMPLE_TARGETS}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
