@@ -74,8 +74,6 @@ Quill is a fast, feature-rich cross-platform logging library for C++ designed fo
 - Extensive Documentation: Easy-to-follow guides and cheat sheets.
 - Community-Driven: Contributions, feedback and feature requests are welcome!
 
-Try Quill on [Compiler Explorer]() to see it in action!
-
 ## ⏩ Quick Start
 
 Getting started is easy and straightforward. Follow these steps to integrate the library into your project:
@@ -585,5 +583,5 @@ Quill is licensed under the [MIT License](http://opensource.org/licenses/MIT)
 Quill depends on third party libraries with separate copyright notices and license terms.
 Your use of the source code for these subcomponents is subject to the terms and conditions of the following licenses.
 
-- ([MIT License](http://opensource.org/licenses/MIT)) {fmt} (http://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
-- ([MIT License](http://opensource.org/licenses/MIT)) doctest (http://github.com/onqtam/doctest/blob/master/LICENSE.txt)
+- ([MIT License](http://opensource.org/licenses/MIT)) [{fmt}](http://github.com/fmtlib/fmt/blob/master/LICENSE.rst)
+- ([MIT License](http://opensource.org/licenses/MIT)) [doctest](http://github.com/onqtam/doctest/blob/master/LICENSE.txt)
