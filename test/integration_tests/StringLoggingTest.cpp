@@ -23,14 +23,32 @@ public:
   CustomAllocator() noexcept : std::allocator<T>() {}
 
   template <typename U>
-  CustomAllocator(CustomAllocator<U> const& other) noexcept : std::allocator<T>(other)
+  CustomAllocator(const CustomAllocator<U>& other) noexcept : std::allocator<T>(other)
   {
   }
 
   [[nodiscard]] T* allocate(std::size_t n) { return std::allocator<T>::allocate(n); }
 
   void deallocate(T* p, std::size_t n) noexcept { std::allocator<T>::deallocate(p, n); }
+
+  template <typename U>
+  struct rebind
+  {
+    using other = CustomAllocator<U>;
+  };
 };
+
+template <typename T, typename U>
+bool operator==(const CustomAllocator<T>&, const CustomAllocator<U>&)
+{
+  return true;
+}
+
+template <typename T, typename U>
+bool operator!=(const CustomAllocator<T>&, const CustomAllocator<U>&)
+{
+  return false;
+}
 
 /***/
 TEST_CASE("string_logging")
