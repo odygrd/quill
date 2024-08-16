@@ -23,7 +23,7 @@ public:
   CustomAllocator() noexcept : std::allocator<T>() {}
 
   template <typename U>
-  CustomAllocator(const CustomAllocator<U>& other) noexcept : std::allocator<T>(other)
+  explicit CustomAllocator(const CustomAllocator<U>& other) noexcept : std::allocator<T>(other)
   {
   }
 
