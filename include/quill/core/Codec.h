@@ -49,6 +49,17 @@ constexpr auto strnlen =
   ::strnlen
 #endif
   ;
+
+/** std string detection, ignoring the Allocator type **/
+template <typename T>
+struct is_std_string : std::false_type
+{
+};
+
+template <typename Allocator>
+struct is_std_string<std::basic_string<char, std::char_traits<char>, Allocator>> : std::true_type
+{
+};
 } // namespace detail
 
 /** typename = void for specializations with enable_if **/
@@ -75,7 +86,7 @@ struct Codec
       conditional_arg_size_cache.push_back(static_cast<size_t>(strlen(arg) + 1u));
       return conditional_arg_size_cache.back();
     }
-    else if constexpr (std::disjunction_v<std::is_same<Arg, std::string>, std::is_same<Arg, std::string_view>>)
+    else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
       // for std::string we also need to store the size in order to correctly retrieve it
       // the reason for this is that if we create e.g:
@@ -126,7 +137,7 @@ struct Codec
       std::memcpy(buffer, arg, len);
       buffer += len;
     }
-    else if constexpr (std::disjunction_v<std::is_same<Arg, std::string>, std::is_same<Arg, std::string_view>>)
+    else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
       // for std::string we store the size first, in order to correctly retrieve it
       // Copy the length first and then the actual string
@@ -170,7 +181,7 @@ struct Codec
       buffer += strlen(arg) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
       return arg;
     }
-    else if constexpr (std::disjunction_v<std::is_same<Arg, std::string>, std::is_same<Arg, std::string_view>>)
+    else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
       // for std::string we first need to retrieve the length
       size_t len;
@@ -204,7 +215,7 @@ struct Codec
       // for std::string_view we would need fmt/format.h
       args_store->push_back(fmtquill::string_view{arg, strlen(arg)});
     }
-    else if constexpr (std::disjunction_v<std::is_same<Arg, std::string>, std::is_same<Arg, std::string_view>>)
+    else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
       std::string_view arg = decode_arg(buffer);
 

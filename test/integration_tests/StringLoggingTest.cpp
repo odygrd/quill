@@ -7,11 +7,30 @@
 #include "quill/sinks/FileSink.h"
 
 #include <cstdio>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
 
 using namespace quill;
+
+template <typename T>
+class CustomAllocator : public std::allocator<T>
+{
+public:
+  using value_type = T;
+
+  CustomAllocator() noexcept : std::allocator<T>() {}
+
+  template <typename U>
+  CustomAllocator(CustomAllocator<U> const& other) noexcept : std::allocator<T>(other)
+  {
+  }
+
+  [[nodiscard]] T* allocate(std::size_t n) { return std::allocator<T>::allocate(n); }
+
+  void deallocate(T* p, std::size_t n) noexcept { std::allocator<T>::deallocate(p, n); }
+};
 
 /***/
 TEST_CASE("string_logging")
@@ -39,6 +58,8 @@ TEST_CASE("string_logging")
   Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink));
 
   {
+    std::basic_string<char, std::char_traits<char>, CustomAllocator<char>> cas =
+      "custom allocator string";
     std::string s = "adipiscing";
     std::string const& scr = s;
     std::string& sr = s;
@@ -62,6 +83,7 @@ TEST_CASE("string_logging")
     const char* npcs = "Example\u0003String\u0004";
     LOG_INFO(logger, "non printable cs [{}]", npcs);
 
+    LOG_INFO(logger, "cas [{}]", cas);
     LOG_INFO(logger, "s [{}]", s);
     LOG_INFO(logger, "scr [{}]", scr);
     LOG_INFO(logger, "sr [{}]", sr);
@@ -110,7 +132,10 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 15);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 16);
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       cas [custom allocator string]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       non printable cs [Example\\x03String\\x04]"}));
