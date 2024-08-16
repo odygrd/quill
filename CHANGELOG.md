@@ -78,7 +78,8 @@
 - Simplified the log tags API. The `Tags` class has been removed. You now pass a `char const*` directly to the macros. Additionally, macros previously named `WITH_TAGS` have been renamed to `_TAGS`. For example, `LOG_INFO_WITH_TAGS` is now `LOG_INFO_TAGS`.
 - Renamed `backend_cpu_affinity` to `cpu_affinity` in `BackendOptions` to improve consistency.
 - Simplified project structure by removing the extra quill directory and made minor CMake improvements; `include/quill` is now directly in the root.
-  
+- Added support for `std::string` with custom allocator ([#524](https://github.com/odygrd/quill/issues/524))
+
 ## v6.1.2
 
 - Fix pkg-config file on windows
