@@ -48,7 +48,7 @@ int main()
 
   // A message with two variables [a: 123, b: 3.17]
   double b = 3.17;
-  LOGV_INFO(logger, "A message with two variables", a, b);
+  LOGV_NOTICE(logger, "A message with two variables", a, b);
 
   for (uint32_t i = 0; i < 10; ++i)
   {
