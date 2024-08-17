@@ -66,6 +66,7 @@ public:
     set_colour(LogLevel::TraceL1, white);
     set_colour(LogLevel::Debug, cyan);
     set_colour(LogLevel::Info, green);
+    set_colour(LogLevel::Notice, white | bold);
     set_colour(LogLevel::Warning, yellow | bold);
     set_colour(LogLevel::Error, red | bold);
     set_colour(LogLevel::Critical, on_red | bold | white); // white bold on red background
@@ -171,6 +172,7 @@ public:
     set_colour(LogLevel::TraceL1, white);
     set_colour(LogLevel::Debug, cyan);
     set_colour(LogLevel::Info, green);
+    set_colour(LogLevel::Notice, white_bold);
     set_colour(LogLevel::Warning, yellow_bold);
     set_colour(LogLevel::Error, red_bold);
     set_colour(LogLevel::Critical, bold_on_red);
@@ -245,6 +247,7 @@ public:
   static inline std::string const on_white{"\033[47m"};
 
   /// Bold colors
+  static inline std::string const white_bold{"\033[97m\033[1m"};
   static inline std::string const yellow_bold{"\033[33m\033[1m"};
   static inline std::string const red_bold{"\033[31m\033[1m"};
   static inline std::string const bold_on_red{"\033[1m\033[41m"};
