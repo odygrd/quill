@@ -14,8 +14,8 @@ using namespace std::literals;
 /***/
 TEST_CASE("loglevel_to_string")
 {
-  std::array<std::string, 11> log_level_descriptions = {
-    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO",   "WARNING",
+  std::array<std::string, 12> log_level_descriptions = {
+    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO", "NOTICE", "WARNING",
     "ERROR",    "CRITICAL", "BACKTRACE", "NONE",  "DYNAMIC"};
 
   {
@@ -64,6 +64,14 @@ TEST_CASE("loglevel_to_string")
       detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
         .data(),
       "WARNING");
+  }
+
+  {
+    LogLevel log_level{LogLevel::Notice};
+    REQUIRE_STREQ(
+      detail::log_level_to_string(log_level, log_level_descriptions.data(), log_level_descriptions.size())
+        .data(),
+      "NOTICE");
   }
 
   {
@@ -154,6 +162,11 @@ TEST_CASE("loglevel_from_string")
   {
     std::string log_level{"Warning"};
     REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Warning);
+  }
+
+  {
+    std::string log_level{"Notice"};
+    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Notice);
   }
 
   {

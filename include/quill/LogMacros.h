@@ -28,9 +28,10 @@
 #define QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L1 2
 #define QUILL_COMPILE_ACTIVE_LOG_LEVEL_DEBUG 3
 #define QUILL_COMPILE_ACTIVE_LOG_LEVEL_INFO 4
-#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING 5
-#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_ERROR 6
-#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_CRITICAL 7
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_NOTICE 5
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING 6
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_ERROR 7
+#define QUILL_COMPILE_ACTIVE_LOG_LEVEL_CRITICAL 8
 
 #if !defined(QUILL_COMPILE_ACTIVE_LOG_LEVEL)
   #define QUILL_COMPILE_ACTIVE_LOG_LEVEL -1
@@ -580,6 +581,51 @@
   #define QUILL_LOGJ_INFO_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
+#if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_NOTICE
+  #define QUILL_LOG_NOTICE(logger, fmt, ...)                                                         \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                     \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOG_NOTICE_TAGS(logger, tags, fmt, ...)                                              \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
+
+  #define QUILL_LOGV_NOTICE(logger, fmt, ...)                                                        \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,                        \
+                      QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
+
+  #define QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                    \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,    \
+                            QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
+
+  #define QUILL_LOGV_NOTICE_TAGS(logger, tags, fmt, ...)                                             \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice,                           \
+                      QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
+
+  #define QUILL_LOGJ_NOTICE(logger, fmt, ...)                                                        \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,                        \
+                      QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
+
+  #define QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                    \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,    \
+                            QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
+
+  #define QUILL_LOGJ_NOTICE_TAGS(logger, tags, fmt, ...)                                             \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice,                           \
+                      QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
+#else
+  #define QUILL_LOG_NOTICE(logger, fmt, ...) (void)0
+  #define QUILL_LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOG_NOTICE_TAGS(logger, tags, fmt, ...) (void)0
+  #define QUILL_LOGV_NOTICE(logger, fmt, ...) (void)0
+  #define QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOGV_NOTICE_TAGS(logger, tags, fmt, ...) (void)0
+  #define QUILL_LOGJ_NOTICE(logger, fmt, ...) (void)0
+  #define QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOGJ_NOTICE_TAGS(logger, tags, fmt, ...) (void)0
+#endif
+
 #if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING
   #define QUILL_LOG_WARNING(logger, fmt, ...)                                                      \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Warning, fmt, ##__VA_ARGS__)
@@ -749,6 +795,7 @@
   #define LOG_TRACE_L1(logger, fmt, ...) QUILL_LOG_TRACE_L1(logger, fmt, ##__VA_ARGS__)
   #define LOG_DEBUG(logger, fmt, ...) QUILL_LOG_DEBUG(logger, fmt, ##__VA_ARGS__)
   #define LOG_INFO(logger, fmt, ...) QUILL_LOG_INFO(logger, fmt, ##__VA_ARGS__)
+  #define LOG_NOTICE(logger, fmt, ...) QUILL_LOG_NOTICE(logger, fmt, ##__VA_ARGS__)
   #define LOG_WARNING(logger, fmt, ...) QUILL_LOG_WARNING(logger, fmt, ##__VA_ARGS__)
   #define LOG_ERROR(logger, fmt, ...) QUILL_LOG_ERROR(logger, fmt, ##__VA_ARGS__)
   #define LOG_CRITICAL(logger, fmt, ...) QUILL_LOG_CRITICAL(logger, fmt, ##__VA_ARGS__)
@@ -766,6 +813,8 @@
     QUILL_LOG_DEBUG_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOG_INFO_LIMIT(min_interval, logger, fmt, ...)                                           \
     QUILL_LOG_INFO_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                         \
+    QUILL_LOG_NOTICE_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOG_WARNING_LIMIT(min_interval, logger, fmt, ...)                                        \
     QUILL_LOG_WARNING_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOG_ERROR_LIMIT(min_interval, logger, fmt, ...)                                          \
@@ -783,6 +832,8 @@
     QUILL_LOG_DEBUG_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOG_INFO_TAGS(logger, tags, fmt, ...)                                                    \
     QUILL_LOG_INFO_TAGS(logger, tags, fmt, ##__VA_ARGS__)
+  #define LOG_NOTICE_TAGS(logger, tags, fmt, ...)                                                  \
+    QUILL_LOG_NOTICE_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOG_WARNING_TAGS(logger, tags, fmt, ...)                                                 \
     QUILL_LOG_WARNING_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOG_ERROR_TAGS(logger, tags, fmt, ...)                                                   \
@@ -799,6 +850,7 @@
   #define LOGV_TRACE_L1(logger, fmt, ...) QUILL_LOGV_TRACE_L1(logger, fmt, ##__VA_ARGS__)
   #define LOGV_DEBUG(logger, fmt, ...) QUILL_LOGV_DEBUG(logger, fmt, ##__VA_ARGS__)
   #define LOGV_INFO(logger, fmt, ...) QUILL_LOGV_INFO(logger, fmt, ##__VA_ARGS__)
+  #define LOGV_NOTICE(logger, fmt, ...) QUILL_LOGV_NOTICE(logger, fmt, ##__VA_ARGS__)
   #define LOGV_WARNING(logger, fmt, ...) QUILL_LOGV_WARNING(logger, fmt, ##__VA_ARGS__)
   #define LOGV_ERROR(logger, fmt, ...) QUILL_LOGV_ERROR(logger, fmt, ##__VA_ARGS__)
   #define LOGV_CRITICAL(logger, fmt, ...) QUILL_LOGV_CRITICAL(logger, fmt, ##__VA_ARGS__)
@@ -816,6 +868,8 @@
     QUILL_LOGV_DEBUG_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOGV_INFO_LIMIT(min_interval, logger, fmt, ...)                                          \
     QUILL_LOGV_INFO_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOGV_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                        \
+    QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOGV_WARNING_LIMIT(min_interval, logger, fmt, ...)                                       \
     QUILL_LOGV_WARNING_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOGV_ERROR_LIMIT(min_interval, logger, fmt, ...)                                         \
@@ -833,6 +887,8 @@
     QUILL_LOGV_DEBUG_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOGV_INFO_TAGS(logger, tags, fmt, ...)                                                   \
     QUILL_LOGV_INFO_TAGS(logger, tags, fmt, ##__VA_ARGS__)
+  #define LOGV_NOTICE_TAGS(logger, tags, fmt, ...)                                                 \
+    QUILL_LOGV_NOTICE_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOGV_WARNING_TAGS(logger, tags, fmt, ...)                                                \
     QUILL_LOGV_WARNING_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOGV_ERROR_TAGS(logger, tags, fmt, ...)                                                  \
@@ -845,6 +901,7 @@
   #define LOGJ_TRACE_L1(logger, fmt, ...) QUILL_LOGJ_TRACE_L1(logger, fmt, ##__VA_ARGS__)
   #define LOGJ_DEBUG(logger, fmt, ...) QUILL_LOGJ_DEBUG(logger, fmt, ##__VA_ARGS__)
   #define LOGJ_INFO(logger, fmt, ...) QUILL_LOGJ_INFO(logger, fmt, ##__VA_ARGS__)
+  #define LOGJ_NOTICE(logger, fmt, ...) QUILL_LOGJ_NOTICE(logger, fmt, ##__VA_ARGS__)
   #define LOGJ_WARNING(logger, fmt, ...) QUILL_LOGJ_WARNING(logger, fmt, ##__VA_ARGS__)
   #define LOGJ_ERROR(logger, fmt, ...) QUILL_LOGJ_ERROR(logger, fmt, ##__VA_ARGS__)
   #define LOGJ_CRITICAL(logger, fmt, ...) QUILL_LOGJ_CRITICAL(logger, fmt, ##__VA_ARGS__)
@@ -862,6 +919,8 @@
     QUILL_LOGJ_DEBUG_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOGJ_INFO_LIMIT(min_interval, logger, fmt, ...)                                          \
     QUILL_LOGJ_INFO_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
+  #define LOGJ_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                        \
+    QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOGJ_WARNING_LIMIT(min_interval, logger, fmt, ...)                                       \
     QUILL_LOGJ_WARNING_LIMIT(min_interval, logger, fmt, ##__VA_ARGS__)
   #define LOGJ_ERROR_LIMIT(min_interval, logger, fmt, ...)                                         \
@@ -879,6 +938,8 @@
     QUILL_LOGJ_DEBUG_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOGJ_INFO_TAGS(logger, tags, fmt, ...)                                                   \
     QUILL_LOGJ_INFO_TAGS(logger, tags, fmt, ##__VA_ARGS__)
+  #define LOGJ_NOTICE_TAGS(logger, tags, fmt, ...)                                                 \
+    QUILL_LOGJ_NOTICE_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOGJ_WARNING_TAGS(logger, tags, fmt, ...)                                                \
     QUILL_LOGJ_WARNING_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOGJ_ERROR_TAGS(logger, tags, fmt, ...)                                                  \

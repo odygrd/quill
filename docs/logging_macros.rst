@@ -70,6 +70,14 @@ Standard Logging Macros
 
 - :c:macro:`LOG_INFO_TAGS(logger, tags, fmt, ...)`
 
+**Notice**
+
+- :c:macro:`LOG_NOTICE(logger, fmt, ...)`
+
+- :c:macro:`LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)`
+
+- :c:macro:`LOG_NOTICE_TAGS(logger, tags, fmt, ...)`
+
 **Warning**
 
 - :c:macro:`LOG_WARNING(logger, fmt, ...)`
@@ -144,6 +152,14 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_INFO_TAGS(logger, tags, message, ...)`
 
+**Notice**
+
+- :c:macro:`LOGV_NOTICE(logger, message, ...)`
+
+- :c:macro:`LOGV_NOTICE_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGV_NOTICE_TAGS(logger, tags, message, ...)`
+
 **Warning**
 
 - :c:macro:`LOGV_WARNING(logger, message, ...)`
@@ -217,6 +233,14 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 - :c:macro:`LOGJ_INFO_LIMIT(min_interval, logger, message, ...)`
 
 - :c:macro:`LOGJ_INFO_TAGS(logger, tags, message, ...)`
+
+**Notice**
+
+- :c:macro:`LOGJ_NOTICE(logger, message, ...)`
+
+- :c:macro:`LOGJ_NOTICE_LIMIT(min_interval, logger, message, ...)`
+
+- :c:macro:`LOGJ_NOTICE_TAGS(logger, tags, message, ...)`
 
 **Warning**
 

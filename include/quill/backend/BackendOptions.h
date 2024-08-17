@@ -198,8 +198,8 @@ struct BackendOptions
    * The indices correspond to LogLevel enum values defined elsewhere in the codebase.
    * These names provide human-readable identifiers for each log level.
    */
-  std::array<std::string, 11> log_level_descriptions = {
-    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO",   "WARNING",
+  std::array<std::string, 12> log_level_descriptions = {
+    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO", "NOTICE", "WARNING",
     "ERROR",    "CRITICAL", "BACKTRACE", "NONE",  "DYNAMIC"};
 
   /**
