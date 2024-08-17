@@ -76,7 +76,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_NOTICE_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_NOTICE_TAGS(logger, tags, fmt, ...)`
 
 **Warning**
 
@@ -158,7 +158,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_NOTICE_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_NOTICE_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_NOTICE_TAGS(logger, tags, message, ...)`
 
 **Warning**
 
@@ -240,7 +240,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_NOTICE_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_NOTICE_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_NOTICE_TAGS(logger, tags, message, ...)`
 
 **Warning**
 

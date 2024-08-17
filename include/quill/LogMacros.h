@@ -583,47 +583,47 @@
 
 #if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_NOTICE
   #define QUILL_LOG_NOTICE(logger, fmt, ...)                                                         \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
 
   #define QUILL_LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                     \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
 
-  #define QUILL_LOG_NOTICE_WITH_TAGS(logger, tags, fmt, ...)                                         \
-    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_LIKELY, logger, quill::LogLevel::Notice, tags, fmt, ##__VA_ARGS__)
+  #define QUILL_LOG_NOTICE_TAGS(logger, tags, fmt, ...)                                              \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
 
-  #define QUILL_LOGV_NOTICE(logger, message, ...)                                                    \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Notice,                                 \
-                      QUILL_GENERATE_FORMAT_STRING(message, ##__VA_ARGS__), ##__VA_ARGS__)
+  #define QUILL_LOGV_NOTICE(logger, fmt, ...)                                                        \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,                        \
+                      QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, message, ...)                                \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Notice,             \
-                            QUILL_GENERATE_FORMAT_STRING(message, ##__VA_ARGS__), ##__VA_ARGS__)
+  #define QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                    \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,    \
+                            QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGV_NOTICE_WITH_TAGS(logger, tags, message, ...)                                    \
-    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_LIKELY, logger, quill::LogLevel::Notice, tags,                 \
-                                QUILL_GENERATE_FORMAT_STRING(message, ##__VA_ARGS__), ##__VA_ARGS__)
+  #define QUILL_LOGV_NOTICE_TAGS(logger, tags, fmt, ...)                                             \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice,                           \
+                      QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGJ_NOTICE(logger, message, ...)                                                    \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, quill::LogLevel::Notice,                                 \
-                      QUILL_GENERATE_NAMED_FORMAT_STRING(message, ##__VA_ARGS__), ##__VA_ARGS__)
+  #define QUILL_LOGJ_NOTICE(logger, fmt, ...)                                                        \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,                        \
+                      QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, message, ...)                                \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, quill::LogLevel::Notice,             \
-                            QUILL_GENERATE_NAMED_FORMAT_STRING(message, ##__VA_ARGS__), ##__VA_ARGS__)
+  #define QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                    \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,    \
+                            QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGJ_NOTICE_WITH_TAGS(logger, tags, message, ...)                                    \
-    QUILL_LOGGER_CALL_WITH_TAGS(QUILL_LIKELY, logger, quill::LogLevel::Notice, tags,                 \
-                                QUILL_GENERATE_NAMED_FORMAT_STRING(message, ##__VA_ARGS__), ##__VA_ARGS__)
+  #define QUILL_LOGJ_NOTICE_TAGS(logger, tags, fmt, ...)                                             \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice,                           \
+                      QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 #else
   #define QUILL_LOG_NOTICE(logger, fmt, ...) (void)0
   #define QUILL_LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...) (void)0
-  #define QUILL_LOG_NOTICE_WITH_TAGS(logger, tags, fmt, ...) (void)0
-  #define QUILL_LOGV_NOTICE(logger, message, ...) (void)0
-  #define QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, message, ...) (void)0
-  #define QUILL_LOGV_NOTICE_WITH_TAGS(logger, tags, message, ...) (void)0
-  #define QUILL_LOGJ_NOTICE(logger, message, ...) (void)0
-  #define QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, message, ...) (void)0
-  #define QUILL_LOGJ_NOTICE_WITH_TAGS(logger, tags, message, ...) (void)0
+  #define QUILL_LOG_NOTICE_TAGS(logger, tags, fmt, ...) (void)0
+  #define QUILL_LOGV_NOTICE(logger, fmt, ...) (void)0
+  #define QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOGV_NOTICE_TAGS(logger, tags, fmt, ...) (void)0
+  #define QUILL_LOGJ_NOTICE(logger, fmt, ...) (void)0
+  #define QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, fmt, ...) (void)0
+  #define QUILL_LOGJ_NOTICE_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
 #if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING
