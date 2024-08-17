@@ -36,7 +36,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_TRACE_L3_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_TRACE_L3_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_TRACE_L3_TAGS(logger, tags, fmt, ...)`
 
 **Trace Level 2 (L2)**
 
@@ -44,7 +44,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_TRACE_L2_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_TRACE_L2_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_TRACE_L2_TAGS(logger, tags, fmt, ...)`
 
 **Trace Level 1 (L1)**
 
@@ -52,7 +52,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_TRACE_L1_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_TRACE_L1_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_TRACE_L1_TAGS(logger, tags, fmt, ...)`
 
 **Debug**
 
@@ -60,7 +60,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_DEBUG_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_DEBUG_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_DEBUG_TAGS(logger, tags, fmt, ...)`
 
 **Info**
 
@@ -68,7 +68,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_INFO_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_INFO_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_INFO_TAGS(logger, tags, fmt, ...)`
 
 **Notice**
 
@@ -84,7 +84,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_WARNING_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_WARNING_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_WARNING_TAGS(logger, tags, fmt, ...)`
 
 **Error**
 
@@ -92,7 +92,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_ERROR_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_ERROR_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_ERROR_TAGS(logger, tags, fmt, ...)`
 
 **Critical**
 
@@ -100,7 +100,7 @@ Standard Logging Macros
 
 - :c:macro:`LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...)`
 
-- :c:macro:`LOG_CRITICAL_WITH_TAGS(logger, tags, fmt, ...)`
+- :c:macro:`LOG_CRITICAL_TAGS(logger, tags, fmt, ...)`
 
 **Backtrace**
 
@@ -118,7 +118,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_TRACE_L3_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_TRACE_L3_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_TRACE_L3_TAGS(logger, tags, message, ...)`
 
 **Trace Level 2 (L2)**
 
@@ -126,7 +126,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_TRACE_L2_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_TRACE_L2_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_TRACE_L2_TAGS(logger, tags, message, ...)`
 
 **Trace Level 1 (L1)**
 
@@ -134,7 +134,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_TRACE_L1_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_TRACE_L1_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_TRACE_L1_TAGS(logger, tags, message, ...)`
 
 **Debug**
 
@@ -142,7 +142,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_DEBUG_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_DEBUG_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_DEBUG_TAGS(logger, tags, message, ...)`
 
 **Info**
 
@@ -150,7 +150,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_INFO_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_INFO_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_INFO_TAGS(logger, tags, message, ...)`
 
 **Notice**
 
@@ -166,7 +166,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_WARNING_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_WARNING_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_WARNING_TAGS(logger, tags, message, ...)`
 
 **Error**
 
@@ -174,7 +174,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_ERROR_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_ERROR_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_ERROR_TAGS(logger, tags, message, ...)`
 
 **Critical**
 
@@ -182,7 +182,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGV_CRITICAL_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGV_CRITICAL_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGV_CRITICAL_TAGS(logger, tags, message, ...)`
 
 **Backtrace**
 
@@ -200,7 +200,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_TRACE_L3_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_TRACE_L3_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_TRACE_L3_TAGS(logger, tags, message, ...)`
 
 **Trace Level 2 (L2)**
 
@@ -208,7 +208,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_TRACE_L2_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_TRACE_L2_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_TRACE_L2_TAGS(logger, tags, message, ...)`
 
 **Trace Level 1 (L1)**
 
@@ -216,7 +216,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_TRACE_L1_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_TRACE_L1_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_TRACE_L1_TAGS(logger, tags, message, ...)`
 
 **Debug**
 
@@ -224,7 +224,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_DEBUG_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_DEBUG_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_DEBUG_TAGS(logger, tags, message, ...)`
 
 **Info**
 
@@ -232,7 +232,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_INFO_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_INFO_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_INFO_TAGS(logger, tags, message, ...)`
 
 **Notice**
 
@@ -248,7 +248,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_WARNING_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_WARNING_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_WARNING_TAGS(logger, tags, message, ...)`
 
 **Error**
 
@@ -256,7 +256,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_ERROR_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_ERROR_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_ERROR_TAGS(logger, tags, message, ...)`
 
 **Critical**
 
@@ -264,7 +264,7 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 - :c:macro:`LOGJ_CRITICAL_LIMIT(min_interval, logger, message, ...)`
 
-- :c:macro:`LOGJ_CRITICAL_WITH_TAGS(logger, tags, message, ...)`
+- :c:macro:`LOGJ_CRITICAL_TAGS(logger, tags, message, ...)`
 
 **Backtrace**
 

@@ -3,82 +3,40 @@ add_subdirectory(shared_library)
 add_subdirectory(advanced)
 add_subdirectory(single_logger_multiple_sink_formats)
 
-add_executable(quill_example_backend_thread_notify backend_thread_notify.cpp)
-set_common_compile_options(quill_example_backend_thread_notify)
-target_link_libraries(quill_example_backend_thread_notify quill)
+# Define a variable with all example targets
+set(EXAMPLE_TARGETS
+        quill_example_backend_thread_notify
+        quill_example_backtrace_logging
+        quill_example_bounded_dropping_queue_frontend
+        quill_example_console_logging
+        quill_example_custom_console_colours
+        quill_example_rotating_file_logging
+        quill_example_signal_handler
+        quill_example_logger_removal_with_file_event_notifier
+        quill_example_custom_frontend_options
+        quill_example_file_logging
+        quill_example_filter_logging
+        quill_example_system_clock_logging
+        quill_example_user_clock_source
+        quill_example_user_defined_filter
+        quill_example_user_defined_sink
+        quill_example_tags_logging
+        quill_example_json_console_logging
+        quill_example_csv_writing
+        quill_example_json_file_logging
+        quill_example_user_defined_types_logging
+)
 
-add_executable(quill_example_backtrace_logging backtrace_logging.cpp)
-set_common_compile_options(quill_example_backtrace_logging)
-target_link_libraries(quill_example_backtrace_logging quill)
+# Add example executables
+foreach (example_target ${EXAMPLE_TARGETS})
+    # Determine the source file from the target name
+    string(REPLACE "quill_example_" "" source_name ${example_target})
+    set(source_file "${source_name}.cpp")
 
-add_executable(quill_example_bounded_dropping_queue_frontend bounded_dropping_queue_frontend.cpp)
-set_common_compile_options(quill_example_bounded_dropping_queue_frontend)
-target_link_libraries(quill_example_bounded_dropping_queue_frontend quill)
+    add_executable(${example_target} ${source_file})
+    set_common_compile_options(${example_target})
+    target_link_libraries(${example_target} quill)
+endforeach ()
 
-add_executable(quill_example_console_logging console_logging.cpp)
-set_common_compile_options(quill_example_console_logging)
-target_link_libraries(quill_example_console_logging quill)
-
-add_executable(quill_example_custom_console_colours custom_console_colours.cpp)
-set_common_compile_options(quill_example_custom_console_colours)
-target_link_libraries(quill_example_custom_console_colours quill)
-
-add_executable(quill_example_rotating_file_logging rotating_file_logging.cpp)
-set_common_compile_options(quill_example_rotating_file_logging)
-target_link_libraries(quill_example_rotating_file_logging quill)
-
-add_executable(quill_example_signal_handler signal_handler.cpp)
-set_common_compile_options(quill_example_signal_handler)
-target_link_libraries(quill_example_signal_handler quill)
-
-add_executable(quill_example_logger_removal_with_file_event_notifier logger_removal_with_file_event_notifier.cpp)
-set_common_compile_options(quill_example_logger_removal_with_file_event_notifier)
-target_link_libraries(quill_example_logger_removal_with_file_event_notifier quill)
-
-add_executable(quill_example_custom_frontend_options custom_frontend_options.cpp)
-set_common_compile_options(quill_example_custom_frontend_options)
-target_link_libraries(quill_example_custom_frontend_options quill)
-
-add_executable(quill_example_file_logging file_logging.cpp)
-set_common_compile_options(quill_example_file_logging)
-target_link_libraries(quill_example_file_logging quill)
-
-add_executable(quill_example_filter_logging filter_logging.cpp)
-set_common_compile_options(quill_example_filter_logging)
-target_link_libraries(quill_example_filter_logging quill)
-
-add_executable(quill_example_system_clock_logging system_clock_logging.cpp)
-set_common_compile_options(quill_example_system_clock_logging)
-target_link_libraries(quill_example_system_clock_logging quill)
-
-add_executable(quill_example_user_clock_source user_clock_source.cpp)
-set_common_compile_options(quill_example_user_clock_source)
-target_link_libraries(quill_example_user_clock_source quill)
-
-add_executable(quill_example_user_defined_filter user_defined_filter.cpp)
-set_common_compile_options(quill_example_user_defined_filter)
-target_link_libraries(quill_example_user_defined_filter quill)
-
-add_executable(quill_example_user_defined_sink user_defined_sink.cpp)
-set_common_compile_options(quill_example_user_defined_sink)
-target_link_libraries(quill_example_user_defined_sink quill)
-
-add_executable(quill_example_tags_logging tags_logging.cpp)
-set_common_compile_options(quill_example_tags_logging)
-target_link_libraries(quill_example_tags_logging quill)
-
-add_executable(quill_example_json_console_logging json_console_logging.cpp)
-set_common_compile_options(quill_example_json_console_logging)
-target_link_libraries(quill_example_json_console_logging quill)
-
-add_executable(quill_csv_writing csv_writing.cpp)
-set_common_compile_options(quill_csv_writing)
-target_link_libraries(quill_csv_writing quill)
-
-add_executable(quill_example_json_file_logging json_file_logging.cpp)
-set_common_compile_options(quill_example_json_file_logging)
-target_link_libraries(quill_example_json_file_logging quill)
-
-add_executable(quill_example_user_defined_types_logging user_defined_types_logging.cpp)
-set_common_compile_options(quill_example_user_defined_types_logging)
-target_link_libraries(quill_example_user_defined_types_logging quill)
+install(TARGETS ${EXAMPLE_TARGETS}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

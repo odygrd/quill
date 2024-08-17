@@ -1,8 +1,7 @@
-# python3 rename_libfmt.py ~/git/quill/quill/include/quill/bundled/fmt FMTQUILL fmtquill
-# python3 rename_libfmt.py ~/git/quill/quill/src/bundled/fmt FMTQUILL fmtquill
+# python3 rename_libfmt.py ~/git/quill/include/quill/bundled/fmt FMTQUILL fmtquill
 
 # Update bundled libfmt 11.0.2:
-# 1) run python3 rename_libfmt.py ~/git/quill/quill/include/quill/bundled/fmt FMTQUILL fmtquill
+# 1) run python3 rename_libfmt.py ~/git/quill/include/quill/bundled/fmt FMTQUILL fmtquill
 # 2) Add to base.h
 #     #if !defined(FMTQUILL_HEADER_ONLY)
 #       #define FMTQUILL_HEADER_ONLY

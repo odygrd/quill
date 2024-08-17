@@ -89,6 +89,7 @@ public:
 
     // Store the timestamp of the log statement at the start of the call. This gives more accurate
     // timestamp especially if the queue is full
+    // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
     uint64_t const current_timestamp = (clock_source == ClockSourceType::Tsc) ? detail::rdtsc()
       : (clock_source == ClockSourceType::System)
       ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -99,7 +100,7 @@ public:
     detail::ThreadContext* const thread_context =
       quill::detail::get_local_thread_context<frontend_options_t>();
 
-    // Need to reserve additional space as we will be aligning the pointer
+    // Need to know how much size we need from the queue
     size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
       detail::compute_encoded_size_and_cache_string_lengths(
                           thread_context->get_conditional_arg_size_cache(), fmt_args...);
