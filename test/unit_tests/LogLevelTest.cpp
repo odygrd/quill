@@ -15,7 +15,7 @@ using namespace std::literals;
 TEST_CASE("loglevel_to_string")
 {
   std::array<std::string, 12> log_level_descriptions = {
-    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO", "NOTICE"  "WARNING",
+    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO", "NOTICE", "WARNING",
     "ERROR",    "CRITICAL", "BACKTRACE", "NONE",  "DYNAMIC"};
 
   {
