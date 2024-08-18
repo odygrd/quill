@@ -274,7 +274,7 @@ public:
   }
 
   /***/
-  void remove_shared_invalidated_thread_context(ThreadContext* thread_context)
+  void remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
   {
     LockGuard const lock{_spinlock};
 

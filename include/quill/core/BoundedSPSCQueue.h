@@ -178,7 +178,7 @@ public:
    * Only meant to be called by the reader
    * @return true if the queue is empty
    */
-  QUILL_ATTRIBUTE_HOT QUILL_NODISCARD bool empty() noexcept
+  QUILL_ATTRIBUTE_HOT QUILL_NODISCARD bool empty() const noexcept
   {
     if (_writer_pos_cache == _reader_pos)
     {
@@ -327,7 +327,7 @@ private:
 
   alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_reader_pos{0};
   alignas(CACHE_LINE_ALIGNED) integer_type _reader_pos{0};
-  integer_type _writer_pos_cache{0};
+  mutable integer_type _writer_pos_cache{0};
   integer_type _last_flushed_reader_pos{0};
 };
 
