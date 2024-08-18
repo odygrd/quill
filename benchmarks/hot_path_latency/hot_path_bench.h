@@ -38,7 +38,7 @@ inline uint16_t get_cpu_to_pin_thread(uint16_t thread_num)
 }
 
 // Instead of sleep
-inline void wait(std::chrono::nanoseconds min, std::chrono::nanoseconds max)
+inline void wait([[maybe_unused]] std::chrono::nanoseconds min, std::chrono::nanoseconds max)
 {
 #ifdef PERF_ENABLED
   // when in perf use sleep as the other variables add noise
@@ -70,18 +70,15 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 
   on_thread_start();
 
-  unsigned int aux;
   // Main Benchmark
   for (size_t iteration = 0; iteration < num_iterations; ++iteration)
   {
     double const d = iteration + (0.1 * iteration);
 
-    auto const start = __rdtscp(&aux);
     for (size_t i = 0; i < messages_per_iteration; ++i)
     {
       log_func(iteration, i, d);
     }
-    auto const end = __rdtscp(&aux);
 
     // send the next batch of messages after x time
     wait(MIN_WAIT_DURATION, MAX_WAIT_DURATION);
@@ -128,8 +125,9 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 #endif
 
 /***/
-inline void run_benchmark(char const* benchmark_name, uint16_t thread_count, size_t num_iterations,
-                          size_t messages_per_iteration, std::function<void()> const& on_thread_start,
+inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t thread_count,
+                          size_t num_iterations, [[maybe_unused]] size_t messages_per_iteration,
+                          std::function<void()> const& on_thread_start,
                           std::function<void(uint64_t, uint64_t, double)> const& log_func,
                           std::function<void()> const& on_thread_exit)
 {

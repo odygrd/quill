@@ -7,14 +7,11 @@
 
 #include "quill/backend/TransitEvent.h"
 #include "quill/core/Attributes.h"
-#include "quill/core/LoggerBase.h"
-#include "quill/core/QuillError.h"
 
 #include <cstdint>
 #include <functional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 

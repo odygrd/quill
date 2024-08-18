@@ -176,14 +176,14 @@ public:
 
 private:
   /***/
-  std::pair<std::chrono::hours, std::chrono::minutes> _disabled_daily_rotation_time() noexcept
+  static std::pair<std::chrono::hours, std::chrono::minutes> _disabled_daily_rotation_time() noexcept
   {
     return std::make_pair(std::chrono::hours{std::numeric_limits<std::chrono::hours::rep>::max()},
                           std::chrono::minutes{std::numeric_limits<std::chrono::hours::rep>::max()});
   }
 
   /***/
-  std::pair<std::chrono::hours, std::chrono::minutes> _parse_daily_rotation_time(std::string const& daily_rotation_time_str)
+  static std::pair<std::chrono::hours, std::chrono::minutes> _parse_daily_rotation_time(std::string const& daily_rotation_time_str)
   {
     std::vector<std::string> tokens;
     std::string token;

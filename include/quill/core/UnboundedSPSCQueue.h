@@ -64,8 +64,8 @@ public:
     explicit ReadResult(std::byte* read_position) : read_pos(read_position) {}
 
     std::byte* read_pos;
-    uint32_t previous_capacity;
-    uint32_t new_capacity;
+    uint32_t previous_capacity{0};
+    uint32_t new_capacity{0};
     bool allocation{false};
   };
 
@@ -170,7 +170,7 @@ public:
    * Complement to reserve producer space that makes nbytes starting
    * from the return of reserve producer space visible to the consumer.
    */
-  QUILL_ATTRIBUTE_HOT void finish_write(uint32_t nbytes)
+  QUILL_ATTRIBUTE_HOT void finish_write(uint32_t nbytes) noexcept
   {
     _producer->bounded_queue.finish_write(nbytes);
   }
@@ -178,7 +178,7 @@ public:
   /**
    * Commit the write to notify the consumer bytes are ready to read
    */
-  QUILL_ATTRIBUTE_HOT void commit_write() { _producer->bounded_queue.commit_write(); }
+  QUILL_ATTRIBUTE_HOT void commit_write() noexcept { _producer->bounded_queue.commit_write(); }
 
   /**
    * Prepare to read from the buffer
@@ -228,7 +228,7 @@ public:
    * Consumes the next nbytes in the buffer and frees it back
    * for the producer to reuse.
    */
-  QUILL_ATTRIBUTE_HOT void finish_read(uint32_t nbytes)
+  QUILL_ATTRIBUTE_HOT void finish_read(uint32_t nbytes) noexcept
   {
     _consumer->bounded_queue.finish_read(nbytes);
   }
@@ -236,7 +236,7 @@ public:
   /**
    * Commit the read to indicate that the bytes are read and are now free to be reused
    */
-  QUILL_ATTRIBUTE_HOT void commit_read() { _consumer->bounded_queue.commit_read(); }
+  QUILL_ATTRIBUTE_HOT void commit_read() noexcept { _consumer->bounded_queue.commit_read(); }
 
   /**
    * Return the current buffer's capacity

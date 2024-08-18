@@ -7,7 +7,6 @@
 
 #include "quill/bundled/fmt/base.h"
 #include "quill/core/Attributes.h"
-#include "quill/core/Common.h"
 #include "quill/core/FormatBuffer.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/MacroMetadata.h"

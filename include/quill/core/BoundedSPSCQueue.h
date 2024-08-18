@@ -152,14 +152,9 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_read() noexcept
   {
-    if (_writer_pos_cache == _reader_pos)
+    if (empty())
     {
-      _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
-
-      if (_writer_pos_cache == _reader_pos)
-      {
-        return nullptr;
-      }
+      return nullptr;
     }
 
     return _storage + (_reader_pos & _mask);
@@ -183,9 +178,20 @@ public:
    * Only meant to be called by the reader
    * @return true if the queue is empty
    */
-  QUILL_NODISCARD bool empty() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool empty() const noexcept
   {
-    return _reader_pos == _atomic_writer_pos.load(std::memory_order_relaxed);
+    if (_writer_pos_cache == _reader_pos)
+    {
+      // if we think the queue is empty we also load the atomic variable to check further
+      _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
+
+      if (_writer_pos_cache == _reader_pos)
+      {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   QUILL_NODISCARD integer_type capacity() const noexcept
@@ -230,7 +236,7 @@ private:
    * @param huges_pages_enabled allocate huge pages, only supported on linux
    * @return On success, returns the pointer to the beginning of newly allocated memory.
    * To avoid a memory leak, the returned pointer must be deallocated with _free_aligned().
-   * @throws  std::system_error on failure
+   * @throws QuillError on failure
    */
 
   QUILL_NODISCARD static void* _alloc_aligned(size_t size, size_t alignment, QUILL_MAYBE_UNUSED bool huges_pages_enabled)
@@ -321,7 +327,7 @@ private:
 
   alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_reader_pos{0};
   alignas(CACHE_LINE_ALIGNED) integer_type _reader_pos{0};
-  integer_type _writer_pos_cache{0};
+  mutable integer_type _writer_pos_cache{0};
   integer_type _last_flushed_reader_pos{0};
 };
 

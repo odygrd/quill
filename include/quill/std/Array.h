@@ -10,14 +10,13 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/Utf8Conv.h"
 
-#include "quill/bundled/fmt/base.h"
 #include "quill/bundled/fmt/ranges.h"
+#include "quill/bundled/fmt/format.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
 #if defined(_WIN32)
