@@ -152,14 +152,9 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_read() noexcept
   {
-    if (_writer_pos_cache == _reader_pos)
+    if (empty())
     {
-      _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
-
-      if (_writer_pos_cache == _reader_pos)
-      {
-        return nullptr;
-      }
+      return nullptr;
     }
 
     return _storage + (_reader_pos & _mask);
@@ -183,9 +178,20 @@ public:
    * Only meant to be called by the reader
    * @return true if the queue is empty
    */
-  QUILL_NODISCARD bool empty() const noexcept
+  QUILL_ATTRIBUTE_HOT QUILL_NODISCARD bool empty() noexcept
   {
-    return _reader_pos == _atomic_writer_pos.load(std::memory_order_relaxed);
+    if (_writer_pos_cache == _reader_pos)
+    {
+      // if we think the queue is empty we also load the atomic variable to check further
+      _writer_pos_cache = _atomic_writer_pos.load(std::memory_order_acquire);
+
+      if (_writer_pos_cache == _reader_pos)
+      {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   QUILL_NODISCARD integer_type capacity() const noexcept
