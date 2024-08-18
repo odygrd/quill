@@ -1340,9 +1340,10 @@ private:
     QUILL_CATCH(std::exception const& e)
     {
       transit_event->formatted_msg.clear();
-      std::string const error = fmtquill::format(R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
+      std::string const error =
+        fmtquill::format(R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
                          transit_event->macro_metadata->message_format(),
-        transit_event->macro_metadata->short_source_location(), e.what());
+                         transit_event->macro_metadata->short_source_location(), e.what());
 
       transit_event->formatted_msg.append(error);
       _options.error_notifier(error);
