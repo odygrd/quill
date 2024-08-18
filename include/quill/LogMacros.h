@@ -346,7 +346,7 @@
 #define QUILL_DYNAMIC_LOGGER_CALL(logger, tags, log_level, fmt, ...)                                    \
   do                                                                                                    \
   {                                                                                                     \
-    if (logger->template should_log_statement(log_level))                                               \
+    if (logger->should_log_statement(log_level))                                               \
     {                                                                                                   \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Dynamic);                   \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH>(log_level, &macro_metadata, ##__VA_ARGS__); \
