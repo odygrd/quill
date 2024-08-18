@@ -178,7 +178,7 @@ public:
    * Only meant to be called by the reader
    * @return true if the queue is empty
    */
-  QUILL_ATTRIBUTE_HOT QUILL_NODISCARD bool empty() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool empty() const noexcept
   {
     if (_writer_pos_cache == _reader_pos)
     {
