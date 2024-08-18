@@ -8,17 +8,12 @@
 #include "quill/TriviallyCopyableCodec.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
-#include "quill/core/DynamicFormatArgStore.h"
 
 #include "quill/bundled/fmt/chrono.h"
 #include "quill/bundled/fmt/format.h"
 
 #include <chrono>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
 #include <type_traits>
-#include <vector>
 
 QUILL_BEGIN_NAMESPACE
 

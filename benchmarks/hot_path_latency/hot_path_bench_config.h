@@ -4,6 +4,7 @@
  */
 
 #pragma once
+
 #include <chrono>
 
 /**
@@ -13,6 +14,7 @@
  * To see shared cached lines :
  * perf c2c record -g --call-graph dwarf,8192  ./benchmark_quill_call_site_latency
  * perf c2c report -NN -g --call-graph -c pid,iaddr --stdio
+ * perf c2c report -NN -g --call-graph -d lcl --stdio
  */
 // #define PERF_ENABLED
 

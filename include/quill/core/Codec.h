@@ -97,6 +97,7 @@ struct Codec
     else
     {
       static_assert(detail::always_false_v<Arg>, "Unsupported type");
+      return 0;
     }
   }
 

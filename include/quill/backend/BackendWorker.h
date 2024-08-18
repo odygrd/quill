@@ -662,8 +662,9 @@ private:
         {
           return true;
         }
-        else if (thread_context->has_bounded_queue_type() &&
-                 !thread_context->get_spsc_queue_union().bounded_spsc_queue.empty())
+
+        if (thread_context->has_bounded_queue_type() &&
+            !thread_context->get_spsc_queue_union().bounded_spsc_queue.empty())
         {
           return true;
         }
@@ -1280,9 +1281,9 @@ private:
     if (options.check_printable_char && format_args_store.has_string_related_type())
     {
       // if non-printable chars check is configured or if any of the provided arguments are strings
-      for (size_t i = 0; i < named_args.size(); ++i)
+      for (auto& named_arg : named_args)
       {
-        sanitize_non_printable_chars(named_args[i].second, options);
+        sanitize_non_printable_chars(named_arg.second, options);
       }
     }
   }
@@ -1339,9 +1340,8 @@ private:
     QUILL_CATCH(std::exception const& e)
     {
       transit_event->formatted_msg.clear();
-      std::string const error = fmtquill::format(
-        "[Could not format log statement. message: \"{}\", location: \"{}\", error: \"{}\"]",
-        transit_event->macro_metadata->message_format(),
+      std::string const error = fmtquill::format(R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
+                         transit_event->macro_metadata->message_format(),
         transit_event->macro_metadata->short_source_location(), e.what());
 
       transit_event->formatted_msg.append(error);

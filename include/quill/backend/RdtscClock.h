@@ -15,7 +15,6 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
-#include <ratio>
 
 QUILL_BEGIN_NAMESPACE
 

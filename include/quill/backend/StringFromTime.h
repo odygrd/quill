@@ -462,7 +462,7 @@ private:
   uint32_t _cached_seconds{0};
 
   /** gmtime or localtime */
-  Timezone _time_zone;
+  Timezone _time_zone{Timezone::GmtTime};
 };
 } // namespace detail
 

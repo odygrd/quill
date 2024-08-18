@@ -109,10 +109,7 @@ protected:
     std::uninitialized_copy_n(old_data, buf.size(), new_data);
     self.set(new_data, new_capacity);
 
-    if (old_data)
-    {
-      delete[] old_data;
-    }
+    delete[] old_data;
   }
 };
 } // namespace detail

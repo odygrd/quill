@@ -20,7 +20,6 @@
 #include <cstring>
 #include <ctime>
 #include <string>
-#include <system_error>
 #include <utility>
 
 #if defined(_WIN32)

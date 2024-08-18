@@ -99,7 +99,7 @@ private:
   /***/
   QUILL_NODISCARD constexpr uint16_t _calc_colon_separator_pos() const noexcept
   {
-    std::string_view source_loc{_source_location};
+    std::string_view const source_loc{_source_location};
     auto const separator_index = source_loc.rfind(':');
     return static_cast<uint16_t>(separator_index);
   }
@@ -118,7 +118,7 @@ private:
   }
 
   /***/
-  constexpr bool _contains_named_args(std::string_view fmt) noexcept
+  static constexpr bool _contains_named_args(std::string_view fmt) noexcept
   {
     uint32_t pos{0};
     bool found_named_arg{false};

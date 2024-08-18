@@ -7,7 +7,6 @@
 
 #include "quill/backend/TransitEvent.h"
 #include "quill/core/Attributes.h"
-#include "quill/core/Common.h"
 #include "quill/core/MathUtils.h"
 
 #include <cassert>
