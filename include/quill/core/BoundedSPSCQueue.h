@@ -236,7 +236,7 @@ private:
    * @param huges_pages_enabled allocate huge pages, only supported on linux
    * @return On success, returns the pointer to the beginning of newly allocated memory.
    * To avoid a memory leak, the returned pointer must be deallocated with _free_aligned().
-   * @throws  std::system_error on failure
+   * @throws QuillError on failure
    */
 
   QUILL_NODISCARD static void* _alloc_aligned(size_t size, size_t alignment, QUILL_MAYBE_UNUSED bool huges_pages_enabled)
