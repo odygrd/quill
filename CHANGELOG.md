@@ -84,6 +84,8 @@
 - Added a new log level `NOTICE`, for capturing significant events that aren't errors or warnings. It fits
   between `INFO` and `WARNING` for logging important runtime events that require
   attention. ([#526](https://github.com/odygrd/quill/pull/526))
+- Enhanced static assert error message for unsupported codecs, providing clearer guidance for STL and user-defined
+  types.
 
 ## v6.1.2
 

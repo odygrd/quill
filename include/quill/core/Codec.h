@@ -42,6 +42,34 @@ using remove_cvref_t = typename remove_cvref<T>::type;
 template <class>
 constexpr bool always_false_v = false;
 
+template <typename Arg>
+void codec_not_found_for_type()
+{
+  static_assert(
+    always_false_v<Arg>,
+    "\n"
+    "+------------------------------------------------------------------------------+\n"
+    "|                       Missing Codec for Type 'Arg'                           |\n"
+    "+------------------------------------------------------------------------------+\n"
+    "\n"
+    "Error: A codec for the specified type 'Arg' is not available.\n"
+    "\n"
+    "Possible solutions:\n"
+    "1. If Arg is an STL type:\n"
+    "   - Ensure you have included the necessary headers for the specific STL type you are using "
+    "from the quill/std folder.\n"
+    "\n"
+    "2. If Arg is a user-defined type:\n"
+    "   - Define a custom Codec for your type.\n"
+    "   - Consider passing the value as a string instead.\n"
+    "\n"
+    "Note: The specific type of 'Arg' can be found in the compiler error message.\n"
+    "      Look for the instantiation of 'codec_not_found_for_type<Arg>' in the error output.\n"
+    "      The compiler should indicate what type 'Arg' represents in this instance.\n"
+    "\n"
+    "For more information see https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html\n");
+}
+
 constexpr auto strnlen =
 #if defined(__STDC_LIB_EXT1__) || defined(_MSC_VER)
   ::strnlen_s
@@ -96,7 +124,7 @@ struct Codec
     }
     else
     {
-      static_assert(detail::always_false_v<Arg>, "Unsupported type");
+      detail::codec_not_found_for_type<Arg>();
       return 0;
     }
   }
@@ -155,7 +183,7 @@ struct Codec
     }
     else
     {
-      static_assert(detail::always_false_v<Arg>, "Unsupported type");
+      detail::codec_not_found_for_type<Arg>();
     }
   }
 
@@ -193,7 +221,7 @@ struct Codec
     }
     else
     {
-      static_assert(detail::always_false_v<Arg>, "Unsupported type");
+      detail::codec_not_found_for_type<Arg>();
       return 0;
     }
   }
@@ -227,7 +255,7 @@ struct Codec
     }
     else
     {
-      static_assert(detail::always_false_v<Arg>, "Unsupported type");
+      detail::codec_not_found_for_type<Arg>();
     }
   }
 };
