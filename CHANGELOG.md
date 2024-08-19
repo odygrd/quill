@@ -79,8 +79,6 @@
 - Renamed `backend_cpu_affinity` to `cpu_affinity` in `BackendOptions` to improve consistency.
 - Simplified project structure by removing the extra quill directory and made minor CMake improvements; `include/quill` is now directly in the root.
 - Added support for `std::string` with custom allocator. ([#524](https://github.com/odygrd/quill/issues/524))
-- Added a new `LogLevel`. `NOTICE` stis between `INFO` and `WARNING` and can be used as something that applies to normal
-  but significant conditions that may require monitoring.
 - Added a new log level `NOTICE`, for capturing significant events that aren't errors or warnings. It fits
   between `INFO` and `WARNING` for logging important runtime events that require
   attention. ([#526](https://github.com/odygrd/quill/pull/526))
