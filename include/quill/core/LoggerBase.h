@@ -9,6 +9,7 @@
 #include "quill/core/Common.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/QuillError.h"
+#include "quill/core/ThreadContextManager.h"
 
 #include <atomic>
 #include <cassert>
@@ -123,7 +124,11 @@ public:
   }
 
 protected:
-  friend class detail::BackendWorker;
+  friend class BackendWorker;
+
+#if defined(__GNUC__) && defined(__linux__)
+  static inline __thread ThreadContext* thread_context = nullptr;
+#endif
 
   std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
   std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
