@@ -89,6 +89,7 @@
   use `thread_local`.
 - Minor performance enhancement in the frontend by replacing `std::vector<size_t>` with an `InlinedVector<uint32_t, 12>`
   for caching sizes (e.g. string arguments).
+- Fixed order of evaluation for `Codec::pair<T1,T2>::compute_encoded_size()` to prevent side effects observed on MSVC
 
 ## v6.1.2
 

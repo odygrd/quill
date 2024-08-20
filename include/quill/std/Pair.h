@@ -26,8 +26,11 @@ struct Codec<std::pair<T1, T2>>
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::pair<T1, T2> const& arg) noexcept
   {
-    return Codec<T1>::compute_encoded_size(conditional_arg_size_cache, arg.first) +
-      Codec<T2>::compute_encoded_size(conditional_arg_size_cache, arg.second);
+    // Explicitly separate the calls to ensure the order of evaluation is maintained on MSVC,
+    // as it may evaluate the expressions in a different order, leading to side effects.
+    auto const first_size = Codec<T1>::compute_encoded_size(conditional_arg_size_cache, arg.first);
+    auto const second_size = Codec<T2>::compute_encoded_size(conditional_arg_size_cache, arg.second);
+    return first_size + second_size;
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
