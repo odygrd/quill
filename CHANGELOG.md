@@ -84,6 +84,8 @@
   attention. ([#526](https://github.com/odygrd/quill/pull/526))
 - Enhanced static assert error message for unsupported codecs, providing clearer guidance for STL and user-defined
   types.
+- Improved frontend performance by using `__thread` for thread-local storage on Linux and falling back to `thread_local`
+  for other platforms.
 
 ## v6.1.2
 

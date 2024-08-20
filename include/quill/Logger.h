@@ -14,7 +14,6 @@
 #include "quill/core/LoggerBase.h"
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/Rdtsc.h"
-#include "quill/core/ThreadContextManager.h"
 
 #include <atomic>
 #include <cassert>
@@ -97,8 +96,21 @@ public:
                                 .count())
       : user_clock->now();
 
+    #if defined(__GNUC__) && defined(__linux__)
+    // On GCC (or compatible compilers) running on Linux, use __thread for thread-local storage.
+    // This optimizes performance by caching the ThreadContext pointer to avoid repeatedly
+    // calling get_local_thread_context(). If the thread_context is not already set, we initialize it.
+    if (QUILL_UNLIKELY(thread_context == nullptr))
+    {
+      thread_context = detail::get_local_thread_context<frontend_options_t>();
+    }
+    #else
+    // On other compilers or platforms, use thread_local to store the ThreadContext pointer.
+    // This ensures portability across different compilers and operating systems.
+    // We fetch the ThreadContext pointer each time by calling get_local_thread_context().
     detail::ThreadContext* const thread_context =
       quill::detail::get_local_thread_context<frontend_options_t>();
+    #endif
 
     // Need to know how much size we need from the queue
     size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
