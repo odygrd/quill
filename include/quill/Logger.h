@@ -181,19 +181,9 @@ public:
     assert(write_begin);
 #endif
 
-    std::memcpy(write_buffer, &current_timestamp, sizeof(current_timestamp));
-    write_buffer += sizeof(current_timestamp);
-
-    std::memcpy(write_buffer, &macro_metadata, sizeof(uintptr_t));
-    write_buffer += sizeof(uintptr_t);
-
-    detail::LoggerBase* logger_context = this;
-    std::memcpy(write_buffer, &logger_context, sizeof(uintptr_t));
-    write_buffer += sizeof(uintptr_t);
-
-    detail::FormatArgsDecoder ftf = detail::decode_and_store_args<detail::remove_cvref_t<Args>...>;
-    std::memcpy(write_buffer, &ftf, sizeof(uintptr_t));
-    write_buffer += sizeof(uintptr_t);
+    // first encode a header
+    write_buffer = _encode_header(write_buffer, current_timestamp, macro_metadata, this,
+                                  detail::decode_and_store_args<detail::remove_cvref_t<Args>...>);
 
     // encode remaining arguments
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
@@ -335,6 +325,34 @@ private:
       // if a user clock is provided then set the ClockSourceType to User
       this->clock_source = ClockSourceType::User;
     }
+  }
+  
+  /**
+   * Encodes header information into the write buffer
+   *
+   * This function helps the compiler to better optimize the operation using SSE/AVX instructions.
+   * Avoid using `std::byte*& write_buffer` as parameter as it may prevent these optimizations.
+   *
+   * @return Updated pointer to the write buffer after encoding the header.
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static std::byte* _encode_header(std::byte* write_buffer, uint64_t timestamp,
+                                                                       MacroMetadata const* metadata,
+                                                                       detail::LoggerBase* logger_ctx,
+                                                                       detail::FormatArgsDecoder decoder) noexcept
+  {
+    std::memcpy(write_buffer, &timestamp, sizeof(timestamp));
+    write_buffer += sizeof(timestamp);
+
+    std::memcpy(write_buffer, &metadata, sizeof(uintptr_t));
+    write_buffer += sizeof(uintptr_t);
+
+    std::memcpy(write_buffer, &logger_ctx, sizeof(uintptr_t));
+    write_buffer += sizeof(uintptr_t);
+
+    std::memcpy(write_buffer, &decoder, sizeof(uintptr_t));
+    write_buffer += sizeof(uintptr_t);
+
+    return write_buffer;
   }
 };
 
