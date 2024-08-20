@@ -16,6 +16,12 @@
 #define QUILL_AS_STR(x) #x
 #define QUILL_STRINGIFY(x) QUILL_AS_STR(x)
 
+#if defined(__GNUC__) && defined(__linux__)
+  #define QUILL_THREAD_LOCAL __thread
+#else
+  #define QUILL_THREAD_LOCAL thread_local
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail

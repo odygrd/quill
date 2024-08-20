@@ -126,10 +126,7 @@ public:
 protected:
   friend class BackendWorker;
 
-#if defined(__GNUC__) && defined(__linux__)
-  static inline __thread ThreadContext* thread_context = nullptr;
-#endif
-
+  static inline QUILL_THREAD_LOCAL ThreadContext* thread_context = nullptr; /* Set and accessed by the frontend */
   std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
   std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
   std::vector<std::shared_ptr<Sink>> sinks; /* Set by the frontend and accessed by the backend */

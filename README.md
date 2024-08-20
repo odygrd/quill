@@ -68,7 +68,7 @@
 
 Quill is a fast, feature-rich cross-platform logging library for C++ designed for low-latency and reliable logging.
 
-- Low Latency Logging: Optimized to ensure minimal delay and efficient performance on the hot path.
+- Low Latency Logging: Optimised to ensure minimal delay and efficient performance on the hot path.
 - Battle-Tested: Proven in demanding production environments.
 - Feature-Rich: Packed with advanced features to meet diverse logging needs.
 - Extensive Documentation: Easy-to-follow guides and cheat sheets.
