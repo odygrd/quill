@@ -84,8 +84,9 @@
   attention. ([#526](https://github.com/odygrd/quill/pull/526))
 - Enhanced static assert error message for unsupported codecs, providing clearer guidance for STL and user-defined
   types.
-- Improved frontend performance by using `__thread` for thread-local storage on Linux and falling back to `thread_local`
-  for other platforms.
+- Improved frontend performance by caching the `ThreadContext` pointer in `Logger` class to avoid repeated function
+  calls. On Linux, this is now further optimised with `__thread` for thread-local storage, while other platforms still
+  use `thread_local`.
 
 ## v6.1.2
 
@@ -888,7 +889,7 @@ within a distinct namespace, there are no conflicts even if you link your own `l
   ```
 
 - Added support for huge pages on Linux. Enabling this feature allows bounded or unbounded queues to utilize huge pages,
-  resulting in optimized memory allocation.
+  resulting in optimised memory allocation.
 
   ```c++
     quill::Config cfg;

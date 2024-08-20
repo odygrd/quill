@@ -3,7 +3,7 @@
 Overview
 ========
 
-The library adopts asynchronous logging to optimize performance, particularly well-suited for low-latency applications where minimizing hot path latency is crucial, such as trading systems.
+The library adopts asynchronous logging to optimise performance, particularly well-suited for low-latency applications where minimizing hot path latency is crucial, such as trading systems.
 
 A dedicated backend thread manages log formatting and I/O operations, ensuring that even occasional log statements incur minimal overhead.
 
@@ -25,7 +25,7 @@ Reliable Logging Mechanism
 --------------------------
 
 Quill utilizes a thread-local single-producer-single-consumer queue to relay logs to the backend thread, ensuring that log messages are never dropped.
-Initially, an unbounded queue with a small size is used to optimize performance.
+Initially, an unbounded queue with a small size is used to optimise performance.
 However, if the queue reaches its capacity, a new queue will be allocated, which may cause a slight performance penalty for the frontend.
 
 The default unbounded queue can expand up to a size of 2GB. If this limit is reached, the caller thread will block.

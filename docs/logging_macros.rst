@@ -4,7 +4,7 @@ Logging Macros
 Compile-Time Log Level Filtering
 --------------------------------
 
-To optimize performance by reducing branches in compiled code, you can enable compile-time filtering of log levels.
+To optimise performance by reducing branches in compiled code, you can enable compile-time filtering of log levels.
 
 This is done by defining `QUILL_COMPILE_ACTIVE_LOG_LEVEL` as a compilation flag or before including `LogMacros.h`:
 
