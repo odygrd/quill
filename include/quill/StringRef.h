@@ -47,12 +47,12 @@ private:
 template <>
 struct Codec<quill::utility::StringRef>
 {
-  static size_t compute_encoded_size(std::vector<size_t>&, quill::utility::StringRef const&) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector&, quill::utility::StringRef const&) noexcept
   {
     return sizeof(size_t) + sizeof(uintptr_t);
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&,
                      quill::utility::StringRef const& no_copy) noexcept
   {
     char const* data = no_copy.get_string_view().data();

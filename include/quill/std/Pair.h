@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 #include "quill/core/Utf8Conv.h"
 
 #include "quill/bundled/fmt/ranges.h"
@@ -22,14 +23,14 @@ QUILL_BEGIN_NAMESPACE
 template <typename T1, typename T2>
 struct Codec<std::pair<T1, T2>>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::pair<T1, T2> const& arg) noexcept
   {
     return Codec<T1>::compute_encoded_size(conditional_arg_size_cache, arg.first) +
       Codec<T2>::compute_encoded_size(conditional_arg_size_cache, arg.second);
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::pair<T1, T2> const& arg) noexcept
   {
     Codec<T1>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.first);

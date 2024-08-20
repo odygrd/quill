@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 #include "quill/core/Utf8Conv.h"
 
 #include "quill/bundled/fmt/ranges.h"
@@ -29,12 +30,12 @@ QUILL_BEGIN_NAMESPACE
 template <typename T, std::size_t N>
 struct Codec<T[N], std::enable_if_t<std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>>>
 {
-  static size_t compute_encoded_size(std::vector<size_t>&, const T (&arg)[N]) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector&, const T (&arg)[N]) noexcept
   {
     return sizeof(arg);
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, const T (&arg)[N]) noexcept
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, const T (&arg)[N]) noexcept
   {
     std::memcpy(buffer, &arg, sizeof(arg));
     buffer += sizeof(arg);
@@ -63,7 +64,7 @@ struct Codec<T[N], std::enable_if_t<std::disjunction_v<std::is_arithmetic<T>, st
 template <typename T, size_t N>
 struct Codec<std::array<T, N>>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::array<T, N> const& arg) noexcept
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)
@@ -88,7 +89,7 @@ struct Codec<std::array<T, N>>
     }
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::array<T, N> const& arg) noexcept
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)

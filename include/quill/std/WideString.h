@@ -10,12 +10,15 @@
   #include "quill/core/Attributes.h"
   #include "quill/core/Codec.h"
   #include "quill/core/DynamicFormatArgStore.h"
+  #include "quill/core/InlinedVector.h"
   #include "quill/core/Utf8Conv.h"
 
   #include "quill/bundled/fmt/format.h"
 
+  #include <cassert>
   #include <cstddef>
   #include <cstdint>
+  #include <limits>
   #include <string>
   #include <string_view>
   #include <type_traits>
@@ -25,9 +28,11 @@ QUILL_BEGIN_NAMESPACE
 
 /** Specialization for arrays of arithmetic types and enums **/
 template <typename T>
-struct Codec<T, std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>, std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
+struct Codec<T,
+             std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
+                                                 std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache, T const& arg) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, T const& arg) noexcept
   {
     size_t len;
 
@@ -40,14 +45,15 @@ struct Codec<T, std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, s
       len = arg.size();
     }
 
-    conditional_arg_size_cache.push_back(len);
+    assert((len <= std::numeric_limits<uint32_t>::max()) && "len is outside the supported range");
+    conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
 
     // also include the size of the string in the buffer as a separate variable
     // we can retrieve it when we decode. We do not store the null terminator in the buffer
     return static_cast<size_t>(sizeof(size_t) + (len * sizeof(wchar_t)));
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, T const& arg) noexcept
   {
     // The wide string size in bytes

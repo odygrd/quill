@@ -193,6 +193,7 @@ set(HEADER_FILES
         include/quill/core/Filesystem.h
         include/quill/core/FormatBuffer.h
         include/quill/core/FrontendOptions.h
+        include/quill/core/InlinedVector.h
         include/quill/core/LoggerBase.h
         include/quill/core/LoggerManager.h
         include/quill/core/LogLevel.h

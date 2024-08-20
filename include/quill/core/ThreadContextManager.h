@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
+#include "quill/core/InlinedVector.h"
 #include "quill/core/Spinlock.h"
 #include "quill/core/ThreadUtilities.h"
 #include "quill/core/UnboundedSPSCQueue.h"
@@ -58,8 +59,6 @@ public:
       new (&_spsc_queue_union.bounded_spsc_queue)
         BoundedSPSCQueue{initial_spsc_queue_capacity, huges_pages_enabled};
     }
-
-    _conditional_arg_size_cache.reserve(8);
   }
 
   /***/
@@ -122,7 +121,7 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::vector<size_t>& get_conditional_arg_size_cache() noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT SizeCacheVector& get_conditional_arg_size_cache() noexcept
   {
     return _conditional_arg_size_cache;
   }
@@ -198,11 +197,11 @@ public:
 private:
   friend class detail::BackendWorker;
 
-  SpscQueueUnion _spsc_queue_union;                /** queue for this thread */
-  std::vector<size_t> _conditional_arg_size_cache; /** used for storing sizes when necessary, such as when calling strn or when a loop is required for a specific type **/
-  std::string _thread_id = std::to_string(get_thread_id());           /**< cache this thread pid */
-  std::string _thread_name = get_thread_name();                       /**< cache this thread name */
-  std::shared_ptr<UnboundedTransitEventBuffer> _transit_event_buffer; /** backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */
+  SpscQueueUnion _spsc_queue_union;            /**< queue for this thread */
+  SizeCacheVector _conditional_arg_size_cache; /**< cache for storing sizes needed for specific operations, such as when calling `strn` functions or when a loop is required e.g. caching the size of a type */
+  std::string _thread_id = std::to_string(get_thread_id());           /**< cached thread pid */
+  std::string _thread_name = get_thread_name();                       /**< cached thread name */
+  std::shared_ptr<UnboundedTransitEventBuffer> _transit_event_buffer; /**< backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */
   QueueType _queue_type;
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the frontend, read by the backend thread */
   alignas(CACHE_LINE_ALIGNED) std::atomic<size_t> _failure_counter{0};

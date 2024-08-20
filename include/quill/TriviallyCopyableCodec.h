@@ -59,12 +59,12 @@ struct TriviallyCopyableTypeCodec
                 "but you will need a different approach. Please refer to the documentation or "
                 "examples for alternative methods.");
 
-  static size_t compute_encoded_size(std::vector<size_t>&, T const& arg) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector&, T const& arg) noexcept
   {
     return sizeof(arg);
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const&, uint32_t&, T const& arg) noexcept
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T const& arg) noexcept
   {
     std::memcpy(buffer, &arg, sizeof(arg));
     buffer += sizeof(arg);

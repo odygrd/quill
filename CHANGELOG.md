@@ -87,6 +87,8 @@
 - Improved frontend performance by caching the `ThreadContext` pointer in `Logger` class to avoid repeated function
   calls. On Linux, this is now further optimised with `__thread` for thread-local storage, while other platforms still
   use `thread_local`.
+- Minor performance enhancement in the frontend by replacing `std::vector<size_t>` with an `InlinedVector<uint32_t, 12>`
+  for caching sizes (e.g. string arguments).
 
 ## v6.1.2
 

@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 #include "quill/core/Utf8Conv.h"
 #include "quill/std/Pair.h"
 
@@ -28,7 +29,7 @@ struct Codec<MapType<Key, T, Compare, Allocator>,
              std::enable_if_t<std::disjunction_v<std::is_same<MapType<Key, T, Compare, Allocator>, std::map<Key, T, Compare, Allocator>>,
                                                  std::is_same<MapType<Key, T, Compare, Allocator>, std::multimap<Key, T, Compare, Allocator>>>>>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      MapType<Key, T, Compare, Allocator> const& arg) noexcept
   {
     // We need to store the size of the set in the buffer, so we reserve space for it.
@@ -55,7 +56,7 @@ struct Codec<MapType<Key, T, Compare, Allocator>,
     return total_size;
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index,
                      MapType<Key, T, Compare, Allocator> const& arg) noexcept
   {

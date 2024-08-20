@@ -419,12 +419,12 @@ Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``
     template <>
     struct quill::Codec<Order>
     {
-      static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache, ::Order const& order) noexcept
+      static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
       {
         return compute_total_encoded_size(conditional_arg_size_cache, order.symbol, order.price, order.quantity);
       }
 
-      static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+      static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                          uint32_t& conditional_arg_size_cache_index, ::Order const& order) noexcept
       {
         encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, order.symbol,
@@ -504,12 +504,12 @@ Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``
     template <>
     struct quill::Codec<Order>
     {
-      static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache, ::Order const& order) noexcept
+      static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
       {
         return compute_total_encoded_size(conditional_arg_size_cache, order.timestamp, order.symbol, order.price, order.quantity);
       }
 
-      static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+      static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                          uint32_t& conditional_arg_size_cache_index, ::Order const& order) noexcept
       {
         encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, order.timestamp, order.symbol,
