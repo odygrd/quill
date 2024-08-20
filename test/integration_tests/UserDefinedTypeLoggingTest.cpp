@@ -10,6 +10,7 @@
 #include "quill/TriviallyCopyableCodec.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 #include "quill/std/Array.h"
 #include "quill/std/Vector.h"
 
@@ -59,7 +60,7 @@ struct fmtquill::formatter<CustomType>
 template <>
 struct quill::Codec<CustomType>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      ::CustomType const& custom_type) noexcept
   {
     // pass as arguments the class members you want to serialize
@@ -67,7 +68,7 @@ struct quill::Codec<CustomType>
                                       custom_type.age, custom_type.favorite_colors, custom_type.gender);
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::CustomType const& custom_type) noexcept
   {
     // You must encode the same members and in the same order as in compute_total_encoded_size

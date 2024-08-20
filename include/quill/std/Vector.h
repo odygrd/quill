@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 #include "quill/core/Utf8Conv.h"
 
 #include "quill/bundled/fmt/ranges.h"
@@ -23,7 +24,7 @@ QUILL_BEGIN_NAMESPACE
 template <typename T, typename Allocator>
 struct Codec<std::vector<T, Allocator>>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::vector<T, Allocator> const& arg) noexcept
   {
     // We need to store the size of the vector in the buffer, so we reserve space for it.
@@ -50,7 +51,7 @@ struct Codec<std::vector<T, Allocator>>
     return total_size;
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::vector<T, Allocator> const& arg) noexcept
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());

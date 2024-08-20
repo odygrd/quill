@@ -13,11 +13,13 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -96,7 +98,7 @@ struct Codec
 {
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t compute_encoded_size(
-    QUILL_MAYBE_UNUSED std::vector<size_t>& conditional_arg_size_cache, QUILL_MAYBE_UNUSED Arg const& arg) noexcept
+    QUILL_MAYBE_UNUSED detail::SizeCacheVector& conditional_arg_size_cache, QUILL_MAYBE_UNUSED Arg const& arg) noexcept
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
     {
@@ -105,14 +107,16 @@ struct Codec
     else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
     {
       size_t constexpr N = std::extent_v<Arg>;
-      conditional_arg_size_cache.push_back(static_cast<size_t>(strnlen(arg, N) + 1u));
-      return conditional_arg_size_cache.back();
+      assert(((strnlen(arg, N) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
+             "len is outside the supported range");
+      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(strnlen(arg, N) + 1u));
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
       // include one extra for the zero termination
-      conditional_arg_size_cache.push_back(static_cast<size_t>(strlen(arg) + 1u));
-      return conditional_arg_size_cache.back();
+      assert(((strlen(arg) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
+             "len is outside the supported range");
+      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(strlen(arg) + 1u));
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
@@ -131,7 +135,7 @@ struct Codec
 
   /***/
   QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer,
-                                         QUILL_MAYBE_UNUSED std::vector<size_t> const& conditional_arg_size_cache,
+                                         QUILL_MAYBE_UNUSED detail::SizeCacheVector const& conditional_arg_size_cache,
                                          QUILL_MAYBE_UNUSED uint32_t& conditional_arg_size_cache_index,
                                          Arg const& arg) noexcept
   {
@@ -271,7 +275,7 @@ namespace detail
  */
 template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
-  QUILL_MAYBE_UNUSED std::vector<size_t>& conditional_arg_size_cache, Args const&... args) noexcept
+  QUILL_MAYBE_UNUSED detail::SizeCacheVector& conditional_arg_size_cache, Args const&... args) noexcept
 {
   // Do not use fold expression with '+ ...' as we need a guaranteed sequence for the args here
   size_t total_sum{0};
@@ -286,7 +290,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string
  * @param args The arguments to be encoded.
  */
 template <typename... Args>
-QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                                 Args const&... args) noexcept
 {
   QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
@@ -317,7 +321,7 @@ void decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store
 /** Codec helpers for user defined types convenience **/
 /***/
 template <typename... TMembers>
-size_t compute_total_encoded_size(std::vector<size_t>& conditional_arg_size_cache, TMembers const&... members)
+size_t compute_total_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, TMembers const&... members)
 {
   size_t total_size{0};
   ((total_size += Codec<detail::remove_cvref_t<TMembers>>::compute_encoded_size(conditional_arg_size_cache, members)),
@@ -327,7 +331,7 @@ size_t compute_total_encoded_size(std::vector<size_t>& conditional_arg_size_cach
 
 /***/
 template <typename... TMembers>
-void encode_members(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+void encode_members(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                     uint32_t& conditional_arg_size_cache_index, TMembers const&... members)
 {
   ((Codec<detail::remove_cvref_t<TMembers>>::encode(buffer, conditional_arg_size_cache,

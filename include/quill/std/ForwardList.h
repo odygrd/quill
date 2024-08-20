@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 #include "quill/core/Utf8Conv.h"
 
 #include "quill/bundled/fmt/ranges.h"
@@ -27,7 +28,7 @@ QUILL_BEGIN_NAMESPACE
 template <typename T, typename Allocator>
 struct Codec<std::forward_list<T, Allocator>>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::forward_list<T, Allocator> const& arg) noexcept
   {
     // We need to store the size of the forward_list in the buffer, so we reserve space for it.
@@ -38,7 +39,7 @@ struct Codec<std::forward_list<T, Allocator>>
     // encoding. This information is inserted first to maintain sequence in the cache.
     // It will be replaced with the actual count after calculating the size of elements.
     size_t number_of_elements{0};
-    conditional_arg_size_cache.push_back(number_of_elements);
+    conditional_arg_size_cache.push_back(static_cast<uint32_t>(number_of_elements));
     size_t const index = conditional_arg_size_cache.size() - 1u;
 
     for (auto const& elem : arg)
@@ -47,11 +48,13 @@ struct Codec<std::forward_list<T, Allocator>>
       ++number_of_elements;
     }
 
-    conditional_arg_size_cache[index] = number_of_elements;
+    assert((number_of_elements <= std::numeric_limits<uint32_t>::max()) &&
+           "len is outside the supported range");
+    conditional_arg_size_cache.assign(index, static_cast<uint32_t>(number_of_elements));
     return total_size;
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::forward_list<T, Allocator> const& arg) noexcept
   {
     // First encode the number of elements of the forward list

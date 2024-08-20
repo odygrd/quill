@@ -8,6 +8,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 
 #include "quill/bundled/fmt/ranges.h"
 #include "quill/bundled/fmt/format.h"
@@ -22,7 +23,7 @@ QUILL_BEGIN_NAMESPACE
 template <typename... Types>
 struct Codec<std::tuple<Types...>>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache,
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::tuple<Types...> const& arg) noexcept
   {
     size_t total_size{0};
@@ -38,7 +39,7 @@ struct Codec<std::tuple<Types...>>
     return total_size;
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::tuple<Types...> const& arg) noexcept
   {
     std::apply(

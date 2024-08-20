@@ -9,6 +9,7 @@
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/Filesystem.h"
+#include "quill/core/InlinedVector.h"
 
 #include "quill/bundled/fmt/std.h"
 #include "quill/bundled/fmt/format.h"
@@ -27,7 +28,7 @@ QUILL_BEGIN_NAMESPACE
 template <>
 struct Codec<fs::path>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache, fs::path const& arg) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, fs::path const& arg) noexcept
   {
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {
@@ -41,7 +42,7 @@ struct Codec<fs::path>
 #endif
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, fs::path const& arg) noexcept
   {
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)

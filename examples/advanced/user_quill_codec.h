@@ -4,6 +4,7 @@
 #include "quill/bundled/fmt/format.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 
 // To serialise the std::array member of User you need Array.h otherwise you don't need to include this
 #include "quill/std/Array.h"
@@ -29,14 +30,14 @@ struct fmtquill::formatter<User>
 template <>
 struct quill::Codec<User>
 {
-  static size_t compute_encoded_size(std::vector<size_t>& conditional_arg_size_cache, ::User const& user) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::User const& user) noexcept
   {
     // pass as arguments the class members you want to serialize
     return compute_total_encoded_size(conditional_arg_size_cache, user.name, user.surname, user.age,
                                       user.favorite_colors);
   }
 
-  static void encode(std::byte*& buffer, std::vector<size_t> const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::User const& user) noexcept
   {
     // You must encode the same members and in the same order as in compute_total_encoded_size
