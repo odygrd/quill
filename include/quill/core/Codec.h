@@ -176,14 +176,14 @@ struct Codec
       // Copy the length first and then the actual string
       size_t const len = arg.length();
       std::memcpy(buffer, &len, sizeof(len));
+      buffer += sizeof(len);
 
-      if (len != 0)
+      if (QUILL_LIKELY(len != 0))
       {
         // copy the string, no need to zero terminate it as we got the length
-        std::memcpy(buffer + sizeof(len), arg.data(), arg.length());
+        std::memcpy(buffer, arg.data(), len);
+        buffer += len;
       }
-
-      buffer += sizeof(len) + len;
     }
     else
     {
@@ -219,8 +219,9 @@ struct Codec
       // for std::string we first need to retrieve the length
       size_t len;
       std::memcpy(&len, buffer, sizeof(len));
-      std::string_view arg = std::string_view{reinterpret_cast<char const*>(buffer + sizeof(size_t)), len};
-      buffer += sizeof(len) + len;
+      buffer += sizeof(len);
+      std::string_view const arg = std::string_view{reinterpret_cast<char const*>(buffer), len};
+      buffer += len;
       return arg;
     }
     else
