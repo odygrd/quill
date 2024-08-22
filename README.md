@@ -126,9 +126,7 @@ int main()
   The library is designed with a clear separation between the Frontend and Backend components:
   - **Frontend:** To log messages, you only need to include `Logger.h` and `LogMacros.h` in your source files. These
     headers are lightweight and contain minimal dependencies.
-  - **Backend:** The backend implementation is included in a single `.cpp` file. This design ensures that no backend
-    code is injected into your other translation units, keeping compile times short and minimizing unnecessary
-    dependencies.
+  - **Backend:** The backend implementation needs to be included in a single `.cpp` file. This design ensures that no backend code is injected into your other translation units, keeping compile times short and minimizing unnecessary dependencies.
 - **Compile-Time Optimization**: Strip out specific log levels at compile time to reduce runtime overhead and enhance
   performance.
 - **Customizable Formatters**: Tailor your log output with user-defined formatting patterns. Explore the possibilities
