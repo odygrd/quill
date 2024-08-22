@@ -118,51 +118,33 @@ int main()
 
 ## 🎯 Features
 
-- **Lightning-Fast Logging**: Achieve low latency with fast logging performance. For detailed metrics, check out
-  the [Benchmarks](http://github.com/odygrd/quill#performance).
-- **Asynchronous Efficiency**: Offload formatting and I/O to a background thread, keeping your main thread efficient and
-  responsive.
+- **High-Performance**: Ultra-low latency performance. View [Benchmarks](http://github.com/odygrd/quill#performance)
+- **Asynchronous Processing**: Background thread handles formatting and I/O, keeping your main thread responsive.
 - **Minimal Header Includes**:
-  The library is designed with a clear separation between the Frontend and Backend components:
-  - **Frontend:** To log messages, you only need to include `Logger.h` and `LogMacros.h` in your source files. These
-    headers are lightweight and contain minimal dependencies.
-  - **Backend:** The backend implementation needs to be included in a single `.cpp` file. This design ensures that no backend code is injected into your other translation units, keeping compile times short and minimizing unnecessary dependencies.
-- **Compile-Time Optimization**: Strip out specific log levels at compile time to reduce runtime overhead and enhance
-  performance.
-- **Customizable Formatters**: Tailor your log output with user-defined formatting patterns. Explore the possibilities
-  in [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
-- **Versatile Timestamps**: Select from various timestamp generation methods. `rdtsc`, `chrono`, or
-  even `custom clocks`, ideal for simulations and more.
-- **Backtrace Logging**: Log messages can be stored in a ring buffer, ready to be displayed on demand or in response
-  to critical errors. Learn more
-  in [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html)
-- **Multiple Output Sinks**: Direct logs to multiple targets, including:
-  - Console with color support
-  - Files with rotation options
-  - JSON format
-  - Custom sinks of your design
-- **Targeted Log Filtering**: Apply filters to ensure that only relevant log messages are processed. Details can be
-  found in [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
-- **Structured JSON Logging**: Generate structured logs in JSON format for more organized data management.
+  - **Frontend**: Only `Logger.h` and `LogMacros.h` needed for logging. Lightweight with minimal dependencies.
+  - **Backend**: Single `.cpp` file inclusion. No backend code injection into other translation units.
+- **Compile-Time Optimization**: Eliminate specific log levels at compile time.
+- **Custom Formatters**: Define your own log output patterns.
+  See [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
+- **Timestamp-Ordered Logs**: Simplify debugging of multithreaded applications with chronologically ordered logs.
+- **Flexible Timestamps**: Support for `rdtsc`, `chrono`, or `custom clocks` - ideal for simulations and more.
+- **Backtrace Logging**: Store messages in a ring buffer for on-demand display.
+  See [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html)
+- **Multiple Output Sinks**: Console (with color), files (with rotation), JSON, ability to create custom sinks and more.
+- **Log Filtering**: Process only relevant messages.
+  See [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
+- **JSON Logging**: Structured log output.
   See [JSON Logging](https://quillcpp.readthedocs.io/en/latest/json_logging.html)
-- **Message Handling Modes**: Choose between `blocking` or `dropping` modes for message handling. In `blocking` mode,
-  the hot threads pause and wait when the queue is full until space becomes available, ensuring no message loss but
-  introducing potential latency. In `dropping` mode, log messages beyond the queue's capacity may be dropped to
-  prioritize low latency. The library provides reports on dropped messages, queue reallocations, and blocked hot threads
-  for monitoring purposes.
-- **Support for Huge Pages (Linux)**: Leverage huge pages on the hot path for improved performance and efficiency.
-- **Build Without Exceptions**:
-  The library can be configured to build without exception handling. This flexibility allows you to compile with or
-  without exception support based on your project's requirements
-- **Wide Character Support**: Wide strings compatible with ASCII encoding are supported, applicable to Windows only.
-  Additionally, there is support for logging STL containers consisting of wide strings. Note that chaining STL types,
-  such as `std::vector<std::vector<std::wstring>>` is not supported for wide strings.
-- **Timestamp-Ordered Logs**: Ensure logs are ordered by timestamp, even across different threads, simplifying the
-  debugging of multithreaded applications.
-- **Clean, Warning-Free Code**: The codebase is meticulously maintained to be clean and free of compiler warnings, even
-  with strict warning levels.
-- **Crash Resilience**: With built-in signal handler, the library is designed to handle unexpected crashes gracefully.
-- **Type-Safe API**: The API is type-safe, built on the robust [{fmt}](http://github.com/fmtlib/fmt) library.
+- **Configurable Queue Modes**: `bounded/unbounded` and `blocking/dropping` options with monitoring on dropped messages,
+  queue reallocations, and blocked hot threads.
+- **Crash Handling**: Built-in signal handler for log preservation during crashes.
+- **Huge Pages Support (Linux)**: Leverage huge pages on the hot path for optimized performance.
+- **Wide Character Support (Windows)**: Compatible with ASCII-encoded wide strings and STL containers consisting of wide
+  strings.
+- **Exception-Free Option**: Configurable builds with or without exception handling.
+- **Clean Codebase**: Maintained to high standards, warning-free even at strict levels.
+- **Type-Safe API**: Built on [{fmt}](http://github.com/fmtlib/fmt) library.
+
 ## 🧩 Usage
 
 ```c++
@@ -407,10 +389,9 @@ The tables are sorted by the 95th percentile
 
 #### Logging Large Strings
 
-`LOG_INFO(logger, "Logging int: {}, int: {}, string: {}", i, j, large_string)`.
+Logging `std::string` over 35 characters to prevent the short string optimization.
 
-The large string used in the log message is over 35 characters to prevent the short string optimization
-of `std::string`.
+`LOG_INFO(logger, "Logging int: {}, int: {}, string: {}", i, j, large_string)`.
 
 ##### 1 Thread Logging
 
@@ -444,9 +425,9 @@ of `std::string`.
 
 #### Logging Complex Types
 
-`LOG_INFO(logger, "Logging int: {}, int: {}, vector: {}", i, j, v)`.
+Logging `std::vector<std::string>` containing 16 large strings, each ranging from 50 to 60 characters.
 
-Logging `std::vector<std::string> v` containing 16 large strings, each ranging from 50 to 60 characters.
+`LOG_INFO(logger, "Logging int: {}, int: {}, vector: {}", i, j, v)`.
 
 ##### 1 Thread Logging
 
