@@ -122,11 +122,20 @@ int main()
   the [Benchmarks](http://github.com/odygrd/quill#performance).
 - **Asynchronous Efficiency**: Offload formatting and I/O to a background thread, keeping your main thread efficient and
   responsive.
+- **Minimal Header Includes**:
+  The library is designed with a clear separation between the Frontend and Backend components:
+  - **Frontend:** To log messages, you only need to include `Logger.h` and `LogMacros.h` in your source files. These
+    headers are lightweight and contain minimal dependencies.
+  - **Backend:** The backend implementation is included in a single `.cpp` file. This design ensures that no backend
+    code is injected into your other translation units, keeping compile times short and minimizing unnecessary
+    dependencies.
+- **Compile-Time Optimization**: Strip out specific log levels at compile time to reduce runtime overhead and enhance
+  performance.
 - **Customizable Formatters**: Tailor your log output with user-defined formatting patterns. Explore the possibilities
   in [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
 - **Versatile Timestamps**: Select from various timestamp generation methods. `rdtsc`, `chrono`, or
   even `custom clocks`, ideal for simulations and more.
-- **Stack Trace Logging**: Log messages can be stored in a ring buffer, ready to be displayed on demand or in response
+- **Backtrace Logging**: Log messages can be stored in a ring buffer, ready to be displayed on demand or in response
   to critical errors. Learn more
   in [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html)
 - **Multiple Output Sinks**: Direct logs to multiple targets, including:
@@ -143,19 +152,19 @@ int main()
   introducing potential latency. In `dropping` mode, log messages beyond the queue's capacity may be dropped to
   prioritize low latency. The library provides reports on dropped messages, queue reallocations, and blocked hot threads
   for monitoring purposes.
+- **Support for Huge Pages (Linux)**: Leverage huge pages on the hot path for improved performance and efficiency.
+- **Build Without Exceptions**:
+  The library can be configured to build without exception handling. This flexibility allows you to compile with or
+  without exception support based on your project's requirements
 - **Wide Character Support**: Wide strings compatible with ASCII encoding are supported, applicable to Windows only.
   Additionally, there is support for logging STL containers consisting of wide strings. Note that chaining STL types,
   such as `std::vector<std::vector<std::wstring>>` is not supported for wide strings.
 - **Timestamp-Ordered Logs**: Ensure logs are ordered by timestamp, even across different threads, simplifying the
   debugging of multithreaded applications.
-- **Compile-Time Optimization**: Strip out specific log levels at compile time to reduce runtime overhead and enhance
-  performance.
 - **Clean, Warning-Free Code**: The codebase is meticulously maintained to be clean and free of compiler warnings, even
   with strict warning levels.
 - **Crash Resilience**: With built-in signal handler, the library is designed to handle unexpected crashes gracefully.
 - **Type-Safe API**: The API is type-safe, built on the robust [{fmt}](http://github.com/fmtlib/fmt) library.
-- **Support for Huge Pages**: Leverage huge pages on the hot path for improved performance and efficiency.
-
 ## 🧩 Usage
 
 ```c++
@@ -345,6 +354,19 @@ cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
 
 ## 🚀 Performance
 
+### System Configuration
+
+- **OS:** Linux RHEL 9.4
+- **CPU:** Intel Core i5-12600 (12th Gen) @ 4.8 GHz
+- **Compiler:** GCC 13.1
+- **Benchmark-Tuned System:** The system is specifically tuned for benchmarking.
+
+- **Command Line Parameters:**
+  ```shell
+  $ cat /proc/cmdline
+  BOOT_IMAGE=(hd0,gpt2)/vmlinuz-5.14.0-427.13.1.el9_4.x86_64 root=/dev/mapper/rhel-root ro crashkernel=1G-4G:192M,4G-64G:256M,64G-:512M resume=/dev/mapper/rhel-swap rd.lvm.lv=rhel/root rd.lvm.lv=rhel/swap rhgb quiet nohz=on nohz_full=1-5 rcu_nocbs=1-5 isolcpus=1-5 mitigations=off transparent_hugepage=never intel_pstate=disable nosoftlockup irqaffinity=0 processor.max_cstate=1 nosoftirqd sched_tick_offload=0 spec_store_bypass_disable=off spectre_v2=off iommu=pt
+  ```
+
 ### Latency
 
 The results presented in the tables below are measured in `nanoseconds (ns)`.
@@ -427,7 +449,6 @@ of `std::string`.
 `LOG_INFO(logger, "Logging int: {}, int: {}, vector: {}", i, j, v)`.
 
 Logging `std::vector<std::string> v` containing 16 large strings, each ranging from 50 to 60 characters.
-The strings used in the log message are over 35 characters to prevent the short string optimization of `std::string`.
 
 ##### 1 Thread Logging
 
@@ -450,20 +471,6 @@ The strings used in the log message are over 35 characters to prevent the short 
 | [XTR](https://github.com/choll/xtr)                            | 512  | 711  | 761  | 791  | 865  |  945   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                     | 780  | 804  | 823  | 835  | 860  |  896   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 6469 | 6549 | 6641 | 6735 | 7631 |  9430  |
-
-**Benchmark Overview:**
-
-- **System Configuration:**
-  - **OS:** Linux RHEL 9.4
-  - **CPU:** Intel Core i5-12600 (12th Gen) @ 4.8 GHz
-  - **Compiler:** GCC 13.1
-  - **Benchmark-Tuned System:** The system is specifically tuned for benchmarking.
-
-- **Command Line Parameters:**
-  ```shell
-  $ cat /proc/cmdline
-  BOOT_IMAGE=(hd0,gpt2)/vmlinuz-5.14.0-427.13.1.el9_4.x86_64 root=/dev/mapper/rhel-root ro crashkernel=1G-4G:192M,4G-64G:256M,64G-:512M resume=/dev/mapper/rhel-swap rd.lvm.lv=rhel/root rd.lvm.lv=rhel/swap rhgb quiet nohz=on nohz_full=1-5 rcu_nocbs=1-5 isolcpus=1-5 mitigations=off transparent_hugepage=never intel_pstate=disable nosoftlockup irqaffinity=0 processor.max_cstate=1 nosoftirqd sched_tick_offload=0 spec_store_bypass_disable=off spectre_v2=off iommu=pt
-  ```
 
 The benchmark methodology involves logging 20 messages in a loop, calculating and storing the average latency for those
 20 messages, then waiting around ~2 milliseconds, and repeating this process for a specified number of iterations.
