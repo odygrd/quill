@@ -189,8 +189,8 @@ The tables are sorted by the 95th percentile
 
 | Library                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |----------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill Bounded Dropping Queue](http://github.com/odygrd/quill) |  8   |  9   |  10  |  10  |  12  |   14   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                     |  8   |  9   |  9   |  10  |  11  |   13   |
+| [Quill Bounded Dropping Queue](http://github.com/odygrd/quill) |  8   |  9   |  10  |  10  |  12  |   14   |
 | [XTR](https://github.com/choll/xtr)                            |  7   |  8   |  9   |  11  |  31  |   38   | 
 | [Quill Unbounded Queue](http://github.com/odygrd/quill)        |  10  |  11  |  11  |  12  |  13  |   15   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  15  |  17  |  20  |  23  |  27  |   32   |
