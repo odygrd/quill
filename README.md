@@ -76,6 +76,8 @@ applications where every microsecond counts.
 
 ## ⏩ Quick Start
 
+Try it on [Compiler Explorer](https://godbolt.org/z/dEfrP78cG)
+
 Getting started is easy and straightforward. Follow these steps to integrate the library into your project:
 
 ### Installation
