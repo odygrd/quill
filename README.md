@@ -74,9 +74,9 @@ applications where every microsecond counts.
 - **Extensive Documentation**: Comprehensive guides and examples available.
 - **Community-Driven**: Open to contributions, feedback, and feature requests.
 
-## ⏩ Quick Start
-
 Try it on [Compiler Explorer](https://godbolt.org/z/dEfrP78cG)
+
+## ⏩ Quick Start
 
 Getting started is easy and straightforward. Follow these steps to integrate the library into your project:
 
