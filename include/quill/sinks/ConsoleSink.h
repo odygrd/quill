@@ -109,24 +109,24 @@ public:
     return _colours[log_lvl];
   }
 
-  static inline WORD const bold = FOREGROUND_INTENSITY;
+  static constexpr WORD bold = FOREGROUND_INTENSITY;
 
-  static inline WORD const black = 0;
-  static inline WORD const red = FOREGROUND_RED;
-  static inline WORD const green = FOREGROUND_GREEN;
-  static inline WORD const yellow = FOREGROUND_RED | FOREGROUND_GREEN;
-  static inline WORD const blue = FOREGROUND_BLUE;
-  static inline WORD const magenta = FOREGROUND_RED | FOREGROUND_BLUE;
-  static inline WORD const cyan = FOREGROUND_GREEN | FOREGROUND_BLUE;
-  static inline WORD const white = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+  static constexpr WORD black = 0;
+  static constexpr WORD red = FOREGROUND_RED;
+  static constexpr WORD green = FOREGROUND_GREEN;
+  static constexpr WORD yellow = FOREGROUND_RED | FOREGROUND_GREEN;
+  static constexpr WORD blue = FOREGROUND_BLUE;
+  static constexpr WORD magenta = FOREGROUND_RED | FOREGROUND_BLUE;
+  static constexpr WORD cyan = FOREGROUND_GREEN | FOREGROUND_BLUE;
+  static constexpr WORD white = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
 
-  static inline WORD const on_red = BACKGROUND_RED;
-  static inline WORD const on_green = BACKGROUND_GREEN;
-  static inline WORD const on_yellow = BACKGROUND_RED | BACKGROUND_GREEN;
-  static inline WORD const on_blue = BACKGROUND_BLUE;
-  static inline WORD const on_magenta = BACKGROUND_RED | BACKGROUND_BLUE;
-  static inline WORD const on_cyan = BACKGROUND_GREEN | BACKGROUND_BLUE;
-  static inline WORD const on_white = BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_BLUE;
+  static constexpr WORD on_red = BACKGROUND_RED;
+  static constexpr WORD on_green = BACKGROUND_GREEN;
+  static constexpr WORD on_yellow = BACKGROUND_RED | BACKGROUND_GREEN;
+  static constexpr WORD on_blue = BACKGROUND_BLUE;
+  static constexpr WORD on_magenta = BACKGROUND_RED | BACKGROUND_BLUE;
+  static constexpr WORD on_cyan = BACKGROUND_GREEN | BACKGROUND_BLUE;
+  static constexpr WORD on_white = BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_BLUE;
 
 private:
   friend class ConsoleSink;
@@ -217,40 +217,40 @@ public:
   }
 
   // Formatting codes
-  static inline std::string const reset{"\033[0m"};
-  static inline std::string const bold{"\033[1m"};
-  static inline std::string const dark{"\033[2m"};
-  static inline std::string const underline{"\033[4m"};
-  static inline std::string const blink{"\033[5m"};
-  static inline std::string const reverse{"\033[7m"};
-  static inline std::string const concealed{"\033[8m"};
-  static inline std::string const clear_line{"\033[K"};
+  static constexpr std::string_view reset{"\033[0m"};
+  static constexpr std::string_view bold{"\033[1m"};
+  static constexpr std::string_view dark{"\033[2m"};
+  static constexpr std::string_view underline{"\033[4m"};
+  static constexpr std::string_view blink{"\033[5m"};
+  static constexpr std::string_view reverse{"\033[7m"};
+  static constexpr std::string_view concealed{"\033[8m"};
+  static constexpr std::string_view clear_line{"\033[K"};
 
   // Foreground colors
-  static inline std::string const black{"\033[30m"};
-  static inline std::string const red{"\033[31m"};
-  static inline std::string const green{"\033[32m"};
-  static inline std::string const yellow{"\033[33m"};
-  static inline std::string const blue{"\033[34m"};
-  static inline std::string const magenta{"\033[35m"};
-  static inline std::string const cyan{"\033[36m"};
-  static inline std::string const white{"\033[37m"};
+  static constexpr std::string_view black{"\033[30m"};
+  static constexpr std::string_view red{"\033[31m"};
+  static constexpr std::string_view green{"\033[32m"};
+  static constexpr std::string_view yellow{"\033[33m"};
+  static constexpr std::string_view blue{"\033[34m"};
+  static constexpr std::string_view magenta{"\033[35m"};
+  static constexpr std::string_view cyan{"\033[36m"};
+  static constexpr std::string_view white{"\033[37m"};
 
   /// Background colors
-  static inline std::string const on_black{"\033[40m"};
-  static inline std::string const on_red{"\033[41m"};
-  static inline std::string const on_green{"\033[42m"};
-  static inline std::string const on_yellow{"\033[43m"};
-  static inline std::string const on_blue{"\033[44m"};
-  static inline std::string const on_magenta{"\033[45m"};
-  static inline std::string const on_cyan{"\033[46m"};
-  static inline std::string const on_white{"\033[47m"};
+  static constexpr std::string_view on_black{"\033[40m"};
+  static constexpr std::string_view on_red{"\033[41m"};
+  static constexpr std::string_view on_green{"\033[42m"};
+  static constexpr std::string_view on_yellow{"\033[43m"};
+  static constexpr std::string_view on_blue{"\033[44m"};
+  static constexpr std::string_view on_magenta{"\033[45m"};
+  static constexpr std::string_view on_cyan{"\033[46m"};
+  static constexpr std::string_view on_white{"\033[47m"};
 
   /// Bold colors
-  static inline std::string const white_bold{"\033[97m\033[1m"};
-  static inline std::string const yellow_bold{"\033[33m\033[1m"};
-  static inline std::string const red_bold{"\033[31m\033[1m"};
-  static inline std::string const bold_on_red{"\033[1m\033[41m"};
+  static constexpr std::string_view white_bold{"\033[97m\033[1m"};
+  static constexpr std::string_view yellow_bold{"\033[33m\033[1m"};
+  static constexpr std::string_view red_bold{"\033[31m\033[1m"};
+  static constexpr std::string_view bold_on_red{"\033[1m\033[41m"};
 
 private:
   friend class ConsoleSink;
