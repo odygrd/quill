@@ -96,7 +96,7 @@
 - Added the `add_metadata_to_multi_line_logs` option in `PatternFormatter`. When enabled, this option ensures that
   metadata (e.g., timestamps, log levels) is appended to every line in multi-line log entries, maintaining consistency
   in log outputs. However, note that this option is ignored when logging `JSON` with named arguments in the format
-  message. Additionally, enabling this option may reduce backend throughput by approximately 10%.
+  message.
 - The functions `Frontend::create_or_get_logger(...)` now have an additional
   parameter, `add_metadata_to_multi_line_logs`.
 - `JSON` sinks now automatically remove any `\n` characters from format messages, ensuring the emission of valid `JSON`
