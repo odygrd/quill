@@ -11,6 +11,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 #include "quill/core/MacroMetadata.h"
+#include "quill/core/PatternFormatterOptions.h"
 #include "quill/core/QuillError.h"
 
 #include <array>
@@ -67,44 +68,16 @@ public:
   /** Main PatternFormatter class **/
 public:
   /**
-   * Constructor for a PatterFormatter with a custom format
-   * @param format_pattern format_pattern a format string.
+   * Constructor for a PatternFormatter with custom formatting options.
    *
-   * The following attribute names can be used with the corresponding placeholder in a %-style format string.
-   * @note: The same attribute can not be used twice in the same format pattern
+   * @param options The PatternFormatterOptions object containing the formatting configuration.
+   *                @see PatternFormatterOptions for detailed information on available options.
    *
-   * %(time)                    - Human-readable timestamp representing when the log statement was created.
-   * %(file_name)               - Name of the source file where the logging call was issued.
-   * %(full_path)               - Full path of the source file where the logging call was issued.
-   * %(caller_function)         - Name of the function containing the logging call.
-   * %(log_level)               - Textual representation of the logging level for the message.
-   * %(log_level_short_code)    - Abbreviated log level name.
-   * %(line_number)             - Line number in the source file where the logging call was issued.
-   * %(logger)                  - Name of the logger used to log the call.
-   * %(message)                 - The logged message itself.
-   * %(thread_id)               - ID of the thread in which the logging call was made.
-   * %(thread_name)             - Name of the thread. Must be set before the first log statement on that thread.
-   * %(process_id)              - ID of the process in which the logging call was made.
-   * %(source_location)         - Full source file path and line number as a single string.
-   * %(short_source_location)   - Shortened source file name and line number as a single string.
-   * %(tags)                    - Additional custom tags appended to the message when _TAGS macros are used.
-   * %(named_args)              - Key-value pairs appended to the message. Only applicable when the message has named args; remains empty otherwise.
-   *
-   * @param time_format The format of the date. Same as strftime() format with extra specifiers `%Qms` `%Qus` `Qns`
-   * @param timestamp_timezone The timezone of the timestamp, local_time or gmt_time
-   * @param add_metadata_to_multi_line_logs If true, ensures that metadata (e.g., timestamp, log level) is added to every line of multiline log entries, maintaining consistency across all log outputs.
-   *
-   * @throws on invalid format string
+   * @throws std::invalid_argument if the format string in options is invalid
    */
-  explicit PatternFormatter(
-    std::string format_pattern =
-      "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) "
-      "%(logger:<12) %(message)",
-    std::string const& time_format = "%H:%M:%S.%Qns",
-    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = true)
-    : _format_pattern(std::move(format_pattern)),
-      _add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs),
-      _timestamp_formatter(time_format, timestamp_timezone)
+  explicit PatternFormatter(PatternFormatterOptions options)
+    : _options(std::move(options)),
+      _timestamp_formatter(_options.timestamp_pattern, _options.timestamp_timezone)
   {
     _set_pattern();
   }
@@ -127,7 +100,7 @@ public:
     std::string_view log_level_short_code, MacroMetadata const& log_statement_metadata,
     std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_msg)
   {
-    if (_format_pattern.empty())
+    if (_options.format_pattern.empty())
     {
       // No formatting is needed when the format pattern is empty.
       // For example, in JsonFileSink, we can retrieve the MacroMetadata and the named arguments as
@@ -253,19 +226,7 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD detail::TimestampFormatter const& timestamp_formatter() const noexcept
-  {
-    return _timestamp_formatter;
-  }
-
-  /***/
-  QUILL_NODISCARD std::string const& format_pattern() const noexcept { return _format_pattern; }
-
-  /***/
-  QUILL_NODISCARD bool get_add_metadata_to_multi_line_logs() const noexcept
-  {
-    return _add_metadata_to_multi_line_logs;
-  }
+  QUILL_NODISCARD PatternFormatterOptions const& get_options() const noexcept { return _options; }
 
 private:
   void _set_pattern()
@@ -273,7 +234,7 @@ private:
     // the order we pass the arguments here must match with the order of Attribute enum
     using namespace fmtquill::literals;
     std::tie(_fmt_format, _order_index) = _generate_fmt_format_string(
-      _is_set_in_pattern, _format_pattern, "time"_a = "", "file_name"_a = "",
+      _is_set_in_pattern, _options.format_pattern, "time"_a = "", "file_name"_a = "",
       "caller_function"_a = "", "log_level"_a = "", "log_level_short_code"_a = "",
       "line_number"_a = "", "logger"_a = "", "full_path"_a = "", "thread_id"_a = "",
       "thread_name"_a = "", "process_id"_a = "", "source_location"_a = "",
@@ -500,14 +461,13 @@ private:
   }
 
 private:
-  std::string _format_pattern;
+  PatternFormatterOptions _options;
   std::string _fmt_format;
 
   /** Each named argument in the format_pattern is mapped in order to this array **/
   std::array<size_t, Attribute::ATTR_NR_ITEMS> _order_index{};
   std::array<fmtquill::basic_format_arg<fmtquill::format_context>, Attribute::ATTR_NR_ITEMS> _args{};
   std::bitset<Attribute::ATTR_NR_ITEMS> _is_set_in_pattern;
-  bool _add_metadata_to_multi_line_logs;
 
   /** class responsible for formatting the timestamp */
   detail::TimestampFormatter _timestamp_formatter;

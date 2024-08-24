@@ -312,12 +312,11 @@ private:
 
   /***/
   LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
-             std::string format_pattern, std::string time_pattern, Timezone timestamp_timezone,
-             bool add_metadata_to_multi_line_logs, ClockSourceType clock_source, UserClockSource* user_clock)
+             PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
+             UserClockSource* user_clock)
     : detail::LoggerBase(static_cast<std::string&&>(logger_name),
                          static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
-                         static_cast<std::string&&>(format_pattern), static_cast<std::string&&>(time_pattern),
-        timestamp_timezone, add_metadata_to_multi_line_logs, clock_source, user_clock)
+        static_cast<PatternFormatterOptions&&>(pattern_formatter_options), clock_source, user_clock)
 
   {
     if (this->user_clock)

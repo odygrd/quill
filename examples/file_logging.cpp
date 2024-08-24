@@ -44,11 +44,11 @@ int main()
     }(),
     quill::FileEventNotifier{});
 
-  quill::Logger* logger =
-    quill::Frontend::create_or_get_logger("root", std::move(file_sink),
-                                          "%(time) [%(thread_id)] %(short_source_location:<28) "
+  quill::Logger* logger = quill::Frontend::create_or_get_logger(
+    "root", std::move(file_sink),
+    quill::PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
                                           "LOG_%(log_level:<9) %(logger:<12) %(message)",
-                                          "%H:%M:%S.%Qns", quill::Timezone::GmtTime);
+                                   "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
 
   // set the log level of the logger to debug (default is info)
   logger->set_log_level(quill::LogLevel::Debug);

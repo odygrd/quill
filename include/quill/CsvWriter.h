@@ -61,7 +61,7 @@ public:
                                                cfg.set_filename_append_option(filename_append);
                                                return cfg;
                                              }()),
-      "%(message)", "", Timezone::GmtTime);
+      quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
     _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
   }
@@ -74,8 +74,9 @@ public:
    */
   CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink)
   {
-    _logger = Frontend::create_or_get_logger(unique_name + "_csv", std::move(sink), "%(message)",
-                                             "", Timezone::GmtTime);
+    _logger =
+      Frontend::create_or_get_logger(unique_name + "_csv", std::move(sink),
+                                     quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
     _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
   }
@@ -88,7 +89,8 @@ public:
    */
   CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks)
   {
-    _logger = Frontend::create_or_get_logger(unique_name + "_csv", sinks, "%(message)", "", Timezone::GmtTime);
+    _logger = Frontend::create_or_get_logger(
+      unique_name + "_csv", sinks, quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
     _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
   }

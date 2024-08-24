@@ -49,15 +49,17 @@ TEST_CASE("json_multi_line_metadata")
 
   Logger* logger_a = Frontend::create_or_get_logger(
     logger_name_a, std::initializer_list<std::shared_ptr<Sink>>{json_file_sink, file_sink},
-    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
-    "%(message) %(caller_function)",
-    "%H:%M:%S.%Qns", Timezone::LocalTime, true);
+    PatternFormatterOptions{
+      "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+      "%(message) %(caller_function)",
+      "%H:%M:%S.%Qns", Timezone::LocalTime, true});
 
   Logger* logger_b = Frontend::create_or_get_logger(
     logger_name_b, std::initializer_list<std::shared_ptr<Sink>>{json_file_sink, file_sink},
-    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
-    "%(message) %(caller_function)",
-    "%H:%M:%S.%Qns", Timezone::LocalTime, false);
+    PatternFormatterOptions{
+      "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+      "%(message) %(caller_function)",
+      "%H:%M:%S.%Qns", Timezone::LocalTime, false});
 
   LOG_INFO(logger_a, "This is a multiline info message.\nLine 2: {val_1}.\nLine 3: {val_2}.",
            "data1", "data2");

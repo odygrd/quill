@@ -98,10 +98,30 @@
   output. To restore the previous behavior, set this option to false when creating a `Logger`
   using `Frontend::create_or_get_logger(...)`. Note that this option is ignored when logging JSON using named arguments
   in the format message. ([#534](https://github.com/odygrd/quill/pull/534))
-- The functions `Frontend::create_or_get_logger(...)` now takes an additional
-  parameter, `add_metadata_to_multi_line_logs`.
 - `JSON` sinks now automatically remove any `\n` characters from format messages, ensuring the emission of valid `JSON`
   messages even when `\n` is present in the format.
+- The `Frontend::create_or_get_logger(...)` function now accepts a `PatternFormatterOptions` parameter, simplifying the
+  API. This is a breaking change. To migrate quickly, wrap the existing formatting parameters in a
+  `PatternFormatterOptions` object.
+
+  **Before:**
+  ```c++
+    quill::Logger* logger =
+      quill::Frontend::create_or_get_logger("root", std::move(file_sink),
+                                            "%(time) [%(thread_id)] %(short_source_location:<28) "
+                                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime);
+  ```
+
+  **After:**
+
+  ```c++
+    quill::Logger* logger =
+      quill::Frontend::create_or_get_logger("root", std::move(file_sink), quill::PatternFormatterOptions {
+                                            "%(time) [%(thread_id)] %(short_source_location:<28) "
+                                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
+  ```
 
 ## v6.1.2
 

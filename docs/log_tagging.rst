@@ -41,9 +41,9 @@ To include tags in your log statements, use the `_TAGS` macros. You will also ne
 
       quill::Logger* logger = quill::Frontend::create_or_get_logger(
         "root", std::move(console_sink),
-        "%(time) [%(thread_id)] %(short_source_location:<28) %(log_level:<9) "
+        quill::PatternFormatterOptions { "%(time) [%(thread_id)] %(short_source_location:<28) %(log_level:<9) "
         "%(tags)%(message)",
-        "%Y-%m-%d %H:%M:%S.%Qms", quill::Timezone::GmtTime);
+        "%Y-%m-%d %H:%M:%S.%Qms", quill::Timezone::GmtTime });
 
       LOG_INFO_TAGS(logger, TAGS("random"), "Debug with tags");
       LOG_INFO_TAGS(logger, TAGS(TAG_2), "Info with tags");

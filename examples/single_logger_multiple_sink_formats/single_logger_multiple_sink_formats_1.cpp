@@ -38,14 +38,16 @@ int main()
       cfg.set_rotation_max_file_size(1024 * 1024);
       return cfg;
     }(),
-    file_log_pattern, file_time_format);
+    quill::PatternFormatterOptions{file_log_pattern, file_time_format});
+
   rotating_file_sink->set_log_level_filter(quill::LogLevel::Info);
 
   // The Logger is using the console_log_pattern by default
   // To output our custom format to the file we use our own RotatingFileSinkWithFormatter that is
   // overwriting the default format
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
-    "root", {std::move(console_sink), std::move(rotating_file_sink)}, console_log_pattern, console_time_format);
+    "root", {std::move(console_sink), std::move(rotating_file_sink)},
+    quill::PatternFormatterOptions{console_log_pattern, console_time_format});
 
   logger->set_log_level(quill::LogLevel::Debug);
 

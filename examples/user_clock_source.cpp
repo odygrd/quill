@@ -63,8 +63,10 @@ int main()
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "root", std::move(console_sink),
-    "%(time) %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)",
-    "%D %H:%M:%S.%Qns", quill::Timezone::LocalTime, false, quill::ClockSourceType::User, &simulated_clock);
+    quill::PatternFormatterOptions{
+      "%(time) %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)",
+      "%D %H:%M:%S.%Qns", quill::Timezone::LocalTime, false},
+    quill::ClockSourceType::User, &simulated_clock);
 
   // Change the LogLevel to print everything
   logger->set_log_level(quill::LogLevel::TraceL3);

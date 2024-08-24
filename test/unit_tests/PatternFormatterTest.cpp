@@ -17,7 +17,7 @@ std::string_view process_id = "123";
 
 TEST_CASE("default_pattern_formatter")
 {
-  PatternFormatter default_pattern_formatter;
+  PatternFormatter default_pattern_formatter{PatternFormatterOptions{}};
 
   uint64_t const ts{1579815761000023021};
   char const* thread_id = "31341";
@@ -54,8 +54,8 @@ TEST_CASE("default_pattern_formatter")
 TEST_CASE("custom_pattern_message_only")
 {
   // Message only
-  PatternFormatter custom_pattern_formatter{"%(log_level_short_code) %(message)", "%H:%M:%S.%Qns",
-                                            Timezone::GmtTime};
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
+    "%(log_level_short_code) %(message)", "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -88,10 +88,10 @@ TEST_CASE("custom_pattern_message_only")
 TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
 {
   // Custom pattern with part 1 and part 3
-  PatternFormatter custom_pattern_formatter{
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
     "%(time) [%(thread_id)] %(file_name):%(line_number) LOG_%(log_level) %(logger) "
     "%(message) [%(caller_function)]",
-    "%m-%d-%Y %H:%M:%S.%Qns", Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S.%Qns", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -126,10 +126,10 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
 
 TEST_CASE("custom_pattern_timestamp_precision_microseconds")
 {
-  PatternFormatter custom_pattern_formatter{
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
     "%(time) [%(thread_id)] %(file_name):%(line_number) LOG_%(log_level) %(logger) "
     "%(message) [%(caller_function)]",
-    "%m-%d-%Y %H:%M:%S.%Qus", Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S.%Qus", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761020123000};
   char const* thread_id = "31341";
@@ -164,10 +164,10 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
 
 TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
 {
-  PatternFormatter custom_pattern_formatter{
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
     "%(time) [%(thread_id)] %(file_name):%(line_number) LOG_%(log_level) %(logger) "
     "%(message) [%(caller_function)]",
-    "%m-%d-%Y %H:%M:%S.%Qms", Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S.%Qms", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761099000000};
   char const* thread_id = "31341";
@@ -202,10 +202,10 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
 
 TEST_CASE("custom_pattern_timestamp_precision_none")
 {
-  PatternFormatter custom_pattern_formatter{
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
     "%(time) [%(thread_id)] %(file_name):%(line_number) LOG_%(log_level) %(logger) "
     "%(message) [%(caller_function)]",
-    "%m-%d-%Y %H:%M:%S", Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761099220000};
   char const* thread_id = "31341";
@@ -241,10 +241,10 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
 TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
 {
   // set a timestamp_format that will cause timestamp _formatted_date to re-allocate.
-  PatternFormatter custom_pattern_formatter{
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
     "%(time) [%(thread_id)] %(file_name):%(line_number) LOG_%(log_level) %(logger) "
     "%(message) [%(caller_function)]",
-    "%FT%T.%Qus%FT%T", Timezone::GmtTime};
+    "%FT%T.%Qus%FT%T", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761099220000};
   char const* thread_id = "31341";
@@ -283,10 +283,10 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
 TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional_seconds")
 {
   // set a timestamp_format that will cause timestamp _formatted_date to re-allocate.
-  PatternFormatter custom_pattern_formatter{
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
     "%(time) [%(thread_id)] %(file_name):%(line_number) LOG_%(log_level) %(logger) "
     "%(message) [%(caller_function)]",
-    "%FT%T.%T.%Qus%FT%T", Timezone::GmtTime};
+    "%FT%T.%T.%Qus%FT%T", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761099220000};
   char const* thread_id = "31341";
@@ -326,17 +326,18 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
 TEST_CASE("invalid_pattern")
 {
   // missing %)
-  REQUIRE_THROWS_AS(
-    PatternFormatter("%(time [%(thread_id)] %(file_name):%(line_number) %(log_level) %(logger) "
-                     "%(message) [%(caller_function)]",
-                     "%H:%M:%S.%Qns", Timezone::GmtTime),
-    quill::QuillError);
+  REQUIRE_THROWS_AS(PatternFormatter(PatternFormatterOptions{
+                      "%(time [%(thread_id)] %(file_name):%(line_number) %(log_level) %(logger) "
+                      "%(message) [%(caller_function)]",
+                      "%H:%M:%S.%Qns", Timezone::GmtTime, false}),
+                    quill::QuillError);
 
   // invalid attribute %(invalid)
   REQUIRE_THROWS_AS(
-    PatternFormatter("%(invalid) [%(thread_id)] %(file_name):%(line_number) %(log_level) %(logger) "
-                     "%(message) [%(caller_function)]",
-                     "%H:%M:%S.%Qns", Timezone::GmtTime),
+    PatternFormatter(PatternFormatterOptions{
+      "%(invalid) [%(thread_id)] %(file_name):%(line_number) %(log_level) %(logger) "
+      "%(message) [%(caller_function)]",
+      "%H:%M:%S.%Qns", Timezone::GmtTime, false}),
     quill::QuillError);
 }
 #endif
@@ -344,9 +345,9 @@ TEST_CASE("invalid_pattern")
 TEST_CASE("custom_pattern")
 {
   // Custom pattern with part 1 and part 2
-  PatternFormatter custom_pattern_formatter{
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
     "%(time) [%(thread_id)] %(file_name):%(line_number) LOG_%(log_level) %(logger) %(message)",
-    "%m-%d-%Y %H:%M:%S.%Qns", Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S.%Qns", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -373,7 +374,7 @@ TEST_CASE("custom_pattern")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:354 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:355 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -384,8 +385,8 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
   // Custom pattern with a part 3 that has no format specifiers:
   //   Part 1 - "|{}|{}|"
   //   Part 3 - "|EOM|"
-  PatternFormatter custom_pattern_formatter{"|LOG_%(log_level)|%(logger)|%(message)|EOM|",
-                                            "%H:%M:%S", Timezone::GmtTime};
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
+    "|LOG_%(log_level)|%(logger)|%(message)|EOM|", "%H:%M:%S", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -419,7 +420,7 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
 
 TEST_CASE("empty_format_pattern")
 {
-  PatternFormatter empty_formatter{"", "%H:%M:%S", Timezone::GmtTime};
+  PatternFormatter empty_formatter{PatternFormatterOptions{"", "%H:%M:%S", Timezone::GmtTime, false}};
 
   uint64_t const ts{1579815761000023000};
   char const* thread_id = "31341";
@@ -453,10 +454,10 @@ TEST_CASE("empty_format_pattern")
 TEST_CASE("pattern_timestamp_move_constructor")
 {
   // Custom pattern with part 1 and part 3
-  PatternFormatter pattern_formatter{
+  PatternFormatter pattern_formatter{PatternFormatterOptions{
     "%(time) [%(thread_id)] %(file_name):%(line_number) LOG_%(log_level) %(logger) "
     "%(message) [%(caller_function)]",
-    "%m-%d-%Y %H:%M:%S.%Qns", Timezone::GmtTime};
+    "%m-%d-%Y %H:%M:%S.%Qns", Timezone::GmtTime, false}};
 
   PatternFormatter pattern_formatter_move{std::move(pattern_formatter)};
 
@@ -485,7 +486,7 @@ TEST_CASE("pattern_timestamp_move_constructor")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:466 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:467 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_27]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);

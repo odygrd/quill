@@ -22,9 +22,10 @@ TEST_CASE("check_logger")
 
   Logger* logger_1 = static_cast<Logger*>(lm.create_or_get_logger<Logger>(
     "logger_1", std::move(sinks),
-    "%(time) [%(thread_id)] %(short_source_location:<28) "
+    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
     "LOG_%(log_level:<9) %(logger:<12) %(message)",
-    "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false, ClockSourceType::Tsc, nullptr));
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr));
 
   // Check default log level
   REQUIRE_EQ(logger_1->get_log_level(), LogLevel::Info);
@@ -48,9 +49,10 @@ TEST_CASE("logger_should_log")
 
   Logger* logger_1 = static_cast<Logger*>(lm.create_or_get_logger<Logger>(
     "logger_1", std::move(sinks),
-    "%(time) [%(thread_id)] %(short_source_location:<28) "
+    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
     "LOG_%(log_level:<9) %(logger:<12) %(message)",
-    "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false, ClockSourceType::Tsc, nullptr));
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr));
 
   REQUIRE_UNARY_FALSE(logger_1->should_log_statement<LogLevel::Debug>());
   REQUIRE(logger_1->should_log_statement<LogLevel::Info>());

@@ -12,10 +12,9 @@
 class ConsoleSinkWithFormatter : public quill::ConsoleSink
 {
 public:
-  ConsoleSinkWithFormatter(std::string const& format_pattern, std::string const& time_format,
-                           quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,
+  ConsoleSinkWithFormatter(quill::PatternFormatterOptions const& pattern_formater_options,
                            bool enable_colours = true, std::string const& stream = "stdout")
-    : quill::ConsoleSink(enable_colours, stream), _formatter(format_pattern, time_format, timestamp_timezone)
+    : quill::ConsoleSink(enable_colours, stream), _formatter(pattern_formater_options)
   {
   }
 

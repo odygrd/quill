@@ -83,8 +83,8 @@ Providing a Custom Timestamp
       auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
       quill::Logger* logger = quill::Frontend::create_or_get_logger(
         "root", std::move(console_sink),
-        "%(time) %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)",
-        "%D %H:%M:%S.%Qns", quill::Timezone::LocalTime, quill::ClockSourceType::User, &simulated_clock);
+        quill::PatternFormatterOptions { "%(time) %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)",
+        "%D %H:%M:%S.%Qns", quill::Timezone::LocalTime }, quill::ClockSourceType::User, &simulated_clock);
 
       // Set our timestamp to Sunday 12 June 2022
       simulated_clock.set_timestamp(std::chrono::seconds{1655007309});
@@ -122,9 +122,9 @@ To achieve this, you can use the :cpp:class:`quill::BackendTscClock`. See the ex
       // Ensure at least one logger with quill::ClockSourceType::Tsc is created for BackendTscClock to function
       quill::Logger* logger = quill::Frontend::create_or_get_logger(
         "root", std::move(console_sink),
-        "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+        quill::PatternFormatterOptions { "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
         "%(message)",
-        "%H:%M:%S.%Qns", quill::Timezone::LocalTime, quill::ClockSourceType::Tsc);
+        "%H:%M:%S.%Qns", quill::Timezone::LocalTime }, quill::ClockSourceType::Tsc);
 
       // Log an informational message which will also init the backend RdtscClock
       LOG_INFO(logger, "This is a log info example with number {}", 123);

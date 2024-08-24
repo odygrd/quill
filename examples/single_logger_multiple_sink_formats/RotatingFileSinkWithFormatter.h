@@ -13,11 +13,9 @@ class RotatingFileSinkWithFormatter : public quill::RotatingFileSink
 {
 public:
   RotatingFileSinkWithFormatter(quill::fs::path const& filename, quill::RotatingFileSinkConfig const& config,
-                                std::string const& format_pattern, std::string const& time_format,
-                                quill::Timezone timestamp_timezone = quill::Timezone::LocalTime,
+                                quill::PatternFormatterOptions const& pattern_formatter_options,
                                 quill::FileEventNotifier file_event_notifier = quill::FileEventNotifier{})
-    : quill::RotatingFileSink(filename, config, file_event_notifier),
-      _formatter(format_pattern, time_format, timestamp_timezone)
+    : quill::RotatingFileSink(filename, config, file_event_notifier), _formatter(pattern_formatter_options)
   {
   }
 

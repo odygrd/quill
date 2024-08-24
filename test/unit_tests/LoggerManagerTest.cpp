@@ -21,15 +21,17 @@ TEST_CASE("create_get_remove_logger")
 
   LoggerBase* logger_1 = lm.create_or_get_logger<Logger>(
     "logger_1", std::move(sinks),
-    "%(time) [%(thread_id)] %(short_source_location:<28) "
-    "LOG_%(log_level:<9) %(logger:<12) %(message)",
-    "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false, ClockSourceType::Tsc, nullptr);
+    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
+                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr);
 
   LoggerBase* logger_2 = lm.create_or_get_logger<Logger>(
     "logger_2", std::initializer_list<std::shared_ptr<Sink>>{sink},
-    "[%(thread_id)] %(short_source_location:<28) "
-    "LOG_%(log_level:<9) %(logger:<12) %(message)",
-    "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false, ClockSourceType::Tsc, nullptr);
+    PatternFormatterOptions{"[%(thread_id)] %(short_source_location:<28) "
+                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr);
 
   REQUIRE_EQ(logger_1->get_logger_name(), "logger_1");
   REQUIRE_EQ(logger_2->get_logger_name(), "logger_2");
