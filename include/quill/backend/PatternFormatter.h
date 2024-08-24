@@ -103,8 +103,8 @@ public:
     std::string const& time_format = "%H:%M:%S.%Qns",
     Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = true)
     : _format_pattern(std::move(format_pattern)),
-      _timestamp_formatter(time_format, timestamp_timezone),
-      _add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs)
+      _add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs),
+      _timestamp_formatter(time_format, timestamp_timezone)
   {
     _set_pattern();
   }
