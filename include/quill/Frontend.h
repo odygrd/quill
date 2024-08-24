@@ -83,7 +83,7 @@ public:
    * @param timestamp_timezone The timezone for log timestamps.
    * @param add_metadata_to_multi_line_logs If true, ensures that metadata (such as timestamps and log levels) is appended to every line in multi-line log entries, maintaining consistency in log outputs.
    *        Note: This option is ignored when logging `JSON` with named arguments in the format message.
-   *        Enable this only if you are using multi-line logs (i.e., logs containing `\n`) and require consistent metadata on each line.
+   *        Note: This option only applies to multi-line log entries. It can be disabled if you prefer not to append metadata or if your logs are exclusively single-line entries.
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
    *
@@ -95,7 +95,7 @@ public:
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
       "%(message)",
     std::string const& time_pattern = "%H:%M:%S.%Qns",
-    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = false,
+    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = true,
     ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)
   {
     std::vector<std::shared_ptr<Sink>> sinks;
@@ -116,7 +116,7 @@ public:
    * @param timestamp_timezone The timezone for log timestamps.
    * @param add_metadata_to_multi_line_logs If true, ensures that metadata (such as timestamps and log levels) is appended to every line in multi-line log entries, maintaining consistency in log outputs.
    *        Note: This option is ignored when logging `JSON` with named arguments in the format message.
-   *        Enable this only if you are using multi-line logs (i.e., logs containing `\n`) and require consistent metadata on each line.
+   *        Note: This option only applies to multi-line log entries. It can be disabled if you prefer not to append metadata or if your logs are exclusively single-line entries.
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
    * @return Logger* A pointer to the created or retrieved logger.
@@ -127,7 +127,7 @@ public:
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
       "%(message)",
     std::string const& time_pattern = "%H:%M:%S.%Qns",
-    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = false,
+    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = true,
     ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)
   {
     return _cast_to_logger(detail::LoggerManager::instance().create_or_get_logger<logger_t>(

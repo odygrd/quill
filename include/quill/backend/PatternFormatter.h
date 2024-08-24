@@ -101,7 +101,7 @@ public:
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) "
       "%(logger:<12) %(message)",
     std::string const& time_format = "%H:%M:%S.%Qns",
-    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = false)
+    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = true)
     : _format_pattern(std::move(format_pattern)),
       _add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs),
       _timestamp_formatter(time_format, timestamp_timezone)

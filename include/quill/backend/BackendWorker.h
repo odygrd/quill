@@ -844,29 +844,26 @@ private:
                                                        std::string_view const& log_level_description,
                                                        std::string_view const& log_level_short_code) const
   {
-    char const* start = transit_event.formatted_msg.data();
-    char const* const end = start + transit_event.formatted_msg.size();
-    char const* line_start = start;
+    auto const msg =
+      std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()};
 
-    while (start != end)
+    size_t start = 0;
+    while (start < msg.size())
     {
-      if (*start == '\n')
+      size_t const end = msg.find_first_of('\n', start);
+
+      if (end == std::string_view::npos)
       {
+        // Handle the last line or a single line without a newline
         _write_log_statement(transit_event, log_level_description, log_level_short_code,
-                             std::string_view{line_start, static_cast<size_t>(start - line_start)});
-        line_start = ++start;
+                             std::string_view(msg.data() + start, msg.size() - start));
+        break;
       }
-      else
-      {
-        ++start;
-      }
-    }
 
-    // Handle last line if it doesn't end with a newline (usually it doesn't)
-    if (line_start != end)
-    {
+      // Write the current line
       _write_log_statement(transit_event, log_level_description, log_level_short_code,
-                           std::string_view(line_start, end - line_start));
+                           std::string_view(msg.data() + start, end - start));
+      start = end + 1;
     }
   }
 
