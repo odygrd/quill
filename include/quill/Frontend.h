@@ -84,7 +84,6 @@ public:
    * @param add_metadata_to_multi_line_logs If true, ensures that metadata (such as timestamps and log levels) is appended to every line in multi-line log entries, maintaining consistency in log outputs.
    *        Note: This option is ignored when logging `JSON` with named arguments in the format message.
    *        Enable this only if you are using multi-line logs (i.e., logs containing `\n`) and require consistent metadata on each line.
-   *        Be aware that enabling this feature may reduce backend throughput by approximately 10%.
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
    *
@@ -118,7 +117,6 @@ public:
    * @param add_metadata_to_multi_line_logs If true, ensures that metadata (such as timestamps and log levels) is appended to every line in multi-line log entries, maintaining consistency in log outputs.
    *        Note: This option is ignored when logging `JSON` with named arguments in the format message.
    *        Enable this only if you are using multi-line logs (i.e., logs containing `\n`) and require consistent metadata on each line.
-   *        Be aware that enabling this feature may reduce backend throughput by approximately 10%.
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
    * @return Logger* A pointer to the created or retrieved logger.
