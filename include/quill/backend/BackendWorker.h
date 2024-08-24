@@ -818,7 +818,7 @@ private:
                                   _options.log_level_short_codes.size());
 
     if (transit_event.logger_base->pattern_formatter->get_add_metadata_to_multi_line_logs() &&
-        transit_event.named_args->empty())
+        (!transit_event.named_args || transit_event.named_args->empty()))
     {
       // This is only supported when named_args are not used
       _process_multi_line_message(transit_event, log_level_description, log_level_short_code);
