@@ -23,7 +23,7 @@ int main()
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "root", std::move(console_sink), "%(time) [%(process_id)] [%(thread_id)] %(logger) - %(message)",
-    "%D %H:%M:%S.%Qms %z", quill::Timezone::GmtTime, quill::ClockSourceType::System);
+    "%D %H:%M:%S.%Qms %z", quill::Timezone::GmtTime, false, quill::ClockSourceType::System);
 
   // Change the LogLevel to print everything
   logger->set_log_level(quill::LogLevel::TraceL3);

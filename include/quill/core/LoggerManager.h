@@ -115,7 +115,7 @@ public:
   template <typename TLogger>
   LoggerBase* create_or_get_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
                                    std::string const& format_pattern,
-                                   std::string const& time_pattern, Timezone timestamp_timezone,
+                                   std::string const& time_pattern, Timezone timestamp_timezone, bool add_metadata_to_multi_line_logs,
                                    ClockSourceType clock_source, UserClockSource* user_clock)
   {
     LockGuard const lock{_spinlock};
@@ -126,8 +126,8 @@ public:
     {
       // If logger pointer is null, create a new logger instance.
       std::unique_ptr<LoggerBase> new_logger{
-        new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
-                    format_pattern, time_pattern, timestamp_timezone, clock_source, user_clock}};
+        new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks), format_pattern,
+        time_pattern, timestamp_timezone, add_metadata_to_multi_line_logs, clock_source, user_clock}};
 
       _insert_logger(static_cast<std::unique_ptr<LoggerBase>&&>(new_logger));
 

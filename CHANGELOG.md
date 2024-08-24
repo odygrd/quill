@@ -75,9 +75,12 @@
 
 ## v7.0.0 - TBD
 
-- Simplified the log tags API. The `Tags` class has been removed. You now pass a `char const*` directly to the macros. Additionally, macros previously named `WITH_TAGS` have been renamed to `_TAGS`. For example, `LOG_INFO_WITH_TAGS` is now `LOG_INFO_TAGS`.
+- Simplified the log tags API. The `Tags` class has been removed. You now pass a `char const*` directly to the macros.
+  Additionally, macros previously named `WITH_TAGS` have been renamed to `_TAGS`. For example, `LOG_INFO_WITH_TAGS` is
+  now `LOG_INFO_TAGS`.
 - Renamed `backend_cpu_affinity` to `cpu_affinity` in `BackendOptions` to improve consistency.
-- Simplified project structure by removing the extra quill directory and made minor CMake improvements; `include/quill` is now directly in the root.
+- Simplified project structure by removing the extra quill directory and made minor CMake improvements; `include/quill`
+  is now directly in the root.
 - Added support for `std::string` with custom allocator. ([#524](https://github.com/odygrd/quill/issues/524))
 - Added a new log level `NOTICE`, for capturing significant events that aren't errors or warnings. It fits
   between `INFO` and `WARNING` for logging important runtime events that require
@@ -90,6 +93,15 @@
 - Minor performance enhancement in the frontend by replacing `std::vector<size_t>` with an `InlinedVector<uint32_t, 12>`
   for caching sizes (e.g. string arguments).
 - Fixed order of evaluation for `Codec::pair<T1,T2>::compute_encoded_size()` to prevent side effects observed on MSVC
+- Introduced the `add_metadata_to_multi_line_logs` option in `PatternFormatter`. This option, now enabled by default,
+  appends metadata such as timestamps and log levels to every line of multiline log entries, ensuring consistent log
+  output. To restore the previous behavior, set this option to false when creating a `Logger`
+  using `Frontend::create_or_get_logger(...)`. Note that this option is ignored when logging JSON using named arguments
+  in the format message. ([#534](https://github.com/odygrd/quill/pull/534))
+- The functions `Frontend::create_or_get_logger(...)` now takes an additional
+  parameter, `add_metadata_to_multi_line_logs`.
+- `JSON` sinks now automatically remove any `\n` characters from format messages, ensuring the emission of valid `JSON`
+  messages even when `\n` is present in the format.
 
 ## v6.1.2
 

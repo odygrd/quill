@@ -35,13 +35,14 @@ class LoggerBase
 public:
   /***/
   LoggerBase(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
-             std::string format_pattern, std::string time_pattern, Timezone timezone,
+             std::string format_pattern, std::string time_pattern, Timezone timezone, bool add_metadata_to_multi_line_logs,
              ClockSourceType clock_source, UserClockSource* user_clock)
     : format_pattern(static_cast<std::string&&>(format_pattern)),
       time_pattern(static_cast<std::string&&>(time_pattern)),
       logger_name(static_cast<std::string&&>(logger_name)),
       user_clock(user_clock),
       timezone(timezone),
+      add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs),
       clock_source(clock_source)
   {
 #ifndef NDEBUG
@@ -135,6 +136,7 @@ protected:
   std::string logger_name; /* Set by the frontend, accessed by the frontend AND backend */
   UserClockSource* user_clock{nullptr}; /* A non owned pointer to a custom timestamp clock, valid only when provided. used by frontend only */
   Timezone timezone; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
+  bool add_metadata_to_multi_line_logs; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
   ClockSourceType clock_source; /* Set by the frontend and accessed by the frontend AND backend */
   std::atomic<LogLevel> log_level{LogLevel::Info}; /* used by frontend only */
   std::atomic<LogLevel> backtrace_flush_level{LogLevel::None}; /** Updated by the frontend at any time, accessed by the backend */

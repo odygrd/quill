@@ -92,6 +92,7 @@ public:
    *
    * @param time_format The format of the date. Same as strftime() format with extra specifiers `%Qms` `%Qus` `Qns`
    * @param timestamp_timezone The timezone of the timestamp, local_time or gmt_time
+   * @param add_metadata_to_multi_line_logs If true, ensures that metadata (e.g., timestamp, log level) is added to every line of multiline log entries, maintaining consistency across all log outputs.
    *
    * @throws on invalid format string
    */
@@ -99,22 +100,27 @@ public:
     std::string format_pattern =
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) "
       "%(logger:<12) %(message)",
-    std::string const& time_format = "%H:%M:%S.%Qns", Timezone timestamp_timezone = Timezone::LocalTime)
-    : _format_pattern(std::move(format_pattern)), _timestamp_formatter(time_format, timestamp_timezone)
+    std::string const& time_format = "%H:%M:%S.%Qns",
+    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = true)
+    : _format_pattern(std::move(format_pattern)),
+      _add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs),
+      _timestamp_formatter(time_format, timestamp_timezone)
   {
     _set_pattern();
   }
 
+  /***/
   PatternFormatter(PatternFormatter const& other) = delete;
-  PatternFormatter(PatternFormatter&& other) noexcept = delete;
   PatternFormatter& operator=(PatternFormatter const& other) = delete;
-  PatternFormatter& operator=(PatternFormatter&& other) noexcept = delete;
 
-  /**
-   * Destructor
-   */
+  /***/
+  PatternFormatter& operator=(PatternFormatter&& other) noexcept = default;
+  PatternFormatter(PatternFormatter&& other) noexcept = default;
+
+  /***/
   ~PatternFormatter() = default;
 
+  /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(
     uint64_t timestamp, std::string_view thread_id, std::string_view thread_name,
     std::string_view process_id, std::string_view logger, std::string_view log_level_description,
@@ -240,6 +246,7 @@ public:
     return std::string_view{_formatted_log_message_buffer.data(), _formatted_log_message_buffer.size()};
   }
 
+  /***/
   QUILL_ATTRIBUTE_HOT std::string_view format_timestamp(std::chrono::nanoseconds timestamp)
   {
     return _timestamp_formatter.format_timestamp(timestamp);
@@ -253,6 +260,12 @@ public:
 
   /***/
   QUILL_NODISCARD std::string const& format_pattern() const noexcept { return _format_pattern; }
+
+  /***/
+  QUILL_NODISCARD bool get_add_metadata_to_multi_line_logs() const noexcept
+  {
+    return _add_metadata_to_multi_line_logs;
+  }
 
 private:
   void _set_pattern()
@@ -494,6 +507,7 @@ private:
   std::array<size_t, Attribute::ATTR_NR_ITEMS> _order_index{};
   std::array<fmtquill::basic_format_arg<fmtquill::format_context>, Attribute::ATTR_NR_ITEMS> _args{};
   std::bitset<Attribute::ATTR_NR_ITEMS> _is_set_in_pattern;
+  bool _add_metadata_to_multi_line_logs;
 
   /** class responsible for formatting the timestamp */
   detail::TimestampFormatter _timestamp_formatter;

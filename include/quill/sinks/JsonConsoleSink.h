@@ -13,6 +13,7 @@
 #include "quill/sinks/StreamSink.h"
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -49,10 +50,29 @@ public:
   {
     _json_message.clear();
 
+    char const* message_format;
+
+    if (strchr(log_metadata->message_format(), '\n') != nullptr)
+    {
+      // The format string contains at least one new line and that would break the json message, it needs to be removed
+      _format = log_metadata->message_format();
+
+      for (size_t pos = 0; (pos = _format.find('\n', pos)) != std::string::npos; pos++)
+      {
+        _format.replace(pos, 1, " ");
+      }
+
+      message_format = _format.data();
+    }
+    else
+    {
+      message_format = log_metadata->message_format();
+    }
+
     _json_message.append(fmtquill::format(
       R"({{"timestamp":"{}","file_name":"{}","line":"{}","thread_id":"{}","logger":"{}","log_level":"{}","message":"{}")",
       std::to_string(log_timestamp), log_metadata->file_name(), log_metadata->line(), thread_id,
-      logger_name, log_level_description, log_metadata->message_format()));
+      logger_name, log_level_description, message_format));
 
     if (named_args)
     {
@@ -75,6 +95,7 @@ public:
 
 private:
   detail::FormatBuffer _json_message;
+  std::string _format;
 };
 
 QUILL_END_NAMESPACE
