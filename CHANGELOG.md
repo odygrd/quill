@@ -93,11 +93,10 @@
 - Minor performance enhancement in the frontend by replacing `std::vector<size_t>` with an `InlinedVector<uint32_t, 12>`
   for caching sizes (e.g. string arguments).
 - Fixed order of evaluation for `Codec::pair<T1,T2>::compute_encoded_size()` to prevent side effects observed on MSVC
-- Introduced the `add_metadata_to_multi_line_logs` option in `PatternFormater`. When enabled (which is now the default),
-  this option ensures that metadata such as timestamps and log levels are appended to every line of multiline log
-  entries, maintaining uniformity in log outputs. To revert to the previous behavior, explicitly set this option
-  to `false`. Note that when logging `JSON` with named arguments in the format message, this option is
-  ignored. ([#534](https://github.com/odygrd/quill/pull/534))
+- Added the `add_metadata_to_multi_line_logs` option in `PatternFormatter`. When enabled, this option ensures that
+  metadata (e.g., timestamps, log levels) is appended to every line in multi-line log entries, maintaining consistency
+  in log outputs. However, note that this option is ignored when logging `JSON` with named arguments in the format
+  message. Additionally, enabling this option may reduce backend throughput by approximately 10%.
 - The functions `Frontend::create_or_get_logger(...)` now have an additional
   parameter, `add_metadata_to_multi_line_logs`.
 - `JSON` sinks now automatically remove any `\n` characters from format messages, ensuring the emission of valid `JSON`
