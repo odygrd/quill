@@ -30,7 +30,7 @@ Logging Json to Console
 
       // When logging json, it is ideal to set the logging pattern to empty to avoid unnecessary message formatting.
       quill::Logger* logger = quill::Frontend::create_or_get_logger(
-        "json_logger", std::move(json_sink), "", "%H:%M:%S.%Qns", quill::Timezone::GmtTime);
+        "json_logger", std::move(json_sink), quill::PatternFormatterOptions { "", "%H:%M:%S.%Qns", quill::Timezone::GmtTime });
 
       int var_a = 123;
       std::string var_b = "test";
@@ -70,7 +70,7 @@ Logging Json to File
 
       // When logging json, it is ideal to set the logging pattern to empty to avoid unnecessary message formatting.
       quill::Logger* logger = quill::Frontend::create_or_get_logger(
-        "json_logger", std::move(json_sink), "", "%H:%M:%S.%Qns", quill::Timezone::GmtTime);
+        "json_logger", std::move(json_sink), quill::PatternFormatterOptions { "", "%H:%M:%S.%Qns", quill::Timezone::GmtTime });
 
       int var_a = 123;
       std::string var_b = "test";
@@ -117,8 +117,8 @@ Combining JSON and Standard Log Patterns
       // We set a custom format pattern here to also include the named_args
       quill::Logger* hybrid_logger = quill::Frontend::create_or_get_logger(
         "hybrid_logger", {std::move(json_sink), std::move(console_sink)},
-        "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<20) "
-        "%(message) [%(named_args)]");
+        quill::PatternFormatterOptions { "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<20) "
+        "%(message) [%(named_args)]" });
 
       for (int i = 2; i < 4; ++i)
       {

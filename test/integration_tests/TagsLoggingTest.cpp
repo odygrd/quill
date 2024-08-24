@@ -41,8 +41,9 @@ TEST_CASE("tags_logging")
 
   Logger* logger = Frontend::create_or_get_logger(
     logger_name, std::move(file_sink),
-    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) "
-    "%(logger:<12) [ %(tags)] %(message)\"");
+    PatternFormatterOptions{
+      "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) "
+      "%(logger:<12) [ %(tags)] %(message)"});
 
   logger->set_log_level(quill::LogLevel::TraceL3);
 

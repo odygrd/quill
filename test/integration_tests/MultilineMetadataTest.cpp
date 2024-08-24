@@ -37,15 +37,17 @@ TEST_CASE("multi_line_metadata")
 
   Logger* logger_a = Frontend::create_or_get_logger(
     logger_name_a, file_sink,
-    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
-    "%(message) %(caller_function)",
-    "%H:%M:%S.%Qns", Timezone::LocalTime, true);
+    PatternFormatterOptions{
+      "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+      "%(message) %(caller_function)",
+      "%H:%M:%S.%Qns", Timezone::LocalTime, true});
 
   Logger* logger_b = Frontend::create_or_get_logger(
     logger_name_b, file_sink,
-    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
-    "%(message) %(caller_function)",
-    "%H:%M:%S.%Qns", Timezone::LocalTime, false);
+    PatternFormatterOptions{
+      "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+      "%(message) %(caller_function)",
+      "%H:%M:%S.%Qns", Timezone::LocalTime, false});
 
   LOG_INFO(logger_a, "This is a multiline info message.\nLine 2: {}.\nLine 3: {}.", "data1",
            "data2");

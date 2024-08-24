@@ -32,8 +32,7 @@ TEST_CASE("console_sink_stdout_multiple_formats")
   auto console_sink = Frontend::create_or_get_sink<ConsoleSink>("console_sink", using_colours, stream);
 
   Logger* logger_a = Frontend::create_or_get_logger(logger_name_a, console_sink);
-  Logger* logger_b = Frontend::create_or_get_logger(logger_name_b, console_sink,
-                                                    "%(logger) - %(message) (%(caller_function))");
+  Logger* logger_b = Frontend::create_or_get_logger(logger_name_b, console_sink, quill::PatternFormatterOptions{"%(logger) - %(message) (%(caller_function))"});
 
   console_sink.reset();
 

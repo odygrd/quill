@@ -27,9 +27,9 @@ void setup_quill(char const* log_file)
     quill::FileEventNotifier{});
 
   // Create and store the logger
-  global_logger_a =
-    quill::Frontend::create_or_get_logger("root", std::move(file_sink),
-                                          "%(time) [%(thread_id)] %(short_source_location:<28) "
+  global_logger_a = quill::Frontend::create_or_get_logger(
+    "root", std::move(file_sink),
+    quill::PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
                                           "LOG_%(log_level:<9) %(logger:<12) %(message)",
-                                          "%H:%M:%S.%Qns", quill::Timezone::GmtTime);
+                                   "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
 }

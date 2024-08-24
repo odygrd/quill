@@ -19,7 +19,8 @@ int main()
 
   // When logging json, it is ideal to set the logging pattern to empty to avoid unnecessary message formatting.
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
-    "json_logger", std::move(json_sink), "", "%H:%M:%S.%Qns", quill::Timezone::GmtTime);
+    "json_logger", std::move(json_sink),
+    quill::PatternFormatterOptions{"", "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
 
   int var_a = 123;
   std::string var_b = "test";

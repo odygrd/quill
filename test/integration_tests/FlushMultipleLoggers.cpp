@@ -88,7 +88,7 @@ quill::Logger* create_logger()
 
   quill::Logger* new_logger = quill::Frontend::create_or_get_logger(
     "logger_" + log_index, std::move(file_sink),
-    "[%(time)] [%(log_level)] [" + log_index + ":%(tags):%(caller_function)]: %(message)");
+    quill::PatternFormatterOptions{"[%(time)] [%(log_level)] [" + log_index + ":%(tags):%(caller_function)]: %(message)"});
 
   return new_logger;
 }

@@ -493,13 +493,7 @@ private:
         [transit_event](LoggerBase* logger)
         {
           if (logger->pattern_formatter &&
-              (logger->pattern_formatter->format_pattern() == transit_event->logger_base->format_pattern) &&
-              (logger->pattern_formatter->get_add_metadata_to_multi_line_logs() ==
-               transit_event->logger_base->add_metadata_to_multi_line_logs) &&
-              (logger->pattern_formatter->timestamp_formatter().time_format() ==
-               transit_event->logger_base->time_pattern) &&
-              (logger->pattern_formatter->timestamp_formatter().timestamp_timezone() ==
-               transit_event->logger_base->timezone))
+              (logger->pattern_formatter->get_options() == transit_event->logger_base->pattern_formatter_options))
           {
             // hold a copy of the shared_ptr of the same formatter
             transit_event->logger_base->pattern_formatter = logger->pattern_formatter;
@@ -512,9 +506,7 @@ private:
       if (!transit_event->logger_base->pattern_formatter)
       {
         // Didn't find an existing formatter  need to create a new pattern formatter
-        transit_event->logger_base->pattern_formatter = std::make_shared<PatternFormatter>(
-          transit_event->logger_base->format_pattern, transit_event->logger_base->time_pattern,
-          transit_event->logger_base->timezone, transit_event->logger_base->add_metadata_to_multi_line_logs);
+        transit_event->logger_base->pattern_formatter = std::make_shared<PatternFormatter>(transit_event->logger_base->pattern_formatter_options);
       }
     }
 
@@ -817,7 +809,7 @@ private:
       detail::log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
                                   _options.log_level_short_codes.size());
 
-    if (transit_event.logger_base->pattern_formatter->get_add_metadata_to_multi_line_logs() &&
+    if (transit_event.logger_base->pattern_formatter->get_options().add_metadata_to_multi_line_logs &&
         (!transit_event.named_args || transit_event.named_args->empty()))
     {
       // This is only supported when named_args are not used

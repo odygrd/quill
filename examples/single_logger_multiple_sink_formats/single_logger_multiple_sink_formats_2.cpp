@@ -21,7 +21,7 @@ int main()
     "%(time) [PID %(process_id)] [%(log_level)] [%(logger)] - %(message)";
   std::string console_time_format = "%Y-%m-%d %H:%M:%S.%Qms";
   auto console_sink = quill::Frontend::create_or_get_sink<ConsoleSinkWithFormatter>(
-    "sink_id_1", console_log_pattern, console_time_format);
+    "sink_id_1", quill::PatternFormatterOptions{console_log_pattern, console_time_format});
   console_sink->set_log_level_filter(quill::LogLevel::Warning);
 
   // File sink
@@ -45,7 +45,8 @@ int main()
   // To output our custom format to the file we use our own ConsoleSinkWithFormatter that is
   // overwriting the default format
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
-    "root", {std::move(console_sink), std::move(rotating_file_sink)}, file_log_pattern, file_time_format);
+    "root", {std::move(console_sink), std::move(rotating_file_sink)},
+    quill::PatternFormatterOptions{file_log_pattern, file_time_format});
 
   logger->set_log_level(quill::LogLevel::Debug);
 

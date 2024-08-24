@@ -85,7 +85,7 @@ TEST_CASE("json_varied_params_logging")
 
   Logger* logger =
     Frontend::create_or_get_logger("root", std::move(json_file_sink),
-                                   "LOG_%(log_level:<9) %(logger:<12) %(message) [%(named_args)]");
+    quill::PatternFormatterOptions{"LOG_%(log_level:<9) %(logger:<12) %(message) [%(named_args)]"});
 
   for (size_t i = 0; i < number_of_messages; ++i)
   {
