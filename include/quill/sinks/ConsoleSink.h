@@ -184,8 +184,7 @@ public:
    * @param log_level the log level
    * @param colour the colour
    */
-
-  void set_colour(LogLevel log_level, std::string const& colour) noexcept
+  void set_colour(LogLevel log_level, std::string_view colour) noexcept
   {
     auto const log_lvl = static_cast<uint32_t>(log_level);
     _colours[log_lvl] = colour;
@@ -210,7 +209,7 @@ public:
    * @param log_level the message log level
    * @return the configured colour for this log level
    */
-  QUILL_NODISCARD std::string const& colour_code(LogLevel log_level) const noexcept
+  QUILL_NODISCARD std::string_view colour_code(LogLevel log_level) const noexcept
   {
     auto const log_lvl = static_cast<uint32_t>(log_level);
     return _colours[log_lvl];
@@ -296,7 +295,7 @@ private:
   }
 
 private:
-  std::array<std::string, 10> _colours; /**< Colours per log level */
+  std::array<std::string_view, 10> _colours; /**< Colours per log level */
   bool _using_colours{false};
   bool _can_use_colours{false};
 };
@@ -355,7 +354,8 @@ public:
    */
   QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
                                      std::string_view thread_id, std::string_view thread_name,
-                                     std::string const& process_id, std::string_view logger_name, LogLevel log_level, std::string_view log_level_description,
+                                     std::string const& process_id, std::string_view logger_name,
+                                     LogLevel log_level, std::string_view log_level_description,
                                      std::string_view log_level_short_code,
                                      std::vector<std::pair<std::string, std::string>> const* named_args,
                                      std::string_view log_message, std::string_view log_statement) override
@@ -424,7 +424,7 @@ public:
     if (_console_colours.can_use_colours())
     {
       // Write colour code
-      std::string const& colour_code = _console_colours.colour_code(log_level);
+      std::string_view const colour_code = _console_colours.colour_code(log_level);
       safe_fwrite(colour_code.data(), sizeof(char), colour_code.size(), _file);
     }
 
