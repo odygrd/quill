@@ -42,8 +42,8 @@ public:
   QUILL_ATTRIBUTE_COLD static void preallocate()
   {
     uint32_t const volatile spsc_queue_capacity = detail::get_local_thread_context<TFrontendOptions>()
-        ->template get_spsc_queue<TFrontendOptions::queue_type>()
-        .capacity();
+                                                    ->template get_spsc_queue<TFrontendOptions::queue_type>()
+                                                    .capacity();
 
     // On windows and c++17, QUILL_MAYBE_UNUSED won't work
     (void)spsc_queue_capacity;
@@ -81,8 +81,10 @@ public:
    * @param format_pattern The format pattern for log messages.
    * @param time_pattern The time pattern for log timestamps.
    * @param timestamp_timezone The timezone for log timestamps.
+   * @param add_metadata_to_multi_line_logs If true, ensures that metadata (e.g., timestamp, log level) is added to every line of multi-line log entries, maintaining consistency across all log outputs.
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
+   *
    * @return Logger* A pointer to the created or retrieved logger.
    */
   static logger_t* create_or_get_logger(
@@ -90,7 +92,8 @@ public:
     std::string const& format_pattern =
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
       "%(message)",
-    std::string const& time_pattern = "%H:%M:%S.%Qns", Timezone timestamp_timezone = Timezone::LocalTime,
+    std::string const& time_pattern = "%H:%M:%S.%Qns",
+    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = true,
     ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)
   {
     std::vector<std::shared_ptr<Sink>> sinks;
@@ -98,7 +101,7 @@ public:
 
     return _cast_to_logger(detail::LoggerManager::instance().create_or_get_logger<logger_t>(
       logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks), format_pattern,
-      time_pattern, timestamp_timezone, clock_source, user_clock));
+      time_pattern, timestamp_timezone, add_metadata_to_multi_line_logs, clock_source, user_clock));
   }
 
   /**
@@ -109,6 +112,7 @@ public:
    * @param format_pattern The format pattern for log messages.
    * @param time_pattern The time pattern for log timestamps.
    * @param timestamp_timezone The timezone for log timestamps.
+   * @param add_metadata_to_multi_line_logs If true, ensures that metadata (e.g., timestamp, log level) is added to every line of multi-line log entries, maintaining consistency across all log outputs.
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
    * @return Logger* A pointer to the created or retrieved logger.
@@ -118,12 +122,13 @@ public:
     std::string const& format_pattern =
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
       "%(message)",
-    std::string const& time_pattern = "%H:%M:%S.%Qns", Timezone timestamp_timezone = Timezone::LocalTime,
+    std::string const& time_pattern = "%H:%M:%S.%Qns",
+    Timezone timestamp_timezone = Timezone::LocalTime, bool add_metadata_to_multi_line_logs = true,
     ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)
   {
     return _cast_to_logger(detail::LoggerManager::instance().create_or_get_logger<logger_t>(
       logger_name, std::vector<std::shared_ptr<Sink>>{sinks}, format_pattern, time_pattern,
-      timestamp_timezone, clock_source, user_clock));
+      timestamp_timezone, add_metadata_to_multi_line_logs, clock_source, user_clock));
   }
 
   /**

@@ -494,6 +494,8 @@ private:
         {
           if (logger->pattern_formatter &&
               (logger->pattern_formatter->format_pattern() == transit_event->logger_base->format_pattern) &&
+              (logger->pattern_formatter->get_add_metadata_to_multi_line_logs() ==
+               transit_event->logger_base->add_metadata_to_multi_line_logs) &&
               (logger->pattern_formatter->timestamp_formatter().time_format() ==
                transit_event->logger_base->time_pattern) &&
               (logger->pattern_formatter->timestamp_formatter().timestamp_timezone() ==
@@ -512,7 +514,7 @@ private:
         // Didn't find an existing formatter  need to create a new pattern formatter
         transit_event->logger_base->pattern_formatter = std::make_shared<PatternFormatter>(
           transit_event->logger_base->format_pattern, transit_event->logger_base->time_pattern,
-          transit_event->logger_base->timezone);
+          transit_event->logger_base->timezone, transit_event->logger_base->add_metadata_to_multi_line_logs);
       }
     }
 
@@ -737,7 +739,7 @@ private:
     {
       if (transit_event.log_level() != LogLevel::Backtrace)
       {
-        _write_transit_event_to_sinks(transit_event);
+        _dispatch_transit_event_to_sinks(transit_event);
 
         // We also need to check the severity of the log message here against the backtrace
         // Check if we should also flush the backtrace messages:
@@ -750,7 +752,7 @@ private:
           if (transit_event.logger_base->backtrace_storage)
           {
             transit_event.logger_base->backtrace_storage->process(
-              [this](TransitEvent const& te) { _write_transit_event_to_sinks(te); });
+              [this](TransitEvent const& te) { _dispatch_transit_event_to_sinks(te); });
           }
         }
       }
@@ -786,8 +788,8 @@ private:
       if (transit_event.logger_base->backtrace_storage)
       {
         // process all records in backtrace for this logger and log them
-        transit_event.logger_base->backtrace_storage->process([this](TransitEvent const& te)
-                                                              { _write_transit_event_to_sinks(te); });
+        transit_event.logger_base->backtrace_storage->process(
+          [this](TransitEvent const& te) { _dispatch_transit_event_to_sinks(te); });
       }
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
@@ -803,13 +805,10 @@ private:
   }
 
   /**
-   * Write a transit event
+   * Dispatches a transit event
    */
-  QUILL_ATTRIBUTE_HOT void _write_transit_event_to_sinks(TransitEvent const& transit_event) const
+  QUILL_ATTRIBUTE_HOT void _dispatch_transit_event_to_sinks(TransitEvent const& transit_event) const
   {
-    std::string_view const log_message =
-      std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()};
-
     std::string_view const log_level_description =
       detail::log_level_to_string(transit_event.log_level(), _options.log_level_descriptions.data(),
                                   _options.log_level_descriptions.size());
@@ -818,6 +817,67 @@ private:
       detail::log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
                                   _options.log_level_short_codes.size());
 
+    if (transit_event.logger_base->pattern_formatter->get_add_metadata_to_multi_line_logs() &&
+        transit_event.named_args->empty())
+    {
+      // This is only supported when named_args are not used
+      _process_multi_line_message(transit_event, log_level_description, log_level_short_code);
+    }
+    else
+    {
+      // if the log_message ends with \n we should exclude it
+      size_t const log_message_size =
+        transit_event.formatted_msg.data()[transit_event.formatted_msg.size() - 1] == '\n'
+        ? transit_event.formatted_msg.size() - 2
+        : transit_event.formatted_msg.size();
+
+      // process the whole message without adding metadata to each line
+      _write_log_statement(transit_event, log_level_description, log_level_short_code,
+                           std::string_view{transit_event.formatted_msg.data(), log_message_size});
+    }
+  }
+
+  /**
+   * Splits and writes a transit event that has multiple lines
+   */
+  QUILL_ATTRIBUTE_HOT void _process_multi_line_message(TransitEvent const& transit_event,
+                                                       std::string_view const& log_level_description,
+                                                       std::string_view const& log_level_short_code) const
+  {
+    char const* start = transit_event.formatted_msg.data();
+    char const* const end = start + transit_event.formatted_msg.size();
+    char const* line_start = start;
+
+    while (start != end)
+    {
+      if (*start == '\n')
+      {
+        _write_log_statement(transit_event, log_level_description, log_level_short_code,
+                             std::string_view{line_start, static_cast<size_t>(start - line_start)});
+        line_start = ++start;
+      }
+      else
+      {
+        ++start;
+      }
+    }
+
+    // Handle last line if it doesn't end with a newline (usually it doesn't)
+    if (line_start != end)
+    {
+      _write_log_statement(transit_event, log_level_description, log_level_short_code,
+                           std::string_view(line_start, end - line_start));
+    }
+  }
+
+  /**
+   * Formats and writes the log statement to each sink
+   */
+  QUILL_ATTRIBUTE_HOT void _write_log_statement(TransitEvent const& transit_event,
+                                                std::string_view const& log_level_description,
+                                                std::string_view const& log_level_short_code,
+                                                std::string_view const& log_message) const
+  {
     std::string_view const log_statement = transit_event.logger_base->pattern_formatter->format(
       transit_event.timestamp, transit_event.thread_id, transit_event.thread_name, _process_id,
       transit_event.logger_base->logger_name, log_level_description, log_level_short_code,
@@ -825,7 +885,6 @@ private:
 
     for (auto& sink : transit_event.logger_base->sinks)
     {
-      // If all filters are okay we write this message to the file
       if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp,
                                   transit_event.thread_id, transit_event.thread_name,
                                   transit_event.logger_base->logger_name, transit_event.log_level(),
