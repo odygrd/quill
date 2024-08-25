@@ -67,7 +67,7 @@ int main()
   quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
 
   Point p{10, 20};
-  LOG_INFO(logger, "Default format: {}\n", p);
-  LOG_INFO(logger, "Parentheses format: {:p}\n", p);
-  LOG_INFO(logger, "Coordinate format: {:c}\n", p);
+  LOG_INFO(logger, "Default format: {}", p);
+  LOG_INFO(logger, "Parentheses format: {:p}", p);
+  LOG_INFO(logger, "Coordinate format: {:c}", p);
 }
