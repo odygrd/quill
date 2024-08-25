@@ -370,7 +370,7 @@ int main()
 
   LOG_TRACE_L3(logger, "Support for floats {:03.2f}", 1.23456);
   LOG_TRACE_L2(logger, "Positional arguments are {1} {0} ", "too", "supported");
-  LOG_TRACE_L1(logger, "{:>30}", "right aligned");
+  LOG_TRACE_L1(logger, "{:>30}", std::string_view {"right aligned"});
   LOG_DEBUG(logger, "Debugging foo {}", 1234);
   LOG_INFO(logger, "Welcome to Quill!");
   LOG_WARNING(logger, "A warning message.");
