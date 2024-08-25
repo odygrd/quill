@@ -74,7 +74,7 @@ applications where every microsecond counts.
 - **Extensive Documentation**: Comprehensive guides and examples available.
 - **Community-Driven**: Open to contributions, feedback, and feature requests.
 
-Try it on [Compiler Explorer](https://godbolt.org/z/dEfrP78cG)
+Try it on [Compiler Explorer](https://godbolt.org/z/v1oa7Y3dY)
 
 ## ⏩ Quick Start
 
