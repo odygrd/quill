@@ -5,15 +5,14 @@ Formatters
 
 The :cpp:class:`quill::PatternFormatter` specifies the layout of log records in the final output.
 
-Each :cpp:class:`quill::LoggerImpl` object owns a ``PatternFormatter`` object.
+Each :cpp:class:`quill::LoggerImpl` object has a ``PatternFormatter`` object.
 This means that each Logger can be customised to output in a different format.
 
-Customising the format output only be done during the creation of the logger.
+Customising the format output only be done during the creation of the logger via the :cpp:class:`quill::PatternFormatterOptions`
 
 If no custom format is set each newly created Sink uses the same formatting as the default logger.
 
-The format output can be customised by providing a string of certain
-attributes.
+The format output can be customised by providing a string of certain attributes.
 
 +-------------------------+--------------------------+----------------------------------------+
 | Name                    | Format                   | Description                            |
