@@ -6,7 +6,6 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/JsonFileSink.h"
-#include "quill/std/Array.h"
 
 #include <cstdio>
 #include <string>

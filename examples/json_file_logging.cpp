@@ -43,8 +43,7 @@ int main()
 
   for (int i = 0; i < 2; ++i)
   {
-    LOG_INFO(json_logger, "{method} to {endpoint} took {elapsed} ms", std::string_view{"POST"},
-             std::string_view{"http://"}, 10 * i);
+    LOG_INFO(json_logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
   }
 
   // It is also possible to create a logger than logs to both the json file and stdout
@@ -61,7 +60,6 @@ int main()
 
   for (int i = 2; i < 4; ++i)
   {
-    LOG_INFO(hybrid_logger, "{method} to {endpoint} took {elapsed} ms", std::string_view{"POST"},
-             std::string_view{"http://"}, 10 * i);
+    LOG_INFO(hybrid_logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
   }
 }

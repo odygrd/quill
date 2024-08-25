@@ -66,7 +66,7 @@ TEST_CASE("std_optional_logging")
     std::optional<double> d{333.221};
     LOG_INFO(logger, "d [{}]", d);
 
-    LOG_INFO(logger, "zzzz [{}] [{}] [{}] [{}] [{}]", d, std::string_view{"test"}, *svp, *sp, ccp);
+    LOG_INFO(logger, "zzzz [{}] [{}] [{}] [{}] [{}]", d, "test", *svp, *sp, ccp);
   }
 
   logger->flush_log();

@@ -81,7 +81,7 @@ int main()
   auto file_sink = quill::Frontend::create_or_get_sink<UserSink>("sink_id_1");
   quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
 
-  LOG_INFO(logger, "Hello from {}", std::string_view{"sink example"});
+  LOG_INFO(logger, "Hello from {}", "sink example");
   LOG_INFO(logger, "Invoking user sink flush");
 
   logger->flush_log();

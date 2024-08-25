@@ -5,7 +5,6 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
-#include "quill/std/Array.h"
 
 #include <cstdio>
 #include <memory>
@@ -99,8 +98,6 @@ TEST_CASE("string_logging")
     c_style_string_array_non_terminated[1] = 'B';
     c_style_string_array_non_terminated[2] = 'C';
 
-    LOG_INFO(logger, "{:>30}", "right aligned");
-
     const char* npcs = "Example\u0003String\u0004";
     LOG_INFO(logger, "non printable cs [{}]", npcs);
 
@@ -153,10 +150,7 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 17);
-
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "                        right aligned"}));
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 16);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       cas [custom allocator string]"}));

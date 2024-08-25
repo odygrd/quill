@@ -5,6 +5,10 @@
 
 #pragma once
 
+#ifndef __STDC_WANT_LIB_EXT1__
+  #define __STDC_WANT_LIB_EXT1__ 1
+#endif
+
 #include "quill/bundled/fmt/base.h"
 
 #include "quill/core/Attributes.h"
@@ -68,6 +72,14 @@ void codec_not_found_for_type()
     "For more information see https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html\n");
 }
 
+constexpr auto strnlen =
+#if defined(__STDC_LIB_EXT1__) || defined(_MSC_VER)
+  ::strnlen_s
+#else
+  ::strnlen
+#endif
+  ;
+
 /** std string detection, ignoring the Allocator type **/
 template <typename T>
 struct is_std_string : std::false_type
@@ -91,6 +103,13 @@ struct Codec
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
     {
       return sizeof(Arg);
+    }
+    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
+    {
+      size_t constexpr N = std::extent_v<Arg>;
+      assert(((strnlen(arg, N) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
+             "len is outside the supported range");
+      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(strnlen(arg, N) + 1u));
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
@@ -124,6 +143,25 @@ struct Codec
     {
       std::memcpy(buffer, &arg, sizeof(Arg));
       buffer += sizeof(Arg);
+    }
+    else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
+    {
+      size_t constexpr N = std::extent_v<Arg>;
+      size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+
+      if (QUILL_UNLIKELY(len > N))
+      {
+        // no '\0' in c array
+        assert(len == N + 1);
+        std::memcpy(buffer, arg, N);
+        buffer[len - 1] = std::byte{'\0'};
+      }
+      else
+      {
+        std::memcpy(buffer, arg, len);
+      }
+
+      buffer += len;
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
@@ -168,7 +206,8 @@ struct Codec
       buffer += sizeof(Arg);
       return arg;
     }
-    else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
+    else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>,
+                                          std::conjunction<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>>)
     {
       // c strings or char array
       char const* arg = reinterpret_cast<char const*>(buffer);
@@ -199,9 +238,10 @@ struct Codec
     {
       args_store->push_back(decode_arg(buffer));
     }
-    else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
+    else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>,
+                                          std::conjunction<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>>)
     {
-      // c strings
+      // c strings or char array
       char const* arg = decode_arg(buffer);
 
       // pass the string_view to args_store to avoid the dynamic allocation

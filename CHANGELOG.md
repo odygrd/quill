@@ -104,13 +104,7 @@
 - Fixed compiler errors in a few rarely used macros. Added a comprehensive test for all macros to prevent similar issues
   in the future.
 - Expanded terminal list for color detection in console applications on Linux
-- Previously, support for logging C-style character arrays (`char[]`) in `Codec.h` could be incorrectly selected by the
-  Codec template in `Array.h`. Since `Array.h` already includes a specialization of the `Codec` template for handling
-  C-style
-  arrays of any arithmetic type, the management of char arrays has been moved to this file. Therefore, when you need to
-  log `char[]` arrays, you should explicitly include `quill/std/Array.h` to enable them
-- The library no longer defines `__STDC_WANT_LIB_EXT1__`, as the bounds-checking functions from the extensions are no
-  longer needed.
+- Fixed an issue where `char*` and `char[]` types could be incorrectly selected by the Codec template in `Array.h`
 - The `Frontend::create_or_get_logger(...)` function now accepts a `PatternFormatterOptions` parameter, simplifying the
   API. This is a breaking change. To migrate quickly, wrap the existing formatting parameters in a
   `PatternFormatterOptions` object.

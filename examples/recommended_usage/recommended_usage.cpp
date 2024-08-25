@@ -40,7 +40,7 @@ int main()
 
   LOG_TRACE_L3(global_logger_a, "This is a log trace l3 example {}", 1);
   LOG_TRACE_L2(global_logger_a, "This is a log trace l2 example {} {}", 2, 2.3);
-  LOG_TRACE_L1(global_logger_a, "This is a log trace l1 {} example", std::string_view{"string"});
+  LOG_TRACE_L1(global_logger_a, "This is a log trace l1 {} example", "string");
   LOG_DEBUG(global_logger_a, "This is a log debug example {}", 4);
   LOG_INFO(global_logger_a, "This is a log info example {}", 5);
   LOG_WARNING(global_logger_a, "This is a log warning example {}", 6);

@@ -10,7 +10,6 @@
 #include "quill/core/LoggerBase.h"
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/Sink.h"
-#include "quill/std/Array.h"
 
 #include <cstdint>
 #include <memory>

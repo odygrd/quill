@@ -3,7 +3,6 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
-#include "quill/std/Array.h"
 
 int main()
 {
