@@ -92,7 +92,7 @@ Providing a Custom Timestamp
 
       // update our timestamp
       simulated_clock.set_timestamp(std::chrono::seconds{1655039000});
-      LOG_INFO(logger, "This is a log info {} example", std::string_view {"string"});
+      LOG_INFO(logger, "This is a log info {} example", "string");
     }
 
 Getting a Synchronized Timestamp with the Backend Thread TSC Clock

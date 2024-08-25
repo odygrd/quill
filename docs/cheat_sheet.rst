@@ -60,7 +60,7 @@ Outputs:
 
     number [a: 123.4567]
 
-Logging Arithmetic or char C-style Char Arrays
+Logging Arithmetic C-style Arrays
 ---------------------------------
 This functionality is supported by including ``quill/std/Array.h``
 
@@ -69,19 +69,13 @@ This functionality is supported by including ``quill/std/Array.h``
     #include "quill/std/Array.h"
 
     int a[3] = {1, 2, 3};
-    char c[3];
-    c[0] = 'T';
-    c[1] = 'A';
-    c[2] = '\0';
-
     LOG_INFO(logger, "array {}", a);
-    LOG_INFO(logger, "c array {}", c);
     LOGV_INFO(logger, "array", a);
 
 Outputs:
 
     array [1, 2, 3]
-    c array TA
+
     array [a: [1, 2, 3]]
 
 Logging Enums

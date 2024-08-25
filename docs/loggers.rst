@@ -22,7 +22,7 @@ Logger Creation
 
      quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
 
-     LOG_INFO(logger, "Hello from {}", std::string_view {"library foo"});
+     LOG_INFO(logger, "Hello from {}", "library foo");
 
 Logger Retrieval
 ----------------
