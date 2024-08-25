@@ -100,7 +100,9 @@
   in the format message. ([#534](https://github.com/odygrd/quill/pull/534))
 - `JSON` sinks now automatically remove any `\n` characters from format messages, ensuring the emission of valid `JSON`
   messages even when `\n` is present in the format.
-- Replaced `static` variables with `static constexpr` in the `ConsoleColours` class
+- Replaced `static` variables with `static constexpr` in the `ConsoleColours` class.
+- Fixed compiler errors in a few rarely used macros. Added a comprehensive test for all macros to prevent similar issues
+  in the future.
 - The `Frontend::create_or_get_logger(...)` function now accepts a `PatternFormatterOptions` parameter, simplifying the
   API. This is a breaking change. To migrate quickly, wrap the existing formatting parameters in a
   `PatternFormatterOptions` object.
