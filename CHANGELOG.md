@@ -107,6 +107,8 @@
 - Fixed an issue where `char*` and `char[]` types could be incorrectly selected by the Codec template in `Array.h`
 - The library no longer defines `__STDC_WANT_LIB_EXT1__`, as the bounds-checking functions from the extensions are no
   longer needed.
+- `StringFromTime` constructor no longer relies on the system's current time, improving performance in simulations where
+  timestamps differ from system time. ([#541](https://github.com/odygrd/quill/issues/541))
 - The `Frontend::create_or_get_logger(...)` function now accepts a `PatternFormatterOptions` parameter, simplifying the
   API. This is a breaking change. To migrate quickly, wrap the existing formatting parameters in a
   `PatternFormatterOptions` object.

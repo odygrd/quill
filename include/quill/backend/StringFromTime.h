@@ -66,28 +66,6 @@ public:
 
     // Populate the initial parts that we will use to generate a pre-formatted string
     _populate_initial_parts(_timestamp_format);
-
-    // Get the current timestamp now
-    time_t timestamp;
-    std::time(&timestamp);
-
-    if (_time_zone == Timezone::LocalTime)
-    {
-      // If localtime is used, we will recalculate every 15 minutes. This approach accounts for DST
-      // changes and simplifies handling transitions around midnight. Recalculating every 15 minutes
-      // ensures coverage for all possible timezones without additional computations.
-      _next_recalculation_timestamp = _next_quarter_hour_timestamp(timestamp);
-    }
-    else if (_time_zone == Timezone::GmtTime)
-    {
-      // otherwise we will only recalculate every noon and midnight. the reason for this is in case
-      // user is using PM, AM format etc
-      _next_recalculation_timestamp = _next_noon_or_midnight_timestamp(timestamp);
-    }
-
-    // Now populate a pre-formatted string for this hour,
-    // also cache any indexes of the time modifier in the string
-    _populate_pre_formatted_string_and_cached_indexes(timestamp);
   }
 
   /***/
@@ -116,10 +94,15 @@ public:
 
       if (_time_zone == Timezone::LocalTime)
       {
+        // If localtime is used, we will recalculate every 15 minutes. This approach accounts for
+        // DST changes and simplifies handling transitions around midnight. Recalculating every 15
+        // minutes ensures coverage for all possible timezones without additional computations.
         _next_recalculation_timestamp = _next_quarter_hour_timestamp(timestamp);
       }
       else if (_time_zone == Timezone::GmtTime)
       {
+        // otherwise we will only recalculate every noon and midnight. the reason for this is in
+        // case user is using PM, AM format etc
         _next_recalculation_timestamp = _next_noon_or_midnight_timestamp(timestamp);
       }
     }
