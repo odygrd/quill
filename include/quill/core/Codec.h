@@ -5,10 +5,6 @@
 
 #pragma once
 
-#ifndef __STDC_WANT_LIB_EXT1__
-  #define __STDC_WANT_LIB_EXT1__ 1
-#endif
-
 #include "quill/bundled/fmt/base.h"
 
 #include "quill/core/Attributes.h"
@@ -72,13 +68,11 @@ void codec_not_found_for_type()
     "For more information see https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html\n");
 }
 
-constexpr auto strnlen =
-#if defined(__STDC_LIB_EXT1__) || defined(_MSC_VER)
-  ::strnlen_s
-#else
-  ::strnlen
-#endif
-  ;
+QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexcept
+{
+  char const* end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
+  return end ? static_cast<size_t>(end - str) : maxlen;
+}
 
 /** std string detection, ignoring the Allocator type **/
 template <typename T>
@@ -107,9 +101,9 @@ struct Codec
     else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
     {
       size_t constexpr N = std::extent_v<Arg>;
-      assert(((strnlen(arg, N) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
+      assert(((detail::safe_strnlen(arg, N) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
              "len is outside the supported range");
-      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(strnlen(arg, N) + 1u));
+      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(detail::safe_strnlen(arg, N) + 1u));
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
