@@ -373,7 +373,7 @@
                             QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
   #define QUILL_LOGV_TRACE_L3_TAGS(logger, tags, fmt, ...)                                         \
-    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, tags, , quill::LogLevel::TraceL3,                    \
+    QUILL_LOGGER_CALL(QUILL_UNLIKELY, logger, tags, quill::LogLevel::TraceL3,                      \
                       QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
   #define QUILL_LOGJ_TRACE_L3(logger, fmt, ...)                                                    \
