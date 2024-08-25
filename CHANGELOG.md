@@ -103,6 +103,7 @@
 - Replaced `static` variables with `static constexpr` in the `ConsoleColours` class.
 - Fixed compiler errors in a few rarely used macros. Added a comprehensive test for all macros to prevent similar issues
   in the future.
+- Expanded terminal list for color detection in console applications on Linux
 - The `Frontend::create_or_get_logger(...)` function now accepts a `PatternFormatterOptions` parameter, simplifying the
   API. This is a breaking change. To migrate quickly, wrap the existing formatting parameters in a
   `PatternFormatterOptions` object.

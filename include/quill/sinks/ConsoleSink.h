@@ -265,9 +265,12 @@ private:
       return false;
     }
 
-    static constexpr const char* terms[] = {"ansi",    "color",  "console", "cygwin", "gnome",
-                                            "konsole", "kterm",  "linux",   "msys",   "putty",
-                                            "rxvt",    "screen", "vt100",   "xterm",  "tmux"};
+    static constexpr const char* terms[] = {
+      "ansi",           "color",      "console",       "cygwin",     "gnome",     "konsole",
+      "kterm",          "linux",      "msys",          "putty",      "rxvt",      "screen",
+      "vt100",          "xterm",      "tmux",          "terminator", "alacritty", "gnome-terminal",
+      "xfce4-terminal", "lxterminal", "mate-terminal", "uxterm",     "eterm",     "tilix",
+      "rxvt-unicode",   "kde-konsole"};
 
     // Loop through each term and check if it's found in env_p
     for (const char* term : terms)
