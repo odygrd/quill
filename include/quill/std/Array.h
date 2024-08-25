@@ -11,8 +11,8 @@
 #include "quill/core/InlinedVector.h"
 #include "quill/core/Utf8Conv.h"
 
-#include "quill/bundled/fmt/ranges.h"
 #include "quill/bundled/fmt/format.h"
+#include "quill/bundled/fmt/ranges.h"
 
 #include <array>
 #include <cstddef>
@@ -26,9 +26,9 @@
 
 QUILL_BEGIN_NAMESPACE
 
-/** Specialization for arrays of arithmetic types and enums **/
+/** Specialization for arrays of arithmetic types and enums, char arrays are handled in Codec.h **/
 template <typename T, std::size_t N>
-struct Codec<T[N], std::enable_if_t<std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>>>
+struct Codec<T[N], std::enable_if_t<std::conjunction_v<std::disjunction<std::is_arithmetic<T>, std::is_enum<T>>, std::negation<std::is_same<T, char>>>>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector&, const T (&arg)[N]) noexcept
   {
