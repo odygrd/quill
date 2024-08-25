@@ -50,6 +50,12 @@ PatternFormatter Class
 .. doxygenclass:: quill::PatternFormatter
    :members:
 
+PatternFormatterOptions Class
+----------------------
+
+.. doxygenclass:: quill::PatternFormatterOptions
+   :members:
+
 Sink Class
 ----------
 
