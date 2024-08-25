@@ -5,6 +5,7 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/std/Array.h"
 
 #include <cstdio>
 #include <string>

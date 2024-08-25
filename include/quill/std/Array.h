@@ -17,6 +17,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <type_traits>
 #include <vector>
 
@@ -26,37 +27,95 @@
 
 QUILL_BEGIN_NAMESPACE
 
+namespace detail
+{
+QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexcept
+{
+  char const* end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
+  return end ? static_cast<size_t>(end - str) : maxlen;
+}
+} // namespace detail
+
 /** Specialization for arrays of arithmetic types and enums **/
 template <typename T, std::size_t N>
-struct Codec<T[N], std::enable_if_t<std::conjunction_v<std::disjunction<std::is_arithmetic<T>, std::is_enum<T>>, std::negation<std::is_same<T, char>>>>>
+struct Codec<T[N], std::enable_if_t<std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector&, const T (&arg)[N]) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, const T (&arg)[N]) noexcept
   {
-    return sizeof(arg);
+    if constexpr (std::is_same_v<T, char>)
+    {
+      assert(((detail::safe_strnlen(arg, N) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
+             "len is outside the supported range");
+      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(detail::safe_strnlen(arg, N) + 1u));
+    }
+    else
+    {
+      return sizeof(arg);
+    }
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, const T (&arg)[N]) noexcept
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+                     uint32_t& conditional_arg_size_cache_index, const T (&arg)[N]) noexcept
   {
-    std::memcpy(buffer, &arg, sizeof(arg));
-    buffer += sizeof(arg);
+    if constexpr (std::is_same_v<T, char>)
+    {
+      size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+
+      if (QUILL_UNLIKELY(len > N))
+      {
+        // no '\0' in c array
+        assert(len == N + 1);
+        std::memcpy(buffer, arg, N);
+        buffer[len - 1] = std::byte{'\0'};
+      }
+      else
+      {
+        std::memcpy(buffer, arg, len);
+      }
+
+      buffer += len;
+    }
+    else
+    {
+      std::memcpy(buffer, &arg, sizeof(arg));
+      buffer += sizeof(arg);
+    }
   }
 
   static auto decode_arg(std::byte*& buffer)
   {
-    std::array<T, N> arg;
-
-    for (size_t i = 0; i < N; ++i)
+    if constexpr (std::is_same_v<T, char>)
     {
-      std::memcpy(&arg[i], buffer, sizeof(T));
-      buffer += sizeof(T);
+      // c strings or char array
+      char const* arg = reinterpret_cast<char const*>(buffer);
+      buffer += strlen(arg) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
+      return arg;
     }
+    else
+    {
+      std::array<T, N> arg;
 
-    return arg;
+      for (size_t i = 0; i < N; ++i)
+      {
+        std::memcpy(&arg[i], buffer, sizeof(T));
+        buffer += sizeof(T);
+      }
+
+      return arg;
+    }
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    args_store->push_back(decode_arg(buffer));
+    if constexpr (std::is_same_v<T, char>)
+    {
+      char const* arg = decode_arg(buffer);
+      args_store->push_back(fmtquill::string_view{arg, strlen(arg)});
+    }
+    else
+    {
+      args_store->push_back(decode_arg(buffer));
+    }
   }
 };
 

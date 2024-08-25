@@ -32,7 +32,7 @@ int main()
 
   LOG_TRACE_L3(logger, "This is a log trace l3 example {}", 1);
   LOG_TRACE_L2(logger, "This is a log trace l2 example {} {}", 2, 2.3);
-  LOG_TRACE_L1(logger, "This is a log trace l1 {} example", "string");
+  LOG_TRACE_L1(logger, "This is a log trace l1 {} example", std::string_view{"string"});
   LOG_DEBUG(logger, "This is a log debug example {}", 4);
   LOG_INFO(logger, "This is a log info example {}", sizeof(std::string));
   LOG_WARNING(logger, "This is a log warning example {}", sizeof(std::string));

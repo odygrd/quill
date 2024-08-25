@@ -78,6 +78,6 @@ int main()
 
   // update our timestamp
   simulated_clock.set_timestamp(std::chrono::seconds{1655039000});
-  LOG_INFO(logger, "This is a log info {} example", "string");
+  LOG_INFO(logger, "This is a log info {} example", std::string_view{"string"});
   LOG_DEBUG(logger, "This is a log debug example {}", 4);
 }

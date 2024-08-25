@@ -6,6 +6,7 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#include "quill/std/Array.h"
 #include "quill/std/WideString.h"
 
 #include <cstdio>
