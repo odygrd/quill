@@ -94,6 +94,7 @@ Combining JSON and Standard Log Patterns
     #include "quill/sinks/ConsoleSink.h"
     #include "quill/sinks/JsonFileSink.h"
     #include <utility>
+    #include <string_view>
 
     int main()
     {
@@ -122,6 +123,6 @@ Combining JSON and Standard Log Patterns
 
       for (int i = 2; i < 4; ++i)
       {
-        LOG_INFO(hybrid_logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
+        LOG_INFO(hybrid_logger, "{method} to {endpoint} took {elapsed} ms", std::string_view {"POST"}, std::string_view {"http://"}, 10 * i);
       }
     }

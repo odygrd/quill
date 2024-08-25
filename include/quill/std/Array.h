@@ -44,6 +44,7 @@ struct Codec<T[N], std::enable_if_t<std::disjunction_v<std::is_arithmetic<T>, st
   {
     if constexpr (std::is_same_v<T, char>)
     {
+      // Note this can return less size than the actual array for char arrays
       assert(((detail::safe_strnlen(arg, N) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
              "len is outside the supported range");
       return conditional_arg_size_cache.push_back(static_cast<uint32_t>(detail::safe_strnlen(arg, N) + 1u));
@@ -59,6 +60,7 @@ struct Codec<T[N], std::enable_if_t<std::disjunction_v<std::is_arithmetic<T>, st
   {
     if constexpr (std::is_same_v<T, char>)
     {
+      // For char arrays might copy less than N, depending on the string length
       size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
 
       if (QUILL_UNLIKELY(len > N))
@@ -77,7 +79,7 @@ struct Codec<T[N], std::enable_if_t<std::disjunction_v<std::is_arithmetic<T>, st
     }
     else
     {
-      std::memcpy(buffer, &arg, sizeof(arg));
+      std::memcpy(buffer, arg, sizeof(arg));
       buffer += sizeof(arg);
     }
   }
