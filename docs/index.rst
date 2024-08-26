@@ -1,3 +1,6 @@
+.. meta::
+   :google-site-verification: OdGHhtE4NLXZfqvQWdVxnV4z8MJeRUws09jAYCDjqhI
+
 .. _index:
 
 ##############################################################################
