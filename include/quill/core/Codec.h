@@ -171,13 +171,8 @@ struct Codec
       size_t const len = arg.length();
       std::memcpy(buffer, &len, sizeof(len));
       buffer += sizeof(len);
-
-      if (QUILL_LIKELY(len != 0))
-      {
-        // copy the string, no need to zero terminate it as we got the length
-        std::memcpy(buffer, arg.data(), len);
-        buffer += len;
-      }
+      std::memcpy(buffer, arg.data(), len);
+      buffer += len;
     }
     else
     {
