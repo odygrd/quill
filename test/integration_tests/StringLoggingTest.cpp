@@ -83,6 +83,9 @@ TEST_CASE("string_logging")
     std::string& sr = s;
     std::string const empty_s{};
 
+    std::string st{"testzeroterm"};
+    st[4] = '\0';
+
     std::string_view begin_s{"begin_s"};
     std::string_view const end_s{"end_s"};
     std::string_view empty_sv{};
@@ -103,6 +106,7 @@ TEST_CASE("string_logging")
     const char* npcs = "Example\u0003String\u0004";
     LOG_INFO(logger, "non printable cs [{}]", npcs);
 
+    LOG_INFO(logger, "st [{}]", st);
     LOG_INFO(logger, "cas [{}]", cas);
     LOG_INFO(logger, "s [{}]", s);
     LOG_INFO(logger, "scr [{}]", scr);
@@ -152,10 +156,13 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 17);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 18);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "                        right aligned"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       st [test\\x00eroterm]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       cas [custom allocator string]"}));
