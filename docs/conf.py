@@ -14,14 +14,14 @@ def configureDoxyfile(input_dir, output_dir):
 
 # Set paths for local build
 input_dir = '../include/quill'
-output_dir = 'build/doxygen'
+output_dir = 'build'
 
 configureDoxyfile(input_dir, output_dir)
 subprocess.call('doxygen', shell=True)
 
 # Configuration for Sphinx
 breathe_projects = {
-    'Quill': os.path.join(os.path.abspath('.'), 'build', 'doxygen', 'xml')
+    'Quill': os.path.join(os.path.abspath('.'), 'build', 'xml')
 }
 
 # Configuration file for the Sphinx documentation builder.
