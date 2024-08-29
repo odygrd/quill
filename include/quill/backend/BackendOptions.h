@@ -1,4 +1,5 @@
 /**
+ * @page copyright
  * Copyright(c) 2020-present, Odysseas Georgoudis & quill contributors.
  * Distributed under the MIT License (http://opensource.org/licenses/MIT)
  */
@@ -21,6 +22,11 @@
 
 QUILL_BEGIN_NAMESPACE
 
+/**
+ * @brief Configuration options for the backend.
+ *
+ * This struct defines settings for the backend thread
+ */
 struct BackendOptions
 {
   /**
