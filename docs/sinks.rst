@@ -5,7 +5,7 @@ Sinks
 
 Sinks are objects responsible for writing logs to their respective targets.
 
-A :cpp:class:`quill::Sink` object serves as the base class for various sink-derived classes.
+A :cpp:class:`Sink` object serves as the base class for various sink-derived classes.
 
 Each sink handles outputting logs to a single target, such as a file, console, or database.
 

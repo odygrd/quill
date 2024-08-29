@@ -5,7 +5,7 @@ Filters
 
 Filters are used to selectively control which log statements are sent to specific ``Sinks`` based on defined criteria.
 
-Each :cpp:class:`quill::Sink` can be associated with one or multiple :cpp:class:`quill::Filter` objects. These filters allow customization of log statement handling, such as filtering by log level or other criteria.
+Each :cpp:class:`Sink` can be associated with one or multiple :cpp:class:`Filter` objects. These filters allow customization of log statement handling, such as filtering by log level or other criteria.
 
 By default, a logger sends all log messages to its ``Sinks``. Filters provide a way to intercept and selectively process log records before they are outputted.
 

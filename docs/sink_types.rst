@@ -11,7 +11,7 @@ The `ConsoleSink` class sends logging output to streams `stdout` or `stderr`. Pr
 FileSink
 ~~~~~~~~
 
-The :cpp:class:`quill::FileSink` is a straightforward sink that outputs to a file. The filepath of the `FileSink` serves as a unique identifier, allowing you to retrieve the same sink later using :cpp:func:`quill::FrontendImpl::get_sink`.
+The :cpp:class:`FileSink` is a straightforward sink that outputs to a file. The filepath of the `FileSink` serves as a unique identifier, allowing you to retrieve the same sink later using :cpp:func:`FrontendImpl::get_sink`.
 
 Each file can only have a single instance of `FileSink`.
 
@@ -43,7 +43,7 @@ Each file can only have a single instance of `FileSink`.
 RotatingFileSink
 ~~~~~~~~~~~~~~~~
 
-The :cpp:class:`quill::RotatingFileSink` is built on top of the `FileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
+The :cpp:class:`RotatingFileSink` is built on top of the `FileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
 
 .. code:: cpp
 
@@ -75,7 +75,7 @@ The :cpp:class:`quill::RotatingFileSink` is built on top of the `FileSink` and p
 JsonFileSink/JsonConsoleSink
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :cpp:class:`quill::JsonFileSink` and :cpp:class:`quill::JsonConsoleSink` enable the creation of structured logs. To utilize this feature, provide named arguments in your log format string, as shown in the example below. The example demonstrates how to create a logger that emits both normal and structured logs, but it can also be configured to emit only structured logs.
+The :cpp:class:`JsonFileSink` and :cpp:class:`JsonConsoleSink` enable the creation of structured logs. To utilize this feature, provide named arguments in your log format string, as shown in the example below. The example demonstrates how to create a logger that emits both normal and structured logs, but it can also be configured to emit only structured logs.
 
 .. code:: cpp
 

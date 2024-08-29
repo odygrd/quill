@@ -45,7 +45,7 @@ Outputs:
     LOGV_INFO(logger, "The answer is", std::string("test"));
 
 Logging Built-in Types and Strings
---------------------------
+----------------------------------
 Logging ``arithmetic types``, ``strings``, ``string_view``, ``C strings``, ``C char arrays``, or ``void const*`` is supported out of the box.
 
 .. code:: cpp

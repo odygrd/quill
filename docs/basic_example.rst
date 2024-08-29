@@ -27,9 +27,9 @@ In the example above, a console `Sink` is created and passed to a `Logger` with 
 
 Each `Sink` and `Logger` must be assigned a unique name during creation to facilitate retrieval later.
 
-Each :cpp:class:`quill::Logger` contains a :cpp:class:`quill::PatternFormatter` object responsible for formatting the message.
+Each :cpp:class:`Logger` contains a :cpp:class:`PatternFormatter` object responsible for formatting the message.
 
-Moreover, each :cpp:class:`quill::Logger` contains single or multiple :cpp:class:`quill::Sink` objects that deliver the log message to their output source.
+Moreover, each :cpp:class:`Logger` contains single or multiple :cpp:class:`Sink` objects that deliver the log message to their output source.
 
 A single backend thread checks for new log messages periodically.
 

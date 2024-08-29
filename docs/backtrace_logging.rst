@@ -8,10 +8,10 @@ Backtrace logging enables log messages to be stored in a ring buffer and can be:
 - Displayed later on demand
 - Automatically flushed when a high severity log message is logged
 
-To enable backtrace logging, initialize it first with an appropriate log level use :cpp:func:`quill::LoggerImpl::init_backtrace`.
+To enable backtrace logging, initialize it first with an appropriate log level use :cpp:func:`LoggerImpl::init_backtrace`.
 By default, backtrace logs are automatically flushed when an error occurs.
 
-To manually flush backtrace logs, call :cpp:func:`quill::LoggerImpl::flush_backtrace`.
+To manually flush backtrace logs, call :cpp:func:`LoggerImpl::flush_backtrace`.
 
 .. note::
    Backtrace log messages are always pushed to the SPSC (Single Producer Single Consumer) queue from the frontend to the backend. They are stored in a ring buffer that resides in the backend and flushed as needed.

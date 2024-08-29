@@ -6,100 +6,106 @@ User's API
 Backend Options
 ---------------
 
-.. doxygenstruct:: quill::BackendOptions
+.. doxygenstruct:: BackendOptions
    :members:
 
 Backend Class
 -------------
 
-.. doxygenclass:: quill::Backend
+.. doxygenclass:: Backend
    :members:
 
 BackendTscClock Class
--------------
+---------------------
 
-.. doxygenclass:: quill::BackendTscClock
+.. doxygenclass:: BackendTscClock
    :members:
 
 Frontend Options
 ----------------
 
-.. doxygenstruct:: quill::FrontendOptions
+.. doxygenstruct:: FrontendOptions
    :members:
 
 Frontend Class
 --------------
 
-.. doxygenclass:: quill::FrontendImpl
+.. doxygenclass:: FrontendImpl
    :members:
 
 Log Levels
 ----------
 
-.. doxygenenum:: quill::LogLevel
+.. doxygenenum:: LogLevel
 
 LoggerImpl Class
 ----------------
 
-.. doxygenclass:: quill::LoggerImpl
+.. doxygenclass:: LoggerImpl
    :members:
 
 PatternFormatter Class
 ----------------------
 
-.. doxygenclass:: quill::PatternFormatter
+.. doxygenclass:: PatternFormatter
    :members:
 
 PatternFormatterOptions Class
-----------------------
+-----------------------------
 
-.. doxygenclass:: quill::PatternFormatterOptions
+.. doxygenclass:: PatternFormatterOptions
    :members:
 
 Sink Class
 ----------
 
-.. doxygenclass:: quill::Sink
+.. doxygenclass:: Sink
    :members:
 
 Filter Class
 ------------
 
-.. doxygenclass:: quill::Filter
+.. doxygenclass:: Filter
    :members:
 
 FileSinkConfig Class
 --------------------
 
-.. doxygenclass:: quill::FileSinkConfig
+.. doxygenclass:: FileSinkConfig
    :members:
 
 FileSink Class
 --------------------
 
-.. doxygenclass:: quill::FileSink
+.. doxygenclass:: FileSink
    :members:
 
 RotatingFileSinkConfig Class
 ----------------------------
 
-.. doxygenclass:: quill::RotatingFileSinkConfig
+.. doxygenclass:: RotatingFileSinkConfig
    :members:
 
 RotatingFileSink Class
 ----------------------------
 
-.. doxygenclass:: quill::RotatingFileSink
+.. doxygenclass:: RotatingFileSink
    :members:
 
 JsonFileSink Class
 ------------------
 
-.. doxygenclass:: quill::JsonFileSink
+.. doxygenclass:: JsonFileSink
    :members:
 
 JsonConsoleSink Class
 ---------------------
 
-.. doxygenclass:: quill::JsonConsoleSink
+.. doxygenclass:: JsonConsoleSink
+   :members:
+
+CsvWriter Class
+---------------
+
+.. doxygenclass:: CsvWriter
    :members:

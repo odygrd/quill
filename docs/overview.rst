@@ -10,7 +10,7 @@ A dedicated backend thread manages log formatting and I/O operations, ensuring t
 Thread Safety
 -------------
 
-:cpp:class:`quill::Logger` is thread safe by default. The same instance can be used to log by any thread.
+:cpp:class:`Logger` is thread safe by default. The same instance can be used to log by any thread.
 Any thread can safely modify the active log level of the logger.
 
 Logging types
@@ -29,20 +29,20 @@ Initially, an unbounded queue with a small size is used to optimise performance.
 However, if the queue reaches its capacity, a new queue will be allocated, which may cause a slight performance penalty for the frontend.
 
 The default unbounded queue can expand up to a size of 2GB. If this limit is reached, the caller thread will block.
-It's possible to change the queue type within the :cpp:class:`quill::FrontendOptions`.
+It's possible to change the queue type within the :cpp:class:`FrontendOptions`.
 
-The queue size and type are configurable at runtime by providing a custom :cpp:class:`quill::FrontendOptions` class.
+The queue size and type are configurable at runtime by providing a custom :cpp:class:`FrontendOptions` class.
 
 Manual Log Flushing
 -------------------
 
 You can explicitly instruct the frontend thread to wait until all log entries up to the current timestamp are flushed
-using :cpp:func:`quill::LoggerImpl::flush_log`. The calling thread will **block** until every log statement up to that point has been flushed.
+using :cpp:func:`LoggerImpl::flush_log`. The calling thread will **block** until every log statement up to that point has been flushed.
 
 Synchronized Logs for Debugging
 -------------------------------
 
-Sometimes, synchronized logging is necessary during application debugging. This can be achieved by configuring the logger to invoke :cpp:func:`quill::LoggerImpl::flush_log` with each log statement using the `QUILL_IMMEDIATE_FLUSH` preprocessor variable.
+Sometimes, synchronized logging is necessary during application debugging. This can be achieved by configuring the logger to invoke :cpp:func:`LoggerImpl::flush_log` with each log statement using the `QUILL_IMMEDIATE_FLUSH` preprocessor variable.
 
 Enabling `QUILL_IMMEDIATE_FLUSH` causes the calling thread to pause until the log is processed and written to the log file by the backend thread before proceeding, which may have a notable impact on performance.
 
@@ -55,9 +55,9 @@ During normal program termination, the library ensures all messages are logged a
 
 However, in the event of an application crash, some log messages may be lost.
 
-To prevent message loss during crashes caused by signal interrupts, users should set up a signal handler and invoke :cpp:func:`quill::LoggerImpl::flush_log` within it.
+To prevent message loss during crashes caused by signal interrupts, users should set up a signal handler and invoke :cpp:func:`LoggerImpl::flush_log` within it.
 
-The library provides a built-in signal handler that ensures crash-safe behavior, which can be enabled via :cpp:func:`quill::Backend::start_with_signal_handler`.
+The library provides a built-in signal handler that ensures crash-safe behavior, which can be enabled via :cpp:func:`Backend::start_with_signal_handler`.
 
 Log Messages Timestamp Order
 ----------------------------
@@ -72,15 +72,15 @@ Quill prioritizes low latency over high throughput, hence it utilizes only one b
 Latency of the First Log Message
 --------------------------------
 
-Upon the first log message from each thread, the library allocates a queue dynamically. For minimizing latency with the initial log, consider calling :cpp:func:`quill::FrontendImpl::preallocate`.
+Upon the first log message from each thread, the library allocates a queue dynamically. For minimizing latency with the initial log, consider calling :cpp:func:`FrontendImpl::preallocate`.
 
 Configuration
 -------------
 
 Quill offers various customization options, well-documented for ease of use.
 
-- ``Frontend`` configuration is compile-time, requiring a custom :cpp:class:`quill::FrontendOptions` class.
-- For ``Backend`` customization, refer to :cpp:class:`quill::BackendOptions`.
+- ``Frontend`` configuration is compile-time, requiring a custom :cpp:class:`FrontendOptions` class.
+- For ``Backend`` customization, refer to :cpp:class:`BackendOptions`.
 
 Frontend (caller-thread)
 ------------------------

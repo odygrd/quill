@@ -9,7 +9,7 @@ Upon creation, users specify the Sinks and Formatter for the logger. The logger 
 
 The Logger class is thread-safe.
 
-Loggers can be removed using :cpp:class:`quill::FrontendImpl::remove_logger` which deletes them asynchronously.
+Loggers can be removed using :cpp:function:`FrontendImpl::remove_logger` which deletes them asynchronously.
 
 When all loggers associated with a particular ``Sink`` are removed, the ``Sink`` instances are destroyed, and any associated files are closed automatically.
 

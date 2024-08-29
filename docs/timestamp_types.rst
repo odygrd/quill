@@ -12,7 +12,7 @@ This approach makes the log statement timestamp more accurate but introduces the
 Due to the usage of different types of queues, it is possible in rare cases for the timestamp to be recorded but not immediately processed.
 For example, the caller thread might block (if a blocking queue is used) or take some time to reallocate a new non-blocking queue.
 
-To mitigate this, there is a configurable :cpp:member:`quill::BackendOptions::log_timestamp_ordering_grace_period` option.
+To mitigate this, there is a configurable :cpp:member:`BackendOptions::log_timestamp_ordering_grace_period` option.
 This option delays the reading of timestamps by the backend for a few milliseconds, providing additional time for the frontend to push the messages.
 
 Timestamp Methods
@@ -99,7 +99,7 @@ Getting a Synchronized Timestamp with the Backend Thread TSC Clock
 ------------------------------------------------------------------
 
 In some cases, when using TSC for log statements, you might want to obtain a timestamp that is synchronized with the timestamp seen in the log statements.
-To achieve this, you can use the :cpp:class:`quill::BackendTscClock`. See the example below:
+To achieve this, you can use the :cpp:class:`BackendTscClock`. See the example below:
 
 .. code-block:: cpp
 

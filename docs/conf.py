@@ -2,7 +2,8 @@ import subprocess, os
 
 
 def configureDoxyfile(input_dir, output_dir):
-    with open('Doxyfile.in', 'r') as file:
+    doxyfile_in_path = os.path.join(os.path.abspath('.'), 'Doxyfile.in')
+    with open(doxyfile_in_path, 'r') as file:
         filedata = file.read()
 
     filedata = filedata.replace('@DOXYGEN_INPUT_DIR@', input_dir)
@@ -11,17 +12,17 @@ def configureDoxyfile(input_dir, output_dir):
     with open('Doxyfile', 'w') as file:
         file.write(filedata)
 
-# Check if we're running on Read the Docs' servers
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+# Set paths for local build
+input_dir = '../include/quill'
+output_dir = 'build/doxygen'
 
-breathe_projects = {}
+configureDoxyfile(input_dir, output_dir)
+subprocess.call('doxygen', shell=True)
 
-if read_the_docs_build:
-    input_dir = '../quill'
-    output_dir = 'build'
-    configureDoxyfile(input_dir, output_dir)
-    subprocess.call('doxygen', shell=True)
-    breathe_projects['Quill'] = output_dir + '/xml'
+# Configuration for Sphinx
+breathe_projects = {
+    'Quill': os.path.join(os.path.abspath('.'), 'build', 'doxygen', 'xml')
+}
 
 # Configuration file for the Sphinx documentation builder.
 #
