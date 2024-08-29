@@ -7,7 +7,7 @@ In addition to creating multiple `Logger` instances, each with a unique name, wh
 
 These static tags are included as hashtag-style keywords within your log messages, making it easier to filter and categorize logs based on these predefined tags.
 
-To include tags in your log statements, use the `_TAGS` macros. You will also need to modify the `PatternFormatter` pattern to include the `%(tags)` placeholder for proper display of these tags.
+To include tags in your log statements, use the `_TAGS` macros. You will also need to include the `%(tags)` placeholder in :cpp:class:`PatternFormatterOptions` for proper display of these tags.
 
 .. code:: cpp
 
