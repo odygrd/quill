@@ -61,12 +61,12 @@ quill_add_test(TEST_StringFromTime StringFromTimeTest.cpp)
 quill_add_test(TEST_ThreadContextManager ThreadContextManagerTest.cpp)
 quill_add_test(TEST_TimestampFormatter TimestampFormatterTest.cpp)
 quill_add_test(TEST_TransitEventBuffer TransitEventBufferTest.cpp)
-quill_add_test(TEST_UnboundedQueue.cpp UnboundedQueueTest.cpp)
+quill_add_test(TEST_UnboundedQueue UnboundedQueueTest.cpp)
 quill_add_test(TEST_Utility UtilityTest.cpp)
 
 if (NOT QUILL_SANITIZE_THREAD)
     # clang++12 thread sanitizer throws exception for unknown reason in the CI
-    quill_add_test(TEST_UnboundedQueueLimit.cpp UnboundedQueueLimitTest.cpp)
+    quill_add_test(TEST_UnboundedQueueLimit UnboundedQueueLimitTest.cpp)
 endif ()
 
 if (NOT QUILL_USE_VALGRIND)
