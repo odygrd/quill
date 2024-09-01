@@ -187,6 +187,8 @@ The tables are sorted by the 95th percentile
 | [spdlog](http://github.com/gabime/spdlog)                      | 143  | 147  | 152  | 158  | 165  |  177   |
 | [g3log](http://github.com/KjellKod/g3log)                      | 1161 | 1259 | 1329 | 1419 | 1602 |  1827  |
 
+![numbers_1_thread_logging.webp](docs%2Fcharts%2Fnumbers_1_thread_logging.webp)
+
 ##### 4 Threads Logging Simultaneously
 
 | Library                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th |
@@ -201,6 +203,8 @@ The tables are sorted by the 95th percentile
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  58  |  90  | 123  | 131  | 168  |  242   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 210  | 243  | 288  | 313  | 382  |  694   |
 | [g3log](http://github.com/KjellKod/g3log)                      | 1271 | 1337 | 1396 | 1437 | 1614 |  1899  |
+
+![numbers_4_thread_logging.webp](docs%2Fcharts%2Fnumbers_4_thread_logging.webp)
 
 #### Logging Large Strings
 
@@ -223,6 +227,8 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 | [spdlog](http://github.com/gabime/spdlog)                      | 120  | 124  | 128  | 132  | 141  |  151   |
 | [g3log](http://github.com/KjellKod/g3log)                      | 881  | 956  | 1018 | 1089 | 1264 |  1494  |
 
+![large_strings_1_thread_logging.webp](docs%2Fcharts%2Flarge_strings_1_thread_logging.webp)
+
 ##### 4 Threads Logging Simultaneously
 
 | Library                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th |
@@ -237,6 +243,8 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  85  |  93  | 125  | 133  | 168  |  237   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 178  | 218  | 261  | 281  | 381  |  651   |
 | [g3log](http://github.com/KjellKod/g3log)                      | 992  | 1055 | 1121 | 1178 | 1360 |  1600  |
+
+![large_strings_4_thread_logging.webp](docs%2Fcharts%2Flarge_strings_4_thread_logging.webp)
 
 #### Logging Complex Types
 
@@ -255,6 +263,8 @@ Logging `std::vector<std::string>` containing 16 large strings, each ranging fro
 | [fmtlog](http://github.com/MengRao/fmtlog)                     | 711  | 730  | 754  | 770  | 804  |  834   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 6191 | 6261 | 6330 | 6386 | 6633 |  7320  |
 
+![vector_1_thread_logging.webp](docs%2Fcharts%2Fvector_1_thread_logging.webp)
+
 ##### 4 Threads Logging Simultaneously
 
 | Library                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th |
@@ -265,6 +275,8 @@ Logging `std::vector<std::string>` containing 16 large strings, each ranging fro
 | [XTR](https://github.com/choll/xtr)                            | 512  | 711  | 761  | 791  | 865  |  945   |
 | [fmtlog](http://github.com/MengRao/fmtlog)                     | 780  | 804  | 823  | 835  | 860  |  896   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 6469 | 6549 | 6641 | 6735 | 7631 |  9430  |
+
+![vector_4_thread_logging.webp](docs%2Fcharts%2Fvector_4_thread_logging.webp)
 
 The benchmark methodology involves logging 20 messages in a loop, calculating and storing the average latency for those
 20 messages, then waiting around ~2 milliseconds, and repeating this process for a specified number of iterations.
