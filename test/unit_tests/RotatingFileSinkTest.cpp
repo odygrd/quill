@@ -367,6 +367,7 @@ TEST_CASE("rotating_file_sink_index_open_mode_write_dont_clean_up_old_files")
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);
   testing::remove_file(filename_3);
+  testing::remove_file(filename_4);
 }
 
 /***/
@@ -1841,6 +1842,7 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);
   testing::remove_file(filename_3);
+  testing::remove_file(filename_4);
 }
 
 /***/
