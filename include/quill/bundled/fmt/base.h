@@ -2105,7 +2105,17 @@ struct fill_t {
       return;
     }
     FMTQUILL_ASSERT(size <= max_size, "invalid fill");
+
+#if !defined(_WIN32) && !defined(__clang__) && defined(__GNUC__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
     for (size_t i = 0; i < size; ++i) data_[i] = static_cast<char>(s[i]);
+
+#if !defined(_WIN32) && !defined(__clang__) && defined(__GNUC__)
+  #pragma GCC diagnostic pop
+#endif
   }
 
   FMTQUILL_CONSTEXPR void operator=(char c) {

@@ -1,3 +1,4 @@
+- [v7.0.1](#v701)
 - [v7.0.0](#v700)
 - [v6.1.2](#v612)
 - [v6.1.1](#v611)
@@ -73,7 +74,12 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v7.0.0 - TBD
+## v7.0.1
+
+- Cleaned up files that were left after running `TEST_RotatingFileSink`.
+- Suppressed the GCC warning `-Wstringop-overflow` in the bundled `libfmt`.
+
+## v7.0.0
 
 - Simplified the log tags API. The `Tags` class has been removed. You now pass a `char const*` directly to the macros.
   Additionally, macros previously named `WITH_TAGS` have been renamed to `_TAGS`. For example, `LOG_INFO_WITH_TAGS` is
