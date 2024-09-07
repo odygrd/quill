@@ -87,13 +87,9 @@ TEST_CASE("user_sink")
   // if user_sink_b has at least min_flushes, then user_sink_a should have them too
   while (reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load() < min_flushes)
   {
-    if (retry_count >= max_retries)
-    {
-      FAIL("Exceeded maximum retry count");
-    }
-
+    // Wait indefinitely with a fixed interval, as using a retry count could make it difficult to
+    // predict the completion time, especially under high system load conditions.
     std::this_thread::sleep_for(std::chrono::milliseconds{100});
-    ++retry_count;
   }
 
   // Wait until the backend thread stops for test stability

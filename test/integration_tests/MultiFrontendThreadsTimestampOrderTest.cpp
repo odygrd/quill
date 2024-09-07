@@ -23,6 +23,7 @@ TEST_CASE("multi_frontend_threads")
 
   // Start the logging backend thread
   BackendOptions bo;
+  bo.log_timestamp_ordering_grace_period = std::chrono::seconds{1};
   Backend::start();
 
   std::vector<std::thread> threads;
@@ -90,6 +91,9 @@ TEST_CASE("multi_frontend_threads")
       REQUIRE(testing::file_contains(file_contents, expected_string));
     }
   }
+
+  // Check log file is timestamp ordered
+  REQUIRE(quill::testing::is_timestamp_ordered(file_contents));
 
   testing::remove_file(filename);
 }
