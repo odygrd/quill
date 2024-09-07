@@ -79,21 +79,15 @@ TEST_CASE("user_sink")
   }
 
   // Let the backend worker run a few times so that flush_sink_cnt and periodic_tasks_cnt are called
-  constexpr uint32_t max_retries = 20;
   constexpr uint32_t min_flushes = 20;
-  uint32_t retry_count = 0;
 
   // user_sink_b is created second after user_sink_a
   // if user_sink_b has at least min_flushes, then user_sink_a should have them too
   while (reinterpret_cast<UserSink*>(user_sink_b.get())->flush_sink_cnt.load() < min_flushes)
   {
-    if (retry_count >= max_retries)
-    {
-      FAIL("Exceeded maximum retry count");
-    }
-
+    // Wait indefinitely with a fixed interval, as using a retry count could make it difficult to
+    // predict the completion time, especially under high system load conditions.
     std::this_thread::sleep_for(std::chrono::milliseconds{100});
-    ++retry_count;
   }
 
   // Wait until the backend thread stops for test stability

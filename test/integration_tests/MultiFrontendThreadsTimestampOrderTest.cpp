@@ -14,15 +14,17 @@
 using namespace quill;
 
 /***/
-TEST_CASE("multi_frontend_threads")
+TEST_CASE("multi_frontend_threads_timestamp_order")
 {
   static constexpr size_t number_of_messages = 1000;
   static constexpr size_t number_of_threads = 10;
-  static constexpr char const* filename = "multi_frontend_threads.log";
+  static constexpr char const* filename = "multi_frontend_threads_timestamp_order.log";
   static std::string const logger_name_prefix = "logger_";
 
   // Start the logging backend thread
-  Backend::start();
+  BackendOptions bo;
+  bo.log_timestamp_ordering_grace_period = std::chrono::seconds{1};
+  Backend::start(bo);
 
   std::vector<std::thread> threads;
 
@@ -89,6 +91,9 @@ TEST_CASE("multi_frontend_threads")
       REQUIRE(testing::file_contains(file_contents, expected_string));
     }
   }
+
+  // Check log file is timestamp ordered
+  REQUIRE(quill::testing::is_timestamp_ordered(file_contents));
 
   testing::remove_file(filename);
 }
