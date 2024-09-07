@@ -1,4 +1,4 @@
-- [v7.0.1](#v701)
+- [v7.1.0](#v710)
 - [v7.0.0](#v700)
 - [v6.1.2](#v612)
 - [v6.1.1](#v611)
@@ -74,11 +74,12 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v7.0.1
+## v7.1.0
 
 - Removed leftover files after running some unit tests.
 - Suppressed false-positive `-Wstringop-overflow` warnings in the bundled `libfmt` (e.g., with GCC 13).
 - Stabilized regression tests.
+- Improved performance of `ForwardList` decoding.
 
 ## v7.0.0
 
