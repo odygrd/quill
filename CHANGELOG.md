@@ -76,8 +76,9 @@
 
 ## v7.0.1
 
-- Cleaned up files that were left after running `TEST_RotatingFileSink`.
-- Suppressed the GCC warning `-Wstringop-overflow` in the bundled `libfmt`.
+- Removed leftover files after running some unit tests.
+- Suppressed false-positive `-Wstringop-overflow` warnings in the bundled `libfmt` (e.g., with GCC 13).
+- Stabilized regression tests.
 
 ## v7.0.0
 
