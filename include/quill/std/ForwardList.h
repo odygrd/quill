@@ -97,21 +97,12 @@ struct Codec<std::forward_list<T, Allocator>>
 
       std::forward_list<T, Allocator> arg;
 
-      if (number_of_elements > 0)
-      {
-        arg.emplace_front(Codec<T>::decode_arg(buffer));
-      }
+      auto last_inserted = arg.before_begin(); // Keeps track of the last inserted position
 
-      for (size_t i = 1; i < number_of_elements; ++i)
+      for (size_t i = 0; i < number_of_elements; ++i)
       {
-        auto it = arg.before_begin();
-        for (auto curr = arg.begin(); curr != arg.end(); ++it, ++curr)
-        {
-          // iterate
-        }
-
-        // Insert after the last element
-        arg.emplace_after(it, Codec<T>::decode_arg(buffer));
+        // Insert after the last inserted element and update the iterator
+        last_inserted = arg.emplace_after(last_inserted, Codec<T>::decode_arg(buffer));
       }
 
       return arg;
