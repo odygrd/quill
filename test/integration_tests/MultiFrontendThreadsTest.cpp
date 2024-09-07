@@ -22,7 +22,6 @@ TEST_CASE("multi_frontend_threads")
   static std::string const logger_name_prefix = "logger_";
 
   // Start the logging backend thread
-  BackendOptions bo;
   Backend::start();
 
   std::vector<std::thread> threads;
