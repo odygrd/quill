@@ -14,11 +14,11 @@
 using namespace quill;
 
 /***/
-TEST_CASE("multi_frontend_threads")
+TEST_CASE("multi_frontend_threads_timestamp_order")
 {
   static constexpr size_t number_of_messages = 1000;
   static constexpr size_t number_of_threads = 10;
-  static constexpr char const* filename = "multi_frontend_threads.log";
+  static constexpr char const* filename = "multi_frontend_threads_timestamp_order.log";
   static std::string const logger_name_prefix = "logger_";
 
   // Start the logging backend thread
