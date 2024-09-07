@@ -35,14 +35,20 @@ jobs:
             with_tests: ON
             install: sudo apt -o Acquire::Retries=5 install g++-8
 
-            # Build and test as shared library
-          - cxx: g++-10
+          - cxx: g++-13
             build_type: Release
-            std: 17
+            std: 23
             os: ubuntu-20.04
             with_tests: ON
-            cmake_options: -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_VISIBILITY_PRESET=hidden -DCMAKE_VISIBILITY_INLINES_HIDDEN=ON
+            install: sudo apt -o Acquire::Retries=5 install g++-13
 
+          - cxx: g++-13
+            build_type: Debug
+            std: 23
+            os: ubuntu-20.04
+            with_tests: ON
+            install: sudo apt -o Acquire::Retries=5 install g++-13
+            
             # Builds with no exceptions
           - cxx: g++-10
             build_type: Release
@@ -51,7 +57,7 @@ jobs:
             with_tests: OFF
             cmake_options: -DQUILL_NO_EXCEPTIONS=ON
 
-            # Build and test with valgrind, sanitizers
+            # Build and test with valgrind
           - cxx: g++-10
             build_type: Release
             std: 20
@@ -60,8 +66,8 @@ jobs:
             cmake_options: -DQUILL_USE_VALGRIND=ON
             ctest_options: -T memcheck
             install: sudo apt -o Acquire::Retries=5 install valgrind
-
-            # Build and test sanitizers
+            
+            # Build and test address sanitizers
           - cxx: clang++-12
             build_type: Release
             std: 20
@@ -69,7 +75,7 @@ jobs:
             with_tests: ON
             cmake_options: -DQUILL_SANITIZE_ADDRESS=ON
 
-            # Build and test sanitizers
+            # Build and test thread sanitizers
           - cxx: clang++-12
             build_type: Release
             std: 20
@@ -80,6 +86,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Add repositories for newer GCC
+        run: |
+          sudo apt-add-repository ppa:ubuntu-toolchain-r/test
+        if: ${{ matrix.cxx == 'g++-13' }}
+      
       - name: Create Build Environment
         run: |
           sudo apt-get update
