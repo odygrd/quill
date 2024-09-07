@@ -79,9 +79,7 @@ TEST_CASE("user_sink")
   }
 
   // Let the backend worker run a few times so that flush_sink_cnt and periodic_tasks_cnt are called
-  constexpr uint32_t max_retries = 20;
   constexpr uint32_t min_flushes = 20;
-  uint32_t retry_count = 0;
 
   // user_sink_b is created second after user_sink_a
   // if user_sink_b has at least min_flushes, then user_sink_a should have them too
