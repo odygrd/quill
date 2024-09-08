@@ -80,6 +80,9 @@
 - Suppressed false-positive `-Wstringop-overflow` warnings in the bundled `libfmt` (e.g., with GCC 13).
 - Stabilized regression tests.
 - Improved performance of `ForwardList` decoding.
+- Fixed crash when using QueueType::BoundedDropping or QueueType::UnboundedDropping after message
+  drops. ([#553](https://github.com/odygrd/quill/issues/553))
+- Corrected dropped message count; previously, log_flush attempts were incorrectly included.
 
 ## v7.0.0
 

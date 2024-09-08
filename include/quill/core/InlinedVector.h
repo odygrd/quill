@@ -52,9 +52,15 @@ public:
   {
     if (_size == _capacity)
     {
-      size_t new_capacity = _capacity * 2;
+      size_t const new_capacity = _capacity * 2;
       auto* new_data = new value_type[new_capacity];
 
+      // suppress gcc false positives on memcpy
+#if !defined(_WIN32) && !defined(__clang__) && defined(__GNUC__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wstringop-overflow"
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
       if (_capacity == N)
       {
         // Entering here for the first time, then we copy the inline storage
@@ -65,6 +71,9 @@ public:
         std::memcpy(new_data, _storage.heap_buffer, _capacity * sizeof(value_type));
         delete[] _storage.heap_buffer;
       }
+#if !defined(_WIN32) && !defined(__clang__) && defined(__GNUC__)
+  #pragma GCC diagnostic pop
+#endif
 
       _storage.heap_buffer = new_data;
       _capacity = new_capacity;
