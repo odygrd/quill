@@ -37,7 +37,7 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
   { dropped_messages = error_message; };
 
   // sleep long on backend thread to ensure we drop the queue
-  backend_options.sleep_duration = std::chrono::seconds{1};
+  backend_options.sleep_duration = std::chrono::seconds{10};
   Backend::start(backend_options);
 
   auto file_sink = CustomFrontend::create_or_get_sink<FileSink>(
@@ -59,13 +59,28 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
     LOG_INFO(logger, "Log something to fulfill the bound queue {} {}", i, s.data());
   }
 
-  // Log another message using the conditional arg size cache
-  // This is important to log as it could catch triggering an assertion
+  // Wake up the backend thread to process
+  Backend::notify();
+
+  do
+  {
+    // Keep checking the file for at least one log output
+    std::this_thread::sleep_for(std::chrono::milliseconds{100});
+  } while (testing::file_contents(filename).empty());
+
+  // Log another message using the conditional arg size cache after LOG_INFO failed dropping
+  // messages// This is important to log as it could catch triggering an assertion
   char const* t = "test";
   LOG_INFO(logger, "Log something else {}", t);
 
+  // Wake up the backend thread to process
+  Backend::notify();
+
   logger->flush_log();
   Frontend::remove_logger(logger);
+
+  // Wake up the backend thread to process
+  Backend::notify();
 
   // Wait until the backend thread stops for test stability
   Backend::stop();
