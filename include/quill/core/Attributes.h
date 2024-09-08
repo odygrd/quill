@@ -91,7 +91,7 @@
 /**
  * Visibility
  */
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(_MSC_VER)
   #if defined(QUILL_DLL_EXPORT)
     #define QUILL_EXPORT __declspec(dllexport) // Exporting symbols when building the library
   #elif defined(QUILL_DLL_IMPORT)
