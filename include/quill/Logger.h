@@ -103,6 +103,9 @@ public:
       thread_context = detail::get_local_thread_context<frontend_options_t>();
     }
 
+    // we always need to clear the cache first before calling this compute_encoded_size_and_cache_string_lengths
+    thread_context->get_conditional_arg_size_cache().clear();
+
     // Need to know how much size we need from the queue
     size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
       detail::compute_encoded_size_and_cache_string_lengths(
