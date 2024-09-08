@@ -76,13 +76,13 @@
 
 ## v7.1.0
 
-- Removed leftover files after running some unit tests.
-- Suppressed false-positive `-Wstringop-overflow` warnings in the bundled `libfmt` (e.g., with GCC 13).
-- Stabilized regression tests.
+- Fixed crash when using `QueueType::BoundedDropping` or `QueueType::UnboundedDropping` after a message drops. ([#553](https://github.com/odygrd/quill/issues/553))
 - Improved performance of `ForwardList` decoding.
-- Fixed crash when using QueueType::BoundedDropping or QueueType::UnboundedDropping after message
-  drops. ([#553](https://github.com/odygrd/quill/issues/553))
-- Corrected dropped message count; previously, log_flush attempts were incorrectly included.
+- Corrected reported dropped message count; previously, log flush attempts were incorrectly included.
+- Removed leftover files after running some unit tests.
+- Stabilized regression tests.
+- Suppressed false-positive `-Wstringop-overflow` warnings (e.g., with GCC 13).
+- Fixed MinGW build and added MinGW builds to GitHub Actions.
 
 ## v7.0.0
 
