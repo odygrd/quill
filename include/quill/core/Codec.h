@@ -268,6 +268,9 @@ template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
   QUILL_MAYBE_UNUSED detail::SizeCacheVector& conditional_arg_size_cache, Args const&... args) noexcept
 {
+  // we always need to clear the cache first before calling this function
+  conditional_arg_size_cache.clear();
+
   size_t total_sum{0};
   // Do not use fold expression with '+ ...' as we need a guaranteed sequence for the args here
   ((total_sum += Codec<detail::remove_cvref_t<Args>>::compute_encoded_size(conditional_arg_size_cache, args)), ...);
