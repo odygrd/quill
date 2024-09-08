@@ -76,3 +76,30 @@ jobs:
         run: |
           $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
           ctest --build-config ${{matrix.build_type}} --parallel $threads --output-on-failure
+
+  mingw:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      matrix:
+        sys: [mingw64, ucrt64]
+        build_type: [Debug, Release]
+        std: [17]
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          release: false
+          msystem: ${{matrix.sys}}
+          pacboy: cc:p cmake:p ninja:p lld:p
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -B ../build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
+        env: { LDFLAGS: -fuse-ld=lld }
+      - name: Build
+        run: cmake --build ../build --parallel $(nproc || 1)
+      - name: Test
+        run: ctest --test-dir ../build --parallel $(nproc || 1)
+        env:
+          CTEST_OUTPUT_ON_FAILURE: True
