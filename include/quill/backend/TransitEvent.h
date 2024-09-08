@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "quill/bundled/fmt/format.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/FormatBuffer.h"
@@ -32,10 +33,7 @@ struct TransitEvent
 {
   /***/
   TransitEvent()
-  {
-    formatted_msg = std::make_unique<FormatBuffer>();
-    formatted_msg->reserve(64);
-  }
+  { data = std::make_unique<TransitEventData>(); }
 
   /***/
   ~TransitEvent() = default;
@@ -46,16 +44,7 @@ struct TransitEvent
 
   /***/
   TransitEvent(TransitEvent&& other) noexcept
-    : timestamp(other.timestamp),
-      macro_metadata(other.macro_metadata),
-      logger_base(other.logger_base),
-      format_args_decoder(other.format_args_decoder),
-      thread_id(other.thread_id),
-      thread_name(other.thread_name),
-      formatted_msg(std::move(other.formatted_msg)),
-      named_args(std::move(other.named_args)),
-      dynamic_log_level(other.dynamic_log_level),
-      flush_flag(other.flush_flag)
+    : timestamp(other.timestamp), data(std::move(other.data))
   {
   }
 
@@ -65,15 +54,7 @@ struct TransitEvent
     if (this != &other)
     {
       timestamp = other.timestamp;
-      macro_metadata = other.macro_metadata;
-      logger_base = other.logger_base;
-      format_args_decoder = other.format_args_decoder;
-      thread_id = other.thread_id;
-      thread_name = other.thread_name;
-      formatted_msg = std::move(other.formatted_msg);
-      named_args = std::move(other.named_args);
-      dynamic_log_level = other.dynamic_log_level;
-      flush_flag = other.flush_flag;
+      data = std::move(other.data);
     }
 
     return *this;
@@ -82,19 +63,25 @@ struct TransitEvent
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT LogLevel log_level() const noexcept
   {
-    return (macro_metadata->log_level() != LogLevel::Dynamic) ? macro_metadata->log_level() : dynamic_log_level;
+    return (data->macro_metadata->log_level() != LogLevel::Dynamic) ? data->macro_metadata->log_level()
+                                                                    : data->dynamic_log_level;
   }
 
+  struct TransitEventData
+  {
+    MacroMetadata const* macro_metadata{nullptr};
+    detail::LoggerBase* logger_base{nullptr};
+    detail::FormatArgsDecoder format_args_decoder{nullptr};
+    std::string_view thread_id;
+    std::string_view thread_name;
+    fmtquill::basic_memory_buffer<char, 64> formatted_msg; /** buffer for message **/
+    std::unique_ptr<std::vector<std::pair<std::string, std::string>>> named_args; /** A unique ptr to save space as named args feature is not always used */
+    LogLevel dynamic_log_level{LogLevel::None};
+    std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
+  };
+
   uint64_t timestamp{0};
-  MacroMetadata const* macro_metadata{nullptr};
-  detail::LoggerBase* logger_base{nullptr};
-  detail::FormatArgsDecoder format_args_decoder{nullptr};
-  std::string_view thread_id;
-  std::string_view thread_name;
-  std::unique_ptr<FormatBuffer> formatted_msg; /** buffer for message **/
-  std::unique_ptr<std::vector<std::pair<std::string, std::string>>> named_args; /** A unique ptr to save space as named args feature is not always used */
-  LogLevel dynamic_log_level{LogLevel::None};
-  std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
+  std::unique_ptr<TransitEventData> data;
 };
 } // namespace detail
 

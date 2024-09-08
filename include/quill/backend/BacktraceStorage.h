@@ -36,27 +36,27 @@ public:
     if (_stored_events.size() < _capacity)
     {
       // We are still growing the vector to max capacity
-      auto& emplaced =
-        _stored_events.emplace_back(std::string{transit_event.thread_name},
-                                    std::string{transit_event.thread_id}, std::move(transit_event));
+      auto& emplaced = _stored_events.emplace_back(std::string{transit_event.data->thread_name},
+                                                   std::string{transit_event.data->thread_id},
+                                                   std::move(transit_event));
 
       // we want to point the transit event objects to ours because they can point to invalid memory
       // if the thread is destructed
-      emplaced.transit_event.thread_name = emplaced.thread_name;
-      emplaced.transit_event.thread_id = emplaced.thread_id;
+      emplaced.transit_event.data->thread_name = emplaced.thread_name;
+      emplaced.transit_event.data->thread_id = emplaced.thread_id;
     }
     else
     {
       // Store the object in the vector, replacing the previous
       StoredTransitEvent& ste = _stored_events[_index];
 
-      ste = StoredTransitEvent{std::string{transit_event.thread_name},
-                               std::string{transit_event.thread_id}, std::move(transit_event)};
+      ste = StoredTransitEvent{std::string{transit_event.data->thread_name},
+                               std::string{transit_event.data->thread_id}, std::move(transit_event)};
 
       // we want to point the transit event objects to ours because they can point to invalid memory
       // if the thread is destructed
-      ste.transit_event.thread_name = ste.thread_name;
-      ste.transit_event.thread_id = ste.thread_id;
+      ste.transit_event.data->thread_name = ste.thread_name;
+      ste.transit_event.data->thread_id = ste.thread_id;
 
       // Update the index wrapping around the vector capacity
       if (_index < _capacity - 1)
