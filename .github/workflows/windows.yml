@@ -17,13 +17,13 @@ on:
       - 'docs/**'
 
 jobs:
-  build:
+  msvc:
     # windows-2016 and windows-2019 have MSVC 2017 and 2019 installed
     # respectively: https://github.com/actions/virtual-environments.
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ windows-2019, windows-2022 ]
+        os: [ windows-2022 ]
         platform: [ x64 ]
         build_type: [ Debug, Release ]
         std: [ 17, 20 ]
@@ -31,7 +31,7 @@ jobs:
 
         include:
           # Builds with no exceptions
-          - os: windows-2019
+          - os: windows-2022
             platform: x64
             build_type: Release
             std: 17
@@ -39,13 +39,13 @@ jobs:
             cmake_options: -DQUILL_NO_EXCEPTIONS=ON
 
           # Builds for ARM
-          - os: windows-2019
+          - os: windows-2022
             platform: ARM64
             build_type: Release
             std: 17
             with_tests: "OFF"
 
-          - os: windows-2019
+          - os: windows-2022
             platform: ARM
             build_type: Release
             std: 17
@@ -76,3 +76,28 @@ jobs:
         run: |
           $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
           ctest --build-config ${{matrix.build_type}} --parallel $threads --output-on-failure
+
+  mingw:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      matrix:
+        sys: [mingw64, ucrt64]
+        build_type: [Release]
+        std: [17]
+        with_tests: [ OFF ]
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          release: false
+          msystem: ${{matrix.sys}}
+          pacboy: cc:p cmake:p ninja:p
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -B ../build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
+      - name: Build
+        run: cmake --build ../build --parallel $(nproc || echo 4)
+      - name: Test
+        run: ctest --test-dir ../build --parallel $(nproc || echo 4) --output-on-failure
