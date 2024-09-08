@@ -713,10 +713,7 @@ private:
 #endif
 
     // Finally clean up any remaining fields in the transit event
-    if (transit_event->data->named_args)
-    {
-      transit_event->data->named_args->clear();
-    }
+    transit_event->data->named_args.clear();
 
     // Remove this event and move to the next.
     transit_buffer->pop_front();
@@ -814,7 +811,7 @@ private:
                                   _options.log_level_short_codes.size());
 
     if (transit_event.data->logger_base->pattern_formatter->get_options().add_metadata_to_multi_line_logs &&
-        (!transit_event.data->named_args || transit_event.data->named_args->empty()))
+        transit_event.data->named_args.empty())
     {
       // This is only supported when named_args are not used
       _process_multi_line_message(transit_event, log_level_description, log_level_short_code);
@@ -874,7 +871,7 @@ private:
     std::string_view const log_statement = transit_event.data->logger_base->pattern_formatter->format(
       transit_event.timestamp, transit_event.data->thread_id, transit_event.data->thread_name, _process_id,
       transit_event.data->logger_base->logger_name, log_level_description, log_level_short_code,
-      *transit_event.data->macro_metadata, transit_event.data->named_args.get(), log_message);
+      *transit_event.data->macro_metadata, &transit_event.data->named_args, log_message);
 
     for (auto& sink : transit_event.data->logger_base->sinks)
     {
@@ -886,7 +883,7 @@ private:
         sink->write_log(transit_event.data->macro_metadata, transit_event.timestamp,
                         transit_event.data->thread_id, transit_event.data->thread_name, _process_id,
                         transit_event.data->logger_base->logger_name, transit_event.log_level(), log_level_description, log_level_short_code,
-                        transit_event.data->named_args.get(), log_message, log_statement);
+                        &transit_event.data->named_args, log_message, log_statement);
       }
     }
   }
@@ -1343,25 +1340,18 @@ private:
   void _populate_formatted_named_args(TransitEvent* transit_event,
                                       std::vector<std::pair<std::string, std::string>> const& arg_names)
   {
-    if (!transit_event->data->named_args)
-    {
-      // named arg logs, we lazy initialise the named args buffer
-      transit_event->data->named_args =
-        std::make_unique<std::vector<std::pair<std::string, std::string>>>();
-    }
-
-    transit_event->data->named_args->resize(arg_names.size());
+    transit_event->data->named_args.resize(arg_names.size());
 
     // We first populate the arg names in the transit buffer
     for (size_t i = 0; i < arg_names.size(); ++i)
     {
-      (*transit_event->data->named_args)[i].first = arg_names[i].first;
+      (transit_event->data->named_args)[i].first = arg_names[i].first;
     }
 
     // Then populate all the values of each arg
     QUILL_TRY
     {
-      _format_and_split_arguments(arg_names, *transit_event->data->named_args, _format_args_store, _options);
+      _format_and_split_arguments(arg_names, transit_event->data->named_args, _format_args_store, _options);
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const&)

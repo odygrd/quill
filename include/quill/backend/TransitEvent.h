@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/bundled/fmt/format.h"
+
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/FormatBuffer.h"
@@ -74,8 +75,8 @@ struct TransitEvent
     detail::FormatArgsDecoder format_args_decoder{nullptr};
     std::string_view thread_id;
     std::string_view thread_name;
-    fmtquill::basic_memory_buffer<char, 64> formatted_msg; /** buffer for message **/
-    std::unique_ptr<std::vector<std::pair<std::string, std::string>>> named_args; /** A unique ptr to save space as named args feature is not always used */
+    FormatBuffer formatted_msg; /** buffer for message **/
+    std::vector<std::pair<std::string, std::string>> named_args;
     LogLevel dynamic_log_level{LogLevel::None};
     std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
   };
