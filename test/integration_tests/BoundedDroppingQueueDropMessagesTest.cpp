@@ -52,7 +52,7 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
 
   CustomLogger* logger = CustomFrontend::create_or_get_logger(logger_name, std::move(file_sink));
 
-  for (int i = 0; i < number_of_messages; ++i)
+  for (size_t i = 0; i < number_of_messages; ++i)
   {
     std::string s;
     s.assign(i, 'A');
@@ -73,7 +73,7 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
   // Read file and check the first messages as we can't if some were dropped
   std::vector<std::string> const file_contents = testing::file_contents(filename);
 
-  for (int i = 0; i < 10; ++i)
+  for (size_t i = 0; i < 10; ++i)
   {
     std::string s;
     s.assign(i, 'A');
