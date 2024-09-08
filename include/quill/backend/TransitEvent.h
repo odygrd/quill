@@ -31,7 +31,11 @@ class LoggerBase;
 struct TransitEvent
 {
   /***/
-  TransitEvent() { formatted_msg.reserve(32); }
+  TransitEvent()
+  {
+    formatted_msg = std::make_unique<FormatBuffer>();
+    formatted_msg->reserve(64);
+  }
 
   /***/
   ~TransitEvent() = default;
@@ -87,7 +91,7 @@ struct TransitEvent
   detail::FormatArgsDecoder format_args_decoder{nullptr};
   std::string_view thread_id;
   std::string_view thread_name;
-  FormatBuffer formatted_msg; /** buffer for message **/
+  std::unique_ptr<FormatBuffer> formatted_msg; /** buffer for message **/
   std::unique_ptr<std::vector<std::pair<std::string, std::string>>> named_args; /** A unique ptr to save space as named args feature is not always used */
   LogLevel dynamic_log_level{LogLevel::None};
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
