@@ -142,7 +142,10 @@ public:
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
         // not enough space to push to queue message is dropped
-        thread_context->increment_failure_counter();
+        if (macro_metadata->event() == MacroMetadata::Event::Log)
+        {
+          thread_context->increment_failure_counter();
+        }
         return false;
       }
     }
@@ -151,7 +154,10 @@ public:
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
-        thread_context->increment_failure_counter();
+        if (macro_metadata->event() == MacroMetadata::Event::Log)
+        {
+          thread_context->increment_failure_counter();
+        }
 
         do
         {
@@ -205,7 +211,6 @@ public:
 
     thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(static_cast<uint32_t>(total_size));
     thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();
-    thread_context->get_conditional_arg_size_cache().clear();
 
     if constexpr (immediate_flush)
     {

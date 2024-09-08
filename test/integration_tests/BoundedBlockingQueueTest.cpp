@@ -51,6 +51,7 @@ TEST_CASE("bounded_blocking_queue")
   }
 
   logger->flush_log();
+  Frontend::remove_logger(logger);
 
   // Wait until the backend thread stops for test stability
   Backend::stop();
