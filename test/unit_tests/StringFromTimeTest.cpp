@@ -414,7 +414,7 @@ TEST_CASE("next_quarter_hour_timestamp")
 TEST_CASE("safe_strftime_resize")
 {
   // e.g. "Monday September 2020 (09/07/20) 15:37 EEST"
-  constexpr char const* format_string = "%A %B %Y (%x) %R %Z";
+  constexpr char const* format_string = "%A %B %Y (%x) %H:%M %Z";
 
   // Get the timestamp now
   time_t raw_ts;
@@ -445,14 +445,14 @@ TEST_CASE("safe_strftime_empty")
 
   char expected_result[256];
 
-#if !defined(_WIN32)
+#if !defined(__clang__) && defined(__GNUC__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wformat-zero-length"
 #endif
 
   std::strftime(expected_result, 256, "", &time_info);
-  
-#if !defined(_WIN32)
+
+#if !defined(__clang__) && defined(__GNUC__)
   #pragma GCC diagnostic pop
 #endif
 

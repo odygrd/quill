@@ -56,7 +56,7 @@ public:
       auto* new_data = new value_type[new_capacity];
 
       // suppress gcc false positives on memcpy
-#if !defined(_WIN32) && !defined(__clang__) && defined(__GNUC__)
+#if !defined(__clang__) && defined(__GNUC__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstringop-overflow"
   #pragma GCC diagnostic ignored "-Warray-bounds"
@@ -71,7 +71,7 @@ public:
         std::memcpy(new_data, _storage.heap_buffer, _capacity * sizeof(value_type));
         delete[] _storage.heap_buffer;
       }
-#if !defined(_WIN32) && !defined(__clang__) && defined(__GNUC__)
+#if !defined(__clang__) && defined(__GNUC__)
   #pragma GCC diagnostic pop
 #endif
 
