@@ -552,7 +552,7 @@ private:
         return digits;
       };
 
-      assert(count_digits(transit_event->data->timestamp) == count_digits(ts_now));
+      assert(count_digits(transit_event->timestamp) == count_digits(ts_now));
 #endif
 
       // Ensure the message timestamp is not greater than ts_now.
