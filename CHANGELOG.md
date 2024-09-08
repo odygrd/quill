@@ -83,6 +83,7 @@
 - Stabilized regression tests.
 - Suppressed false-positive `-Wstringop-overflow` warnings (e.g., with GCC 13).
 - Fixed MinGW build and added MinGW builds to GitHub Actions.
+- Minor backend thread improvements
 
 ## v7.0.0
 
