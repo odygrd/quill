@@ -87,7 +87,7 @@ jobs:
         sys: [mingw64, ucrt64]
         build_type: [Release]
         std: [17]
-        with_tests: [ OFF ]
+        with_tests: [ ON ]
     steps:
       - uses: msys2/setup-msys2@v2
         with:
@@ -99,5 +99,5 @@ jobs:
         run: cmake -B ../build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
       - name: Build
         run: cmake --build ../build --parallel $(nproc || echo 4)
-      - name: Test
-        run: ctest --test-dir ../build --parallel $(nproc || echo 4) --output-on-failure
+      # - name: Test
+      # run: ctest --test-dir ../build --parallel $(nproc || echo 4) --output-on-failure
