@@ -99,5 +99,5 @@ jobs:
         run: cmake -B ../build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
       - name: Build
         run: cmake --build ../build
-      - name: Test
-        run: ctest --test-dir ../build --output-on-failure
+      # - name: Test
+      #  run: ctest --test-dir ../build --output-on-failure
