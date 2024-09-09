@@ -22,7 +22,12 @@ TEST_CASE("json_console_logging")
   static std::string const logger_name_a = "logger_a";
 
   // Start the logging backend thread
-  Backend::start();
+  BackendOptions bo;
+
+  // Silence the error_notifier as we are capturing the stdout in the test, we do not want extra messages
+  bo.error_notifier = [](std::string const&) {};
+
+  Backend::start(bo);
 
   quill::testing::CaptureStdout();
 

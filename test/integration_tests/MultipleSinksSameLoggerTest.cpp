@@ -21,7 +21,12 @@ TEST_CASE("multiple_sinks_same_logger")
   static constexpr char const* filename = "multiple_sinks_same_logger.log";
 
   // Start the logging backend thread
-  Backend::start();
+  BackendOptions bo;
+
+  // Silence the error_notifier as we are capturing the stdout in the test, we do not want extra messages
+  bo.error_notifier = [](std::string const&) {};
+
+  Backend::start(bo);
 
   quill::testing::CaptureStdout();
 

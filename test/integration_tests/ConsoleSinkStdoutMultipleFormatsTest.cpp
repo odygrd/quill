@@ -22,7 +22,12 @@ TEST_CASE("console_sink_stdout_multiple_formats")
   static std::string const logger_name_b = "logger_b";
 
   // Start the logging backend thread
-  Backend::start();
+  BackendOptions bo;
+
+  // Silence the error_notifier as we are capturing the stdout in the test, we do not want extra messages
+  bo.error_notifier = [](std::string const&) {};
+
+  Backend::start(bo);
 
   quill::testing::CaptureStdout();
 
