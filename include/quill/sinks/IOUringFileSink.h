@@ -170,7 +170,7 @@ private:
   }
 
 private:
-  static constexpr std::size_t _num_chunks = 2;
+  static constexpr std::size_t _num_chunks = 4;
   static constexpr std::size_t _chunk_size = 32'768;
 
   alignas(64) char _buffer[_chunk_size * _num_chunks];
