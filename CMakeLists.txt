@@ -11,6 +11,8 @@ option(QUILL_NO_THREAD_NAME_SUPPORT "Enable this option to disable features that
 
 option(QUILL_X86ARCH "Enable x86-specific optimizations for cache coherence using _mm_prefetch, _mm_clflush, and _mm_clflushopt instructions. Ensure the target architecture must also be specified with -march=\"...\" when enabling this option." OFF)
 
+option(QUILL_ENABLE_IOURING "Enable io_uring sinks for the backend. Requires liburing and a recent Linux kernel (Linux-only feature)." OFF)
+
 option(QUILL_DISABLE_NON_PREFIXED_MACROS "Enable this option to disable non-prefixed `LOG_*` macros, keeping only the `QUILL_LOG_*` macros to avoid conflicts with other logging libraries." OFF)
 
 option(QUILL_BUILD_EXAMPLES "Enable this option to build and install the examples. Set this to ON to include example projects in the build process and have them installed after configuring with CMake." OFF)
@@ -210,6 +212,7 @@ set(HEADER_FILES
 
         include/quill/sinks/ConsoleSink.h
         include/quill/sinks/FileSink.h
+        include/quill/sinks/IOUringFileSink.h
         include/quill/sinks/JsonConsoleSink.h
         include/quill/sinks/JsonFileSink.h
         include/quill/sinks/NullSink.h
@@ -280,6 +283,14 @@ endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
     target_link_libraries(${TARGET_NAME} PUBLIC INTERFACE stdc++fs)
+endif ()
+
+if (QUILL_ENABLE_IOURING)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBURING REQUIRED liburing)
+
+    target_include_directories(${TARGET_NAME} INTERFACE ${LIBURING_INCLUDE_DIRS})
+    target_link_libraries(${TARGET_NAME} INTERFACE ${LIBURING_LIBRARIES})
 endif ()
 
 # Add include directories for this library
