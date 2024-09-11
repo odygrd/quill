@@ -94,9 +94,12 @@ public:
   /**
    * Access element
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
   {
-    assert((index < _size) && "index out of bounds");
+    if (QUILL_UNLIKELY(index >= _size))
+    {
+      QUILL_THROW(QuillError{"index out of bounds"});
+    }
 
     if (_capacity == N)
     {
@@ -111,9 +114,12 @@ public:
   /**
    * Assign value at index
    */
-  QUILL_ATTRIBUTE_HOT void assign(size_t index, value_type value) noexcept
+  QUILL_ATTRIBUTE_HOT void assign(size_t index, value_type value)
   {
-    assert((index < _size) && "index out of bounds");
+    if (QUILL_UNLIKELY(index >= _size))
+    {
+      QUILL_THROW(QuillError{"index out of bounds"});
+    }
 
     if (_capacity == N)
     {
