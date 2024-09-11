@@ -27,9 +27,12 @@ public:
   using value_type = T;
   static_assert(std::is_trivially_copyable_v<value_type>, "value_type must be trivially copyable");
 
-  InlinedVector() noexcept : _storage(), _size(0), _capacity(N)
+  InlinedVector() noexcept
   {
-    std::memset(_storage.inline_buffer, 0, N * sizeof(value_type));
+    for (size_t i = 0; i < _capacity; ++i)
+    {
+      _storage.inline_buffer[i] = value_type{};
+    }
   }
 
   ~InlinedVector()
@@ -78,7 +81,7 @@ public:
         }
         delete[] _storage.heap_buffer;
       }
-      
+
       _storage.heap_buffer = new_data;
       _capacity = new_capacity;
     }
@@ -146,8 +149,6 @@ private:
   {
     value_type inline_buffer[N];
     value_type* heap_buffer;
-
-    Storage() noexcept : heap_buffer(nullptr) {}
   } _storage;
 
   size_t _size{0};
