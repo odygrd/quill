@@ -14,6 +14,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
+#include "quill/core/QuillError.h"
 
 QUILL_BEGIN_NAMESPACE
 
@@ -26,7 +27,7 @@ public:
   using value_type = T;
   static_assert(std::is_trivially_copyable_v<value_type>, "value_type must be trivially copyable");
 
-  InlinedVector() noexcept : _storage(), _size(0), _capacity(N) 
+  InlinedVector() noexcept : _storage(), _size(0), _capacity(N)
   {
     std::memset(_storage.inline_buffer, 0, N * sizeof(value_type));
   }
@@ -55,25 +56,22 @@ public:
       size_t const new_capacity = _capacity * 2;
       auto* new_data = new value_type[new_capacity];
 
-      // suppress gcc false positives on memcpy
-#if !defined(__clang__) && defined(__GNUC__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wstringop-overflow"
-  #pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
+      if (QUILL_UNLIKELY(new_capacity <= _capacity))
+      {
+        QUILL_THROW(
+          QuillError{"This unreachable code is here only to suppress gcc false positive warnings"});
+      }
+
       if (_capacity == N)
       {
         // Entering here for the first time, then we copy the inline storage
-        std::memcpy(new_data, _storage.inline_buffer, N * sizeof(value_type));
+        std::memcpy(new_data, _storage.inline_buffer, _capacity * sizeof(value_type));
       }
       else
       {
         std::memcpy(new_data, _storage.heap_buffer, _capacity * sizeof(value_type));
         delete[] _storage.heap_buffer;
       }
-#if !defined(__clang__) && defined(__GNUC__)
-  #pragma GCC diagnostic pop
-#endif
 
       _storage.heap_buffer = new_data;
       _capacity = new_capacity;
@@ -81,7 +79,7 @@ public:
 
     if (_capacity == N)
     {
-      std::memcpy(_storage.inline_buffer + (_size * sizeof(value_type)), &value, sizeof(value_type));
+      _storage.inline_buffer[_size] = value;
     }
     else
     {
@@ -89,7 +87,7 @@ public:
     }
 
     ++_size;
-    
+
     return value;
   }
 
@@ -102,12 +100,12 @@ public:
 
     if (_capacity == N)
     {
-      value_type value;
-      std::memcpy(&value, _storage.inline_buffer + (index * sizeof(value_type)), sizeof(value_type));
-      return value;
+      return _storage.inline_buffer[index];
     }
-
-    return _storage.heap_buffer[index];
+    else
+    {
+      return _storage.heap_buffer[index];
+    }
   }
 
   /**
@@ -119,7 +117,7 @@ public:
 
     if (_capacity == N)
     {
-      std::memcpy(_storage.inline_buffer + (index * sizeof(value_type)), &value, sizeof(value_type));
+      _storage.inline_buffer[index] = value;
     }
     else
     {
@@ -134,7 +132,7 @@ public:
 private:
   union Storage
   {
-    uint8_t inline_buffer[N * sizeof(value_type)];
+    value_type inline_buffer[N];
     value_type* heap_buffer;
 
     Storage() noexcept : heap_buffer(nullptr) {}
