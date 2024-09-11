@@ -17,6 +17,7 @@
 #include <cassert>
 #include <cerrno>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <utility>
@@ -28,43 +29,55 @@ QUILL_BEGIN_NAMESPACE
  * On Rhel9
  *   sudo dnf install liburing liburing-devel
  *   sudo sysctl kernel.io_uring_disabled=0
+ *   sudo bash -c "ulimit -l unlimited && su - $USER"
  */
-class IOUringFileSink : public FileSink
+template <size_t CHUNK_SIZE, size_t NUM_CHUNKS>
+class IOUringFileSinkImpl : public FileSink
 {
 public:
-  explicit IOUringFileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
-                           FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
-                           std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
+  explicit IOUringFileSinkImpl(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
+                               FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
+                               std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
     : FileSink(filename, config, std::move(file_event_notifier), do_fopen, start_time)
   {
     _fd = fileno(_file);
     std::fill(_pending_writes_per_chunk.begin(), _pending_writes_per_chunk.end(), false);
 
-    if (::io_uring_queue_init(_num_chunks, &_ring, 0u) != 0)
+    if (::posix_memalign((void**)&_buffer, 4096, CHUNK_SIZE * NUM_CHUNKS) != 0)
+    {
+      QUILL_THROW(QuillError{std::string{"posix_memalign failed. error: "} + strerror(errno)});
+    }
+
+    if (::io_uring_queue_init(NUM_CHUNKS, &_ring, 0u) != 0)
     {
       QUILL_THROW(QuillError{std::string{"Failed to initialize io_uring. error: "} + strerror(-errno)});
     }
 
     // Register fixed-size buffer chunks with io_uring
     std::vector<iovec> iovecs;
-    iovecs.resize(_num_chunks);
+    iovecs.resize(NUM_CHUNKS);
 
-    for (std::size_t i = 0; i < _num_chunks; ++i)
+    for (std::size_t i = 0; i < iovecs.size(); ++i)
     {
-      iovecs[i].iov_base = _buffer + i * _chunk_size;
-      iovecs[i].iov_len = _chunk_size;
+      iovecs[i].iov_base = _buffer + i * CHUNK_SIZE;
+      iovecs[i].iov_len = CHUNK_SIZE;
     }
 
-    if (::io_uring_register_buffers(&_ring, iovecs.data(), _num_chunks) != 0)
+    if (::io_uring_register_buffers(&_ring, iovecs.data(), iovecs.size()) != 0)
     {
-      QUILL_THROW(QuillError{std::string{"Failed to register buffers. error: "} + strerror(-errno)});
+      QUILL_THROW(QuillError{std::string{"Failed to register buffers. error: "} + strerror(errno)});
     }
   }
 
   /**
    * Destructor
    */
-  ~IOUringFileSink() override { ::io_uring_queue_exit(&_ring); }
+  ~IOUringFileSinkImpl() override
+  {
+    _wait_for_all_completions();
+    ::io_uring_queue_exit(&_ring);
+    free(_buffer);
+  }
 
   /**
    * @brief Writes a formatted log message to the stream
@@ -75,16 +88,22 @@ public:
                  std::string_view log_statement) override
   {
     // If the current log statement does not fit into the remaining buffer then use the other
-    if (_buffer_pos + log_statement.size() > _chunk_size)
+    if (log_statement.size() > CHUNK_SIZE)
+    {
+      // TODO:: Handle large logs
+      return;
+    }
+
+    if ((_buffer_pos + log_statement.size()) > CHUNK_SIZE)
     {
       _submit_and_advance_buffer();
 
-      // Wait for this buffer completion if it has pending writes
+      // Wait for the buffer completion if it has pending writes
       _wait_for_completion(_current_buffer);
     }
 
     // Copy log statement into the buffer
-    std::memcpy(_buffer + (_current_buffer * _chunk_size) + _buffer_pos, log_statement.data(),
+    std::memcpy(_buffer + (_current_buffer * CHUNK_SIZE) + _buffer_pos, log_statement.data(),
                 log_statement.size());
     _buffer_pos += log_statement.size();
   }
@@ -112,7 +131,7 @@ private:
     _pending_writes_per_chunk[_current_buffer] = true;
 
     // Switch to the next buffer
-    _current_buffer = (_current_buffer + 1u) % _num_chunks;
+    _current_buffer = (_current_buffer + 1u) % NUM_CHUNKS;
 
     _buffer_pos = 0;
   }
@@ -126,17 +145,14 @@ private:
       QUILL_THROW(QuillError("Failed to get SQE, SQ ring is full"));
     }
 
-    ::io_uring_prep_write_fixed(sqe, _fd, _buffer + buffer_id * _chunk_size, length, _file_offset, buffer_id);
-
+    ::io_uring_prep_write_fixed(sqe, _fd, _buffer + buffer_id * CHUNK_SIZE, length, -1, buffer_id);
     ::io_uring_sqe_set_data64(sqe, _current_buffer);
-    _file_offset += length;
-
     ::io_uring_submit(&_ring);
   }
 
   void _wait_for_all_completions()
   {
-    for (size_t i = 0; i < _num_chunks; ++i)
+    for (size_t i = 0; i < NUM_CHUNKS; ++i)
     {
       _wait_for_completion(i);
     }
@@ -155,31 +171,27 @@ private:
         QUILL_THROW(QuillError{std::string("io_uring_wait_cqe failed: ") + std::strerror(-ret)});
       }
 
+      auto const completed_buffer = static_cast<uint8_t>(io_uring_cqe_get_data64(cqe));
+      _pending_writes_per_chunk[completed_buffer] = false;
+      ::io_uring_cqe_seen(&_ring, cqe);
+
       // Check ceq event result
       if (QUILL_UNLIKELY(cqe->res < 0))
       {
         QUILL_THROW(QuillError{std::string("Write failed: ") + std::strerror(-cqe->res)});
       }
-
-      auto const completed_buffer = static_cast<uint8_t>(io_uring_cqe_get_data64(cqe));
-
-      _pending_writes_per_chunk[completed_buffer] = false;
-
-      ::io_uring_cqe_seen(&_ring, cqe);
     }
   }
 
 private:
-  static constexpr std::size_t _num_chunks = 4;
-  static constexpr std::size_t _chunk_size = 32'768;
-
-  alignas(64) char _buffer[_chunk_size * _num_chunks];
+  char* _buffer;
   ::io_uring _ring;
   std::size_t _buffer_pos{0};
-  std::size_t _file_offset{0};
   int _fd{0};
   uint8_t _current_buffer{0};
-  std::array<bool, _num_chunks> _pending_writes_per_chunk{};
+  std::array<bool, NUM_CHUNKS> _pending_writes_per_chunk{};
 };
+
+using IOUringFileSink = IOUringFileSinkImpl<32'768, 32>;
 
 QUILL_END_NAMESPACE
