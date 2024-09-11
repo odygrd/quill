@@ -65,14 +65,20 @@ public:
       if (_capacity == N)
       {
         // Entering here for the first time, then we copy the inline storage
-        std::memcpy(new_data, _storage.inline_buffer, _capacity * sizeof(value_type));
+        for (size_t i = 0; i < _size; ++i)
+        {
+          new_data[i] = _storage.inline_buffer[i];
+        }
       }
       else
       {
-        std::memcpy(new_data, _storage.heap_buffer, _capacity * sizeof(value_type));
+        for (size_t i = 0; i < _size; ++i)
+        {
+          new_data[i] = _storage.heap_buffer[i];
+        }
         delete[] _storage.heap_buffer;
       }
-
+      
       _storage.heap_buffer = new_data;
       _capacity = new_capacity;
     }
