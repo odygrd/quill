@@ -69,7 +69,7 @@ quill::Logger* create_logger()
     []()
     {
       quill::RotatingFileSinkConfig cfg;
-      cfg.set_do_fsync(true);
+      cfg.set_fsync_enabled(true);
       cfg.set_open_mode('w');
       cfg.set_filename_append_option(quill::FilenameAppendOption::StartDateTime);
       cfg.set_rotation_time_daily("00:00");

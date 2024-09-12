@@ -51,7 +51,7 @@ TEST_CASE("signal_handler")
           {
             FileSinkConfig cfg;
             cfg.set_open_mode('w');
-            cfg.set_do_fsync(true);
+            cfg.set_fsync_enabled(true);
             return cfg;
           }(),
           FileEventNotifier{});
