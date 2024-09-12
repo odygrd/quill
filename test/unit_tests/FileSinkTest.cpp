@@ -12,6 +12,20 @@ using namespace quill;
 using namespace quill::detail;
 
 /***/
+TEST_CASE("set_write_buffer_size")
+{
+  FileSinkConfig fsc;
+  fsc.set_write_buffer_size(8 * 1024);
+  REQUIRE_EQ(fsc.write_buffer_size(), 8 * 1024);
+
+  fsc.set_write_buffer_size(128);
+  REQUIRE_EQ(fsc.write_buffer_size(), 4 * 1024);
+
+  fsc.set_write_buffer_size(0);
+  REQUIRE_EQ(fsc.write_buffer_size(), 0);
+}
+
+/***/
 TEST_CASE("append_date_to_file")
 {
   uint64_t const timestamp_20230612 = 1686528000000000000;
