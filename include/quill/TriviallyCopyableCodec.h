@@ -8,6 +8,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/DynamicFormatArgStore.h"
+#include "quill/core/InlinedVector.h"
 
 #include <cstring>
 #include <type_traits>
