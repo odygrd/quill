@@ -31,6 +31,10 @@ TEST_CASE("single_frontend_thread")
     {
       FileSinkConfig cfg;
       cfg.set_open_mode('w');
+
+      // For this test only we use the default buffer size, it should not make any difference it is just for testing the default behaviour and code coverage
+      cfg.set_write_buffer_size(0);
+
       return cfg;
     }(),
     FileEventNotifier{});

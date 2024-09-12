@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -106,6 +107,22 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void set_open_mode(char open_mode) { _open_mode = open_mode; }
 
+  /**
+   * @brief Sets the user-defined buffer size for fwrite operations.
+   *
+   * This function allows you to specify a custom buffer size for fwrite, improving efficiency
+   * for file write operations.
+   *
+   * To disable custom buffering and revert to the default size, pass a value of 0.
+   *
+   * @note By default, a buffer size of 64 KB is used.
+   * @param value Size of the buffer in bytes. If set to 0, the default buffer size will be used.
+   */
+  QUILL_ATTRIBUTE_COLD void set_write_buffer_size(size_t value)
+  {
+    _write_buffer_size = (value == 0) ? 0 : ((value < 4096) ? 4096 : value);
+  }
+
   /** Getters **/
   QUILL_NODISCARD bool fsync_enabled() const noexcept { return _fsync_enabled; }
   QUILL_NODISCARD Timezone timezone() const noexcept { return _time_zone; }
@@ -114,9 +131,11 @@ public:
     return _filename_append_option;
   }
   QUILL_NODISCARD std::string const& open_mode() const noexcept { return _open_mode; }
+  QUILL_NODISCARD size_t write_buffer_size() const noexcept { return _write_buffer_size; }
 
 private:
   std::string _open_mode{'w'};
+  size_t _write_buffer_size{64 * 1024}; // Default size 64k
   Timezone _time_zone{Timezone::LocalTime};
   FilenameAppendOption _filename_append_option{FilenameAppendOption::None};
   bool _fsync_enabled{false};
@@ -275,7 +294,15 @@ protected:
                              " errno: " + std::to_string(errno) + " error: " + strerror(errno)});
     }
 
-    assert(_file && "open_file always returns a valid pointer or throws");
+    if (_config.write_buffer_size() != 0)
+    {
+      _write_buffer = std::make_unique<char[]>(_config.write_buffer_size());
+
+      if (setvbuf(_file, _write_buffer.get(), _IOFBF, _config.write_buffer_size()) != 0)
+      {
+        QUILL_THROW(QuillError{std::string{"setvbuf failed error: "} + strerror(errno)});
+      }
+    }
 
     if (_file_event_notifier.after_open)
     {
@@ -353,6 +380,7 @@ private:
 
 private:
   FileSinkConfig _config;
+  std::unique_ptr<char[]> _write_buffer;
 };
 
 QUILL_END_NAMESPACE

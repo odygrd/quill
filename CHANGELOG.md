@@ -1,3 +1,4 @@
+- [v7.2.0](#v720)
 - [v7.1.0](#v710)
 - [v7.0.0](#v700)
 - [v6.1.2](#v612)
@@ -73,6 +74,14 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v7.2.0
+
+- Improved suppression of GCC false positive warnings and made minor enhancements to the `InlinedVector` class.
+- Added a missing header include in `TriviallyCopyableCodec.h`. ([#560](https://github.com/odygrd/quill/issues/560))
+- Introduced support for custom buffer sizes in file streams for `FileSink` and `RotatingFileSink`. The buffer size can
+  now be set using `write_buffer_size` in `FileSinkConfig`, with a default of 64 KB. With the new default value the
+  backend thread has increased throughtput around 5%
 
 ## v7.1.0
 
