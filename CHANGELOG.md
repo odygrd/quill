@@ -82,10 +82,13 @@
 - Introduced support for custom buffer sizes in file streams for `FileSink` and `RotatingFileSink`. The buffer size can
   now be set using `write_buffer_size` in `FileSinkConfig`, with a default of 64 KB. With the new default value the
   backend thread has increased throughtput around 5%
+- Enhanced the queue allocation notification message for better readability. It now shows capacities in KiB, e.g.,
+  `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
 
 ## v7.1.0
 
-- Fixed crash when using `QueueType::BoundedDropping` or `QueueType::UnboundedDropping` after a message drops. ([#553](https://github.com/odygrd/quill/issues/553))
+- Fixed crash when using `QueueType::BoundedDropping` or `QueueType::UnboundedDropping` after a message
+  drops. ([#553](https://github.com/odygrd/quill/issues/553))
 - Improved performance of `ForwardList` decoding.
 - Corrected reported dropped message count; previously, log flush attempts were incorrectly included.
 - Removed leftover files after running some unit tests.
