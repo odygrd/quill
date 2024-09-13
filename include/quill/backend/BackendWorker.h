@@ -1032,10 +1032,10 @@ private:
 
         // we switched to a new here, and we also notify the user of the allocation via the
         // error_notifier
-        _options.error_notifier(fmtquill::format(
-          "{} Quill INFO: A new SPSC queue has been allocated with a new capacity of {} bytes and "
-          "a previous capacity of {} bytes from thread {}",
-          ts, read_result.new_capacity, read_result.previous_capacity, thread_context->thread_id()));
+        _options.error_notifier(fmtquill::format("{} Quill INFO: Allocated a new SPSC queue with a capacity of {} KiB "
+                           "(previously {} KiB) from thread {}",
+                           ts, (read_result.new_capacity / 1024),
+                           (read_result.previous_capacity / 1024), thread_context->thread_id()));
       }
     }
 

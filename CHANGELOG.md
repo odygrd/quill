@@ -1,3 +1,4 @@
+- [v7.2.0](#v720)
 - [v7.1.0](#v710)
 - [v7.0.0](#v700)
 - [v6.1.2](#v612)
@@ -74,9 +75,23 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+## v7.2.0
+
+- Improved suppression of GCC false positive warnings and made minor enhancements to the `InlinedVector` class.
+- Added a missing header include in `TriviallyCopyableCodec.h`. ([#560](https://github.com/odygrd/quill/issues/560))
+- Introduced support for custom buffer sizes in file streams for `FileSink` and `RotatingFileSink`. The buffer size can
+  now be set using `write_buffer_size` in `FileSinkConfig`, with a default of 64 KB. With the new default value the
+  backend thread has increased throughtput around 5%
+- Added an optional fsync interval to control the minimum time between consecutive fsync calls, reducing disk wear from
+  frequent fsync operations. This option is only applicable when fsync is
+  enabled. ([#557](https://github.com/odygrd/quill/issues/557))
+- Enhanced the queue allocation notification message for better readability. It now shows capacities in KiB, e.g.,
+  `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
+
 ## v7.1.0
 
-- Fixed crash when using `QueueType::BoundedDropping` or `QueueType::UnboundedDropping` after a message drops. ([#553](https://github.com/odygrd/quill/issues/553))
+- Fixed crash when using `QueueType::BoundedDropping` or `QueueType::UnboundedDropping` after a message
+  drops. ([#553](https://github.com/odygrd/quill/issues/553))
 - Improved performance of `ForwardList` decoding.
 - Corrected reported dropped message count; previously, log flush attempts were incorrectly included.
 - Removed leftover files after running some unit tests.
