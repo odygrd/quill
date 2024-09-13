@@ -214,8 +214,8 @@ struct BackendOptions
    * Provides short codes representing each log level for compact identification and usage.
    * The indices correspond to LogLevel enum values defined elsewhere in the codebase.
    */
-  std::array<std::string, 11> log_level_short_codes = {"T3", "T2", "T1", "D", "I", "W",
-                                                       "E",  "C",  "BT", "N", "DN"};
+  std::array<std::string, 12> log_level_short_codes = {"T3", "T2", "T1", "D",  "I", "N",
+                                                       "W",  "E",  "C",  "BT", "_", "DN"};
 };
 
 QUILL_END_NAMESPACE
