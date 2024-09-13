@@ -49,7 +49,7 @@ TEST_CASE("log_flush_with_soft_limit_test")
           {
             FileSinkConfig cfg;
             cfg.set_open_mode('w');
-            cfg.set_do_fsync(true);
+            cfg.set_fsync_enabled(true);
             return cfg;
           }(),
           FileEventNotifier{});

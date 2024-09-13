@@ -12,7 +12,7 @@ using namespace quill;
 using namespace quill::detail;
 
 /***/
-TEST_CASE("set_write_buffer_size")
+TEST_CASE("file_sink_config")
 {
   FileSinkConfig fsc;
   fsc.set_write_buffer_size(8 * 1024);
@@ -23,6 +23,31 @@ TEST_CASE("set_write_buffer_size")
 
   fsc.set_write_buffer_size(0);
   REQUIRE_EQ(fsc.write_buffer_size(), 0);
+
+  REQUIRE_EQ(fsc.minimum_fsync_interval().count(), 0);
+}
+
+/***/
+TEST_CASE("fsync_interval_should_throw_when_fsync_disabled")
+{
+  fs::path const filename = "fsync_interval_should_throw_when_fsync_disabled.log";
+
+  FileSinkConfig fsc;
+  fsc.set_filename_append_option(FilenameAppendOption::StartDate);
+  fsc.set_timezone(Timezone::GmtTime);
+  fsc.set_minimum_fsync_interval(std::chrono::seconds{10});
+  fsc.set_fsync_enabled(false);
+
+  REQUIRE_THROWS(FileSink{filename, fsc});
+  REQUIRE_FALSE(fs::exists(filename));
+
+  {
+    // now enable fsync
+    fsc.set_fsync_enabled(true);
+    FileSink file_sink{filename, fsc};
+  }
+
+  testing::remove_file(filename);
 }
 
 /***/

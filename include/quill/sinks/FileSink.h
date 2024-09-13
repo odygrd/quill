@@ -98,6 +98,11 @@ public:
    * The default value is false.
    * @param value True to perform fsync, false otherwise.
    */
+  QUILL_ATTRIBUTE_COLD void set_fsync_enabled(bool value) { _fsync_enabled = value; }
+
+  [[deprecated(
+    "This function is deprecated and will be removed in the next version. Use set_fsync_enabled() "
+    "instead.")]]
   QUILL_ATTRIBUTE_COLD void set_do_fsync(bool value) { _fsync_enabled = value; }
 
   /**
@@ -123,6 +128,30 @@ public:
     _write_buffer_size = (value == 0) ? 0 : ((value < 4096) ? 4096 : value);
   }
 
+  /**
+   * Sets the minimum interval between `fsync` calls. This specifies the minimum time between
+   * consecutive `fsync` operations but does not guarantee that `fsync` will be called exactly
+   * at that interval.
+   *
+   * For example, if some messages are flushed to the log and `fsync` is skipped because it
+   * was previously called, and no further messages are written to the file, `fsync` will not
+   * be called even if the minimum interval has passed. This is because the previous call was
+   * skipped due to the interval, and no new messages necessitate another `fsync` call.
+   *
+   * This feature is intended to mitigate concerns about frequent `fsync` calls potentially causing
+   * disk wear.
+   *
+   * Note: This option is only applicable when `fsync` is enabled. By default, the value is 0,
+   * which means that `fsync` will be called periodically by the backend worker thread when
+   * messages are written to the file, irrespective of the interval.
+   *
+   * @param value The minimum interval, in milliseconds, between `fsync` calls.
+   */
+  QUILL_ATTRIBUTE_COLD void set_minimum_fsync_interval(std::chrono::milliseconds value)
+  {
+    _minimum_fsync_interval = value;
+  }
+
   /** Getters **/
   QUILL_NODISCARD bool fsync_enabled() const noexcept { return _fsync_enabled; }
   QUILL_NODISCARD Timezone timezone() const noexcept { return _time_zone; }
@@ -132,10 +161,15 @@ public:
   }
   QUILL_NODISCARD std::string const& open_mode() const noexcept { return _open_mode; }
   QUILL_NODISCARD size_t write_buffer_size() const noexcept { return _write_buffer_size; }
+  QUILL_NODISCARD std::chrono::milliseconds minimum_fsync_interval() const noexcept
+  {
+    return _minimum_fsync_interval;
+  }
 
 private:
   std::string _open_mode{'w'};
   size_t _write_buffer_size{64 * 1024}; // Default size 64k
+  std::chrono::milliseconds _minimum_fsync_interval{0};
   Timezone _time_zone{Timezone::LocalTime};
   FilenameAppendOption _filename_append_option{FilenameAppendOption::None};
   bool _fsync_enabled{false};
@@ -164,6 +198,12 @@ public:
                  nullptr, std::move(file_event_notifier)),
       _config(config)
   {
+    if (!_config.fsync_enabled() && (_config.minimum_fsync_interval().count() != 0))
+    {
+      QUILL_THROW(
+        QuillError{"Cannot set a non-zero minimum fsync interval when fsync is disabled."});
+    }
+
     if (do_fopen)
     {
       open_file(_filename, _config.open_mode());
@@ -337,14 +377,22 @@ protected:
   /**
    * Fsync the file descriptor.
    * @param fd File descriptor.
-   * @return True if successful, false otherwise.
    */
-  static bool fsync_file(FILE* fd) noexcept
+  void fsync_file(FILE* fd) noexcept
   {
+    auto const now = std::chrono::steady_clock::now();
+
+    if ((now - _last_fsync_timestamp) < _config.minimum_fsync_interval())
+    {
+      return;
+    }
+
+    _last_fsync_timestamp = now;
+
 #ifdef _WIN32
-    return FlushFileBuffers(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(fd)))) != 0;
+    FlushFileBuffers(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(fd))));
 #else
-    return ::fsync(fileno(fd)) == 0;
+    ::fsync(fileno(fd));
 #endif
   }
 
@@ -380,6 +428,7 @@ private:
 
 private:
   FileSinkConfig _config;
+  std::chrono::steady_clock::time_point _last_fsync_timestamp{};
   std::unique_ptr<char[]> _write_buffer;
 };
 
