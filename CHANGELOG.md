@@ -87,6 +87,9 @@
   enabled. ([#557](https://github.com/odygrd/quill/issues/557))
 - Enhanced the queue allocation notification message for better readability. It now shows capacities in KiB, e.g.,
   `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
+- Fixed incorrect log level short codes introduced in v7 after adding NOTICE. Using `%(log_level_short_code)` in the
+  formatter could incorrectly map `LOG_ERROR` to `"C"` and LOG_WARNING
+  to `"E"`. ([#564](https://github.com/odygrd/quill/issues/564))
 
 ## v7.1.0
 
