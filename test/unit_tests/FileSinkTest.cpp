@@ -28,6 +28,29 @@ TEST_CASE("file_sink_config")
 }
 
 /***/
+TEST_CASE("fsync_interval_should_throw_when_fsync_disabled")
+{
+  fs::path const filename = "fsync_interval_should_throw_when_fsync_disabled.log";
+
+  FileSinkConfig fsc;
+  fsc.set_filename_append_option(FilenameAppendOption::StartDate);
+  fsc.set_timezone(Timezone::GmtTime);
+  fsc.set_minimum_fsync_interval(std::chrono::seconds{10});
+  fsc.set_fsync_enabled(false);
+
+  REQUIRE_THROWS(FileSink{filename, fsc});
+  REQUIRE_FALSE(fs::exists(filename));
+
+  {
+    // now enable fsync
+    fsc.set_fsync_enabled(true);
+    FileSink file_sink{filename, fsc};
+  }
+
+  testing::remove_file(filename);
+}
+
+/***/
 TEST_CASE("append_date_to_file")
 {
   uint64_t const timestamp_20230612 = 1686528000000000000;
