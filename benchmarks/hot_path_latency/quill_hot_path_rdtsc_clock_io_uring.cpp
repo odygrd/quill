@@ -3,7 +3,7 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
-#include "quill/sinks/FileSink.h"
+#include "quill/sinks/IOUringFileSink.h"
 
 struct FrontendOptions
 {
@@ -39,7 +39,7 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
   // Create a file sink to write to a file
-  std::shared_ptr<quill::Sink> file_sink = Frontend::create_or_get_sink<quill::FileSink>(
+  std::shared_ptr<quill::Sink> file_sink = Frontend::create_or_get_sink<quill::IOUringFileSink>(
     "quill_hot_path_rdtsc_clock.log",
     []()
     {
@@ -53,8 +53,7 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
     "bench_logger", std::move(file_sink),
     quill::PatternFormatterOptions{
       "%(time) [%(thread_id)] %(short_source_location) %(log_level) %(message)", "%H:%M:%S.%Qns",
-      quill::Timezone::LocalTime, false},
-    quill::ClockSourceType::System);
+      quill::Timezone::LocalTime, false});
 
   /** LOGGING THREAD FUNCTIONS - on_start, on_exit, log_func must be implemented **/
   /** those run on a several thread(s). It can be one or multiple threads based on THREAD_LIST_COUNT config */

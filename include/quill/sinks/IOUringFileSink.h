@@ -192,6 +192,6 @@ private:
   std::array<bool, NUM_CHUNKS> _pending_writes_per_chunk{};
 };
 
-using IOUringFileSink = IOUringFileSinkImpl<32'768, 32>;
+using IOUringFileSink = IOUringFileSinkImpl<32 * 1024, 32>;
 
 QUILL_END_NAMESPACE

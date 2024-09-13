@@ -1,8 +1,3 @@
-/**
- * Adding a benchmark for a another logger should be straight forward by duplicating and modifying
- * this file.
- */
-
 #include "hot_path_bench.h"
 
 #include "quill/Backend.h"
