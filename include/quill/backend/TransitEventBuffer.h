@@ -102,11 +102,6 @@ public:
   }
 
 private:
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t _get_index(size_t pos) const noexcept
-  {
-    return pos & (_capacity - 1);
-  }
-
   void _expand()
   {
     size_t const new_capacity = _capacity * 2;
