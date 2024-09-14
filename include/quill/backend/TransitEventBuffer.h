@@ -30,7 +30,7 @@ public:
   {
     for (size_t i = 0; i < _capacity; ++i)
     {
-      _storage.get()[i].reserve_formatted_msg(32);
+      _storage.get()[i].reserve_formatted_msg();
     }
   }
 
@@ -125,7 +125,7 @@ private:
     // This mirrors the pre-allocation done in the constructor
     for (size_t i = current_size; i < new_capacity; ++i)
     {
-      new_storage.get()[i].reserve_formatted_msg(32);
+      new_storage.get()[i].reserve_formatted_msg();
     }
 
     _storage = std::move(new_storage);

@@ -82,7 +82,7 @@ struct TransitEvent
   }
 
   /***/
-  void reserve_formatted_msg(size_t capacity) { formatted_msg.reserve(capacity); }
+  void reserve_formatted_msg(size_t capacity = 64u) { formatted_msg.reserve(capacity); }
 
   uint64_t timestamp{0};
   MacroMetadata const* macro_metadata{nullptr};
