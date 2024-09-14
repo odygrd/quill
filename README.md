@@ -336,6 +336,30 @@ approximately 30 seconds to compile.
 
 ![quill_v5_1_compiler_bench.speedscope.png](docs%2Fquill_v5_1_compiler_bench.speedscope.png)
 
+### Verdict
+
+Quill excels in hot path latency benchmarks and supports high throughput, offering a rich set of features that outshines
+other logging libraries.
+
+The human-readable log files facilitate easier debugging and analysis. While initially larger, they compress
+efficiently, with the size difference between human-readable and binary logs becoming minimal once zipped.
+
+For example, for the same amount of messages:
+
+```
+ms_binlog_backend_total_time.blog (binary log): 177 MB
+ms_binlog_backend_total_time.zip (zipped binary log): 35 MB
+```
+
+```
+quill_backend_total_time.log (human-readable log): 448 MB
+quill_backend_total_time.zip (zipped human-readable log): 47 MB
+```
+
+If Quill were not available, MS BinLog would be a strong alternative. It delivers impressive latency on the hot path and
+generates smaller binary log files. However, the binary logs necessitate offline processing with additional tools, which
+can be less convenient.
+
 ## 🧩 Usage
 
 ```c++
