@@ -241,7 +241,6 @@ private:
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
-    // Phase 1:
     // Read all frontend queues and cache the log statements and the metadata as TransitEvents
     size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
 
@@ -350,7 +349,7 @@ private:
         break;
       }
 
-      size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
+      uint64_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
       if (cached_transit_events_count > 0)
       {
         while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
@@ -406,8 +405,8 @@ private:
    * @return size of the transit_event_buffer
    */
   template <typename TFrontendQueue>
-  QUILL_ATTRIBUTE_HOT uint32_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
-                                                               ThreadContext* thread_context, uint64_t ts_now)
+  QUILL_ATTRIBUTE_HOT size_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
+                                                             ThreadContext* thread_context, uint64_t ts_now)
   {
     // Note: The producer commits only complete messages to the queue.
     // Therefore, if even a single byte is present in the queue, it signifies a full message.
@@ -676,7 +675,7 @@ private:
   {
     // Get the lowest timestamp
     uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
-    UnboundedTransitEventBuffer* transit_buffer{nullptr};
+    TransitEventBuffer* transit_buffer{nullptr};
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
@@ -693,7 +692,6 @@ private:
     if (!transit_buffer)
     {
       // all buffers are empty
-      // return false, meaning we processed a message
       return false;
     }
 
@@ -1160,7 +1158,7 @@ private:
           {
             // Lazy initialise the _transit_event_buffer for this thread_context
             thread_context->_transit_event_buffer =
-              std::make_shared<UnboundedTransitEventBuffer>(_options.transit_event_buffer_initial_capacity);
+              std::make_shared<TransitEventBuffer>(_options.transit_event_buffer_initial_capacity);
           }
 
           // We do not skip invalidated && empty queue thread contexts as this is very rare,
