@@ -20,17 +20,52 @@ QUILL_BEGIN_NAMESPACE
 namespace detail
 {
 
-class UnboundedTransitEventBuffer
+class TransitEventBuffer
 {
 public:
-  explicit UnboundedTransitEventBuffer(uint64_t initial_capacity)
+  explicit TransitEventBuffer(uint64_t initial_capacity)
+    : _capacity(next_power_of_two(initial_capacity)),
+      _storage(std::make_unique<TransitEvent[]>(_capacity)),
+      _mask(_capacity - 1u)
+
   {
-    _storage.resize(next_power_of_two(initial_capacity));
-    _mask = capacity() - 1u;
   }
 
-  UnboundedTransitEventBuffer(UnboundedTransitEventBuffer const&) = delete;
-  UnboundedTransitEventBuffer& operator=(UnboundedTransitEventBuffer const&) = delete;
+  TransitEventBuffer(TransitEventBuffer const&) = delete;
+  TransitEventBuffer& operator=(TransitEventBuffer const&) = delete;
+
+  // Move constructor
+  TransitEventBuffer(TransitEventBuffer&& other) noexcept
+    : _capacity(other._capacity),
+      _storage(std::move(other._storage)),
+      _mask(other._mask),
+      _reader_pos(other._reader_pos),
+      _writer_pos(other._writer_pos)
+  {
+    other._capacity = 0;
+    other._mask = 0;
+    other._reader_pos = 0;
+    other._writer_pos = 0;
+  }
+
+  // Move assignment operator
+  TransitEventBuffer& operator=(TransitEventBuffer&& other) noexcept
+  {
+    if (this != &other)
+    {
+      _capacity = other._capacity;
+      _storage = std::move(other._storage);
+      _mask = other._mask;
+      _reader_pos = other._reader_pos;
+      _writer_pos = other._writer_pos;
+
+      other._capacity = 0;
+      other._mask = 0;
+      other._reader_pos = 0;
+      other._writer_pos = 0;
+    }
+    return *this;
+  }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* front() noexcept
   {
@@ -45,7 +80,7 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* back() noexcept
   {
-    if (capacity() - size() == 0)
+    if (_capacity - size() == 0)
     {
       // Buffer is full, need to expand
       _expand();
@@ -60,7 +95,7 @@ public:
     return _writer_pos - _reader_pos;
   }
 
-  QUILL_NODISCARD uint64_t capacity() const noexcept { return _storage.capacity(); }
+  QUILL_NODISCARD uint64_t capacity() const noexcept { return _capacity; }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool empty() const noexcept
   {
@@ -68,12 +103,16 @@ public:
   }
 
 private:
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t _get_index(uint64_t pos) const noexcept
+  {
+    return pos & (_capacity - 1);
+  }
+
   void _expand()
   {
-    uint64_t const new_capacity = capacity() * 2;
+    uint64_t const new_capacity = _capacity * 2;
 
-    std::vector<TransitEvent> new_storage;
-    new_storage.resize(new_capacity);
+    auto new_storage = std::make_unique<TransitEvent[]>(new_capacity);
 
     // Copy existing elements to the new storage
     uint64_t const current_size = size();
@@ -83,12 +122,14 @@ private:
     }
 
     _storage = std::move(new_storage);
-    _mask = capacity() - 1;
+    _capacity = new_capacity;
+    _mask = _capacity - 1;
     _writer_pos = current_size;
     _reader_pos = 0;
   }
 
-  std::vector<TransitEvent> _storage;
+  uint64_t _capacity;
+  std::unique_ptr<TransitEvent[]> _storage;
   uint64_t _mask;
   uint64_t _reader_pos{0};
   uint64_t _writer_pos{0};

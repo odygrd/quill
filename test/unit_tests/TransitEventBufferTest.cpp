@@ -11,7 +11,7 @@ using namespace quill::detail;
 /***/
 TEST_CASE("transit_event_unbounded_buffer")
 {
-  UnboundedTransitEventBuffer bte{4};
+  TransitEventBuffer bte{4};
 
   REQUIRE_FALSE(bte.front());
   REQUIRE(bte.empty());
