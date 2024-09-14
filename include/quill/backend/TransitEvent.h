@@ -31,7 +31,7 @@ class LoggerBase;
 struct TransitEvent
 {
   /***/
-  TransitEvent() { formatted_msg.reserve(32); }
+  TransitEvent() = default;
 
   /***/
   ~TransitEvent() = default;
@@ -80,6 +80,9 @@ struct TransitEvent
   {
     return (macro_metadata->log_level() != LogLevel::Dynamic) ? macro_metadata->log_level() : dynamic_log_level;
   }
+
+  /***/
+  void reserve_formatted_msg(size_t capacity = 64u) { formatted_msg.reserve(capacity); }
 
   uint64_t timestamp{0};
   MacroMetadata const* macro_metadata{nullptr};

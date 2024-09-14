@@ -28,6 +28,10 @@ public:
       _storage(std::make_unique<TransitEvent[]>(_capacity)),
       _mask(_capacity - 1u)
   {
+    for (size_t i = 0; i < _capacity; ++i)
+    {
+      _storage.get()[i].reserve_formatted_msg();
+    }
   }
 
   TransitEventBuffer(TransitEventBuffer const&) = delete;
@@ -108,11 +112,20 @@ private:
 
     auto new_storage = std::make_unique<TransitEvent[]>(new_capacity);
 
-    // Copy existing elements to the new storage
+    // Move existing elements from the old storage to the new storage.
+    // Since the buffer is full, this moves all the previous TransitEvents, preserving their order.
+    // The reader position and mask are used to handle the circular buffer's wraparound.
     size_t const current_size = size();
     for (size_t i = 0; i < current_size; ++i)
     {
       new_storage[i] = std::move(_storage[(_reader_pos + i) & _mask]);
+    }
+
+    // For the new elements in the expanded buffer, reserve memory for formatted messages.
+    // This mirrors the pre-allocation done in the constructor
+    for (size_t i = current_size; i < new_capacity; ++i)
+    {
+      new_storage.get()[i].reserve_formatted_msg();
     }
 
     _storage = std::move(new_storage);
