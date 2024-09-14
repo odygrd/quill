@@ -242,7 +242,7 @@ private:
     _update_active_thread_contexts_cache();
 
     // Read all frontend queues and cache the log statements and the metadata as TransitEvents
-    uint64_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
+    size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
 
     if (cached_transit_events_count > 0)
     {
@@ -367,7 +367,7 @@ private:
   /**
    * Populates the local transit event buffer
    */
-  QUILL_ATTRIBUTE_HOT uint64_t _populate_transit_events_from_frontend_queues()
+  QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues()
   {
     uint64_t const ts_now = _options.log_timestamp_ordering_grace_period.count()
       ? static_cast<uint64_t>((std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -376,7 +376,7 @@ private:
                                 .count())
       : std::numeric_limits<uint64_t>::max();
 
-    uint64_t cached_transit_events_count{0};
+    size_t cached_transit_events_count{0};
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
@@ -405,8 +405,8 @@ private:
    * @return size of the transit_event_buffer
    */
   template <typename TFrontendQueue>
-  QUILL_ATTRIBUTE_HOT uint64_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
-                                                               ThreadContext* thread_context, uint64_t ts_now)
+  QUILL_ATTRIBUTE_HOT size_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
+                                                             ThreadContext* thread_context, uint64_t ts_now)
   {
     // Note: The producer commits only complete messages to the queue.
     // Therefore, if even a single byte is present in the queue, it signifies a full message.

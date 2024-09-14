@@ -23,7 +23,7 @@ namespace detail
 class TransitEventBuffer
 {
 public:
-  explicit TransitEventBuffer(uint64_t initial_capacity)
+  explicit TransitEventBuffer(size_t initial_capacity)
     : _capacity(next_power_of_two(initial_capacity)),
       _storage(std::make_unique<TransitEvent[]>(_capacity)),
       _mask(_capacity - 1u)
@@ -90,12 +90,12 @@ public:
 
   QUILL_ATTRIBUTE_HOT void push_back() noexcept { ++_writer_pos; }
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint64_t size() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t size() const noexcept
   {
     return _writer_pos - _reader_pos;
   }
 
-  QUILL_NODISCARD uint64_t capacity() const noexcept { return _capacity; }
+  QUILL_NODISCARD size_t capacity() const noexcept { return _capacity; }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool empty() const noexcept
   {
@@ -103,20 +103,20 @@ public:
   }
 
 private:
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t _get_index(uint64_t pos) const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t _get_index(size_t pos) const noexcept
   {
     return pos & (_capacity - 1);
   }
 
   void _expand()
   {
-    uint64_t const new_capacity = _capacity * 2;
+    size_t const new_capacity = _capacity * 2;
 
     auto new_storage = std::make_unique<TransitEvent[]>(new_capacity);
 
     // Copy existing elements to the new storage
-    uint64_t const current_size = size();
-    for (uint64_t i = 0; i < current_size; ++i)
+    size_t const current_size = size();
+    for (size_t i = 0; i < current_size; ++i)
     {
       new_storage[i] = std::move(_storage[(_reader_pos + i) & _mask]);
     }
@@ -128,11 +128,11 @@ private:
     _reader_pos = 0;
   }
 
-  uint64_t _capacity;
+  size_t _capacity;
   std::unique_ptr<TransitEvent[]> _storage;
-  uint64_t _mask;
-  uint64_t _reader_pos{0};
-  uint64_t _writer_pos{0};
+  size_t _mask;
+  size_t _reader_pos{0};
+  size_t _writer_pos{0};
 };
 
 } // namespace detail
