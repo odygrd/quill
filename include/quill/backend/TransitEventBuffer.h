@@ -27,7 +27,6 @@ public:
     : _capacity(next_power_of_two(initial_capacity)),
       _storage(std::make_unique<TransitEvent[]>(_capacity)),
       _mask(_capacity - 1u)
-
   {
   }
 
@@ -80,7 +79,7 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* back() noexcept
   {
-    if (_capacity - size() == 0)
+    if (_capacity == size())
     {
       // Buffer is full, need to expand
       _expand();
@@ -95,7 +94,7 @@ public:
     return _writer_pos - _reader_pos;
   }
 
-  QUILL_NODISCARD size_t capacity() const noexcept { return _capacity; }
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t capacity() const noexcept { return _capacity; }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool empty() const noexcept
   {
