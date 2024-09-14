@@ -82,6 +82,8 @@
 - Introduced support for custom buffer sizes in file streams for `FileSink` and `RotatingFileSink`. The buffer size can
   now be set using `write_buffer_size` in `FileSinkConfig`, with a default of 64 KB. With the new default value the
   backend thread has increased throughput around 5%
+- Simplified the `TransitEventBuffer` in the backend worker thread, resulting in a minor throughput improvement of
+  approximately 1%.
 - Added an optional fsync interval to control the minimum time between consecutive fsync calls, reducing disk wear from
   frequent fsync operations. This option is only applicable when fsync is
   enabled. ([#557](https://github.com/odygrd/quill/issues/557))
