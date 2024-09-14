@@ -294,11 +294,11 @@ file per second.
 The tests were run on the same system used for the latency benchmarks.
 
 Although Quill’s primary focus is not on maximizing throughput, it efficiently manages log messages across multiple
-threads. Benchmarking Quill’s throughput against other asynchronous logging libraries presents certain challenges. Some
-libraries may drop log messages, leading to smaller-than-expected log files, while others only provide asynchronous
-flushing, making it difficult to verify when the backend thread has fully processed all messages.
+threads. Benchmarking throughput of asynchronous logging libraries presents certain challenges. Some libraries may drop
+log messages, leading to smaller-than-expected log files, while others only provide asynchronous flushing, making it
+difficult to verify when the backend thread has fully processed all messages.
 
-For comparison, we benchmark Quill against other asynchronous logging libraries that offer guaranteed logging with a
+For comparison, we benchmark against other asynchronous logging libraries that offer guaranteed logging with a
 flush-and-wait mechanism.
 
 Note that `MS BinLog` writes log data to a binary file, which requires offline formatting with an additional
