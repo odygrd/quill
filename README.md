@@ -162,6 +162,8 @@ int main()
   BOOT_IMAGE=(hd0,gpt2)/vmlinuz-5.14.0-427.13.1.el9_4.x86_64 root=/dev/mapper/rhel-root ro crashkernel=1G-4G:192M,4G-64G:256M,64G-:512M resume=/dev/mapper/rhel-swap rd.lvm.lv=rhel/root rd.lvm.lv=rhel/swap rhgb quiet nohz=on nohz_full=1-5 rcu_nocbs=1-5 isolcpus=1-5 mitigations=off transparent_hugepage=never intel_pstate=disable nosoftlockup irqaffinity=0 processor.max_cstate=1 nosoftirqd sched_tick_offload=0 spec_store_bypass_disable=off spectre_v2=off iommu=pt
   ```
 
+You can find the benchmark code on the [logger_benchmarks](http://github.com/odygrd/logger_benchmarks) repository.
+
 ### Latency
 
 The results presented in the tables below are measured in `nanoseconds (ns)`.
@@ -284,8 +286,6 @@ The benchmark methodology involves logging 20 messages in a loop, calculating an
 _In the `Quill Bounded Dropping` benchmarks, the dropping queue size is set to `262,144` bytes, which is double the
 default size of `131,072` bytes._
 
-You can find the benchmark code on the [logger_benchmarks](http://github.com/odygrd/logger_benchmarks) repository.
-
 ### Throughput
 
 Throughput is measured by calculating the maximum number of log messages the backend logging thread can write to a log
@@ -307,9 +307,6 @@ program—this makes it an unfair comparison, but it is included for reference.
 Similarly, `Platformlab Nanolog` also outputs binary logs and is expected to deliver high throughput. However, for
 reasons unexplained, the benchmark runs significantly slower (10x longer) than the other libraries, so it is excluded
 from the table.
-
-The remaining libraries output human-readable log files similar to Quill, and the results of our benchmarks can be
-found [here](https://github.com/odygrd/logger_benchmarks/tree/master/benchmarks/backend_total_time).
 
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
