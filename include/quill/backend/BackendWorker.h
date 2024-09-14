@@ -241,7 +241,6 @@ private:
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
-    // Phase 1:
     // Read all frontend queues and cache the log statements and the metadata as TransitEvents
     size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
 
@@ -693,7 +692,6 @@ private:
     if (!transit_buffer)
     {
       // all buffers are empty
-      // return false, meaning we processed a message
       return false;
     }
 
