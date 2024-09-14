@@ -200,8 +200,8 @@ The tables are sorted by the 95th percentile
 | [XTR](https://github.com/choll/xtr)                            |  7   |  8   |  9   |  11  |  31  |   38   | 
 | [Quill Unbounded Queue](http://github.com/odygrd/quill)        |  10  |  11  |  11  |  12  |  13  |   15   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  15  |  17  |  20  |  23  |  27  |   32   |
-| [Reckless](http://github.com/mattiasflodin/reckless)           |  19  |  23  |  26  |  28  |  34  |   55   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  21  |  22  |  22  |  23  |  62  |  100   |
+| [Reckless](http://github.com/mattiasflodin/reckless)           |  19  |  23  |  26  |  28  |  34  |   55   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  58  |  90  | 123  | 131  | 168  |  242   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 210  | 243  | 288  | 313  | 382  |  694   |
 | [g3log](http://github.com/KjellKod/g3log)                      | 1271 | 1337 | 1396 | 1437 | 1614 |  1899  |
@@ -356,7 +356,7 @@ quill_backend_total_time.log (human-readable log): 448 MB
 quill_backend_total_time.zip (zipped human-readable log): 47 MB
 ```
 
-If Quill were not available, MS BinLog would be a strong alternative. It delivers impressive latency on the hot path and
+If Quill were not available, MS BinLog would be a strong alternative. It delivers great latency on the hot path and
 generates smaller binary log files. However, the binary logs necessitate offline processing with additional tools, which
 can be less convenient.
 
