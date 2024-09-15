@@ -162,6 +162,8 @@ int main()
   BOOT_IMAGE=(hd0,gpt2)/vmlinuz-5.14.0-427.13.1.el9_4.x86_64 root=/dev/mapper/rhel-root ro crashkernel=1G-4G:192M,4G-64G:256M,64G-:512M resume=/dev/mapper/rhel-swap rd.lvm.lv=rhel/root rd.lvm.lv=rhel/swap rhgb quiet nohz=on nohz_full=1-5 rcu_nocbs=1-5 isolcpus=1-5 mitigations=off transparent_hugepage=never intel_pstate=disable nosoftlockup irqaffinity=0 processor.max_cstate=1 nosoftirqd sched_tick_offload=0 spec_store_bypass_disable=off spectre_v2=off iommu=pt
   ```
 
+You can find the benchmark code on the [logger_benchmarks](http://github.com/odygrd/logger_benchmarks) repository.
+
 ### Latency
 
 The results presented in the tables below are measured in `nanoseconds (ns)`.
@@ -198,8 +200,8 @@ The tables are sorted by the 95th percentile
 | [XTR](https://github.com/choll/xtr)                            |  7   |  8   |  9   |  11  |  31  |   38   | 
 | [Quill Unbounded Queue](http://github.com/odygrd/quill)        |  10  |  11  |  11  |  12  |  13  |   15   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  15  |  17  |  20  |  23  |  27  |   32   |
-| [Reckless](http://github.com/mattiasflodin/reckless)           |  19  |  23  |  26  |  28  |  34  |   55   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  21  |  22  |  22  |  23  |  62  |  100   |
+| [Reckless](http://github.com/mattiasflodin/reckless)           |  19  |  23  |  26  |  28  |  34  |   55   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  58  |  90  | 123  | 131  | 168  |  242   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 210  | 243  | 288  | 313  | 382  |  694   |
 | [g3log](http://github.com/KjellKod/g3log)                      | 1271 | 1337 | 1396 | 1437 | 1614 |  1899  |
@@ -284,31 +286,38 @@ The benchmark methodology involves logging 20 messages in a loop, calculating an
 _In the `Quill Bounded Dropping` benchmarks, the dropping queue size is set to `262,144` bytes, which is double the
 default size of `131,072` bytes._
 
-You can find the benchmark code on the [logger_benchmarks](http://github.com/odygrd/logger_benchmarks) repository.
-
 ### Throughput
 
-The maximum throughput is measured by determining the maximum number of log messages the backend logging thread can
-write to the log file per second.
+Throughput is measured by calculating the maximum number of log messages the backend logging thread can write to a log
+file per second.
 
-When measured on the same system as the latency benchmarks mentioned above the average throughput of the backend
-logging thread when formatting a log message consisting of an int and a double is ~`4.50 million msgs/sec`
+The tests were run on the same system used for the latency benchmarks.
 
-While the primary focus of the library is not on throughput, it does provide efficient handling of log messages across
-multiple threads. The backend logging thread, responsible for formatting and ordering log messages from the frontend
-threads, ensures that all queues are emptied on a high priority basis. The backend thread internally buffers the log
-messages and then writes them later when the caller thread queues are empty or when a predefined limit,
-`BackendOptions::transit_events_soft_limit`, is reached. This approach prevents the need for allocating new queues
-or dropping messages on the hot path.
+Although Quill’s primary focus is not on maximizing throughput, it efficiently manages log messages across multiple
+threads. Benchmarking throughput of asynchronous logging libraries presents certain challenges. Some libraries may drop
+log messages, leading to smaller-than-expected log files, while others only provide asynchronous flushing, making it
+difficult to verify when the backend thread has fully processed all messages.
 
-Comparing throughput with other logging libraries in an asynchronous logging scenario has proven challenging. Some
-libraries may drop log messages, resulting in smaller log files than expected, while others only offer asynchronous
-flush, making it difficult to determine when the logging thread has finished processing all messages.
-In contrast, Quill provides a blocking flush log guarantee, ensuring that every log message from the frontend threads up
-to that point is flushed to the file.
+For comparison, we benchmark against other asynchronous logging libraries that offer guaranteed logging with a
+flush-and-wait mechanism.
 
-For benchmarking purposes, you can find the
-code [here](https://github.com/odygrd/quill/blob/master/benchmarks/backend_throughput/quill_backend_throughput.cpp).
+Note that `MS BinLog` writes log data to a binary file, which requires offline formatting with an additional
+program—this makes it an unfair comparison, but it is included for reference.
+
+Similarly, `Platformlab Nanolog` also outputs binary logs and is expected to deliver high throughput. However, for
+reasons unexplained, the benchmark runs significantly slower (10x longer) than the other libraries, so it is excluded
+from the table.
+
+| Library                                                           | million msg/second | elapsed time |
+|-------------------------------------------------------------------|:------------------:|:------------:|
+| [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       64.98        |    61 ms     |
+| [Quill](http://github.com/odygrd/quill)                           |        4.65        |    859 ms    |
+| [spdlog](http://github.com/gabime/spdlog)                         |        3.53        |   1131 ms    |
+| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.83        |   1411 ms    |
+| [Reckless](http://github.com/mattiasflodin/reckless)              |        2.74        |   1459 ms    |
+| [XTR](https://github.com/choll/xtr)                               |        2.60        |   1537 ms    |
+
+![throughput_chart.webp](docs%2Fcharts%2Fthroughput_chart.webp)
 
 ### Compilation Time
 
@@ -326,6 +335,30 @@ it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/co
 approximately 30 seconds to compile.
 
 ![quill_v5_1_compiler_bench.speedscope.png](docs%2Fquill_v5_1_compiler_bench.speedscope.png)
+
+### Verdict
+
+Quill excels in hot path latency benchmarks and supports high throughput, offering a rich set of features that outshines
+other logging libraries.
+
+The human-readable log files facilitate easier debugging and analysis. While initially larger, they compress
+efficiently, with the size difference between human-readable and binary logs becoming minimal once zipped.
+
+For example, for the same amount of messages:
+
+```
+ms_binlog_backend_total_time.blog (binary log): 177 MB
+ms_binlog_backend_total_time.zip (zipped binary log): 35 MB
+```
+
+```
+quill_backend_total_time.log (human-readable log): 448 MB
+quill_backend_total_time.zip (zipped human-readable log): 47 MB
+```
+
+If Quill were not available, MS BinLog would be a strong alternative. It delivers great latency on the hot path and
+generates smaller binary log files. However, the binary logs necessitate offline processing with additional tools, which
+can be less convenient.
 
 ## 🧩 Usage
 

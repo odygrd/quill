@@ -81,12 +81,17 @@
 - Added a missing header include in `TriviallyCopyableCodec.h`. ([#560](https://github.com/odygrd/quill/issues/560))
 - Introduced support for custom buffer sizes in file streams for `FileSink` and `RotatingFileSink`. The buffer size can
   now be set using `write_buffer_size` in `FileSinkConfig`, with a default of 64 KB. With the new default value the
-  backend thread has increased throughtput around 5%
+  backend thread has increased throughput around 5%
+- Simplified the `TransitEventBuffer` in the backend worker thread, resulting in a minor throughput improvement of
+  approximately 1%.
 - Added an optional fsync interval to control the minimum time between consecutive fsync calls, reducing disk wear from
   frequent fsync operations. This option is only applicable when fsync is
   enabled. ([#557](https://github.com/odygrd/quill/issues/557))
 - Enhanced the queue allocation notification message for better readability. It now shows capacities in KiB, e.g.,
   `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
+- Fixed incorrect log level short codes introduced in v7 after adding NOTICE. Using `%(log_level_short_code)` in the
+  formatter could incorrectly map `LOG_ERROR` to `"C"` and LOG_WARNING
+  to `"E"`. ([#564](https://github.com/odygrd/quill/issues/564))
 
 ## v7.1.0
 
