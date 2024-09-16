@@ -8,9 +8,10 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
-#include "quill/core/FormatBuffer.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/MacroMetadata.h"
+
+#include "quill/bundled/fmt/format.h"
 
 #include <atomic>
 #include <cstdint>
@@ -30,6 +31,8 @@ class LoggerBase;
 /***/
 struct TransitEvent
 {
+  using FormatBuffer = fmtquill::basic_memory_buffer<char, 88>;
+
   /***/
   TransitEvent() = default;
 
@@ -82,13 +85,10 @@ struct TransitEvent
     }
   }
 
-  /***/
-  void reserve_formatted_msg(size_t capacity = 64u) { formatted_msg.reserve(capacity); }
-
   uint64_t timestamp{0};
   MacroMetadata const* macro_metadata{nullptr};
   detail::LoggerBase* logger_base{nullptr};
-  FormatBuffer formatted_msg; /** buffer for message **/
+  std::unique_ptr<FormatBuffer> formatted_msg{std::make_unique<FormatBuffer>()}; /** buffer for message **/
   std::unique_ptr<std::vector<std::pair<std::string, std::string>>> named_args; /** A unique ptr to save space as named args feature is not always used */
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
   LogLevel dynamic_log_level{LogLevel::None};

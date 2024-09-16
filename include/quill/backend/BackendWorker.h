@@ -747,7 +747,7 @@ private:
       }
 
       transit_event.logger_base->backtrace_storage->set_capacity(static_cast<uint32_t>(std::stoul(
-        std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
+        std::string{transit_event.formatted_msg->begin(), transit_event.formatted_msg->end()})));
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushBacktrace)
     {
@@ -827,13 +827,13 @@ private:
     {
       // if the log_message ends with \n we should exclude it
       size_t const log_message_size =
-        transit_event.formatted_msg.data()[transit_event.formatted_msg.size() - 1] == '\n'
-        ? transit_event.formatted_msg.size() - 2
-        : transit_event.formatted_msg.size();
+        transit_event.formatted_msg->data()[transit_event.formatted_msg->size() - 1] == '\n'
+        ? transit_event.formatted_msg->size() - 2
+        : transit_event.formatted_msg->size();
 
       // process the whole message without adding metadata to each line
       _write_log_statement(transit_event, thread_id, thread_name, log_level_description, log_level_short_code,
-                           std::string_view{transit_event.formatted_msg.data(), log_message_size});
+                           std::string_view{transit_event.formatted_msg->data(), log_message_size});
     }
   }
 
@@ -847,7 +847,7 @@ private:
                                                        std::string_view const& log_level_short_code) const
   {
     auto const msg =
-      std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()};
+      std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()};
 
     size_t start = 0;
     while (start < msg.size())
@@ -1382,30 +1382,30 @@ private:
 
   QUILL_ATTRIBUTE_HOT void _populate_formatted_log_message(TransitEvent* transit_event, char const* message_format)
   {
-    transit_event->formatted_msg.clear();
+    transit_event->formatted_msg->clear();
 
     QUILL_TRY
     {
-      fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg), message_format,
+      fmtquill::vformat_to(std::back_inserter(*transit_event->formatted_msg), message_format,
                            fmtquill::basic_format_args<fmtquill::format_context>{
                              _format_args_store.data(), _format_args_store.size()});
 
       if (_options.check_printable_char && _format_args_store.has_string_related_type())
       {
         // if non-printable chars check is configured or if any of the provided arguments are strings
-        sanitize_non_printable_chars(transit_event->formatted_msg, _options);
+        sanitize_non_printable_chars(*transit_event->formatted_msg, _options);
       }
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e)
     {
-      transit_event->formatted_msg.clear();
+      transit_event->formatted_msg->clear();
       std::string const error =
         fmtquill::format(R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
                          transit_event->macro_metadata->message_format(),
                          transit_event->macro_metadata->short_source_location(), e.what());
 
-      transit_event->formatted_msg.append(error);
+      transit_event->formatted_msg->append(error);
       _options.error_notifier(error);
     }
 #endif
