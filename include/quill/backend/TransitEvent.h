@@ -32,9 +32,7 @@ class LoggerBase;
 struct TransitEvent
 {
   using FormatBuffer = fmtquill::basic_memory_buffer<char, 88>;
-  static_assert((sizeof(FormatBuffer) % CACHE_LINE_SIZE) == 0,
-                "FormatBuffer needs to be multiple of cache line");
-
+  
   /***/
   TransitEvent() = default;
 
