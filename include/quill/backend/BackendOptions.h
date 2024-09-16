@@ -55,7 +55,7 @@ struct BackendOptions
    * transit_events_hard_limit The backend will use a separate transit_event_buffer for each
    * frontend thread. The capacity must be a power of two.
    */
-  uint32_t transit_event_buffer_initial_capacity = 64;
+  uint32_t transit_event_buffer_initial_capacity = 128;
 
   /**
    * The backend gives priority to reading messages from the frontend queues of all
