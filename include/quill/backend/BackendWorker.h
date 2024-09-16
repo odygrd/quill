@@ -480,35 +480,6 @@ private:
     std::memcpy(&transit_event->logger_base, read_pos, sizeof(transit_event->logger_base));
     read_pos += sizeof(transit_event->logger_base);
 
-    // Look up to see if we have the formatter and if not create it
-    if (!transit_event->logger_base->pattern_formatter)
-    {
-      // Search for an existing pattern_formatter in each logger
-      _logger_manager.for_each_logger(
-        [transit_event](LoggerBase* logger)
-        {
-          if (logger->pattern_formatter &&
-              (logger->pattern_formatter->get_options() == transit_event->logger_base->pattern_formatter_options))
-          {
-            // hold a copy of the shared_ptr of the same formatter
-            transit_event->logger_base->pattern_formatter = logger->pattern_formatter;
-            return true;
-          }
-
-          return false;
-        });
-
-      if (!transit_event->logger_base->pattern_formatter)
-      {
-        // Didn't find an existing formatter  need to create a new pattern formatter
-        transit_event->logger_base->pattern_formatter =
-          std::make_shared<PatternFormatter>(transit_event->logger_base->pattern_formatter_options);
-      }
-    }
-
-    assert(transit_event->logger_base->pattern_formatter &&
-           "transit_event->logger_base->pattern_formatter should be valid here");
-
     if (transit_event->logger_base->clock_source == ClockSourceType::Tsc)
     {
       // If using the rdtsc clock, convert the value to nanoseconds since epoch.
@@ -807,6 +778,37 @@ private:
                                                             std::string_view const& thread_id,
                                                             std::string_view const& thread_name)
   {
+    // First check to see if we should init the pattern formatter on a new Logger
+    // Look up to see if we have the formatter and if not create it
+    if (QUILL_UNLIKELY(!transit_event.logger_base->pattern_formatter))
+    {
+      // Search for an existing pattern_formatter in each logger
+      _logger_manager.for_each_logger(
+        [&transit_event](LoggerBase* logger)
+        {
+          if (logger->pattern_formatter &&
+              (logger->pattern_formatter->get_options() == transit_event.logger_base->pattern_formatter_options))
+          {
+            // hold a copy of the shared_ptr of the same formatter
+            transit_event.logger_base->pattern_formatter = logger->pattern_formatter;
+            return true;
+          }
+
+          return false;
+        });
+
+      if (!transit_event.logger_base->pattern_formatter)
+      {
+        // Didn't find an existing formatter  need to create a new pattern formatter
+        transit_event.logger_base->pattern_formatter =
+          std::make_shared<PatternFormatter>(transit_event.logger_base->pattern_formatter_options);
+      }
+    }
+
+    assert(transit_event->logger_base->pattern_formatter &&
+           "transit_event->logger_base->pattern_formatter should be valid here");
+
+    // proceed after ensuring a pattern formatter exists
     std::string_view const log_level_description =
       detail::log_level_to_string(transit_event.log_level(), _options.log_level_descriptions.data(),
                                   _options.log_level_descriptions.size());
