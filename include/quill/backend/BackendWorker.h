@@ -805,7 +805,7 @@ private:
       }
     }
 
-    assert(transit_event->logger_base->pattern_formatter &&
+    assert(transit_event.logger_base->pattern_formatter &&
            "transit_event->logger_base->pattern_formatter should be valid here");
 
     // proceed after ensuring a pattern formatter exists
