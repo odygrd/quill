@@ -480,9 +480,6 @@ private:
     std::memcpy(&transit_event->logger_base, read_pos, sizeof(transit_event->logger_base));
     read_pos += sizeof(transit_event->logger_base);
 
-    std::memcpy(&transit_event->format_args_decoder, read_pos, sizeof(transit_event->format_args_decoder));
-    read_pos += sizeof(transit_event->format_args_decoder);
-
     // Look up to see if we have the formatter and if not create it
     if (!transit_event->logger_base->pattern_formatter)
     {
@@ -564,10 +561,14 @@ private:
       }
     }
 
+    detail::FormatArgsDecoder format_args_decoder;
+    std::memcpy(&format_args_decoder, read_pos, sizeof(format_args_decoder));
+    read_pos += sizeof(format_args_decoder);
+
     // we need to check and do not try to format the flush events as that wouldn't be valid
     if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
     {
-      transit_event->format_args_decoder(read_pos, _format_args_store);
+      format_args_decoder(read_pos, _format_args_store);
 
       if (!transit_event->macro_metadata->has_named_args())
       {

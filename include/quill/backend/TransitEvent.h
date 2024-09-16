@@ -45,11 +45,10 @@ struct TransitEvent
     : timestamp(other.timestamp),
       macro_metadata(other.macro_metadata),
       logger_base(other.logger_base),
-      format_args_decoder(other.format_args_decoder),
       formatted_msg(std::move(other.formatted_msg)),
       named_args(std::move(other.named_args)),
-      dynamic_log_level(other.dynamic_log_level),
-      flush_flag(other.flush_flag)
+      flush_flag(other.flush_flag),
+      dynamic_log_level(other.dynamic_log_level)
   {
   }
 
@@ -61,11 +60,10 @@ struct TransitEvent
       timestamp = other.timestamp;
       macro_metadata = other.macro_metadata;
       logger_base = other.logger_base;
-      format_args_decoder = other.format_args_decoder;
       formatted_msg = std::move(other.formatted_msg);
       named_args = std::move(other.named_args);
-      dynamic_log_level = other.dynamic_log_level;
       flush_flag = other.flush_flag;
+      dynamic_log_level = other.dynamic_log_level;
     }
 
     return *this;
@@ -74,7 +72,14 @@ struct TransitEvent
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT LogLevel log_level() const noexcept
   {
-    return (macro_metadata->log_level() != LogLevel::Dynamic) ? macro_metadata->log_level() : dynamic_log_level;
+    if (macro_metadata->log_level() != LogLevel::Dynamic)
+    {
+      return macro_metadata->log_level();
+    }
+    else
+    {
+      return dynamic_log_level;
+    }
   }
 
   /***/
@@ -83,11 +88,10 @@ struct TransitEvent
   uint64_t timestamp{0};
   MacroMetadata const* macro_metadata{nullptr};
   detail::LoggerBase* logger_base{nullptr};
-  detail::FormatArgsDecoder format_args_decoder{nullptr};
   FormatBuffer formatted_msg; /** buffer for message **/
   std::unique_ptr<std::vector<std::pair<std::string, std::string>>> named_args; /** A unique ptr to save space as named args feature is not always used */
-  LogLevel dynamic_log_level{LogLevel::None};
   std::atomic<bool>* flush_flag{nullptr}; /** This is only used in the case of Event::Flush **/
+  LogLevel dynamic_log_level{LogLevel::None};
 };
 } // namespace detail
 
