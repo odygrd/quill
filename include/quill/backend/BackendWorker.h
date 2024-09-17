@@ -485,7 +485,7 @@ private:
       // If using the rdtsc clock, convert the value to nanoseconds since epoch.
       // This conversion ensures that every transit inserted in the buffer below has a timestamp in
       // nanoseconds since epoch, allowing compatibility with Logger objects using different clocks.
-      if (!_rdtsc_clock.load(std::memory_order_relaxed))
+      if (QUILL_UNLIKELY(!_rdtsc_clock.load(std::memory_order_relaxed)))
       {
         // Lazy initialization of rdtsc clock on the backend thread only if the user decides to use
         // it. The clock requires a few seconds to init as it is taking samples first.
