@@ -221,12 +221,6 @@ public:
   }
 
   /***/
-  QUILL_ATTRIBUTE_HOT std::string_view format_timestamp(std::chrono::nanoseconds timestamp)
-  {
-    return _timestamp_formatter.format_timestamp(timestamp);
-  }
-
-  /***/
   QUILL_NODISCARD PatternFormatterOptions const& get_options() const noexcept { return _options; }
 
 private:

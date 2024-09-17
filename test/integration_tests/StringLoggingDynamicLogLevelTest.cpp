@@ -18,10 +18,12 @@ TEST_CASE("string_logging_dynamic_log_level")
 {
   static constexpr char const* filename = "string_logging_dynamic_log_level.log";
   static std::string const logger_name = "logger";
-  static constexpr size_t number_of_messages = 1000;
+  static constexpr size_t number_of_messages = 1023;
 
   // Start the logging backend thread
-  Backend::start();
+  BackendOptions bo;
+  bo.transit_event_buffer_initial_capacity = number_of_messages + 1; // +1 for the flush
+  Backend::start(bo);
 
   Frontend::preallocate();
 
@@ -92,6 +94,9 @@ TEST_CASE("string_logging_dynamic_log_level")
                 c_style_string, end_s, c_style_char_array_empty, c_style_char_array);
   }
 
+  // flush to make sure we re-use all transit buffer events
+  logger->flush_log();
+
   // Log a big string
   for (size_t i = 0; i < number_of_messages; ++i)
   {
@@ -101,6 +106,9 @@ TEST_CASE("string_logging_dynamic_log_level")
     LOG_DYNAMIC(logger, LogLevel::Info, "Logging int: {}, int: {}, string: {}, char: {}", i, i * 10,
                 v, v.c_str());
   }
+
+  // flush to make sure we re-use all transit buffer events
+  logger->flush_log();
 
   for (size_t i = 0; i < number_of_messages; ++i)
   {

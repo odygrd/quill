@@ -244,19 +244,19 @@ private:
     // Read all frontend queues and cache the log statements and the metadata as TransitEvents
     size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
 
-    if (cached_transit_events_count > 0)
+    if (cached_transit_events_count != 0)
     {
       // there are cached events to process
       if (cached_transit_events_count < _options.transit_events_soft_limit)
       {
         // process a single transit event, then give priority to reading the frontend queues again
-        _process_next_cached_transit_event();
+        _process_lowest_timestamp_transit_event();
       }
       else
       {
         // we want to process a batch of events.
         while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
-               _process_next_cached_transit_event())
+               _process_lowest_timestamp_transit_event())
         {
           // We need to be cautious because there are log messages in the lock-free queues
           // that have not yet been cached in the transit event buffer. Logging only the cached
@@ -353,7 +353,7 @@ private:
       if (cached_transit_events_count > 0)
       {
         while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
-               _process_next_cached_transit_event())
+               _process_lowest_timestamp_transit_event())
         {
           // We need to be cautious because there are log messages in the lock-free queues
           // that have not yet been cached in the transit event buffer. Logging only the cached
@@ -470,8 +470,6 @@ private:
 
     // Allocate a new TransitEvent or use an existing one to store the message from the queue
     TransitEvent* transit_event = thread_context->_transit_event_buffer->back();
-    transit_event->thread_id = thread_context->thread_id();
-    transit_event->thread_name = thread_context->thread_name();
 
     std::memcpy(&transit_event->timestamp, read_pos, sizeof(transit_event->timestamp));
     read_pos += sizeof(transit_event->timestamp);
@@ -482,43 +480,12 @@ private:
     std::memcpy(&transit_event->logger_base, read_pos, sizeof(transit_event->logger_base));
     read_pos += sizeof(transit_event->logger_base);
 
-    std::memcpy(&transit_event->format_args_decoder, read_pos, sizeof(transit_event->format_args_decoder));
-    read_pos += sizeof(transit_event->format_args_decoder);
-
-    // Look up to see if we have the formatter and if not create it
-    if (!transit_event->logger_base->pattern_formatter)
-    {
-      // Search for an existing pattern_formatter in each logger
-      _logger_manager.for_each_logger(
-        [transit_event](LoggerBase* logger)
-        {
-          if (logger->pattern_formatter &&
-              (logger->pattern_formatter->get_options() == transit_event->logger_base->pattern_formatter_options))
-          {
-            // hold a copy of the shared_ptr of the same formatter
-            transit_event->logger_base->pattern_formatter = logger->pattern_formatter;
-            return true;
-          }
-
-          return false;
-        });
-
-      if (!transit_event->logger_base->pattern_formatter)
-      {
-        // Didn't find an existing formatter  need to create a new pattern formatter
-        transit_event->logger_base->pattern_formatter = std::make_shared<PatternFormatter>(transit_event->logger_base->pattern_formatter_options);
-      }
-    }
-
-    assert(transit_event->logger_base->pattern_formatter &&
-           "transit_event->logger_base->pattern_formatter should be valid here");
-
     if (transit_event->logger_base->clock_source == ClockSourceType::Tsc)
     {
       // If using the rdtsc clock, convert the value to nanoseconds since epoch.
       // This conversion ensures that every transit inserted in the buffer below has a timestamp in
       // nanoseconds since epoch, allowing compatibility with Logger objects using different clocks.
-      if (!_rdtsc_clock.load(std::memory_order_relaxed))
+      if (QUILL_UNLIKELY(!_rdtsc_clock.load(std::memory_order_relaxed)))
       {
         // Lazy initialization of rdtsc clock on the backend thread only if the user decides to use
         // it. The clock requires a few seconds to init as it is taking samples first.
@@ -565,10 +532,14 @@ private:
       }
     }
 
+    detail::FormatArgsDecoder format_args_decoder;
+    std::memcpy(&format_args_decoder, read_pos, sizeof(format_args_decoder));
+    read_pos += sizeof(format_args_decoder);
+
     // we need to check and do not try to format the flush events as that wouldn't be valid
     if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
     {
-      transit_event->format_args_decoder(read_pos, _format_args_store);
+      format_args_decoder(read_pos, _format_args_store);
 
       if (!transit_event->macro_metadata->has_named_args())
       {
@@ -648,7 +619,11 @@ private:
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
-      if (!thread_context->_transit_event_buffer || thread_context->_transit_event_buffer->empty())
+      assert(thread_context->_transit_event_buffer &&
+             "transit_event_buffer should always be valid here as we always populate it with the "
+             "_active_thread_contexts_cache");
+
+      if (thread_context->_transit_event_buffer->empty())
       {
         // if there is no _transit_event_buffer yet then check only the queue
         if (thread_context->has_unbounded_queue_type() &&
@@ -671,34 +646,36 @@ private:
   /**
    * Processes the cached transit event with the minimum timestamp
    */
-  QUILL_ATTRIBUTE_HOT bool _process_next_cached_transit_event()
+  QUILL_ATTRIBUTE_HOT bool _process_lowest_timestamp_transit_event()
   {
     // Get the lowest timestamp
     uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
-    TransitEventBuffer* transit_buffer{nullptr};
+    ThreadContext* thread_context{nullptr};
 
-    for (ThreadContext* thread_context : _active_thread_contexts_cache)
+    for (ThreadContext* tc : _active_thread_contexts_cache)
     {
-      if (thread_context->_transit_event_buffer)
+      assert(tc->_transit_event_buffer &&
+             "transit_event_buffer should always be valid here as we always populate it with the "
+             "_active_thread_contexts_cache");
+
+      TransitEvent const* te = tc->_transit_event_buffer->front();
+      if (te && (min_ts > te->timestamp))
       {
-        if (TransitEvent const* te = thread_context->_transit_event_buffer->front(); te && (min_ts > te->timestamp))
-        {
-          min_ts = te->timestamp;
-          transit_buffer = thread_context->_transit_event_buffer.get();
-        }
+        min_ts = te->timestamp;
+        thread_context = tc;
       }
     }
 
-    if (!transit_buffer)
+    if (!thread_context)
     {
-      // all buffers are empty
+      // all transit event buffers are empty
       return false;
     }
 
-    TransitEvent* transit_event = transit_buffer->front();
+    TransitEvent* transit_event = thread_context->_transit_event_buffer->front();
     assert(transit_event && "transit_buffer is set only when transit_event is valid");
 
-    QUILL_TRY { _process_cached_transit_event(*transit_event); }
+    QUILL_TRY { _process_transit_event(*thread_context, *transit_event); }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
     QUILL_CATCH_ALL()
@@ -714,7 +691,7 @@ private:
     }
 
     // Remove this event and move to the next.
-    transit_buffer->pop_front();
+    thread_context->_transit_event_buffer->pop_front();
 
     return true;
   }
@@ -722,7 +699,7 @@ private:
   /**
    * Process a single transit event
    */
-  QUILL_ATTRIBUTE_HOT void _process_cached_transit_event(TransitEvent& transit_event)
+  QUILL_ATTRIBUTE_HOT void _process_transit_event(ThreadContext const& thread_context, TransitEvent& transit_event)
   {
     // If backend_process(...) throws we want to skip this event and move to the next, so we catch
     // the error here instead of catching it in the parent try/catch block of main_loop
@@ -730,7 +707,8 @@ private:
     {
       if (transit_event.log_level() != LogLevel::Backtrace)
       {
-        _dispatch_transit_event_to_sinks(transit_event);
+        _dispatch_transit_event_to_sinks(transit_event, thread_context.thread_id(),
+                                         thread_context.thread_name());
 
         // We also need to check the severity of the log message here against the backtrace
         // Check if we should also flush the backtrace messages:
@@ -743,7 +721,8 @@ private:
           if (transit_event.logger_base->backtrace_storage)
           {
             transit_event.logger_base->backtrace_storage->process(
-              [this](TransitEvent const& te) { _dispatch_transit_event_to_sinks(te); });
+              [this](TransitEvent const& te, std::string_view thread_id, std::string_view thread_name)
+              { _dispatch_transit_event_to_sinks(te, thread_id, thread_name); });
           }
         }
       }
@@ -752,7 +731,8 @@ private:
         if (transit_event.logger_base->backtrace_storage)
         {
           // this is a backtrace log and we will store it
-          transit_event.logger_base->backtrace_storage->store(std::move(transit_event));
+          transit_event.logger_base->backtrace_storage->store(
+            std::move(transit_event), thread_context.thread_id(), thread_context.thread_name());
         }
         else
         {
@@ -772,7 +752,7 @@ private:
       }
 
       transit_event.logger_base->backtrace_storage->set_capacity(static_cast<uint32_t>(std::stoul(
-        std::string{transit_event.formatted_msg.begin(), transit_event.formatted_msg.end()})));
+        std::string{transit_event.formatted_msg->begin(), transit_event.formatted_msg->end()})));
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushBacktrace)
     {
@@ -780,7 +760,8 @@ private:
       {
         // process all records in backtrace for this logger and log them
         transit_event.logger_base->backtrace_storage->process(
-          [this](TransitEvent const& te) { _dispatch_transit_event_to_sinks(te); });
+          [this](TransitEvent const& te, std::string_view thread_id, std::string_view thread_name)
+          { _dispatch_transit_event_to_sinks(te, thread_id, thread_name); });
       }
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
@@ -798,8 +779,41 @@ private:
   /**
    * Dispatches a transit event
    */
-  QUILL_ATTRIBUTE_HOT void _dispatch_transit_event_to_sinks(TransitEvent const& transit_event) const
+  QUILL_ATTRIBUTE_HOT void _dispatch_transit_event_to_sinks(TransitEvent const& transit_event,
+                                                            std::string_view const& thread_id,
+                                                            std::string_view const& thread_name)
   {
+    // First check to see if we should init the pattern formatter on a new Logger
+    // Look up to see if we have the formatter and if not create it
+    if (QUILL_UNLIKELY(!transit_event.logger_base->pattern_formatter))
+    {
+      // Search for an existing pattern_formatter in each logger
+      _logger_manager.for_each_logger(
+        [&transit_event](LoggerBase* logger)
+        {
+          if (logger->pattern_formatter &&
+              (logger->pattern_formatter->get_options() == transit_event.logger_base->pattern_formatter_options))
+          {
+            // hold a copy of the shared_ptr of the same formatter
+            transit_event.logger_base->pattern_formatter = logger->pattern_formatter;
+            return true;
+          }
+
+          return false;
+        });
+
+      if (!transit_event.logger_base->pattern_formatter)
+      {
+        // Didn't find an existing formatter  need to create a new pattern formatter
+        transit_event.logger_base->pattern_formatter =
+          std::make_shared<PatternFormatter>(transit_event.logger_base->pattern_formatter_options);
+      }
+    }
+
+    assert(transit_event.logger_base->pattern_formatter &&
+           "transit_event->logger_base->pattern_formatter should be valid here");
+
+    // proceed after ensuring a pattern formatter exists
     std::string_view const log_level_description =
       detail::log_level_to_string(transit_event.log_level(), _options.log_level_descriptions.data(),
                                   _options.log_level_descriptions.size());
@@ -812,19 +826,19 @@ private:
         (!transit_event.named_args || transit_event.named_args->empty()))
     {
       // This is only supported when named_args are not used
-      _process_multi_line_message(transit_event, log_level_description, log_level_short_code);
+      _process_multi_line_message(transit_event, thread_id, thread_name, log_level_description, log_level_short_code);
     }
     else
     {
       // if the log_message ends with \n we should exclude it
       size_t const log_message_size =
-        transit_event.formatted_msg.data()[transit_event.formatted_msg.size() - 1] == '\n'
-        ? transit_event.formatted_msg.size() - 2
-        : transit_event.formatted_msg.size();
+        transit_event.formatted_msg->data()[transit_event.formatted_msg->size() - 1] == '\n'
+        ? transit_event.formatted_msg->size() - 2
+        : transit_event.formatted_msg->size();
 
       // process the whole message without adding metadata to each line
-      _write_log_statement(transit_event, log_level_description, log_level_short_code,
-                           std::string_view{transit_event.formatted_msg.data(), log_message_size});
+      _write_log_statement(transit_event, thread_id, thread_name, log_level_description, log_level_short_code,
+                           std::string_view{transit_event.formatted_msg->data(), log_message_size});
     }
   }
 
@@ -832,11 +846,13 @@ private:
    * Splits and writes a transit event that has multiple lines
    */
   QUILL_ATTRIBUTE_HOT void _process_multi_line_message(TransitEvent const& transit_event,
+                                                       std::string_view const& thread_id,
+                                                       std::string_view const& thread_name,
                                                        std::string_view const& log_level_description,
                                                        std::string_view const& log_level_short_code) const
   {
     auto const msg =
-      std::string_view{transit_event.formatted_msg.data(), transit_event.formatted_msg.size()};
+      std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()};
 
     size_t start = 0;
     while (start < msg.size())
@@ -846,14 +862,14 @@ private:
       if (end == std::string_view::npos)
       {
         // Handle the last line or a single line without a newline
-        _write_log_statement(transit_event, log_level_description, log_level_short_code,
+        _write_log_statement(transit_event, thread_id, thread_name, log_level_description, log_level_short_code,
                              std::string_view(msg.data() + start, msg.size() - start));
         break;
       }
 
       // Write the current line
-      _write_log_statement(transit_event, log_level_description, log_level_short_code,
-                           std::string_view(msg.data() + start, end - start));
+      _write_log_statement(transit_event, thread_id, thread_name, log_level_description,
+                           log_level_short_code, std::string_view(msg.data() + start, end - start));
       start = end + 1;
     }
   }
@@ -862,24 +878,25 @@ private:
    * Formats and writes the log statement to each sink
    */
   QUILL_ATTRIBUTE_HOT void _write_log_statement(TransitEvent const& transit_event,
+                                                std::string_view const& thread_id,
+                                                std::string_view const& thread_name,
                                                 std::string_view const& log_level_description,
                                                 std::string_view const& log_level_short_code,
                                                 std::string_view const& log_message) const
   {
     std::string_view const log_statement = transit_event.logger_base->pattern_formatter->format(
-      transit_event.timestamp, transit_event.thread_id, transit_event.thread_name, _process_id,
+      transit_event.timestamp, thread_id, thread_name, _process_id,
       transit_event.logger_base->logger_name, log_level_description, log_level_short_code,
       *transit_event.macro_metadata, transit_event.named_args.get(), log_message);
 
     for (auto& sink : transit_event.logger_base->sinks)
     {
-      if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp,
-                                  transit_event.thread_id, transit_event.thread_name,
-                                  transit_event.logger_base->logger_name, transit_event.log_level(),
-                                  log_message, log_statement))
+      if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp, thread_id,
+                                  thread_name, transit_event.logger_base->logger_name,
+                                  transit_event.log_level(), log_message, log_statement))
       {
-        sink->write_log(transit_event.macro_metadata, transit_event.timestamp, transit_event.thread_id,
-                        transit_event.thread_name, _process_id, transit_event.logger_base->logger_name,
+        sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
+                        thread_name, _process_id, transit_event.logger_base->logger_name,
                         transit_event.log_level(), log_level_description, log_level_short_code,
                         transit_event.named_args.get(), log_message, log_statement);
       }
@@ -1030,7 +1047,8 @@ private:
 
         // we switched to a new here, and we also notify the user of the allocation via the
         // error_notifier
-        _options.error_notifier(fmtquill::format("{} Quill INFO: Allocated a new SPSC queue with a capacity of {} KiB "
+        _options.error_notifier(
+          fmtquill::format("{} Quill INFO: Allocated a new SPSC queue with a capacity of {} KiB "
                            "(previously {} KiB) from thread {}",
                            ts, (read_result.new_capacity / 1024),
                            (read_result.previous_capacity / 1024), thread_context->thread_id()));
@@ -1059,10 +1077,11 @@ private:
         all_empty &= thread_context->get_spsc_queue_union().bounded_spsc_queue.empty();
       }
 
-      if (thread_context->_transit_event_buffer)
-      {
-        all_empty &= thread_context->_transit_event_buffer->empty();
-      }
+      assert(thread_context->_transit_event_buffer &&
+             "transit_event_buffer should always be valid here as we always populate it with the "
+             "_active_thread_contexts_cache");
+
+      all_empty &= thread_context->_transit_event_buffer->empty();
     }
 
     return all_empty;
@@ -1185,36 +1204,25 @@ private:
     {
       // If the thread context is invalid it means the thread that created it has now died.
       // We also want to empty the queue from all LogRecords before removing the thread context
-      if (!thread_context->is_valid_context())
+      if (!thread_context->is_valid())
       {
-        bool empty_frontend_queue{false};
-
         assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());
+
+        assert(thread_context->_transit_event_buffer &&
+               "transit_event_buffer should always be valid here as we always populate it with the "
+               "_active_thread_contexts_cache");
 
         // detect empty queue
         if (thread_context->has_unbounded_queue_type())
         {
-          empty_frontend_queue = thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty();
-        }
-        else if (thread_context->has_bounded_queue_type())
-        {
-          empty_frontend_queue = thread_context->get_spsc_queue_union().bounded_spsc_queue.empty();
+          return thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty() &&
+            thread_context->_transit_event_buffer->empty();
         }
 
-        if (empty_frontend_queue)
+        if (thread_context->has_bounded_queue_type())
         {
-          if (thread_context->_transit_event_buffer)
-          {
-            if (thread_context->_transit_event_buffer->empty())
-            {
-              return true;
-            }
-          }
-          else
-          {
-            // if _transit_event_buffer is not used, checking for the empty queue is enough
-            return true;
-          }
+          return thread_context->get_spsc_queue_union().bounded_spsc_queue.empty() &&
+            thread_context->_transit_event_buffer->empty();
         }
       }
 
@@ -1369,30 +1377,30 @@ private:
 
   QUILL_ATTRIBUTE_HOT void _populate_formatted_log_message(TransitEvent* transit_event, char const* message_format)
   {
-    transit_event->formatted_msg.clear();
+    transit_event->formatted_msg->clear();
 
     QUILL_TRY
     {
-      fmtquill::vformat_to(std::back_inserter(transit_event->formatted_msg), message_format,
+      fmtquill::vformat_to(std::back_inserter(*transit_event->formatted_msg), message_format,
                            fmtquill::basic_format_args<fmtquill::format_context>{
                              _format_args_store.data(), _format_args_store.size()});
 
       if (_options.check_printable_char && _format_args_store.has_string_related_type())
       {
         // if non-printable chars check is configured or if any of the provided arguments are strings
-        sanitize_non_printable_chars(transit_event->formatted_msg, _options);
+        sanitize_non_printable_chars(*transit_event->formatted_msg, _options);
       }
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e)
     {
-      transit_event->formatted_msg.clear();
+      transit_event->formatted_msg->clear();
       std::string const error =
         fmtquill::format(R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
                          transit_event->macro_metadata->message_format(),
                          transit_event->macro_metadata->short_source_location(), e.what());
 
-      transit_event->formatted_msg.append(error);
+      transit_event->formatted_msg->append(error);
       _options.error_notifier(error);
     }
 #endif
@@ -1401,7 +1409,7 @@ private:
   template <typename TFormattedMsg>
   static void sanitize_non_printable_chars(TFormattedMsg& formatted_msg, BackendOptions const& options)
   {
-    // check for non printable characters in the formatted_msg
+    // check for non-printable characters in the formatted_msg
     bool contains_non_printable_char{false};
 
     for (char c : formatted_msg)

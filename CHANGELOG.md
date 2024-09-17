@@ -84,6 +84,8 @@
   backend thread has increased throughput around 5%
 - Simplified the `TransitEventBuffer` in the backend worker thread, resulting in a minor throughput improvement of
   approximately 1%.
+- Optimised the size of the `TransitEvent` structure, reducing its memory footprint and improving backend thread
+  throughput by an additional 3%.
 - Added an optional fsync interval to control the minimum time between consecutive fsync calls, reducing disk wear from
   frequent fsync operations. This option is only applicable when fsync is
   enabled. ([#557](https://github.com/odygrd/quill/issues/557))

@@ -174,8 +174,7 @@ public:
   void mark_invalid() noexcept { _valid.store(false, std::memory_order_relaxed); }
 
   /***/
-  QUILL_NODISCARD bool is_valid_context() const noexcept
-  {
+  QUILL_NODISCARD bool is_valid() const noexcept {
     return _valid.load(std::memory_order_relaxed);
   }
 
@@ -294,8 +293,7 @@ public:
     assert(thread_context_it != _thread_contexts.end() &&
            "Attempting to remove a non existent thread context");
 
-    assert(!thread_context_it->get()->is_valid_context() &&
-           "Attempting to remove a valid thread context");
+    assert(!thread_context_it->get()->is_valid() && "Attempting to remove a valid thread context");
 
 #ifndef NDEBUG
     assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());

@@ -105,6 +105,12 @@ public:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
   {
+#ifdef __MINGW32__
+  // Disable the array bounds warning for MinGW
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
     if (QUILL_UNLIKELY(index >= _size))
     {
       QUILL_THROW(QuillError{"index out of bounds"});
@@ -118,6 +124,11 @@ public:
     {
       return _storage.heap_buffer[index];
     }
+
+#ifdef __MINGW32__
+  // Re-enable the array bounds warning
+  #pragma GCC diagnostic pop
+#endif
   }
 
   /**
