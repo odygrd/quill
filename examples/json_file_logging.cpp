@@ -51,15 +51,23 @@ int main()
   auto json_sink_2 = quill::Frontend::get_sink("example_json.log");
   auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console_sink_id_1");
 
-  // We set a custom format pattern here to also include the named_args
+  // Define a custom format pattern for console logging, which includes named arguments in the output.
+  // If you prefer to omit named arguments from the log messages, you can remove the "[%(named_args)]" part.
+  quill::PatternFormatterOptions console_log_pattern = quill::PatternFormatterOptions{
+    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<20) "
+    "%(message) [%(named_args)]"};
+
+  // Create a logger named "hybrid_logger" that writes to both a JSON sink and a console sink.
+  // Note: The JSON sink uses its own internal format, so the custom format defined here
+  // will only apply to the console output (via console_sink).
   quill::Logger* hybrid_logger = quill::Frontend::create_or_get_logger(
-    "hybrid_logger", {std::move(json_sink_2), std::move(console_sink)},
-    quill::PatternFormatterOptions{
-      "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<20) "
-      "%(message) [%(named_args)]"});
+    "hybrid_logger", {std::move(json_sink_2), std::move(console_sink)}, console_log_pattern);
 
   for (int i = 2; i < 4; ++i)
   {
     LOG_INFO(hybrid_logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
   }
+
+  LOG_INFO(hybrid_logger, "Operation {name} completed with code {code}", "Update", 123,
+           "Data synced successfully");
 }

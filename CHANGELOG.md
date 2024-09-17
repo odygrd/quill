@@ -94,6 +94,22 @@
 - Fixed incorrect log level short codes introduced in v7 after adding NOTICE. Using `%(log_level_short_code)` in the
   formatter could incorrectly map `LOG_ERROR` to `"C"` and LOG_WARNING
   to `"E"`. ([#564](https://github.com/odygrd/quill/issues/564))
+- When the placeholder `%(named_args)` is enabled in the pattern formatter or when logging in JSON format, any extra
+  arguments passed in the log message without a key name will also be displayed in the JSON output with keys
+  corresponding to their positional indexes. This allows additional details to be included in the JSON while keeping the
+  log message clean. For example ([#563](https://github.com/odygrd/quill/discussions/563)):
+
+  ```cpp
+  LOG_INFO(hybrid_logger, "Operation {name} completed with code {code}", "Update", 123, "Data synced successfully");
+  ```
+  This will output:
+  ```
+  Operation Update completed with code 123
+  ```
+  And the corresponding JSON will be:
+  ```
+  {"timestamp":"1726582319816776867","file_name":"json_file_logging.cpp","line":"71","thread_id":"25462","logger":"hybrid_logger","log_level":"INFO","message":"Operation {name} completed with code {code}","name":"Update","code":"123","_2":"Data synced successfully"}
+  ```
 
 ## v7.1.0
 

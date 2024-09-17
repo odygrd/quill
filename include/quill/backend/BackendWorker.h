@@ -1290,9 +1290,11 @@ private:
 
     for (size_t i = 0; i < named_args.size(); ++i)
     {
-      // orig_arg_names[i].second is special format syntax for the named argument if provided, eg name:.2f
-      if (!orig_arg_names[i].second.empty())
+      // We need an additional check here because named_args can have a size greater than orig_arg_names
+      // This is because we are adding the arguments without a name with a placeholder name
+      if ((i < orig_arg_names.size()) && !orig_arg_names[i].second.empty())
       {
+        // orig_arg_names[i].second is special format syntax for the named argument if provided, eg name:.2f
         format_string += fmtquill::format("{{{}}}", orig_arg_names[i].second);
       }
       else
@@ -1326,6 +1328,7 @@ private:
       start = end + delimiter.length();
     }
 
+    // last value
     if (idx < named_args.size())
     {
       named_args[idx].second = formatted_values_str.substr(start);
@@ -1358,6 +1361,13 @@ private:
     for (size_t i = 0; i < arg_names.size(); ++i)
     {
       (*transit_event->named_args)[i].first = arg_names[i].first;
+    }
+
+    for (size_t i = arg_names.size(); i < static_cast<size_t>(_format_args_store.size()); ++i)
+    {
+      // we do not have a named_arg for the argument value here so we just append its index as a placeholder
+      transit_event->named_args->push_back(
+        std::pair<std::string, std::string>(fmtquill::format("_{}", i), std::string{}));
     }
 
     // Then populate all the values of each arg
