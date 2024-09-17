@@ -14,15 +14,14 @@ static constexpr size_t total_iterations = 4'000'000;
 int main()
 {
   // main thread affinity
-  quill::detail::set_cpu_affinity(0);
+  quill::detail::set_cpu_affinity(1);
 
   quill::BackendOptions backend_options;
   backend_options.cpu_affinity = 5;
+  backend_options.sleep_duration = std::chrono::nanoseconds{0};
 
   // Start the logging backend thread and give it some tiem to init
   quill::Backend::start(backend_options);
-
-  std::this_thread::sleep_for(std::chrono::milliseconds{100});
 
   // Create a file sink to write to a file
   std::shared_ptr<quill::Sink> file_sink = quill::Frontend::create_or_get_sink<quill::IOUringFileSink>(
@@ -41,7 +40,8 @@ int main()
       "%(time) [%(thread_id)] %(short_source_location) %(log_level) %(message)", "%H:%M:%S.%Qns",
       quill::Timezone::LocalTime, false});
 
-  quill::Frontend::preallocate();
+  LOG_INFO(logger, "preallocate");
+  logger->flush_log(0);
 
   // start counting the time until backend worker finishes
   auto const start_time = std::chrono::steady_clock::now();
