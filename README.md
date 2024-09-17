@@ -310,12 +310,12 @@ from the table.
 
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
-| [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       64.98        |    61 ms     |
-| [Quill](http://github.com/odygrd/quill)                           |        4.65        |    859 ms    |
-| [spdlog](http://github.com/gabime/spdlog)                         |        3.53        |   1131 ms    |
-| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.83        |   1411 ms    |
-| [Reckless](http://github.com/mattiasflodin/reckless)              |        2.74        |   1459 ms    |
-| [XTR](https://github.com/choll/xtr)                               |        2.60        |   1537 ms    |
+| [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       63.80        |    62 ms     |
+| [Quill](http://github.com/odygrd/quill)                           |        5.54        |    721 ms    |
+| [spdlog](http://github.com/gabime/spdlog)                         |        3.54        |   1128 ms    |
+| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.90        |   1378 ms    |
+| [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |
+| [XTR](https://github.com/choll/xtr)                               |        2.61        |   1534 ms    |
 
 ![throughput_chart.webp](docs%2Fcharts%2Fthroughput_chart.webp)
 
