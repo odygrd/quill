@@ -72,7 +72,7 @@ struct BackendOptions
    *
    * @note This number represents a limit across the messages received from ALL frontend threads.
    */
-  size_t transit_events_soft_limit = 800;
+  size_t transit_events_soft_limit = 4096;
 
   /**
    * The backend gives priority to reading messages from the frontend queues and temporarily
@@ -89,7 +89,7 @@ struct BackendOptions
    *
    * @note This number represents a limit PER frontend threads.
    */
-  size_t transit_events_hard_limit = 100'000;
+  size_t transit_events_hard_limit = 32'768;
 
   /**
    * The backend iterates through all frontend lock-free queues and pops all messages from each

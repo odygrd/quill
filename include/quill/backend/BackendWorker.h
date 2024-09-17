@@ -24,6 +24,7 @@
 #include "quill/core/LoggerBase.h"
 #include "quill/core/LoggerManager.h"
 #include "quill/core/MacroMetadata.h"
+#include "quill/core/MathUtils.h"
 #include "quill/core/QuillError.h"
 #include "quill/core/SinkManager.h"
 #include "quill/core/ThreadContextManager.h"
@@ -328,6 +329,24 @@ private:
     if (_options.transit_events_soft_limit == 0)
     {
       _options.transit_events_soft_limit = 1;
+    }
+
+    if (_options.transit_events_soft_limit > _options.transit_events_hard_limit)
+    {
+      QUILL_THROW(QuillError{fmtquill::format(
+        "transit_events_soft_limit ({}) cannot be greater than transit_events_hard_limit "
+        "({}). Please ensure that the soft limit is less than or equal to the hard limit.",
+        _options.transit_events_soft_limit, _options.transit_events_hard_limit)});
+    }
+    else if (!is_power_of_two(_options.transit_events_hard_limit))
+    {
+      QUILL_THROW(QuillError{fmtquill::format(
+        "transit_events_hard_limit ({}) must be a power of two", _options.transit_events_hard_limit)});
+    }
+    else if (!is_power_of_two(_options.transit_events_soft_limit))
+    {
+      QUILL_THROW(QuillError{fmtquill::format(
+        "transit_events_soft_limit ({}) must be a power of two", _options.transit_events_soft_limit)});
     }
   }
 

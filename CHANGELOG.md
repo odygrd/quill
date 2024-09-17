@@ -94,6 +94,8 @@
 - Fixed incorrect log level short codes introduced in v7 after adding NOTICE. Using `%(log_level_short_code)` in the
   formatter could incorrectly map `LOG_ERROR` to `"C"` and LOG_WARNING
   to `"E"`. ([#564](https://github.com/odygrd/quill/issues/564))
+- Tuned `transit_events_soft_limit` and `transit_events_hard_limit` values; added error checks for invalid
+  configurations.
 - When the placeholder `%(named_args)` is enabled in the pattern formatter or when logging in JSON format, any extra
   arguments passed in the log message without a key name will also be displayed in the JSON output with keys
   corresponding to their positional indexes. This allows additional details to be included in the JSON while keeping the
