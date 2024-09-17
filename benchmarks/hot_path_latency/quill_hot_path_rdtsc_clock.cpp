@@ -28,17 +28,12 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
   /** - MAIN THREAD START - Logger setup if any **/
 
   /** - Setup Quill **/
-  // main thread affinity
-  quill::detail::set_cpu_affinity(0);
-
   quill::BackendOptions backend_options;
   backend_options.cpu_affinity = 5;
   backend_options.sleep_duration = std::chrono::nanoseconds{0};
 
   // Start the logging backend thread and give it some tiem to init
   quill::Backend::start(backend_options);
-
-  std::this_thread::sleep_for(std::chrono::milliseconds{100});
 
   // wait for the backend thread to start
   std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -62,9 +57,11 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
 
   /** LOGGING THREAD FUNCTIONS - on_start, on_exit, log_func must be implemented **/
   /** those run on a several thread(s). It can be one or multiple threads based on THREAD_LIST_COUNT config */
-  auto on_start = []() {
+  auto on_start = [logger]()
+  {
     // on thread start
-    Frontend::preallocate();
+    LOG_INFO(logger, "preallocate");
+    logger->flush_log(0);
   };
 
   auto on_exit = [logger]()
