@@ -244,7 +244,7 @@ private:
     // Read all frontend queues and cache the log statements and the metadata as TransitEvents
     size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
 
-    if (cached_transit_events_count > 0)
+    if (cached_transit_events_count != 0)
     {
       // there are cached events to process
       if (cached_transit_events_count < _options.transit_events_soft_limit)
@@ -619,7 +619,11 @@ private:
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
-      if (!thread_context->_transit_event_buffer || thread_context->_transit_event_buffer->empty())
+      assert(thread_context->_transit_event_buffer &&
+             "transit_event_buffer should always be valid here as we always populate it with the "
+             "_active_thread_contexts_cache");
+
+      if (thread_context->_transit_event_buffer->empty())
       {
         // if there is no _transit_event_buffer yet then check only the queue
         if (thread_context->has_unbounded_queue_type() &&
@@ -650,20 +654,21 @@ private:
 
     for (ThreadContext* tc : _active_thread_contexts_cache)
     {
-      if (tc->_transit_event_buffer)
+      assert(tc->_transit_event_buffer &&
+             "transit_event_buffer should always be valid here as we always populate it with the "
+             "_active_thread_contexts_cache");
+
+      TransitEvent const* te = tc->_transit_event_buffer->front();
+      if (te && (min_ts > te->timestamp))
       {
-        TransitEvent const* te = tc->_transit_event_buffer->front();
-        if (te && (min_ts > te->timestamp))
-        {
-          min_ts = te->timestamp;
-          thread_context = tc;
-        }
+        min_ts = te->timestamp;
+        thread_context = tc;
       }
     }
 
     if (!thread_context)
     {
-      // all buffers are empty
+      // all transit event buffers are empty
       return false;
     }
 
@@ -1072,10 +1077,11 @@ private:
         all_empty &= thread_context->get_spsc_queue_union().bounded_spsc_queue.empty();
       }
 
-      if (thread_context->_transit_event_buffer)
-      {
-        all_empty &= thread_context->_transit_event_buffer->empty();
-      }
+      assert(tc->_transit_event_buffer &&
+             "transit_event_buffer should always be valid here as we always populate it with the "
+             "_active_thread_contexts_cache");
+
+      all_empty &= thread_context->_transit_event_buffer->empty();
     }
 
     return all_empty;
@@ -1198,36 +1204,25 @@ private:
     {
       // If the thread context is invalid it means the thread that created it has now died.
       // We also want to empty the queue from all LogRecords before removing the thread context
-      if (!thread_context->is_valid_context())
+      if (!thread_context->is_valid())
       {
-        bool empty_frontend_queue{false};
-
         assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());
+
+        assert(thread_context->_transit_event_buffer &&
+               "transit_event_buffer should always be valid here as we always populate it with the "
+               "_active_thread_contexts_cache");
 
         // detect empty queue
         if (thread_context->has_unbounded_queue_type())
         {
-          empty_frontend_queue = thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty();
-        }
-        else if (thread_context->has_bounded_queue_type())
-        {
-          empty_frontend_queue = thread_context->get_spsc_queue_union().bounded_spsc_queue.empty();
+          return thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty() &&
+            thread_context->_transit_event_buffer->empty();
         }
 
-        if (empty_frontend_queue)
+        if (thread_context->has_bounded_queue_type())
         {
-          if (thread_context->_transit_event_buffer)
-          {
-            if (thread_context->_transit_event_buffer->empty())
-            {
-              return true;
-            }
-          }
-          else
-          {
-            // if _transit_event_buffer is not used, checking for the empty queue is enough
-            return true;
-          }
+          return thread_context->get_spsc_queue_union().bounded_spsc_queue.empty() &&
+            thread_context->_transit_event_buffer->empty();
         }
       }
 
@@ -1414,7 +1409,7 @@ private:
   template <typename TFormattedMsg>
   static void sanitize_non_printable_chars(TFormattedMsg& formatted_msg, BackendOptions const& options)
   {
-    // check for non printable characters in the formatted_msg
+    // check for non-printable characters in the formatted_msg
     bool contains_non_printable_char{false};
 
     for (char c : formatted_msg)

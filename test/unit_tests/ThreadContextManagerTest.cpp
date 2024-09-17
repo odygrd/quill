@@ -66,7 +66,7 @@ TEST_CASE("add_and_remove_thread_contexts")
     ThreadContextManager::instance().for_each_thread_context(
       [&thread_ctx_cnt](ThreadContext const* tc)
       {
-        REQUIRE(tc->is_valid_context());
+        REQUIRE(tc->is_valid());
         REQUIRE(tc->get_spsc_queue<FrontendOptions::queue_type>().empty());
         ++thread_ctx_cnt;
       });
@@ -92,7 +92,7 @@ TEST_CASE("add_and_remove_thread_contexts")
     ThreadContextManager::instance().for_each_thread_context(
       [&tc_cache](ThreadContext const* tc)
       {
-        REQUIRE_FALSE(tc->is_valid_context());
+        REQUIRE_FALSE(tc->is_valid());
         REQUIRE(tc->get_spsc_queue<FrontendOptions::queue_type>().empty());
         tc_cache.push_back(tc);
       });
