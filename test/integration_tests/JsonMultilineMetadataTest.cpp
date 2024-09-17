@@ -65,13 +65,13 @@ TEST_CASE("json_multi_line_metadata")
            "data1", "data2");
   LOG_WARNING(logger_a, "Warning: Multiple issues detected:\n1. {val_1}.\n2. {val_2}.\n3. {val_3}.",
               "issue1", "issue2", "issue3");
-  LOG_INFO(logger_a, "Another multiline info message.\nLine 2: {val_1}\n", "data1", "data2");
+  LOG_INFO(logger_a, "Another multiline info message.\nLine 2: {val_1}\n", "data1");
 
   LOG_INFO(logger_b, "This is a multiline info message.\nLine 2: {val_1}.\nLine 3: {val_2}.",
            "data3", "data4");
   LOG_WARNING(logger_b, "Warning: Multiple issues detected:\n1. {val_1}.\n2. {val_2}.\n3. {val_3}.",
               "issue4", "issue5", "issue6");
-  LOG_INFO(logger_b, "Another multiline info message.\nLine 2: {val_1}\n", "data1", "data2");
+  LOG_INFO(logger_b, "Another multiline info message.\nLine 2: {val_1}\n", "data1");
 
   logger_a->flush_log();
   Frontend::remove_logger(logger_a);

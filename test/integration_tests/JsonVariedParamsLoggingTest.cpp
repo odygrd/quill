@@ -59,7 +59,7 @@ private:
  **/
 TEST_CASE("json_varied_params_logging")
 {
-  static constexpr size_t number_of_messages = 128u;
+  static constexpr size_t number_of_messages = 127u;
   static constexpr char const* filename = "json_varied_params_logging.json";
 
   // Start the logging backend thread
