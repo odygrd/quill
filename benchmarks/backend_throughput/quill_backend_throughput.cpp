@@ -44,7 +44,7 @@ int main()
 
   LOG_INFO(logger, "preallocate");
   logger->flush_log(0);
-  
+
   // start counting the time until backend worker finishes
   auto const start_time = std::chrono::steady_clock::now();
   for (size_t iteration = 0; iteration < total_iterations; ++iteration)

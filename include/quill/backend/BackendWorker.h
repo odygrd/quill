@@ -1077,7 +1077,7 @@ private:
         all_empty &= thread_context->get_spsc_queue_union().bounded_spsc_queue.empty();
       }
 
-      assert(tc->_transit_event_buffer &&
+      assert(thread_context->_transit_event_buffer &&
              "transit_event_buffer should always be valid here as we always populate it with the "
              "_active_thread_contexts_cache");
 
