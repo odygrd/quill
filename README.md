@@ -288,15 +288,13 @@ default size of `131,072` bytes._
 
 ### Throughput
 
-Throughput is measured by calculating the maximum number of log messages the backend logging thread can write to a log
-file per second.
+Throughput is measured by calculating the maximum number of log messages the backend logging thread can write to a log file per second.
 
 The tests were run on the same system used for the latency benchmarks.
 
 Although Quill’s primary focus is not on maximizing throughput, it efficiently manages log messages across multiple
 threads. Benchmarking throughput of asynchronous logging libraries presents certain challenges. Some libraries may drop
-log messages, leading to smaller-than-expected log files, while others only provide asynchronous flushing, making it
-difficult to verify when the backend thread has fully processed all messages.
+log messages, leading to smaller-than-expected log files, while others only provide asynchronous flushing, making it difficult to verify when the backend thread has fully processed all messages.
 
 For comparison, we benchmark against other asynchronous logging libraries that offer guaranteed logging with a
 flush-and-wait mechanism.
@@ -307,6 +305,8 @@ program—this makes it an unfair comparison, but it is included for reference.
 Similarly, `Platformlab Nanolog` also outputs binary logs and is expected to deliver high throughput. However, for
 reasons unexplained, the benchmark runs significantly slower (10x longer) than the other libraries, so it is excluded
 from the table.
+
+Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
