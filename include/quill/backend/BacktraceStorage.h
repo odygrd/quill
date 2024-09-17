@@ -31,32 +31,19 @@ public:
   BacktraceStorage() = default;
 
   /***/
-  void store(TransitEvent transit_event)
+  void store(TransitEvent transit_event, std::string_view const& thread_id, std::string_view const& thread_name)
   {
     if (_stored_events.size() < _capacity)
     {
       // We are still growing the vector to max capacity
-      auto& emplaced =
-        _stored_events.emplace_back(std::string{transit_event.thread_name},
-                                    std::string{transit_event.thread_id}, std::move(transit_event));
-
-      // we want to point the transit event objects to ours because they can point to invalid memory
-      // if the thread is destructed
-      emplaced.transit_event.thread_name = emplaced.thread_name;
-      emplaced.transit_event.thread_id = emplaced.thread_id;
+      _stored_events.emplace_back(std::string{thread_id}, std::string{thread_name}, std::move(transit_event));
     }
     else
     {
       // Store the object in the vector, replacing the previous
       StoredTransitEvent& ste = _stored_events[_index];
 
-      ste = StoredTransitEvent{std::string{transit_event.thread_name},
-                               std::string{transit_event.thread_id}, std::move(transit_event)};
-
-      // we want to point the transit event objects to ours because they can point to invalid memory
-      // if the thread is destructed
-      ste.transit_event.thread_name = ste.thread_name;
-      ste.transit_event.thread_id = ste.thread_id;
+      ste = StoredTransitEvent{std::string{thread_id}, std::string{thread_name}, std::move(transit_event)};
 
       // Update the index wrapping around the vector capacity
       if (_index < _capacity - 1)
@@ -71,7 +58,7 @@ public:
   }
 
   /***/
-  void process(std::function<void(TransitEvent const&)> const& callback)
+  void process(std::function<void(TransitEvent const&, std::string_view thread_id, std::string_view thread_name)> const& callback)
   {
     // we found stored messages for this logger
     uint32_t index = _index;
@@ -80,7 +67,8 @@ public:
     for (uint32_t i = 0; i < _stored_events.size(); ++i)
     {
       // Give to the user callback the thread id and the RecordBase pointer
-      callback(_stored_events[index].transit_event);
+      callback(_stored_events[index].transit_event, _stored_events[index].thread_id,
+               _stored_events[index].thread_name);
 
       // We wrap around to iterate all messages
       if (index < _stored_events.size() - 1)
@@ -112,9 +100,9 @@ public:
 private:
   struct StoredTransitEvent
   {
-    StoredTransitEvent(std::string thread_name, std::string thread_id, TransitEvent transit_event)
-      : thread_name(std::move(thread_name)),
-        thread_id(std::move(thread_id)),
+    StoredTransitEvent(std::string thread_id, std::string thread_name, TransitEvent transit_event)
+      : thread_id(std::move(thread_id)),
+        thread_name(std::move(thread_name)),
         transit_event(std::move(transit_event))
     {
     }
@@ -123,8 +111,8 @@ private:
      * We use this to take o copy of some objects that are out of space when a thread finishes but
      * the transit events are still in the buffer
      */
-    std::string thread_name;
     std::string thread_id;
+    std::string thread_name;
     TransitEvent transit_event;
   };
 

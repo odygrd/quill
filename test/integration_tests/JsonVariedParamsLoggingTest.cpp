@@ -35,15 +35,15 @@ public:
     {
       for (auto const& [key, value] : *named_args)
       {
-        _json_message.append(",\"");
+        _json_message.append(std::string_view{",\""});
         _json_message.append(key);
-        _json_message.append("\":\"");
+        _json_message.append(std::string_view{"\":\""});
         _json_message.append(value);
-        _json_message.append("\"");
+        _json_message.append(std::string_view{"\""});
       }
     }
 
-    _json_message.append("}\n");
+    _json_message.append(std::string_view{"}\n"});
 
     StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
                           log_level_description, log_level_short_code, named_args, std::string_view{},
@@ -51,7 +51,7 @@ public:
   }
 
 private:
-  detail::FormatBuffer _json_message;
+  fmtquill::memory_buffer _json_message;
 };
 
 /**
