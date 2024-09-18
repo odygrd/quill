@@ -122,8 +122,8 @@ public:
 
     if constexpr (is_unbounded_queue)
     {
-      write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(
-        total_size, frontend_options_t::queue_type);
+      write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>()
+                       .template prepare_write<frontend_options_t::queue_type>(total_size);
     }
     else
     {
@@ -168,8 +168,8 @@ public:
           // not enough space to push to queue, keep trying
           if constexpr (is_unbounded_queue)
           {
-            write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(
-              total_size, frontend_options_t::queue_type);
+            write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>()
+                             .template prepare_write<frontend_options_t::queue_type>(total_size);
           }
           else
           {

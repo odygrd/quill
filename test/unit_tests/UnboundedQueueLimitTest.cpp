@@ -17,26 +17,26 @@ TEST_CASE("unbounded_queue_max_limit")
 {
   UnboundedSPSCQueue buffer{1024};
 
-  auto* write_buffer_a = buffer.prepare_write(half_gb, quill::QueueType::UnboundedUnlimited);
+  auto* write_buffer_a = buffer.prepare_write<quill::QueueType::UnboundedUnlimited>(half_gb);
   REQUIRE(write_buffer_a);
   buffer.finish_write(half_gb);
   buffer.commit_write();
 
-  auto* write_buffer_b = buffer.prepare_write(two_gb, quill::QueueType::UnboundedUnlimited);
+  auto* write_buffer_b = buffer.prepare_write<quill::QueueType::UnboundedUnlimited>(two_gb);
   REQUIRE(write_buffer_b);
   buffer.finish_write(two_gb);
   buffer.commit_write();
 
   // Buffer is filled with two GB here, we can try to reserve more to allocate another queue
-  auto* write_buffer_c = buffer.prepare_write(two_gb, quill::QueueType::UnboundedBlocking);
+  auto* write_buffer_c = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(two_gb);
   REQUIRE_FALSE(write_buffer_c);
 
-  write_buffer_c = buffer.prepare_write(two_gb, quill::QueueType::UnboundedDropping);
+  write_buffer_c = buffer.prepare_write<quill::QueueType::UnboundedDropping>(two_gb);
   REQUIRE_FALSE(write_buffer_c);
 
   // Buffer is filled with two GB here, we can try to reserve more to allocate another queue
   // for the UnboundedLimit queue
-  write_buffer_c = buffer.prepare_write(two_gb, quill::QueueType::UnboundedUnlimited);
+  write_buffer_c = buffer.prepare_write<quill::QueueType::UnboundedUnlimited>(two_gb);
   REQUIRE(write_buffer_c);
   buffer.finish_write(two_gb);
   buffer.commit_write();
@@ -66,7 +66,7 @@ TEST_CASE("unbounded_queue_unbounded_unlimited")
   // Try to allocate over 2GB
   auto func = [&buffer]()
   {
-    auto* write_buffer_z = buffer.prepare_write(three_gb, quill::QueueType::UnboundedUnlimited);
+    auto* write_buffer_z = buffer.prepare_write<quill::QueueType::UnboundedUnlimited>(three_gb);
     return write_buffer_z;
   };
   REQUIRE_NOTHROW(func());
@@ -79,7 +79,7 @@ TEST_CASE("unbounded_queue_unbounded_blocking")
   // Try to allocate over 2GB
   auto func = [&buffer]()
   {
-    auto* write_buffer_z = buffer.prepare_write(three_gb, quill::QueueType::UnboundedBlocking);
+    auto* write_buffer_z = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(three_gb);
     return write_buffer_z;
   };
   REQUIRE_THROWS_AS(func(), quill::QuillError);
@@ -92,7 +92,7 @@ TEST_CASE("unbounded_queue_unbounded_dropping")
   // Try to allocate over 2GB
   auto func = [&buffer]()
   {
-    auto* write_buffer_z = buffer.prepare_write(three_gb, quill::QueueType::UnboundedDropping);
+    auto* write_buffer_z = buffer.prepare_write<quill::QueueType::UnboundedDropping>(three_gb);
     return write_buffer_z;
   };
   REQUIRE_THROWS_AS(func(), quill::QuillError);
