@@ -9,8 +9,8 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
-#include "quill/core/QuillError.h"
 #include "quill/core/MathUtils.h"
+#include "quill/core/QuillError.h"
 
 #include <atomic>
 #include <cassert>
@@ -49,7 +49,7 @@ private:
      * @param bounded_queue_capacity the capacity of the fixed buffer
      * @param huge_pages_enabled enables huge pages
      */
-    explicit Node(uint32_t bounded_queue_capacity, bool huge_pages_enabled)
+    explicit Node(size_t bounded_queue_capacity, bool huge_pages_enabled)
       : bounded_queue(bounded_queue_capacity, huge_pages_enabled)
     {
     }
@@ -65,15 +65,15 @@ public:
     explicit ReadResult(std::byte* read_position) : read_pos(read_position) {}
 
     std::byte* read_pos;
-    uint32_t previous_capacity{0};
-    uint32_t new_capacity{0};
+    size_t previous_capacity{0};
+    size_t new_capacity{0};
     bool allocation{false};
   };
 
   /**
    * Constructor
    */
-  explicit UnboundedSPSCQueue(uint32_t initial_bounded_queue_capacity, bool huges_pages_enabled = false)
+  explicit UnboundedSPSCQueue(size_t initial_bounded_queue_capacity, bool huges_pages_enabled = false)
     : _producer(new Node(initial_bounded_queue_capacity, huges_pages_enabled)), _consumer(_producer)
   {
   }
@@ -106,7 +106,7 @@ public:
    * making it visible to the consumer.
    * @return a valid point to the buffer
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(uint32_t nbytes, QueueType queue_type)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes, QueueType queue_type)
   {
     // Try to reserve the bounded queue
     std::byte* write_pos = _producer->bounded_queue.prepare_write(nbytes);
@@ -117,42 +117,48 @@ public:
     }
 
     // Then it means the queue doesn't have enough size
-    uint64_t capacity = static_cast<uint64_t>(_producer->bounded_queue.capacity()) * 2ull;
+    size_t capacity = _producer->bounded_queue.capacity() * 2ull;
     while (capacity < (nbytes + 1))
     {
       capacity = capacity * 2ull;
     }
 
-    // bounded queue max power of 2 capacity since uint32_t type is used to hold the value 2147483648 bytes
-    uint64_t constexpr max_bounded_queue_capacity = max_power_of_two<BoundedSPSCQueue::integer_type>();
+    size_t constexpr max_bounded_queue_size = 2ull * 1024 * 1024 * 1024; // 2 GB
 
-    if (QUILL_UNLIKELY(capacity > max_bounded_queue_capacity))
+    if (QUILL_UNLIKELY(capacity > max_bounded_queue_size))
     {
-      if ((nbytes + 1) > max_bounded_queue_capacity)
-      {
-        QUILL_THROW(QuillError{
-          "logging single messages greater than 2 GB is not supported. nbytes: " + std::to_string(nbytes) +
-          " capacity: " + std::to_string(capacity) +
-          " max_bounded_queue_capacity: " + std::to_string(max_bounded_queue_capacity)});
-      }
-
       if ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
       {
+        if (nbytes > max_bounded_queue_size)
+        {
+          QUILL_THROW(QuillError{
+            "Logging single messages larger than 2 GB is not supported with the current queue "
+            "type. For UnboundedBlocking or UnboundedDropping queues, this limitation applies.\n"
+            "To log single messages larger than 2 GB, consider using the UnboundedUnlimited queue "
+            "type.\n"
+            "Message size: " +
+            std::to_string(nbytes) +
+            " bytes\n"
+            "Required queue capacity: " +
+            std::to_string(capacity) +
+            " bytes\n"
+            "Maximum allowed queue capacity: " +
+            std::to_string(max_bounded_queue_size) + " bytes"});
+        }
+
         // we reached the unbounded queue limit of 2147483648 bytes (~2GB) we won't be allocating
         // anymore and instead return nullptr to block or drop
         return nullptr;
       }
 
-      // else the UnboundedNonBlocking queue has no limits and will keep allocating additional 2GB queues
-      capacity = max_bounded_queue_capacity;
+      // else the UnboundedUnlimited queue has no limits
     }
 
     // commit previous write to the old queue before switching
     _producer->bounded_queue.commit_write();
 
     // We failed to reserve because the queue was full, create a new node with a new queue
-    auto const next_node =
-      new Node{static_cast<uint32_t>(capacity), _producer->bounded_queue.huge_pages_enabled()};
+    auto const next_node = new Node{capacity, _producer->bounded_queue.huge_pages_enabled()};
 
     // store the new node pointer as next in the current node
     _producer->next.store(next_node, std::memory_order_release);
@@ -171,7 +177,7 @@ public:
    * Complement to reserve producer space that makes nbytes starting
    * from the return of reserve producer space visible to the consumer.
    */
-  QUILL_ATTRIBUTE_HOT void finish_write(uint32_t nbytes) noexcept
+  QUILL_ATTRIBUTE_HOT void finish_write(size_t nbytes) noexcept
   {
     _producer->bounded_queue.finish_write(nbytes);
   }
@@ -229,7 +235,7 @@ public:
    * Consumes the next nbytes in the buffer and frees it back
    * for the producer to reuse.
    */
-  QUILL_ATTRIBUTE_HOT void finish_read(uint32_t nbytes) noexcept
+  QUILL_ATTRIBUTE_HOT void finish_read(size_t nbytes) noexcept
   {
     _consumer->bounded_queue.finish_read(nbytes);
   }
@@ -243,7 +249,7 @@ public:
    * Return the current buffer's capacity
    * @return capacity
    */
-  QUILL_NODISCARD uint32_t capacity() const noexcept { return _consumer->bounded_queue.capacity(); }
+  QUILL_NODISCARD size_t capacity() const noexcept { return _consumer->bounded_queue.capacity(); }
 
   /**
    * checks if the queue is empty

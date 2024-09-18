@@ -9,13 +9,13 @@ TEST_SUITE_BEGIN("UnboundedQueue");
 
 using namespace quill::detail;
 
+constexpr static uint64_t half_gb = 500u * 1024u * 1024u;
+constexpr static uint64_t two_gb = 2u * 1024u * 1024u * 1024u - 1;
+constexpr static uint64_t three_gb = 3u * 1024u * 1024u * 1024u;
+
 TEST_CASE("unbounded_queue_max_limit")
 {
   UnboundedSPSCQueue buffer{1024};
-
-  constexpr static uint64_t half_gb = 500u * 1024u * 1024u;
-  constexpr static uint64_t two_gb = 2u * 1024u * 1024u * 1024u - 1;
-  constexpr static uint64_t three_gb = 3u * 1024u * 1024u * 1024u;
 
   auto* write_buffer_a = buffer.prepare_write(half_gb, quill::QueueType::UnboundedUnlimited);
   REQUIRE(write_buffer_a);
@@ -41,14 +41,6 @@ TEST_CASE("unbounded_queue_max_limit")
   buffer.finish_write(two_gb);
   buffer.commit_write();
 
-  // Try to allocate over 2GB
-  auto func = [&buffer]()
-  {
-    auto* write_buffer_z = buffer.prepare_write(three_gb, quill::QueueType::UnboundedUnlimited);
-    return write_buffer_z;
-  };
-  REQUIRE_THROWS_AS(func(), quill::QuillError);
-
   auto read_result_a = buffer.prepare_read();
   REQUIRE(read_result_a.read_pos);
   buffer.finish_read(half_gb);
@@ -66,4 +58,44 @@ TEST_CASE("unbounded_queue_max_limit")
 
   REQUIRE(buffer.empty());
 }
+
+TEST_CASE("unbounded_queue_unbounded_unlimited")
+{
+  UnboundedSPSCQueue buffer{1024};
+
+  // Try to allocate over 2GB
+  auto func = [&buffer]()
+  {
+    auto* write_buffer_z = buffer.prepare_write(three_gb, quill::QueueType::UnboundedUnlimited);
+    return write_buffer_z;
+  };
+  REQUIRE_NOTHROW(func());
+}
+
+TEST_CASE("unbounded_queue_unbounded_blocking")
+{
+  UnboundedSPSCQueue buffer{1024};
+
+  // Try to allocate over 2GB
+  auto func = [&buffer]()
+  {
+    auto* write_buffer_z = buffer.prepare_write(three_gb, quill::QueueType::UnboundedBlocking);
+    return write_buffer_z;
+  };
+  REQUIRE_THROWS_AS(func(), quill::QuillError);
+}
+
+TEST_CASE("unbounded_queue_unbounded_dropping")
+{
+  UnboundedSPSCQueue buffer{1024};
+
+  // Try to allocate over 2GB
+  auto func = [&buffer]()
+  {
+    auto* write_buffer_z = buffer.prepare_write(three_gb, quill::QueueType::UnboundedDropping);
+    return write_buffer_z;
+  };
+  REQUIRE_THROWS_AS(func(), quill::QuillError);
+}
+
 TEST_SUITE_END();

@@ -123,12 +123,11 @@ public:
     if constexpr (is_unbounded_queue)
     {
       write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(
-        static_cast<uint32_t>(total_size), frontend_options_t::queue_type);
+        total_size, frontend_options_t::queue_type);
     }
     else
     {
-      write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(
-        static_cast<uint32_t>(total_size));
+      write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
     }
 
     if constexpr (frontend_options_t::queue_type == QueueType::UnboundedUnlimited)
@@ -170,12 +169,11 @@ public:
           if constexpr (is_unbounded_queue)
           {
             write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(
-              static_cast<uint32_t>(total_size), frontend_options_t::queue_type);
+              total_size, frontend_options_t::queue_type);
           }
           else
           {
-            write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(
-              static_cast<uint32_t>(total_size));
+            write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
           }
         } while (write_buffer == nullptr);
       }
@@ -205,11 +203,11 @@ public:
 
 #ifndef NDEBUG
     assert((write_buffer > write_begin) && "write_buffer must be greater than write_begin");
-    assert(total_size == (static_cast<uint32_t>(write_buffer - write_begin)) &&
+    assert(total_size == (static_cast<size_t>(write_buffer - write_begin)) &&
            "The committed write bytes must be equal to the total_size requested bytes");
 #endif
 
-    thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(static_cast<uint32_t>(total_size));
+    thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(total_size);
     thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();
 
     if constexpr (immediate_flush)

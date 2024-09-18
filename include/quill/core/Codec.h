@@ -119,7 +119,7 @@ struct Codec
       // the reason for this is that if we create e.g:
       // std::string msg = fmtquill::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
       // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
-      return sizeof(size_t) + arg.length();
+      return sizeof(uint32_t) + static_cast<uint32_t>(arg.length());
     }
     else
     {
@@ -142,7 +142,7 @@ struct Codec
     else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
     {
       size_t constexpr N = std::extent_v<Arg>;
-      size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+      uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
 
       if (QUILL_UNLIKELY(len > N))
       {
@@ -161,7 +161,7 @@ struct Codec
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
       // null terminator is included in the len for c style strings
-      size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+      uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
       std::memcpy(buffer, arg, len);
       buffer += len;
     }
@@ -169,7 +169,7 @@ struct Codec
     {
       // for std::string we store the size first, in order to correctly retrieve it
       // Copy the length first and then the actual string
-      size_t const len = arg.length();
+      auto const len = static_cast<uint32_t>(arg.length());
       std::memcpy(buffer, &len, sizeof(len));
       buffer += sizeof(len);
       std::memcpy(buffer, arg.data(), len);
@@ -207,7 +207,7 @@ struct Codec
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
       // for std::string we first need to retrieve the length
-      size_t len;
+      uint32_t len;
       std::memcpy(&len, buffer, sizeof(len));
       buffer += sizeof(len);
       std::string_view const arg = std::string_view{reinterpret_cast<char const*>(buffer), len};
