@@ -331,7 +331,7 @@ private:
   integer_type _last_flushed_reader_pos{0};
 };
 
-using BoundedSPSCQueue = BoundedSPSCQueueImpl<uint32_t>;
+using BoundedSPSCQueue = BoundedSPSCQueueImpl<size_t>;
 } // namespace detail
 
 QUILL_END_NAMESPACE

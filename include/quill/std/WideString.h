@@ -51,14 +51,14 @@ struct Codec<T,
 
     // also include the size of the string in the buffer as a separate variable
     // we can retrieve it when we decode. We do not store the null terminator in the buffer
-    return static_cast<size_t>(sizeof(size_t) + (len * sizeof(wchar_t)));
+    return sizeof(uint32_t) + (static_cast<uint32_t>(len) * sizeof(wchar_t));
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, T const& arg) noexcept
   {
     // The wide string size in bytes
-    size_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+    uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
     std::memcpy(buffer, &len, sizeof(len));
     buffer += sizeof(len);
 
@@ -83,7 +83,7 @@ struct Codec<T,
 
   static std::wstring_view decode_arg(std::byte*& buffer)
   {
-    size_t len;
+    uint32_t len;
     std::memcpy(&len, buffer, sizeof(len));
     buffer += sizeof(len);
     auto arg = std::wstring_view{reinterpret_cast<wchar_t const*>(buffer), len};
