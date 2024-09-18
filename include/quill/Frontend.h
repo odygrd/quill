@@ -43,8 +43,8 @@ public:
    */
   QUILL_ATTRIBUTE_COLD static void preallocate()
   {
-    uint32_t const volatile spsc_queue_capacity = detail::get_local_thread_context<TFrontendOptions>()
-                                                    ->template get_spsc_queue<TFrontendOptions::queue_type>()
+    auto const volatile spsc_queue_capacity = detail::get_local_thread_context<TFrontendOptions>()
+                                                ->template get_spsc_queue<TFrontendOptions::queue_type>()
                                                     .capacity();
 
     // On windows and c++17, QUILL_MAYBE_UNUSED won't work

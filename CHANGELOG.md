@@ -94,6 +94,8 @@
 - Fixed incorrect log level short codes introduced in v7 after adding NOTICE. Using `%(log_level_short_code)` in the
   formatter could incorrectly map `LOG_ERROR` to `"C"` and LOG_WARNING
   to `"E"`. ([#564](https://github.com/odygrd/quill/issues/564))
+- Fixed an overflow issue when logging more than uint32_t::max() bytes in a single log message. For example, attempting
+  to log std::string s(std::numeric_limits<uint32_t>::max(), 'a'); would cause a crash.
 - Tuned `transit_events_soft_limit` and `transit_events_hard_limit` values; added error checks for invalid
   configurations.
 - When the placeholder `%(named_args)` is enabled in the pattern formatter or when logging in JSON format, any extra
