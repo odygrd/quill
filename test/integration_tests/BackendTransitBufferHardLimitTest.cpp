@@ -24,6 +24,7 @@ TEST_CASE("backend_transit_buffer_hard_limit")
   // Start the backend thread
   BackendOptions backend_options;
   backend_options.transit_events_hard_limit = 0;
+  backend_options.transit_events_soft_limit = 0;
   backend_options.transit_event_buffer_initial_capacity = 0;
   Backend::start(backend_options);
 

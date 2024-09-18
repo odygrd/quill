@@ -18,7 +18,7 @@ TEST_CASE("backend_transit_buffer_soft_limit")
 {
   static constexpr char const* filename = "backend_transit_buffer_soft_limit.log";
   static std::string const logger_name = "logger";
-  size_t constexpr soft_limit = 100;
+  size_t constexpr soft_limit = 128;
 
   // First log some messages and then start the backend worker thread so that the soft limit is hit
 

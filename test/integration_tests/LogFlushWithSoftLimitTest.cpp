@@ -18,7 +18,7 @@ TEST_CASE("log_flush_with_soft_limit_test")
 {
   static constexpr char const* filename = "log_flush_with_soft_limit_test.log";
   static std::string const logger_name = "logger";
-  static size_t constexpr soft_limit = 100;
+  static size_t constexpr soft_limit = 128;
 
   // make sure we at least x 100 the soft limit to make sure we are testing what we want
   // to not reduce this number. Increasing is fine
