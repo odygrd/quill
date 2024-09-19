@@ -9,13 +9,12 @@ TEST_SUITE_BEGIN("UnboundedQueue");
 
 using namespace quill::detail;
 
-constexpr static uint64_t half_gb = 500u * 1024u * 1024u;
-constexpr static uint64_t two_gb = 2u * 1024u * 1024u * 1024u - 1;
-constexpr static uint64_t three_gb = 3u * 1024u * 1024u * 1024u;
-
 TEST_CASE("unbounded_queue_max_limit")
 {
   UnboundedSPSCQueue buffer{1024};
+
+  constexpr static uint64_t half_gb = 500u * 1024u * 1024u;
+  constexpr static uint64_t two_gb = 2u * 1024u * 1024u * 1024u - 1;
 
   auto* write_buffer_a = buffer.prepare_write<quill::QueueType::UnboundedUnlimited>(half_gb);
   REQUIRE(write_buffer_a);
