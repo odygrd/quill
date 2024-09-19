@@ -193,7 +193,7 @@ set(HEADER_FILES
         include/quill/core/LoggerManager.h
         include/quill/core/LogLevel.h
         include/quill/core/MacroMetadata.h
-        include/quill/core/MathUtils.h
+        include/quill/core/MathUtilities.h
         include/quill/core/PatternFormatterOptions.h
         include/quill/core/QuillError.h
         include/quill/core/Rdtsc.h

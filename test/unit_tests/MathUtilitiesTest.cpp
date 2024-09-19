@@ -1,9 +1,9 @@
 #include "doctest/doctest.h"
 
 #include "misc/TestUtilities.h"
-#include "quill/core/MathUtils.h"
+#include "quill/core/MathUtilities.h"
 
-TEST_SUITE_BEGIN("MathUtils");
+TEST_SUITE_BEGIN("MathUtilities");
 
 using namespace quill::detail;
 using namespace quill;

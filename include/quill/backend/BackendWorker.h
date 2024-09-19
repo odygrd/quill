@@ -24,7 +24,7 @@
 #include "quill/core/LoggerBase.h"
 #include "quill/core/LoggerManager.h"
 #include "quill/core/MacroMetadata.h"
-#include "quill/core/MathUtils.h"
+#include "quill/core/MathUtilities.h"
 #include "quill/core/QuillError.h"
 #include "quill/core/SinkManager.h"
 #include "quill/core/ThreadContextManager.h"
