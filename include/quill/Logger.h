@@ -114,21 +114,7 @@ public:
       total_size += sizeof(dynamic_log_level);
     }
 
-    constexpr bool is_unbounded_queue = (frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
-      (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
-      (frontend_options_t::queue_type == QueueType::UnboundedDropping);
-
-    std::byte* write_buffer;
-
-    if constexpr (is_unbounded_queue)
-    {
-      write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>()
-                       .template prepare_write<frontend_options_t::queue_type>(total_size);
-    }
-    else
-    {
-      write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
-    }
+    std::byte* write_buffer = _prepare_write_buffer(total_size);
 
     if constexpr (frontend_options_t::queue_type == QueueType::UnboundedUnlimited)
     {
@@ -166,15 +152,7 @@ public:
           }
 
           // not enough space to push to queue, keep trying
-          if constexpr (is_unbounded_queue)
-          {
-            write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>()
-                             .template prepare_write<frontend_options_t::queue_type>(total_size);
-          }
-          else
-          {
-            write_buffer = thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
-          }
+          write_buffer = _prepare_write_buffer(total_size);
         } while (write_buffer == nullptr);
       }
     }
@@ -356,6 +334,32 @@ private:
     write_buffer += sizeof(uintptr_t);
 
     return write_buffer;
+  }
+
+  /**
+   * Prepares a write buffer for the given context and size.
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _prepare_write_buffer(size_t total_size)
+  {
+    constexpr bool is_unbounded_queue = (frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
+      (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
+      (frontend_options_t::queue_type == QueueType::UnboundedDropping);
+
+    if constexpr (is_unbounded_queue)
+    {
+      // MSVC doesn't like the template keyword, but every other compiler requires it
+#if defined(_MSC_VER)
+      return thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write<frontend_options_t::queue_type>(
+        total_size);
+#else
+      return thread_context->get_spsc_queue<frontend_options_t::queue_type>()
+        .template prepare_write<frontend_options_t::queue_type>(total_size);
+#endif
+    }
+    else
+    {
+      return thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
+    }
   }
 };
 
