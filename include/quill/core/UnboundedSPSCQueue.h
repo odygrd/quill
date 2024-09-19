@@ -106,7 +106,8 @@ public:
    * making it visible to the consumer.
    * @return a valid point to the buffer
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes, QueueType queue_type)
+  template <quill::QueueType queue_type>
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes)
   {
     // Try to reserve the bounded queue
     std::byte* write_pos = _producer->bounded_queue.prepare_write(nbytes);
@@ -123,11 +124,11 @@ public:
       capacity = capacity * 2ull;
     }
 
-    size_t constexpr max_bounded_queue_size = 2ull * 1024 * 1024 * 1024; // 2 GB
-
-    if (QUILL_UNLIKELY(capacity > max_bounded_queue_size))
+    if constexpr ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
     {
-      if ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
+      size_t constexpr max_bounded_queue_size = 2ull * 1024 * 1024 * 1024; // 2 GB
+
+      if (QUILL_UNLIKELY(capacity > max_bounded_queue_size))
       {
         if (nbytes > max_bounded_queue_size)
         {
@@ -146,13 +147,12 @@ public:
             std::to_string(max_bounded_queue_size) + " bytes"});
         }
 
-        // we reached the unbounded queue limit of 2147483648 bytes (~2GB) we won't be allocating
-        // anymore and instead return nullptr to block or drop
+        // we reached the max_bounded_queue_size we won't be allocating more
+        // instead return nullptr to block or drop
         return nullptr;
       }
-
-      // else the UnboundedUnlimited queue has no limits
     }
+    // else the UnboundedUnlimited queue has no limits
 
     // commit previous write to the old queue before switching
     _producer->bounded_queue.commit_write();
