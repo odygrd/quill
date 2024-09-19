@@ -98,6 +98,19 @@
   to log std::string s(std::numeric_limits<uint32_t>::max(), 'a'); would cause a crash.
 - Tuned `transit_events_soft_limit` and `transit_events_hard_limit` values; added error checks for invalid
   configurations.
+- Added support for appending a custom timestamp format to log filenames via `StartCustomTimestampFormat`.
+  Example usage:
+  ```cpp
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
+    "logfile.log",
+    []()
+    {
+      quill::FileSinkConfig cfg;
+      cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, "%m%d");
+      return cfg;
+    }());
+  ```
+  This will create a log file named `logfile0919.log`, where `0919` represents the month and day.
 - When the placeholder `%(named_args)` is enabled in the pattern formatter or when logging in JSON format, any extra
   arguments passed in the log message without a key name will also be displayed in the JSON output with keys
   corresponding to their positional indexes. This allows additional details to be included in the JSON while keeping the
