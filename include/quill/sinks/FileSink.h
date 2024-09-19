@@ -22,6 +22,7 @@
 #include <ctime>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #if defined(_WIN32)
@@ -56,9 +57,10 @@ QUILL_BEGIN_NAMESPACE
 
 enum class FilenameAppendOption : uint8_t
 {
-  StartDateTime,
+  None,
   StartDate,
-  None
+  StartDateTime,
+  StartCustomTimestampFormat
 };
 
 /**
@@ -78,10 +80,33 @@ public:
    * application.log -> application_20230101_121020.log  (StartDateTime)
    *
    * @param value The append type to set. Valid options are Date and DateAndTime.
+   * @param append_filename_format_pattern Specifies a custom `strftime` format pattern to use for the filename. This parameter is
+   *                                       only applicable when `FilenameAppendOption::CustomDateTimeFormat` is selected
    */
-  QUILL_ATTRIBUTE_COLD void set_filename_append_option(FilenameAppendOption value)
+  QUILL_ATTRIBUTE_COLD void set_filename_append_option(
+    FilenameAppendOption value, std::string_view append_filename_format_pattern = std::string_view{})
   {
     _filename_append_option = value;
+
+    if (_filename_append_option == FilenameAppendOption::StartCustomTimestampFormat)
+    {
+      if (append_filename_format_pattern.empty())
+      {
+        QUILL_THROW(QuillError{
+          "The 'CustomDateTimeFormat' option was specified, but no format pattern was provided. "
+          "Please set a valid strftime format pattern"});
+      }
+
+      _append_filename_format_pattern = append_filename_format_pattern;
+    }
+    else if (_filename_append_option == FilenameAppendOption::StartDateTime)
+    {
+      _append_filename_format_pattern = "_%Y%m%d_%H%M%S";
+    }
+    else if (_filename_append_option == FilenameAppendOption::StartDate)
+    {
+      _append_filename_format_pattern = "_%Y%m%d";
+    }
   }
 
   /**
@@ -89,9 +114,9 @@ public:
    * get_filename or when setting the logging pattern.
    * Valid options for the timezone are 'LocalTime' or 'GmtTime'
    * The default value is 'LocalTime'
-   * @param timezone The timezone to use for time-based operations.
+   * @param time_zone The timezone to use for time-based operations.
    */
-  QUILL_ATTRIBUTE_COLD void set_timezone(Timezone timezone) { _time_zone = timezone; }
+  QUILL_ATTRIBUTE_COLD void set_timezone(Timezone time_zone) { _time_zone = time_zone; }
 
   /**
    * @brief Sets whether fsync should be performed when flushing.
@@ -103,7 +128,10 @@ public:
   [[deprecated(
     "This function is deprecated and will be removed in the next version. Use set_fsync_enabled() "
     "instead.")]]
-  QUILL_ATTRIBUTE_COLD void set_do_fsync(bool value) { _fsync_enabled = value; }
+  QUILL_ATTRIBUTE_COLD void set_do_fsync(bool value)
+  {
+    _fsync_enabled = value;
+  }
 
   /**
    * @brief Sets the open mode for the file.
@@ -159,6 +187,10 @@ public:
   {
     return _filename_append_option;
   }
+  QUILL_NODISCARD std::string const& append_filename_format_pattern() const noexcept
+  {
+    return _append_filename_format_pattern;
+  }
   QUILL_NODISCARD std::string const& open_mode() const noexcept { return _open_mode; }
   QUILL_NODISCARD size_t write_buffer_size() const noexcept { return _write_buffer_size; }
   QUILL_NODISCARD std::chrono::milliseconds minimum_fsync_interval() const noexcept
@@ -168,6 +200,7 @@ public:
 
 private:
   std::string _open_mode{'w'};
+  std::string _append_filename_format_pattern;
   size_t _write_buffer_size{64 * 1024}; // Default size 64k
   std::chrono::milliseconds _minimum_fsync_interval{0};
   Timezone _time_zone{Timezone::LocalTime};
@@ -193,8 +226,9 @@ public:
   explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
                     FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
                     std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
-    : StreamSink(_get_updated_filename_with_appended_datetime(
-                   filename, config.filename_append_option(), config.timezone(), start_time),
+    : StreamSink(_get_updated_filename_with_appended_datetime(filename, config.filename_append_option(),
+                                                              config.append_filename_format_pattern(),
+                                                              config.timezone(), start_time),
                  nullptr, std::move(file_event_notifier)),
       _config(config)
   {
@@ -245,17 +279,18 @@ protected:
   /**
    * Format a datetime string.
    * @param timestamp_ns Timestamp in nanoseconds.
-   * @param timezone Timezone to use.
-   * @param with_time Include time in the string if true.
+   * @param time_zone Timezone to use.
+   * @param append_format_pattern strftime pattern
    * @return Formatted datetime string.
    */
-  QUILL_NODISCARD static std::string format_datetime_string(uint64_t timestamp_ns, Timezone timezone, bool with_time)
+  QUILL_NODISCARD static std::string format_datetime_string(uint64_t timestamp_ns, Timezone time_zone,
+                                                            std::string const& append_format_pattern)
   {
     // convert to seconds
     auto const time_now = static_cast<time_t>(timestamp_ns / 1000000000);
     tm now_tm;
 
-    if (timezone == Timezone::GmtTime)
+    if (time_zone == Timezone::GmtTime)
     {
       detail::gmtime_rs(&time_now, &now_tm);
     }
@@ -265,17 +300,9 @@ protected:
     }
 
     // Construct the string
-    char buffer[32];
-    if (with_time)
-    {
-      std::snprintf(buffer, sizeof(buffer), "%04d%02d%02d_%02d%02d%02d", now_tm.tm_year + 1900,
-                    now_tm.tm_mon + 1, now_tm.tm_mday, now_tm.tm_hour, now_tm.tm_min, now_tm.tm_sec);
-    }
-    else
-    {
-      std::snprintf(buffer, sizeof(buffer), "%04d%02d%02d", now_tm.tm_year + 1900,
-                    now_tm.tm_mon + 1, now_tm.tm_mday);
-    }
+    static constexpr size_t buffer_size{128};
+    char buffer[buffer_size];
+    std::strftime(buffer, buffer_size, append_format_pattern.data(), &now_tm);
 
     return std::string{buffer};
   }
@@ -294,13 +321,14 @@ protected:
   /**
    * Append date and/or time to a filename.
    * @param filename Path to the file.
-   * @param with_time Include time in the filename if true.
-   * @param timezone Timezone to use.
+   * @param append_filename_format_pattern strftime pattern
+   * @param time_zone Timezone to use.
    * @param timestamp Timestamp to use.
    * @return Updated filename.
    */
   QUILL_NODISCARD static fs::path append_datetime_to_filename(fs::path const& filename,
-                                                              bool with_time, Timezone timezone,
+                                                              std::string const& append_filename_format_pattern,
+                                                              Timezone time_zone,
                                                               std::chrono::system_clock::time_point timestamp) noexcept
   {
     // Get base file and extension
@@ -311,7 +339,7 @@ protected:
       std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
 
     // Construct a filename
-    return stem + "_" + format_datetime_string(timestamp_ns, timezone, with_time) + ext;
+    return stem + format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern) + ext;
   }
 
   /**
@@ -401,26 +429,24 @@ private:
    * Get the filename with appended date and/or time.
    * @param filename Path to the file.
    * @param append_to_filename_option Append option.
-   * @param timezone Timezone to use.
+   * @param time_zone Timezone to use.
    * @return Updated filename.
    */
   QUILL_NODISCARD static quill::fs::path _get_updated_filename_with_appended_datetime(
     quill::fs::path const& filename, quill::FilenameAppendOption append_to_filename_option,
-    quill::Timezone timezone, std::chrono::system_clock::time_point timestamp)
+    std::string const& append_filename_format_pattern, quill::Timezone time_zone,
+    std::chrono::system_clock::time_point timestamp)
   {
     if ((append_to_filename_option == quill::FilenameAppendOption::None) || (filename == "/dev/null"))
     {
       return filename;
     }
 
-    if (append_to_filename_option == quill::FilenameAppendOption::StartDate)
+    if ((append_to_filename_option == quill::FilenameAppendOption::StartCustomTimestampFormat) ||
+        (append_to_filename_option == quill::FilenameAppendOption::StartDate) ||
+        (append_to_filename_option == quill::FilenameAppendOption::StartDateTime))
     {
-      return append_datetime_to_filename(filename, false, timezone, timestamp);
-    }
-
-    if (append_to_filename_option == quill::FilenameAppendOption::StartDateTime)
-    {
-      return append_datetime_to_filename(filename, true, timezone, timestamp);
+      return append_datetime_to_filename(filename, append_filename_format_pattern, time_zone, timestamp);
     }
 
     return quill::fs::path{};

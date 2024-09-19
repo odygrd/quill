@@ -17,11 +17,13 @@ public:
     return quill::FileSink::extract_stem_and_extension(filename);
   }
 
-  static fs::path append_datetime_to_filename(fs::path const& filename, bool with_time = false,
-                                              Timezone timezone = Timezone::LocalTime,
+  static fs::path append_datetime_to_filename(fs::path const& filename,
+                                              std::string const& append_filename_format_pattern,
+                                              Timezone time_zone = Timezone::LocalTime,
                                               std::chrono::system_clock::time_point timestamp = {}) noexcept
   {
-    return quill::FileSink::append_datetime_to_filename(filename, with_time, timezone, timestamp);
+    return quill::FileSink::append_datetime_to_filename(filename, append_filename_format_pattern,
+                                                        time_zone, timestamp);
   }
 };
 
@@ -144,7 +146,11 @@ TEST_CASE("append_date_to_filename")
   fs::path const expected_fname = "logfile_20200305.log";
   fs::path const base_fname = "logfile.log";
 
-  REQUIRE_STREQ(FileSinkMock::append_datetime_to_filename(base_fname, false, quill::Timezone::GmtTime, ts)
+  FileSinkConfig cfg;
+  cfg.set_filename_append_option(FilenameAppendOption::StartDate);
+
+  REQUIRE_STREQ(FileSinkMock::append_datetime_to_filename(
+                  base_fname, cfg.append_filename_format_pattern(), quill::Timezone::GmtTime, ts)
                   .string()
                   .data(),
                 expected_fname.string().data());
@@ -158,7 +164,29 @@ TEST_CASE("append_datetime_to_filename")
   fs::path const expected_fname = "logfile_20200305_025545.log";
   fs::path const base_fname = "logfile.log";
 
-  REQUIRE_STREQ(FileSinkMock::append_datetime_to_filename(base_fname, true, quill::Timezone::GmtTime, ts)
+  FileSinkConfig cfg;
+  cfg.set_filename_append_option(FilenameAppendOption::StartDateTime);
+
+  REQUIRE_STREQ(FileSinkMock::append_datetime_to_filename(
+                  base_fname, cfg.append_filename_format_pattern(), quill::Timezone::GmtTime, ts)
+                  .string()
+                  .data(),
+                expected_fname.string().data());
+}
+
+/***/
+TEST_CASE("append_custom_date_to_filename")
+{
+  std::chrono::system_clock::time_point const ts =
+    std::chrono::system_clock::time_point{std::chrono::seconds{1583376945}};
+  fs::path const expected_fname = "logfile0305.log";
+  fs::path const base_fname = "logfile.log";
+
+  FileSinkConfig cfg;
+  cfg.set_filename_append_option(FilenameAppendOption::StartCustomTimestampFormat, "%m%d");
+
+  REQUIRE_STREQ(FileSinkMock::append_datetime_to_filename(
+                  base_fname, cfg.append_filename_format_pattern(), quill::Timezone::GmtTime, ts)
                   .string()
                   .data(),
                 expected_fname.string().data());

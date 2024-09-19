@@ -97,6 +97,29 @@ TEST_CASE("append_date_and_time_to_file")
 }
 
 /***/
+TEST_CASE("append_custom_timestamp_to_file")
+{
+  uint64_t const timestamp_20230612 = 1686528321331324000;
+  fs::path const filename = "append_custom_timestamp_to_file.log";
+  fs::path const expected_filename = "append_custom_timestamp_to_file_0612.log";
+
+  FileSinkConfig fsc;
+  fsc.set_filename_append_option(FilenameAppendOption::StartCustomTimestampFormat, "_%m%d");
+  fsc.set_timezone(Timezone::GmtTime);
+
+  {
+    FileSink file_sink{filename, fsc, FileEventNotifier{}, true,
+                       std::chrono::time_point<std::chrono::system_clock>(
+                         std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    REQUIRE_EQ(file_sink.get_filename().filename(), expected_filename);
+    REQUIRE(fs::exists(expected_filename));
+  }
+
+  testing::remove_file(expected_filename);
+}
+
+/***/
 TEST_CASE("create_directory")
 {
   uint64_t const timestamp_20230612 = 1686528321331324000;

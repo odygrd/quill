@@ -394,11 +394,12 @@ private:
     std::string datetime_suffix;
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
     {
-      datetime_suffix = format_datetime_string(_open_file_timestamp, _config.timezone(), false);
+      datetime_suffix = format_datetime_string(_open_file_timestamp, _config.timezone(), "%Y%m%d");
     }
     else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
     {
-      datetime_suffix = format_datetime_string(_open_file_timestamp, _config.timezone(), true);
+      datetime_suffix =
+        format_datetime_string(_open_file_timestamp, _config.timezone(), "%Y%m%d_%H%M%S");
     }
 
     // We need to rotate the files and rename them with an index
@@ -501,7 +502,7 @@ private:
           {
             // Get the today's date, we won't remove the files of the previous dates as they won't collide
             std::string const today_date =
-              format_datetime_string(today_timestamp_ns, _config.timezone(), false);
+              format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
 
             if (std::string const index_or_date =
                   entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
@@ -578,7 +579,7 @@ private:
           {
             // Get the today's date, we won't remove the files of the previous dates as they won't collide
             std::string const today_date =
-              format_datetime_string(today_timestamp_ns, _config.timezone(), false);
+              format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
 
             if (std::string const index_or_date =
                   entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
