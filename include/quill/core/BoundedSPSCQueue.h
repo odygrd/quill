@@ -2,7 +2,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
-#include "quill/core/MathUtils.h"
+#include "quill/core/MathUtilities.h"
 #include "quill/core/QuillError.h"
 
 #include <atomic>

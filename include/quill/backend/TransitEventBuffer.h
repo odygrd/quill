@@ -9,7 +9,7 @@
 #include "quill/backend/TransitEvent.h"
 #include "quill/bundled/fmt/format.h" // for assert_fail
 #include "quill/core/Attributes.h"
-#include "quill/core/MathUtils.h"
+#include "quill/core/MathUtilities.h"
 
 #include <cassert>
 #include <cstdint>
