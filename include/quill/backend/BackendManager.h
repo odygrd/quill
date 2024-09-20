@@ -16,7 +16,9 @@
 
 QUILL_BEGIN_NAMESPACE
 
-class Backend; // Forward declaration
+// Forward declarations
+class Backend;
+class BackendTscClock;
 
 namespace detail
 {
@@ -43,6 +45,7 @@ public:
 
 private:
   friend class quill::Backend;
+  friend class quill::BackendTscClock;
 
   /***/
   BackendManager() = default;

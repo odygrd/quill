@@ -79,12 +79,16 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static RdtscVal rdtsc() noexcept { return RdtscVal{}; }
 
   /**
-   * Converts a TSC counter value obtained from the backend logging thread's TSC timer to a wall
-   * clock timestamp.
+   * Converts a TSC (Time Stamp Counter) value to a wall clock timestamp.
    *
-   * @param rdtsc The TSC counter value obtained from the backend logging thread's TSC timer.
-   * @warning This function will return `0` when no Logger with TSC clock is used.
-   * @return Time since epoch in nanoseconds.
+   * @param rdtsc The TSC counter value
+   *
+   * @warning This function will return `0` if no Logger with a TSC clock source has been used.
+   * The TSC clock is initialized by the backend thread when the first log statement is processed,
+   * provided that a TSC-based logger is used. If the backend thread has not processed any log
+   * statements, the function may return zero.
+   *
+   * @return The time since the Unix epoch, in nanoseconds, corresponding to the given TSC counter value.
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static time_point to_time_point(RdtscVal rdtsc) noexcept
   {

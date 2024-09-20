@@ -78,18 +78,17 @@
 ## v7.2.0
 
 - Improved suppression of GCC false positive warnings and made minor enhancements to the `InlinedVector` class.
+- Fix compile error in `BackendTscClock` ([#577](https://github.com/odygrd/quill/issues/577))
 - Added a missing header include in `TriviallyCopyableCodec.h`. ([#560](https://github.com/odygrd/quill/issues/560))
 - Introduced support for custom buffer sizes in file streams for `FileSink` and `RotatingFileSink`. The buffer size can
   now be set using `FileSinkConfig::set_write_buffer_size(size_value)` with a default of 64 KB. With the new default
-  value the
-  backend thread has increased throughput around 5%
+  value the backend thread has increased throughput around 5%
 - Simplified the `TransitEventBuffer` in the backend worker thread, resulting in a minor throughput improvement of
   approximately 1%.
 - Optimised the size of the `TransitEvent` structure, reducing its memory footprint and improving backend thread
   throughput by an additional 3%.
 - Added an optional `fsync` interval to control the minimum time between consecutive `fsync` calls, reducing disk wear
-  from
-  frequent fsync operations. This option is only applicable when fsync is
+  from frequent fsync operations. This option is only applicable when fsync is
   enabled. ([#557](https://github.com/odygrd/quill/issues/557))
 - Enhanced the queue allocation notification message for better readability. It now shows capacities in KiB, e.g.,
   `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
@@ -98,8 +97,7 @@
   formatter could incorrectly map `LOG_ERROR` to `"C"` and LOG_WARNING
   to `"E"`. ([#564](https://github.com/odygrd/quill/issues/564))
 - Fixed an overflow issue when logging more than `uint32_t::max()` bytes in a single log message. For example,
-  attempting
-  to log `std::string s(std::numeric_limits<uint32_t>::max(), 'a');` would previously cause a crash.
+  attempting to log `std::string s(std::numeric_limits<uint32_t>::max(), 'a');` would previously cause a crash.
 - Tuned `transit_events_soft_limit` and `transit_events_hard_limit` default values; added error checks for invalid
   configurations.
 - Added support for appending a custom timestamp format to log filenames via `StartCustomTimestampFormat`.
