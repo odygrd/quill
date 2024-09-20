@@ -6,6 +6,7 @@ add_subdirectory(single_logger_multiple_sink_formats)
 # Define a variable with all example targets
 set(EXAMPLE_TARGETS
         quill_example_backend_thread_notify
+        quill_example_backend_tsc_clock
         quill_example_backtrace_logging
         quill_example_bounded_dropping_queue_frontend
         quill_example_console_logging
