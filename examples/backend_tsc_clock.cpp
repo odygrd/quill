@@ -33,9 +33,11 @@ int main()
   logger->flush_log();
 
   // Log both the backend TSC clock epoch time and the current system clock epoch time
+  auto const backend_tsc_epoch_ns = quill::BackendTscClock::now().time_since_epoch().count();
+  auto const system_epoch_ns = std::chrono::system_clock::now().time_since_epoch().count();
+
   LOG_INFO(logger, "Backend TSC clock epoch time: {} ns, System clock epoch time: {} ns",
-           quill::BackendTscClock::now().time_since_epoch().count(),
-           std::chrono::system_clock::now().time_since_epoch().count());
+           backend_tsc_epoch_ns, system_epoch_ns);
 
   // Get the current TSC timestamp now
   auto const tsc_start = quill::BackendTscClock::rdtsc();
@@ -46,12 +48,16 @@ int main()
   // Get another TSC timestamp after the delay
   auto const tsc_end = quill::BackendTscClock::rdtsc();
 
-  // Convert the TSC timestamps to seconds since the epoch and log them
+  // Convert the TSC timestamps to seconds since the epoch
+  auto const tsc_start_seconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   quill::BackendTscClock::to_time_point(tsc_start).time_since_epoch())
+                                   .count();
+  
+  auto const tsc_end_seconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                 quill::BackendTscClock::to_time_point(tsc_end).time_since_epoch())
+                                 .count();
+
+  // Log the TSC timestamps before and after the delay
   LOG_INFO(logger, "Initial TSC timestamp: {} seconds, Final TSC timestamp after delay: {} seconds",
-           std::chrono::duration_cast<std::chrono::seconds>(
-             quill::BackendTscClock::to_time_point(tsc_start).time_since_epoch())
-             .count(),
-           std::chrono::duration_cast<std::chrono::seconds>(
-             quill::BackendTscClock::to_time_point(tsc_end).time_since_epoch())
-             .count());
+           tsc_start_seconds, tsc_end_seconds);
 }
