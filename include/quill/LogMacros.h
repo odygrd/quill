@@ -307,8 +307,8 @@
   {                                                                                                                 \
     if (likelyhood(logger->template should_log_statement<log_level>()))                                             \
     {                                                                                                               \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, log_level);                                              \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH>(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__); \
+      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, log_level);                             \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH>(&macro_metadata, ##__VA_ARGS__);       \
     }                                                                                                               \
   } while (0)
 
@@ -335,8 +335,8 @@
   {                                                                                                                 \
     if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))                          \
     {                                                                                                               \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Backtrace);                             \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH>(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__); \
+      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Backtrace);            \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH>(&macro_metadata, ##__VA_ARGS__);       \
     }                                                                                                               \
   } while (0)
 
