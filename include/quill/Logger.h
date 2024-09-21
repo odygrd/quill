@@ -90,12 +90,23 @@ public:
     // Store the timestamp of the log statement at the start of the call. This gives more accurate
     // timestamp especially if the queue is full
     // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
-    uint64_t const current_timestamp = (clock_source == ClockSourceType::Tsc) ? detail::rdtsc()
-      : (clock_source == ClockSourceType::System)
-      ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                std::chrono::system_clock::now().time_since_epoch())
-                                .count())
-      : user_clock->now();
+
+    uint64_t current_timestamp;
+
+    if (clock_source == ClockSourceType::Tsc)
+    {
+      current_timestamp = detail::rdtsc();
+    }
+    else if (clock_source == ClockSourceType::System)
+    {
+      current_timestamp = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                                  std::chrono::system_clock::now().time_since_epoch())
+                                                  .count());
+    }
+    else
+    {
+      current_timestamp = user_clock->now();
+    }
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
