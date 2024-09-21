@@ -200,18 +200,6 @@ public:
   QUILL_ATTRIBUTE_HOT bool log_statement(MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
 #ifndef NDEBUG
-    if (dynamic_log_level != quill::LogLevel::None)
-    {
-      assert((macro_metadata->log_level() == quill::LogLevel::Dynamic) &&
-             "MacroMetadata LogLevel must be Dynamic when using a dynamic_log_level");
-    }
-
-    if (macro_metadata->log_level() != quill::LogLevel::Dynamic)
-    {
-      assert((dynamic_log_level == quill::LogLevel::None) &&
-             "No dynamic_log_level should be set when MacroMetadata LogLevel is not Dynamic");
-    }
-
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 #endif
 
