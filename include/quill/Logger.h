@@ -90,23 +90,7 @@ public:
     // Store the timestamp of the log statement at the start of the call. This gives more accurate
     // timestamp especially if the queue is full
     // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
-
-    uint64_t current_timestamp;
-
-    if (clock_source == ClockSourceType::Tsc)
-    {
-      current_timestamp = detail::rdtsc();
-    }
-    else if (clock_source == ClockSourceType::System)
-    {
-      current_timestamp = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                  std::chrono::system_clock::now().time_since_epoch())
-                                                  .count());
-    }
-    else
-    {
-      current_timestamp = user_clock->now();
-    }
+    uint64_t const current_timestamp = _get_current_timestamp();
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
@@ -114,16 +98,13 @@ public:
       thread_context = detail::get_local_thread_context<frontend_options_t>();
     }
 
+    // For the dynamic log level we want to add to the total size to store the dynamic log level
+    constexpr size_t header_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) + sizeof(dynamic_log_level)};
+
     // Need to know how much size we need from the queue
-    size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
+    size_t const total_size = header_size +
       detail::compute_encoded_size_and_cache_string_lengths(
                           thread_context->get_conditional_arg_size_cache(), fmt_args...);
-
-    if (dynamic_log_level != LogLevel::None)
-    {
-      // For the dynamic log level we want to add to the total size to store the dynamic log level
-      total_size += sizeof(dynamic_log_level);
-    }
 
     std::byte* write_buffer = _prepare_write_buffer(total_size);
 
@@ -182,13 +163,121 @@ public:
     // encode remaining arguments
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
-    if (dynamic_log_level != LogLevel::None)
+    // write the dynamic log level
+    // The reason we write it last is that is less likely to break the alignment in the buffer
+    std::memcpy(write_buffer, &dynamic_log_level, sizeof(dynamic_log_level));
+    write_buffer += sizeof(dynamic_log_level);
+
+#ifndef NDEBUG
+    assert((write_buffer > write_begin) && "write_buffer must be greater than write_begin");
+    assert(total_size == (static_cast<size_t>(write_buffer - write_begin)) &&
+           "The committed write bytes must be equal to the total_size requested bytes");
+#endif
+
+    thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(total_size);
+    thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();
+
+    if constexpr (immediate_flush)
     {
-      // write the dynamic log level
-      // The reason we write it last is that is less likely to break the alignment in the buffer
-      std::memcpy(write_buffer, &dynamic_log_level, sizeof(dynamic_log_level));
-      write_buffer += sizeof(dynamic_log_level);
+      this->flush_log();
     }
+
+    return true;
+  }
+
+  /**
+   * Push a log message to the spsc queue to be logged by the backend thread.
+   * One spsc queue per caller thread. This function is enabled only when all arguments are
+   * fundamental types.
+   * This is the fastest way possible to log
+   * @note This function is thread-safe.
+   * @param macro_metadata metadata of the log message
+   * @param fmt_args arguments
+   *
+   * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
+   */
+  template <bool immediate_flush, typename... Args>
+  QUILL_ATTRIBUTE_HOT bool log_statement(MacroMetadata const* macro_metadata, Args&&... fmt_args)
+  {
+#ifndef NDEBUG
+    assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
+#endif
+
+    // Store the timestamp of the log statement at the start of the call. This gives more accurate
+    // timestamp especially if the queue is full
+    // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
+    uint64_t const current_timestamp = _get_current_timestamp();
+
+    if (QUILL_UNLIKELY(thread_context == nullptr))
+    {
+      // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
+      thread_context = detail::get_local_thread_context<frontend_options_t>();
+    }
+
+    // Size of header
+    constexpr size_t header_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3)};
+
+    // Need to know how much size we need from the queue
+    size_t const total_size = header_size +
+      detail::compute_encoded_size_and_cache_string_lengths(
+                                thread_context->get_conditional_arg_size_cache(), fmt_args...);
+
+    std::byte* write_buffer = _prepare_write_buffer(total_size);
+
+    if constexpr (frontend_options_t::queue_type == QueueType::UnboundedUnlimited)
+    {
+      assert(write_buffer &&
+             "Unbounded unlimited queue will always allocate and have enough capacity");
+    }
+    else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedDropping) ||
+                       (frontend_options_t::queue_type == QueueType::UnboundedDropping))
+    {
+      if (QUILL_UNLIKELY(write_buffer == nullptr))
+      {
+        // not enough space to push to queue message is dropped
+        if (macro_metadata->event() == MacroMetadata::Event::Log)
+        {
+          thread_context->increment_failure_counter();
+        }
+        return false;
+      }
+    }
+    else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedBlocking) ||
+                       (frontend_options_t::queue_type == QueueType::UnboundedBlocking))
+    {
+      if (QUILL_UNLIKELY(write_buffer == nullptr))
+      {
+        if (macro_metadata->event() == MacroMetadata::Event::Log)
+        {
+          thread_context->increment_failure_counter();
+        }
+
+        do
+        {
+          if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
+          {
+            std::this_thread::sleep_for(std::chrono::nanoseconds{frontend_options_t::blocking_queue_retry_interval_ns});
+          }
+
+          // not enough space to push to queue, keep trying
+          write_buffer = _prepare_write_buffer(total_size);
+        } while (write_buffer == nullptr);
+      }
+    }
+
+    // we have enough space in this buffer, and we will write to the buffer
+
+#ifndef NDEBUG
+    std::byte const* const write_begin = write_buffer;
+    assert(write_begin);
+#endif
+
+    // first encode a header
+    write_buffer = _encode_header(write_buffer, current_timestamp, macro_metadata, this,
+                                  detail::decode_and_store_args<detail::remove_cvref_t<Args>...>);
+
+    // encode remaining arguments
+    detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
 #ifndef NDEBUG
     assert((write_buffer > write_begin) && "write_buffer must be greater than write_begin");
@@ -222,7 +311,7 @@ public:
 
     // we pass this message to the queue and also pass capacity as arg
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false>(LogLevel::None, &macro_metadata, max_capacity))
+    while (!this->log_statement<false>(&macro_metadata, max_capacity))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -241,7 +330,7 @@ public:
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false>(LogLevel::None, &macro_metadata))
+    while (!this->log_statement<false>(&macro_metadata))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -272,8 +361,7 @@ public:
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false>(LogLevel::None, &macro_metadata,
-                                       reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
+    while (!this->log_statement<false>(&macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if (sleep_duration_ns > 0)
       {
@@ -307,8 +395,8 @@ private:
   LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
              UserClockSource* user_clock)
-    : detail::LoggerBase(static_cast<std::string&&>(logger_name),
-                         static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+    : detail::LoggerBase(
+        static_cast<std::string&&>(logger_name), static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
         static_cast<PatternFormatterOptions&&>(pattern_formatter_options), clock_source, user_clock)
 
   {
@@ -318,7 +406,7 @@ private:
       this->clock_source = ClockSourceType::User;
     }
   }
-  
+
   /**
    * Encodes header information into the write buffer
    *
@@ -345,6 +433,27 @@ private:
     write_buffer += sizeof(uintptr_t);
 
     return write_buffer;
+  }
+
+  /**
+   * Prepares a write buffer for the given context and size.
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint64_t _get_current_timestamp() const noexcept
+  {
+    if (clock_source == ClockSourceType::Tsc)
+    {
+      return detail::rdtsc();
+    }
+    else if (clock_source == ClockSourceType::System)
+    {
+      return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                     std::chrono::system_clock::now().time_since_epoch())
+                                     .count());
+    }
+    else
+    {
+      return user_clock->now();
+    }
   }
 
   /**
