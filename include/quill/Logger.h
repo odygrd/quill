@@ -98,13 +98,23 @@ public:
       thread_context = detail::get_local_thread_context<frontend_options_t>();
     }
 
-    // For the dynamic log level we want to add to the total size to store the dynamic log level
+    // Size of header
     constexpr size_t header_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) + sizeof(dynamic_log_level)};
+    size_t total_size{header_size};
 
-    // Need to know how much size we need from the queue
-    size_t const total_size = header_size +
-      detail::compute_encoded_size_and_cache_string_lengths(
-                          thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    if constexpr (std::conjunction_v<std::disjunction<std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
+                                                      std::is_same<detail::remove_cvref_t<Args>, void const*>>...>)
+    {
+      // optimisation when only arithmetic types
+      constexpr size_t total_args_size =
+        detail::compute_encoded_size_for_numeric_types<detail::remove_cvref_t<Args>...>();
+      total_size += total_args_size;
+    }
+    else
+    {
+      total_size += detail::compute_encoded_size_and_cache_string_lengths(
+        thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    }
 
     std::byte* write_buffer = _prepare_write_buffer(total_size);
 
@@ -216,11 +226,21 @@ public:
 
     // Size of header
     constexpr size_t header_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3)};
+    size_t total_size{header_size};
 
-    // Need to know how much size we need from the queue
-    size_t const total_size = header_size +
-      detail::compute_encoded_size_and_cache_string_lengths(
-                                thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    if constexpr (std::conjunction_v<std::disjunction<std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
+                                                      std::is_same<detail::remove_cvref_t<Args>, void const*>>...>)
+    {
+      // optimisation when only arithmetic types
+      constexpr size_t total_args_size =
+        detail::compute_encoded_size_for_numeric_types<detail::remove_cvref_t<Args>...>();
+      total_size += total_args_size;
+    }
+    else
+    {
+      total_size += detail::compute_encoded_size_and_cache_string_lengths(
+        thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    }
 
     std::byte* write_buffer = _prepare_write_buffer(total_size);
 

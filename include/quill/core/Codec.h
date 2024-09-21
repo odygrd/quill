@@ -278,6 +278,17 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string
 }
 
 /**
+ * @brief Calculates the total size required to encode the provided arguments
+ * This is used only for arithmetic types
+ */
+template <typename... Args>
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT constexpr size_t compute_encoded_size_for_numeric_types() noexcept
+{
+  constexpr size_t total_sum = (0 + ... + sizeof(Args));
+  return total_sum;
+}
+
+/**
  * @brief Encodes multiple arguments into a buffer.
  * @param buffer Pointer to the buffer for encoding.
  * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
