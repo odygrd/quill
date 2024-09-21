@@ -117,6 +117,83 @@ public:
       return write_pos;
     }
 
+    return _handle_full_queue<queue_type>(nbytes);
+  }
+
+  /**
+   * Complement to reserve producer space that makes nbytes starting
+   * from the return of reserve producer space visible to the consumer.
+   */
+  QUILL_ATTRIBUTE_HOT void finish_write(size_t nbytes) noexcept
+  {
+    _producer->bounded_queue.finish_write(nbytes);
+  }
+
+  /**
+   * Commit the write to notify the consumer bytes are ready to read
+   */
+  QUILL_ATTRIBUTE_HOT void commit_write() noexcept { _producer->bounded_queue.commit_write(); }
+
+  /**
+   * Prepare to read from the buffer
+   * @error_notifier a callback used for notifications to the user
+   * @return first: pointer to buffer or nullptr, second: a pair of new_capacity, previous_capacity if an allocation
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ReadResult prepare_read()
+  {
+    ReadResult read_result{_consumer->bounded_queue.prepare_read()};
+
+    if (read_result.read_pos != nullptr)
+    {
+      return read_result;
+    }
+
+    // the buffer is empty check if another buffer exists
+    Node* const next_node = _consumer->next.load(std::memory_order_acquire);
+
+    if (next_node)
+    {
+      return _read_next_queue(next_node);
+    }
+
+    // Queue is empty and no new queue exists
+    return read_result;
+  }
+
+  /**
+   * Consumes the next nbytes in the buffer and frees it back
+   * for the producer to reuse.
+   */
+  QUILL_ATTRIBUTE_HOT void finish_read(size_t nbytes) noexcept
+  {
+    _consumer->bounded_queue.finish_read(nbytes);
+  }
+
+  /**
+   * Commit the read to indicate that the bytes are read and are now free to be reused
+   */
+  QUILL_ATTRIBUTE_HOT void commit_read() noexcept { _consumer->bounded_queue.commit_read(); }
+
+  /**
+   * Return the current buffer's capacity
+   * @return capacity
+   */
+  QUILL_NODISCARD size_t capacity() const noexcept { return _consumer->bounded_queue.capacity(); }
+
+  /**
+   * checks if the queue is empty
+   * @return true if empty, false otherwise
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool empty() const noexcept
+  {
+    return _consumer->bounded_queue.empty() && (_consumer->next.load(std::memory_order_relaxed) == nullptr);
+  }
+
+private:
+  /***/
+  template <quill::QueueType queue_type>
+  QUILL_NODISCARD std::byte* _handle_full_queue(size_t nbytes)
+  {
     // Then it means the queue doesn't have enough size
     size_t capacity = _producer->bounded_queue.capacity() * 2ull;
     while (capacity < (nbytes + 1))
@@ -152,6 +229,7 @@ public:
         return nullptr;
       }
     }
+
     // else the UnboundedUnlimited queue has no limits
 
     // commit previous write to the old queue before switching
@@ -167,97 +245,43 @@ public:
     _producer = next_node;
 
     // reserve again, this time we know we will always succeed, cast to void* to ignore
-    write_pos = _producer->bounded_queue.prepare_write(nbytes);
-    assert(write_pos && "Already reserved a queue with that capacity");
+    std::byte* const write_pos = _producer->bounded_queue.prepare_write(nbytes);
+
+    assert(write_pos && "write_pos is nullptr");
 
     return write_pos;
   }
 
-  /**
-   * Complement to reserve producer space that makes nbytes starting
-   * from the return of reserve producer space visible to the consumer.
-   */
-  QUILL_ATTRIBUTE_HOT void finish_write(size_t nbytes) noexcept
+  /***/
+  QUILL_NODISCARD ReadResult _read_next_queue(Node* next_node)
   {
-    _producer->bounded_queue.finish_write(nbytes);
-  }
+    // a new buffer was added by the producer, this happens only when we have allocated a new queue
 
-  /**
-   * Commit the write to notify the consumer bytes are ready to read
-   */
-  QUILL_ATTRIBUTE_HOT void commit_write() noexcept { _producer->bounded_queue.commit_write(); }
+    // try the existing buffer once more
+    ReadResult read_result{_consumer->bounded_queue.prepare_read()};
 
-  /**
-   * Prepare to read from the buffer
-   * @error_notifier a callback used for notifications to the user
-   * @return first: pointer to buffer or nullptr, second: a pair of new_capacity, previous_capacity if an allocation
-   */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ReadResult prepare_read()
-  {
-    ReadResult read_result = ReadResult{_consumer->bounded_queue.prepare_read()};
-
-    if (!read_result.read_pos)
+    if (read_result.read_pos)
     {
-      // the buffer is empty check if another buffer exists
-      Node* const next_node = _consumer->next.load(std::memory_order_acquire);
-
-      if (QUILL_UNLIKELY(next_node != nullptr))
-      {
-        // a new buffer was added by the producer, this happens only when we have allocated a new queue
-
-        // try the existing buffer once more
-        read_result.read_pos = _consumer->bounded_queue.prepare_read();
-
-        if (!read_result.read_pos)
-        {
-          // commit the previous reads before deleting the queue
-          _consumer->bounded_queue.commit_read();
-
-          // switch to the new buffer, existing one is deleted
-          auto const previous_capacity = _consumer->bounded_queue.capacity();
-          delete _consumer;
-
-          _consumer = next_node;
-          read_result.read_pos = _consumer->bounded_queue.prepare_read();
-
-          // we switched to a new here, so we store the capacity info to return it
-          read_result.allocation = true;
-          read_result.new_capacity = _consumer->bounded_queue.capacity();
-          read_result.previous_capacity = previous_capacity;
-        }
-      }
+      return read_result;
     }
 
+    // Switch to the new buffer for reading
+    // commit the previous reads before deleting the queue
+    _consumer->bounded_queue.commit_read();
+
+    // switch to the new buffer, existing one is deleted
+    auto const previous_capacity = _consumer->bounded_queue.capacity();
+    delete _consumer;
+
+    _consumer = next_node;
+    read_result.read_pos = _consumer->bounded_queue.prepare_read();
+
+    // we switched to a new here, so we store the capacity info to return it
+    read_result.allocation = true;
+    read_result.new_capacity = _consumer->bounded_queue.capacity();
+    read_result.previous_capacity = previous_capacity;
+
     return read_result;
-  }
-
-  /**
-   * Consumes the next nbytes in the buffer and frees it back
-   * for the producer to reuse.
-   */
-  QUILL_ATTRIBUTE_HOT void finish_read(size_t nbytes) noexcept
-  {
-    _consumer->bounded_queue.finish_read(nbytes);
-  }
-
-  /**
-   * Commit the read to indicate that the bytes are read and are now free to be reused
-   */
-  QUILL_ATTRIBUTE_HOT void commit_read() noexcept { _consumer->bounded_queue.commit_read(); }
-
-  /**
-   * Return the current buffer's capacity
-   * @return capacity
-   */
-  QUILL_NODISCARD size_t capacity() const noexcept { return _consumer->bounded_queue.capacity(); }
-
-  /**
-   * checks if the queue is empty
-   * @return true if empty, false otherwise
-   */
-  QUILL_NODISCARD bool empty() const noexcept
-  {
-    return _consumer->bounded_queue.empty() && (_consumer->next.load(std::memory_order_relaxed) == nullptr);
   }
 
 private:
