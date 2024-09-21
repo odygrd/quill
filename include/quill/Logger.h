@@ -29,6 +29,66 @@
 
 QUILL_BEGIN_NAMESPACE
 
+#define QUILL_PREPARE_QUEUE_WRITE_BUFFER                                                                               \
+  std::byte* write_buffer = _prepare_write_buffer(total_size);                                                         \
+                                                                                                                       \
+  if constexpr (frontend_options_t::queue_type == QueueType::UnboundedUnlimited)                                       \
+  {                                                                                                                    \
+    assert(write_buffer &&                                                                                             \
+           "Unbounded unlimited queue will always allocate and have enough capacity");                                 \
+  }                                                                                                                    \
+  else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedDropping) ||                                 \
+                     (frontend_options_t::queue_type == QueueType::UnboundedDropping))                                 \
+  {                                                                                                                    \
+    if (QUILL_UNLIKELY(write_buffer == nullptr))                                                                       \
+    {                                                                                                                  \
+      if (macro_metadata->event() == MacroMetadata::Event::Log)                                                        \
+      {                                                                                                                \
+        thread_context->increment_failure_counter();                                                                   \
+      }                                                                                                                \
+      return false;                                                                                                    \
+    }                                                                                                                  \
+  }                                                                                                                    \
+  else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedBlocking) ||                                 \
+                     (frontend_options_t::queue_type == QueueType::UnboundedBlocking))                                 \
+  {                                                                                                                    \
+    if (QUILL_UNLIKELY(write_buffer == nullptr))                                                                       \
+    {                                                                                                                  \
+      if (macro_metadata->event() == MacroMetadata::Event::Log)                                                        \
+      {                                                                                                                \
+        thread_context->increment_failure_counter();                                                                   \
+      }                                                                                                                \
+                                                                                                                       \
+      do                                                                                                               \
+      {                                                                                                                \
+        if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)                                        \
+        {                                                                                                              \
+          std::this_thread::sleep_for(std::chrono::nanoseconds{frontend_options_t::blocking_queue_retry_interval_ns}); \
+        }                                                                                                              \
+                                                                                                                       \
+        /** not enough space to push to queue, keep trying **/                                                         \
+        write_buffer = _prepare_write_buffer(total_size);                                                              \
+      } while (write_buffer == nullptr);                                                                               \
+    }                                                                                                                  \
+  }
+
+#define QUILL_FINALIZE_QUEUE_WRITE                                                                 \
+  thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(total_size);       \
+  thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();                 \
+                                                                                                   \
+  if constexpr (immediate_flush)                                                                   \
+  {                                                                                                \
+    this->flush_log();                                                                             \
+  }
+
+#define QUILL_ENCODE_DATA                                                                          \
+  /** first encode a header **/                                                                    \
+  write_buffer = _encode_header(write_buffer, current_timestamp, macro_metadata, this,             \
+                                detail::decode_and_store_args<detail::remove_cvref_t<Args>...>);   \
+                                                                                                   \
+  /** encode remaining arguments **/                                                               \
+  detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
+
 /** Forward Declarations **/
 class Sink;
 
@@ -68,8 +128,11 @@ public:
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
   template <bool immediate_flush, typename... Args>
-  QUILL_ATTRIBUTE_HOT bool log_statement(LogLevel dynamic_log_level,
-                                         MacroMetadata const* macro_metadata, Args&&... fmt_args)
+  QUILL_ATTRIBUTE_HOT std::enable_if_t<
+    std::conjunction_v<std::disjunction<std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
+                                        std::is_same<detail::remove_cvref_t<Args>, void const*>>...>,
+    bool>
+  log_statement(LogLevel dynamic_log_level, MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
 #ifndef NDEBUG
     if (dynamic_log_level != quill::LogLevel::None)
@@ -98,66 +161,11 @@ public:
       thread_context = detail::get_local_thread_context<frontend_options_t>();
     }
 
-    // Size of header
-    constexpr size_t header_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) + sizeof(dynamic_log_level)};
-    size_t total_size{header_size};
+    constexpr size_t total_size{
+      sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) + sizeof(dynamic_log_level) +
+      detail::compute_encoded_size_for_numeric_types<detail::remove_cvref_t<Args>...>()};
 
-    if constexpr (std::conjunction_v<std::disjunction<std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
-                                                      std::is_same<detail::remove_cvref_t<Args>, void const*>>...>)
-    {
-      // optimisation when only arithmetic types
-      constexpr size_t total_args_size =
-        detail::compute_encoded_size_for_numeric_types<detail::remove_cvref_t<Args>...>();
-      total_size += total_args_size;
-    }
-    else
-    {
-      total_size += detail::compute_encoded_size_and_cache_string_lengths(
-        thread_context->get_conditional_arg_size_cache(), fmt_args...);
-    }
-
-    std::byte* write_buffer = _prepare_write_buffer(total_size);
-
-    if constexpr (frontend_options_t::queue_type == QueueType::UnboundedUnlimited)
-    {
-      assert(write_buffer &&
-             "Unbounded unlimited queue will always allocate and have enough capacity");
-    }
-    else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedDropping) ||
-                       (frontend_options_t::queue_type == QueueType::UnboundedDropping))
-    {
-      if (QUILL_UNLIKELY(write_buffer == nullptr))
-      {
-        // not enough space to push to queue message is dropped
-        if (macro_metadata->event() == MacroMetadata::Event::Log)
-        {
-          thread_context->increment_failure_counter();
-        }
-        return false;
-      }
-    }
-    else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedBlocking) ||
-                       (frontend_options_t::queue_type == QueueType::UnboundedBlocking))
-    {
-      if (QUILL_UNLIKELY(write_buffer == nullptr))
-      {
-        if (macro_metadata->event() == MacroMetadata::Event::Log)
-        {
-          thread_context->increment_failure_counter();
-        }
-
-        do
-        {
-          if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
-          {
-            std::this_thread::sleep_for(std::chrono::nanoseconds{frontend_options_t::blocking_queue_retry_interval_ns});
-          }
-
-          // not enough space to push to queue, keep trying
-          write_buffer = _prepare_write_buffer(total_size);
-        } while (write_buffer == nullptr);
-      }
-    }
+    QUILL_PREPARE_QUEUE_WRITE_BUFFER
 
     // we have enough space in this buffer, and we will write to the buffer
 
@@ -166,12 +174,7 @@ public:
     assert(write_begin);
 #endif
 
-    // first encode a header
-    write_buffer = _encode_header(write_buffer, current_timestamp, macro_metadata, this,
-                                  detail::decode_and_store_args<detail::remove_cvref_t<Args>...>);
-
-    // encode remaining arguments
-    detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    QUILL_ENCODE_DATA
 
     // write the dynamic log level
     // The reason we write it last is that is less likely to break the alignment in the buffer
@@ -184,13 +187,72 @@ public:
            "The committed write bytes must be equal to the total_size requested bytes");
 #endif
 
-    thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(total_size);
-    thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();
+    QUILL_FINALIZE_QUEUE_WRITE
 
-    if constexpr (immediate_flush)
+    return true;
+  }
+
+  template <bool immediate_flush, typename... Args>
+  QUILL_ATTRIBUTE_HOT std::enable_if_t<
+    !std::conjunction_v<std::disjunction<std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
+                                         std::is_same<detail::remove_cvref_t<Args>, void const*>>...>,
+    bool>
+  log_statement(LogLevel dynamic_log_level, MacroMetadata const* macro_metadata, Args&&... fmt_args)
+  {
+#ifndef NDEBUG
+    if (dynamic_log_level != quill::LogLevel::None)
     {
-      this->flush_log();
+      assert((macro_metadata->log_level() == quill::LogLevel::Dynamic) &&
+             "MacroMetadata LogLevel must be Dynamic when using a dynamic_log_level");
     }
+
+    if (macro_metadata->log_level() != quill::LogLevel::Dynamic)
+    {
+      assert((dynamic_log_level == quill::LogLevel::None) &&
+             "No dynamic_log_level should be set when MacroMetadata LogLevel is not Dynamic");
+    }
+
+    assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
+#endif
+
+    // Store the timestamp of the log statement at the start of the call. This gives more accurate
+    // timestamp especially if the queue is full
+    // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
+    uint64_t const current_timestamp = _get_current_timestamp();
+
+    if (QUILL_UNLIKELY(thread_context == nullptr))
+    {
+      // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
+      thread_context = detail::get_local_thread_context<frontend_options_t>();
+    }
+
+    size_t const total_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) + sizeof(dynamic_log_level) +
+                            detail::compute_encoded_size_and_cache_string_lengths(
+                              thread_context->get_conditional_arg_size_cache(), fmt_args...)};
+
+    QUILL_PREPARE_QUEUE_WRITE_BUFFER
+
+    // we have enough space in this buffer, and we will write to the buffer
+
+#ifndef NDEBUG
+    std::byte const* const write_begin = write_buffer;
+    assert(write_begin);
+#endif
+
+    QUILL_ENCODE_DATA
+
+    // write the dynamic log level
+    // The reason we write it last is that is less likely to break the alignment in the buffer
+    std::memcpy(write_buffer, &dynamic_log_level, sizeof(dynamic_log_level));
+    write_buffer += sizeof(dynamic_log_level);
+
+#ifndef NDEBUG
+    assert((write_buffer > write_begin) && "write_buffer must be greater than write_begin");
+    assert(total_size == (static_cast<size_t>(write_buffer - write_begin)) &&
+           "The committed write bytes must be equal to the total_size requested bytes");
+#endif
+
+    QUILL_FINALIZE_QUEUE_WRITE
 
     return true;
   }
@@ -207,7 +269,11 @@ public:
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
   template <bool immediate_flush, typename... Args>
-  QUILL_ATTRIBUTE_HOT bool log_statement(MacroMetadata const* macro_metadata, Args&&... fmt_args)
+  QUILL_ATTRIBUTE_HOT std::enable_if_t<
+    std::conjunction_v<std::disjunction<std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
+                                        std::is_same<detail::remove_cvref_t<Args>, void const*>>...>,
+    bool>
+  log_statement(MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
 #ifndef NDEBUG
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
@@ -224,66 +290,11 @@ public:
       thread_context = detail::get_local_thread_context<frontend_options_t>();
     }
 
-    // Size of header
-    constexpr size_t header_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3)};
-    size_t total_size{header_size};
+    constexpr size_t total_size{
+      sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
+      detail::compute_encoded_size_for_numeric_types<detail::remove_cvref_t<Args>...>()};
 
-    if constexpr (std::conjunction_v<std::disjunction<std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
-                                                      std::is_same<detail::remove_cvref_t<Args>, void const*>>...>)
-    {
-      // optimisation when only arithmetic types
-      constexpr size_t total_args_size =
-        detail::compute_encoded_size_for_numeric_types<detail::remove_cvref_t<Args>...>();
-      total_size += total_args_size;
-    }
-    else
-    {
-      total_size += detail::compute_encoded_size_and_cache_string_lengths(
-        thread_context->get_conditional_arg_size_cache(), fmt_args...);
-    }
-
-    std::byte* write_buffer = _prepare_write_buffer(total_size);
-
-    if constexpr (frontend_options_t::queue_type == QueueType::UnboundedUnlimited)
-    {
-      assert(write_buffer &&
-             "Unbounded unlimited queue will always allocate and have enough capacity");
-    }
-    else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedDropping) ||
-                       (frontend_options_t::queue_type == QueueType::UnboundedDropping))
-    {
-      if (QUILL_UNLIKELY(write_buffer == nullptr))
-      {
-        // not enough space to push to queue message is dropped
-        if (macro_metadata->event() == MacroMetadata::Event::Log)
-        {
-          thread_context->increment_failure_counter();
-        }
-        return false;
-      }
-    }
-    else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedBlocking) ||
-                       (frontend_options_t::queue_type == QueueType::UnboundedBlocking))
-    {
-      if (QUILL_UNLIKELY(write_buffer == nullptr))
-      {
-        if (macro_metadata->event() == MacroMetadata::Event::Log)
-        {
-          thread_context->increment_failure_counter();
-        }
-
-        do
-        {
-          if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
-          {
-            std::this_thread::sleep_for(std::chrono::nanoseconds{frontend_options_t::blocking_queue_retry_interval_ns});
-          }
-
-          // not enough space to push to queue, keep trying
-          write_buffer = _prepare_write_buffer(total_size);
-        } while (write_buffer == nullptr);
-      }
-    }
+    QUILL_PREPARE_QUEUE_WRITE_BUFFER
 
     // we have enough space in this buffer, and we will write to the buffer
 
@@ -292,12 +303,7 @@ public:
     assert(write_begin);
 #endif
 
-    // first encode a header
-    write_buffer = _encode_header(write_buffer, current_timestamp, macro_metadata, this,
-                                  detail::decode_and_store_args<detail::remove_cvref_t<Args>...>);
-
-    // encode remaining arguments
-    detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    QUILL_ENCODE_DATA
 
 #ifndef NDEBUG
     assert((write_buffer > write_begin) && "write_buffer must be greater than write_begin");
@@ -305,13 +311,66 @@ public:
            "The committed write bytes must be equal to the total_size requested bytes");
 #endif
 
-    thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(total_size);
-    thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();
+    QUILL_FINALIZE_QUEUE_WRITE
 
-    if constexpr (immediate_flush)
+    return true;
+  }
+
+  /**
+   * Push a log message to the spsc queue to be logged by the backend thread.
+   * One spsc queue per caller thread. This function is enabled only when all arguments are
+   * fundamental types.
+   * This is the fastest way possible to log
+   * @note This function is thread-safe.
+   * @param macro_metadata metadata of the log message
+   * @param fmt_args arguments
+   *
+   * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
+   */
+  template <bool immediate_flush, typename... Args>
+  QUILL_ATTRIBUTE_HOT std::enable_if_t<
+    !std::conjunction_v<std::disjunction<std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
+                                         std::is_same<detail::remove_cvref_t<Args>, void const*>>...>,
+    bool>
+  log_statement(MacroMetadata const* macro_metadata, Args&&... fmt_args)
+  {
+#ifndef NDEBUG
+    assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
+#endif
+
+    // Store the timestamp of the log statement at the start of the call. This gives more accurate
+    // timestamp especially if the queue is full
+    // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
+    uint64_t const current_timestamp = _get_current_timestamp();
+
+    if (QUILL_UNLIKELY(thread_context == nullptr))
     {
-      this->flush_log();
+      // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
+      thread_context = detail::get_local_thread_context<frontend_options_t>();
     }
+
+    size_t const total_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
+                            detail::compute_encoded_size_and_cache_string_lengths(
+                              thread_context->get_conditional_arg_size_cache(), fmt_args...)};
+
+    QUILL_PREPARE_QUEUE_WRITE_BUFFER
+
+    // we have enough space in this buffer, and we will write to the buffer
+
+#ifndef NDEBUG
+    std::byte const* const write_begin = write_buffer;
+    assert(write_begin);
+#endif
+
+    QUILL_ENCODE_DATA
+
+#ifndef NDEBUG
+    assert((write_buffer > write_begin) && "write_buffer must be greater than write_begin");
+    assert(total_size == (static_cast<size_t>(write_buffer - write_begin)) &&
+           "The committed write bytes must be equal to the total_size requested bytes");
+#endif
+
+    QUILL_FINALIZE_QUEUE_WRITE
 
     return true;
   }
@@ -504,5 +563,9 @@ private:
 };
 
 using Logger = LoggerImpl<FrontendOptions>;
+
+#undef QUILL_PREPARE_QUEUE_WRITE_BUFFER
+#undef QUILL_ENCODE_DATA
+#undef QUILL_FINALIZE_QUEUE_WRITE
 
 QUILL_END_NAMESPACE
