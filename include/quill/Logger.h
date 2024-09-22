@@ -68,7 +68,7 @@ public:
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
   template <bool immediate_flush, bool has_dynamic_log_level, typename... Args>
-  QUILL_ATTRIBUTE_HOT bool log_statement(LogLevel dynamic_log_level,
+  QUILL_ATTRIBUTE_HOT bool log_statement(QUILL_MAYBE_UNUSED LogLevel dynamic_log_level,
                                          MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
 #ifndef NDEBUG

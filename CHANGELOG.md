@@ -1,3 +1,4 @@
+- [v7.2.1](#v721)
 - [v7.2.0](#v720)
 - [v7.1.0](#v710)
 - [v7.0.0](#v700)
@@ -74,6 +75,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v7.2.1
+
+- Fixed an unused variable warning treated as an error on MSVC.
 
 ## v7.2.0
 
