@@ -135,6 +135,15 @@ public:
   QUILL_ATTRIBUTE_HOT void commit_write() noexcept { _producer->bounded_queue.commit_write(); }
 
   /**
+   * Finish and commit write as a single function
+   */
+  QUILL_ATTRIBUTE_HOT void finish_and_commit_write(size_t nbytes) noexcept
+  {
+    finish_write(nbytes);
+    commit_write();
+  }
+
+  /**
    * Prepare to read from the buffer
    * @error_notifier a callback used for notifications to the user
    * @return first: pointer to buffer or nullptr, second: a pair of new_capacity, previous_capacity if an allocation

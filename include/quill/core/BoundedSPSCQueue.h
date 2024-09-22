@@ -150,6 +150,15 @@ public:
 #endif
   }
 
+  /**
+   * Finish and commit write as a single function
+   */
+  QUILL_ATTRIBUTE_HOT void finish_and_commit_write(integer_type n) noexcept
+  {
+    finish_write(n);
+    commit_write();
+  }
+
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_read() noexcept
   {
     if (empty())
