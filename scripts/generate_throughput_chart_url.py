@@ -10,7 +10,8 @@ def generate_chart_url(markdown_table, title):
         'fmtlog': 'rgba(255,99,132,0.6)',  # Light Red
         'spdlog': 'rgba(0,128,128,0.6)',  # Teal
         'Reckless': 'rgba(255,99,71,0.6)',  # Tomato Red
-        'XTR': 'rgba(255,206,86,0.6)'  # Yellow
+        'XTR': 'rgba(255,206,86,0.6)',  # Yellow
+        'BqLog': 'rgba(75,0,130,0.6)'  # Indigo
     }
 
     # Parse the markdown table
@@ -81,6 +82,7 @@ markdown_table = """
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
 | [Quill](http://github.com/odygrd/quill)                           |        5.70        |    701 ms    |
+| [BqLog](https://github.com/Tencent/BqLog)                         |        4.93        |    811 ms    |
 | [spdlog](http://github.com/gabime/spdlog)                         |        3.54        |   1128 ms    |
 | [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.90        |   1378 ms    |
 | [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |

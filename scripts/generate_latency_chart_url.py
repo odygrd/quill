@@ -14,7 +14,8 @@ def generate_chart_url(markdown_table, title):
         'Reckless': 'rgba(255,99,71,0.6)',                       # Tomato Red
         'Iyengar NanoLog': 'rgba(100,149,237,0.6)',               # Cornflower Blue
         'spdlog': 'rgba(0,128,128,0.6)',                         # Teal
-        'g3log': 'rgba(255,165,0,0.6)'                           # Orange Red
+        'g3log': 'rgba(255,165,0,0.6)',  # Orange Red
+        'BqLog': 'rgba(75,0,130,0.6)'  # Indigo
     }
 
     # Parse the markdown table
@@ -89,22 +90,32 @@ markdown_tables = [
     """
 | Library                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |----------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill Bounded Dropping Queue](http://github.com/odygrd/quill) |  48  |  50  |  53  |  55  |  58  |   62   |
-| [Quill Unbounded Queue](http://github.com/odygrd/quill)        |  54  |  56  |  57  |  58  |  61  |   66   |
-| [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  68  |  69  |  72  |  74  |  79  |  281   |
-| [XTR](https://github.com/choll/xtr)                            | 284  | 294  | 340  | 346  | 356  |  575   |
-| [fmtlog](http://github.com/MengRao/fmtlog)                     | 711  | 730  | 754  | 770  | 804  |  834   |
-| [spdlog](http://github.com/gabime/spdlog)                      | 6191 | 6261 | 6330 | 6386 | 6633 |  7320  |
+| [Quill Bounded Dropping Queue](http://github.com/odygrd/quill) |  11  |  13  |  13  |  14  |  15  |   16   |
+| [fmtlog](http://github.com/MengRao/fmtlog)                     |  11  |  12  |  13  |  14  |  15  |   17   |
+| [Quill Unbounded Queue](http://github.com/odygrd/quill)        |  14  |  15  |  16  |  17  |  18  |   19   |
+| [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  22  |  23  |  24  |  25  |  61  |  100   |
+| [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  15  |  17  |  21  |  27  |  33  |   39   |
+| [XTR](https://github.com/choll/xtr)                            |  8   |  9   |  29  |  31  |  35  |   54   |
+| [BqLog](https://github.com/Tencent/BqLog)                      |  29  |  30  |  31  |  51  |  60  |   71   |
+| [Reckless](http://github.com/mattiasflodin/reckless)           |  91  | 107  | 115  | 118  | 124  |  135   |
+| [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  86  |  97  | 119  | 128  | 159  |  268   |
+| [spdlog](http://github.com/gabime/spdlog)                      | 120  | 124  | 128  | 132  | 141  |  151   |
+| [g3log](http://github.com/KjellKod/g3log)                      | 881  | 956  | 1018 | 1089 | 1264 |  1494  |
     """,
     """
 | Library                                                        | 50th | 75th | 90th | 95th | 99th | 99.9th |
 |----------------------------------------------------------------|:----:|:----:|:----:|:----:|:----:|:------:|
-| [Quill Bounded Dropping Queue](http://github.com/odygrd/quill) |  50  |  52  |  54  |  56  |  60  |   82   |
-| [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  70  |  72  |  75  |  79  |  88  |  286   |
-| [Quill Unbounded Queue](http://github.com/odygrd/quill)        |  97  | 107  | 116  | 122  | 135  |  148   |
-| [XTR](https://github.com/choll/xtr)                            | 512  | 711  | 761  | 791  | 865  |  945   |
-| [fmtlog](http://github.com/MengRao/fmtlog)                     | 780  | 804  | 823  | 835  | 860  |  896   |
-| [spdlog](http://github.com/gabime/spdlog)                      | 6469 | 6549 | 6641 | 6735 | 7631 |  9430  |
+| [XTR](https://github.com/choll/xtr)                            |  9   |  11  |  13  |  14  |  32  |   40   |
+| [fmtlog](http://github.com/MengRao/fmtlog)                     |  11  |  12  |  13  |  14  |  16  |   19   |
+| [Quill Bounded Dropping Queue](http://github.com/odygrd/quill) |  13  |  14  |  15  |  16  |  17  |   19   |
+| [Quill Unbounded Queue](http://github.com/odygrd/quill)        |  15  |  16  |  17  |  18  |  19  |   21   |
+| [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  23  |  25  |  27  |  28  |  65  |  105   |
+| [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  16  |  20  |  32  |  38  |  44  |   51   |
+| [BqLog](https://github.com/Tencent/BqLog)                      |  32  |  33  |  35  |  56  |  64  |   76   |
+| [Reckless](http://github.com/mattiasflodin/reckless)           |  79  |  94  | 104  | 107  | 114  |  132   |
+| [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  85  |  93  | 125  | 133  | 168  |  237   |
+| [spdlog](http://github.com/gabime/spdlog)                      | 178  | 218  | 261  | 281  | 381  |  651   |
+| [g3log](http://github.com/KjellKod/g3log)                      | 992  | 1055 | 1121 | 1178 | 1360 |  1600  |
     """
 ]
 

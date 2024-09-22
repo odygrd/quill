@@ -185,6 +185,7 @@ The tables are sorted by the 95th percentile
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  21  |  21  |  22  |  22  |  56  |   93   |
 | [XTR](https://github.com/choll/xtr)                            |  7   |  7   |  29  |  30  |  33  |   53   |
 | [Reckless](http://github.com/mattiasflodin/reckless)           |  26  |  28  |  31  |  32  |  35  |   49   |
+| [BqLog](https://github.com/Tencent/BqLog)                      |  29  |  29  |  30  |  49  |  56  |   71   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  83  |  96  | 117  | 125  | 152  |  197   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 143  | 147  | 152  | 158  | 165  |  177   |
 | [g3log](http://github.com/KjellKod/g3log)                      | 1161 | 1259 | 1329 | 1419 | 1602 |  1827  |
@@ -202,6 +203,7 @@ The tables are sorted by the 95th percentile
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  15  |  17  |  20  |  23  |  27  |   32   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  21  |  22  |  22  |  23  |  62  |  100   |
 | [Reckless](http://github.com/mattiasflodin/reckless)           |  19  |  23  |  26  |  28  |  34  |   55   |
+| [BqLog](https://github.com/Tencent/BqLog)                      |  31  |  33  |  34  |  55  |  61  |   73   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  58  |  90  | 123  | 131  | 168  |  242   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 210  | 243  | 288  | 313  | 382  |  694   |
 | [g3log](http://github.com/KjellKod/g3log)                      | 1271 | 1337 | 1396 | 1437 | 1614 |  1899  |
@@ -224,6 +226,7 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  22  |  23  |  24  |  25  |  61  |  100   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  15  |  17  |  21  |  27  |  33  |   39   |
 | [XTR](https://github.com/choll/xtr)                            |  8   |  9   |  29  |  31  |  35  |   54   |
+| [BqLog](https://github.com/Tencent/BqLog)                      |  29  |  30  |  31  |  51  |  60  |   71   |
 | [Reckless](http://github.com/mattiasflodin/reckless)           |  91  | 107  | 115  | 118  | 124  |  135   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  86  |  97  | 119  | 128  | 159  |  268   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 120  | 124  | 128  | 132  | 141  |  151   |
@@ -241,6 +244,7 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 | [Quill Unbounded Queue](http://github.com/odygrd/quill)        |  15  |  16  |  17  |  18  |  19  |   21   |
 | [MS BinLog](http://github.com/Morgan-Stanley/binlog)           |  23  |  25  |  27  |  28  |  65  |  105   |
 | [PlatformLab NanoLog](http://github.com/PlatformLab/NanoLog)   |  16  |  20  |  32  |  38  |  44  |   51   |
+| [BqLog](https://github.com/Tencent/BqLog)                      |  32  |  33  |  35  |  56  |  64  |   76   |
 | [Reckless](http://github.com/mattiasflodin/reckless)           |  79  |  94  | 104  | 107  | 114  |  132   |
 | [Iyengar NanoLog](http://github.com/Iyengar111/NanoLog)        |  85  |  93  | 125  | 133  | 168  |  237   |
 | [spdlog](http://github.com/gabime/spdlog)                      | 178  | 218  | 261  | 281  | 381  |  651   |
@@ -251,6 +255,8 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 #### Logging Complex Types
 
 Logging `std::vector<std::string>` containing 16 large strings, each ranging from 50 to 60 characters.
+
+Note: some of the previous loggers do not support passing a `std::vector` as an argument.
 
 `LOG_INFO(logger, "Logging int: {}, int: {}, vector: {}", i, j, v)`.
 
@@ -304,7 +310,11 @@ flush-and-wait mechanism.
 Note that `MS BinLog` writes log data to a binary file, which requires offline formatting with an additional
 program—this makes it an unfair comparison, but it is included for reference.
 
-Similarly, `Platformlab Nanolog` also outputs binary logs and is expected to deliver high throughput. However, for
+Similarly, `BqLog (binary log)` uses the compressed binary log appender, and its log files are not human-readable unless
+processed offline. However, it is included for reference. The other version of `BqLog` is using a text appender and
+produces human-readable log files.
+
+In the same way, `Platformlab Nanolog` also outputs binary logs and is expected to deliver high throughput. However, for
 reasons unexplained, the benchmark runs significantly slower (10x longer) than the other libraries, so it is excluded
 from the table.
 
@@ -313,7 +323,9 @@ Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
 | [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       63.80        |    62 ms     |
+| [BqLog (binary log)](https://github.com/Tencent/BqLog)            |       15.92        |    251 ms    |
 | [Quill](http://github.com/odygrd/quill)                           |        5.70        |    701 ms    |
+| [BqLog](https://github.com/Tencent/BqLog)                         |        4.93        |    811 ms    |
 | [spdlog](http://github.com/gabime/spdlog)                         |        3.54        |   1128 ms    |
 | [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.90        |   1378 ms    |
 | [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |
