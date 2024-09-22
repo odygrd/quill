@@ -80,7 +80,7 @@ def generate_chart_url(markdown_table, title):
 markdown_table = """
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
-| [Quill](http://github.com/odygrd/quill)                           |        5.54        |    721 ms    |
+| [Quill](http://github.com/odygrd/quill)                           |        5.70        |    701 ms    |
 | [spdlog](http://github.com/gabime/spdlog)                         |        3.54        |   1128 ms    |
 | [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.90        |   1378 ms    |
 | [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |

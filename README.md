@@ -123,8 +123,8 @@ int main()
 - **High-Performance**: Ultra-low latency performance. View [Benchmarks](http://github.com/odygrd/quill#performance)
 - **Asynchronous Processing**: Background thread handles formatting and I/O, keeping your main thread responsive.
 - **Minimal Header Includes**:
-  - **Frontend**: Only `Logger.h` and `LogMacros.h` needed for logging. Lightweight with minimal dependencies.
-  - **Backend**: Single `.cpp` file inclusion. No backend code injection into other translation units.
+    - **Frontend**: Only `Logger.h` and `LogMacros.h` needed for logging. Lightweight with minimal dependencies.
+    - **Backend**: Single `.cpp` file inclusion. No backend code injection into other translation units.
 - **Compile-Time Optimization**: Eliminate specific log levels at compile time.
 - **Custom Formatters**: Define your own log output patterns.
   See [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
@@ -288,13 +288,15 @@ default size of `131,072` bytes._
 
 ### Throughput
 
-Throughput is measured by calculating the maximum number of log messages the backend logging thread can write to a log file per second.
+Throughput is measured by calculating the maximum number of log messages the backend logging thread can write to a log
+file per second.
 
 The tests were run on the same system used for the latency benchmarks.
 
 Although Quill’s primary focus is not on maximizing throughput, it efficiently manages log messages across multiple
 threads. Benchmarking throughput of asynchronous logging libraries presents certain challenges. Some libraries may drop
-log messages, leading to smaller-than-expected log files, while others only provide asynchronous flushing, making it difficult to verify when the backend thread has fully processed all messages.
+log messages, leading to smaller-than-expected log files, while others only provide asynchronous flushing, making it
+difficult to verify when the backend thread has fully processed all messages.
 
 For comparison, we benchmark against other asynchronous logging libraries that offer guaranteed logging with a
 flush-and-wait mechanism.
@@ -311,7 +313,7 @@ Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
 | [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       63.80        |    62 ms     |
-| [Quill](http://github.com/odygrd/quill)                           |        5.54        |    721 ms    |
+| [Quill](http://github.com/odygrd/quill)                           |        5.70        |    701 ms    |
 | [spdlog](http://github.com/gabime/spdlog)                         |        3.54        |   1128 ms    |
 | [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.90        |   1378 ms    |
 | [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |
