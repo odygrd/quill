@@ -77,32 +77,35 @@
 
 ## v7.2.0
 
-- Improved suppression of GCC false positive warnings and made minor enhancements to the `InlinedVector` class.
-- Fix compile error in `BackendTscClock` ([#577](https://github.com/odygrd/quill/issues/577))
+**Bug Fixes:**
+
+- Fixed compile error in `BackendTscClock` ([#577](https://github.com/odygrd/quill/issues/577))
 - Added a missing header include in `TriviallyCopyableCodec.h`. ([#560](https://github.com/odygrd/quill/issues/560))
-- Introduced support for custom buffer sizes in file streams for `FileSink` and `RotatingFileSink`. The buffer size can
-  now be set using `FileSinkConfig::set_write_buffer_size(size_value)` with a default of 64 KB. With the new default
-  value the backend thread has increased throughput around 5%
-- Simplified the `TransitEventBuffer` in the backend worker thread, resulting in a minor throughput improvement of
-  approximately 1%.
-- Optimised the size of the `TransitEvent` structure, reducing its memory footprint and improving backend thread
-  throughput by an additional 3%.
-- Added an optional `fsync` interval to control the minimum time between consecutive `fsync` calls, reducing disk wear
-  from frequent fsync operations. This option is only applicable when fsync is
-  enabled. ([#557](https://github.com/odygrd/quill/issues/557))
-- Enhanced the queue allocation notification message for better readability. It now shows capacities in KiB, e.g.,
-  `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
 - Fixed incorrect log level short codes introduced in v7 after adding the new log level `NOTICE`. Using
-  `%(log_level_short_code)` in the
-  formatter could incorrectly map `LOG_ERROR` to `"C"` and LOG_WARNING
+  `%(log_level_short_code)` in the pattern formatter could incorrectly map `LOG_ERROR` to `"C"` and LOG_WARNING
   to `"E"`. ([#564](https://github.com/odygrd/quill/issues/564))
 - Fixed an overflow issue when logging more than `uint32_t::max()` bytes in a single log message. For example,
   attempting to log `std::string s(std::numeric_limits<uint32_t>::max(), 'a');` would previously cause a crash.
-- Tuned `transit_events_soft_limit` and `transit_events_hard_limit` default values; added error checks for invalid
-  configurations.
-- Improved dynamic log level handling and optimize size calculation for fundamental types, std::string and std::
-  string_view on the hot path.
-- Added support for appending a custom timestamp format to log filenames via `StartCustomTimestampFormat`.
+
+**Improvements:**
+
+- Optimised dynamic log level handling and size calculation for fundamental types, `std::string` and `std::
+  string_view` on the hot path.
+- Several enhancements to the backend worker thread, resulting in an overall 10% backend throughput increase.
+  Key optimizations include the simplification of `TransitEventBuffer`, reducing the memory footprint of `TransitEvent`,
+  introducing support for custom buffer sizes in file streams and tuning `transit_events_soft_limit`
+  and `transit_events_hard_limit` default values
+- Improved readability of queue allocation notification messages. Capacities are now displayed in KiB,
+  e.g., `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
+
+**New Features:**
+
+- Introduced support for custom buffer sizes in file streams for `FileSink` and `RotatingFileSink`. Buffer size is
+  now configurable via `FileSinkConfig::set_write_buffer_size(size_value)` with a default of 64 KB.
+- Added an optional `fsync` interval to control the minimum time between consecutive `fsync` calls, reducing disk wear
+  from frequent fsync operations. This option is only applicable when `fsync` is
+  enabled. ([#557](https://github.com/odygrd/quill/issues/557))
+- Implemented support for appending a custom timestamp format to log filenames via `StartCustomTimestampFormat`.
   Example usage:
   ```cpp
   auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("logfile.log", []()
@@ -113,10 +116,10 @@
   }());
   ```
   This will create a log file named `logfile0919.log`, where `0919` represents the month and day.
-- When the placeholder `%(named_args)` is enabled in the pattern formatter or when logging in JSON format, any extra
-  arguments passed in the log message without a key name will also be displayed in the JSON output with keys
-  corresponding to their positional indexes. This allows additional details to be included in the JSON while keeping the
-  log message clean. For example ([#563](https://github.com/odygrd/quill/discussions/563)):
+- When using `%(named_args)` in the pattern formatter or logging in JSON format, extra
+  arguments without key names are now included in JSON output with keys corresponding to their positional indexes.
+  This allows additional details to be included in the JSON while keeping the log message clean. For
+  example ([#563](https://github.com/odygrd/quill/discussions/563)):
   ```cpp
   LOG_INFO(hybrid_logger, "Operation {name} completed with code {code}", "Update", 123, "Data synced successfully");
   ```
