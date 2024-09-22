@@ -205,8 +205,7 @@ public:
            "The committed write bytes must be equal to the total_size requested bytes");
 #endif
 
-    thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_write(total_size);
-    thread_context->get_spsc_queue<frontend_options_t::queue_type>().commit_write();
+    thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_and_commit_write(total_size);
 
     if constexpr (immediate_flush)
     {
