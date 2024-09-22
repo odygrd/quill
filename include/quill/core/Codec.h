@@ -268,11 +268,20 @@ template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
   QUILL_MAYBE_UNUSED detail::SizeCacheVector& conditional_arg_size_cache, Args const&... args) noexcept
 {
-  // we always need to clear the cache first before calling this function
-  conditional_arg_size_cache.clear();
+  if constexpr (!std::conjunction_v<std::disjunction<
+                  std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
+                  std::is_same<detail::remove_cvref_t<Args>, void const*>, detail::is_std_string<detail::remove_cvref_t<Args>>,
+                  std::is_same<detail::remove_cvref_t<Args>, std::string_view>>...>)
+  {
+    // Clear the cache whenever processing involves non-fundamental types,
+    // or when the arguments are not of type std::string or std::string_view.
+    conditional_arg_size_cache.clear();
+  }
 
   size_t total_sum{0};
-  // Do not use fold expression with '+ ...' as we need a guaranteed sequence for the args here
+  // Avoid using a fold expression with '+ ...' because we require a guaranteed evaluation
+  // order to ensure that each argument is processed in sequence. This is essential for
+  // correctly populating the conditional_arg_size_cache
   ((total_sum += Codec<detail::remove_cvref_t<Args>>::compute_encoded_size(conditional_arg_size_cache, args)), ...);
   return total_sum;
 }
