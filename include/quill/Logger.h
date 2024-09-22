@@ -25,11 +25,38 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
 
-#define QUILL_PREPARE_QUEUE_WRITE_BUFFER                                                                               \
+#define INITIALISE_TIMESTAMP_AND_THREAD_CONTEXT                                                      \
+  /** Store the timestamp of the log statement at the start of the call. This gives more accurate    \
+   * timestamp especially if the queue is full This is very rare but might lead to out of order      \
+   * timestamp in the log file if we block on push for too long */                                   \
+  uint64_t current_timestamp;                                                                        \
+  if (clock_source == ClockSourceType::Tsc)                                                          \
+  {                                                                                                  \
+    current_timestamp = detail::rdtsc();                                                             \
+  }                                                                                                  \
+  else if (clock_source == ClockSourceType::System)                                                  \
+  {                                                                                                  \
+    current_timestamp = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(  \
+                                                std::chrono::system_clock::now().time_since_epoch()) \
+                                                .count());                                           \
+  }                                                                                                  \
+  else                                                                                               \
+  {                                                                                                  \
+    current_timestamp = user_clock->now();                                                           \
+  }                                                                                                  \
+                                                                                                     \
+  if (QUILL_UNLIKELY(thread_context == nullptr))                                                     \
+  {                                                                                                  \
+    /** This caches the ThreadContext pointer to avoid calling get_local_thread_context() */         \
+    thread_context = detail::get_local_thread_context<frontend_options_t>();                         \
+  }
+
+#define QUILL_PREPARE_QUEUE_WRITE                                                                                      \
   std::byte* write_buffer = _prepare_write_buffer(total_size);                                                         \
                                                                                                                        \
   if constexpr (frontend_options_t::queue_type == QueueType::UnboundedUnlimited)                                       \
@@ -150,22 +177,14 @@ public:
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 #endif
 
-    // Store the timestamp of the log statement at the start of the call. This gives more accurate
-    // timestamp especially if the queue is full
-    // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
-    uint64_t const current_timestamp = _get_current_timestamp();
+    INITIALISE_TIMESTAMP_AND_THREAD_CONTEXT
 
-    if (QUILL_UNLIKELY(thread_context == nullptr))
-    {
-      // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
-      thread_context = detail::get_local_thread_context<frontend_options_t>();
-    }
-
+    // Include dynamic_log_level in the total size
     constexpr size_t total_size{
       sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) + sizeof(dynamic_log_level) +
       detail::compute_encoded_size_for_numeric_types<detail::remove_cvref_t<Args>...>()};
 
-    QUILL_PREPARE_QUEUE_WRITE_BUFFER
+    QUILL_PREPARE_QUEUE_WRITE
 
     // we have enough space in this buffer, and we will write to the buffer
 
@@ -215,22 +234,14 @@ public:
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 #endif
 
-    // Store the timestamp of the log statement at the start of the call. This gives more accurate
-    // timestamp especially if the queue is full
-    // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
-    uint64_t const current_timestamp = _get_current_timestamp();
+    INITIALISE_TIMESTAMP_AND_THREAD_CONTEXT
 
-    if (QUILL_UNLIKELY(thread_context == nullptr))
-    {
-      // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
-      thread_context = detail::get_local_thread_context<frontend_options_t>();
-    }
-
+    // Include dynamic_log_level in the total size
     size_t const total_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) + sizeof(dynamic_log_level) +
                             detail::compute_encoded_size_and_cache_string_lengths(
                               thread_context->get_conditional_arg_size_cache(), fmt_args...)};
 
-    QUILL_PREPARE_QUEUE_WRITE_BUFFER
+    QUILL_PREPARE_QUEUE_WRITE
 
     // we have enough space in this buffer, and we will write to the buffer
 
@@ -279,22 +290,13 @@ public:
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 #endif
 
-    // Store the timestamp of the log statement at the start of the call. This gives more accurate
-    // timestamp especially if the queue is full
-    // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
-    uint64_t const current_timestamp = _get_current_timestamp();
-
-    if (QUILL_UNLIKELY(thread_context == nullptr))
-    {
-      // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
-      thread_context = detail::get_local_thread_context<frontend_options_t>();
-    }
+    INITIALISE_TIMESTAMP_AND_THREAD_CONTEXT
 
     constexpr size_t total_size{
       sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
       detail::compute_encoded_size_for_numeric_types<detail::remove_cvref_t<Args>...>()};
 
-    QUILL_PREPARE_QUEUE_WRITE_BUFFER
+    QUILL_PREPARE_QUEUE_WRITE
 
     // we have enough space in this buffer, and we will write to the buffer
 
@@ -338,22 +340,13 @@ public:
     assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 #endif
 
-    // Store the timestamp of the log statement at the start of the call. This gives more accurate
-    // timestamp especially if the queue is full
-    // This is very rare but might lead to out of order timestamp in the log file if we block on push for too long
-    uint64_t const current_timestamp = _get_current_timestamp();
-
-    if (QUILL_UNLIKELY(thread_context == nullptr))
-    {
-      // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
-      thread_context = detail::get_local_thread_context<frontend_options_t>();
-    }
+    INITIALISE_TIMESTAMP_AND_THREAD_CONTEXT
 
     size_t const total_size{sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
                             detail::compute_encoded_size_and_cache_string_lengths(
                               thread_context->get_conditional_arg_size_cache(), fmt_args...)};
 
-    QUILL_PREPARE_QUEUE_WRITE_BUFFER
+    QUILL_PREPARE_QUEUE_WRITE
 
     // we have enough space in this buffer, and we will write to the buffer
 
@@ -517,27 +510,6 @@ private:
   /**
    * Prepares a write buffer for the given context and size.
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint64_t _get_current_timestamp() const noexcept
-  {
-    if (clock_source == ClockSourceType::Tsc)
-    {
-      return detail::rdtsc();
-    }
-    else if (clock_source == ClockSourceType::System)
-    {
-      return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                     std::chrono::system_clock::now().time_since_epoch())
-                                     .count());
-    }
-    else
-    {
-      return user_clock->now();
-    }
-  }
-
-  /**
-   * Prepares a write buffer for the given context and size.
-   */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _prepare_write_buffer(size_t total_size)
   {
     constexpr bool is_unbounded_queue = (frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
@@ -564,8 +536,9 @@ private:
 
 using Logger = LoggerImpl<FrontendOptions>;
 
-#undef QUILL_PREPARE_QUEUE_WRITE_BUFFER
+#undef QUILL_PREPARE_QUEUE_WRITE
 #undef QUILL_ENCODE_DATA
 #undef QUILL_FINALIZE_QUEUE_WRITE
+#undef INITIALISE_TIMESTAMP_AND_THREAD_CONTEXT
 
 QUILL_END_NAMESPACE
