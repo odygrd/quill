@@ -67,15 +67,24 @@ public:
    *
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
-  template <bool immediate_flush, typename... Args>
+  template <bool immediate_flush, bool has_dynamic_log_level, typename... Args>
   QUILL_ATTRIBUTE_HOT bool log_statement(LogLevel dynamic_log_level,
                                          MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
 #ifndef NDEBUG
+    if (has_dynamic_log_level)
+    {
+      assert((dynamic_log_level != quill::LogLevel::None) &&
+             "When has_dynamic_log_level is set to true then dynamic_log_level should not be None");
+    }
+
     if (dynamic_log_level != quill::LogLevel::None)
     {
       assert((macro_metadata->log_level() == quill::LogLevel::Dynamic) &&
              "MacroMetadata LogLevel must be Dynamic when using a dynamic_log_level");
+
+      assert(has_dynamic_log_level &&
+             "When dynamic_log_level is used then has_dynamic_log_level must also be true");
     }
 
     if (macro_metadata->log_level() != quill::LogLevel::Dynamic)
@@ -119,7 +128,7 @@ public:
       detail::compute_encoded_size_and_cache_string_lengths(
                           thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
-    if (dynamic_log_level != LogLevel::None)
+    if constexpr (has_dynamic_log_level)
     {
       // For the dynamic log level we want to add to the total size to store the dynamic log level
       total_size += sizeof(dynamic_log_level);
@@ -182,7 +191,7 @@ public:
     // encode remaining arguments
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
-    if (dynamic_log_level != LogLevel::None)
+    if constexpr (has_dynamic_log_level)
     {
       // write the dynamic log level
       // The reason we write it last is that is less likely to break the alignment in the buffer
@@ -222,7 +231,7 @@ public:
 
     // we pass this message to the queue and also pass capacity as arg
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false>(LogLevel::None, &macro_metadata, max_capacity))
+    while (!this->log_statement<false, false>(LogLevel::None, &macro_metadata, max_capacity))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -241,7 +250,7 @@ public:
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false>(LogLevel::None, &macro_metadata))
+    while (!this->log_statement<false, false>(LogLevel::None, &macro_metadata))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -272,8 +281,8 @@ public:
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false>(LogLevel::None, &macro_metadata,
-                                       reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
+    while (!this->log_statement<false, false>(
+      LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if (sleep_duration_ns > 0)
       {
@@ -307,8 +316,8 @@ private:
   LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
              UserClockSource* user_clock)
-    : detail::LoggerBase(static_cast<std::string&&>(logger_name),
-                         static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+    : detail::LoggerBase(
+        static_cast<std::string&&>(logger_name), static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
         static_cast<PatternFormatterOptions&&>(pattern_formatter_options), clock_source, user_clock)
 
   {
@@ -318,7 +327,7 @@ private:
       this->clock_source = ClockSourceType::User;
     }
   }
-  
+
   /**
    * Encodes header information into the write buffer
    *
