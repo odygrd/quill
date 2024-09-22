@@ -75,9 +75,9 @@ private:
     if (logger->template should_log_statement<log_level>())                                         \
     {                                                                                               \
       static constexpr quill::MacroMetadata macro_metadata{                                         \
-        "SignalHandler:~", "", fmt, nullptr, log_level, quill::MacroMetadata::Event::Log};          \
-                                                                                                    \
-      logger->template log_statement<false>(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__); \
+        "SignalHandler:~", "", fmt, nullptr, log_level, quill::MacroMetadata::Event::Log};                 \
+                                                                                                           \
+      logger->template log_statement<false, false>(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__); \
     }                                                                                               \
   } while (0)
 

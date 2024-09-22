@@ -100,6 +100,7 @@
   attempting to log `std::string s(std::numeric_limits<uint32_t>::max(), 'a');` would previously cause a crash.
 - Tuned `transit_events_soft_limit` and `transit_events_hard_limit` default values; added error checks for invalid
   configurations.
+- Improved dynamic log level handling by checking at compile-time using `constexpr` on the hot path.
 - Added support for appending a custom timestamp format to log filenames via `StartCustomTimestampFormat`.
   Example usage:
   ```cpp

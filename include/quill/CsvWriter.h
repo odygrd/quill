@@ -63,7 +63,7 @@ public:
                                              }()),
       quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
   }
 
   /**
@@ -78,7 +78,7 @@ public:
       Frontend::create_or_get_logger(unique_name + "_csv", std::move(sink),
                                      quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
   }
 
   /**
@@ -92,7 +92,7 @@ public:
     _logger = Frontend::create_or_get_logger(
       unique_name + "_csv", sinks, quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
   }
 
   /**
@@ -112,7 +112,7 @@ public:
   template <typename... Args>
   void append_row(Args&&... fields)
   {
-    _logger->template log_statement<false>(quill::LogLevel::None, &line_metadata, fields...);
+    _logger->template log_statement<false, false>(quill::LogLevel::None, &line_metadata, fields...);
   }
 
   /**
