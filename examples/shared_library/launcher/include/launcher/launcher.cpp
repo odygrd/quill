@@ -43,10 +43,10 @@ extern "C"
 
     run_test_module();
 
-    // Always stop logger at the end
-    stop_quill();
-
     // Simulate work with modules, then release
     FreeLibrary(testModule);
+
+    // Always stop logger at the end
+    stop_quill();
   }
 }
