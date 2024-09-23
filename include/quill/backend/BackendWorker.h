@@ -710,9 +710,7 @@ private:
     {
       transit_event->named_args->clear();
     }
-
-    // Remove this event and move to the next, the Flush events calls pop_front() internally
-    // for special reasons
+    
     thread_context->_transit_event_buffer->pop_front();
 
     if (flush_flag)
