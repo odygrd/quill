@@ -43,8 +43,12 @@ extern "C"
 
     run_test_module();
 
+    std::cout << "preparing to free library " << std::endl;
+
     // Simulate work with modules, then release
     FreeLibrary(testModule);
+
+    std::cout << "free library done" << std::endl;
 
     // Always stop logger at the end
     stop_quill();
