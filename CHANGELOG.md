@@ -1,3 +1,4 @@
+- [v7.2.2](#v722)
 - [v7.2.1](#v721)
 - [v7.2.0](#v720)
 - [v7.1.0](#v710)
@@ -75,6 +76,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v7.2.2
+
+- Fixed race condition during DLL unload by ensuring safe cleanup of `ThreadContext` when
+  calling `flush_log()` ([#586](https://github.com/odygrd/quill/issues/586))
 
 ## v7.2.1
 
