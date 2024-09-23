@@ -13,9 +13,15 @@ endif ()
 if (WIN32)
     target_compile_definitions(quill_example_shared_lib PRIVATE QUILL_DLL_IMPORT)
 
-    # Post-build command to copy the DLL to the executable directory
-    add_custom_command(TARGET quill_example_shared_lib POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:quill_wrapper_shared>   # DLL location
-            $<TARGET_FILE_DIR:quill_example_shared_lib>)  # Executable directory
+    # Custom target to copy all DLLs to the executable directory
+    add_custom_target(copy_dll ALL
+            COMMAND ${CMAKE_COMMAND} -E copy
+            $<TARGET_FILE:quill_wrapper_shared>          # DLL location
+            $<TARGET_FILE_DIR:quill_example_shared_lib>  # Executable directory
+            DEPENDS quill_wrapper_shared # Ensure all shared libs are built before copying
+    )
+
+    # Ensure that the custom target is executed after quill_example_shared_lib is built
+    add_dependencies(quill_example_shared_lib copy_dll)
+
 endif ()
