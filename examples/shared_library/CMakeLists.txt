@@ -12,4 +12,10 @@ endif ()
 # Required - Define QUILL_DLL_IMPORT when using the shared library on Windows
 if (WIN32)
     target_compile_definitions(quill_example_shared_lib PRIVATE QUILL_DLL_IMPORT)
+
+    # Post-build command to copy the DLL to the executable directory
+    add_custom_command(TARGET quill_example_shared_lib POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:quill_wrapper_shared>   # DLL location
+            $<TARGET_FILE_DIR:quill_example_shared_lib>)  # Executable directory
 endif ()
