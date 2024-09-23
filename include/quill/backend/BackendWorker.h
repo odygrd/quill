@@ -694,7 +694,9 @@ private:
     TransitEvent* transit_event = thread_context->_transit_event_buffer->front();
     assert(transit_event && "transit_buffer is set only when transit_event is valid");
 
-    QUILL_TRY { _process_transit_event(*thread_context, *transit_event); }
+    std::atomic<bool>* flush_flag{nullptr};
+
+    QUILL_TRY { _process_transit_event(*thread_context, *transit_event, flush_flag); }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
     QUILL_CATCH_ALL()
@@ -709,8 +711,27 @@ private:
       transit_event->named_args->clear();
     }
 
-    // Remove this event and move to the next.
+    // Remove this event and move to the next, the Flush events calls pop_front() internally
+    // for special reasons
     thread_context->_transit_event_buffer->pop_front();
+
+    if (flush_flag)
+    {
+      // Process the second part of the flush event after it's been removed from the buffer,
+      // ensuring that we are no longer interacting with the thread_context or transit_event.
+
+      // This is particularly important for handling cases when Quill is used as a DLL on Windows.
+      // If `FreeLibrary` is called, the backend thread may attempt to access an invalidated
+      // `ThreadContext`, which can lead to a crash due to invalid memory access.
+      //
+      // To prevent this, whenever we receive a Flush event, we clean up any invalidated thread contexts
+      // before notifying the caller. This ensures that when `flush_log()` is invoked in `DllMain`
+      // during `DLL_PROCESS_DETACH`, the `ThreadContext` is properly cleaned up before the DLL exits.
+      _cleanup_invalidated_thread_contexts();
+
+      // Now it’s safe to notify the caller to continue execution.
+      flush_flag->store(true);
+    }
 
     return true;
   }
@@ -718,7 +739,8 @@ private:
   /**
    * Process a single transit event
    */
-  QUILL_ATTRIBUTE_HOT void _process_transit_event(ThreadContext const& thread_context, TransitEvent& transit_event)
+  QUILL_ATTRIBUTE_HOT void _process_transit_event(ThreadContext const& thread_context,
+                                                  TransitEvent& transit_event, std::atomic<bool>*& flush_flag)
   {
     // If backend_process(...) throws we want to skip this event and move to the next, so we catch
     // the error here instead of catching it in the parent try/catch block of main_loop
@@ -787,11 +809,13 @@ private:
     {
       _flush_and_run_active_sinks(false);
 
-      // this is a flush event, so we need to notify the caller to continue now
-      transit_event.flush_flag->store(true);
+      // This is a flush event, so we capture the flush flag to notify the caller after processing.
+      flush_flag = transit_event.flush_flag;
 
-      // we also need to reset the flush_flag as the TransitEvents are re-used
+      // Reset the flush flag as TransitEvents are re-used, preventing incorrect flag reuse.
       transit_event.flush_flag = nullptr;
+
+      // We defer notifying the caller until after this function completes.
     }
   }
 
