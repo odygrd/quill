@@ -52,7 +52,7 @@ public:
                      FilenameAppendOption filename_append = FilenameAppendOption::None)
   {
     _logger = Frontend::create_or_get_logger(
-      filename + "_csv",
+      filename + "__csv__",
       Frontend::create_or_get_sink<FileSink>(filename,
                                              [open_mode, filename_append]()
                                              {

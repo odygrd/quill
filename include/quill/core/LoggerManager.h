@@ -18,6 +18,7 @@
 #include <initializer_list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
@@ -69,7 +70,7 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD LoggerBase* get_valid_logger() const
+  QUILL_NODISCARD LoggerBase* get_valid_logger(std::string_view exclude_logger_substr = {}) const
   {
     // Retrieves any valid logger without the need for constructing a vector
     LockGuard const lock{_spinlock};
@@ -79,7 +80,13 @@ public:
       // we can not add invalidated loggers as they can be removed at any time
       if (elem->is_valid_logger())
       {
-        return elem.get();
+        // Return the logger only if it does not match the exclude_logger_substr
+        if (exclude_logger_substr.empty() ||
+            elem->get_logger_name().find(exclude_logger_substr) == std::string::npos)
+        {
+          // Return this logger if it's valid and not excluded
+          return elem.get();
+        }
       }
     }
 
