@@ -106,7 +106,7 @@ public:
    * making it visible to the consumer.
    * @return a valid point to the buffer
    */
-  template <quill::QueueType queue_type>
+  template <QueueType queue_type>
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes)
   {
     // Try to reserve the bounded queue
@@ -200,7 +200,7 @@ public:
 
 private:
   /***/
-  template <quill::QueueType queue_type>
+  template <QueueType queue_type>
   QUILL_NODISCARD std::byte* _handle_full_queue(size_t nbytes)
   {
     // Then it means the queue doesn't have enough size

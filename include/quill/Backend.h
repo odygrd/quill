@@ -1,5 +1,5 @@
 /**
-  * @page copyright
+ * @page copyright
  * Copyright(c) 2020-present, Odysseas Georgoudis & quill contributors.* @page copyright
  * Distributed under the MIT License (http://opensource.org/licenses/MIT)
  */
@@ -220,7 +220,8 @@ public:
 
     if (!manual_backend_worker)
     {
-      QUILL_THROW(QuillError{"acquire_manual_backend_worker() can only be called once per process. "
+      QUILL_THROW(
+        QuillError{"acquire_manual_backend_worker() can only be called once per process. "
                    "Additionally, it should "
                    "not be called when start() or start_with_signal_handler() has been invoked"});
     }

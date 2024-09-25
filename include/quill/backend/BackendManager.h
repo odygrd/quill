@@ -22,7 +22,6 @@ class BackendTscClock;
 
 namespace detail
 {
-
 /**
  * Provides access to common collection class that are used by both the frontend and the backend
  * components of the logging system
@@ -90,6 +89,7 @@ private:
   {
     return &_manual_backend_worker;
   }
+
 private:
   BackendWorker _backend_worker;
   ManualBackendWorker _manual_backend_worker{&_backend_worker};

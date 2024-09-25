@@ -150,7 +150,7 @@ void on_signal(int32_t signal_number)
 #endif
 
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
-      QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Info, "Received signal: {} (signum: {})",
+      QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Info, "Received signal: {} (signum: {})",
                                signal_desc, signal_number);
 
       if (signal_number == SIGINT || signal_number == SIGTERM)
@@ -163,7 +163,7 @@ void on_signal(int32_t signal_number)
 
       if (should_reraise_signal)
       {
-        QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Critical,
+        QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Critical,
                                  "Program terminated unexpectedly due to signal: {} (signum: {})",
                                  signal_desc, signal_number);
 
@@ -256,7 +256,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
     if (logger_base)
     {
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
-      QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Info,
+      QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Info,
                                "Program interrupted by Ctrl+C or Ctrl+Break signal");
 
       // Pass `0` to avoid calling std::this_thread::sleep_for()
@@ -285,11 +285,11 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
     {
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
 
-      QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Info, "Received exception: {} (Code: {})",
+      QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Info, "Received exception: {} (Code: {})",
                                get_error_message(exception_p->ExceptionRecord->ExceptionCode),
                                exception_p->ExceptionRecord->ExceptionCode);
 
-      QUILL_SIGNAL_HANDLER_LOG(logger, quill::LogLevel::Critical,
+      QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Critical,
                                "Program terminated unexpectedly due to exception: {} (Code: {})",
                                get_error_message(exception_p->ExceptionRecord->ExceptionCode),
                                exception_p->ExceptionRecord->ExceptionCode);

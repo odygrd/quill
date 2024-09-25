@@ -25,7 +25,7 @@ struct FrontendOptions
    *
    * By default, the library uses an UnboundedBlocking queue, which starts with initial_queue_capacity.
    */
-  static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
+  static constexpr QueueType queue_type = QueueType::UnboundedBlocking;
 
   /**
    * Initial capacity of the queue. Used for UnboundedBlocking, UnboundedDropping, and

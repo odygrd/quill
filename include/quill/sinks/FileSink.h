@@ -432,24 +432,24 @@ private:
    * @param time_zone Timezone to use.
    * @return Updated filename.
    */
-  QUILL_NODISCARD static quill::fs::path _get_updated_filename_with_appended_datetime(
-    quill::fs::path const& filename, quill::FilenameAppendOption append_to_filename_option,
-    std::string const& append_filename_format_pattern, quill::Timezone time_zone,
+  QUILL_NODISCARD static fs::path _get_updated_filename_with_appended_datetime(
+    fs::path const& filename, FilenameAppendOption append_to_filename_option,
+    std::string const& append_filename_format_pattern, Timezone time_zone,
     std::chrono::system_clock::time_point timestamp)
   {
-    if ((append_to_filename_option == quill::FilenameAppendOption::None) || (filename == "/dev/null"))
+    if ((append_to_filename_option == FilenameAppendOption::None) || (filename == "/dev/null"))
     {
       return filename;
     }
 
-    if ((append_to_filename_option == quill::FilenameAppendOption::StartCustomTimestampFormat) ||
-        (append_to_filename_option == quill::FilenameAppendOption::StartDate) ||
-        (append_to_filename_option == quill::FilenameAppendOption::StartDateTime))
+    if ((append_to_filename_option == FilenameAppendOption::StartCustomTimestampFormat) ||
+        (append_to_filename_option == FilenameAppendOption::StartDate) ||
+        (append_to_filename_option == FilenameAppendOption::StartDateTime))
     {
       return append_datetime_to_filename(filename, append_filename_format_pattern, time_zone, timestamp);
     }
 
-    return quill::fs::path{};
+    return fs::path{};
   }
 
 private:

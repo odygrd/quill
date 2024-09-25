@@ -710,7 +710,7 @@ private:
     {
       transit_event->named_args->clear();
     }
-    
+
     thread_context->_transit_event_buffer->pop_front();
 
     if (flush_flag)
