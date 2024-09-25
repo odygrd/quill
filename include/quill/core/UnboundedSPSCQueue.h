@@ -106,8 +106,13 @@ public:
    * making it visible to the consumer.
    * @return a valid point to the buffer
    */
+#if defined(_MSC_VER)
+  // MSVC doesn't like this as template <QueueType queue_type> when called from Logger, while it compiles on MSVC there will be false positives from clang-tidy
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes, QueueType queue_type)
+#else
   template <QueueType queue_type>
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes)
+#endif
   {
     // Try to reserve the bounded queue
     std::byte* write_pos = _producer->bounded_queue.prepare_write(nbytes);
@@ -117,7 +122,11 @@ public:
       return write_pos;
     }
 
+#if defined(_MSC_VER)
+    return _handle_full_queue(nbytes, queue_type);
+#else
     return _handle_full_queue<queue_type>(nbytes);
+#endif
   }
 
   /**
@@ -200,8 +209,12 @@ public:
 
 private:
   /***/
+#if defined(_MSC_VER)
+  QUILL_NODISCARD std::byte* _handle_full_queue(size_t nbytes, QueueType queue_type)
+#else
   template <QueueType queue_type>
   QUILL_NODISCARD std::byte* _handle_full_queue(size_t nbytes)
+#endif
   {
     // Then it means the queue doesn't have enough size
     size_t capacity = _producer->bounded_queue.capacity() * 2ull;
@@ -210,7 +223,11 @@ private:
       capacity = capacity * 2ull;
     }
 
+#if defined(_MSC_VER)
+    if ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
+#else
     if constexpr ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
+#endif
     {
       size_t constexpr max_bounded_queue_size = 2ull * 1024 * 1024 * 1024; // 2 GB
 

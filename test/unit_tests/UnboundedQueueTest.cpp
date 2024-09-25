@@ -20,12 +20,20 @@ TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
       {
         for (uint32_t i = 0; i < 8192; ++i)
         {
+#if defined(_MSC_VER)
+          auto* write_buffer = buffer.prepare_write(sizeof(uint32_t), quill::QueueType::UnboundedBlocking);
+#else
           auto* write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(sizeof(uint32_t));
+#endif
 
           while (!write_buffer)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
+#if defined(_MSC_VER)
+            write_buffer = buffer.prepare_write(sizeof(uint32_t), quill::QueueType::UnboundedBlocking);
+#else
             write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(sizeof(uint32_t));
+#endif
           }
 
           std::memcpy(write_buffer, &i, sizeof(uint32_t));
