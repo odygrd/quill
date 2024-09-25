@@ -52,7 +52,7 @@ public:
                      FilenameAppendOption filename_append = FilenameAppendOption::None)
   {
     _logger = Frontend::create_or_get_logger(
-      filename + "_csv",
+      _logger_name_prefix + filename,
       Frontend::create_or_get_sink<FileSink>(filename,
                                              [open_mode, filename_append]()
                                              {
@@ -61,9 +61,9 @@ public:
                                                cfg.set_filename_append_option(filename_append);
                                                return cfg;
                                              }()),
-      quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+      PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
   }
 
   /**
@@ -74,11 +74,10 @@ public:
    */
   CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink)
   {
-    _logger =
-      Frontend::create_or_get_logger(unique_name + "_csv", std::move(sink),
-                                     quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+    _logger = Frontend::create_or_get_logger(_logger_name_prefix + unique_name, std::move(sink),
+                                             PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
   }
 
   /**
@@ -90,9 +89,9 @@ public:
   CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks)
   {
     _logger = Frontend::create_or_get_logger(
-      unique_name + "_csv", sinks, quill::PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+      _logger_name_prefix + unique_name, sinks, PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(quill::LogLevel::None, &header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
   }
 
   /**
@@ -112,7 +111,7 @@ public:
   template <typename... Args>
   void append_row(Args&&... fields)
   {
-    _logger->template log_statement<false, false>(quill::LogLevel::None, &line_metadata, fields...);
+    _logger->template log_statement<false, false>(LogLevel::None, &_line_metadata, fields...);
   }
 
   /**
@@ -122,11 +121,13 @@ public:
   void flush() { _logger->flush_log(); }
 
 private:
-  static constexpr quill::MacroMetadata header_metadata{
-    "", "", "{}", nullptr, LogLevel::Info, quill::MacroMetadata::Event::Log};
+  static constexpr MacroMetadata _header_metadata{
+    "", "", "{}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
 
-  static constexpr quill::MacroMetadata line_metadata{
-    "", "", TCsvSchema::format, nullptr, LogLevel::Info, quill::MacroMetadata::Event::Log};
+  static constexpr MacroMetadata _line_metadata{
+    "", "", TCsvSchema::format, nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  static inline std::string _logger_name_prefix {"__csv__"};
 
   LoggerImpl<TFrontendOptions>* _logger{nullptr};
 };

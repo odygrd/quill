@@ -1,3 +1,4 @@
+- [v7.3.0](#v730)
 - [v7.2.2](#v722)
 - [v7.2.1](#v721)
 - [v7.2.0](#v720)
@@ -76,6 +77,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v7.3.0
+
+- Prevented error logs from the `SignalHandler` from being output to CSV files when a `CsvWriter` is in
+  use. ([#588](https://github.com/odygrd/quill/issues/588))
 
 ## v7.2.2
 

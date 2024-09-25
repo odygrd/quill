@@ -74,22 +74,22 @@ public:
 #ifndef NDEBUG
     if (has_dynamic_log_level)
     {
-      assert((dynamic_log_level != quill::LogLevel::None) &&
+      assert((dynamic_log_level != LogLevel::None) &&
              "When has_dynamic_log_level is set to true then dynamic_log_level should not be None");
     }
 
-    if (dynamic_log_level != quill::LogLevel::None)
+    if (dynamic_log_level != LogLevel::None)
     {
-      assert((macro_metadata->log_level() == quill::LogLevel::Dynamic) &&
+      assert((macro_metadata->log_level() == LogLevel::Dynamic) &&
              "MacroMetadata LogLevel must be Dynamic when using a dynamic_log_level");
 
       assert(has_dynamic_log_level &&
              "When dynamic_log_level is used then has_dynamic_log_level must also be true");
     }
 
-    if (macro_metadata->log_level() != quill::LogLevel::Dynamic)
+    if (macro_metadata->log_level() != LogLevel::Dynamic)
     {
-      assert((dynamic_log_level == quill::LogLevel::None) &&
+      assert((dynamic_log_level == LogLevel::None) &&
              "No dynamic_log_level should be set when MacroMetadata LogLevel is not Dynamic");
     }
 
@@ -224,7 +224,7 @@ public:
    */
   void init_backtrace(uint32_t max_capacity, LogLevel flush_level = LogLevel::None)
   {
-    // we do not care about the other fields, except quill::MacroMetadata::Event::InitBacktrace
+    // we do not care about the other fields, except MacroMetadata::Event::InitBacktrace
     static constexpr MacroMetadata macro_metadata{
       "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace};
 
@@ -244,7 +244,7 @@ public:
    */
   void flush_backtrace()
   {
-    // we do not care about the other fields, except quill::MacroMetadata::Event::Flush
+    // we do not care about the other fields, except MacroMetadata::Event::Flush
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
 

@@ -2,21 +2,30 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
+#include "quill/CsvWriter.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
 #include <cstdio>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
 
 using namespace quill;
 
+struct OrderCsvSchema
+{
+  static constexpr char const* header = "order_id,symbol";
+  static constexpr char const* format = "{},{}";
+};
+
 /***/
 TEST_CASE("signal_handler")
 {
   static constexpr char const* filename = "signal_handler.log";
+  static constexpr char const* csv_filename = "aa.csv"; // use 'aa' because we sort Loggers alphabetically
   static std::string const logger_name = "logger";
   static constexpr size_t number_of_messages = 10;
   static constexpr size_t number_of_threads = 10;
@@ -31,6 +40,11 @@ TEST_CASE("signal_handler")
   detail::SignalHandlerContext::instance().should_reraise_signal.store(false);
 
   quill::Frontend::preallocate();
+
+  // First we create a CsvWriter to also test that the error message from the SignalHandler will not
+  // get logged there
+  auto csv_writer = std::make_unique<CsvWriter<OrderCsvSchema, FrontendOptions>>(csv_filename);
+  csv_writer->append_row(13212123, "AAPL");
 
   std::vector<std::thread> threads;
 
@@ -77,6 +91,9 @@ TEST_CASE("signal_handler")
   std::raise(SIGABRT);
 
   {
+    std::vector<std::string> const csv_file_contents = quill::testing::file_contents(csv_filename);
+    REQUIRE_EQ(csv_file_contents.size(), 2);
+
     // Except the log and the signal handler in the logs
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
@@ -105,6 +122,8 @@ TEST_CASE("signal_handler")
 #endif
   }
 
+  csv_writer.reset();
+
   // Wait until the backend thread stops for test stability
   for (Logger* logger : Frontend::get_all_loggers())
   {
@@ -116,4 +135,5 @@ TEST_CASE("signal_handler")
   REQUIRE_FALSE(Backend::is_running());
 
   testing::remove_file(filename);
+  testing::remove_file(csv_filename);
 }
