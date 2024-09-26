@@ -60,6 +60,9 @@ public:
    * function. The signal handler sets up an alarm to ensure that the process will terminate if it
    * does not complete within the specified time frame. This is particularly useful to prevent the
    * process from hanging indefinitely in case the signal handler encounters an issue.
+   * @param signal_handler_logger The logger instance that the signal handler will use to log errors when the application crashes.
+   * The logger is accessed by the signal handler and must be created by your application using Frontend::create_or_get_logger(...).
+   * If the specified logger is not found, or if this parameter is left empty, the signal handler will default to using the first valid logger it finds.
    *
    * @note When using the SignalHandler on Linux/MacOS, ensure that each spawned thread in your
    * application has performed one of the following actions:
@@ -79,10 +82,10 @@ public:
     BackendOptions const& options = BackendOptions{},
     QUILL_MAYBE_UNUSED std::initializer_list<int> const& catchable_signals =
       std::initializer_list<int>{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV},
-    uint32_t signal_handler_timeout_seconds = 20u)
+    uint32_t signal_handler_timeout_seconds = 20u, std::string const& signal_handler_logger = {})
   {
     std::call_once(detail::BackendManager::instance().get_start_once_flag(),
-                   [options, catchable_signals, signal_handler_timeout_seconds]()
+                   [options, catchable_signals, signal_handler_timeout_seconds, signal_handler_logger]()
                    {
 #if defined(_WIN32)
                      (void)catchable_signals;
@@ -99,6 +102,8 @@ public:
 
                      // Run the backend worker thread, we wait here until the thread enters the main loop
                      detail::BackendManager::instance().start_backend_thread(options);
+
+                     detail::SignalHandlerContext::instance().logger_name = signal_handler_logger;
 
                      detail::SignalHandlerContext::instance().signal_handler_timeout_seconds.store(
                        signal_handler_timeout_seconds);

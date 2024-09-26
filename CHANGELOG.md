@@ -80,8 +80,11 @@
 
 ## v7.3.0
 
+- Added the option to explicitly specify the `Logger` used by the built-in `SignalHandler` for logging errors during
+  application crashes. ([#590](https://github.com/odygrd/quill/issues/590))
 - Prevented error logs from the `SignalHandler` from being output to CSV files when a `CsvWriter` is in
   use. ([#588](https://github.com/odygrd/quill/issues/588))
+- Implemented a workaround to resolve false positive warnings from `clang-tidy` on Windows.
 
 ## v7.2.2
 
