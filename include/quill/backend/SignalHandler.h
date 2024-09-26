@@ -58,8 +58,28 @@ public:
     return instance;
   }
 
+  /***/
+  QUILL_NODISCARD LoggerBase* get_logger() noexcept
+  {
+    LoggerBase* logger_base{nullptr};
+
+    if (!SignalHandlerContext::instance().logger_name.empty())
+    {
+      logger_base = detail::LoggerManager::instance().get_logger(SignalHandlerContext::instance().logger_name);
+    }
+
+    // This also checks if the logger was found above
+    if (!logger_base || !logger_base->is_valid_logger())
+    {
+      logger_base = detail::LoggerManager::instance().get_valid_logger(SignalHandlerContext::excluded_logger_name_substr);
+    }
+
+    return logger_base;
+  }
+
   static constexpr std::string_view excluded_logger_name_substr = {"__csv__"};
 
+  std::string logger_name;
   std::atomic<int32_t> signal_number{0};
   std::atomic<uint32_t> lock{0};
   std::atomic<uint32_t> backend_thread_id{0};
@@ -138,8 +158,7 @@ void on_signal(int32_t signal_number)
   else
   {
     // This means signal handler is running on a frontend thread, we can log and flush
-    LoggerBase* logger_base =
-      detail::LoggerManager::instance().get_valid_logger(SignalHandlerContext::excluded_logger_name_substr);
+    LoggerBase* logger_base = SignalHandlerContext::instance().get_logger();
 
     if (logger_base)
     {
@@ -251,8 +270,8 @@ BOOL WINAPI on_console_signal(DWORD signal)
       (signal == CTRL_C_EVENT || signal == CTRL_BREAK_EVENT))
   {
     // Log the interruption and flush log messages
-    LoggerBase* logger_base =
-      detail::LoggerManager::instance().get_valid_logger(SignalHandlerContext::excluded_logger_name_substr);
+    LoggerBase* logger_base = SignalHandlerContext::instance().get_logger();
+
     if (logger_base)
     {
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
@@ -279,8 +298,8 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
   if ((backend_thread_id != 0) && (current_thread_id != backend_thread_id))
   {
     // Log the interruption and flush log messages
-    LoggerBase* logger_base =
-      detail::LoggerManager::instance().get_valid_logger(SignalHandlerContext::excluded_logger_name_substr);
+    LoggerBase* logger_base = SignalHandlerContext::instance().get_logger();
+
     if (logger_base)
     {
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);

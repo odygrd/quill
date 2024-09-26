@@ -25,7 +25,7 @@ struct OrderCsvSchema
 TEST_CASE("signal_handler")
 {
   static constexpr char const* filename = "signal_handler.log";
-  static constexpr char const* csv_filename = "aa.csv"; // use 'aa' because we sort Loggers alphabetically
+  static constexpr char const* csv_filename = "signal_handler.csv";
   static std::string const logger_name = "logger";
   static constexpr size_t number_of_messages = 10;
   static constexpr size_t number_of_threads = 10;
