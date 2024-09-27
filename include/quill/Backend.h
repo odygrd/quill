@@ -48,27 +48,18 @@ public:
                      std::atexit([]() { detail::BackendManager::instance().stop_backend_thread(); });
                    });
   }
-
   /**
    * Starts the backend thread and initialises a signal handler
    *
-   * @param options Backend options to configure the backend behavior.
-   * @param catchable_signals List of signals that the backend should catch if with_signal_handler
+   * @param backend_options Backend options to configure the backend behavior.
+   * @param signal_handler_options SignalHandler options to configure the signal handler behavior.
    * is enabled.
-   * @param signal_handler_timeout_seconds This variable defines the timeout duration in seconds for
-   * the signal handler alarm. It is only available on Linux, as Windows does not support the alarm
-   * function. The signal handler sets up an alarm to ensure that the process will terminate if it
-   * does not complete within the specified time frame. This is particularly useful to prevent the
-   * process from hanging indefinitely in case the signal handler encounters an issue.
-   * @param signal_handler_logger The logger instance that the signal handler will use to log errors when the application crashes.
-   * The logger is accessed by the signal handler and must be created by your application using Frontend::create_or_get_logger(...).
-   * If the specified logger is not found, or if this parameter is left empty, the signal handler will default to using the first valid logger it finds.
    *
    * @note When using the SignalHandler on Linux/MacOS, ensure that each spawned thread in your
    * application has performed one of the following actions:
    * i) Logged at least once.
-   * ii) Called Frontend::preallocate().
-   * iii) Blocked signals on that thread to prevent the signal handler from running on it.
+   * or ii) Called Frontend::preallocate().
+   * or iii) Blocked signals on that thread to prevent the signal handler from running on it.
    * This requirement is because the built-in signal handler utilizes a lock-free queue to issue log
    * statements and await the log flushing. The queue is constructed on its first use with `new()`.
    * Failing to meet any of the above criteria means the queue was never used, and it will be
@@ -78,17 +69,13 @@ public:
    * safe.
    */
   template <typename TFrontendOptions>
-  QUILL_ATTRIBUTE_COLD static void start_with_signal_handler(
-    BackendOptions const& options = BackendOptions{},
-    QUILL_MAYBE_UNUSED std::initializer_list<int> const& catchable_signals =
-      std::initializer_list<int>{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV},
-    uint32_t signal_handler_timeout_seconds = 20u, std::string const& signal_handler_logger = {})
+  QUILL_ATTRIBUTE_COLD static void start(BackendOptions const& backend_options,
+                                         SignalHandlerOptions const& signal_handler_options)
   {
     std::call_once(detail::BackendManager::instance().get_start_once_flag(),
-                   [options, catchable_signals, signal_handler_timeout_seconds, signal_handler_logger]()
+                   [backend_options, signal_handler_options]()
                    {
 #if defined(_WIN32)
-                     (void)catchable_signals;
                      detail::init_exception_handler<TFrontendOptions>();
 #else
         // We do not want signal handler to run in the backend worker thread
@@ -97,16 +84,16 @@ public:
         sigset_t set, oldset;
         sigfillset(&set);
         sigprocmask(SIG_SETMASK, &set, &oldset);
-        detail::init_signal_handler<TFrontendOptions>(catchable_signals);
+        detail::init_signal_handler<TFrontendOptions>(signal_handler_options.catchable_signals);
 #endif
 
                      // Run the backend worker thread, we wait here until the thread enters the main loop
-                     detail::BackendManager::instance().start_backend_thread(options);
+                     detail::BackendManager::instance().start_backend_thread(backend_options);
 
-                     detail::SignalHandlerContext::instance().logger_name = signal_handler_logger;
+                     detail::SignalHandlerContext::instance().logger_name = signal_handler_options.logger;
 
                      detail::SignalHandlerContext::instance().signal_handler_timeout_seconds.store(
-                       signal_handler_timeout_seconds);
+                       signal_handler_options.timeout_seconds);
 
                      // We need to update the signal handler with some backend thread details
                      detail::SignalHandlerContext::instance().backend_thread_id.store(
@@ -115,8 +102,8 @@ public:
 #if defined(_WIN32)
       // nothing to do
 #else
-        // Unblock signals in the main thread so subsequent threads do not inherit the blocked mask
-        sigprocmask(SIG_SETMASK, &oldset, nullptr);
+                     // Unblock signals in the main thread so subsequent threads do not inherit the blocked mask
+                     sigprocmask(SIG_SETMASK, &oldset, nullptr);
 #endif
 
                      // Set up an exit handler to call stop when the main application exits.
@@ -124,6 +111,21 @@ public:
                      // working better with dll on windows compared to using ~LogManagerSingleton().
                      std::atexit([]() { detail::BackendManager::instance().stop_backend_thread(); });
                    });
+  }
+
+  /***/
+  template <typename TFrontendOptions>
+  [[deprecated(
+    "This function is deprecated and will be removed in the next version. Use "
+    "start(BackendOptions, SignalHandlerOptions) instead ")]] QUILL_ATTRIBUTE_COLD static void
+  start_with_signal_handler(BackendOptions const& options = BackendOptions{},
+                            QUILL_MAYBE_UNUSED std::initializer_list<int> const& catchable_signals =
+                              std::initializer_list<int>{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV},
+                            uint32_t signal_handler_timeout_seconds = 20u,
+                            std::string const& signal_handler_logger = {})
+  {
+    SignalHandlerOptions sho{catchable_signals, signal_handler_timeout_seconds, signal_handler_logger};
+    start<TFrontendOptions>(options, sho);
   }
 
   /**
@@ -193,7 +195,7 @@ public:
    *     multiple threads calling `poll()` simultaneously.
    *   - The built-in signal handler is not set up with `ManualBackendWorker`. If signal handling is
    *     required, you must manually set up the signal handler and block signals from reaching the `ManualBackendWorker` thread.
-   *     See the `start_with_signal_handler()` implementation for guidance on how to do this.
+   *     See the `start<FrontendOptions>(BackendOptions, SignalHandlerOptions)` implementation for guidance on how to do this.
    *   - The following options are not supported when using `ManualBackendWorker`: `cpu_affinity`,
    *     `thread_name`, `sleep_duration`, and `enable_yield_when_idle`.
    *   - Avoid performing very heavy tasks in your custom thread. Significant delays in calling `poll()`
@@ -227,8 +229,8 @@ public:
     {
       QUILL_THROW(
         QuillError{"acquire_manual_backend_worker() can only be called once per process. "
-                   "Additionally, it should "
-                   "not be called when start() or start_with_signal_handler() has been invoked"});
+                   "Additionally, it should not be "
+                   "called when start() has already been invoked"});
     }
 
     return manual_backend_worker;

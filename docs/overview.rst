@@ -57,7 +57,7 @@ However, in the event of an application crash, some log messages may be lost.
 
 To prevent message loss during crashes caused by signal interrupts, users should set up a signal handler and invoke :cpp:func:`LoggerImpl::flush_log` within it.
 
-The library provides a built-in signal handler that ensures crash-safe behavior, which can be enabled via :cpp:func:`Backend::start_with_signal_handler`.
+The library provides a built-in signal handler that ensures crash-safe behavior, which can be enabled via passing :cpp:struct:`SignalHandlerOptions` to :cpp:func:`Backend::start`.
 
 Log Messages Timestamp Order
 ----------------------------

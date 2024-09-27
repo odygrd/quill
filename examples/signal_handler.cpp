@@ -50,7 +50,7 @@ int main()
   // Start the logging backend thread with a signal handler
   // On Linux/Macos one signal handler is set to handle POSIX style signals
   // On Windows an exception handler and a Ctrl-C handler is set.
-  quill::Backend::start_with_signal_handler<quill::FrontendOptions>();
+  quill::Backend::start<quill::FrontendOptions>(quill::BackendOptions{}, quill::SignalHandlerOptions{});
 
   auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
   quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));

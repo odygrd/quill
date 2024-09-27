@@ -87,6 +87,9 @@
 - Implemented a workaround to resolve false positive warnings from `clang-tidy` on Windows.
 - Added a new `create_or_get_logger` overload that accepts a `std::vector<std::shared_ptr<Sink>>`, improving flexibility
   by allowing a variable number of sinks to be passed at runtime when creating a logger.
+- Introduced `SignalHandlerOptions` to simplify and unify the API. `Backend::start_with_signal_handler` is now
+  deprecated,
+  replaced by a new `Backend::start` overload that accepts `SignalHandlerOptions` for enabling signal handling.
 
 ## v7.2.2
 
@@ -118,7 +121,8 @@
   introducing support for custom buffer sizes in file streams and tuning `transit_events_soft_limit`
   and `transit_events_hard_limit` default values
 - Improved readability of queue allocation notification messages. Capacities are now displayed in KiB,
-  e.g., `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
+  e.g.,
+  `20:59:25 Quill INFO: Allocated a new SPSC queue with a capacity of 1024 KB (previously 512 KB) from thread 31158`.
 
 **New Features:**
 
