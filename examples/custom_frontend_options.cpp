@@ -35,7 +35,7 @@ int main()
 {
   // Start the backend thread
   quill::BackendOptions backend_options;
-  quill::Backend::start(backend_options); // or quill::Backend::start_with_signal_handler<CustomFrontendOptions>();
+  quill::Backend::start(backend_options); // or quill::Backend::start<CustomFrontendOptions>(backend_options, signal_handler_options);
 
   // All frontend operations must utilize CustomFrontend instead of quill::Frontend
   auto console_sink = CustomFrontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");

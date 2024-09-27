@@ -21,6 +21,12 @@ BackendTscClock Class
 .. doxygenclass:: BackendTscClock
    :members:
 
+SignalHandler Options
+---------------
+
+.. doxygenstruct:: SignalHandlerOptions
+   :members:
+
 Frontend Options
 ----------------
 

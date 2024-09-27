@@ -42,6 +42,35 @@
 
 QUILL_BEGIN_NAMESPACE
 
+/**
+ * Struct to hold options for the signal handler.
+ */
+struct SignalHandlerOptions
+{
+  /**
+   * List of signals that the backend should catch if with_signal_handler is enabled.
+   */
+  std::vector<int> catchable_signals{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV};
+
+  /**
+   * Defines the timeout duration in seconds for the signal handler alarm.
+   * It is only available on Linux, as Windows does not support the alarm function.
+   * The signal handler sets up an alarm to ensure that the process will terminate if it does not
+   * complete within the specified time frame. This is particularly useful to prevent the
+   * process from hanging indefinitely in case the signal handler encounters an issue.
+   */
+  uint32_t timeout_seconds = 20u;
+
+  /**
+   * The logger instance that the signal handler will use to log errors when the application crashes.
+   * The logger is accessed by the signal handler and must be created by your application using
+   * Frontend::create_or_get_logger(...).
+   * If the specified logger is not found, or if this parameter is left empty, the signal handler
+   * will default to using the first valid logger it finds.
+   */
+  std::string logger;
+};
+
 namespace detail
 {
 /***/
@@ -343,7 +372,7 @@ void init_exception_handler()
  * @param catchable_signals the signals we are catching
  */
 template <typename TFrontendOptions>
-void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals = std::initializer_list<int>{
+void init_signal_handler(std::vector<int> const& catchable_signals = std::vector<int>{
                            SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
   for (auto const& catchable_signal : catchable_signals)
@@ -373,7 +402,7 @@ inline void on_alarm(int32_t signal_number)
 }
 
 template <typename TFrontendOptions>
-void init_signal_handler(std::initializer_list<int32_t> const& catchable_signals)
+void init_signal_handler(std::vector<int> const& catchable_signals)
 {
   for (auto const& catchable_signal : catchable_signals)
   {

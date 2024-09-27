@@ -33,8 +33,10 @@ TEST_CASE("signal_handler")
 
   // Start the logging backend thread, we expect the signal handler to catch the signal,
   // flush the log and raise the signal back
-  Backend::start_with_signal_handler<FrontendOptions>(BackendOptions{},
-                                                      std::initializer_list<int>{SIGABRT}, 40);
+  SignalHandlerOptions sho{};
+  sho.catchable_signals = std::vector<int>{SIGABRT};
+  sho.timeout_seconds = 40;
+  Backend::start<FrontendOptions>(BackendOptions{}, sho);
 
   // For testing purposes we want to keep the application running, we do not reraise the signal
   detail::SignalHandlerContext::instance().should_reraise_signal.store(false);
