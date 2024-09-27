@@ -84,14 +84,14 @@
   application crashes. ([#590](https://github.com/odygrd/quill/issues/590))
 - Prevented error logs from the `SignalHandler` from being output to CSV files when a `CsvWriter` is in
   use. ([#588](https://github.com/odygrd/quill/issues/588))
-- Implemented a workaround to resolve false positive warnings from `clang-tidy` on Windows.
+- Introduced `SignalHandlerOptions` to simplify and unify the API. `Backend::start_with_signal_handler` is now
+  deprecated, replaced by a new `Backend::start` overload that accepts `SignalHandlerOptions` for enabling signal
+  handling.
 - Added a new `create_or_get_logger` overload that accepts a `std::vector<std::shared_ptr<Sink>>`, improving flexibility
   by allowing a variable number of sinks to be passed at runtime when creating a logger.
-- Introduced `SignalHandlerOptions` to simplify and unify the API. `Backend::start_with_signal_handler` is now
-  deprecated,
-  replaced by a new `Backend::start` overload that accepts `SignalHandlerOptions` for enabling signal handling.
 - Added a new overload to `create_or_get_logger` to create a logger that inherits configuration options from a specified
   logger. ([#596](https://github.com/odygrd/quill/issues/596))
+- Implemented a workaround to resolve false positive warnings from `clang-tidy` on Windows.
 
 ## v7.2.2
 
