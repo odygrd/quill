@@ -45,7 +45,7 @@ public:
   {
     auto const volatile spsc_queue_capacity = detail::get_local_thread_context<TFrontendOptions>()
                                                 ->template get_spsc_queue<TFrontendOptions::queue_type>()
-                                                    .capacity();
+                                                .capacity();
 
     // On windows and c++17, QUILL_MAYBE_UNUSED won't work
     (void)spsc_queue_capacity;
@@ -88,11 +88,32 @@ public:
    */
   static logger_t* create_or_get_logger(std::string const& logger_name, std::shared_ptr<Sink> sink,
                                         PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
-                                        ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)
+                                        ClockSourceType clock_source = ClockSourceType::Tsc,
+                                        UserClockSource* user_clock = nullptr)
   {
     std::vector<std::shared_ptr<Sink>> sinks;
     sinks.push_back(static_cast<std::shared_ptr<Sink>&&>(sink));
 
+    return _cast_to_logger(detail::LoggerManager::instance().create_or_get_logger<logger_t>(
+      logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+      pattern_formatter_options, clock_source, user_clock));
+  }
+
+  /**
+   * @brief Creates a new logger or retrieves an existing one with the specified name and multiple sinks.
+   *
+   * @param logger_name The name of the logger.
+   * @param sinks A vector of shared pointers to sinks to associate with the logger.
+   * @param pattern_formatter_options Contains the formatting configuration for PatternFormatter
+   * @param clock_source The clock source for log timestamps.
+   * @param user_clock A pointer to a custom user clock.
+   * @return Logger* A pointer to the created or retrieved logger.
+   */
+  static logger_t* create_or_get_logger(
+    std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
+    PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
+    ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)
+  {
     return _cast_to_logger(detail::LoggerManager::instance().create_or_get_logger<logger_t>(
       logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
       pattern_formatter_options, clock_source, user_clock));
@@ -113,8 +134,8 @@ public:
     PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
     ClockSourceType clock_source = ClockSourceType::Tsc, UserClockSource* user_clock = nullptr)
   {
-    return _cast_to_logger(detail::LoggerManager::instance().create_or_get_logger<logger_t>(
-      logger_name, std::vector<std::shared_ptr<Sink>>{sinks}, pattern_formatter_options, clock_source, user_clock));
+    return create_or_get_logger(logger_name, std::vector<std::shared_ptr<Sink>>{sinks},
+                                pattern_formatter_options, clock_source, user_clock);
   }
 
   /**

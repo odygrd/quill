@@ -54,8 +54,9 @@ TEST_CASE("json_multi_line_metadata")
       "%(message) %(caller_function)",
       "%H:%M:%S.%Qns", Timezone::LocalTime, true});
 
+  std::vector<std::shared_ptr<Sink>> sinks_vec{json_file_sink, file_sink};
   Logger* logger_b = Frontend::create_or_get_logger(
-    logger_name_b, std::initializer_list<std::shared_ptr<Sink>>{json_file_sink, file_sink},
+    logger_name_b, std::move(sinks_vec),
     PatternFormatterOptions{
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
       "%(message) %(caller_function)",

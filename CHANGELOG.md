@@ -85,6 +85,8 @@
 - Prevented error logs from the `SignalHandler` from being output to CSV files when a `CsvWriter` is in
   use. ([#588](https://github.com/odygrd/quill/issues/588))
 - Implemented a workaround to resolve false positive warnings from `clang-tidy` on Windows.
+- Added a new `create_or_get_logger` overload that accepts a `std::vector<std::shared_ptr<Sink>>`, improving flexibility
+  by allowing a variable number of sinks to be passed at runtime when creating a logger.
 
 ## v7.2.2
 
