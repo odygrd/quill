@@ -90,6 +90,8 @@
 - Introduced `SignalHandlerOptions` to simplify and unify the API. `Backend::start_with_signal_handler` is now
   deprecated,
   replaced by a new `Backend::start` overload that accepts `SignalHandlerOptions` for enabling signal handling.
+- Added a new overload to `create_or_get_logger` to create a logger that inherits configuration options from a specified
+  logger. ([#596](https://github.com/odygrd/quill/issues/596))
 
 ## v7.2.2
 

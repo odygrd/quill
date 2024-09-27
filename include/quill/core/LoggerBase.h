@@ -30,6 +30,7 @@ namespace detail
 {
 class BackendWorker;
 class BacktraceStorage;
+class LoggerManager;
 
 /***/
 class LoggerBase
@@ -124,6 +125,7 @@ public:
 
 protected:
   friend class BackendWorker;
+  friend class LoggerManager;
 
   static inline QUILL_THREAD_LOCAL ThreadContext* thread_context = nullptr; /* Set and accessed by the frontend */
   std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
