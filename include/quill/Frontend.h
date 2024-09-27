@@ -139,6 +139,23 @@ public:
   }
 
   /**
+   * @brief Creates a new logger or retrieves an existing one that shares the same options as the specified logger.
+   *
+   * This function allows you to create or obtain a logger identified by `logger_name`. If a logger with the
+   * same name already exists, its configuration options will be used. If it does not exist, a new logger
+   * will be created with the same options as the provided `source_logger`.
+   *
+   * @param logger_name The name of the logger to create or retrieve.
+   * @param source_logger The logger from which to copy the configuration options.
+   * @return A pointer to the logger instance, either newly created or retrieved.
+   */
+  static logger_t* create_or_get_logger(std::string const& logger_name, detail::LoggerBase* source_logger = nullptr)
+  {
+    return _cast_to_logger(
+      detail::LoggerManager::instance().create_or_get_logger<logger_t>(logger_name, source_logger));
+  }
+
+  /**
    * @brief Asynchronously removes the specified logger.
    * When a logger is removed, any files associated with its sinks are also closed.
    *
