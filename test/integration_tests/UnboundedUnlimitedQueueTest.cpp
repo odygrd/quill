@@ -53,9 +53,11 @@ TEST_CASE("unbounded_unlimited_queue")
     LOG_INFO(logger, "Logging int: {}, int: {}, string: {}, char: {}", i, i * 10, v, v.c_str());
   }
 
+#ifdef QUILL_ENABLE_EXTENSIVE_TESTS
   // log a very large string
   std::string const very_large(std::numeric_limits<uint32_t>::max(), 'A');
   LOG_INFO(logger, "Very large string {}", very_large);
+#endif
 
   logger->flush_log();
   Frontend::remove_logger(logger);
@@ -65,7 +67,12 @@ TEST_CASE("unbounded_unlimited_queue")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+#ifdef QUILL_ENABLE_EXTENSIVE_TESTS
   REQUIRE_EQ(file_contents.size(), number_of_messages + 1);
+#else
+  REQUIRE_EQ(file_contents.size(), number_of_messages);
+#endif
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 0, int: 0, string: Lorem ipsum dolor sit amet, consectetur 0, char: Lorem ipsum dolor sit amet, consectetur 0"}));
@@ -73,8 +80,10 @@ TEST_CASE("unbounded_unlimited_queue")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 999, int: 9990, string: Lorem ipsum dolor sit amet, consectetur 999, char: Lorem ipsum dolor sit amet, consectetur 999"}));
 
+#ifdef QUILL_ENABLE_EXTENSIVE_TESTS
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Very large string"}));
+#endif
 
   testing::remove_file(filename);
 }

@@ -31,6 +31,10 @@ function(quill_add_test TEST_NAME SOURCES)
     # Link dependencies
     target_link_libraries(${TEST_NAME} quill)
 
+    if (QUILL_ENABLE_EXTENSIVE_TESTS)
+        target_compile_definitions(${TEST_NAME} PRIVATE QUILL_ENABLE_EXTENSIVE_TESTS)
+    endif ()
+
     # Do not decay cxx standard if not specified
     set_property(TARGET ${TEST_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 

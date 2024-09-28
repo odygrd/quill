@@ -5,7 +5,7 @@ project(quill)
 # Options
 #-------------------------------------------------------------------------------------------------------
 
-option(QUILL_NO_EXCEPTIONS "Enable this option to build Quill without exception handling support." OFF)
+option(QUILL_NO_EXCEPTIONS "Enable this option to build without exception handling support." OFF)
 
 option(QUILL_NO_THREAD_NAME_SUPPORT "Enable this option to disable features that require thread name retrieval, ensuring compatibility with older Windows versions (e.g., Windows Server 2012/2016) and Android." OFF)
 
@@ -15,9 +15,11 @@ option(QUILL_DISABLE_NON_PREFIXED_MACROS "Enable this option to disable non-pref
 
 option(QUILL_BUILD_EXAMPLES "Enable this option to build and install the examples. Set this to ON to include example projects in the build process and have them installed after configuring with CMake." OFF)
 
-option(QUILL_BUILD_TESTS "Enable this option to build the test suite for Quill." OFF)
+option(QUILL_BUILD_TESTS "Enable this option to build the test suite." OFF)
 
-option(QUILL_BUILD_BENCHMARKS "Enable this option to build the benchmark tests for Quill." OFF)
+option(QUILL_ENABLE_EXTENSIVE_TESTS "Enable extensive tests that may require more resources and are not suitable for hosted CI runners." OFF)
+
+option(QUILL_BUILD_BENCHMARKS "Enable this option to build the benchmarks." OFF)
 
 option(QUILL_SANITIZE_ADDRESS "Enable AddressSanitizer (ASan) for memory error detection in tests." OFF)
 
@@ -29,7 +31,7 @@ option(QUILL_USE_VALGRIND "Use Valgrind as the default memory checking tool in C
 
 option(QUILL_ENABLE_INSTALL "Enable the CMake install target when Quill is not the master project." OFF)
 
-option(QUILL_DOCS_GEN "Generate documentation for Quill during the build process." OFF)
+option(QUILL_DOCS_GEN "Generate documentation during the build process." OFF)
 
 #-------------------------------------------------------------------------------------------------------
 # Use newer policies if possible, up to most recent tested version of CMake.
@@ -96,6 +98,11 @@ if (QUILL_BUILD_TESTS)
         # add memcheck test action to ctest
         include(CTest)
     endif ()
+endif ()
+
+# Error out if QUILL_ENABLE_EXTENSIVE_TESTS is ON but QUILL_BUILD_TESTS is OFF
+if (QUILL_ENABLE_EXTENSIVE_TESTS AND NOT QUILL_BUILD_TESTS)
+    message(FATAL_ERROR "QUILL_ENABLE_EXTENSIVE_TESTS requires QUILL_BUILD_TESTS to be enabled. Please enable QUILL_BUILD_TESTS.")
 endif ()
 
 #-------------------------------------------------------------------------------------------------------
