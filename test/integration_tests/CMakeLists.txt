@@ -123,3 +123,7 @@ if (WIN32)
     quill_add_test(TEST_WideStdTypesLogging WideStdTypesLoggingTest.cpp)
     quill_add_test(TEST_WideStringLogging WideStringLoggingTest.cpp)
 endif ()
+
+if (QUILL_ENABLE_IOURING)
+    quill_add_test(TEST_MultiFrontendThreadsIOUringTimestampOrderTest MultiFrontendThreadsIOUringTimestampOrderTest.cpp)
+endif ()
