@@ -31,6 +31,10 @@ function(quill_add_test TEST_NAME SOURCES)
     # Link dependencies
     target_link_libraries(${TEST_NAME} quill)
 
+    if (QUILL_ENABLE_EXTENSIVE_TESTS)
+        target_compile_definitions(${TEST_NAME} PRIVATE QUILL_ENABLE_EXTENSIVE_TESTS)
+    endif ()
+
     # Do not decay cxx standard if not specified
     set_property(TARGET ${TEST_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 
@@ -111,6 +115,7 @@ quill_add_test(TEST_StringRandomLogging StringRandomLoggingTest.cpp)
 quill_add_test(TEST_StringRandomSmallLogging StringRandomSmallLoggingTest.cpp)
 quill_add_test(TEST_StringRef StringRefTest.cpp)
 quill_add_test(TEST_TagsLogging TagsLoggingTest.cpp)
+quill_add_test(TEST_UnboundedUnlimitedQueue UnboundedUnlimitedQueueTest.cpp)
 quill_add_test(TEST_UserClockSource UserClockSourceTest.cpp)
 quill_add_test(TEST_UserDefinedTypeLogging UserDefinedTypeLoggingTest.cpp)
 quill_add_test(TEST_UserSink UserSinkTest.cpp)

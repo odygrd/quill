@@ -139,7 +139,7 @@ TEST_CASE("string_logging")
               c_style_string, end_s, c_style_char_array_empty, c_style_char_array);
   }
 
-  // Log a big string
+  // Log a string
   for (size_t i = 0; i < number_of_messages; ++i)
   {
     std::string v{"Lorem ipsum dolor sit amet, consectetur "};
@@ -219,7 +219,7 @@ TEST_CASE("string_logging")
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 0, int: 0, string: Lorem ipsum dolor sit amet, consectetur 0, char: Lorem ipsum dolor sit amet, consectetur 0"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 1999, int: 19990, string: Lorem ipsum dolor sit amet, consectetur 1999, char: Lorem ipsum dolor sit amet, consectetur 1999"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 9999, int: 99990, string: Lorem ipsum dolor sit amet, consectetur 9999, char: Lorem ipsum dolor sit amet, consectetur 9999"}));
 
   testing::remove_file(filename);
 }
