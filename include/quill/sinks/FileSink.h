@@ -405,16 +405,17 @@ protected:
   /**
    * Fsync the file descriptor.
    */
-  void fsync_file() noexcept
+  void fsync_file(bool force_fsync = false) noexcept
   {
-    auto const now = std::chrono::steady_clock::now();
-
-    if ((now - _last_fsync_timestamp) < _config.minimum_fsync_interval())
+    if (!force_fsync)
     {
-      return;
+      auto const now = std::chrono::steady_clock::now();
+      if ((now - _last_fsync_timestamp) < _config.minimum_fsync_interval())
+      {
+        return;
+      }
+      _last_fsync_timestamp = now;
     }
-
-    _last_fsync_timestamp = now;
 
 #ifdef _WIN32
     FlushFileBuffers(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file))));

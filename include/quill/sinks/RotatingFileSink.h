@@ -380,7 +380,7 @@ private:
 
     // We need to flush and also fsync before actually getting the size of the file
     FileSink::flush_sink();
-    FileSink::fsync_file(_file);
+    FileSink::fsync_file(true);
 
     if (_get_file_size(_filename) <= 0)
     {
