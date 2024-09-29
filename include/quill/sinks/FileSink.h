@@ -261,7 +261,7 @@ public:
 
     if (_config.fsync_enabled())
     {
-      fsync_file(_file);
+      fsync_file();
     }
 
     if (!fs::exists(_filename))
@@ -404,9 +404,8 @@ protected:
 
   /**
    * Fsync the file descriptor.
-   * @param fd File descriptor.
    */
-  void fsync_file(FILE* fd) noexcept
+  void fsync_file() noexcept
   {
     auto const now = std::chrono::steady_clock::now();
 
@@ -418,9 +417,9 @@ protected:
     _last_fsync_timestamp = now;
 
 #ifdef _WIN32
-    FlushFileBuffers(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(fd))));
+    FlushFileBuffers(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file))));
 #else
-    ::fsync(fileno(fd));
+    ::fsync(fileno(_file));
 #endif
   }
 
