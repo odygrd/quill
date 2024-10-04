@@ -1,3 +1,4 @@
+- [v7.4.0](#v740)
 - [v7.3.0](#v730)
 - [v7.2.2](#v722)
 - [v7.2.1](#v721)
@@ -77,6 +78,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v7.4.0
+
+- Added accessors to `Logger` for sinks, user clock source, clock source type, and pattern formatter options that can be
+  used to create another `Logger` with similar configuration
 
 ## v7.3.0
 

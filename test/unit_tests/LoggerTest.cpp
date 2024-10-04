@@ -18,7 +18,7 @@ TEST_CASE("check_logger")
   LoggerManager& lm = LoggerManager::instance();
 
   std::vector<std::shared_ptr<Sink>> sinks;
-  sinks.push_back(std::move(sink));
+  sinks.push_back(sink);
 
   Logger* logger_1 = static_cast<Logger*>(lm.create_or_get_logger<Logger>(
     "logger_1", std::move(sinks),
@@ -30,6 +30,16 @@ TEST_CASE("check_logger")
   // Check default log level
   REQUIRE_EQ(logger_1->get_log_level(), LogLevel::Info);
   REQUIRE_EQ(logger_1->get_logger_name(), "logger_1");
+  REQUIRE_EQ(logger_1->get_pattern_formatter_options().add_metadata_to_multi_line_logs, false);
+  REQUIRE_EQ(logger_1->get_pattern_formatter_options().format_pattern,
+             "%(time) [%(thread_id)] %(short_source_location:<28) "
+             "LOG_%(log_level:<9) %(logger:<12) %(message)");
+  REQUIRE_EQ(logger_1->get_pattern_formatter_options().timestamp_pattern, "%H:%M:%S.%Qns");
+  REQUIRE_EQ(logger_1->get_pattern_formatter_options().timestamp_timezone, quill::Timezone::GmtTime);
+  REQUIRE_EQ(logger_1->get_clock_source_type(), ClockSourceType::Tsc);
+  REQUIRE_EQ(logger_1->get_user_clock_source(), nullptr);
+  REQUIRE_EQ(logger_1->get_sinks().size(), 1);
+  REQUIRE_EQ(logger_1->get_sinks().front().get(), sink.get());
 
 #ifndef QUILL_NO_EXCEPTIONS
   // throw if backtrace log level is used
