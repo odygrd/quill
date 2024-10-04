@@ -23,8 +23,13 @@
 
 QUILL_BEGIN_NAMESPACE
 
-/** Forward Declaration **/
+/** Forward Declarations **/
 class MacroMetadata;
+
+namespace detail
+{
+class BackendWorker;
+}
 
 /**
  * Base class for sinks
@@ -45,42 +50,6 @@ public:
 
   Sink(Sink const&) = delete;
   Sink& operator=(Sink const&) = delete;
-
-  /**
-   * @brief Logs a formatted log message to the sink.
-   * @note Accessor for backend processing.
-   * @param log_metadata Pointer to the macro metadata.
-   * @param log_timestamp Timestamp of the log event.
-   * @param thread_id ID of the thread.
-   * @param thread_name Name of the thread.
-   * @param process_id Process Id
-   * @param logger_name Name of the logger.
-   * @param log_level Log level of the message.
-   * @param log_level_description Description of the log level.
-   * @param log_level_short_code Short code representing the log level.
-   * @param named_args Vector of key-value pairs of named args
-   * @param log_message The log message.
-   * @param log_statement The log statement.
-   */
-  QUILL_ATTRIBUTE_HOT virtual void write_log(
-    MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
-    std::string_view thread_name, std::string const& process_id, std::string_view logger_name,
-    LogLevel log_level, std::string_view log_level_description, std::string_view log_level_short_code,
-    std::vector<std::pair<std::string, std::string>> const* named_args,
-    std::string_view log_message, std::string_view log_statement) = 0;
-
-  /**
-   * @brief Flushes the sink, synchronizing the associated sink with its controlled output sequence.
-   */
-  QUILL_ATTRIBUTE_HOT virtual void flush_sink() = 0;
-
-  /**
-   * @brief Executes periodic tasks by the backend thread, providing an opportunity for the user
-   * to perform custom tasks. For example, batch committing to a database, or any other
-   * desired periodic operations.
-   * @note It is recommended to avoid heavy operations within this function as it may affect performance of the backend thread.
-   */
-  QUILL_ATTRIBUTE_HOT virtual void run_periodic_tasks() noexcept {}
 
   /**
    * @brief Sets a log level filter on the sink.
@@ -127,6 +96,43 @@ public:
     // Indicate a new filter was added - here relaxed is okay as the spinlock will do acq-rel on destruction
     _new_filter.store(true, std::memory_order_relaxed);
   }
+
+protected:
+  /**
+   * @brief Logs a formatted log message to the sink.
+   * @note Accessor for backend processing.
+   * @param log_metadata Pointer to the macro metadata.
+   * @param log_timestamp Timestamp of the log event.
+   * @param thread_id ID of the thread.
+   * @param thread_name Name of the thread.
+   * @param process_id Process Id
+   * @param logger_name Name of the logger.
+   * @param log_level Log level of the message.
+   * @param log_level_description Description of the log level.
+   * @param log_level_short_code Short code representing the log level.
+   * @param named_args Vector of key-value pairs of named args
+   * @param log_message The log message.
+   * @param log_statement The log statement.
+   */
+  QUILL_ATTRIBUTE_HOT virtual void write_log(
+    MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
+    std::string_view thread_name, std::string const& process_id, std::string_view logger_name,
+    LogLevel log_level, std::string_view log_level_description, std::string_view log_level_short_code,
+    std::vector<std::pair<std::string, std::string>> const* named_args,
+    std::string_view log_message, std::string_view log_statement) = 0;
+
+  /**
+   * @brief Flushes the sink, synchronizing the associated sink with its controlled output sequence.
+   */
+  QUILL_ATTRIBUTE_HOT virtual void flush_sink() = 0;
+
+  /**
+   * @brief Executes periodic tasks by the backend thread, providing an opportunity for the user
+   * to perform custom tasks. For example, batch committing to a database, or any other
+   * desired periodic operations.
+   * @note It is recommended to avoid heavy operations within this function as it may affect performance of the backend thread.
+   */
+  QUILL_ATTRIBUTE_HOT virtual void run_periodic_tasks() noexcept {}
 
   /**
    * @brief Applies all registered filters to the log record.
@@ -185,6 +191,8 @@ public:
   }
 
 private:
+  friend class detail::BackendWorker;
+
   /** Local Filters for this sink **/
   std::vector<Filter*> _local_filters;
 

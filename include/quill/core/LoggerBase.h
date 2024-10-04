@@ -38,7 +38,8 @@ class LoggerBase
 public:
   /***/
   LoggerBase(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
-             PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source, UserClockSource* user_clock)
+             PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
+             UserClockSource* user_clock)
     : logger_name(static_cast<std::string&&>(logger_name)),
       user_clock(user_clock),
       pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options)),
@@ -66,6 +67,39 @@ public:
    * @return A constant reference to the logger's name.
    */
   QUILL_NODISCARD std::string const& get_logger_name() const noexcept { return logger_name; }
+
+  /**
+   * Returns the user-defined clock source.
+   * @return A pointer to the constant UserClockSource object.
+   */
+  QUILL_NODISCARD UserClockSource* get_user_clock_source() const noexcept {
+    return user_clock;
+  }
+
+  /**
+   * Returns the type of clock source being used.
+   * @return The ClockSourceType enum value representing the current clock source.
+   */
+  QUILL_NODISCARD ClockSourceType get_clock_source_type() const noexcept { return clock_source; }
+
+  /**
+   * Returns the pattern formatter options.
+   * @return A constant reference to the PatternFormatterOptions object.
+   */
+  QUILL_NODISCARD PatternFormatterOptions const& get_pattern_formatter_options() const noexcept
+  {
+    return pattern_formatter_options;
+  }
+
+  /**
+   * Returns a const reference to the sinks vector.
+   * @warning The returned sinks should be treated as read-only. Do not modify the Sink objects as they are used by the backend thread
+   * @return A constant reference to the std::vector<std::shared_ptr<Sink>> object
+   */
+  QUILL_NODISCARD std::vector<std::shared_ptr<Sink>> const& get_sinks() const noexcept
+  {
+    return sinks;
+  }
 
   /**
    * This function sets the logger's validity flag to false, indicating that the logger is no longer valid.
