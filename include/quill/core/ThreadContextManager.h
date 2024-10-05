@@ -186,9 +186,7 @@ public:
   void mark_invalid() noexcept { _valid.store(false, std::memory_order_relaxed); }
 
   /***/
-  QUILL_NODISCARD bool is_valid() const noexcept {
-    return _valid.load(std::memory_order_relaxed);
-  }
+  QUILL_NODISCARD bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
 
   /***/
   void increment_failure_counter() noexcept
@@ -211,8 +209,8 @@ private:
 
   SpscQueueUnion _spsc_queue_union;            /**< queue for this thread */
   SizeCacheVector _conditional_arg_size_cache; /**< cache for storing sizes needed for specific operations, such as when calling `strn` functions or when a loop is required e.g. caching the size of a type */
-  std::string _thread_id = std::to_string(get_thread_id());           /**< cached thread pid */
-  std::string _thread_name = get_thread_name();                       /**< cached thread name */
+  std::string _thread_id = std::to_string(get_thread_id());  /**< cached thread pid */
+  std::string _thread_name = get_thread_name();              /**< cached thread name */
   std::shared_ptr<TransitEventBuffer> _transit_event_buffer; /**< backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */
   QueueType _queue_type;
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the frontend, read by the backend thread */

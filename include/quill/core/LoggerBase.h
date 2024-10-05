@@ -72,9 +72,7 @@ public:
    * Returns the user-defined clock source.
    * @return A pointer to the constant UserClockSource object.
    */
-  QUILL_NODISCARD UserClockSource* get_user_clock_source() const noexcept {
-    return user_clock;
-  }
+  QUILL_NODISCARD UserClockSource* get_user_clock_source() const noexcept { return user_clock; }
 
   /**
    * Returns the type of clock source being used.
