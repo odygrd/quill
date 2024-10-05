@@ -18,7 +18,7 @@ Logging Json to Console
     #include "quill/Frontend.h"
     #include "quill/LogMacros.h"
     #include "quill/Logger.h"
-    #include "quill/sinks/JsonConsoleSink.h"
+    #include "quill/sinks/JsonSink.h"
     #include <string>
 
     int main()
@@ -51,7 +51,7 @@ Logging Json to File
     #include "quill/Frontend.h"
     #include "quill/LogMacros.h"
     #include "quill/Logger.h"
-    #include "quill/sinks/JsonFileSink.h"
+    #include "quill/sinks/JsonSink.h"
     #include <string>
 
     int main()
@@ -92,7 +92,7 @@ Combining JSON and Standard Log Patterns
     #include "quill/LogMacros.h"
     #include "quill/Logger.h"
     #include "quill/sinks/ConsoleSink.h"
-    #include "quill/sinks/JsonFileSink.h"
+    #include "quill/sinks/JsonSink.h"
     #include <utility>
 
     int main()
