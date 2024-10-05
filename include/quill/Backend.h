@@ -113,21 +113,6 @@ public:
                    });
   }
 
-  /***/
-  template <typename TFrontendOptions>
-  [[deprecated(
-    "This function is deprecated and will be removed in the next version. Use "
-    "start(BackendOptions, SignalHandlerOptions) instead ")]] QUILL_ATTRIBUTE_COLD static void
-  start_with_signal_handler(BackendOptions const& options = BackendOptions{},
-                            QUILL_MAYBE_UNUSED std::initializer_list<int> const& catchable_signals =
-                              std::initializer_list<int>{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV},
-                            uint32_t signal_handler_timeout_seconds = 20u,
-                            std::string const& signal_handler_logger = {})
-  {
-    SignalHandlerOptions sho{catchable_signals, signal_handler_timeout_seconds, signal_handler_logger};
-    start<TFrontendOptions>(options, sho);
-  }
-
   /**
    * Stops the backend thread.
    * @note thread-safe
