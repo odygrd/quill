@@ -2,6 +2,7 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
+#include "quill/bundled/fmt/ostream.h"
 #include "quill/sinks/ConsoleSink.h"
 
 #include <cstdint>
