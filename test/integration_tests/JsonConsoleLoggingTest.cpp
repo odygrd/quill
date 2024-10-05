@@ -4,7 +4,7 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
-#include "quill/sinks/JsonConsoleSink.h"
+#include "quill/sinks/JsonSink.h"
 
 #include "quill/bundled/fmt/format.h"
 
