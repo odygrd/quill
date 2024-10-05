@@ -3,7 +3,7 @@
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
 #include "quill/sinks/ConsoleSink.h"
-#include "quill/sinks/JsonFileSink.h"
+#include "quill/sinks/JsonSink.h"
 
 #include <utility>
 
