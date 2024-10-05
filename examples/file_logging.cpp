@@ -47,7 +47,7 @@ int main()
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "root", std::move(file_sink),
     quill::PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
-                                          "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                                   "LOG_%(log_level:<9) %(logger:<12) %(message)",
                                    "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
 
   // set the log level of the logger to debug (default is info)

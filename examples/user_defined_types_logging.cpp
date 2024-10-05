@@ -25,7 +25,7 @@ class User
 {
 public:
   User(std::string name, std::string surname, uint32_t age)
-    : name(std::move(name)), surname(std::move(surname)), age(age){};
+    : name(std::move(name)), surname(std::move(surname)), age(age) {};
 
   friend std::ostream& operator<<(std::ostream& os, User const& obj)
   {

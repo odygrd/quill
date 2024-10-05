@@ -124,7 +124,7 @@ public:
    * @param value True to perform fsync, false otherwise.
    */
   QUILL_ATTRIBUTE_COLD void set_fsync_enabled(bool value) { _fsync_enabled = value; }
-  
+
   /**
    * @brief Sets the open mode for the file.
    * Valid options for the open mode are 'a' or 'w'. The default value is 'a'.

@@ -20,8 +20,9 @@ class CustomJsonFileSink : public JsonFileSink
 public:
   using JsonFileSink::JsonFileSink;
 
-  void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
-                 std::string_view thread_name, std::string const& process_id, std::string_view logger_name, LogLevel log_level,
+  void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
+                 std::string_view thread_id, std::string_view thread_name,
+                 std::string const& process_id, std::string_view logger_name, LogLevel log_level,
                  std::string_view log_level_description, std::string_view log_level_short_code,
                  std::vector<std::pair<std::string, std::string>> const* named_args,
                  std::string_view, std::string_view) override
@@ -83,8 +84,8 @@ TEST_CASE("json_varied_params_logging")
     }(),
     FileEventNotifier{});
 
-  Logger* logger =
-    Frontend::create_or_get_logger("root", std::move(json_file_sink),
+  Logger* logger = Frontend::create_or_get_logger(
+    "root", std::move(json_file_sink),
     quill::PatternFormatterOptions{"LOG_%(log_level:<9) %(logger:<12) %(message) [%(named_args)]"});
 
   for (size_t i = 0; i < number_of_messages; ++i)
