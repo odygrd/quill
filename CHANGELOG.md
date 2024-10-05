@@ -83,6 +83,10 @@
 
 - Added accessors to `Logger` for sinks, user clock source, clock source type, and pattern formatter options that can be
   used to create another `Logger` with similar configuration
+- Unified `JsonFileSink.h` and `JsonConsoleSink.h` into a single header, `JsonSink.h`, with both classes now sharing a
+  common implementation
+- Users can now inherit from `JsonFileSink` or `JsonConsoleSink` and override the `generate_json_message(...)` function
+  to implement their own custom JSON log formats
 
 ## v7.3.0
 

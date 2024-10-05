@@ -2,7 +2,7 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
-#include "quill/sinks/JsonConsoleSink.h"
+#include "quill/sinks/JsonSink.h"
 
 #include <string>
 
