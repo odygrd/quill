@@ -302,15 +302,15 @@
       quill::MacroMetadata::Event::Log                                                             \
   }
 
-#define QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ...)                                            \
-  do                                                                                                                \
-  {                                                                                                                 \
-    if (likelyhood(logger->template should_log_statement<log_level>()))                                             \
-    {                                                                                                               \
+#define QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ...)                           \
+  do                                                                                               \
+  {                                                                                                \
+    if (likelyhood(logger->template should_log_statement<log_level>()))                            \
+    {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, log_level);                             \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
         quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
-    }                                                                                                               \
+    }                                                                                              \
   } while (0)
 
 #define QUILL_LOGGER_CALL_LIMIT(min_interval, likelyhood, logger, tags, log_level, fmt, ...)       \
@@ -331,29 +331,29 @@
     }                                                                                              \
   } while (0)
 
-#define QUILL_BACKTRACE_LOGGER_CALL(logger, tags, fmt, ...)                                                         \
-  do                                                                                                                \
-  {                                                                                                                 \
-    if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))                          \
-    {                                                                                                               \
+#define QUILL_BACKTRACE_LOGGER_CALL(logger, tags, fmt, ...)                                        \
+  do                                                                                               \
+  {                                                                                                \
+    if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))         \
+    {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Backtrace);            \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
         quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
-    }                                                                                                               \
+    }                                                                                              \
   } while (0)
 
 /**
  * Dynamic runtime log level with a tiny overhead
  * @Note: Prefer using the compile time log level macros
  */
-#define QUILL_DYNAMIC_LOGGER_CALL(logger, tags, log_level, fmt, ...)                                    \
-  do                                                                                                    \
-  {                                                                                                     \
-    if (logger->should_log_statement(log_level))                                               \
-    {                                                                                                   \
+#define QUILL_DYNAMIC_LOGGER_CALL(logger, tags, log_level, fmt, ...)                                          \
+  do                                                                                                          \
+  {                                                                                                           \
+    if (logger->should_log_statement(log_level))                                                              \
+    {                                                                                                         \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Dynamic);                         \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true>(log_level, &macro_metadata, ##__VA_ARGS__); \
-    }                                                                                                   \
+    }                                                                                                         \
   } while (0)
 
 #if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L3
@@ -585,37 +585,37 @@
 #endif
 
 #if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_NOTICE
-  #define QUILL_LOG_NOTICE(logger, fmt, ...)                                                         \
+  #define QUILL_LOG_NOTICE(logger, fmt, ...)                                                       \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
 
-  #define QUILL_LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                     \
+  #define QUILL_LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                   \
     QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
 
-  #define QUILL_LOG_NOTICE_TAGS(logger, tags, fmt, ...)                                              \
+  #define QUILL_LOG_NOTICE_TAGS(logger, tags, fmt, ...)                                            \
     QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice, fmt, ##__VA_ARGS__)
 
-  #define QUILL_LOGV_NOTICE(logger, fmt, ...)                                                        \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,                        \
+  #define QUILL_LOGV_NOTICE(logger, fmt, ...)                                                      \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,                      \
                       QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                    \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,    \
+  #define QUILL_LOGV_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                  \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,  \
                             QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGV_NOTICE_TAGS(logger, tags, fmt, ...)                                             \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice,                           \
+  #define QUILL_LOGV_NOTICE_TAGS(logger, tags, fmt, ...)                                           \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice,                         \
                       QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGJ_NOTICE(logger, fmt, ...)                                                        \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,                        \
+  #define QUILL_LOGJ_NOTICE(logger, fmt, ...)                                                      \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,                      \
                       QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                    \
-    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,    \
+  #define QUILL_LOGJ_NOTICE_LIMIT(min_interval, logger, fmt, ...)                                  \
+    QUILL_LOGGER_CALL_LIMIT(min_interval, QUILL_LIKELY, logger, nullptr, quill::LogLevel::Notice,  \
                             QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-  #define QUILL_LOGJ_NOTICE_TAGS(logger, tags, fmt, ...)                                             \
-    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice,                           \
+  #define QUILL_LOGJ_NOTICE_TAGS(logger, tags, fmt, ...)                                           \
+    QUILL_LOGGER_CALL(QUILL_LIKELY, logger, tags, quill::LogLevel::Notice,                         \
                       QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 #else
   #define QUILL_LOG_NOTICE(logger, fmt, ...) (void)0

@@ -24,7 +24,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "DYNAMIC");
+                  "DYNAMIC");
   }
 
   {
@@ -32,7 +32,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "NONE");
+                  "NONE");
   }
 
   {
@@ -40,7 +40,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "BACKTRACE");
+                  "BACKTRACE");
   }
 
   {
@@ -48,7 +48,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "CRITICAL");
+                  "CRITICAL");
   }
 
   {
@@ -56,7 +56,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "ERROR");
+                  "ERROR");
   }
 
   {
@@ -64,7 +64,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "WARNING");
+                  "WARNING");
   }
 
   {
@@ -72,7 +72,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "NOTICE");
+                  "NOTICE");
   }
 
   {
@@ -80,7 +80,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "INFO");
+                  "INFO");
   }
 
   {
@@ -88,7 +88,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "DEBUG");
+                  "DEBUG");
   }
 
   {
@@ -96,7 +96,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "TRACE_L1");
+                  "TRACE_L1");
   }
 
   {
@@ -104,7 +104,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "TRACE_L2");
+                  "TRACE_L2");
   }
 
   {
@@ -112,7 +112,7 @@ TEST_CASE("loglevel_to_string")
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
                     .data(),
-      "TRACE_L3");
+                  "TRACE_L3");
   }
 
   {

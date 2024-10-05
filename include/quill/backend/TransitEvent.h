@@ -32,7 +32,7 @@ class LoggerBase;
 struct TransitEvent
 {
   using FormatBuffer = fmtquill::basic_memory_buffer<char, 88>;
-  
+
   /***/
   TransitEvent() = default;
 

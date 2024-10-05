@@ -52,7 +52,7 @@ int main()
   auto const tsc_start_seconds = std::chrono::duration_cast<std::chrono::seconds>(
                                    quill::BackendTscClock::to_time_point(tsc_start).time_since_epoch())
                                    .count();
-  
+
   auto const tsc_end_seconds = std::chrono::duration_cast<std::chrono::seconds>(
                                  quill::BackendTscClock::to_time_point(tsc_end).time_since_epoch())
                                  .count();
