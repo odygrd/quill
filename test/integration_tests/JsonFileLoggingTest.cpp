@@ -6,7 +6,7 @@
 #include "quill/LogMacros.h"
 #include "quill/bundled/fmt/format.h"
 #include "quill/bundled/fmt/ostream.h"
-#include "quill/sinks/JsonFileSink.h"
+#include "quill/sinks/JsonSink.h"
 
 #include <cstdio>
 #include <optional>

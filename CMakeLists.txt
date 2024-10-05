@@ -216,8 +216,7 @@ set(HEADER_FILES
 
         include/quill/sinks/ConsoleSink.h
         include/quill/sinks/FileSink.h
-        include/quill/sinks/JsonConsoleSink.h
-        include/quill/sinks/JsonFileSink.h
+        include/quill/sinks/JsonSink.h
         include/quill/sinks/NullSink.h
         include/quill/sinks/RotatingFileSink.h
         include/quill/sinks/Sink.h
