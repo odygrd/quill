@@ -76,7 +76,7 @@ int main()
         }
 
         // After 10 messages Crash - Uncomment any of the below :
-        
+
         // illegal_instruction(logger);
         // cause_segfault(logger);
       });

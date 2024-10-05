@@ -13,8 +13,8 @@
 #include "quill/core/Utf8Conv.h"
 #include "quill/std/Pair.h"
 
-#include "quill/bundled/fmt/ranges.h"
 #include "quill/bundled/fmt/format.h"
+#include "quill/bundled/fmt/ranges.h"
 
 #include <cstddef>
 #include <cstdint>

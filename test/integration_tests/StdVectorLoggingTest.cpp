@@ -18,7 +18,7 @@ using namespace quill;
 /***/
 struct CustomTypeTC
 {
-  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a){};
+  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
 
 private:
   template <typename T, typename Char, typename Enable>

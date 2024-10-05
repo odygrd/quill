@@ -205,8 +205,8 @@ struct BackendOptions
    * These names provide human-readable identifiers for each log level.
    */
   std::array<std::string, 12> log_level_descriptions = {
-    "TRACE_L3", "TRACE_L2", "TRACE_L1",  "DEBUG", "INFO", "NOTICE", "WARNING",
-    "ERROR",    "CRITICAL", "BACKTRACE", "NONE",  "DYNAMIC"};
+    "TRACE_L3", "TRACE_L2", "TRACE_L1", "DEBUG",     "INFO", "NOTICE",
+    "WARNING",  "ERROR",    "CRITICAL", "BACKTRACE", "NONE", "DYNAMIC"};
 
   /**
    * @brief Short codes or identifiers for each log level.

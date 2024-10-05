@@ -32,7 +32,7 @@ private:
   {
     explicit SinkInfo() = default;
     SinkInfo(std::string sid, std::weak_ptr<Sink> sptr)
-      : sink_id(static_cast<std::string&&>(sid)), sink_ptr(static_cast<std::weak_ptr<Sink>&&>(sptr)){};
+      : sink_id(static_cast<std::string&&>(sid)), sink_ptr(static_cast<std::weak_ptr<Sink>&&>(sptr)) {};
 
     std::string sink_id;
     std::weak_ptr<Sink> sink_ptr;
