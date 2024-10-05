@@ -19,7 +19,7 @@
 class UserFilter : public quill::Filter
 {
 public:
-  UserFilter() : quill::Filter("filter_1"){};
+  UserFilter() : quill::Filter("filter_1") {};
 
   bool filter(quill::MacroMetadata const* /** log_metadata **/, uint64_t /** log_timestamp **/,
               std::string_view /** thread_id **/, std::string_view /** thread_name **/,

@@ -88,8 +88,8 @@ public:
    */
   CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks)
   {
-    _logger = Frontend::create_or_get_logger(
-      _logger_name_prefix + unique_name, sinks, PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+    _logger = Frontend::create_or_get_logger(_logger_name_prefix + unique_name, sinks,
+                                             PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
     _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
   }
@@ -127,7 +127,7 @@ private:
   static constexpr MacroMetadata _line_metadata{
     "", "", TCsvSchema::format, nullptr, LogLevel::Info, MacroMetadata::Event::Log};
 
-  static inline std::string _logger_name_prefix {"__csv__"};
+  static inline std::string _logger_name_prefix{"__csv__"};
 
   LoggerImpl<TFrontendOptions>* _logger{nullptr};
 };
