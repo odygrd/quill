@@ -67,9 +67,8 @@ public:
    *
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
-  template <bool immediate_flush, bool has_dynamic_log_level, typename... Args>
-  QUILL_ATTRIBUTE_HOT bool log_statement(QUILL_MAYBE_UNUSED LogLevel dynamic_log_level,
-                                         MacroMetadata const* macro_metadata, Args&&... fmt_args)
+  template <bool immediate_flush, bool has_dynamic_log_level, typename TMacroMetadata, typename... Args>
+  QUILL_ATTRIBUTE_HOT bool log_statement(QUILL_MAYBE_UNUSED LogLevel dynamic_log_level, Args&&... fmt_args)
   {
 #ifndef NDEBUG
     if (has_dynamic_log_level)
@@ -80,14 +79,14 @@ public:
 
     if (dynamic_log_level != LogLevel::None)
     {
-      assert((macro_metadata->log_level() == LogLevel::Dynamic) &&
+      assert((TMacroMetadata{}().log_level() == LogLevel::Dynamic) &&
              "MacroMetadata LogLevel must be Dynamic when using a dynamic_log_level");
 
       assert(has_dynamic_log_level &&
              "When dynamic_log_level is used then has_dynamic_log_level must also be true");
     }
 
-    if (macro_metadata->log_level() != LogLevel::Dynamic)
+    if (TMacroMetadata{}().log_level() != LogLevel::Dynamic)
     {
       assert((dynamic_log_level == LogLevel::None) &&
              "No dynamic_log_level should be set when MacroMetadata LogLevel is not Dynamic");
@@ -124,7 +123,7 @@ public:
     }
 
     // Need to know how much size we need from the queue
-    size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
+    size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 2) +
       detail::compute_encoded_size_and_cache_string_lengths(
                           thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
@@ -147,7 +146,7 @@ public:
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
         // not enough space to push to queue message is dropped
-        if (macro_metadata->event() == MacroMetadata::Event::Log)
+        if constexpr (TMacroMetadata{}().event() == MacroMetadata::Event::Log)
         {
           thread_context->increment_failure_counter();
         }
@@ -159,7 +158,7 @@ public:
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
-        if (macro_metadata->event() == MacroMetadata::Event::Log)
+        if constexpr (TMacroMetadata{}().event() == MacroMetadata::Event::Log)
         {
           thread_context->increment_failure_counter();
         }
@@ -185,8 +184,9 @@ public:
 #endif
 
     // first encode a header
-    write_buffer = _encode_header(write_buffer, current_timestamp, macro_metadata, this,
-                                  detail::decode_and_store_args<detail::remove_cvref_t<Args>...>);
+    write_buffer =
+      _encode_header(write_buffer, current_timestamp, this,
+                     detail::decode_and_store_args<TMacroMetadata, detail::remove_cvref_t<Args>...>);
 
     // encode remaining arguments
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
@@ -225,12 +225,18 @@ public:
   void init_backtrace(uint32_t max_capacity, LogLevel flush_level = LogLevel::None)
   {
     // we do not care about the other fields, except MacroMetadata::Event::InitBacktrace
-    static constexpr MacroMetadata macro_metadata{
-      "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace};
+    struct
+    {
+      constexpr quill::MacroMetadata operator()() const noexcept
+      {
+        return quill::MacroMetadata{
+          "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace};
+      }
+    } anonymous_metadata;
 
     // we pass this message to the queue and also pass capacity as arg
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false, false>(LogLevel::None, &macro_metadata, max_capacity))
+    while (!this->log_statement<false, false, decltype(anonymous_metadata)>(LogLevel::None, max_capacity))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -245,11 +251,17 @@ public:
   void flush_backtrace()
   {
     // we do not care about the other fields, except MacroMetadata::Event::Flush
-    static constexpr MacroMetadata macro_metadata{
-      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
+    struct
+    {
+      constexpr quill::MacroMetadata operator()() const noexcept
+      {
+        return quill::MacroMetadata{
+          "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
+      }
+    } anonymous_metadata;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false, false>(LogLevel::None, &macro_metadata))
+    while (!this->log_statement<false, false, decltype(anonymous_metadata)>(LogLevel::None))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -273,15 +285,21 @@ public:
    */
   void flush_log(uint32_t sleep_duration_ns = 100)
   {
-    static constexpr MacroMetadata macro_metadata{
-      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush};
+    struct
+    {
+      constexpr quill::MacroMetadata operator()() const noexcept
+      {
+        return quill::MacroMetadata{
+          "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush};
+      }
+    } anonymous_metadata;
 
     std::atomic<bool> backend_thread_flushed{false};
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false, false>(
-      LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
+    while (!this->log_statement<false, false, decltype(anonymous_metadata)>(
+      LogLevel::None, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if (sleep_duration_ns > 0)
       {
@@ -336,15 +354,11 @@ private:
    * @return Updated pointer to the write buffer after encoding the header.
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static std::byte* _encode_header(std::byte* write_buffer, uint64_t timestamp,
-                                                                       MacroMetadata const* metadata,
                                                                        detail::LoggerBase* logger_ctx,
                                                                        detail::FormatArgsDecoder decoder) noexcept
   {
     std::memcpy(write_buffer, &timestamp, sizeof(timestamp));
     write_buffer += sizeof(timestamp);
-
-    std::memcpy(write_buffer, &metadata, sizeof(uintptr_t));
-    write_buffer += sizeof(uintptr_t);
 
     std::memcpy(write_buffer, &logger_ctx, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);

@@ -46,7 +46,7 @@ struct TransitEvent
   /***/
   TransitEvent(TransitEvent&& other) noexcept
     : timestamp(other.timestamp),
-      macro_metadata(other.macro_metadata),
+      macro_metadata(std::move(other.macro_metadata)),
       logger_base(other.logger_base),
       formatted_msg(std::move(other.formatted_msg)),
       named_args(std::move(other.named_args)),
@@ -61,7 +61,7 @@ struct TransitEvent
     if (this != &other)
     {
       timestamp = other.timestamp;
-      macro_metadata = other.macro_metadata;
+      macro_metadata = std::move(other.macro_metadata);
       logger_base = other.logger_base;
       formatted_msg = std::move(other.formatted_msg);
       named_args = std::move(other.named_args);
@@ -86,7 +86,7 @@ struct TransitEvent
   }
 
   uint64_t timestamp{0};
-  MacroMetadata const* macro_metadata{nullptr};
+  std::unique_ptr<MacroMetadata> macro_metadata{std::make_unique<MacroMetadata>()};
   detail::LoggerBase* logger_base{nullptr};
   std::unique_ptr<FormatBuffer> formatted_msg{std::make_unique<FormatBuffer>()}; /** buffer for message **/
   std::unique_ptr<std::vector<std::pair<std::string, std::string>>> named_args; /** A unique ptr to save space as named args feature is not always used */

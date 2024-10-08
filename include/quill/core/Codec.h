@@ -11,6 +11,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
+#include "quill/core/MacroMetadata.h"
 
 #include <cassert>
 #include <cstddef>
@@ -311,13 +312,21 @@ void decode_and_store_arg(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatAr
 /**
  * Decode functions
  */
-using FormatArgsDecoder = void (*)(std::byte*& data, DynamicFormatArgStore& args_store);
+using FormatArgsDecoder = MacroMetadata (*)(std::byte*& data, DynamicFormatArgStore& args_store);
 
-template <typename... Args>
-void decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
+template <typename TMacroMetadata, typename... Args>
+MacroMetadata decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
 {
-  args_store.clear();
-  decode_and_store_arg<Args...>(buffer, &args_store);
+  constexpr MacroMetadata macro_metadata = TMacroMetadata{}();
+
+  if constexpr (macro_metadata.event() != MacroMetadata::Event::Flush)
+  {
+    // we need to check and do not try to format the flush events as that wouldn't be valid
+    args_store.clear();
+    decode_and_store_arg<Args...>(buffer, &args_store);
+  }
+
+  return macro_metadata;
 }
 } // namespace detail
 

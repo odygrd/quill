@@ -31,6 +31,8 @@ public:
     Flush
   };
 
+  MacroMetadata() = default;
+
   constexpr MacroMetadata(char const* source_location, char const* caller_function,
                           char const* message_format, char const* tags, LogLevel log_level, Event event) noexcept
     : _source_location(source_location),
@@ -78,7 +80,7 @@ public:
 
   QUILL_NODISCARD bool has_named_args() const noexcept { return _format_flags & NAMED_ARGS_FLAG; }
 
-  QUILL_NODISCARD Event event() const noexcept { return _event; }
+  QUILL_NODISCARD constexpr Event event() const noexcept { return _event; }
 
 private:
   /***/

@@ -493,9 +493,6 @@ private:
     std::memcpy(&transit_event->timestamp, read_pos, sizeof(transit_event->timestamp));
     read_pos += sizeof(transit_event->timestamp);
 
-    std::memcpy(&transit_event->macro_metadata, read_pos, sizeof(transit_event->macro_metadata));
-    read_pos += sizeof(transit_event->macro_metadata);
-
     std::memcpy(&transit_event->logger_base, read_pos, sizeof(transit_event->logger_base));
     read_pos += sizeof(transit_event->logger_base);
 
@@ -555,11 +552,10 @@ private:
     std::memcpy(&format_args_decoder, read_pos, sizeof(format_args_decoder));
     read_pos += sizeof(format_args_decoder);
 
-    // we need to check and do not try to format the flush events as that wouldn't be valid
+    *(transit_event->macro_metadata) = format_args_decoder(read_pos, _format_args_store);
+
     if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
     {
-      format_args_decoder(read_pos, _format_args_store);
-
       if (!transit_event->macro_metadata->has_named_args())
       {
         _populate_formatted_log_message(transit_event, transit_event->macro_metadata->message_format());
@@ -932,11 +928,11 @@ private:
 
     for (auto& sink : transit_event.logger_base->sinks)
     {
-      if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp, thread_id,
-                                  thread_name, transit_event.logger_base->logger_name,
+      if (sink->apply_all_filters(transit_event.macro_metadata.get(), transit_event.timestamp,
+                                  thread_id, thread_name, transit_event.logger_base->logger_name,
                                   transit_event.log_level(), log_message, log_statement))
       {
-        sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
+        sink->write_log(transit_event.macro_metadata.get(), transit_event.timestamp, thread_id,
                         thread_name, _process_id, transit_event.logger_base->logger_name,
                         transit_event.log_level(), log_level_description, log_level_short_code,
                         transit_event.named_args.get(), log_message, log_statement);

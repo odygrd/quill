@@ -296,11 +296,15 @@
 /** -- LOGJ_ helpers end -- **/
 
 #define QUILL_DEFINE_MACRO_METADATA(caller_function, fmt, tags, log_level)                         \
-  static constexpr quill::MacroMetadata macro_metadata                                             \
+  struct                                                                                           \
   {                                                                                                \
-    __FILE__ ":" QUILL_STRINGIFY(__LINE__), caller_function, fmt, tags, log_level,                 \
-      quill::MacroMetadata::Event::Log                                                             \
-  }
+    constexpr quill::MacroMetadata operator()() const noexcept                                     \
+    {                                                                                              \
+      return quill::MacroMetadata{                                                                 \
+        __FILE__ ":" QUILL_STRINGIFY(__LINE__), caller_function, fmt, tags, log_level,             \
+        quill::MacroMetadata::Event::Log};                                                         \
+    }                                                                                              \
+  } anonymous_metadata;
 
 #define QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ...)                           \
   do                                                                                               \
@@ -308,8 +312,8 @@
     if (likelyhood(logger->template should_log_statement<log_level>()))                            \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, log_level);                             \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
-        quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false, decltype(anonymous_metadata)>(  \
+        quill::LogLevel::None, ##__VA_ARGS__);                                                     \
     }                                                                                              \
   } while (0)
 
@@ -337,8 +341,8 @@
     if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))         \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Backtrace);            \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
-        quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false, decltype(anonymous_metadata)>(  \
+        quill::LogLevel::None, ##__VA_ARGS__);                                                     \
     }                                                                                              \
   } while (0)
 
@@ -351,8 +355,9 @@
   {                                                                                                           \
     if (logger->should_log_statement(log_level))                                                              \
     {                                                                                                         \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Dynamic);                         \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true>(log_level, &macro_metadata, ##__VA_ARGS__); \
+      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Dynamic);              \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true, decltype(anonymous_metadata)>(   \
+        log_level, ##__VA_ARGS__);                                                                 \
     }                                                                                                         \
   } while (0)
 
