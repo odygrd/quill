@@ -312,12 +312,12 @@ void decode_and_store_arg(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatAr
 /**
  * Decode functions
  */
-using FormatArgsDecoder = MacroMetadata (*)(std::byte*& data, DynamicFormatArgStore& args_store);
+using FormatArgsDecoder = MacroMetadata const* (*)(std::byte*& data, DynamicFormatArgStore& args_store);
 
 template <typename TMacroMetadata, typename... Args>
-MacroMetadata decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
+MacroMetadata const* decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
 {
-  constexpr MacroMetadata macro_metadata = TMacroMetadata{}();
+  static constexpr MacroMetadata macro_metadata = TMacroMetadata{}();
 
   if constexpr (macro_metadata.event() != MacroMetadata::Event::Flush)
   {
@@ -326,7 +326,7 @@ MacroMetadata decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& a
     decode_and_store_arg<Args...>(buffer, &args_store);
   }
 
-  return macro_metadata;
+  return &macro_metadata;
 }
 } // namespace detail
 

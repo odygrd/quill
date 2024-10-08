@@ -311,8 +311,9 @@
   {                                                                                                \
     if (likelyhood(logger->template should_log_statement<log_level>()))                            \
     {                                                                                              \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, log_level);                             \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false, decltype(anonymous_metadata)>(  \
+      static constexpr char const* function_name = __FUNCTION__;                                   \
+      QUILL_DEFINE_MACRO_METADATA(function_name, fmt, tags, log_level);                            \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, decltype(anonymous_metadata)>(         \
         quill::LogLevel::None, ##__VA_ARGS__);                                                     \
     }                                                                                              \
   } while (0)
@@ -340,8 +341,9 @@
   {                                                                                                \
     if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))         \
     {                                                                                              \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Backtrace);            \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false, decltype(anonymous_metadata)>(  \
+      static constexpr char const* function_name = __FUNCTION__;                                   \
+      QUILL_DEFINE_MACRO_METADATA(function_name, fmt, tags, quill::LogLevel::Backtrace);           \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, decltype(anonymous_metadata)>(         \
         quill::LogLevel::None, ##__VA_ARGS__);                                                     \
     }                                                                                              \
   } while (0)
@@ -354,9 +356,10 @@
   do                                                                                                          \
   {                                                                                                           \
     if (logger->should_log_statement(log_level))                                                              \
-    {                                                                                                         \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Dynamic);              \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true, decltype(anonymous_metadata)>(   \
+    {                                                                                              \
+      static constexpr char const* function_name = __FUNCTION__;                                   \
+      QUILL_DEFINE_MACRO_METADATA(function_name, fmt, tags, quill::LogLevel::Dynamic);             \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, decltype(anonymous_metadata)>(         \
         log_level, ##__VA_ARGS__);                                                                 \
     }                                                                                                         \
   } while (0)

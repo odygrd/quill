@@ -552,7 +552,7 @@ private:
     std::memcpy(&format_args_decoder, read_pos, sizeof(format_args_decoder));
     read_pos += sizeof(format_args_decoder);
 
-    *(transit_event->macro_metadata) = format_args_decoder(read_pos, _format_args_store);
+    transit_event->macro_metadata = format_args_decoder(read_pos, _format_args_store);
 
     if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
     {
@@ -928,11 +928,10 @@ private:
 
     for (auto& sink : transit_event.logger_base->sinks)
     {
-      if (sink->apply_all_filters(transit_event.macro_metadata.get(), transit_event.timestamp,
-                                  thread_id, thread_name, transit_event.logger_base->logger_name,
+      if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp, thread_id, thread_name, transit_event.logger_base->logger_name,
                                   transit_event.log_level(), log_message, log_statement))
       {
-        sink->write_log(transit_event.macro_metadata.get(), transit_event.timestamp, thread_id,
+        sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
                         thread_name, _process_id, transit_event.logger_base->logger_name,
                         transit_event.log_level(), log_level_description, log_level_short_code,
                         transit_event.named_args.get(), log_message, log_statement);

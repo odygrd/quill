@@ -74,7 +74,7 @@ public:
     return _source_location + _file_name_pos;
   }
 
-  QUILL_NODISCARD LogLevel log_level() const noexcept { return _log_level; }
+  QUILL_NODISCARD constexpr LogLevel log_level() const noexcept { return _log_level; }
 
   QUILL_NODISCARD char const* tags() const noexcept { return _tags; }
 

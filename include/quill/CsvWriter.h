@@ -63,7 +63,7 @@ public:
                                              }()),
       PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, decltype(_header_metadata)>(LogLevel::None, TCsvSchema::header);
   }
 
   /**
@@ -77,7 +77,7 @@ public:
     _logger = Frontend::create_or_get_logger(_logger_name_prefix + unique_name, std::move(sink),
                                              PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, decltype(_header_metadata)>(LogLevel::None, TCsvSchema::header);
   }
 
   /**
@@ -91,7 +91,7 @@ public:
     _logger = Frontend::create_or_get_logger(_logger_name_prefix + unique_name, sinks,
                                              PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false, decltype(_header_metadata)>(LogLevel::None, TCsvSchema::header);
   }
 
   /**
@@ -111,7 +111,7 @@ public:
   template <typename... Args>
   void append_row(Args&&... fields)
   {
-    _logger->template log_statement<false, false>(LogLevel::None, &_line_metadata, fields...);
+    _logger->template log_statement<false, decltype(_line_metadata)>(LogLevel::None, fields...);
   }
 
   /**
@@ -121,11 +121,22 @@ public:
   void flush() { _logger->flush_log(); }
 
 private:
-  static constexpr MacroMetadata _header_metadata{
-    "", "", "{}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+  struct
+  {
+    constexpr quill::MacroMetadata operator()() const noexcept
+    {
+      return quill::MacroMetadata{"", "", "{}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+    }
+  } _header_metadata;
 
-  static constexpr MacroMetadata _line_metadata{
-    "", "", TCsvSchema::format, nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+  struct
+  {
+    constexpr quill::MacroMetadata operator()() const noexcept
+    {
+      return quill::MacroMetadata{
+        "", "", TCsvSchema::format, nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+    }
+  } _line_metadata;
 
   static inline std::string _logger_name_prefix{"__csv__"};
 

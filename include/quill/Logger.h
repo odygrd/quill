@@ -61,15 +61,16 @@ public:
    * fundamental types.
    * This is the fastest way possible to log
    * @note This function is thread-safe.
-   * @param dynamic_log_level dynamic log level
    * @param macro_metadata metadata of the log message
    * @param fmt_args arguments
    *
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
-  template <bool immediate_flush, bool has_dynamic_log_level, typename TMacroMetadata, typename... Args>
+  template <bool immediate_flush, typename TMacroMetadata, typename... Args>
   QUILL_ATTRIBUTE_HOT bool log_statement(QUILL_MAYBE_UNUSED LogLevel dynamic_log_level, Args&&... fmt_args)
   {
+    constexpr bool has_dynamic_log_level = (TMacroMetadata{}().log_level() == LogLevel::Dynamic);
+
 #ifndef NDEBUG
     if (has_dynamic_log_level)
     {
@@ -236,7 +237,7 @@ public:
 
     // we pass this message to the queue and also pass capacity as arg
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false, false, decltype(anonymous_metadata)>(LogLevel::None, max_capacity))
+    while (!this->log_statement<false, decltype(anonymous_metadata)>(LogLevel::None, max_capacity))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -261,7 +262,7 @@ public:
     } anonymous_metadata;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false, false, decltype(anonymous_metadata)>(LogLevel::None))
+    while (!this->log_statement<false, decltype(anonymous_metadata)>(LogLevel::None))
     {
       std::this_thread::sleep_for(std::chrono::nanoseconds{100});
     }
@@ -298,7 +299,7 @@ public:
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false, false, decltype(anonymous_metadata)>(
+    while (!this->log_statement<false, decltype(anonymous_metadata)>(
       LogLevel::None, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if (sleep_duration_ns > 0)
