@@ -83,6 +83,8 @@
 
 - Added accessors to `Logger` for sinks, user clock source, clock source type, and pattern formatter options that can be
   used to create another `Logger` with similar configuration
+- Fixed a build issue when compiling with `-fno-rtti`. This ensures compatibility with projects that disable
+  `RTTI` ([#604](https://github.com/odygrd/quill/issues/604))
 
 ## v7.3.0
 

@@ -30,13 +30,13 @@ jobs:
         with_tests: [ ON ]
 
         include:
-          # Builds with no exceptions
+          # Builds the examples with no exceptions
           - os: windows-2022
             platform: x64
             build_type: Release
             std: 17
             with_tests: "OFF"
-            cmake_options: -DQUILL_NO_EXCEPTIONS=ON
+            cmake_options: -DQUILL_NO_EXCEPTIONS=ON -DQUILL_BUILD_TESTS=ON
 
           # Builds for ARM
           - os: windows-2022

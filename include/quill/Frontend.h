@@ -227,13 +227,20 @@ private:
   {
     assert(logger_base);
 
-    // MSVC can complain that another variable with the same name hides this variable
+#if QUILL_USE_RTTI
+    // MSVC may warn that a variable with the same name is hidden by this declaration,
+    // so the variable is prefixed with an underscore ('_') to avoid shadowing.
     auto* _logger_cast = dynamic_cast<logger_t*>(logger_base);
 
     if (QUILL_UNLIKELY(!_logger_cast))
     {
       QUILL_THROW(QuillError{"Failed to cast logger. Invalid logger type."});
     }
+#else
+    // MSVC may warn that a variable with the same name is hidden by this declaration,
+    // so the variable is prefixed with an underscore ('_') to avoid shadowing.
+    auto* _logger_cast = static_cast<logger_t*>(logger_base);
+#endif
 
     return _logger_cast;
   }
