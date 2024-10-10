@@ -42,7 +42,7 @@ function(set_common_compile_options target_name)
         target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
                 $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
                 -fno-exceptions -fno-rtti>
-                $<$<CXX_COMPILER_ID:MSVC>:/GR- /EHs-c->)
+                $<$<CXX_COMPILER_ID:MSVC>:/GR- /EHs-c- /D_HAS_EXCEPTIONS=0>)
     else ()
         # Additional MSVC specific options
         if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
