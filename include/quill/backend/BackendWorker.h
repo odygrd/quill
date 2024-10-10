@@ -517,13 +517,15 @@ private:
         _rdtsc_clock.load(std::memory_order_relaxed)->time_since_epoch(transit_event->timestamp);
     }
 
-    // Check if strict log timestamp order is enabled and the clock source is not User.
-    if (transit_event->logger_base->clock_source != ClockSourceType::User)
+    // Check if strict log timestamp order is enabled and the clock source is not User
+    if ((transit_event->logger_base->clock_source != ClockSourceType::User) &&
+        (ts_now != std::numeric_limits<uint64_t>::max()))
     {
-      // We skip checking against `ts_now` for custom timestamps by the user
+      // We only check against `ts_now` for real timestamps, not custom timestamps by the user, and
+      // when the grace period is enabled
 
 #ifndef NDEBUG
-      // Check the timestmaps we are comparign have the same digits
+      // Check the timestamps we are comparing have the same digits
       auto count_digits = [](uint64_t number)
       {
         uint32_t digits = 0;
