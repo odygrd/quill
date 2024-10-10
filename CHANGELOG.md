@@ -85,6 +85,8 @@
   used to create another `Logger` with similar configuration
 - Fixed a build issue when compiling with `-fno-rtti`. This ensures compatibility with projects that disable
   `RTTI` ([#604](https://github.com/odygrd/quill/issues/604))
+- Fixed an incorrectly triggered assertion in debug builds when `BackendOptions::log_timestamp_ordering_grace_period` is
+  set to 0
 
 ## v7.3.0
 
