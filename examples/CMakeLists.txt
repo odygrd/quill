@@ -26,8 +26,12 @@ set(EXAMPLE_TARGETS
         quill_example_csv_writing
         quill_example_json_file_logging
         quill_example_user_defined_types_logging
-        quill_example_user_defined_types_multi_format
 )
+
+# Add additional examples that are using exceptions in the example code
+if (NOT QUILL_NO_EXCEPTIONS)
+    list(APPEND EXAMPLE_TARGETS quill_example_user_defined_types_multi_format)
+endif ()
 
 # Add example executables
 foreach (example_target ${EXAMPLE_TARGETS})

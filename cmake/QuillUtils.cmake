@@ -37,9 +37,15 @@ function(set_common_compile_options target_name)
             -Wall -Wextra -pedantic -Werror>
             $<$<CXX_COMPILER_ID:MSVC>:/bigobj /WX /W4 /wd4324 /wd4996>)
 
-    # Additional MSVC specific options
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        if (NOT QUILL_NO_EXCEPTIONS)
+    if (QUILL_NO_EXCEPTIONS)
+        # Add flags -fno-exceptions -fno-rtti to make sure we support them
+        target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
+                $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+                -fno-exceptions -fno-rtti>
+                $<$<CXX_COMPILER_ID:MSVC>:/wd4702 /GR- /EHs-c- /D_HAS_EXCEPTIONS=0>)
+    else ()
+        # Additional MSVC specific options
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY} /EHsc)
         endif ()
     endif ()

@@ -49,13 +49,13 @@ jobs:
             with_tests: ON
             install: sudo apt -o Acquire::Retries=5 install g++-13
             
-            # Builds with no exceptions
+            # Builds the examples with no exceptions
           - cxx: g++-10
             build_type: Release
             std: 17
             os: ubuntu-20.04
             with_tests: OFF
-            cmake_options: -DQUILL_NO_EXCEPTIONS=ON
+            cmake_options: -DQUILL_NO_EXCEPTIONS=ON -DQUILL_BUILD_TESTS=ON
 
             # Build and test with valgrind
           - cxx: g++-10
