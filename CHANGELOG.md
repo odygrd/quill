@@ -1,4 +1,4 @@
-- [v7.4.0](#v740)
+- [v8.0.0](#v800)
 - [v7.3.0](#v730)
 - [v7.2.2](#v722)
 - [v7.2.1](#v721)
@@ -79,7 +79,7 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v7.4.0
+## v8.0.0
 
 - Added accessors to `Logger` for sinks, user clock source, clock source type, and pattern formatter options that can be
   used to create another `Logger` with similar configuration
@@ -87,6 +87,10 @@
   `RTTI` ([#604](https://github.com/odygrd/quill/issues/604))
 - Fixed an incorrectly triggered assertion in debug builds when `BackendOptions::log_timestamp_ordering_grace_period` is
   set to 0 ([#605](https://github.com/odygrd/quill/issues/605))
+- Unified `JsonFileSink.h` and `JsonConsoleSink.h` into a single header, `JsonSink.h`, with both classes now sharing a
+  common implementation
+- Users can now inherit from `JsonFileSink` or `JsonConsoleSink` and override the `generate_json_message(...)` function
+  to implement their own custom JSON log formats
 
 ## v7.3.0
 
