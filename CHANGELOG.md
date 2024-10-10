@@ -113,7 +113,7 @@
 - Fixed a build issue when compiling with `-fno-rtti`. This ensures compatibility with projects that disable
   `RTTI`. ([#604](https://github.com/odygrd/quill/issues/604))
 - Fixed an incorrectly triggered assertion in debug builds when `BackendOptions::log_timestamp_ordering_grace_period` is
-  set to 0. ([#605](https://github.com/odygrd/quill/issues/605))
+  set to 0 ([#605](https://github.com/odygrd/quill/issues/605))
 - Fixed a compile-time error in `CsvWriter` that occurred when passing a custom `FrontendOptions` type as a template
   parameter. ([#609](https://github.com/odygrd/quill/issues/609))
 - Added accessors to `Logger` for sinks, user clock source, clock source type, and pattern formatter options that can be
