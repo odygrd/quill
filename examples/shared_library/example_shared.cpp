@@ -21,7 +21,6 @@ int main()
 {
   setup_quill();
 
-  // Change the LogLevel to print everything
   global_logger_a->set_log_level(quill::LogLevel::TraceL3);
 
   std::string s {"string"};
@@ -35,6 +34,4 @@ int main()
   LOG_WARNING(global_logger_a, "This is a log warning example {}", sv);
   LOG_ERROR(global_logger_a, "This is a log error example {}", 7);
   LOG_CRITICAL(global_logger_a, "This is a log critical example {}", 118);
-
-  global_logger_a->flush_log();
 }

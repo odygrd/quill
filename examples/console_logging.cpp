@@ -1,13 +1,15 @@
+#ifdef NDEBUG
+#else
+  #define QUILL_IMMEDIATE_FLUSH true
+  #define QUILL_COMPILE_ACTIVE_LOG_LEVEL QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L3
+#endif
+
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
 #include "quill/sinks/ConsoleSink.h"
-
-#include "quill/TriviallyCopyableCodec.h"
-#include "quill/bundled/fmt/ostream.h"
-#include "quill/std/Array.h"
-#include "quill/std/Chrono.h"
+#include "quill/sinks/FileSink.h"
 
 #include <iostream>
 #include <string>
@@ -23,9 +25,23 @@ int main()
   quill::BackendOptions backend_options;
   quill::Backend::start(backend_options);
 
-  // Frontend
-  auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
-  quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
+  // log everything to console
+  auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
+    "console_sink");
+  // log everything to file
+  auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
+    "debug_logs.txt", []() {
+      quill::FileSinkConfig cfg;
+      cfg.set_open_mode('w');
+      cfg.set_filename_append_option(
+        quill::FilenameAppendOption::StartDateTime);
+      return cfg;
+    }(),
+    quill::FileEventNotifier{});
+
+  // create logger
+  quill::Logger *logger = quill::Frontend::create_or_get_logger(
+    "root", {std::move(console_sink), std::move(file_sink)});
 
   // Change the LogLevel to print everything
   logger->set_log_level(quill::LogLevel::TraceL3);
@@ -38,13 +54,6 @@ int main()
   // libfmt formatting language is supported 3.14e+00
   double pi = 3.141592653589793;
   LOG_INFO(logger, "libfmt formatting language is supported {:.2e}", pi);
-
-  // Logging STD types is supported [1, 2, 3]
-  std::array<int, 3> arr = {1, 2, 3};
-  LOG_INFO(logger, "Logging STD types is supported {}", arr);
-
-  // Logging STD types is supported [arr: [1, 2, 3]]
-  LOGV_INFO(logger, "Logging STD types is supported", arr);
 
   // A message with two variables [a: 123, b: 3.17]
   double b = 3.17;

@@ -1,0 +1,8 @@
+12:20:30.276366162 [89904] example_shared.cpp:29        LOG_TRACE_L3  root         This is a log trace l3 example 1
+12:20:30.276493663 [89904] example_shared.cpp:30        LOG_TRACE_L2  root         This is a log trace l2 example 2 2.3
+12:20:30.276493719 [89904] example_shared.cpp:31        LOG_TRACE_L1  root         This is a log trace l1 s example
+12:20:30.276493941 [89904] example_shared.cpp:32        LOG_DEBUG     root         This is a log debug example 4
+12:20:30.276493976 [89904] example_shared.cpp:33        LOG_INFO      root         This is a log info example string
+12:20:30.276494014 [89904] example_shared.cpp:34        LOG_WARNING   root         This is a log warning example string_view
+12:20:30.276494054 [89904] example_shared.cpp:35        LOG_ERROR     root         This is a log error example 7
+12:20:30.276494234 [89904] example_shared.cpp:36        LOG_CRITICAL  root         This is a log critical example 118

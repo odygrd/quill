@@ -1,0 +1,5 @@
+12:20:19.577047636 [86620] console_logging.cpp:52       LOG_INFO      root         A log message with number 123
+12:20:19.577203420 [86620] console_logging.cpp:56       LOG_INFO      root         libfmt formatting language is supported 3.14e+00
+12:20:19.577203589 [86620] console_logging.cpp:60       LOG_NOTICE    root         A message with two variables [a: 123, b: 3.17]
+12:20:19.577204233 [86620] console_logging.cpp:65       LOG_INFO      root         A log message with number 123
+12:20:19.577204318 [86620] console_logging.cpp:66       LOG_INFO      root         A message with two variables [a: 123, b: 3.17]
