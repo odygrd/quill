@@ -87,6 +87,7 @@
   `RTTI` ([#604](https://github.com/odygrd/quill/issues/604))
 - Fixed an incorrectly triggered assertion in debug builds when `BackendOptions::log_timestamp_ordering_grace_period` is
   set to 0 ([#605](https://github.com/odygrd/quill/issues/605))
+- Fixed a compile-time error in `CsvWriter` that occurred when passing a custom `FrontendOptions` type as a template parameter. ([#609](https://github.com/odygrd/quill/issues/609))
 
 ## v7.3.0
 
