@@ -5,7 +5,7 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
-#include "quill/sinks/JsonFileSink.h"
+#include "quill/sinks/JsonSink.h"
 
 #include <cstdio>
 #include <string>

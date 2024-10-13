@@ -2,6 +2,7 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
+#include "quill/bundled/fmt/ostream.h"
 #include "quill/sinks/ConsoleSink.h"
 
 #include <cstdint>
@@ -24,7 +25,7 @@ class User
 {
 public:
   User(std::string name, std::string surname, uint32_t age)
-    : name(std::move(name)), surname(std::move(surname)), age(age){};
+    : name(std::move(name)), surname(std::move(surname)), age(age) {};
 
   friend std::ostream& operator<<(std::ostream& os, User const& obj)
   {

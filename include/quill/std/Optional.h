@@ -12,8 +12,8 @@
 #include "quill/core/InlinedVector.h"
 #include "quill/core/Utf8Conv.h"
 
-#include "quill/bundled/fmt/std.h"
 #include "quill/bundled/fmt/format.h"
+#include "quill/bundled/fmt/std.h"
 
 #include <cstddef>
 #include <cstdint>
