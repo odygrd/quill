@@ -25,7 +25,7 @@ QUILL_BEGIN_NAMESPACE
  * and I/O operations are handled by the backend worker thread.
  *
  * @tparam TCsvSchema A user-defined struct specifying the CSV schema at compile-time.
- * @tparam TFrontendOptions Custom frontend options if they are used application-wide. If no custom frontend options are used, then use quill::FrontendOptions.
+ * @tparam TFrontendOptions Custom frontend_t options if they are used application-wide. If no custom frontend_t options are used, then use quill::frontend_tOptions.
  *
  * The TCsvSchema struct should define the CSV header and format, for example:
  *
@@ -41,6 +41,8 @@ template <typename TCsvSchema, typename TFrontendOptions>
 class CsvWriter
 {
 public:
+  using frontend_t = FrontendImpl<TFrontendOptions>;
+  
   /**
    * Constructs a CsvWriter object that writes to a file.
    *
@@ -51,9 +53,9 @@ public:
   explicit CsvWriter(std::string const& filename, char open_mode = 'w',
                      FilenameAppendOption filename_append = FilenameAppendOption::None)
   {
-    _logger = Frontend::create_or_get_logger(
+    _logger = frontend_t::create_or_get_logger(
       _logger_name_prefix + filename,
-      Frontend::create_or_get_sink<FileSink>(filename,
+      frontend_t::template create_or_get_sink<FileSink>(filename,
                                              [open_mode, filename_append]()
                                              {
                                                FileSinkConfig cfg;
@@ -74,7 +76,7 @@ public:
    */
   CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink)
   {
-    _logger = Frontend::create_or_get_logger(_logger_name_prefix + unique_name, std::move(sink),
+    _logger = frontend_t::create_or_get_logger(_logger_name_prefix + unique_name, std::move(sink),
                                              PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
     _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
@@ -88,7 +90,7 @@ public:
    */
   CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks)
   {
-    _logger = Frontend::create_or_get_logger(
+    _logger = frontend_t::create_or_get_logger(
       _logger_name_prefix + unique_name, sinks, PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
     _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
@@ -100,7 +102,7 @@ public:
   ~CsvWriter()
   {
     _logger->flush_log();
-    Frontend::remove_logger(_logger);
+    frontend_t::remove_logger(_logger);
   }
 
   /**
