@@ -54,7 +54,19 @@ private:
   using WORD = unsigned short;
 
 public:
-  ConsoleColours() { _colours.fill(white); }
+  enum class ColourMode
+  {
+    Always,
+    Automatic,
+    Never
+  };
+
+  ConsoleColours()
+  {
+    // by default _using_colours is false
+    _colours.fill(white);
+  }
+
   ~ConsoleColours() = default;
 
   /**
@@ -145,7 +157,21 @@ private:
     return is_atty && is_console;
   }
 
-  void _set_can_use_colours(FILE* file) noexcept { _can_use_colours = _is_in_terminal(file); }
+  void _set_can_use_colours(FILE* file, ColourMode colour_mode) noexcept
+  {
+    if (colour_mode == ColourMode::Always)
+    {
+      _can_use_colours = true;
+    }
+    else if (colour_mode == ColourMode::Automatic)
+    {
+      _can_use_colours = _is_in_terminal(file);
+    }
+    else
+    {
+      _can_use_colours = false;
+    }
+  }
 
 private:
   std::array<WORD, 10> _colours = {0}; /**< Colours per log level */
@@ -159,7 +185,18 @@ private:
 class ConsoleColours
 {
 public:
-  ConsoleColours() { _colours.fill(white); }
+  enum class ColourMode
+  {
+    Always,
+    Automatic,
+    Never
+  };
+
+  ConsoleColours()
+  {
+    // by default _using_colours is false
+    _colours.fill(white);
+  }
 
   ~ConsoleColours() = default;
 
@@ -293,9 +330,21 @@ private:
     return ::isatty(fileno(file)) != 0;
   }
 
-  void _set_can_use_colours(FILE* file) noexcept
+  /***/
+  void _set_can_use_colours(FILE* file, ColourMode colour_mode) noexcept
   {
-    _can_use_colours = _is_in_terminal(file) && _is_colour_terminal();
+    if (colour_mode == ColourMode::Always)
+    {
+      _can_use_colours = true;
+    }
+    else if (colour_mode == ColourMode::Automatic)
+    {
+      _can_use_colours = _is_in_terminal(file) && _is_colour_terminal();
+    }
+    else
+    {
+      _can_use_colours = false;
+    }
   }
 
 private:
@@ -313,14 +362,19 @@ public:
    * @brief Constructor
    * @param console_colours console colours instance
    * @param stream stream name can only be "stdout" or "stderr"
+   * @param colour_mode Determines when console colours are enabled.
+   *                    - Always: Colours are always enabled.
+   *                    - Automatic: Colours are enabled automatically based on the environment (e.g., terminal support).
+   *                    - Never: Colours are never enabled.
    */
-  explicit ConsoleSink(ConsoleColours const& console_colours, std::string const& stream = "stdout")
+  explicit ConsoleSink(ConsoleColours const& console_colours, std::string const& stream = "stdout",
+                       ConsoleColours::ColourMode colour_mode = ConsoleColours::ColourMode::Automatic)
     : StreamSink{stream, nullptr}, _console_colours(console_colours)
   {
     assert((stream == "stdout") || (stream == "stderr"));
 
     // In this ctor we take a full copy of console_colours and in our instance we modify it
-    _console_colours._set_can_use_colours(_file);
+    _console_colours._set_can_use_colours(_file, colour_mode);
   }
 
   /**
@@ -335,7 +389,28 @@ public:
 
     if (enable_colours)
     {
-      _console_colours._set_can_use_colours(_file);
+      _console_colours._set_can_use_colours(_file, ConsoleColours::ColourMode::Automatic);
+      _console_colours.set_default_colours();
+    }
+  }
+
+  /**
+   * @brief Constructor
+   * @param colour_mode Determines when console colours are enabled.
+   *                    - Always: Colours are always enabled.
+   *                    - Automatic: Colours are enabled automatically based on the environment (e.g., terminal support).
+   *                    - Never: Colours are never enabled.
+   * @param stream stream name can only be "stdout" or "stderr"
+   */
+  explicit ConsoleSink(ConsoleColours::ColourMode colour_mode, std::string const& stream = "stdout")
+    : StreamSink{stream, nullptr}
+  {
+    assert((stream == "stdout") || (stream == "stderr"));
+
+    _console_colours._set_can_use_colours(_file, colour_mode);
+
+    if (colour_mode != ConsoleColours::ColourMode::Never)
+    {
       _console_colours.set_default_colours();
     }
   }
