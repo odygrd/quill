@@ -109,7 +109,7 @@ TEST_CASE("backend_exception_notifier")
 
   REQUIRE(has_any_error);
   #endif
-  
+
   std::string const expected_string_3 = "error handler invoked logger->init_backtrace(...)";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string_3));
 

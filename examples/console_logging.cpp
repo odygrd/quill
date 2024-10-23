@@ -25,7 +25,7 @@ int main()
 
   // Frontend
   auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
-    "sink_id_1", quill::ConsoleColours::ColourMode::Automatic);
+    "sink_id_1", quill::ConsoleSink::ColourMode::Automatic);
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
 

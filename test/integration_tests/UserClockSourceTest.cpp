@@ -68,10 +68,10 @@ TEST_CASE("user_clock_source")
     }(),
     FileEventNotifier{});
 
-  Logger* logger =
-    Frontend::create_or_get_logger(logger_name, std::move(file_sink),
+  Logger* logger = Frontend::create_or_get_logger(
+    logger_name, std::move(file_sink),
     PatternFormatterOptions{"%(time) %(log_level) %(logger:<16) %(message)", // format
-                            "%Y-%m-%d %H:%M:%S.%Qms", // timestamp format
+                            "%Y-%m-%d %H:%M:%S.%Qms",                        // timestamp format
                             quill::Timezone::GmtTime, false},
     ClockSourceType::User, &uct);
 

@@ -12,8 +12,8 @@
 #include "quill/core/InlinedVector.h"
 #include "quill/core/Utf8Conv.h"
 
-#include "quill/bundled/fmt/ranges.h"
 #include "quill/bundled/fmt/format.h"
+#include "quill/bundled/fmt/ranges.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -25,8 +25,9 @@ QUILL_BEGIN_NAMESPACE
 
 template <template <typename...> class UnorderedSetType, typename Key, typename Hash, typename KeyEqual, typename Allocator>
 struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
-  std::enable_if_t<std::disjunction_v<std::is_same<UnorderedSetType<Key, Hash, KeyEqual, Allocator>, std::unordered_set<Key, Hash, KeyEqual, Allocator>>,
-                                      std::is_same<UnorderedSetType<Key, Hash, KeyEqual, Allocator>, std::unordered_multiset<Key, Hash, KeyEqual, Allocator>>>>>
+             std::enable_if_t<std::disjunction_v<
+               std::is_same<UnorderedSetType<Key, Hash, KeyEqual, Allocator>, std::unordered_set<Key, Hash, KeyEqual, Allocator>>,
+               std::is_same<UnorderedSetType<Key, Hash, KeyEqual, Allocator>, std::unordered_multiset<Key, Hash, KeyEqual, Allocator>>>>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      UnorderedSetType<Key, Hash, KeyEqual, Allocator> const& arg) noexcept
