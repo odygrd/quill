@@ -41,9 +41,9 @@ TEST_CASE("multiple_sinks_same_logger")
     }(),
     FileEventNotifier{});
 
-  bool const using_colours = false;
   std::string const stream = "stdout";
-  auto console_sink = Frontend::create_or_get_sink<ConsoleSink>("console_sink", using_colours, stream);
+  auto console_sink = Frontend::create_or_get_sink<ConsoleSink>(
+    "console_sink", quill::ConsoleSink::ColourMode::Never, stream);
 
   std::string const logger_name = "logger";
   Logger* logger =
