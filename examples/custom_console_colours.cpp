@@ -18,13 +18,12 @@ int main()
   quill::Backend::start(backend_options);
 
   // Frontend
-  quill::ConsoleColours custom_console_colours;
-  custom_console_colours.set_default_colours();
-  custom_console_colours.set_colour(quill::LogLevel::Info, quill::ConsoleColours::blue); // overwrite the colour for INFO
+  quill::ConsoleSink::Colours colours;
+  colours.apply_default_colours();
+  colours.assign_colour_to_log_level(quill::LogLevel::Info, quill::ConsoleSink::Colours::blue); // overwrite the colour for INFO
 
   // Create the sink
-  auto console_sink =
-    quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1", custom_console_colours);
+  auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1", colours);
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
 
