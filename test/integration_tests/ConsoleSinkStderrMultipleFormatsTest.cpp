@@ -27,9 +27,9 @@ TEST_CASE("console_sink_stderr_multiple_formats")
   quill::testing::CaptureStderr();
 
   // Set writing logging to a file
-  bool const using_colours = false;
   std::string const stream = "stderr";
-  auto console_sink = Frontend::create_or_get_sink<ConsoleSink>("console_sink", using_colours, stream);
+  auto console_sink =
+    Frontend::create_or_get_sink<ConsoleSink>("console_sink", ConsoleSink::ColourMode::Never, stream);
 
   Logger* logger_a = Frontend::create_or_get_logger(logger_name_a, console_sink);
   Logger* logger_b = Frontend::create_or_get_logger(
