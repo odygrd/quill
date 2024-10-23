@@ -13,8 +13,9 @@ class ConsoleSinkWithFormatter : public quill::ConsoleSink
 {
 public:
   ConsoleSinkWithFormatter(quill::PatternFormatterOptions const& pattern_formater_options,
-                           bool enable_colours = true, std::string const& stream = "stdout")
-    : quill::ConsoleSink(enable_colours, stream), _formatter(pattern_formater_options)
+                           quill::ConsoleSink::ColourMode colour_mode = quill::ConsoleSink::ColourMode::Automatic,
+                           std::string const& stream = "stdout")
+    : quill::ConsoleSink(colour_mode, stream), _formatter(pattern_formater_options)
   {
   }
 

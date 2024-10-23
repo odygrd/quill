@@ -81,6 +81,17 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+## v8.0.0
+
+- Unified `JsonFileSink.h` and `JsonConsoleSink.h` into a single header, `JsonSink.h`, with both classes now sharing a
+  common implementation
+- Users can now inherit from `JsonFileSink` or `JsonConsoleSink` and override the `generate_json_message(...)` function
+  to implement their own custom JSON log formats
+- Simplified `ConsoleSink` by applying ANSI colour codes universally across all platforms, including Windows. The
+  previous Windows-specific implementation has been removed. Note that `quill::ConsoleColours` has been replaced with
+  `quill::ConsoleSink::Colours`, and `quill::ConsoleColours::ColourMode` has been renamed to
+  `quill::ConsoleSink::ColourMode`.
+
 ## TBD
 
 - Suppress `-Wredundant-decls` warning in GCC builds.
@@ -126,6 +137,7 @@
   ```cpp
     quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
       "sink_id_1", quill::ConsoleColours::ColourMode::Automatic);
+   ```
 
 ## v7.3.0
 
