@@ -122,8 +122,8 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   auto const res = pthread_setname_np(name);
   if (res != 0)
   {
-    QUILL_THROW(QuillError{std::string{"Failed to set thread name - errno: " + std::to_string(errno) +
-                                       " error: " + strerror(errno)}});
+    QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
+                                       " error: " + strerror(res)}});
   }
 #else
   // linux
@@ -134,8 +134,8 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   auto const res = pthread_setname_np(pthread_self(), name);
   if (res != 0)
   {
-    QUILL_THROW(QuillError{std::string{"Failed to set thread name - errno: " + std::to_string(errno) +
-                                       " error: " + strerror(errno)}});
+    QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
+                                       " error: " + strerror(res)}});
   }
 #endif
 }
