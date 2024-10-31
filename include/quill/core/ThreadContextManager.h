@@ -11,7 +11,6 @@
 #include "quill/core/Common.h"
 #include "quill/core/InlinedVector.h"
 #include "quill/core/Spinlock.h"
-#include "quill/core/ThreadUtilities.h"
 #include "quill/core/UnboundedSPSCQueue.h"
 
 #include <atomic>
@@ -32,6 +31,10 @@ namespace detail
 /** Forward Declarations **/
 class TransitEventBuffer;
 class BackendWorker;
+
+/** We forward declare these to avoid including ThreadUtilities.h **/
+extern std::string get_thread_name();
+extern uint32_t get_thread_id() noexcept;
 
 class ThreadContext
 {

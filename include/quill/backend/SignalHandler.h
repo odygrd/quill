@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "quill/backend/ThreadUtilities.h"
+
 #include "quill/Logger.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"
@@ -13,7 +15,6 @@
 #include "quill/core/LoggerManager.h"
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/QuillError.h"
-#include "quill/core/ThreadUtilities.h"
 
 #include <atomic>
 #include <csignal>
