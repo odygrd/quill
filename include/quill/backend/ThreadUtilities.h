@@ -131,7 +131,7 @@ ReturnT callRunTimeDynamicLinkedFunction(std::string const& dll_name,
  * a null string is retrieved into name.
  * @return the thread name
  */
-QUILL_NODISCARD inline std::string get_thread_name()
+QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_name()
 {
 #if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(QUILL_NO_THREAD_NAME_SUPPORT)
   // Disabled on MINGW / Cygwin.
@@ -172,7 +172,7 @@ QUILL_NODISCARD inline std::string get_thread_name()
  * Returns the os assigned ID of the thread
  * @return the thread ID of the calling thread
  */
-QUILL_NODISCARD inline uint32_t get_thread_id() noexcept
+QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline uint32_t get_thread_id() noexcept
 {
 #if defined(__CYGWIN__)
   // get thread id on cygwin not supported

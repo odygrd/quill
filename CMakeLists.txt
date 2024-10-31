@@ -169,6 +169,7 @@ set(HEADER_FILES
         include/quill/backend/RdtscClock.h
         include/quill/backend/SignalHandler.h
         include/quill/backend/StringFromTime.h
+        include/quill/backend/ThreadUtilities.h
         include/quill/backend/TimestampFormatter.h
         include/quill/backend/TransitEvent.h
         include/quill/backend/TransitEventBuffer.h
@@ -207,7 +208,6 @@ set(HEADER_FILES
         include/quill/core/SinkManager.h
         include/quill/core/Spinlock.h
         include/quill/core/ThreadContextManager.h
-        include/quill/core/ThreadUtilities.h
         include/quill/core/TimeUtilities.h
         include/quill/core/UnboundedSPSCQueue.h
         include/quill/core/Utf8Conv.h

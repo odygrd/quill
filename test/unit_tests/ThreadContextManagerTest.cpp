@@ -1,5 +1,6 @@
 #include "doctest/doctest.h"
 
+#include "quill/backend/ThreadUtilities.h"
 #include "quill/core/FrontendOptions.h"
 #include "quill/core/ThreadContextManager.h"
 #include <array>

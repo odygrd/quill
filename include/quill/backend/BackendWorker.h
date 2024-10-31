@@ -11,6 +11,7 @@
 #include "quill/backend/BacktraceStorage.h"
 #include "quill/backend/PatternFormatter.h"
 #include "quill/backend/RdtscClock.h"
+#include "quill/backend/ThreadUtilities.h"
 #include "quill/backend/TimestampFormatter.h"
 #include "quill/backend/TransitEvent.h"
 #include "quill/backend/TransitEventBuffer.h"
@@ -28,7 +29,6 @@
 #include "quill/core/QuillError.h"
 #include "quill/core/SinkManager.h"
 #include "quill/core/ThreadContextManager.h"
-#include "quill/core/ThreadUtilities.h"
 #include "quill/core/TimeUtilities.h"
 #include "quill/core/UnboundedSPSCQueue.h"
 #include "quill/sinks/Sink.h"
@@ -318,6 +318,9 @@ private:
 
     // Cache this thread's id
     _worker_thread_id.store(get_thread_id());
+
+    // Call get_thread_name() to ensure it is retained by the linker.
+    (void)get_thread_name();
 
     // Double check or modify some backend options before we start
     if (_options.transit_events_hard_limit == 0)

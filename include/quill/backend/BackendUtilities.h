@@ -26,7 +26,7 @@
 
   #include <windows.h>
 
-  #include "quill/core/ThreadUtilities.h"
+  #include "quill/backend/ThreadUtilities.h"
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
