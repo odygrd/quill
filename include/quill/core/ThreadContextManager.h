@@ -33,8 +33,8 @@ class TransitEventBuffer;
 class BackendWorker;
 
 /** We forward declare these to avoid including ThreadUtilities.h **/
-extern std::string get_thread_name();
-extern uint32_t get_thread_id() noexcept;
+std::string get_thread_name();
+uint32_t get_thread_id() noexcept;
 
 class ThreadContext
 {
