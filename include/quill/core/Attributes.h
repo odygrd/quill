@@ -101,6 +101,17 @@
 #endif
 
 /**
+ * Used
+ */
+#ifndef QUILL_ATTRIBUTE_USED
+  #if QUILL_HAS_ATTRIBUTE(used) || defined(__GNUC__) || defined(__clang__)
+    #define QUILL_ATTRIBUTE_USED __attribute__((used))
+  #else
+    #define QUILL_ATTRIBUTE_USED
+  #endif
+#endif
+
+/**
  * Likely
  */
 #ifndef QUILL_LIKELY
