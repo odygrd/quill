@@ -190,18 +190,18 @@ TEST_CASE("macros")
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"C LOG_CRITICAL  logger       DYN: 42"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"BT LOG_BACKTRACE logger       BT: 255"}));
 
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"T3 LOG_TRACE_L3  logger       B L3: 10 (0)"}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"T2 LOG_TRACE_L2  logger       B L2: 20 (0)"}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"T1 LOG_TRACE_L1  logger       B L1: 30 (0)"}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"D LOG_DEBUG     logger       B DBG: 40 (0)"}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"I LOG_INFO      logger       B INF: 50 (0)"}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"T3 LOG_TRACE_L3  logger       B L3: 10 (1x)"}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"T2 LOG_TRACE_L2  logger       B L2: 20 (1x)"}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"T1 LOG_TRACE_L1  logger       B L1: 30 (1x)"}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"D LOG_DEBUG     logger       B DBG: 40 (1x)"}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"I LOG_INFO      logger       B INF: 50 (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"N LOG_NOTICE    logger       B NTC: Notice (0)"}));
+    file_contents, std::string{"N LOG_NOTICE    logger       B NTC: Notice (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"W LOG_WARNING   logger       B WRN: Warning (0)"}));
+    file_contents, std::string{"W LOG_WARNING   logger       B WRN: Warning (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"E LOG_ERROR     logger       B ERR: 60.78 (0)"}));
-  REQUIRE(quill::testing::file_contains(file_contents, std::string{"C LOG_CRITICAL  logger       B CRT: -10 (0)"}));
+    file_contents, std::string{"E LOG_ERROR     logger       B ERR: 60.78 (1x)"}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"C LOG_CRITICAL  logger       B CRT: -10 (1x)"}));
 
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"T3 LOG_TRACE_L3  logger       BA L3: 10"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"T2 LOG_TRACE_L2  logger       BA L2: 20"}));
@@ -260,23 +260,23 @@ TEST_CASE("macros")
     file_contents, std::string{"BT LOG_BACKTRACE logger       D BT [var: 1337]"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"T3 LOG_TRACE_L3  logger       E L3 [var: 1337] (0)"}));
+    file_contents, std::string{"T3 LOG_TRACE_L3  logger       E L3 [var: 1337] (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"T2 LOG_TRACE_L2  logger       E L2 [var: 1337] (0)"}));
+    file_contents, std::string{"T2 LOG_TRACE_L2  logger       E L2 [var: 1337] (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"T1 LOG_TRACE_L1  logger       E L1 [var: 1337] (0)"}));
+    file_contents, std::string{"T1 LOG_TRACE_L1  logger       E L1 [var: 1337] (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"D LOG_DEBUG     logger       E DBG [var: 1337] (0)"}));
+    file_contents, std::string{"D LOG_DEBUG     logger       E DBG [var: 1337] (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"I LOG_INFO      logger       E INF [var: 1337] (0)"}));
+    file_contents, std::string{"I LOG_INFO      logger       E INF [var: 1337] (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"N LOG_NOTICE    logger       E NTC [var: 1337] (0)"}));
+    file_contents, std::string{"N LOG_NOTICE    logger       E NTC [var: 1337] (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"W LOG_WARNING   logger       E WRN [var: 1337] (0)"}));
+    file_contents, std::string{"W LOG_WARNING   logger       E WRN [var: 1337] (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"E LOG_ERROR     logger       E ERR [var: 1337] (0)"}));
+    file_contents, std::string{"E LOG_ERROR     logger       E ERR [var: 1337] (1x)"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"C LOG_CRITICAL  logger       E CRT [var: 1337] (0)"}));
+    file_contents, std::string{"C LOG_CRITICAL  logger       E CRT [var: 1337] (1x)"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"T3 LOG_TRACE_L3  logger       EA L3 [var: 1337]"}));
@@ -340,23 +340,23 @@ TEST_CASE("macros")
     file_contents, std::string{"BT LOG_BACKTRACE logger       G BT 1337 [ ] [var: 1337]"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"T3 LOG_TRACE_L3  logger       H L3 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"T3 LOG_TRACE_L3  logger       H L3 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"T2 LOG_TRACE_L2  logger       H L2 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"T2 LOG_TRACE_L2  logger       H L2 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"T1 LOG_TRACE_L1  logger       H L1 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"T1 LOG_TRACE_L1  logger       H L1 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"D LOG_DEBUG     logger       H DBG 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"D LOG_DEBUG     logger       H DBG 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"I LOG_INFO      logger       H INF 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"I LOG_INFO      logger       H INF 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"N LOG_NOTICE    logger       H NTC 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"N LOG_NOTICE    logger       H NTC 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"W LOG_WARNING   logger       H WRN 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"W LOG_WARNING   logger       H WRN 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"E LOG_ERROR     logger       H ERR 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"E LOG_ERROR     logger       H ERR 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"C LOG_CRITICAL  logger       H CRT 1337 (0) [ ] [var: 1337, suppressed: 0]"}));
+    file_contents, std::string{"C LOG_CRITICAL  logger       H CRT 1337 (1x) [ ] [var: 1337, occurred: 1]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"T3 LOG_TRACE_L3  logger       HA L3 1337 [ ] [var: 1337]"}));

@@ -313,34 +313,35 @@
     }                                                                                              \
   } while (0)
 
-#define QUILL_LOGGER_CALL_LIMIT(min_interval, likelyhood, logger, tags, log_level, fmt, ...)                      \
-  do                                                                                                              \
-  {                                                                                                               \
-    if (likelyhood(logger->template should_log_statement<log_level>()))                                           \
-    {                                                                                                             \
-      thread_local std::chrono::time_point<std::chrono::steady_clock> next_log_time;                              \
-      thread_local uint64_t suppressed_log_count{0};                                                              \
-      auto const now = std::chrono::steady_clock::now();                                                          \
-                                                                                                                  \
-      if (now < next_log_time)                                                                                    \
-      {                                                                                                           \
-        ++suppressed_log_count;                                                                                   \
-        break;                                                                                                    \
-      }                                                                                                           \
-                                                                                                                  \
-      if constexpr (quill::MacroMetadata::_contains_named_args(fmt))                                              \
-      {                                                                                                           \
-        QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt " ({suppressed})",                             \
-                          ##__VA_ARGS__, suppressed_log_count);                                                   \
-      }                                                                                                           \
-      else                                                                                                        \
-      {                                                                                                           \
-        QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt " ({})", ##__VA_ARGS__, suppressed_log_count); \
-      }                                                                                                           \
-                                                                                                                  \
-      next_log_time = now + min_interval;                                                                         \
-      suppressed_log_count = 0;                                                                                   \
-    }                                                                                                             \
+#define QUILL_LOGGER_CALL_LIMIT(min_interval, likelyhood, logger, tags, log_level, fmt, ...)       \
+  do                                                                                               \
+  {                                                                                                \
+    if (likelyhood(logger->template should_log_statement<log_level>()))                            \
+    {                                                                                              \
+      thread_local std::chrono::time_point<std::chrono::steady_clock> next_log_time;               \
+      thread_local uint64_t suppressed_log_count{0};                                               \
+      auto const now = std::chrono::steady_clock::now();                                           \
+                                                                                                   \
+      if (now < next_log_time)                                                                     \
+      {                                                                                            \
+        ++suppressed_log_count;                                                                    \
+        break;                                                                                     \
+      }                                                                                            \
+                                                                                                   \
+      if constexpr (quill::MacroMetadata::_contains_named_args(fmt))                               \
+      {                                                                                            \
+        QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt " ({occurred}x)",               \
+                          ##__VA_ARGS__, suppressed_log_count + 1);                                \
+      }                                                                                            \
+      else                                                                                         \
+      {                                                                                            \
+        QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt " ({}x)", ##__VA_ARGS__,        \
+                          suppressed_log_count + 1);                                               \
+      }                                                                                            \
+                                                                                                   \
+      next_log_time = now + min_interval;                                                          \
+      suppressed_log_count = 0;                                                                    \
+    }                                                                                              \
   } while (0)
 
 #define QUILL_LOGGER_CALL_LIMIT_EVERY_N(n_occurrences, likelyhood, logger, tags, log_level, fmt, ...) \
