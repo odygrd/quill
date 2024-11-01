@@ -30,4 +30,23 @@ int main()
 
   // Or manually specify the desired names of each variable
   LOG_INFO(logger, "A json message with {var_1} and {var_2}", var_a, var_b);
+
+  for (uint32_t i = 0; i < 40; ++i)
+  {
+    // Will only log the message once per second
+    LOG_INFO_LIMIT(std::chrono::seconds{1}, logger, "A json message with {var_1} and {var_2}", var_a, var_b);
+    LOGJ_INFO_LIMIT(std::chrono::seconds{1}, logger, "A json message", var_a, var_b);
+
+    if (i % 10 == 0)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds{(i / 10) * 500});
+    }
+  }
+
+  for (uint32_t i = 0; i < 20; ++i)
+  {
+    // Will only log the message once per N occurrences second
+    LOG_INFO_LIMIT_EVERY_N(10, logger, "A json message with {var_1} and {occurrence}", var_a, i);
+    LOGJ_INFO_LIMIT_EVERY_N(10, logger, "A json message", var_a, i);
+  }
 }

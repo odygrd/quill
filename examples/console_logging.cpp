@@ -52,10 +52,22 @@ int main()
   double b = 3.17;
   LOGV_NOTICE(logger, "A message with two variables", a, b);
 
-  for (uint32_t i = 0; i < 10; ++i)
+  for (uint32_t i = 0; i < 40; ++i)
   {
     // Will only log the message once per second
     LOG_INFO_LIMIT(std::chrono::seconds{1}, logger, "A {} message with number {}", l, a);
     LOGV_INFO_LIMIT(std::chrono::seconds{1}, logger, "A message with two variables", a, b);
+
+    if (i % 10 == 0)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds{(i / 10) * 500});
+    }
+  }
+
+  for (uint32_t i = 0; i < 20; ++i)
+  {
+    // Will only log the message once per N occurrences second
+    LOG_INFO_LIMIT_EVERY_N(10, logger, "Another {} message with occurrence {}", l, i);
+    LOGV_INFO_LIMIT_EVERY_N(10, logger, "Another message with two variables", a, i);
   }
 }

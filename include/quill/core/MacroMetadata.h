@@ -80,46 +80,8 @@ public:
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
 
-private:
   /***/
-  QUILL_NODISCARD constexpr uint16_t _calc_file_name_pos() const noexcept
-  {
-    char const* source_location = _source_location;
-    char const* file = source_location;
-    while (*source_location)
-    {
-      char cur = *source_location++;
-      if (cur == '/' || cur == PATH_PREFERRED_SEPARATOR)
-      {
-        file = source_location;
-      }
-    }
-    return static_cast<uint16_t>(file - _source_location);
-  }
-
-  /***/
-  QUILL_NODISCARD constexpr uint16_t _calc_colon_separator_pos() const noexcept
-  {
-    std::string_view const source_loc{_source_location};
-    auto const separator_index = source_loc.rfind(':');
-    return static_cast<uint16_t>(separator_index);
-  }
-
-  /***/
-  constexpr void _set_named_args_flag(bool value) noexcept
-  {
-    if (value)
-    {
-      _format_flags |= NAMED_ARGS_FLAG;
-    }
-    else
-    {
-      _format_flags &= static_cast<uint8_t>(~NAMED_ARGS_FLAG);
-    }
-  }
-
-  /***/
-  static constexpr bool _contains_named_args(std::string_view fmt) noexcept
+  QUILL_NODISCARD static constexpr bool _contains_named_args(std::string_view fmt) noexcept
   {
     uint32_t pos{0};
     bool found_named_arg{false};
@@ -181,6 +143,44 @@ private:
     }
 
     return found_named_arg;
+  }
+
+private:
+  /***/
+  QUILL_NODISCARD constexpr uint16_t _calc_file_name_pos() const noexcept
+  {
+    char const* source_location = _source_location;
+    char const* file = source_location;
+    while (*source_location)
+    {
+      char cur = *source_location++;
+      if (cur == '/' || cur == PATH_PREFERRED_SEPARATOR)
+      {
+        file = source_location;
+      }
+    }
+    return static_cast<uint16_t>(file - _source_location);
+  }
+
+  /***/
+  QUILL_NODISCARD constexpr uint16_t _calc_colon_separator_pos() const noexcept
+  {
+    std::string_view const source_loc{_source_location};
+    auto const separator_index = source_loc.rfind(':');
+    return static_cast<uint16_t>(separator_index);
+  }
+
+  /***/
+  constexpr void _set_named_args_flag(bool value) noexcept
+  {
+    if (value)
+    {
+      _format_flags |= NAMED_ARGS_FLAG;
+    }
+    else
+    {
+      _format_flags &= static_cast<uint8_t>(~NAMED_ARGS_FLAG);
+    }
   }
 
 private:
