@@ -49,10 +49,6 @@ class MacroMetadata;
  */
 class ConsoleColours
 {
-private:
-  // define our own to avoid including windows.h in the header..
-  using WORD = unsigned short;
-
 public:
   enum class ColourMode
   {

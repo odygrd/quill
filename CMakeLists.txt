@@ -210,7 +210,7 @@ set(HEADER_FILES
         include/quill/core/ThreadContextManager.h
         include/quill/core/TimeUtilities.h
         include/quill/core/UnboundedSPSCQueue.h
-        include/quill/core/Utf8Conv.h
+        include/quill/backend/Utf8Conv.h
 
         include/quill/filters/Filter.h
 

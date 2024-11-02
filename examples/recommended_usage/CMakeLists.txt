@@ -2,6 +2,7 @@ add_subdirectory(quill_wrapper)
 
 set(EXAMPLE_TARGETS
         quill_example_recommended_usage
+        quill_example_std_types_logging
         quill_example_use_overwrite_macros
 )
 
