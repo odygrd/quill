@@ -97,6 +97,10 @@
 - The `set_thread_name` function has been fixed to provide accurate error reporting, ensuring that the correct error
   message is displayed in the event of a failure.
 
+- Renamed `PACKED` used in `libfmt` to `QUILLPACKED` to avoid naming collisions with the common Linux memory alignment
+  macro, which is defined as
+  `#define PACKED __attribute__((packed))`. ([#620](https://github.com/odygrd/quill/issues/620))
+
 ## v7.4.0
 
 - Fixed a build issue when compiling with `-fno-rtti`. This ensures compatibility with projects that disable
