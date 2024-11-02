@@ -1,3 +1,4 @@
+- [v7.5.0](#v750)
 - [v7.4.0](#v740)
 - [v7.3.0](#v730)
 - [v7.2.2](#v722)
@@ -79,13 +80,14 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## TBD
+## v7.5.0
 
 - In previous versions, logging on Windows automatically included `windows.h` in all components. The frontend will no
   longer include `windows.h`. By following the recommended usage example
   provided [here](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp) as
-  guidance, you can create a wrapper library around Quill for the backend, allowing you to log on Windows without
-  including `windows.h` in the frontend or main program. ([#618](https://github.com/odygrd/quill/issues/618))
+  guidance, you can create a wrapper library around Quill for the backend, allowing you to
+  log on Windows without including `windows.h` in the frontend or main
+  program. ([#618](https://github.com/odygrd/quill/issues/618))
 
 - The `LOG_LEVEL_LIMIT` time-based rate-limiting macros now log the count of how many times a message would be logged
   when throttled. For example, a log message may appear as `A log message with number 123 (21x)` to indicate that the
