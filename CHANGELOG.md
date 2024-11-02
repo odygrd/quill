@@ -94,11 +94,11 @@
 - New macros `LOG_LEVEL_LIMIT_EVERY_N` have been added, allowing for count-based rate limiting and giving developers
   greater control over logging frequency. ([#616](https://github.com/odygrd/quill/issues/616))
 
-- The `set_thread_name` function has been fixed to provide accurate error reporting, ensuring that the correct error
-  message is displayed in the event of a failure.
-
 - Renamed `PACKED` used in `libfmt` to `QUILLPACKED` to avoid naming
   collisions. ([#620](https://github.com/odygrd/quill/issues/620))
+
+- The `set_thread_name` function has been fixed to provide accurate error reporting, ensuring that the correct error
+  message is displayed in the event of a failure.
 
 ## v7.4.0
 
