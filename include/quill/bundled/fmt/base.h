@@ -1623,7 +1623,7 @@ struct type_is_unformattable_for {
 struct type_is_unformattable_for;
 #endif
 
-template <bool PACKED, typename Context, typename T, FMTQUILL_ENABLE_IF(PACKED)>
+template <bool QUILLPACKED, typename Context, typename T, FMTQUILL_ENABLE_IF(QUILLPACKED)>
 FMTQUILL_CONSTEXPR auto make_arg(T& val) -> value<Context> {
   using arg_type = remove_cvref_t<decltype(arg_mapper<Context>().map(val))>;
 
@@ -1662,7 +1662,7 @@ FMTQUILL_CONSTEXPR auto make_arg(T& val) -> basic_format_arg<Context> {
   return arg;
 }
 
-template <bool PACKED, typename Context, typename T, FMTQUILL_ENABLE_IF(!PACKED)>
+template <bool QUILLPACKED, typename Context, typename T, FMTQUILL_ENABLE_IF(!QUILLPACKED)>
 FMTQUILL_CONSTEXPR inline auto make_arg(T& val) -> basic_format_arg<Context> {
   return make_arg<Context>(val);
 }
