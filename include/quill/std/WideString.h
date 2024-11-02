@@ -7,12 +7,10 @@
 #pragma once
 
 #if defined(_WIN32)
-
   #include "quill/core/Attributes.h"
   #include "quill/core/Codec.h"
   #include "quill/core/DynamicFormatArgStore.h"
   #include "quill/core/InlinedVector.h"
-  #include "quill/core/Utf8Conv.h"
 
   #include "quill/bundled/fmt/format.h"
 

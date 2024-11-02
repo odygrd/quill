@@ -26,6 +26,13 @@ QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+
+#if defined(_WIN32)
+/** We forward declare these to avoid including Utf8Conv.h **/
+extern std::string utf8_encode(std::wstring_view str);
+extern std::string utf8_encode(std::byte const* data, size_t wide_str_len);
+#endif
+
 /**
  * C++14 implementation of C++20's remove_cvref
  */

@@ -10,7 +10,6 @@
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
-#include "quill/core/Utf8Conv.h"
 
 #include "quill/bundled/fmt/ranges.h"
 #include "quill/bundled/fmt/format.h"
