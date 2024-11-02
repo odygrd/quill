@@ -170,7 +170,7 @@ private:
   }
 
 private:
-  std::array<WORD, 10> _colours = {0}; /**< Colours per log level */
+  std::array<WORD, 11> _colours = {0}; /**< Colours per log level */
   bool _using_colours{false};
   bool _can_use_colours{false};
 };
@@ -344,7 +344,7 @@ private:
   }
 
 private:
-  std::array<std::string_view, 10> _colours; /**< Colours per log level */
+  std::array<std::string_view, 11> _colours; /**< Colours per log level */
   bool _using_colours{false};
   bool _can_use_colours{false};
 };
