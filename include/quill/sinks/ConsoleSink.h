@@ -517,7 +517,7 @@ public:
 
 private:
 #if defined(_WIN32)
-  QUILL_NODISCARD ConsoleColours::WORD _set_foreground_colour(ConsoleColours::WORD attributes)
+  QUILL_NODISCARD WORD _set_foreground_colour(WORD attributes)
   {
     CONSOLE_SCREEN_BUFFER_INFO orig_buffer_info;
     auto const out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file)));
