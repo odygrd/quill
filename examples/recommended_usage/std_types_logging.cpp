@@ -36,7 +36,6 @@
   #include "quill/std/WideString.h"
 #endif
 
-#include "quill/std/Array.h"
 // We utilize the global_logger_a from the quill_wrapper library.
 // The use of a global logger is optional.
 // Alternatively, we could include "quill/Frontend.h" and use `quill::Frontend::get_logger(..)`
