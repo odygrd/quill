@@ -39,9 +39,9 @@ TEST_CASE("multi_frontend_threads_with_queue_reallocation")
   static constexpr char const* filename = "multi_frontend_threads_with_queue_reallocation.log";
   static std::string const logger_name_prefix = "logger_";
 
-  // Start the logging backend thread
+  // Start the logging backend thread with a bit of delay
   BackendOptions bo;
-  bo.sleep_duration = std::chrono::seconds {1};
+  bo.sleep_duration = std::chrono::seconds{20};
   Backend::start();
 
   std::vector<std::thread> threads;
@@ -84,6 +84,7 @@ TEST_CASE("multi_frontend_threads_with_queue_reallocation")
     elem.join();
   }
 
+  // Wake up the backend thread after all other threads finished
   Backend::notify();
 
   // flush all log and remove all loggers
