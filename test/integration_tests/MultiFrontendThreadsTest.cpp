@@ -13,15 +13,35 @@
 
 using namespace quill;
 
-/***/
-TEST_CASE("multi_frontend_threads")
+/**
+ * Create a custom frontend config
+ */
+struct CustomFrontendOptions
 {
-  static constexpr size_t number_of_messages = 1000;
+  static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
+  static constexpr uint32_t initial_queue_capacity = 32;
+
+  static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
+  static constexpr bool huge_pages_enabled = false;
+};
+
+/**
+ * A new CustomFrontend and CustomLogger should be defined to use the custom frontend options.
+ */
+using CustomFrontend = quill::FrontendImpl<CustomFrontendOptions>;
+using CustomLogger = quill::LoggerImpl<CustomFrontendOptions>;
+
+/***/
+TEST_CASE("multi_frontend_threads_with_queue_reallocation")
+{
+  static constexpr size_t number_of_messages = 5000;
   static constexpr size_t number_of_threads = 10;
-  static constexpr char const* filename = "multi_frontend_threads.log";
+  static constexpr char const* filename = "multi_frontend_threads_with_queue_reallocation.log";
   static std::string const logger_name_prefix = "logger_";
 
   // Start the logging backend thread
+  BackendOptions bo;
+  bo.sleep_duration = std::chrono::seconds {1};
   Backend::start();
 
   std::vector<std::thread> threads;
@@ -31,10 +51,10 @@ TEST_CASE("multi_frontend_threads")
     threads.emplace_back(
       [i]() mutable
       {
-        Frontend::preallocate();
+        CustomFrontend::preallocate();
 
         // Set writing logging to a file
-        auto file_sink = Frontend::create_or_get_sink<FileSink>(
+        auto file_sink = CustomFrontend::create_or_get_sink<FileSink>(
           filename,
           []()
           {
@@ -44,7 +64,7 @@ TEST_CASE("multi_frontend_threads")
           }(),
           FileEventNotifier{});
 
-        Logger* logger = Frontend::create_or_get_logger(
+        CustomLogger* logger = CustomFrontend::create_or_get_logger(
           logger_name_prefix + std::to_string(i), std::move(file_sink),
           quill::PatternFormatterOptions{
             "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
@@ -64,11 +84,13 @@ TEST_CASE("multi_frontend_threads")
     elem.join();
   }
 
+  Backend::notify();
+
   // flush all log and remove all loggers
-  for (Logger* logger : Frontend::get_all_loggers())
+  for (CustomLogger* logger : CustomFrontend::get_all_loggers())
   {
     logger->flush_log();
-    Frontend::remove_logger(logger);
+    CustomFrontend::remove_logger(logger);
   }
 
   // Wait until the backend thread stops for test stability
