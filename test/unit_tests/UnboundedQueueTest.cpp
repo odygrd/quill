@@ -34,7 +34,7 @@ TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
         }
       }
     });
-  
+
   std::thread consumer_thread(
     [&buffer]()
     {

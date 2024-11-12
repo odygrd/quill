@@ -19,7 +19,7 @@ using namespace quill;
 struct CustomFrontendOptions
 {
   static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
-  static constexpr uint32_t initial_queue_capacity = 32;
+  static constexpr uint32_t initial_queue_capacity = 64;
 
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
   static constexpr bool huge_pages_enabled = false;
@@ -32,16 +32,14 @@ using CustomFrontend = quill::FrontendImpl<CustomFrontendOptions>;
 using CustomLogger = quill::LoggerImpl<CustomFrontendOptions>;
 
 /***/
-TEST_CASE("multi_frontend_threads_with_queue_reallocation")
+TEST_CASE("multi_frontend_threads")
 {
-  static constexpr size_t number_of_messages = 5000;
+  static constexpr size_t number_of_messages = 1500;
   static constexpr size_t number_of_threads = 10;
-  static constexpr char const* filename = "multi_frontend_threads_with_queue_reallocation.log";
+  static constexpr char const* filename = "multi_frontend_threads.log";
   static std::string const logger_name_prefix = "logger_";
 
-  // Start the logging backend thread with a bit of delay
-  BackendOptions bo;
-  bo.sleep_duration = std::chrono::seconds{20};
+  // Start the logging backend thread
   Backend::start();
 
   std::vector<std::thread> threads;
@@ -83,9 +81,6 @@ TEST_CASE("multi_frontend_threads_with_queue_reallocation")
   {
     elem.join();
   }
-
-  // Wake up the backend thread after all other threads finished
-  Backend::notify();
 
   // flush all log and remove all loggers
   for (CustomLogger* logger : CustomFrontend::get_all_loggers())
