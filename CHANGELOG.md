@@ -1,3 +1,4 @@
+- [v8.0.0](#v800)
 - [v7.5.0](#v750)
 - [v7.4.0](#v740)
 - [v7.3.0](#v730)
@@ -80,6 +81,17 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+## v8.0.0
+
+- Unified `JsonFileSink.h` and `JsonConsoleSink.h` into a single header, `JsonSink.h`, with both classes now sharing a
+  common implementation
+- Users can now inherit from `JsonFileSink` or `JsonConsoleSink` and override the `generate_json_message(...)` function
+  to implement their own custom JSON log formats
+- Simplified `ConsoleSink` by applying ANSI colour codes universally across all platforms, including Windows. The
+  previous Windows-specific implementation has been removed. Note that `quill::ConsoleColours` has been replaced with
+  `quill::ConsoleSink::Colours`, and `quill::ConsoleColours::ColourMode` has been renamed to
+  `quill::ConsoleSink::ColourMode`.
+
 ## v7.5.0
 
 - In previous versions, logging on Windows automatically included `windows.h` in all components. The frontend will no
@@ -107,7 +119,7 @@
 - Fixed a build issue when compiling with `-fno-rtti`. This ensures compatibility with projects that disable
   `RTTI`. ([#604](https://github.com/odygrd/quill/issues/604))
 - Fixed an incorrectly triggered assertion in debug builds when `BackendOptions::log_timestamp_ordering_grace_period` is
-  set to 0. ([#605](https://github.com/odygrd/quill/issues/605))
+  set to 0 ([#605](https://github.com/odygrd/quill/issues/605))
 - Fixed a compile-time error in `CsvWriter` that occurred when passing a custom `FrontendOptions` type as a template
   parameter. ([#609](https://github.com/odygrd/quill/issues/609))
 - Added accessors to `Logger` for sinks, user clock source, clock source type, and pattern formatter options that can be
@@ -120,6 +132,7 @@
   ```cpp
     quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
       "sink_id_1", quill::ConsoleColours::ColourMode::Automatic);
+   ```
 
 ## v7.3.0
 

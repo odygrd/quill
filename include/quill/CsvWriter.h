@@ -25,7 +25,7 @@ QUILL_BEGIN_NAMESPACE
  * and I/O operations are handled by the backend worker thread.
  *
  * @tparam TCsvSchema A user-defined struct specifying the CSV schema at compile-time.
- * @tparam TFrontendOptions Custom frontend_t options if they are used application-wide. If no custom frontend_t options are used, then use quill::frontend_tOptions.
+ * @tparam TFrontendOptions Custom frontend options if they are used application-wide. If no custom frontend options are used, then use quill::FrontendOptions.
  *
  * The TCsvSchema struct should define the CSV header and format, for example:
  *
@@ -42,7 +42,7 @@ class CsvWriter
 {
 public:
   using frontend_t = FrontendImpl<TFrontendOptions>;
-  
+
   /**
    * Constructs a CsvWriter object that writes to a file.
    *
