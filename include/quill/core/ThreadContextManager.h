@@ -32,9 +32,18 @@ namespace detail
 class TransitEventBuffer;
 class BackendWorker;
 
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wredundant-decls"
+#endif
+
 /** We forward declare these to avoid including ThreadUtilities.h **/
 extern std::string get_thread_name();
 extern uint32_t get_thread_id() noexcept;
+
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic pop
+#endif
 
 class ThreadContext
 {
