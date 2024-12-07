@@ -45,12 +45,6 @@ jobs:
             std: 17
             with_tests: "OFF"
 
-          - os: windows-2022
-            platform: ARM
-            build_type: Release
-            std: 17
-            with_tests: "OFF"
-
     steps:
       - uses: actions/checkout@v4
 
