@@ -28,9 +28,18 @@ namespace detail
 {
 
 #if defined(_WIN32)
+  #if defined(__MINGW32__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wredundant-decls"
+  #endif
+
 /** We forward declare these to avoid including Utf8Conv.h **/
 extern std::string utf8_encode(std::wstring_view str);
 extern std::string utf8_encode(std::byte const* data, size_t wide_str_len);
+
+  #if defined(__MINGW32__)
+    #pragma GCC diagnostic pop
+  #endif
 #endif
 
 /**
