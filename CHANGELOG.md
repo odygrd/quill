@@ -83,6 +83,7 @@
 ## TBD
 
 - Suppress `-Wredundant-decls` warning in GCC builds.
+- Avoid adding `-Wno-gnu-zero-variadic-macro-arguments` for GCC in CMake.
 
 ## v7.5.0
 
