@@ -27,6 +27,7 @@ Building and Installing from Source
 .. code:: bash
 
    git clone https://github.com/odygrd/quill.git
+   cd quill
    mkdir cmake_build
    cd cmake_build
    cmake ..
