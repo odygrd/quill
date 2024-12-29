@@ -8,7 +8,6 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"
-#include "quill/core/QuillError.h"
 #include "quill/sinks/StreamSink.h"
 
 #include <array>
@@ -316,6 +315,7 @@ public:
    * @param log_level_short_code Short code representing the log level.
    * @param named_args vector of key-value pairs of named args
    * @param log_message log message
+   * @param log_statement log statement
    */
   QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
                                      std::string_view thread_id, std::string_view thread_name,

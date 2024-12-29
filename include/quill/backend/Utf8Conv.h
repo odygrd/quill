@@ -31,8 +31,8 @@ namespace detail
 /**
  * @brief Convert a wide Unicode string to a UTF-8 encoded string.
  *
- * @param input_string_data Pointer to the wide string data.
- * @param input_string_length Length of the wide string.
+ * @param data Pointer to the wide string data.
+ * @param wide_str_len Length of the wide string.
  * @return The UTF-8 encoded string.
  *
  * @remarks If the input string is empty or the conversion fails, an empty string is returned.

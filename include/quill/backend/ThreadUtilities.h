@@ -95,9 +95,9 @@ ReturnT callRunTimeDynamicLinkedFunction(std::string const& dll_name,
   // Windows Server 2016, Windows 10 LTSB 2016 and Windows 10 version 1607: e.g. GetThreadDescription is only available by Run Time Dynamic Linking in KernelBase.dll.
 
   #ifdef UNICODE
-  HINSTANCE const hinstLibrary = LoadLibraryW(s2ws(dll_name).c_str());
+  const HINSTANCE hinstLibrary = LoadLibraryW(s2ws(dll_name).c_str());
   #else
-  HINSTANCE const hinstLibrary = LoadLibraryA(dll_name.c_str());
+  const HINSTANCE hinstLibrary = LoadLibraryA(dll_name.c_str());
   #endif
 
   if (QUILL_UNLIKELY(hinstLibrary == nullptr))

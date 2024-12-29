@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <tuple>
-#include <vector>
 
 QUILL_BEGIN_NAMESPACE
 

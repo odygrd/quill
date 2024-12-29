@@ -10,7 +10,6 @@
 #include "quill/core/Common.h"
 #include "quill/core/LogLevel.h"
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <string_view>

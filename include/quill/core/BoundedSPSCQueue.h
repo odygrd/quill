@@ -229,6 +229,7 @@ private:
   /**
    * align a pointer to the given alignment
    * @param pointer a pointer the object
+   * @param alignment a pointer the object
    * @return an aligned pointer for the given object
    */
   QUILL_NODISCARD static std::byte* _align_pointer(void* pointer, size_t alignment) noexcept

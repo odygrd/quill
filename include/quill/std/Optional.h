@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <vector>
 
 #if defined(_WIN32)
   #include <string>
@@ -31,8 +30,6 @@ struct Codec<std::optional<T>>
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::optional<T> const& arg) noexcept
   {
-    // We need to store the size of the vector in the buffer, so we reserve space for it.
-    // We add sizeof(bool) bytes to accommodate the size information.
     size_t total_size{sizeof(bool)};
 
     if (arg.has_value())

@@ -21,7 +21,6 @@
   #include <string>
   #include <string_view>
   #include <type_traits>
-  #include <vector>
 
 QUILL_BEGIN_NAMESPACE
 

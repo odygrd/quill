@@ -7,11 +7,9 @@
 
 #include "quill/Frontend.h"
 #include "quill/core/Attributes.h"
-#include "quill/core/LoggerBase.h"
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/Sink.h"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>

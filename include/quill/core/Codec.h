@@ -20,7 +20,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 
 QUILL_BEGIN_NAMESPACE
 
@@ -87,7 +86,7 @@ void codec_not_found_for_type()
 
 QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexcept
 {
-  char const* end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
+  auto end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
   return end ? static_cast<size_t>(end - str) : maxlen;
 }
 
@@ -216,7 +215,7 @@ struct Codec
                                           std::conjunction<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>>)
     {
       // c strings or char array
-      char const* arg = reinterpret_cast<char const*>(buffer);
+      auto arg = reinterpret_cast<char const*>(buffer);
       buffer += strlen(arg) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
       return arg;
     }
@@ -226,7 +225,7 @@ struct Codec
       uint32_t len;
       std::memcpy(&len, buffer, sizeof(len));
       buffer += sizeof(len);
-      std::string_view const arg = std::string_view{reinterpret_cast<char const*>(buffer), len};
+      auto const arg = std::string_view{reinterpret_cast<char const*>(buffer), len};
       buffer += len;
       return arg;
     }
@@ -282,12 +281,12 @@ namespace detail
  */
 template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
-  QUILL_MAYBE_UNUSED detail::SizeCacheVector& conditional_arg_size_cache, Args const&... args) noexcept
+  QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, Args const&... args) noexcept
 {
   if constexpr (!std::conjunction_v<std::disjunction<
-                  std::is_arithmetic<detail::remove_cvref_t<Args>>, std::is_enum<detail::remove_cvref_t<Args>>,
-                  std::is_same<detail::remove_cvref_t<Args>, void const*>, detail::is_std_string<detail::remove_cvref_t<Args>>,
-                  std::is_same<detail::remove_cvref_t<Args>, std::string_view>>...>)
+                  std::is_arithmetic<remove_cvref_t<Args>>, std::is_enum<remove_cvref_t<Args>>,
+                  std::is_same<remove_cvref_t<Args>, void const*>, is_std_string<remove_cvref_t<Args>>,
+                  std::is_same<remove_cvref_t<Args>, std::string_view>>...>)
   {
     // Clear the cache whenever processing involves non-fundamental types,
     // or when the arguments are not of type std::string or std::string_view.
@@ -298,7 +297,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string
   // Avoid using a fold expression with '+ ...' because we require a guaranteed evaluation
   // order to ensure that each argument is processed in sequence. This is essential for
   // correctly populating the conditional_arg_size_cache
-  ((total_sum += Codec<detail::remove_cvref_t<Args>>::compute_encoded_size(conditional_arg_size_cache, args)), ...);
+  ((total_sum += Codec<remove_cvref_t<Args>>::compute_encoded_size(conditional_arg_size_cache, args)), ...);
   return total_sum;
 }
 
@@ -309,11 +308,11 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string
  * @param args The arguments to be encoded.
  */
 template <typename... Args>
-QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                                 Args const&... args) noexcept
 {
   QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
-  (Codec<detail::remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache,
+  (Codec<remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache,
                                                conditional_arg_size_cache_index, args),
    ...);
 }

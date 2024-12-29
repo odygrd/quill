@@ -16,7 +16,6 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
-#include <initializer_list>
 #include <mutex>
 
 QUILL_BEGIN_NAMESPACE

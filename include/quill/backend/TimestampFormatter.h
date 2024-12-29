@@ -34,7 +34,7 @@ namespace detail
  * 2) %Qus - Microseconds
  * 3) %Qns - Nanoseconds
  * @note %Qms, %Qus, %Qns specifiers are mutually exclusive
- * e.g given : "%I:%M.%Qms%p" the output would be "03:21.343PM"
+ * e.g. given : "%I:%M.%Qms%p" the output would be "03:21.343PM"
  */
 class TimestampFormatter
 {
