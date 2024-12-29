@@ -11,10 +11,6 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/MathUtilities.h"
 
-#include <cassert>
-#include <cstdint>
-#include <vector>
-
 QUILL_BEGIN_NAMESPACE
 
 namespace detail

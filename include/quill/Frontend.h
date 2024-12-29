@@ -20,7 +20,6 @@
 
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 #include <initializer_list>
 #include <memory>
 #include <string>

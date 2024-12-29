@@ -6,10 +6,8 @@
 
 #pragma once
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <type_traits>
 
 #include "quill/core/Attributes.h"
@@ -171,7 +169,7 @@ private:
  * The capacity of 12 is chosen to fit within a full cache line for better performance.
  */
 using SizeCacheVector = InlinedVector<uint32_t, 12>;
-static_assert(sizeof(SizeCacheVector) <= detail::CACHE_LINE_SIZE,
+static_assert(sizeof(SizeCacheVector) <= CACHE_LINE_SIZE,
               "SizeCacheVector should not exceed a cache line");
 } // namespace detail
 

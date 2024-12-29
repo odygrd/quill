@@ -16,7 +16,6 @@
 #include "quill/backend/PatternFormatter.h"
 #include "quill/backend/RdtscClock.h"
 #include "quill/backend/ThreadUtilities.h"
-#include "quill/backend/TimestampFormatter.h"
 #include "quill/backend/TransitEvent.h"
 #include "quill/backend/TransitEventBuffer.h"
 
@@ -55,7 +54,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <ratio>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -252,11 +250,11 @@ private:
 
 #if defined(_WIN32)
     std::wstring const dummy = L"dummy";
-    QUILL_MAYBE_UNUSED static auto encode1 = detail::utf8_encode(dummy);
+    QUILL_MAYBE_UNUSED static auto encode1 = utf8_encode(dummy);
     (void)encode1;
 
     QUILL_MAYBE_UNUSED static auto encode2 =
-      detail::utf8_encode(reinterpret_cast<std::byte const*>(dummy.data()), dummy.size());
+      utf8_encode(reinterpret_cast<std::byte const*>(dummy.data()), dummy.size());
     (void)encode2;
 #endif
   }
@@ -582,7 +580,7 @@ private:
       }
     }
 
-    detail::FormatArgsDecoder format_args_decoder;
+    FormatArgsDecoder format_args_decoder;
     std::memcpy(&format_args_decoder, read_pos, sizeof(format_args_decoder));
     read_pos += sizeof(format_args_decoder);
 
@@ -887,11 +885,11 @@ private:
 
     // proceed after ensuring a pattern formatter exists
     std::string_view const log_level_description =
-      detail::log_level_to_string(transit_event.log_level(), _options.log_level_descriptions.data(),
+      log_level_to_string(transit_event.log_level(), _options.log_level_descriptions.data(),
                                   _options.log_level_descriptions.size());
 
     std::string_view const log_level_short_code =
-      detail::log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
+      log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
                                   _options.log_level_short_codes.size());
 
     if (transit_event.logger_base->pattern_formatter->get_options().add_metadata_to_multi_line_logs &&

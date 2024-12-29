@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <initializer_list>
 #include <string>
 
 #if defined(_WIN32)
@@ -89,19 +88,19 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD LoggerBase* get_logger() noexcept
+  QUILL_NODISCARD static LoggerBase* get_logger() noexcept
   {
     LoggerBase* logger_base{nullptr};
 
-    if (!SignalHandlerContext::instance().logger_name.empty())
+    if (!instance().logger_name.empty())
     {
-      logger_base = detail::LoggerManager::instance().get_logger(SignalHandlerContext::instance().logger_name);
+      logger_base = LoggerManager::instance().get_logger(instance().logger_name);
     }
 
     // This also checks if the logger was found above
     if (!logger_base || !logger_base->is_valid_logger())
     {
-      logger_base = detail::LoggerManager::instance().get_valid_logger(SignalHandlerContext::excluded_logger_name_substr);
+      logger_base = LoggerManager::instance().get_valid_logger(excluded_logger_name_substr);
     }
 
     return logger_base;

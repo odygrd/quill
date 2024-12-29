@@ -9,13 +9,11 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
-#include "quill/core/MathUtilities.h"
 #include "quill/core/QuillError.h"
 
 #include <atomic>
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 #include <string>
 
 QUILL_BEGIN_NAMESPACE
