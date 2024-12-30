@@ -8,7 +8,7 @@
 #include <utility>
 
 /**
- * This example demonstrates how to create a RotatingFileSink with daily rotation and automatic
+ * This example demonstrates how to create a RotatingJsonFileSink with daily rotation and automatic
  * rotation based on maximum file size, providing your own custom json formatting
  * For additional configuration options, refer to RotatingFileSinkConfig.
  */
@@ -18,13 +18,14 @@ class CustomJsonSink : public quill::RotatingJsonFileSink
 public:
   using quill::RotatingJsonFileSink::RotatingJsonFileSink;
 
-  QUILL_ATTRIBUTE_HOT void generate_json_message(
-    quill::MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
-    std::string_view /** thread_name **/, std::string const& /** process_id **/,
-    std::string_view logger_name, quill::LogLevel /** log_level **/,
-    std::string_view log_level_description, std::string_view /** log_level_short_code **/,
-    std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view /** log_message **/,
-    std::string_view /** log_statement **/, char const* message_format) override
+  void generate_json_message(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
+                             std::string_view thread_id, std::string_view /** thread_name **/,
+                             std::string const& /** process_id **/, std::string_view logger_name,
+                             quill::LogLevel /** log_level **/, std::string_view log_level_description,
+                             std::string_view /** log_level_short_code **/,
+                             std::vector<std::pair<std::string, std::string>> const* named_args,
+                             std::string_view /** log_message **/,
+                             std::string_view /** log_statement **/, char const* message_format) override
   {
     // e.g. custom time formatting
     std::time_t log_timestamp_seconds = log_timestamp / 1'000'000'000;
@@ -32,7 +33,7 @@ public:
     // Convert to localtime
     std::tm* tm = std::localtime(&log_timestamp_seconds);
 
-    // Format the time as YYYY MM DD HH:MM:SS
+    // Format the time as YYYY-MM-DD HH:MM:SS
     char formatted_time[20];
     std::strftime(formatted_time, sizeof(formatted_time), "%Y-%m-%d %H:%M:%S", tm);
 

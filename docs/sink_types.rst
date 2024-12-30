@@ -120,3 +120,8 @@ The :cpp:class:`JsonFileSink` and :cpp:class:`JsonConsoleSink` enable the creati
       {
         LOG_INFO(hybrid_logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
       }
+
+RotatingJsonFileSink
+~~~~~~~~~~~~~~~~~~~~
+
+The :cpp:class:`RotatingJsonFileSink` is built on top of the `JsonFileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
