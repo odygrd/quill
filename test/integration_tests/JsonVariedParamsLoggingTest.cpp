@@ -78,7 +78,7 @@ TEST_CASE("json_varied_params_logging")
     filename,
     []()
     {
-      JsonFileSinkConfig cfg;
+      FileSinkConfig cfg;
       cfg.set_open_mode('w');
       return cfg;
     }(),

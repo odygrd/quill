@@ -41,7 +41,7 @@ TEST_CASE("json_multi_line_metadata")
     json_filename,
     []()
     {
-      JsonFileSinkConfig cfg;
+      FileSinkConfig cfg;
       cfg.set_open_mode('w');
       return cfg;
     }(),

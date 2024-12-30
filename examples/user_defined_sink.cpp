@@ -15,10 +15,10 @@
  * This example demonstrates how to implement a custom Sink
  */
 
-class UserSink final : public quill::Sink
+class CustomSink final : public quill::Sink
 {
 public:
-  UserSink() = default;
+  CustomSink() = default;
 
   /***/
   void write_log(quill::MacroMetadata const* /** log_metadata **/, uint64_t /** log_timestamp **/,
@@ -78,7 +78,7 @@ int main()
   quill::BackendOptions backend_options;
   quill::Backend::start(backend_options);
 
-  auto file_sink = quill::Frontend::create_or_get_sink<UserSink>("sink_id_1");
+  auto file_sink = quill::Frontend::create_or_get_sink<CustomSink>("sink_id_1");
   quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
 
   LOG_INFO(logger, "Hello from {}", "sink example");

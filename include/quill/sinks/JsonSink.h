@@ -136,23 +136,14 @@ private:
 } // namespace detail
 
 /**
- * The JsonFileSinkConfig class holds the configuration options for the JsonFileSink
- */
-class JsonFileSinkConfig : public FileSinkConfig
-{
-public:
-  JsonFileSinkConfig() = default;
-};
-
-/**
  * JSON File Sink
  */
 class JsonFileSink : public detail::JsonSink<FileSink>
 {
 public:
-  JsonFileSink(fs::path const& filename, JsonFileSinkConfig const& config,
-               FileEventNotifier file_event_notifier = FileEventNotifier{})
-    : detail::JsonSink<FileSink>(filename, static_cast<FileSinkConfig const&>(config), std::move(file_event_notifier))
+  JsonFileSink(fs::path const& filename, FileSinkConfig const& config,
+               FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true)
+    : detail::JsonSink<FileSink>(filename, static_cast<FileSinkConfig const&>(config), std::move(file_event_notifier), do_fopen)
   {
   }
 

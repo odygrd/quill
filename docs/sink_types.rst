@@ -89,7 +89,7 @@ The :cpp:class:`JsonFileSink` and :cpp:class:`JsonConsoleSink` enable the creati
         "json_sink_logging.log",
         []()
         {
-          quill::JsonFileSinkConfig cfg;
+          quill::FileSinkConfig cfg;
           cfg.set_open_mode('w');
           cfg.set_filename_append_option(quill::FilenameAppendOption::StartDateTime);
           return cfg;
