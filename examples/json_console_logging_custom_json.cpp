@@ -50,7 +50,8 @@ int main()
   // Create a json sink
   auto json_sink = quill::Frontend::create_or_get_sink<MyJsonConsoleSink>("json_sink_1");
 
-  // When logging json, it is ideal to set the logging pattern to empty to avoid unnecessary message formatting.
+  // PatternFormatter is only used for non-structured logs formatting
+  // When logging only json, it is ideal to set the logging pattern to empty to avoid unnecessary message formatting.
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "json_logger", std::move(json_sink),
     quill::PatternFormatterOptions{"", "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
