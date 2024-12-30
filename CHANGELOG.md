@@ -87,6 +87,10 @@
   common implementation
 - Users can now inherit from `JsonFileSink` or `JsonConsoleSink` and override the `generate_json_message(...)` function
   to implement their own custom JSON log formats
+- Removed `JsonFileSinkConfig`. Please rename it to `FileSinkConfig`, which retains the same API and is fully
+  compatible.
+- Added `RotatingJsonFileSink`. Functions like `RotatingFileSink`, but specifically designed for rotating JSON log
+  files.
 - Simplified `ConsoleSink` by applying ANSI colour codes universally across all platforms, including Windows. The
   previous Windows-specific implementation has been removed. Note that `quill::ConsoleColours` has been replaced with
   `quill::ConsoleSink::Colours`, and `quill::ConsoleColours::ColourMode` has been renamed to

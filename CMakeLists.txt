@@ -219,6 +219,8 @@ set(HEADER_FILES
         include/quill/sinks/JsonSink.h
         include/quill/sinks/NullSink.h
         include/quill/sinks/RotatingFileSink.h
+        include/quill/sinks/RotatingJsonFileSink.h
+        include/quill/sinks/RotatingSink.h
         include/quill/sinks/Sink.h
         include/quill/sinks/StreamSink.h
 

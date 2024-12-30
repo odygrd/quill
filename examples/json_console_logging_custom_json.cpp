@@ -20,10 +20,11 @@ class MyJsonConsoleSink : public quill::JsonConsoleSink
                              std::string_view /** log_message **/,
                              std::string_view /** log_statement **/, char const* message_format) override
   {
+    // format json as desired
     _json_message.append(fmtquill::format(R"({{"timestamp":"{}","log_level":"{}","message":"{}")",
                                           std::to_string(log_timestamp), log_level_description, message_format));
 
-    // Add args as key-values
+    // add log statement arguments as key-values to the json
     if (named_args)
     {
       for (auto const& [key, value] : *named_args)

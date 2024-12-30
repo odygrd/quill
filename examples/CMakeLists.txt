@@ -12,6 +12,8 @@ set(EXAMPLE_TARGETS
         quill_example_console_logging
         quill_example_custom_console_colours
         quill_example_rotating_file_logging
+        quill_example_rotating_json_file_logging
+        quill_example_rotating_json_file_logging_custom_json
         quill_example_signal_handler
         quill_example_logger_removal_with_file_event_notifier
         quill_example_custom_frontend_options
