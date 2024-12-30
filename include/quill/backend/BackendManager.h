@@ -43,8 +43,8 @@ public:
   BackendManager& operator=(BackendManager const&) = delete;
 
 private:
-  friend class Backend;
-  friend class BackendTscClock;
+  friend class quill::Backend;
+  friend class quill::BackendTscClock;
 
   /***/
   BackendManager() = default;

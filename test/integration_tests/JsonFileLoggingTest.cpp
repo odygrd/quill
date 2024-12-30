@@ -70,7 +70,7 @@ TEST_CASE("json_file_logging")
           json_filename,
           []()
           {
-            JsonFileSinkConfig cfg;
+            FileSinkConfig cfg;
             cfg.set_open_mode('w');
             return cfg;
           }(),

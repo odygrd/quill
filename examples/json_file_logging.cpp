@@ -29,7 +29,7 @@ int main()
     "example_json.log",
     []()
     {
-      quill::JsonFileSinkConfig cfg;
+      quill::FileSinkConfig cfg;
       cfg.set_open_mode('w');
       cfg.set_filename_append_option(quill::FilenameAppendOption::None);
       return cfg;
