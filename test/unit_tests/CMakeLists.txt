@@ -71,4 +71,5 @@ endif ()
 
 if (NOT QUILL_USE_VALGRIND)
     quill_add_test(TEST_RdtscClock RdtscClockTest.cpp)
+    quill_add_test(TEST_StopWatch StopWatchTest.cpp)
 endif ()

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
 
