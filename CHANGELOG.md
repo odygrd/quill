@@ -95,6 +95,19 @@
   previous Windows-specific implementation has been removed. Note that `quill::ConsoleColours` has been replaced with
   `quill::ConsoleSink::Colours`, and `quill::ConsoleColours::ColourMode` has been renamed to
   `quill::ConsoleSink::ColourMode`.
+- Added a `StopWatch` utility for easy logging of elapsed time. It can log the time elapsed since construction in
+  various formats. You can use either `quill::StopWatchTsc` for high-resolution TSC-based timing or
+  `quill::StopWatchChrono` for standard std::chrono-based timing.
+  ```c++
+    #include "quill/StopWatch.h"
+
+    quill::StopWatchTsc swt;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    LOG_INFO(logger, "After 1s, elapsed: {:.6}s", swt); // => After 1s, elapsed: 1.00849s
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    LOG_INFO(logger, "After 500ms, elapsed: {}s", swt); // => After 500ms, elapsed: 1.521880274s
+    LOG_INFO(logger, "elapsed: {}", swt.elapsed_as<std::chrono::nanoseconds>()); // => elapsed: 1521807324ns
+  ```
 
 ## TBD
 

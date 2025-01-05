@@ -26,6 +26,7 @@ namespace detail
  */
 class RdtscClock
 {
+public:
   /**
    * A static class that calculates the rdtsc ticks per second
    */
@@ -85,7 +86,6 @@ class RdtscClock
     double _ns_per_tick{0};
   };
 
-public:
   /***/
   explicit RdtscClock(std::chrono::nanoseconds resync_interval)
     : _resync_interval_ticks(static_cast<std::int64_t>(static_cast<double>(resync_interval.count()) *
