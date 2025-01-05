@@ -25,7 +25,7 @@ namespace detail
  * A stopwatch utility for measuring elapsed time since construction.
  *
  * Displays elapsed time as seconds (double) or any specified duration type.
- * 
+ *
  * Can use either TSC-based or system clock-based timing, depending on the
  * template parameter `ClockType`.
  *
