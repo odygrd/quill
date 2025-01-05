@@ -90,14 +90,16 @@
 - Removed `JsonFileSinkConfig`. Please rename it to `FileSinkConfig`, which retains the same API and is fully
   compatible.
 - Added `RotatingJsonFileSink`. Functions like `RotatingFileSink`, but specifically designed for rotating JSON log
-  files.
+  files. ([#637](https://github.com/odygrd/quill/issues/637))
 - Simplified `ConsoleSink` by applying ANSI colour codes universally across all platforms, including Windows. The
   previous Windows-specific implementation has been removed. Note that `quill::ConsoleColours` has been replaced with
   `quill::ConsoleSink::Colours`, and `quill::ConsoleColours::ColourMode` has been renamed to
   `quill::ConsoleSink::ColourMode`.
 - Added a `StopWatch` utility for easy logging of elapsed time. It can log the time elapsed since construction in
   various formats. You can use either `quill::StopWatchTsc` for high-resolution TSC-based timing or
-  `quill::StopWatchChrono` for standard std::chrono-based timing.
+  `quill::StopWatchChrono` for standard std::chrono-based timing. ([#640](https://github.com/odygrd/quill/issues/640))
+
+  For example:
   ```c++
     #include "quill/StopWatch.h"
 
