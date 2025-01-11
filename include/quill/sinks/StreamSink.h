@@ -163,8 +163,7 @@ public:
       return;
     }
 
-    _write_occurred = false;
-    fflush(_file);
+    flush();
   }
 
   /**
@@ -196,6 +195,15 @@ protected:
       QUILL_THROW(QuillError{std::string{"fwrite failed errno: "} + std::to_string(errno) +
                              " error: " + strerror(errno)});
     }
+  }
+
+  /**
+   * Flushes the stream
+   */
+  QUILL_ATTRIBUTE_HOT void flush()
+  {
+    _write_occurred = false;
+    fflush(_file);
   }
 
 protected:

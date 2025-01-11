@@ -786,7 +786,7 @@ private:
     return filename;
   }
 
-private:
+protected:
   struct FileInfo
   {
     FileInfo(fs::path base_filename, uint32_t index, std::string date_time)

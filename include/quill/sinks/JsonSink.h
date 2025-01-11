@@ -129,8 +129,6 @@ public:
 
 protected:
   fmtquill::memory_buffer _json_message;
-
-private:
   std::string _format;
 };
 } // namespace detail
