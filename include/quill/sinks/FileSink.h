@@ -447,7 +447,7 @@ private:
     return fs::path{};
   }
 
-private:
+protected:
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
   std::unique_ptr<char[]> _write_buffer;
