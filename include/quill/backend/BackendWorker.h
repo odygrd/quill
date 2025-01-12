@@ -296,7 +296,7 @@ private:
       // No cached transit events to process, minimal thread workload.
 
       // force flush all remaining messages
-      _flush_and_run_active_sinks(true);
+      _flush_and_run_active_sinks(true, _options.sink_min_flush_interval);
 
       // check for any dropped messages / blocked threads
       _check_failure_counter(_options.error_notifier);
@@ -391,7 +391,7 @@ private:
       {
         // we are done, all queues are now empty
         _check_failure_counter(_options.error_notifier);
-        _flush_and_run_active_sinks(false);
+        _flush_and_run_active_sinks(false, std::chrono::milliseconds{0});
         break;
       }
 
@@ -536,7 +536,7 @@ private:
         // Lazy initialization of rdtsc clock on the backend thread only if the user decides to use
         // it. The clock requires a few seconds to init as it is taking samples first.
         _rdtsc_clock.store(new RdtscClock{_options.rdtsc_resync_interval}, std::memory_order_release);
-        _last_rdtsc_resync_time = std::chrono::system_clock::now();
+        _last_rdtsc_resync_time = std::chrono::steady_clock::now();
       }
 
       // Convert the rdtsc value to nanoseconds since epoch.
@@ -834,7 +834,7 @@ private:
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
     {
-      _flush_and_run_active_sinks(false);
+      _flush_and_run_active_sinks(false, std::chrono::milliseconds{0});
 
       // This is a flush event, so we capture the flush flag to notify the caller after processing.
       flush_flag = transit_event.flush_flag;
@@ -886,11 +886,11 @@ private:
     // proceed after ensuring a pattern formatter exists
     std::string_view const log_level_description =
       log_level_to_string(transit_event.log_level(), _options.log_level_descriptions.data(),
-                                  _options.log_level_descriptions.size());
+                          _options.log_level_descriptions.size());
 
     std::string_view const log_level_short_code =
       log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
-                                  _options.log_level_short_codes.size());
+                          _options.log_level_short_codes.size());
 
     if (transit_event.logger_base->pattern_formatter->get_options().add_metadata_to_multi_line_logs &&
         (!transit_event.named_args || transit_event.named_args->empty()))
@@ -1165,8 +1165,7 @@ private:
     if (_rdtsc_clock.load(std::memory_order_relaxed))
     {
       // resync in rdtsc if we are not logging so that time_since_epoch() still works
-
-      if (auto const now = std::chrono::system_clock::now();
+      if (auto const now = std::chrono::steady_clock::now();
           (now - _last_rdtsc_resync_time) > _options.rdtsc_resync_interval)
       {
         if (_rdtsc_clock.load(std::memory_order_relaxed)->resync(2500))
@@ -1178,7 +1177,7 @@ private:
   }
 
   /***/
-  QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks)
+  QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks, std::chrono::milliseconds sink_min_flush_interval)
   {
     // Populate the active sinks cache with unique sinks, consider only the valid loggers
     _logger_manager.for_each_logger(
@@ -1208,14 +1207,33 @@ private:
         return false;
       });
 
+    bool should_flush_sinks{false};
+    if (sink_min_flush_interval.count())
+    {
+      // conditional flush sinks
+      if (auto const now = std::chrono::steady_clock::now(); (now - _last_sink_flush_time) > sink_min_flush_interval)
+      {
+        should_flush_sinks = true;
+        _last_sink_flush_time = now;
+      }
+    }
+    else
+    {
+      // sink_min_flush_interval == 0 - always flush sinks
+      should_flush_sinks = true;
+    }
+
     for (auto const& sink : _active_sinks_cache)
     {
       QUILL_TRY
       {
-        // If an exception is thrown, catch it here to prevent it from propagating
-        // to the outer function. This prevents potential infinite loops caused by failing
-        // flush operations.
-        sink->flush_sink();
+        if (should_flush_sinks)
+        {
+          // If an exception is thrown, catch it here to prevent it from propagating
+          // to the outer function. This prevents potential infinite loops caused by failing
+          // flush operations.
+          sink->flush_sink();
+        }
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
@@ -1542,7 +1560,8 @@ private:
 
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/
-  std::chrono::system_clock::time_point _last_rdtsc_resync_time;
+  std::chrono::steady_clock::time_point _last_rdtsc_resync_time;
+  std::chrono::steady_clock::time_point _last_sink_flush_time;
   std::atomic<uint32_t> _worker_thread_id{0};  /** cached backend worker thread id */
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
 

@@ -184,6 +184,23 @@ struct BackendOptions
   std::chrono::milliseconds rdtsc_resync_interval = std::chrono::milliseconds{500};
 
   /**
+   * This option specifies the minimum time interval (in milliseconds) before the backend thread
+   * flushes the output buffers (flush_sink()) for all sinks in the application.
+   *
+   * The backend thread will ensure that no sink is flushed more frequently than this interval.
+   * Explicit calls to `logger->flush_log()` override this interval and trigger an immediate flush.
+   *
+   * However, if the backend thread is actively processing messages, flushing may occur less
+   * frequently than the specified interval.
+   *
+   * Setting this value to 0 disables the feature, causing the backend thread to flush sinks
+   * whenever there is no pending work, provided a write to the sink has occurred.
+   *
+   * This setting applies globally and affects all sinks in the application.
+   */
+  std::chrono::milliseconds sink_min_flush_interval = std::chrono::milliseconds{200};
+
+  /**
    * This option enables a check that verifies the log message contains only printable characters
    * before forwarding it to the sinks. This adds an extra layer of safety by filtering out
    * non-printable characters from the log file. Any non-printable characters are converted to their
