@@ -97,6 +97,12 @@
   `quill::ConsoleSink::ColourMode`.
 - Changed class member visibility in `FileSink`, `JsonSink`, and `RotatingSink` from private to protected, enabling
   easier customization through inheritance for user-defined implementations.
+- Added a new `sink_min_flush_interval` option in `BackendOptions`, which specifies the minimum time interval (in
+  milliseconds) before the backend thread flushes the output buffers calling `flush_sink()` for all sinks, with a
+  default value of 200ms; The backend thread ensures sinks aren't flushed more frequently than this interval, while
+  explicit calls to `logger->flush_log()` trigger an immediate flush, and flushing may occur less frequently if the
+  backend thread is busy, with this setting applying globally to all
+  sinks. Setting this value to 0 disables the feature. ([#641](https://github.com/odygrd/quill/issues/641))
 - Added a `StopWatch` utility for easy logging of elapsed time. It can log the time elapsed since construction in
   various formats. You can use either `quill::StopWatchTsc` for high-resolution TSC-based timing or
   `quill::StopWatchChrono` for standard std::chrono-based timing. ([#640](https://github.com/odygrd/quill/issues/640))
