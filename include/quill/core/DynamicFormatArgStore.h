@@ -71,7 +71,7 @@ private:
   template <typename T>
   void emplace_arg(T const& arg)
   {
-    _data.emplace_back(fmtquill::detail::make_arg<fmtquill::format_context>(arg));
+    _data.emplace_back(arg);
   }
 
 public:
@@ -98,7 +98,8 @@ public:
   template <typename T>
   void push_back(T const& arg)
   {
-    constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<T, fmtquill::format_context>::value;
+    using char_type = typename fmtquill::format_context::char_type;
+    constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<T, char_type>::value;
     using stored_type = std::conditional_t<std::is_convertible_v<T, std::string>, std::string, T>;
 
     if constexpr (!(std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||

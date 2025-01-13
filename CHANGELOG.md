@@ -103,6 +103,7 @@
   explicit calls to `logger->flush_log()` trigger an immediate flush, and flushing may occur less frequently if the
   backend thread is busy, with this setting applying globally to all
   sinks. Setting this value to 0 disables the feature. ([#641](https://github.com/odygrd/quill/issues/641))
+- Updated bundled `libfmt` to `11.1.2`
 - Added a `StopWatch` utility for easy logging of elapsed time. It can log the time elapsed since construction in
   various formats. You can use either `quill::StopWatchTsc` for high-resolution TSC-based timing or
   `quill::StopWatchChrono` for standard std::chrono-based timing. ([#640](https://github.com/odygrd/quill/issues/640))

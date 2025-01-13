@@ -11,6 +11,7 @@
 # 5) Change append to use memcpy,       if constexpr (std::is_same<T, U>::value) {
 #         memcpy(ptr_ + size_, begin, count * sizeof(T));
 #       } else
+# 6) in chrono.h   if (std::is_same<Period, std::micro>::value) return "us";
 
 import sys
 import os
