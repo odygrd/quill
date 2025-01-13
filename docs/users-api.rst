@@ -98,12 +98,6 @@ RotatingFileSinkConfig Class
 .. doxygenclass:: RotatingFileSinkConfig
    :members:
 
-RotatingFileSink Class
-----------------------------
-
-.. doxygenclass:: RotatingFileSink
-   :members:
-
 JsonFileSink Class
 ------------------
 
@@ -114,12 +108,6 @@ JsonConsoleSink Class
 ---------------------
 
 .. doxygenclass:: JsonConsoleSink
-   :members:
-
-RotatingJsonFileSink Class
-----------------------------
-
-.. doxygenclass:: RotatingJsonFileSink
    :members:
 
 CsvWriter Class
