@@ -21,12 +21,6 @@ FMTQUILL_EXPORT class compiled_string {};
 
 namespace detail {
 
-template <typename T, typename InputIt>
-FMTQUILL_CONSTEXPR inline auto copy(InputIt begin, InputIt end, counting_iterator it)
-    -> counting_iterator {
-  return it + (end - begin);
-}
-
 template <typename S>
 struct is_compiled_string : std::is_base_of<compiled_string, S> {};
 
@@ -42,17 +36,16 @@ struct is_compiled_string : std::is_base_of<compiled_string, S> {};
  *     std::string s = fmtquill::format(FMTQUILL_COMPILE("{}"), 42);
  */
 #if defined(__cpp_if_constexpr) && defined(__cpp_return_type_deduction)
-#  define FMTQUILL_COMPILE(s) FMTQUILL_STRING_IMPL(s, fmtquill::compiled_string, explicit)
+#  define FMTQUILL_COMPILE(s) FMTQUILL_STRING_IMPL(s, fmtquill::compiled_string)
 #else
 #  define FMTQUILL_COMPILE(s) FMTQUILL_STRING(s)
 #endif
 
 #if FMTQUILL_USE_NONTYPE_TEMPLATE_ARGS
-template <typename Char, size_t N,
-          fmtquill::detail_exported::fixed_string<Char, N> Str>
+template <typename Char, size_t N, fmtquill::detail::fixed_string<Char, N> Str>
 struct udl_compiled_string : compiled_string {
   using char_type = Char;
-  explicit constexpr operator basic_string_view<char_type>() const {
+  constexpr explicit operator basic_string_view<char_type>() const {
     return {Str.data, N - 1};
   }
 };
@@ -75,6 +68,29 @@ constexpr const auto& get([[maybe_unused]] const T& first,
     return first;
   else
     return detail::get<N - 1>(rest...);
+}
+
+#  if FMTQUILL_USE_NONTYPE_TEMPLATE_ARGS
+template <int N, typename T, typename... Args, typename Char>
+constexpr auto get_arg_index_by_name(basic_string_view<Char> name) -> int {
+  if constexpr (is_static_named_arg<T>()) {
+    if (name == T::name) return N;
+  }
+  if constexpr (sizeof...(Args) > 0)
+    return get_arg_index_by_name<N + 1, Args...>(name);
+  (void)name;  // Workaround an MSVC bug about "unused" parameter.
+  return -1;
+}
+#  endif
+
+template <typename... Args, typename Char>
+FMTQUILL_CONSTEXPR auto get_arg_index_by_name(basic_string_view<Char> name) -> int {
+#  if FMTQUILL_USE_NONTYPE_TEMPLATE_ARGS
+  if constexpr (sizeof...(Args) > 0)
+    return get_arg_index_by_name<0, Args...>(name);
+#  endif
+  (void)name;
+  return -1;
 }
 
 template <typename Char, typename... Args>
@@ -149,8 +165,9 @@ template <typename Char, typename T, int N> struct field {
     if constexpr (std::is_convertible<T, basic_string_view<Char>>::value) {
       auto s = basic_string_view<Char>(arg);
       return copy<Char>(s.begin(), s.end(), out);
+    } else {
+      return write<Char>(out, arg);
     }
-    return write<Char>(out, arg);
   }
 };
 
@@ -275,6 +292,7 @@ constexpr parse_specs_result<T, Char> parse_specs(basic_string_view<Char> str,
 }
 
 template <typename Char> struct arg_id_handler {
+  arg_id_kind kind;
   arg_ref<Char> arg_id;
 
   constexpr int on_auto() {
@@ -282,25 +300,28 @@ template <typename Char> struct arg_id_handler {
     return 0;
   }
   constexpr int on_index(int id) {
+    kind = arg_id_kind::index;
     arg_id = arg_ref<Char>(id);
     return 0;
   }
   constexpr int on_name(basic_string_view<Char> id) {
+    kind = arg_id_kind::name;
     arg_id = arg_ref<Char>(id);
     return 0;
   }
 };
 
 template <typename Char> struct parse_arg_id_result {
+  arg_id_kind kind;
   arg_ref<Char> arg_id;
   const Char* arg_id_end;
 };
 
 template <int ID, typename Char>
 constexpr auto parse_arg_id(const Char* begin, const Char* end) {
-  auto handler = arg_id_handler<Char>{arg_ref<Char>{}};
+  auto handler = arg_id_handler<Char>{arg_id_kind::none, arg_ref<Char>{}};
   auto arg_id_end = parse_arg_id(begin, end, handler);
-  return parse_arg_id_result<Char>{handler.arg_id, arg_id_end};
+  return parse_arg_id_result<Char>{handler.kind, handler.arg_id, arg_id_end};
 }
 
 template <typename T, typename Enable = void> struct field_type {
@@ -363,18 +384,18 @@ constexpr auto compile_format_string(S fmt) {
       constexpr char_type c =
           arg_id_end_pos != str.size() ? str[arg_id_end_pos] : char_type();
       static_assert(c == '}' || c == ':', "missing '}' in format string");
-      if constexpr (arg_id_result.arg_id.kind == arg_id_kind::index) {
+      if constexpr (arg_id_result.kind == arg_id_kind::index) {
         static_assert(
             ID == manual_indexing_id || ID == 0,
             "cannot switch from automatic to manual argument indexing");
-        constexpr auto arg_index = arg_id_result.arg_id.val.index;
+        constexpr auto arg_index = arg_id_result.arg_id.index;
         return parse_replacement_field_then_tail<get_type<arg_index, Args>,
                                                  Args, arg_id_end_pos,
                                                  arg_index, manual_indexing_id>(
             fmt);
-      } else if constexpr (arg_id_result.arg_id.kind == arg_id_kind::name) {
+      } else if constexpr (arg_id_result.kind == arg_id_kind::name) {
         constexpr auto arg_index =
-            get_arg_index_by_name(arg_id_result.arg_id.val.name, Args{});
+            get_arg_index_by_name(arg_id_result.arg_id.name, Args{});
         if constexpr (arg_index >= 0) {
           constexpr auto next_id =
               ID != manual_indexing_id ? ID + 1 : manual_indexing_id;
@@ -383,8 +404,7 @@ constexpr auto compile_format_string(S fmt) {
               arg_index, next_id>(fmt);
         } else if constexpr (c == '}') {
           return parse_tail<Args, arg_id_end_pos + 1, ID>(
-              runtime_named_field<char_type>{arg_id_result.arg_id.val.name},
-              fmt);
+              runtime_named_field<char_type>{arg_id_result.arg_id.name}, fmt);
         } else if constexpr (c == ':') {
           return unknown_format();  // no type info for specs parsing
         }
@@ -496,15 +516,17 @@ template <typename S, typename... Args,
           FMTQUILL_ENABLE_IF(detail::is_compiled_string<S>::value)>
 FMTQUILL_CONSTEXPR20 auto formatted_size(const S& fmt, const Args&... args)
     -> size_t {
-  return fmtquill::format_to(detail::counting_iterator(), fmt, args...).count();
+  auto buf = detail::counting_buffer<>();
+  fmtquill::format_to(appender(buf), fmt, args...);
+  return buf.count();
 }
 
 template <typename S, typename... Args,
           FMTQUILL_ENABLE_IF(detail::is_compiled_string<S>::value)>
 void print(std::FILE* f, const S& fmt, const Args&... args) {
-  memory_buffer buffer;
-  fmtquill::format_to(std::back_inserter(buffer), fmt, args...);
-  detail::print(f, {buffer.data(), buffer.size()});
+  auto buf = memory_buffer();
+  fmtquill::format_to(appender(buf), fmt, args...);
+  detail::print(f, {buf.data(), buf.size()});
 }
 
 template <typename S, typename... Args,
@@ -515,7 +537,7 @@ void print(const S& fmt, const Args&... args) {
 
 #if FMTQUILL_USE_NONTYPE_TEMPLATE_ARGS
 inline namespace literals {
-template <detail_exported::fixed_string Str> constexpr auto operator""_cf() {
+template <detail::fixed_string Str> constexpr auto operator""_cf() {
   using char_t = remove_cvref_t<decltype(Str.data[0])>;
   return detail::udl_compiled_string<char_t, sizeof(Str.data) / sizeof(char_t),
                                      Str>();

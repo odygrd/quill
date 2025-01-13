@@ -257,7 +257,7 @@ private:
   template <size_t I, typename T>
   void _set_arg(T const& arg)
   {
-    _args[_order_index[I]] = fmtquill::detail::make_arg<fmtquill::format_context>(arg);
+    _args[_order_index[I]] = arg;
   }
 
   template <size_t I, typename T>
@@ -267,7 +267,7 @@ private:
       *(reinterpret_cast<fmtquill::detail::value<fmtquill::format_context>*>(
         std::addressof(_args[_order_index[I]])));
 
-    value_ = fmtquill::detail::arg_mapper<fmtquill::format_context>().map(arg);
+    value_ = fmtquill::detail::value<fmtquill::format_context>(arg);
   }
 
   /***/
