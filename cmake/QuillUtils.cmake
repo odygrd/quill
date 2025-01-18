@@ -33,13 +33,21 @@ function(set_common_compile_options target_name)
     endif ()
 
     target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
+            # General warnings for Clang, AppleClang, and GNU
             $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
             -Wall -Wextra -pedantic -Werror -Wredundant-decls>
+
+            # Disable C++20 extension warnings for Clang > 17
             $<$<AND:$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,17>>:
             -Wno-c++20-extensions>
+
+            # Disable specific warning for Clang and AppleClang
             $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:
             -Wno-gnu-zero-variadic-macro-arguments>
-            $<$<CXX_COMPILER_ID:MSVC>:/bigobj /WX /W4 /wd4324 /wd4996>)
+
+            # MSVC-specific options
+            $<$<CXX_COMPILER_ID:MSVC>:/bigobj /WX /W4 /wd4324 /wd4996>
+    )
 
     if (QUILL_NO_EXCEPTIONS)
         # Add flags -fno-exceptions -fno-rtti to make sure we support them
