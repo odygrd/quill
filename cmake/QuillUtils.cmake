@@ -35,6 +35,10 @@ function(set_common_compile_options target_name)
     target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
             $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
             -Wall -Wextra -pedantic -Werror -Wredundant-decls>
+            $<$<AND:$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,17>>:
+            -Wno-c++20-extensions>
+            $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:
+            -Wno-gnu-zero-variadic-macro-arguments>
             $<$<CXX_COMPILER_ID:MSVC>:/bigobj /WX /W4 /wd4324 /wd4996>)
 
     if (QUILL_NO_EXCEPTIONS)
