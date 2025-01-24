@@ -33,8 +33,8 @@ namespace detail
   #endif
 
 /** We forward declare these to avoid including Utf8Conv.h **/
-extern std::string utf8_encode(std::wstring_view str);
-extern std::string utf8_encode(std::byte const* data, size_t wide_str_len);
+QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern std::string utf8_encode(std::wstring_view str);
+QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern std::string utf8_encode(std::byte const* data, size_t wide_str_len);
 
   #if defined(__MINGW32__)
     #pragma GCC diagnostic pop
