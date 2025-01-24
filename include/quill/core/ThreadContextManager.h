@@ -38,8 +38,8 @@ class BackendWorker;
 #endif
 
 /** We forward declare these to avoid including ThreadUtilities.h **/
-extern std::string get_thread_name();
-extern uint32_t get_thread_id() noexcept;
+QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern std::string get_thread_name();
+QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern uint32_t get_thread_id() noexcept;
 
 #if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
   #pragma GCC diagnostic pop
