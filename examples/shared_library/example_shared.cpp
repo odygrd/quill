@@ -21,6 +21,8 @@ int main()
 {
   setup_quill();
 
+  assert(global_logger_a == get_logger("root"));
+
   // Change the LogLevel to print everything
   global_logger_a->set_log_level(quill::LogLevel::TraceL3);
 
