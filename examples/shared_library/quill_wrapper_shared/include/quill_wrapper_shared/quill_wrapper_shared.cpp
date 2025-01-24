@@ -23,3 +23,8 @@ void setup_quill()
                                    "LOG_%(log_level:<9) %(logger:<12) %(message)",
                                    "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
 }
+
+quill::Logger* get_logger(std::string const& name)
+{
+  return quill::Frontend::get_logger(name);
+}
