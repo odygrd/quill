@@ -1,3 +1,4 @@
+- [v8.1.0](#v810)
 - [v8.0.0](#v800)
 - [v7.5.0](#v750)
 - [v7.4.0](#v740)
@@ -80,6 +81,13 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v8.1.0
+
+- Updated bundled `libfmt` to `11.1.3`
+- Suppressed clang-19 warning when building the tests with C++17. ([#646](https://github.com/odygrd/quill/issues/646))
+- Fixed windows linkage error when shared library is used.
+- Fixed redefinition of `struct fmt_detail::time_zone` error ([#649](https://github.com/odygrd/quill/issues/649))
 
 ## v8.0.0
 
