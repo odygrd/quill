@@ -227,7 +227,9 @@ FMTQUILL_CONSTEXPR inline void abort_fuzzing_if(bool condition) {
 #if defined(FMTQUILL_USE_STRING_VIEW)
 template <typename Char> using std_string_view = std::basic_string_view<Char>;
 #else
-template <typename T> struct std_string_view {};
+template <typename Char> struct std_string_view {
+  operator basic_string_view<Char>() const;
+};
 #endif
 
 template <typename Char, Char... C> struct string_literal {
@@ -1210,7 +1212,7 @@ FMTQUILL_CONSTEXPR FMTQUILL_INLINE auto format_decimal(Char* out, UInt value,
 }
 
 template <typename Char, typename UInt, typename OutputIt,
-          FMTQUILL_ENABLE_IF(is_back_insert_iterator<OutputIt>::value)>
+          FMTQUILL_ENABLE_IF(!std::is_pointer<remove_cvref_t<OutputIt>>::value)>
 FMTQUILL_CONSTEXPR auto format_decimal(OutputIt out, UInt value, int num_digits)
     -> OutputIt {
   if (auto ptr = to_pointer<Char>(out, to_unsigned(num_digits))) {

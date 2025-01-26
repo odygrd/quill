@@ -25,7 +25,7 @@
 #endif
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMTQUILL_VERSION 110102
+#define FMTQUILL_VERSION 110103
 
 // Detect compiler versions.
 #if defined(__clang__) && !defined(__ibmxl__)
@@ -100,9 +100,9 @@
 // Detect C++14 relaxed constexpr.
 #ifdef FMTQUILL_USE_CONSTEXPR
 // Use the provided definition.
-#elif FMTQUILL_GCC_VERSION >= 600 && FMTQUILL_CPLUSPLUS >= 201402L
-// GCC only allows throw in constexpr since version 6:
-// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67371.
+#elif FMTQUILL_GCC_VERSION >= 702 && FMTQUILL_CPLUSPLUS >= 201402L
+// GCC only allows constexpr member functions in non-literal types since 7.2:
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=66297.
 #  define FMTQUILL_USE_CONSTEXPR 1
 #elif FMTQUILL_ICC_VERSION
 #  define FMTQUILL_USE_CONSTEXPR 0  // https://github.com/fmtlib/fmt/issues/1628
@@ -303,7 +303,7 @@
 
 // Enable minimal optimizations for more compact code in debug mode.
 FMTQUILL_PRAGMA_GCC(push_options)
-#if !defined(__OPTIMIZE__) && !defined(__CUDACC__)
+#if !defined(__OPTIMIZE__) && !defined(__CUDACC__) && !defined(FMTQUILL_MODULE)
 FMTQUILL_PRAGMA_GCC(optimize("Og"))
 #endif
 FMTQUILL_PRAGMA_CLANG(diagnostic push)
@@ -743,13 +743,15 @@ class basic_specs {
     max_fill_size = 4
   };
 
-  size_t data_ = 1 << fill_size_shift;
+  unsigned data_ = 1 << fill_size_shift;
+  static_assert(sizeof(data_) * CHAR_BIT >= 18, "");
 
   // Character (code unit) type is erased to prevent template bloat.
   char fill_data_[max_fill_size] = {' '};
 
   FMTQUILL_CONSTEXPR void set_fill_size(size_t size) {
-    data_ = (data_ & ~fill_size_mask) | (size << fill_size_shift);
+    data_ = (data_ & ~fill_size_mask) |
+            (static_cast<unsigned>(size) << fill_size_shift);
   }
 
  public:
@@ -1123,7 +1125,7 @@ using use_formatter =
     bool_constant<(std::is_class<T>::value || std::is_enum<T>::value ||
                    std::is_union<T>::value || std::is_array<T>::value) &&
                   !has_to_string_view<T>::value && !is_named_arg<T>::value &&
-                  !use_format_as<T>::value && !use_format_as_member<T>::value>;
+                  !use_format_as<T>::value && !use_format_as_member<U>::value>;
 
 template <typename Char, typename T, typename U = remove_const_t<T>>
 auto has_formatter_impl(T* p, buffered_context<Char>* ctx = nullptr)
@@ -2671,6 +2673,7 @@ class context {
   FMTQUILL_CONSTEXPR auto arg_id(string_view name) const -> int {
     return args_.get_id(name);
   }
+  auto args() const -> const format_args& { return args_; }
 
   // Returns an iterator to the beginning of the output range.
   FMTQUILL_CONSTEXPR auto out() const -> iterator { return out_; }
