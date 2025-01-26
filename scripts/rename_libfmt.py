@@ -25,10 +25,14 @@ def rename(file_path, macro_replace, namespace_replace):
     # Use regular expressions to find and replace macros and namespace
     macro_pattern = r'\bFMT_'
     namespace_pattern = r'namespace\s+fmt\b'
+    fmt_namespace_detail_pattern = r'namespace\s+fmt_detail\b'
+    fmt_detail_pattern = r'\bfmt_detail::'
 
     updated_content = re.sub(macro_pattern, macro_replace + '_', content)
     updated_content = re.sub(r'fmt::', f'{namespace_replace}::', updated_content)
     updated_content = re.sub(namespace_pattern, f'namespace {namespace_replace}', updated_content)
+    updated_content = re.sub(fmt_namespace_detail_pattern, f'namespace {namespace_replace}_detail', updated_content)
+    updated_content = re.sub(fmt_detail_pattern, f'{namespace_replace}_detail::', updated_content)
 
     # Write the updated content back to the source file
     with open(file_path, 'w') as file:
