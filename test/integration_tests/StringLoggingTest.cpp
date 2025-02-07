@@ -148,6 +148,10 @@ TEST_CASE("string_logging")
     LOG_INFO(logger, "Logging int: {}, int: {}, string: {}, char: {}", i, i * 10, v, v.c_str());
   }
 
+  // Log 12+ char arrays to catch any compiler warnings in InlinedVector
+  LOG_INFO(logger, "{} {} {} {} {} {} {} {} {} {} {} {} {} {}", "abc", "def", "ghi", "abc", "def",
+           "ghi", "abc", "def", "ghi", "abc", "def", "ghi", "abc", "def");
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -156,7 +160,7 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 18);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 19);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "                        right aligned"}));
@@ -220,6 +224,9 @@ TEST_CASE("string_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Logging int: 9999, int: 99990, string: Lorem ipsum dolor sit amet, consectetur 9999, char: Lorem ipsum dolor sit amet, consectetur 9999"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       abc def ghi abc def ghi abc def ghi abc def ghi abc def"}));
 
   testing::remove_file(filename);
 }
