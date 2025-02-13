@@ -92,7 +92,13 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
     else
     {
 #endif
-      UnorderedSetType<Key, Hash, KeyEqual, Allocator> arg;
+      using ReturnType = decltype(Codec<Key>::decode_arg(buffer));
+      using ReboundHash =
+        typename std::conditional<std::is_same<Hash, std::hash<Key>>::value, std::hash<ReturnType>, Hash>::type;
+      using ReboundKeyEqual =
+        typename std::conditional<std::is_same<KeyEqual, std::equal_to<Key>>::value, std::equal_to<ReturnType>, KeyEqual>::type;
+      using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
+      UnorderedSetType<ReturnType, ReboundHash, ReboundKeyEqual, ReboundAllocator> arg;
 
       // Read the size of the set
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);

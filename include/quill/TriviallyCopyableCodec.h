@@ -55,7 +55,9 @@ QUILL_BEGIN_NAMESPACE
  */
 
 template <typename T>
-struct TriviallyCopyableTypeCodec
+struct [[deprecated(
+  "TriviallyCopyableTypeCodec is deprecated and will be removed in future versions. Please use "
+  "DeferredFormatCodec instead.")]] TriviallyCopyableTypeCodec
 {
   static_assert(std::is_trivially_copyable_v<T>,
                 "T must be trivially copyable. Non-trivially copyable types can still be logged, "

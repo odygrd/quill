@@ -93,7 +93,9 @@ struct Codec<std::deque<T, Allocator>>
       // Read the size
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
 
-      std::deque<T, Allocator> arg;
+      using ReturnType = decltype(Codec<T>::decode_arg(buffer));
+      using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
+      std::deque<ReturnType, ReboundAllocator> arg;
       arg.resize(number_of_elements);
 
       for (size_t i = 0; i < number_of_elements; ++i)

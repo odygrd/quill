@@ -1,3 +1,4 @@
+- [v8.2.0](#v820)
 - [v8.1.1](#v811)
 - [v8.1.0](#v810)
 - [v8.0.0](#v800)
@@ -82,6 +83,27 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v8.2.0
+
+- Added `DeferredFormatCodec` and `DirectFormatCodec` for easier logging of user-defined types and smoother migration
+  from pre-`v4` versions. Previously, users had to define a custom `Codec` for every non-trivially copyable user-defined
+  type they wanted to log.
+  - `DeferredFormatCodec` now supports both trivially and non-trivially copyable types:
+    - For trivially copyable types, it behaves the same as `TriviallyCopyableTypeCodec`.
+    - For non-trivially copyable types, it works similarly to pre-`v4` by taking a copy of the object using the copy
+      constructor and placement new.
+  - `DirectFormatCodec` formats the object immediately in the hot path, serving as a shortcut to explicitly formatting
+    the object when logging.
+  - For advanced use cases, a custom `Codec` can still be defined for finer control over encoding/decoding.
+
+  See:
+  - [DeferredFormatCodec Usage](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging_deferred_format.cpp)
+  - [DirectFormatCodec Usage](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging_direct_format.cpp)
+  - [Documentation](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html#logging-user-defined-types)
+
+- Marked `TriviallyCopyableTypeCodec` as deprecated. `DeferredFormatCodec` should be used instead, requiring no code
+  changes.
 
 ## v8.1.1
 

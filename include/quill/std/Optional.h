@@ -73,7 +73,8 @@ struct Codec<std::optional<T>>
     else
     {
 #endif
-      std::optional<T> arg{std::nullopt};
+      using ReturnType = decltype(Codec<T>::decode_arg(buffer));
+      std::optional<ReturnType> arg{std::nullopt};
 
       bool const has_value = Codec<bool>::decode_arg(buffer);
       if (has_value)

@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-#include "quill/TriviallyCopyableCodec.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/backend/RdtscClock.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
@@ -138,7 +138,7 @@ QUILL_END_NAMESPACE
 
 template <quill::ClockSourceType ClockType>
 struct quill::Codec<quill::detail::StopWatch<ClockType>>
-  : quill::TriviallyCopyableTypeCodec<quill::detail::StopWatch<ClockType>>
+  : quill::DeferredFormatCodec<quill::detail::StopWatch<ClockType>>
 {
 };
 

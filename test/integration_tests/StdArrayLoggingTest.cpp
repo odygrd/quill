@@ -2,9 +2,9 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
-#include "quill/TriviallyCopyableCodec.h"
 #include "quill/sinks/FileSink.h"
 #include "quill/std/Array.h"
 
@@ -26,7 +26,7 @@ private:
   friend struct fmtquill::formatter;
 
   template <typename T>
-  friend struct quill::TriviallyCopyableTypeCodec;
+  friend struct quill::DeferredFormatCodec;
 
   template <typename T, size_t N>
   friend class std::array;
@@ -59,7 +59,7 @@ struct fmtquill::formatter<CustomTypeTC>
 };
 
 template <>
-struct quill::Codec<CustomTypeTC> : quill::TriviallyCopyableTypeCodec<CustomTypeTC>
+struct quill::Codec<CustomTypeTC> : quill::DeferredFormatCodec<CustomTypeTC>
 {
 };
 

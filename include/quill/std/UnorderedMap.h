@@ -142,8 +142,11 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
     else
     {
 #endif
-
-      UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> arg;
+      using ReturnPairType = decltype(Codec<std::pair<Key, T>>::decode_arg(buffer));
+      using ReturnType = typename ReturnPairType::second_type;
+      using ReboundAllocator =
+        typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<const Key, ReturnType>>;
+      UnorderedMapType<Key, ReturnType, Hash, KeyEqual, ReboundAllocator> arg;
 
       // Read the size of the set
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);

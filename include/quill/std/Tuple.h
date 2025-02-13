@@ -54,7 +54,7 @@ struct Codec<std::tuple<Types...>>
 
   static auto decode_arg(std::byte*& buffer)
   {
-    std::tuple<Types...> arg;
+    std::tuple<decltype(Codec<Types>::decode_arg(buffer))...> arg;
 
     std::apply([&buffer](auto&... elems)
                { ((elems = Codec<std::decay_t<decltype(elems)>>::decode_arg(buffer)), ...); }, arg);

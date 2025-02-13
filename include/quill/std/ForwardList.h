@@ -94,7 +94,9 @@ struct Codec<std::forward_list<T, Allocator>>
       // Read the size
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
 
-      std::forward_list<T, Allocator> arg;
+      using ReturnType = decltype(Codec<T>::decode_arg(buffer));
+      using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
+      std::forward_list<ReturnType, ReboundAllocator> arg;
 
       auto last_inserted = arg.before_begin(); // Keeps track of the last inserted position
 

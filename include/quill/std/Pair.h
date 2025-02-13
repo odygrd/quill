@@ -91,8 +91,10 @@ struct Codec<std::pair<T1, T2>>
     else
     {
 #endif
+      using ReturnType1 = decltype(Codec<T1>::decode_arg(buffer));
+      using ReturnType2 = decltype(Codec<T2>::decode_arg(buffer));
+      std::pair<ReturnType1, ReturnType2> arg;
 
-      std::pair<T1, T2> arg;
       arg.first = Codec<T1>::decode_arg(buffer);
       arg.second = Codec<T2>::decode_arg(buffer);
       return arg;

@@ -227,116 +227,97 @@ Outputs:
 
 Logging User Defined Types
 --------------------------
-To log user-defined types, you need to specify how to serialise them or convert them to a string and pass that string to the logger.
+To log user-defined types, you need to define how they should be serialized or converted to a string before passing them to the logger. There are several ways to achieve this:
 
-Slow Path Logging
-~~~~~~~~~~~~~~~~~
-For log statements made during program initialization, or for debug logs that are not on the critical path, it is recommended to convert user-defined types to strings and pass these strings to the ``LOG_`` function. This method requires less effort and minimizes template instantiations. For example:
+    1. **Use DeferredFormatCodec**
+       If the object is safe to copy across threads (e.g., does not contain `std::shared_ptr` members being modified), this approach takes a copy of the object and formats it later on the backend logging thread.
 
-.. code:: cpp
+       - Works for both trivially and non-trivially copyable types.
+       - If the type is **trivially copyable**, it should have a **default constructor**.
+       - If the type is **not trivially copyable**, it should have both a **copy constructor** and a **move constructor**.
 
-    #include "quill/bundled/fmt/ostream.h"
-    #include "quill/bundled/fmt/format.h"
+    2. **Use DirectFormatCodec**
+       Suitable for objects that are not safe to copy across threads or for cases where formatting occurs in the slow path. This method converts the object to a string immediately in the hot path using `fmt::format`.
 
-    class Config
-    {
-      public:
-      std::string param_1;
-      std::string param_2;
+    3. **Implement a Custom Codec**
+       For maximum flexibility, you can define a custom codec to specify exactly how the object should be serialized and deserialized.
 
-      friend std::ostream& operator<<(std::ostream& os, Config config)
-      {
-        os << "param_1: " << config.param_1 << " param_2 " << config.param_2;
-        return os;
-      }
-    };
+Logging Requirements
+~~~~~~~~~~~~~~~~~~~~
 
-    template <>
-    struct fmtquill::formatter<Config> : fmtquill::ostream_formatter
-    {
-    };
+To ensure a user-defined type can be logged, you must:
 
-    Config cfg {"123", "456"};
+    - Specialize ``quill::Codec<T>`` for your type.
+    - Specialize ``fmtquill::formatter<T>`` under the ``fmtquill`` namespace.
 
-    LOG_INFO(logger, "Starting with config {}", fmtquill::format("{}", cfg));
+Logging User-Defined Types in STL Containers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    std::string const cfg_str = fmtquill::format("{}", cfg);
-    LOGV_INFO(logger, "Starting", cfg_str);
+User-defined types nested within STL containers, such as ``std::vector<UserType>``, can also be logged. To ensure proper serialization, you must:
 
-Outputs:
+    1. Follow one of the three approaches above.
+    2. Include the relevant STL type header from the ``quill/std/`` directory.
 
-    Starting with config param_1: 123 param_2 456
+DeferredFormatCodec
+~~~~~~~~~~~~~~~~~~~
 
-    Starting [cfg_str: param_1: 123 param_2 456]
-
-Hot Path Logging
-~~~~~~~~~~~~~~~~~
-For log statements on the critical path, it is advisable to provide serialisation methods so that only a binary copy is made during the critical path operations. The type will be encoded on the critical path, then decoded and reconstructed on the backend thread before being passed to ``libfmt`` for formatting. To serialise user defined types types, the library requires:
-
-  1. Template specializations of ``quill::Codec<T>`` within the ``quill`` namespace.
-  2. Template specializations of ``fmtquill::formatter<T>` within the ``fmtquill`` namespace.
-  3. The user-defined type must have a default constructor and a copy constructor.
-
-Serialising Trivially Copyable Types With Default Constructor
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Use the ``quill::TriviallyCopyableTypeCodec`` helper.
+Basic Example
+^^^^^^^^^^^^^
 
 .. code:: cpp
 
-    #include "quill/bundled/fmt/ostream.h"
-    #include "quill/bundled/fmt/format.h"
+    #include "quill/DeferredFormatCodec.h"
 
-    #include "quill/TriviallyCopyableCodec.h"
-
-    struct Order
+    class User
     {
-      char symbol[32];
-      double price;
-      int quantity;
-
-      friend std::ostream& operator<<(std::ostream& os, Order const& order)
+    public:
+      User(std::string name, std::string surname, uint32_t age)
+        : name(std::move(name)), surname(std::move(surname)), age(age)
       {
-        os << "symbol=" << order.symbol << " price=" << order.price << " quantity=" << order.quantity;
-        return os;
+        favorite_colors.push_back("red");
+        favorite_colors.push_back("blue");
+        favorite_colors.push_back("green");
+      };
+
+      std::string name;
+      std::string surname;
+      uint32_t age{};
+      std::vector<std::string> favorite_colors;
+    };
+
+    /***/
+    template <>
+    struct fmtquill::formatter<User>
+    {
+      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+      auto format(::User const& user, format_context& ctx) const
+      {
+        return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}",
+                                   user.name, user.surname, user.age, user.favorite_colors);
       }
     };
 
+    /***/
     template <>
-    struct fmtquill::formatter<Order> : fmtquill::ostream_formatter
+    struct quill::Codec<User> : quill::DeferredFormatCodec<User>
     {
-
     };
 
-    template <>
-    struct quill::Codec<Order> : quill::TriviallyCopyableTypeCodec<Order>
-    {
-
-    };
-
-    Order order;
-    strcpy(order.symbol, "AAPL");
-    order.quantity = 100;
-    order.price = 220.10;
-
-    LOG_INFO(logger, "Order is {}", order);
-    LOGV_INFO(logger, "Order", order);
+    User user{"Super", "User", 1};
+    LOG_INFO(logger, "User is [{}]", user);
 
 Outputs:
 
-    Order is symbol=AAPL price=220.1 quantity=100
-
-    Order [order: symbol=AAPL price=220.1 quantity=100]
+    User is [Name: Super, Surname: User, Age: 1, Favorite Colors: ["red", "blue", "green"]]
 
 Serialising Trivially Copyable Types With Non-Default Constructor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For trivially copyable types with a non-default constructor, make ``quill::TriviallyCopyableTypeCodec<T>`` a friend and ensure there is a private default constructor.
+For trivially copyable types with a non-default constructor, make ``quill::DeferredFormatCodec<T>`` a friend and ensure there is a private default constructor.
 
 .. code:: cpp
 
-    #include "quill/bundled/fmt/ostream.h"
-    #include "quill/bundled/fmt/format.h"
-
-    #include "quill/TriviallyCopyableCodec.h"
+    #include "quill/DeferredFormatCodec.h"
 
     class Order
     {
@@ -351,8 +332,7 @@ For trivially copyable types with a non-default constructor, make ``quill::Trivi
       double price;
       int quantity;
 
-      template <typename T>
-      friend struct quill::TriviallyCopyableTypeCodec;
+      friend struct quill::DeferredFormatCodec<Order>;
 
       Order() = default;
 
@@ -369,24 +349,72 @@ For trivially copyable types with a non-default constructor, make ``quill::Trivi
     };
 
     template <>
-    struct quill::Codec<Order> : quill::TriviallyCopyableTypeCodec<Order>
+    struct quill::Codec<Order> : quill::DeferredFormatCodec<Order>
     {
     };
 
     Order order {220.10, 100};
-
     LOG_INFO(logger, "Order is {}", order);
-    LOGV_INFO(logger, "Order", order);
 
 Outputs:
 
-    Order is timestamp=17220422717461192 price=220.1 quantity=100
+    Order is timestamp=17395040124686356 price=220.1 quantity=100
 
-    Order [order: timestamp=17220422717461192 price=220.1 quantity=100]
+DirectFormatCodec
+~~~~~~~~~~~~~~~~~
+
+.. code:: cpp
+
+    #include "quill/DirectFormatCodec.h"
+
+    class User
+    {
+    public:
+      User(std::string name, std::string surname, uint32_t age)
+        : name(std::move(name)), surname(std::move(surname)), age(age)
+      {
+        favorite_colors.push_back("red");
+        favorite_colors.push_back("blue");
+        favorite_colors.push_back("green");
+      };
+
+      std::string name;
+      std::string surname;
+      uint32_t age{};
+      std::vector<std::string> favorite_colors;
+    };
+
+    /***/
+    template <>
+    struct fmtquill::formatter<User>
+    {
+      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+      auto format(::User const& user, format_context& ctx) const
+      {
+        return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}",
+                                   user.name, user.surname, user.age, user.favorite_colors);
+      }
+    };
+
+    /***/
+    template <>
+    struct quill::Codec<User> : quill::DirectFormatCodec<User>
+    {
+    };
+
+    User user{"Super", "User", 1};
+    LOG_INFO(logger, "User is [{}]", user);
+
+Outputs:
+
+    User is [Name: Super, Surname: User, Age: 1, Favorite Colors: ["red", "blue", "green"]]
+
+Writing Custom Codec
+~~~~~~~~~~~~~~~~~~~~
 
 Serialising Non Trivially Copyable User Defined Types With Public Members
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For user-defined types with non-trivially copyable types as members, it is necessary to define the class ``quill::Codec<T>``.
 
 Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members`` as long as the relevant header file from ``quill/std/`` for that type is included.
 
@@ -538,10 +566,3 @@ Outputs:
     Order is timestamp=17220432928367021 symbol=AAPL price=220.1 quantity=100
 
     Order [order: timestamp=17220432928367021 symbol=AAPL price=220.1 quantity=100]
-
-Serialising User-Defined Types within STL Containers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-It is possible to log user-defined types nested within STL containers, such as ``std::vector<Order>``. To achieve this, ensure the following:
-
-  1. Define a ``quill::Codec<T>`` specialization for the user-defined type as described above.
-  2. Include the relevant header file for the STL type from the ``quill/std/`` directory.
