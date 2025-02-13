@@ -243,6 +243,8 @@ set(HEADER_FILES
         include/quill/Backend.h
         include/quill/BackendTscClock.h
         include/quill/CsvWriter.h
+        include/quill/DeferredFormatCodec.h
+        include/quill/DirectFormatCodec.h
         include/quill/Frontend.h
         include/quill/Logger.h
         include/quill/LogMacros.h

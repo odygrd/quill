@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "quill/TriviallyCopyableCodec.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 
@@ -22,7 +22,7 @@ template <template <typename...> class ChronoType, typename TimeSpec, typename D
 struct Codec<ChronoType<TimeSpec, DurationType>,
              std::enable_if_t<std::disjunction_v<std::is_same<ChronoType<TimeSpec, DurationType>, std::chrono::time_point<TimeSpec, DurationType>>,
                                                  std::is_same<ChronoType<TimeSpec, DurationType>, std::chrono::duration<TimeSpec, DurationType>>>>>
-  : TriviallyCopyableTypeCodec<ChronoType<TimeSpec, DurationType>>
+  : DeferredFormatCodec<ChronoType<TimeSpec, DurationType>>
 {
 };
 

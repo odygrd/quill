@@ -91,7 +91,12 @@ struct Codec<SetType<Key, Compare, Allocator>,
     else
     {
 #endif
-      SetType<Key, Compare, Allocator> arg;
+      using ReturnType = decltype(Codec<Key>::decode_arg(buffer));
+      using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
+      using ReboundCompare =
+        typename std::conditional<std::is_same<Compare, std::less<Key>>::value, std::less<ReturnType>, Compare>::type;
+
+      SetType<ReturnType, ReboundCompare, ReboundAllocator> arg;
 
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
 

@@ -4,7 +4,7 @@
 #include "quill/Logger.h"
 #include "quill/sinks/ConsoleSink.h"
 
-#include "quill/TriviallyCopyableCodec.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/bundled/fmt/format.h"
 
 #include <string>
@@ -53,7 +53,7 @@ struct fmtquill::formatter<Point>
 };
 
 template <>
-struct quill::Codec<Point> : quill::TriviallyCopyableTypeCodec<Point>
+struct quill::Codec<Point> : quill::DeferredFormatCodec<Point>
 {
 };
 

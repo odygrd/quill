@@ -129,7 +129,10 @@ struct Codec<std::array<T, N>>
     else
     {
 #endif
-      std::array<T, N> arg;
+      using ReturnType =
+        std::conditional_t<std::is_same_v<T, std::string>, std::string, decltype(Codec<T>::decode_arg(buffer))>;
+
+      std::array<ReturnType, N> arg;
 
       for (size_t i = 0; i < N; ++i)
       {
