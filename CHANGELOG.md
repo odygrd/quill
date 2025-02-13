@@ -84,7 +84,8 @@
 - [v1.0.0](#v100)
 
 ## v8.1.1
-- Update bazel `rules_cc` to `0.1.1` ([#664](https://github.com/odygrd/quill/issues/664))
+
+- Updated bazel `rules_cc` to `0.1.1` ([#664](https://github.com/odygrd/quill/issues/664))
 
 ## v8.1.0
 
