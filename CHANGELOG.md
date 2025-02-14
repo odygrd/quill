@@ -86,6 +86,9 @@
 
 ## v8.2.0
 
+- Raise minimum `CMake` required version from `3.8` to `3.10` to avoid deprecation warnings.
+- Fix `-Wimplicit-int-float-conversion` warning for Clang builds.
+- Silence `-Wfloat-equal` warning.
 - Added `DeferredFormatCodec` and `DirectFormatCodec` for easier logging of user-defined types and smoother migration
   from pre-`v4` versions. Previously, users had to define a custom `Codec` for every non-trivially copyable user-defined
   type they wanted to log.
