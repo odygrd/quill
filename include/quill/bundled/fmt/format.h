@@ -3005,6 +3005,11 @@ FMTQUILL_CONSTEXPR20 auto format_float(Float value, int precision,
   auto converted_value = convert_float(value);
 
   const bool fixed = specs.type() == presentation_type::fixed;
+
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
   if (value == 0) {
     if (precision <= 0 || !fixed) {
       buf.push_back('0');
@@ -3014,6 +3019,9 @@ FMTQUILL_CONSTEXPR20 auto format_float(Float value, int precision,
     fill_n(buf.data(), precision, '0');
     return -precision;
   }
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic pop
+#endif
 
   int exp = 0;
   bool use_dragon = true;
