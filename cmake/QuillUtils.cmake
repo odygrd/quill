@@ -35,7 +35,7 @@ function(set_common_compile_options target_name)
     target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
             # General warnings for Clang, AppleClang, and GNU
             $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-            -Wall -Wextra -pedantic -Werror -Wredundant-decls -Wfloat-equal -Wimplicit-int-float-conversion>
+            -Wall -Wextra -pedantic -Werror -Wredundant-decls -Wfloat-equal>
 
             # Disable C++20 extension warnings for Clang > 17
             $<$<AND:$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,17>>:
