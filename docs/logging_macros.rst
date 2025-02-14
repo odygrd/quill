@@ -1,3 +1,5 @@
+.. title:: Logging Macros
+
 Logging Macros
 ==============
 

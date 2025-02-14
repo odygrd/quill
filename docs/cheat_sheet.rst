@@ -566,3 +566,64 @@ Outputs:
     Order is timestamp=17220432928367021 symbol=AAPL price=220.1 quantity=100
 
     Order [order: timestamp=17220432928367021 symbol=AAPL price=220.1 quantity=100]
+
+Using External fmt Formatter Specializations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Quill uses a custom namespace, ``fmtquill``, and requires formatter specializations to be defined under the same namespace. However, when an external ``libfmt`` is also used, you can reuse existing ``fmt::formatter`` specializations instead of redefining them.
+
+.. note::
+
+   Ensure that the major version of your external ``libfmt`` matches Quill's internal version to avoid ABI incompatibilities.
+
+If you choose to reuse an existing ``fmt::formatter`` specialization, you can derive from it. However, you must template both ``parse`` and ``format`` to support different ``Context`` types.
+
+.. code:: cpp
+
+    struct User
+    {
+      int id = 1;
+      int age = 32;
+    };
+
+    template <>
+    struct fmt::formatter<User>
+    {
+      template <typename TFormatParseCtx>
+      constexpr auto parse(TFormatParseCtx& ctx) { return ctx.begin(); }
+
+      template <typename TFormatCtx>
+      auto format(::User const& user, TFormatCtx& ctx) const
+      {
+        return fmt::format_to(ctx.out(), "id: {}, age: {}", user.id, user.age);
+      }
+    };
+
+    template <>
+    struct fmtquill::formatter<User> : fmt::formatter<User>
+    {
+    };
+
+    template <>
+    struct quill::Codec<User> : TriviallyCopyableTypeCodec<User>
+    {
+    };
+
+If the external specialization derives from ``fmt::ostream_formatter``, the above approach won't work because ``parse`` is not templated. In this case, you must directly specialize ``fmtquill::ostream_formatter``.
+
+.. code:: cpp
+
+    template <>
+    struct fmt::formatter<User> : fmt::ostream_formatter
+    {
+    };
+
+    template <>
+    struct fmtquill::formatter<User> : fmtquill::ostream_formatter
+    {
+    };
+
+    template <>
+    struct quill::Codec<User> : DeferredFormatCodec<User>
+    {
+    };
