@@ -72,8 +72,8 @@ public:
   {
     if constexpr (ClockType == ClockSourceType::Tsc)
     {
-      return std::chrono::duration<double>(
-        std::chrono::nanoseconds{static_cast<uint64_t>((rdtsc() - _start_tp) * _ns_per_tick)});
+      return std::chrono::duration<double>(std::chrono::nanoseconds{
+        static_cast<uint64_t>(static_cast<double>(rdtsc() - _start_tp) * _ns_per_tick)});
     }
     else
     {
@@ -91,8 +91,8 @@ public:
   {
     if constexpr (ClockType == ClockSourceType::Tsc)
     {
-      return std::chrono::duration_cast<T>(
-        std::chrono::nanoseconds{static_cast<uint64_t>((rdtsc() - _start_tp) * _ns_per_tick)});
+      return std::chrono::duration_cast<T>(std::chrono::nanoseconds{
+        static_cast<uint64_t>(static_cast<double>(rdtsc() - _start_tp) * _ns_per_tick)});
     }
     else
     {
@@ -146,8 +146,8 @@ template <quill::ClockSourceType ClockType>
 struct fmtquill::formatter<quill::detail::StopWatch<ClockType>> : fmtquill::formatter<double>
 {
   template <typename FormatContext>
-  auto format(quill::detail::StopWatch<ClockType> const& sw, FormatContext& ctx) const
-    -> decltype(ctx.out())
+  auto format(quill::detail::StopWatch<ClockType> const& sw,
+              FormatContext& ctx) const -> decltype(ctx.out())
   {
     return fmtquill::formatter<double>::format(sw.elapsed().count(), ctx);
   }
