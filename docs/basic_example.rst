@@ -3,25 +3,9 @@
 Basic Example
 =============
 
-.. code:: cpp
-
-    #include "quill/Backend.h"
-    #include "quill/Frontend.h"
-    #include "quill/LogMacros.h"
-    #include "quill/Logger.h"
-    #include "quill/sinks/ConsoleSink.h"
-
-    int main()
-    {
-      // Start the backend thread
-      quill::Backend::start();
-
-      // Frontend
-      auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
-      quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
-
-      LOG_INFO(logger, "This is a log info example {}", 123);
-    }
+.. literalinclude:: examples/quill_docs_example_basic.cpp
+   :language: cpp
+   :linenos:
 
 In the example above, a console `Sink` is created and passed to a `Logger` with its name set to 'root'.
 

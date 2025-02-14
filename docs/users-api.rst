@@ -22,7 +22,7 @@ BackendTscClock Class
    :members:
 
 SignalHandler Options
----------------
+---------------------
 
 .. doxygenstruct:: SignalHandlerOptions
    :members:

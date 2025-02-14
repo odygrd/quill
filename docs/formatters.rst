@@ -91,10 +91,6 @@ By default ``"%H:%M:%S.%Qns"`` is used.
 Customizing Log Message Formats
 -------------------------------
 
-.. code:: cpp
-
-  quill::Logger* logger =
-    quill::Frontend::create_or_get_logger("root", std::move(sink),
-                                          quill::PatternFormatterOptions { "%(time) [%(thread_id)] %(short_source_location:<28) "
-                                          "LOG_%(log_level:<9) %(logger:<12) %(message)",
-                                          "%H:%M:%S.%Qns", quill::Timezone::GmtTime });
+.. literalinclude:: examples/quill_docs_example_custom_format.cpp
+   :language: cpp
+   :linenos:
