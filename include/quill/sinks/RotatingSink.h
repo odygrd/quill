@@ -303,7 +303,6 @@ public:
    * @param thread_name The name of the thread that generated the log message
    * @param process_id Process Id
    * @param logger_name logger name
-   * @param logger_name logger name
    * @param log_level Log level of the message.
    * @param log_level_description Description of the log level.
    * @param log_level_short_code Short code representing the log level.

@@ -39,7 +39,7 @@ function(set_common_compile_options target_name)
 
             # Clang specific options
             $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:
-            -Wimplicit-int-float-conversion>
+            -Wimplicit-int-float-conversion -Wdocumentation>
 
             # Disable C++20 extension warnings for Clang > 17
             $<$<AND:$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,17>>:
