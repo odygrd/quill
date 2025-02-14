@@ -298,7 +298,7 @@ target_include_directories(${TARGET_NAME}
 
 # Compiler options
 target_compile_options(${TARGET_NAME} INTERFACE
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-gnu-zero-variadic-macro-arguments -Wno-error=float-equal>)
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-gnu-zero-variadic-macro-arguments>)
 
 # Install
 if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
