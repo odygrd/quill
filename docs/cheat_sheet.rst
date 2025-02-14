@@ -605,7 +605,7 @@ If you choose to reuse an existing ``fmt::formatter`` specialization, you can de
     };
 
     template <>
-    struct quill::Codec<User> : TriviallyCopyableTypeCodec<User>
+    struct quill::Codec<User> : DeferredFormatCodec<User>
     {
     };
 
