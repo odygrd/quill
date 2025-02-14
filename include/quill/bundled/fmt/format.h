@@ -40,6 +40,11 @@
 
 #include "base.h"
 
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
 #ifndef FMTQUILL_MODULE
 #  include <cmath>    // std::signbit
 #  include <cstddef>  // std::byte
@@ -4236,6 +4241,10 @@ FMTQUILL_END_NAMESPACE
 // Restore _LIBCPP_REMOVE_TRANSITIVE_INCLUDES.
 #ifdef FMTQUILL_REMOVE_TRANSITIVE_INCLUDES
 #  undef _LIBCPP_REMOVE_TRANSITIVE_INCLUDES
+#endif
+
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic pop
 #endif
 
 #endif  // FMTQUILL_FORMAT_H_
