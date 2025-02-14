@@ -11,29 +11,16 @@ By default, a logger sends all log messages to its ``Sinks``. Filters provide a 
 
 A filter is implemented as a callable object that evaluates each log statement and returns a boolean value. This boolean value determines whether the log statement should be forwarded to the ``Sink`` or filtered out.
 
-.. code:: cpp
+Filtering Logs with the Built-In Filter
+---------------------------------------
 
-    struct Filter
-    {
-      bool operator()(quill::LogRecord const& log_record)
-      {
-        // return true to accept the log message, false to reject it
-        return log_record.metadata.log_level() >= quill::LogLevel::Warning;
-      }
-    };
+.. literalinclude:: examples/quill_docs_example_filter_1.cpp
+   :language: cpp
+   :linenos:
 
-    int main()
-    {
-      // Start the backend thread
-      quill::Backend::start();
+Creating a Custom Log Filter
+----------------------------
 
-      // Frontend
-      auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("filtered_logging.log");
-
-      file_sink->set_filter(Filter{});
-
-      quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-
-      LOG_INFO(logger, "This log will not be written");
-      LOG_WARNING(logger, "This log will be written");
-    }
+.. literalinclude:: ../examples/user_defined_filter.cpp
+   :language: cpp
+   :linenos:

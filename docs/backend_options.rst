@@ -7,8 +7,6 @@ The backend options allow you to customize the behavior of the backend thread an
 
 For example, to pin the backend worker thread to a specific CPU, you can use the following code:
 
-.. code:: cpp
-
-    quill::BackendOptions backend_options;
-    backend_options.cpu_affinity = 5;
-    quill::Backend::start(backend_options);
+.. literalinclude:: examples/quill_docs_example_backend_options.cpp
+   :language: cpp
+   :linenos:

@@ -145,6 +145,7 @@ endif ()
 
 if (QUILL_BUILD_EXAMPLES)
     add_subdirectory(examples)
+    add_subdirectory(docs/examples)
 endif ()
 
 if (QUILL_BUILD_BENCHMARKS)
@@ -389,5 +390,9 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
 endif ()
 
 if (QUILL_DOCS_GEN)
+    if (NOT QUILL_BUILD_EXAMPLES)
+        message(FATAL_ERROR "QUILL_DOCS_GEN requires QUILL_BUILD_EXAMPLES to be ON. Please enable QUILL_BUILD_EXAMPLES.")
+    endif()
+
     add_subdirectory(docs)
 endif ()

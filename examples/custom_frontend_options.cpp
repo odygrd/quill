@@ -1,20 +1,14 @@
+#include "quill/Backend.h"
+#include "quill/Frontend.h"
+#include "quill/sinks/ConsoleSink.h"
+#include "quill/LogMacros.h"
+#include "quill/Logger.h"
+
 /**
  * This example demonstrates defining and utilizing custom FrontendOptions.
  * It's useful when you need to modify the queue type or capacity.
  * FrontendOptions are compile-time options and must be passed as a template argument.
  */
-
-// Backend - required to start the backend thread
-#include "quill/Backend.h"
-
-#include "quill/Frontend.h"
-#include "quill/sinks/ConsoleSink.h"
-
-// Include only Logger, LogMacros as they are the minimal required files for logging functionality
-#include "quill/LogMacros.h"
-#include "quill/Logger.h"
-
-#include <utility>
 
 // define your own FrontendOptions, see "core/FrontendOptions.h" for details
 struct CustomFrontendOptions

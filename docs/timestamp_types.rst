@@ -29,71 +29,9 @@ There are several ways to get the timestamp on the frontend:
 Providing a Custom Timestamp
 ----------------------------
 
-.. code:: cpp
-
-    #include "quill/Backend.h"
-    #include "quill/Frontend.h"
-    #include "quill/LogMacros.h"
-    #include "quill/Logger.h"
-    #include "quill/UserClockSource.h"
-    #include "quill/sinks/ConsoleSink.h"
-
-    #include <atomic>
-    #include <chrono>
-    #include <cstdint>
-    #include <utility>
-
-    class SimulatedClock : public quill::UserClockSource
-    {
-    public:
-      SimulatedClock() = default;
-
-      /**
-       * Required by TimestampClock
-       * @return current time now, in nanoseconds since epoch
-       */
-      uint64_t now() const override { return _timestamp_ns.load(std::memory_order_relaxed); }
-
-      /**
-       * set custom timestamp
-       * @param time_since_epoch timestamp
-       */
-      void set_timestamp(std::chrono::seconds time_since_epoch)
-      {
-        // always convert to nanos
-        _timestamp_ns.store(static_cast<uint64_t>(std::chrono::nanoseconds{time_since_epoch}.count()),
-                            std::memory_order_relaxed);
-      }
-
-    private:
-      std::atomic<uint64_t> _timestamp_ns{0}; // time since epoch - must always be in nanoseconds
-    };
-
-    int main()
-    {
-      quill::BackendOptions backend_options;
-      quill::Backend::start(backend_options);
-
-      // Create a simulated timestamp class. Quill takes a pointer to this class,
-      // and the user is responsible for its lifetime.
-      // Ensure that the instance of this class remains alive for as long as the logger
-      // object exists, until the logger is removed.
-      SimulatedClock simulated_clock;
-
-      auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
-      quill::Logger* logger = quill::Frontend::create_or_get_logger(
-        "root", std::move(console_sink),
-        quill::PatternFormatterOptions { "%(time) %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) %(message)",
-        "%D %H:%M:%S.%Qns", quill::Timezone::LocalTime }, quill::ClockSourceType::User, &simulated_clock);
-
-      // Set our timestamp to Sunday 12 June 2022
-      simulated_clock.set_timestamp(std::chrono::seconds{1655007309});
-      LOG_INFO(logger, "This is a log trace l3 example {}", 1);
-
-      // update our timestamp
-      simulated_clock.set_timestamp(std::chrono::seconds{1655039000});
-      LOG_INFO(logger, "This is a log info {} example", "string");
-    }
+.. literalinclude:: ../examples/user_clock_source.cpp
+   :language: cpp
+   :linenos:
 
 Getting a Synchronized Timestamp with the Backend Thread TSC Clock
 ------------------------------------------------------------------
@@ -101,44 +39,6 @@ Getting a Synchronized Timestamp with the Backend Thread TSC Clock
 In some cases, when using TSC for log statements, you might want to obtain a timestamp that is synchronized with the timestamp seen in the log statements.
 To achieve this, you can use the :cpp:class:`BackendTscClock`. See the example below:
 
-.. code-block:: cpp
-
-    #include "quill/Backend.h"
-    #include "quill/BackendTscClock.h"
-    #include "quill/Frontend.h"
-    #include "quill/LogMacros.h"
-    #include "quill/Logger.h"
-    #include "quill/sinks/ConsoleSink.h"
-
-    #include <iostream>
-    #include <utility>
-
-    int main()
-    {
-      quill::Backend::start();
-
-      auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
-
-      // Ensure at least one logger with quill::ClockSourceType::Tsc is created for BackendTscClock to function
-      quill::Logger* logger = quill::Frontend::create_or_get_logger(
-        "root", std::move(console_sink),
-        quill::PatternFormatterOptions { "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
-        "%(message)",
-        "%H:%M:%S.%Qns", quill::Timezone::LocalTime }, quill::ClockSourceType::Tsc);
-
-      // Log an informational message which will also init the backend RdtscClock
-      LOG_INFO(logger, "This is a log info example with number {}", 123);
-
-      // The function `quill::detail::BackendManager::instance().convert_rdtsc_to_epoch_time(quill::detail::rdtsc())`
-      // will return a valid timestamp only after the backend worker has started and processed
-      // at least one log with `ClockSourceType::Tsc`.
-      // This is because the Rdtsc clock is lazily initialized by the backend worker on the first log message.
-      // To ensure at least one log message is processed, we call flush_log here.
-      logger->flush_log();
-
-      // Get a timestamp synchronized with the backend's clock
-      uint64_t const backend_timestamp = quill::BackendTscClock::now().time_since_epoch().count();
-      std::cout << "Synchronized timestamp with the backend: " << backend_timestamp << std::endl;
-
-      return 0;
-    }
+.. literalinclude:: examples/quill_docs_timestamp_types_1.cpp
+   :language: cpp
+   :linenos:
