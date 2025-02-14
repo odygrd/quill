@@ -568,7 +568,7 @@ Outputs:
     Order [order: timestamp=17220432928367021 symbol=AAPL price=220.1 quantity=100]
 
 Using External fmt Formatter Specializations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Quill uses a custom namespace, ``fmtquill``, and requires formatter specializations to be defined under the same namespace. However, when an external ``libfmt`` is also used, you can reuse existing ``fmt::formatter`` specializations instead of redefining them.
 
