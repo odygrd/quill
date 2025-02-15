@@ -17,7 +17,7 @@ Quill is a high-performance asynchronous C++ logging library. It excels in perfo
 
    overview
    installing
-   examples
+   quick_start
    cheat_sheet
 
 .. toctree::

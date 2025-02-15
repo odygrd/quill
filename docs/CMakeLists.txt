@@ -41,20 +41,26 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS
         # Other docs files you want to track should go here (or in some variable)
+        ${CMAKE_CURRENT_SOURCE_DIR}/backend_options.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/backtrace_logging.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/basic_example.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/logging_macros.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/sinks.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/timestamp_types.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/sink_types.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/cheat_sheet.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/csv_writing.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/filters.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/formatters.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/loggers.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/backtrace_logging.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/frontend_options.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/users-api.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/installing.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/examples.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/json_logging.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/log_tagging.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/loggers.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/logging_macros.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/overview.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/quick_start.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/sink_types.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/sinks.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/timestamp_types.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/users-api.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/wide_strings.rst
         ${DOXYGEN_INDEX_FILE}
         MAIN_DEPENDENCY ${SPHINX_SOURCE}/conf.py

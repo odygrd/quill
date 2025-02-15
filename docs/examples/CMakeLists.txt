@@ -4,12 +4,12 @@ set(EXAMPLE_TARGETS
         quill_docs_example_backtrace_logging_1
         quill_docs_example_backtrace_logging_2
         quill_docs_example_basic
+        quill_docs_example_console
         quill_docs_example_csv_writer_1
         quill_docs_example_custom_format
         quill_docs_example_file
         quill_docs_example_filter_1
         quill_docs_example_json_logging
-        quill_docs_example_simple
         quill_docs_timestamp_types_1
 )
 
