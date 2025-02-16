@@ -13,8 +13,47 @@ Quill uses ``libfmt`` for formatting, supporting the ``{}`` placeholders syntax 
 
 The library minimizes unnecessary header inclusions; therefore, to log STL types, you must explicitly include headers from the ``quill/std/`` folder.
 
+Preprocessor Configuration Flags
+--------------------------------
+The library provides several preprocessor flags to customize its behavior at compile time.
+
+.. code:: cmake
+
+    add_compile_definitions(-DQUILL_NO_EXCEPTIONS)
+
+Disables exception handling support, allowing the library to be built without exceptions.
+
+.. code:: cmake
+
+    add_compile_definitions(-DQUILL_NO_THREAD_NAME_SUPPORT)
+
+Disables features that require thread name retrieval. This is useful for compatibility with older Windows versions (e.g., Windows Server 2012/2016) and Android.
+
+.. code:: cmake
+
+    add_compile_definitions(-DQUILL_DISABLE_NON_PREFIXED_MACROS)
+
+Disables the non-prefixed `LOG_<LEVEL>` macros, keeping only the `QUILL_LOG_<LEVEL>` macros. This helps prevent conflicts with other logging libraries.
+
+.. code:: cmake
+
+    add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=1)
+
+Enables immediate flushing after each log statement by calling ``flush_log()``. This blocks execution until the backend processes the log statement, effectively simulating synchronous logging. This option is useful in debug builds, especially when stepping through a debugger.
+
+.. code:: cmake
+
+    add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_<ACTIVE_LEVEL>)
+
+Compiles only the specified log level and higher, excluding lower levels at compile time. This helps reduce branching in optimized builds.
+For example, to keep only warning level and above:
+
+.. code:: cmake
+
+    add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+
 LOGV Macros
-------------
+-----------
 In addition to the ``LOG_`` macros, the ``LOGV_`` macros provide a convenient alternative.
 
 However, it's important to note that these macros do not support the ``libfmt`` syntax. Instead, they use a hardcoded format string and support up to 20 arguments.

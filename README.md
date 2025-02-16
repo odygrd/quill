@@ -376,6 +376,8 @@ can be less convenient.
 
 ## 🧩 Usage
 
+Also see [Documentation Quick Start](https://quillcpp.readthedocs.io/en/latest/quick_start.html)
+
 ```c++
 #include "quill/Backend.h"
 #include "quill/Frontend.h"

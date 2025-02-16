@@ -3,7 +3,7 @@
 Quick Start
 ===========
 
-The library consists of two main components: the frontend and the backend.
+The library is header only and consists of two main components: the frontend and the backend.
 
 The **frontend** captures a copy of the log arguments and metadata from each ``LOG_*`` statement and places them in a thread-local SPSC queue buffer.
 
@@ -20,6 +20,8 @@ These headers have minimal dependencies, keeping compilation times low.
 
 For even faster compilation, consider building the backend initialization as a static library, as shown in:
 `Recommended Usage Example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
+
+For a quick reference on usage see :doc:`Cheat Sheet <cheat_sheet>`.
 
 Logging to Console
 ------------------
