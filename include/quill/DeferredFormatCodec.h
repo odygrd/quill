@@ -131,7 +131,7 @@ struct DeferredFormatCodec
     else
     {
       auto aligned_ptr = align_pointer(buffer, alignof(T));
-      auto* tmp = reinterpret_cast<T*>(aligned_ptr);
+      auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
 
       // Take a copy
       static_assert(is_copy_constructible<T>::value, "T is not copy-constructible!");
