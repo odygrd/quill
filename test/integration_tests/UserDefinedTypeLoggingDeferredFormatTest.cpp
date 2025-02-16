@@ -202,7 +202,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
     {
       LOG_INFO(logger, "CustomTypeCCThrows {}", custom_type_cct);
     }
-    catch (std::exception const& e)
+    catch (std::exception const&)
     {
       throws = true;
     }
