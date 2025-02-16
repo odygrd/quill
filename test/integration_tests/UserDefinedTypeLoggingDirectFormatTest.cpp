@@ -71,6 +71,43 @@ struct quill::Codec<CustomTypeTC> : quill::DirectFormatCodec<CustomTypeTC>
 };
 
 /***/
+struct CustomTypeTCThrows
+{
+  CustomTypeTCThrows(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+
+private:
+  template <typename T, typename Char, typename Enable>
+  friend struct fmtquill::formatter;
+
+  int name{};
+  double surname{};
+  uint32_t age{};
+};
+
+/***/
+template <>
+struct fmtquill::formatter<CustomTypeTCThrows>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::CustomTypeTCThrows const& custom_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {} {}", custom_type.name,
+                               custom_type.surname, custom_type.age);
+  }
+};
+
+template <>
+struct quill::Codec<CustomTypeTCThrows> : quill::DirectFormatCodec<CustomTypeTCThrows>
+{
+};
+
+/***/
 class CustomTypeCC
 {
 public:
@@ -158,8 +195,29 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
   logger->set_log_level(quill::LogLevel::TraceL3);
 
   {
+    CustomTypeTCThrows custom_type_cct{1222, 13.12, 12};
+    bool throws{false};
+
+    try
+    {
+      LOG_INFO(logger, "CustomTypeTCThrows {}", custom_type_cct);
+    }
+    catch (std::exception const& e)
+    {
+      throws = true;
+    }
+
+    REQUIRE(throws);
+  }
+
+  {
     CustomTypeTC custom_type_tc{1222, 13.12, 12};
     LOG_INFO(logger, "CustomTypeTC {}", custom_type_tc);
+  }
+
+  {
+    CustomTypeTC custom_type_tcar[2] = {CustomTypeTC{1222, 13.12, 12}, CustomTypeTC{1222, 13.12, 12}};
+    LOG_INFO(logger, "CustomTypeTCAr {}", custom_type_tcar);
   }
 
   {
@@ -267,10 +325,13 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  // REQUIRE_EQ(file_contents.size(), 15);
+  REQUIRE_EQ(file_contents.size(), 16);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTCAr [\"Name: 1222, Surname: 13.12, Age: 12\", \"Name: 1222, Surname: 13.12, Age: 12\"]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Vec [\"Name: 111, Surname: 1.1, Age: 13\", \"Name: 123, Surname: 12.1, Age: 23\", \"Name: 456, Surname: 13.1, Age: 33\"]"}));

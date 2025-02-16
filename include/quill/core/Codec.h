@@ -282,7 +282,7 @@ namespace detail
  */
 template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
-  QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, Args const&... args) noexcept
+  QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, Args const&... args)
 {
   if constexpr (!std::conjunction_v<std::disjunction<
                   std::is_arithmetic<remove_cvref_t<Args>>, std::is_enum<remove_cvref_t<Args>>,
@@ -310,7 +310,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string
  */
 template <typename... Args>
 QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
-                                Args const&... args) noexcept
+                                Args const&... args)
 {
   QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
   (Codec<remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache,

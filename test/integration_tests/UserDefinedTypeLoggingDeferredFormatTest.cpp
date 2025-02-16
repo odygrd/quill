@@ -27,6 +27,7 @@
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
 
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -37,15 +38,16 @@ using namespace quill;
 struct CustomTypeTC
 {
   CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+  CustomTypeTC() = default;
 
 private:
   template <typename T, typename Char, typename Enable>
   friend struct fmtquill::formatter;
 
-  template <typename T>
-  friend struct quill::DeferredFormatCodec;
+  //  template <typename T>
+  //  friend struct quill::DeferredFormatCodec;
 
-  CustomTypeTC() = default;
+  // CustomTypeTC() = default;
 
   int name{};
   double surname{};
@@ -134,6 +136,37 @@ struct quill::Codec<CustomTypeCC> : quill::DeferredFormatCodec<CustomTypeCC>
 };
 
 /***/
+class CustomTypeCCThrows
+{
+public:
+  CustomTypeCCThrows() = default;
+
+  CustomTypeCCThrows(CustomTypeCCThrows const&) { throw std::runtime_error("error"); }
+
+  CustomTypeCCThrows(std::string name) : name(std::move(name)) {};
+
+  std::string name;
+};
+
+/***/
+template <>
+struct fmtquill::formatter<CustomTypeCCThrows>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::CustomTypeCCThrows const& user, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "Name: {}", user.name);
+  }
+};
+
+/***/
+template <>
+struct quill::Codec<CustomTypeCCThrows> : quill::DeferredFormatCodec<CustomTypeCCThrows>
+{
+};
+
+/***/
 TEST_CASE("custom_type_defined_type_deferred_format_logging")
 {
   static constexpr char const* filename = "custom_type_defined_type_deferred_format_logging.log";
@@ -162,8 +195,35 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   logger->set_log_level(quill::LogLevel::TraceL3);
 
   {
+    CustomTypeCCThrows custom_type_cct{"tt"};
+    bool throws{false};
+
+    try
+    {
+      LOG_INFO(logger, "CustomTypeCCThrows {}", custom_type_cct);
+    }
+    catch (std::exception const& e)
+    {
+      throws = true;
+    }
+
+    REQUIRE(throws);
+  }
+
+  {
     CustomTypeTC custom_type_tc{1222, 13.12, 12};
     LOG_INFO(logger, "CustomTypeTC {}", custom_type_tc);
+  }
+
+  {
+    CustomTypeTC custom_type_tcar[2] = {CustomTypeTC{1222, 13.12, 12}, CustomTypeTC{1222, 13.12, 12}};
+    LOG_INFO(logger, "CustomTypeTCAr {}", custom_type_tcar);
+  }
+
+  {
+    CustomTypeCC custom_type_ccar[2] = {CustomTypeCC{"Super", "User", 1},
+                                        CustomTypeCC{"Super", "User", 1}};
+    LOG_INFO(logger, "CustomTypeCCAr {}", custom_type_ccar);
   }
 
   {
@@ -271,10 +331,16 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 15);
+  REQUIRE_EQ(file_contents.size(), 17);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTCAr [Name: 1222, Surname: 13.12, Age: 12, Name: 1222, Surname: 13.12, Age: 12]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeCCAr [Name: Super, Surname: User, Age: 1, Favorite Colors: [\"red\", \"blue\", \"green\"], Name: Super, Surname: User, Age: 1, Favorite Colors: [\"red\", \"blue\", \"green\"]]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Vec [Name: 111, Surname: 1.1, Age: 13, Name: 123, Surname: 12.1, Age: 23, Name: 456, Surname: 13.1, Age: 33]"}));

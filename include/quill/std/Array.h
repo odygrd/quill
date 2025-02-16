@@ -28,27 +28,61 @@ QUILL_BEGIN_NAMESPACE
 
 /** Specialization for arrays of arithmetic types and enums, char arrays are handled in Codec.h **/
 template <typename T, std::size_t N>
-struct Codec<T[N], std::enable_if_t<std::conjunction_v<std::disjunction<std::is_arithmetic<T>, std::is_enum<T>>, std::negation<std::is_same<T, char>>>>>
+struct Codec<T[N], std::enable_if_t<std::negation_v<std::is_same<T, char>>>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector&, const T (&arg)[N]) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, const T (&arg)[N]) noexcept
   {
-    return sizeof(arg);
+    if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)
+    {
+      // Built-in types (arithmetic or enum) don't require iteration.
+      // Note: This excludes all trivially copyable types; e.g., std::string_view should not fall into this branch.
+      return sizeof(T) * N;
+    }
+    else
+    {
+      // For other complex types it's essential to determine the exact size of each element.
+      // For instance, in the case of a collection of std::string, we need to know the exact size
+      // of each string as we will be copying them directly to our queue buffer.
+      size_t total_size{0};
+
+      for (auto const& elem : arg)
+      {
+        total_size += Codec<T>::compute_encoded_size(conditional_arg_size_cache, elem);
+      }
+
+      return total_size;
+    }
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, const T (&arg)[N]) noexcept
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+                     uint32_t& conditional_arg_size_cache_index, const T (&arg)[N]) noexcept
   {
-    std::memcpy(buffer, &arg, sizeof(arg));
-    buffer += sizeof(arg);
+    if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)
+    {
+      // Built-in types (arithmetic or enum) don't require iteration.
+      // Note: This excludes all trivially copyable types; e.g., std::string_view should not fall into this branch.
+      std::memcpy(buffer, &arg, sizeof(T) * N);
+      buffer += sizeof(T) * N;
+    }
+    else
+    {
+      for (size_t i = 0; i < N; ++i)
+      {
+        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg[i]);
+      }
+    }
   }
 
   static auto decode_arg(std::byte*& buffer)
   {
-    std::array<T, N> arg;
+    using ReturnType =
+      std::conditional_t<std::is_same_v<T, std::string>, std::string, decltype(Codec<T>::decode_arg(buffer))>;
+
+    std::array<ReturnType, N> arg;
 
     for (size_t i = 0; i < N; ++i)
     {
-      std::memcpy(&arg[i], buffer, sizeof(T));
-      buffer += sizeof(T);
+      arg[i] = Codec<T>::decode_arg(buffer);
     }
 
     return arg;
