@@ -97,8 +97,8 @@ struct fmtquill::formatter<CustomTypeTCThrows>
   template <typename FormatContext>
   auto format(::CustomTypeTCThrows const& custom_type, FormatContext& ctx) const
   {
-    return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {} {}", custom_type.name,
-                               custom_type.surname, custom_type.age);
+    return fmtquill::format_to(ctx.out(), fmtquill::runtime("Name: {}, Surname: {}, Age: {} {}"),
+                               custom_type.name, custom_type.surname, custom_type.age);
   }
 };
 
