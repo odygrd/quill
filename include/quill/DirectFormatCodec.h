@@ -12,7 +12,10 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
+#include <string_view>
 
 QUILL_BEGIN_NAMESPACE
 
@@ -83,20 +86,21 @@ QUILL_BEGIN_NAMESPACE
 template <typename T>
 struct DirectFormatCodec
 {
-  static size_t compute_encoded_size(quill::detail::SizeCacheVector& conditional_arg_size_cache, T const& arg) noexcept
+  static size_t compute_encoded_size(quill::detail::SizeCacheVector& conditional_arg_size_cache, T const& arg)
   {
-      return sizeof(uint32_t) +
-        conditional_arg_size_cache.push_back(static_cast<uint32_t>(fmtquill::formatted_size("{}", arg)));
+    // The computed size includes the size of the length field
+    return sizeof(uint32_t) +
+      conditional_arg_size_cache.push_back(static_cast<uint32_t>(fmtquill::formatted_size("{}", arg)));
   }
 
   static void encode(std::byte*& buffer, quill::detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, T const& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, T const& arg)
   {
-      uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      std::memcpy(buffer, &len, sizeof(len));
-      buffer += sizeof(len);
-      fmtquill::format_to_n(reinterpret_cast<char*>(buffer), len, "{}", arg);
-      buffer += len;
+    uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+    std::memcpy(buffer, &len, sizeof(len));
+    buffer += sizeof(len);
+    fmtquill::format_to_n(reinterpret_cast<char*>(buffer), len, "{}", arg);
+    buffer += len;
   }
 
   static std::string_view decode_arg(std::byte*& buffer)
