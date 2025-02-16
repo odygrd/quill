@@ -18,8 +18,7 @@ Logging types
 
 For primitive types, ``std::string``, and ``std::string_view``, the library will perform a deep copy, and all formatting will occur asynchronously in the backend thread.
 For standard library types you need to include the relevant file under the ``quill/std`` folder.
-For user-defined types you should provide your own function to serialize the type or alternatively convert the type to a string on the hot path for non-latency-sensitive code.
-See `user-defined-type-logging-example <https://github.com/odygrd/quill/tree/master/examples/advanced>`_
+For user-defined types you can provide a ``Codec`` specialization to serialize the type or alternatively convert the type to a string on the hot path for non-latency-sensitive code.
 
 Reliable Logging Mechanism
 --------------------------
