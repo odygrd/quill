@@ -11,8 +11,12 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
+#include <new>
 #include <type_traits>
+#include <utility>
 
 QUILL_BEGIN_NAMESPACE
 
@@ -81,8 +85,6 @@ QUILL_BEGIN_NAMESPACE
 template <typename T>
 struct DeferredFormatCodec
 {
-  // Checks like this Will fail for types with private ctors and friends declarations
-  //  static_assert(std::is_copy_constructible_v<T>, "T must be copy constructible");
   static constexpr bool is_trivially_copyable = std::is_trivially_copyable_v<T>;
 
   static size_t compute_encoded_size(detail::SizeCacheVector&, T const&) noexcept
@@ -93,11 +95,12 @@ struct DeferredFormatCodec
     }
     else
     {
-      return sizeof(T) + alignof(T);
+      // If it’s misaligned, the worst-case scenario is when the pointer is off by one byte from an alignment boundary
+      return sizeof(T) + alignof(T) - 1;
     }
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T const& arg) noexcept
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T const& arg)
   {
     if constexpr (is_trivially_copyable)
     {
@@ -108,7 +111,7 @@ struct DeferredFormatCodec
     {
       auto aligned_ptr = align_pointer(buffer, alignof(T));
       new (static_cast<void*>(aligned_ptr)) T(arg);
-      buffer += sizeof(T) + alignof(T);
+      buffer += sizeof(T) + alignof(T) - 1;
     }
   }
 
@@ -116,6 +119,7 @@ struct DeferredFormatCodec
   {
     if constexpr (is_trivially_copyable)
     {
+      static_assert(is_default_constructible<T>::value, "T is not default-constructible!");
       T arg;
 
       // Cast to void* to silence compiler warning about private members
@@ -127,9 +131,10 @@ struct DeferredFormatCodec
     else
     {
       auto aligned_ptr = align_pointer(buffer, alignof(T));
-      auto* tmp = reinterpret_cast<T*>(aligned_ptr);
+      auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
 
       // Take a copy
+      static_assert(is_copy_constructible<T>::value, "T is not copy-constructible!");
       T arg{*tmp};
 
       if constexpr (!std::is_trivially_destructible_v<T>)
@@ -138,17 +143,53 @@ struct DeferredFormatCodec
         tmp->~T();
       }
 
-      buffer += sizeof(T) + alignof(T);
+      buffer += sizeof(T) + alignof(T) - 1;
       return arg;
     }
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
+    static_assert(is_move_constructible<T>::value, "T is not move-constructible!");
     args_store->push_back(decode_arg(buffer));
   }
 
 private:
+  // These trait implementations will take the friend declaration into account
+
+  // Default constructible check
+  template <typename U, typename = void>
+  struct is_default_constructible : std::false_type
+  {
+  };
+
+  template <typename U>
+  struct is_default_constructible<U, std::void_t<decltype(U())>> : std::true_type
+  {
+  };
+
+  // Copy constructible check: tests if we can call U(const U&)
+  template <typename U, typename = void>
+  struct is_copy_constructible : std::false_type
+  {
+  };
+
+  template <typename U>
+  struct is_copy_constructible<U, std::void_t<decltype(U(std::declval<U const&>()))>> : std::true_type
+  {
+  };
+
+  // Move constructible check: tests if we can call U(U&&)
+  template <typename U, typename = void>
+  struct is_move_constructible : std::false_type
+  {
+  };
+
+  template <typename U>
+  struct is_move_constructible<U, std::void_t<decltype(U(std::declval<U&&>()))>> : std::true_type
+  {
+  };
+
   static std::byte* align_pointer(void* pointer, size_t alignment) noexcept
   {
     return reinterpret_cast<std::byte*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) &
