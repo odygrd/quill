@@ -20,6 +20,12 @@
 
 QUILL_BEGIN_NAMESPACE
 
+#if defined(_WIN32) && defined(_MSC_VER)
+  // silence msvc warning C4702: unreachable code
+  #pragma warning(push)
+  #pragma warning(disable : 4702)
+#endif
+
 /**
  * @brief Provides serialization (codec) functionality for complex user-defined types.
  *
@@ -196,5 +202,9 @@ private:
                                         ~(alignment - 1ul));
   }
 };
+
+#if defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(pop)
+#endif
 
 QUILL_END_NAMESPACE

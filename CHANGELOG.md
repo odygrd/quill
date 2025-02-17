@@ -104,6 +104,7 @@
   - [DirectFormatCodec Usage](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging_direct_format.cpp)
   - [Documentation](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html#logging-user-defined-types)
 
+- Added codec support for C-style arrays of user-defined types in `std/Array.h`
 - Marked `TriviallyCopyableTypeCodec` as deprecated. `DeferredFormatCodec` should be used instead, requiring no code
   changes.
 

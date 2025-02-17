@@ -172,6 +172,12 @@ TEST_CASE("std_array_logging")
     std::array<CustomTypeTC, 4> custom_type_tc = {CustomTypeTC{1, 2, 3}, CustomTypeTC{4, 5, 6},
                                                   CustomTypeTC{7, 8, 9}, CustomTypeTC{10, 11, 12}};
     LOG_INFO(logger, "custom_type_tc {}", custom_type_tc);
+
+    std::string sra[2] = {"test_1", "test_2"};
+    LOG_INFO(logger, "sra [{}]", sra);
+
+    std::string_view svra[2] = {"test_21", "test_22"};
+    LOG_INFO(logger, "svra [{}]", svra);
   }
 
   logger->flush_log();
@@ -259,6 +265,12 @@ TEST_CASE("std_array_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       custom_type_tc [Name: 1, Surname: 2, Age: 3, Name: 4, Surname: 5, Age: 6, Name: 7, Surname: 8, Age: 9, Name: 10, Surname: 11, Age: 12]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       sra [[\"test_1\", \"test_2\"]]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       svra [[\"test_21\", \"test_22\"]]"}));
 
   testing::remove_file(filename);
 }
