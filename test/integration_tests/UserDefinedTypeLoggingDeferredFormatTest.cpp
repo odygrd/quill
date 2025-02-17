@@ -143,7 +143,7 @@ public:
 
   CustomTypeCCThrows(CustomTypeCCThrows const&) { throw std::runtime_error("error"); }
 
-  CustomTypeCCThrows(std::string name) : name(std::move(name)) {};
+  explicit CustomTypeCCThrows(std::string name) : name(std::move(name)) {};
 
   std::string name;
 };
