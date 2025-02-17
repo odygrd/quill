@@ -85,6 +85,10 @@ TEST_CASE("arithmetic_types_logging")
     LOG_INFO(logger, "invalid format [{%f}]", 321.1);
   }
 
+  int v = 111;
+  int* ptr_test = &v;
+  LOG_INFO(logger, "pointer [{}]", static_cast<void const*>(ptr_test));
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -133,6 +137,11 @@ TEST_CASE("arithmetic_types_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       cri [-123]"}));
+
+  std::string expected_ptr_value_str{"LOG_INFO      " + logger_name + "       pointer ["};
+  expected_ptr_value_str += fmtquill::format("{}", fmtquill::ptr(ptr_test));
+  expected_ptr_value_str += "]";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_ptr_value_str));
 
   REQUIRE(quill::testing::file_contains(
     file_contents,

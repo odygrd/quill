@@ -80,9 +80,9 @@ struct fmtquill::formatter<TestEnumClass> : fmtquill::ostream_formatter
 };
 
 /***/
-TEST_CASE("arithmetic_array_types_logging")
+TEST_CASE("c_array_types_logging")
 {
-  static constexpr char const* filename = "arithmetic_array_types_logging.log";
+  static constexpr char const* filename = "c_array_types_logging.log";
   static std::string const logger_name = "logger";
 
   // Start the logging backend thread
@@ -104,6 +104,12 @@ TEST_CASE("arithmetic_array_types_logging")
   Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink));
 
   {
+    std::string sra[2] = {"test_1", "test_2"};
+    LOG_INFO(logger, "sra [{}]", sra);
+
+    std::string_view svra[2] = {"test_21", "test_22"};
+    LOG_INFO(logger, "svra [{}]", svra);
+
     bool a[2] = {true, false};
     LOG_INFO(logger, "a {}", a);
 
@@ -119,20 +125,23 @@ TEST_CASE("arithmetic_array_types_logging")
     auto& e = c;
     LOG_INFO(logger, "e {}", e);
 
-    std::string y{"test"};
-    int x = 111;
-    LOG_INFO(logger, "a b c y d e x {} {} {} {} {} {} {}", a, b, c, y, d, e, x);
-
     TestEnum t{TestEnum::Test2};
     LOG_INFO(logger, "t {}", t);
 
+    TestEnum ta[2]{TestEnum::Test2, TestEnum::Test1};
+    LOG_INFO(logger, "ta {}", ta);
+
     TestEnumClass tc{TestEnumClass::Test5};
     LOG_INFO(logger, "tc {}", tc);
-  }
 
-  int v = 111;
-  int* ptr_test = &v;
-  LOG_INFO(logger, "pointer [{}]", static_cast<void const*>(ptr_test));
+    TestEnumClass tca[2]{TestEnumClass::Test5, TestEnumClass::Test4};
+    LOG_INFO(logger, "tca {}", tca);
+
+    std::string y{"test"};
+    int x = 111;
+    LOG_INFO(logger, "a b c y d e x t ta tc tca {} {} {} {} {} {} {} {} {} {} {}", a, b, c, y, d, e,
+             x, t, ta, tc, tca);
+  }
 
   logger->flush_log();
   Frontend::remove_logger(logger);
@@ -142,6 +151,12 @@ TEST_CASE("arithmetic_array_types_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       sra [[\"test_1\", \"test_2\"]]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       svra [[\"test_21\", \"test_22\"]]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       a [true, false]"}));
@@ -159,18 +174,19 @@ TEST_CASE("arithmetic_array_types_logging")
     file_contents, std::string{"LOG_INFO      " + logger_name + "       e [123.321, 0]"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       a b c y d e x [true, false] [123, 456, 789, 321, 654, 987] [123.321, 0] test [123, 456, 789, 321, 654, 987] [123.321, 0] 111"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       t Test2"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       t Test2"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       ta [Test2, Test1]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       tc Test5"}));
 
-  std::string expected_ptr_value_str{"LOG_INFO      " + logger_name + "       pointer ["};
-  expected_ptr_value_str += fmtquill::format("{}", fmtquill::ptr(ptr_test));
-  expected_ptr_value_str += "]";
-  REQUIRE(quill::testing::file_contains(file_contents, expected_ptr_value_str));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       tca [Test5, Test4]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       a b c y d e x t ta tc tca [true, false] [123, 456, 789, 321, 654, 987] [123.321, 0] test [123, 456, 789, 321, 654, 987] [123.321, 0] 111 Test2 [Test2, Test1] Test5 [Test5, Test4]"}));
 
   testing::remove_file(filename);
 }
