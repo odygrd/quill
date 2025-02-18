@@ -272,7 +272,6 @@ To log user-defined types, you need to define how they should be serialized or c
        If the object is safe to copy across threads (e.g., does not contain `std::shared_ptr` members being modified), this approach takes a copy of the object and formats it later on the backend logging thread.
 
        - Works for both trivially and non-trivially copyable types.
-       - If the type is **trivially copyable**, it should have a **default constructor**.
        - If the type is **not trivially copyable**, it should have both a **copy constructor** and a **move constructor**.
 
     2. **Use DirectFormatCodec**
@@ -352,7 +351,6 @@ Outputs:
 
 Serialising Trivially Copyable Types With Non-Default Constructor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For trivially copyable types with a non-default constructor, make ``quill::DeferredFormatCodec<T>`` a friend and ensure there is a private default constructor.
 
 .. code:: cpp
 

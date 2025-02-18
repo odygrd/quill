@@ -77,8 +77,52 @@ struct quill::Codec<CustomTypeTC> : quill::DeferredFormatCodec<CustomTypeTC>
 {
 };
 
-static_assert(quill::DeferredFormatCodec<CustomTypeTC>::is_trivially_copyable,
+static_assert(quill::DeferredFormatCodec<CustomTypeTC>::use_memcpy,
               "CustomTypeTC must be trivially copyable");
+
+/***/
+struct CustomTypeTCCC
+{
+  CustomTypeTCCC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
+
+  // Trivially copyable, No default ctor, but copy and move ctor exist
+
+private:
+  template <typename T, typename Char, typename Enable>
+  friend struct fmtquill::formatter;
+
+  int name{};
+  double surname{};
+  uint32_t age{};
+};
+
+/***/
+template <>
+struct fmtquill::formatter<CustomTypeTCCC>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::CustomTypeTCCC const& custom_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}", custom_type.name,
+                               custom_type.surname, custom_type.age);
+  }
+};
+
+template <>
+struct quill::Codec<CustomTypeTCCC> : quill::DeferredFormatCodec<CustomTypeTCCC>
+{
+};
+
+static_assert(std::is_trivially_copyable_v<CustomTypeTCCC>,
+              "CustomTypeTCCC should be trivially copyable");
+static_assert(!quill::DeferredFormatCodec<CustomTypeTCCC>::use_memcpy,
+              "CustomTypeTCCC should not use_memcpy because no default ctor");
 
 /***/
 class CustomTypeCC
@@ -216,6 +260,11 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   }
 
   {
+    CustomTypeTCCC custom_type_tccc{1233, 13.12, 12};
+    LOG_INFO(logger, "CustomTypeTCCC {}", custom_type_tccc);
+  }
+
+  {
     CustomTypeTC custom_type_tcar[2] = {CustomTypeTC{1222, 13.12, 12}, CustomTypeTC{1222, 13.12, 12}};
     LOG_INFO(logger, "CustomTypeTCAr {}", custom_type_tcar);
   }
@@ -331,10 +380,13 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 17);
+  REQUIRE_EQ(file_contents.size(), 18);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTCCC Name: 1233, Surname: 13.12, Age: 12"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTCAr [Name: 1222, Surname: 13.12, Age: 12, Name: 1222, Surname: 13.12, Age: 12]"}));
