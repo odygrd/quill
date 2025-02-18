@@ -34,7 +34,6 @@ QUILL_BEGIN_NAMESPACE
  *
  * This approach avoids expensive string formatting on the hot path.
  *
- * For a trivially copyable types it requires a default constructor
  * For a non trivially copyable types it requires valid copy constructor and move constructor.
  *
  * Thread-Safety for non trivially copyable types:
@@ -91,11 +90,12 @@ QUILL_BEGIN_NAMESPACE
 template <typename T>
 struct DeferredFormatCodec
 {
-  static constexpr bool is_trivially_copyable = std::is_trivially_copyable_v<T>;
+  static constexpr bool use_memcpy =
+    std::conjunction_v<std::is_trivially_copyable<T>, std::is_default_constructible<T>>;
 
   static size_t compute_encoded_size(detail::SizeCacheVector&, T const&) noexcept
   {
-    if constexpr (is_trivially_copyable)
+    if constexpr (use_memcpy)
     {
       return sizeof(T);
     }
@@ -108,7 +108,7 @@ struct DeferredFormatCodec
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T const& arg)
   {
-    if constexpr (is_trivially_copyable)
+    if constexpr (use_memcpy)
     {
       std::memcpy(buffer, &arg, sizeof(arg));
       buffer += sizeof(arg);
@@ -116,16 +116,18 @@ struct DeferredFormatCodec
     else
     {
       auto aligned_ptr = align_pointer(buffer, alignof(T));
+
+      static_assert(is_copy_constructible<T>::value, "T is not copy-constructible!");
       new (static_cast<void*>(aligned_ptr)) T(arg);
+
       buffer += sizeof(T) + alignof(T) - 1;
     }
   }
 
   static T decode_arg(std::byte*& buffer)
   {
-    if constexpr (is_trivially_copyable)
+    if constexpr (use_memcpy)
     {
-      static_assert(is_default_constructible<T>::value, "T is not default-constructible!");
       T arg;
 
       // Cast to void* to silence compiler warning about private members
@@ -139,9 +141,8 @@ struct DeferredFormatCodec
       auto aligned_ptr = align_pointer(buffer, alignof(T));
       auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
 
-      // Take a copy
-      static_assert(is_copy_constructible<T>::value, "T is not copy-constructible!");
-      T arg{*tmp};
+      static_assert(is_move_constructible<T>::value, "T is not move-constructible!");
+      T arg{std::move(*tmp)};
 
       if constexpr (!std::is_trivially_destructible_v<T>)
       {
@@ -156,7 +157,6 @@ struct DeferredFormatCodec
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    static_assert(is_move_constructible<T>::value, "T is not move-constructible!");
     args_store->push_back(decode_arg(buffer));
   }
 
