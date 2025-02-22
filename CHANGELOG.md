@@ -86,11 +86,22 @@
 
 ## v8.2.0
 
-- Raised minimum `CMake` required version from `3.8` to `3.10` to avoid deprecation warnings.
-- Fixed warnings: `-Wimplicit-int-float-conversion`, `-Wfloat-equal`, and `-Wdocumentation`.
 - Added `DeferredFormatCodec` and `DirectFormatCodec` for easier logging of user-defined types and smoother migration
   from pre-`v4` versions. Previously, users had to define a custom `Codec` for every non-trivially copyable user-defined
   type they wanted to log.
+
+  ```c++
+  template <>
+  struct quill::Codec<UserTypeA> : quill::DeferredFormatCodec<UserTypeA>
+  {
+  };
+  
+  template <>
+  struct quill::Codec<UserTypeB> : quill::DirectFormatCodec<UserTypeB>
+  {
+  };
+  ```
+
   - `DeferredFormatCodec` now supports both trivially and non-trivially copyable types:
     - For trivially copyable types, it behaves the same as `TriviallyCopyableTypeCodec`.
     - For non-trivially copyable types, it works similarly to pre-`v4` by taking a copy of the object using the copy
@@ -104,9 +115,11 @@
   - [DirectFormatCodec Usage](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging_direct_format.cpp)
   - [Documentation](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html#logging-user-defined-types)
 
-- Added codec support for C-style arrays of user-defined types in `std/Array.h`
-- Marked `TriviallyCopyableTypeCodec` as deprecated. `DeferredFormatCodec` should be used instead, requiring no code
+- Marked `TriviallyCopyableTypeCodec` as deprecated. `DeferredFormatCodec` should be used instead, requiring no further
   changes.
+- Raised minimum `CMake` required version from `3.8` to `3.10` to avoid deprecation warnings.
+- Fixed warnings: `-Wimplicit-int-float-conversion`, `-Wfloat-equal`, and `-Wdocumentation`.
+- Added codec support for C-style arrays of user-defined types in `std/Array.h`
 
 ## v8.1.1
 
