@@ -10,6 +10,7 @@ set(EXAMPLE_TARGETS
         quill_docs_example_file
         quill_docs_example_filter_1
         quill_docs_example_json_logging
+        quill_docs_example_loggers_remove
         quill_docs_timestamp_types_1
 )
 

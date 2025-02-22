@@ -9,9 +9,9 @@ Upon creation, users specify the Sinks and Formatter for the logger. The logger 
 
 The Logger class is thread-safe.
 
-Loggers can be removed using :cpp:func:`FrontendImpl::remove_logger` which deletes them asynchronously.
-
-When all loggers associated with a particular ``Sink`` are removed, the ``Sink`` instances are destroyed, and any associated files are closed automatically.
+.. note::
+   Due to the asynchronous design of the library, logger parameters are immutable after creation.
+   To modify a logger ()such as adding or removing Sinks) you must remove and recreate it.
 
 Logger Creation
 ---------------
@@ -27,9 +27,29 @@ Logger Creation
 Logger Retrieval
 ----------------
 
+Loggers can be obtained using either :cpp:func:`FrontendImpl::get_logger` or :cpp:func:`FrontendImpl::create_or_get_logger`.
+The latter will create a new logger if one does not already exist; otherwise, it returns the existing logger with the specified name.
+
 .. code:: cpp
 
     quill::Logger* logger = quill::Frontend::get_logger("root");
+
+Logger Removal
+--------------
+
+Loggers can be removed using :cpp:func:`FrontendImpl::remove_logger`, which deletes them asynchronously. Once this function is called, the logger becomes invalid and should no longer be used for logging. The backend ensures that all pending log statements from the logger are processed before final removal. After removal, a logger with the same name can be recreated with different parameters.
+
+When all loggers associated with a particular ``Sink`` are removed, the ``Sink`` instances are destroyed, and any associated files are closed automatically.
+
+In most cases, creating a new logger is sufficient rather than removing the old one. However, removing a logger can be useful when the underlying sinks need to be destructed and files closed.
+
+For example, if a logger is created for each connected TCP session on a server, with logs written to a separate file, removing the logger upon session disconnection ensures that the underlying file is closed, provided no other logger is sharing the same ``Sink``.
+
+It is possible to explicitly sync :cpp:func:`FrontendImpl::remove_logger`, provided that no other thread attempts to add or remove a logger during the process.
+
+.. literalinclude:: examples/quill_docs_example_loggers_remove.cpp
+   :language: cpp
+   :linenos:
 
 Simplifying Logger Usage for Single Root Logger Applications
 ------------------------------------------------------------
