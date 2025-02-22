@@ -11,7 +11,7 @@ The Logger class is thread-safe.
 
 .. note::
    Due to the asynchronous design of the library, logger parameters are immutable after creation.
-   To modify a logger ()such as adding or removing Sinks) you must remove and recreate it.
+   To modify a logger (such as adding or removing Sinks) you must remove and recreate it.
 
 Logger Creation
 ---------------
