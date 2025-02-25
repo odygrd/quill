@@ -34,11 +34,6 @@ option(QUILL_ENABLE_INSTALL "Enable the CMake install target when Quill is not t
 option(QUILL_DOCS_GEN "Generate documentation during the build process." OFF)
 
 #-------------------------------------------------------------------------------------------------------
-# Use newer policies if possible, up to most recent tested version of CMake.
-#-------------------------------------------------------------------------------------------------------
-cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-
-#-------------------------------------------------------------------------------------------------------
 # Determine if quill is built as a subproject (using add_subdirectory) or if it is the master project.
 #-------------------------------------------------------------------------------------------------------
 set(QUILL_MASTER_PROJECT FALSE CACHE BOOL "Master Project" FORCE)
