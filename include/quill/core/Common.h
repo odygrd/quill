@@ -30,8 +30,8 @@ namespace detail
 /**
  * Cache line size
  */
-static constexpr size_t CACHE_LINE_SIZE{64u};
-static constexpr size_t CACHE_LINE_ALIGNED{2 * CACHE_LINE_SIZE};
+static constexpr size_t cache_line_size{64u};
+static constexpr size_t cache_line_aligned{2 * cache_line_size};
 } // namespace detail
 
 /**

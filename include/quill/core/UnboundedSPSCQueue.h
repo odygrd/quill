@@ -310,8 +310,8 @@ private:
 
 private:
   /** Modified by either the producer or consumer but never both */
-  alignas(CACHE_LINE_ALIGNED) Node* _producer{nullptr};
-  alignas(CACHE_LINE_ALIGNED) Node* _consumer{nullptr};
+  alignas(cache_line_aligned) Node* _producer{nullptr};
+  alignas(cache_line_aligned) Node* _consumer{nullptr};
 };
 
 } // namespace detail
