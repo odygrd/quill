@@ -68,7 +68,6 @@
  */
 #ifndef QUILL_MAYBE_UNUSED
   #if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused) && (defined(_HAS_CXX17) && _HAS_CXX17 == 1)
-    static_assert(false, "it's here")
     #define QUILL_MAYBE_UNUSED [[maybe_unused]]
   #elif QUILL_HAS_ATTRIBUTE(__unused__) || defined(__GNUC__)
     #define QUILL_MAYBE_UNUSED __attribute__((__unused__))

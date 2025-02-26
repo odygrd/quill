@@ -1565,9 +1565,9 @@ private:
   std::atomic<uint32_t> _worker_thread_id{0};  /** cached backend worker thread id */
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
 
-  alignas(cache_line_aligned) std::atomic<RdtscClock*> _rdtsc_clock{
+  alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<RdtscClock*> _rdtsc_clock{
     nullptr}; /** rdtsc clock if enabled, can be accessed by any thread **/
-  alignas(cache_line_aligned) std::mutex _wake_up_mutex;
+  alignas(QUILL_CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
   std::condition_variable _wake_up_cv;
   bool _wake_up_flag{false};
 };
