@@ -78,8 +78,8 @@ public:
     : _capacity(next_power_of_two(capacity)),
       _mask(_capacity - 1),
       _bytes_per_batch(static_cast<integer_type>(static_cast<double>(_capacity * reader_store_percent) / 100.0)),
-      _storage(static_cast<std::byte*>(_alloc_aligned(2ull * static_cast<uint64_t>(_capacity),
-                                                      QUILL_CACHE_LINE_ALIGNED, huges_pages_enabled))),
+      _storage(static_cast<std::byte*>(_alloc_aligned(
+        2ull * static_cast<uint64_t>(_capacity), QUILL_CACHE_LINE_ALIGNED, huges_pages_enabled))),
       _huge_pages_enabled(huges_pages_enabled)
   {
     std::memset(_storage, 0, 2ull * static_cast<uint64_t>(_capacity));
@@ -145,8 +145,8 @@ public:
     _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
 
     // prefetch a future cache line
-    _mm_prefetch(reinterpret_cast<char const*>(_storage + (_writer_pos & _mask) + (QUILL_CACHE_LINE_SIZE * 10)),
-                 _MM_HINT_T0);
+    _mm_prefetch(
+      reinterpret_cast<char const*>(_storage + (_writer_pos & _mask) + (QUILL_CACHE_LINE_SIZE * 10)), _MM_HINT_T0);
 #endif
   }
 
@@ -214,8 +214,8 @@ private:
 #if defined(QUILL_X86ARCH)
   QUILL_ATTRIBUTE_HOT void _flush_cachelines(integer_type& last, integer_type offset)
   {
-    integer_type last_diff = last - (last & CACHELINE_MASK);
-    integer_type const cur_diff = offset - (offset & CACHELINE_MASK);
+    integer_type last_diff = last - (last & QUILL_CACHE_LINE_MASK);
+    integer_type const cur_diff = offset - (offset & QUILL_CACHE_LINE_MASK);
 
     while (cur_diff > last_diff)
     {
@@ -322,7 +322,7 @@ private:
   }
 
 private:
-  static constexpr integer_type CACHELINE_MASK{QUILL_CACHE_LINE_SIZE - 1};
+  static constexpr integer_type QUILL_CACHE_LINE_MASK{QUILL_CACHE_LINE_SIZE - 1};
 
   integer_type const _capacity;
   integer_type const _mask;
