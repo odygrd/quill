@@ -28,7 +28,10 @@ QUILL_BEGIN_NAMESPACE
 namespace detail
 {
 /**
- * Cache line size
+ * Cache line constants.
+ *
+ * Note: On FreeBSD, CACHE_LINE_SIZE is defined in a system header,
+ * so we use a prefix to avoid naming conflicts.
  */
 static constexpr size_t QUILL_CACHE_LINE_SIZE{64u};
 static constexpr size_t QUILL_CACHE_LINE_ALIGNED{2 * QUILL_CACHE_LINE_SIZE};

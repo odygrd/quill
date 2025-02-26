@@ -43,9 +43,9 @@
   #include <sched.h>
   #include <unistd.h>
 #elif defined(__FreeBSD__)
+  #include <pthread_np.h>
   #include <sched.h>
   #include <unistd.h>
-  #include <pthread_np.h>
 #elif defined(__DragonFly__)
   #include <sched.h>
   #include <unistd.h>
@@ -86,25 +86,23 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
 
   thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, 1);
 #else
-#if defined(__NetBSD__)
-  cpuset_t *cpuset;
+  // Linux
+  #if defined(__NetBSD__)
+  cpuset_t* cpuset;
   cpuset = cpuset_create();
   auto const err = pthread_setaffinity_np(pthread_self(), cpuset_size(cpuset), cpuset);
   cpuset_destroy(cpuset);
-#elif defined(__FreeBSD__)
+  #elif defined(__FreeBSD__)
   cpuset_t cpuset;
-
   CPU_ZERO(&cpuset);
   CPU_SET(cpu_id, &cpuset);
-
   auto const err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset_t), &cpuset);
-#else
+  #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(cpu_id, &cpuset);
-
   auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
-#endif
+  #endif
 
   if (QUILL_UNLIKELY(err == -1))
   {
@@ -141,7 +139,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
                                        " error: " + strerror(res)}});
   }
 #else
-  // linux
+  // Linux
   char truncated_name[16];
   std::strncpy(truncated_name, name, 15);
   truncated_name[15] = '\0';
@@ -152,6 +150,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   #else
   auto const res = pthread_setname_np(pthread_self(), name);
   #endif
+
   if (res != 0)
   {
     QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
