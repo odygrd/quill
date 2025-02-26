@@ -1,0 +1,46 @@
+name: FreeBSD
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [ Debug, Release ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          freebsd-version: '14.2'
+          architecture: 'x86_64'
+
+      - name: Configure, Build, and Test (${{ matrix.build_type }})
+        run: |
+          freebsd-run "cd /github/workspace && mkdir -p build && cd build && \
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                -DCMAKE_CXX_STANDARD=17 \
+                -DQUILL_VERBOSE_MAKEFILE=ON \
+                -DQUILL_BUILD_TESTS=ON \
+                -DQUILL_BUILD_EXAMPLES=ON .. && \
+          threads=\$(sysctl -n hw.ncpu) && \
+          cmake --build . --config ${{ matrix.build_type }} --parallel \$threads && \
+          ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel \$threads --output-on-failure"
