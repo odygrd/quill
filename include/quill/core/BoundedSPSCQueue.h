@@ -79,7 +79,7 @@ public:
       _mask(_capacity - 1),
       _bytes_per_batch(static_cast<integer_type>(static_cast<double>(_capacity * reader_store_percent) / 100.0)),
       _storage(static_cast<std::byte*>(_alloc_aligned(2ull * static_cast<uint64_t>(_capacity),
-                                                      CACHE_LINE_ALIGNED, huges_pages_enabled))),
+                                                      QUILL_CACHE_LINE_ALIGNED, huges_pages_enabled))),
       _huge_pages_enabled(huges_pages_enabled)
   {
     std::memset(_storage, 0, 2ull * static_cast<uint64_t>(_capacity));
@@ -89,7 +89,7 @@ public:
 
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
-    for (uint64_t i = 0; i < (2ull * static_cast<uint64_t>(_capacity)); i += CACHE_LINE_SIZE)
+    for (uint64_t i = 0; i < (2ull * static_cast<uint64_t>(_capacity)); i += QUILL_CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
     }
@@ -104,7 +104,7 @@ public:
 
     for (uint64_t i = 0; i < cache_lines; ++i)
     {
-      _mm_prefetch(reinterpret_cast<char const*>(_storage + (CACHE_LINE_SIZE * i)), _MM_HINT_T0);
+      _mm_prefetch(reinterpret_cast<char const*>(_storage + (QUILL_CACHE_LINE_SIZE * i)), _MM_HINT_T0);
     }
 #endif
   }
@@ -145,7 +145,7 @@ public:
     _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
 
     // prefetch a future cache line
-    _mm_prefetch(reinterpret_cast<char const*>(_storage + (_writer_pos & _mask) + (CACHE_LINE_SIZE * 10)),
+    _mm_prefetch(reinterpret_cast<char const*>(_storage + (_writer_pos & _mask) + (QUILL_CACHE_LINE_SIZE * 10)),
                  _MM_HINT_T0);
 #endif
   }
@@ -220,7 +220,7 @@ private:
     while (cur_diff > last_diff)
     {
       _mm_clflushopt(_storage + (last_diff & _mask));
-      last_diff += CACHE_LINE_SIZE;
+      last_diff += QUILL_CACHE_LINE_SIZE;
       last = last_diff;
     }
   }
@@ -322,7 +322,7 @@ private:
   }
 
 private:
-  static constexpr integer_type CACHELINE_MASK{CACHE_LINE_SIZE - 1};
+  static constexpr integer_type CACHELINE_MASK{QUILL_CACHE_LINE_SIZE - 1};
 
   integer_type const _capacity;
   integer_type const _mask;
@@ -330,13 +330,13 @@ private:
   std::byte* const _storage{nullptr};
   bool const _huge_pages_enabled;
 
-  alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
-  alignas(CACHE_LINE_ALIGNED) integer_type _writer_pos{0};
+  alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
+  alignas(QUILL_CACHE_LINE_ALIGNED) integer_type _writer_pos{0};
   integer_type _reader_pos_cache{0};
   integer_type _last_flushed_writer_pos{0};
 
-  alignas(CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_reader_pos{0};
-  alignas(CACHE_LINE_ALIGNED) integer_type _reader_pos{0};
+  alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_reader_pos{0};
+  alignas(QUILL_CACHE_LINE_ALIGNED) integer_type _reader_pos{0};
   mutable integer_type _writer_pos_cache{0};
   integer_type _last_flushed_reader_pos{0};
 };

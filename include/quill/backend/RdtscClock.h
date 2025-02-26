@@ -208,7 +208,7 @@ private:
   int64_t _resync_interval_original{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
   double _ns_per_tick{0};
 
-  alignas(CACHE_LINE_ALIGNED) mutable std::atomic<uint32_t> _version{0};
+  alignas(QUILL_CACHE_LINE_ALIGNED) mutable std::atomic<uint32_t> _version{0};
   mutable std::array<BaseTimeTsc, 2> _base{};
 };
 } // namespace detail

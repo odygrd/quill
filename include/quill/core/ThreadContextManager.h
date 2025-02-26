@@ -214,7 +214,7 @@ private:
   std::shared_ptr<TransitEventBuffer> _transit_event_buffer; /**< backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */
   QueueType _queue_type;
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the frontend, read by the backend thread */
-  alignas(CACHE_LINE_ALIGNED) std::atomic<size_t> _failure_counter{0};
+  alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<size_t> _failure_counter{0};
 };
 
 class ThreadContextManager

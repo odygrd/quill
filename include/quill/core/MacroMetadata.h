@@ -203,7 +203,7 @@ private:
   uint8_t _format_flags{0};
 };
 
-static_assert(sizeof(MacroMetadata) <= detail::CACHE_LINE_SIZE,
+static_assert(sizeof(MacroMetadata) <= detail::QUILL_CACHE_LINE_SIZE,
               "Size of MacroMetadata exceeds the cache line size");
 
 QUILL_END_NAMESPACE
