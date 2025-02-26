@@ -85,7 +85,8 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   thread_port_t mach_thread = pthread_mach_thread_np(pthread_self());
 
   thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, 1);
-#elif defined(__NetBSD__)
+#else
+#if defined(__NetBSD__)
   cpuset_t *cpuset;
   cpuset = cpuset_create();
   auto const err = pthread_setaffinity_np(pthread_self(), cpuset_size(cpuset), cpuset);
@@ -110,6 +111,7 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
     QUILL_THROW(QuillError{std::string{"Failed to set cpu affinity - errno: " + std::to_string(errno) +
                                        " error: " + strerror(errno)}});
   }
+#endif
 }
 
 /***/
