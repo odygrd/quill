@@ -33,6 +33,8 @@ jobs:
           freebsd-version: '14.2'
           architecture: 'x86_64'
           usesh: true
+          prepare: |
+            pkg install -y cmake gcc
           run: |
             cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                   -DCMAKE_CXX_STANDARD=17 \
