@@ -97,7 +97,8 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   auto const err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset_t), &cpuset);
   #elif defined(__OpenBSD__)
   // OpenBSD doesn't support CPU affinity, so we'll use a placeholder
-  auto const err = cpu_id; // Assume success
+  (void)cpu_id;
+  auto const err = 0; // Assume success
   #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
