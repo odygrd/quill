@@ -21,6 +21,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/BoundedSPSCQueue.h"
+#include "quill/core/ChronoTimeUtils.h"
 #include "quill/core/Codec.h"
 #include "quill/core/Common.h"
 #include "quill/core/DynamicFormatArgStore.h"
@@ -416,9 +417,7 @@ private:
   QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues()
   {
     uint64_t const ts_now = _options.log_timestamp_ordering_grace_period.count()
-      ? static_cast<uint64_t>((std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                 std::chrono::system_clock::now().time_since_epoch()) -
-                               _options.log_timestamp_ordering_grace_period)
+      ? static_cast<uint64_t>((detail::get_timestamp<std::chrono::system_clock>() - _options.log_timestamp_ordering_grace_period)
                                 .count())
       : std::numeric_limits<uint64_t>::max();
 

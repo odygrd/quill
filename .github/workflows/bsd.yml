@@ -1,0 +1,113 @@
+name: BSD
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+
+jobs:
+  FreeBSD:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [ Release ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: FreeBSD Build and Test (${{ matrix.build_type }})
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: '14.2'
+          arch: 'x86_64'
+          mem: 16384
+          cpu: 4
+          usesh: true
+          prepare: |
+            pkg install -y cmake
+          run: |
+            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
+            cmake --build . --config ${{ matrix.build_type }} --parallel 4
+            ctest --build-config ${{ matrix.build_type }} --output-on-failure -R "^multi_frontend_threads$"
+
+  NetBSD:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [ Release ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: NetBSD Build and Test (${{ matrix.build_type }})
+        uses: vmactions/netbsd-vm@v1
+        with:
+          release: '10.0'
+          arch: 'x86_64'
+          mem: 16384
+          cpu: 4
+          usesh: true
+          prepare: |
+            /usr/sbin/pkg_add cmake
+          run: |
+            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
+            cmake --build . --config ${{ matrix.build_type }} --parallel 4
+            ctest --build-config ${{ matrix.build_type }} --output-on-failure -R "^multi_frontend_threads$"
+
+  OpenBSD:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [ Release ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: OpenBSD Build and Test (${{ matrix.build_type }})
+        uses: vmactions/openbsd-vm@v1
+        with:
+          release: '7.5'
+          arch: 'x86_64'
+          mem: 16384
+          cpu: 4
+          usesh: true
+          prepare: |
+            pkg_add cmake
+          run: |
+            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
+            cmake --build . --config ${{ matrix.build_type }} --parallel 4
+            ctest --build-config ${{ matrix.build_type }} --output-on-failure -R "^multi_frontend_threads$"
+
+  DragonFlyBSD:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [ Release ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: DragonFly Build and Test (${{ matrix.build_type }})
+        uses: vmactions/dragonflybsd-vm@v1
+        with:
+          release: '6.4.0'
+          mem: 16384
+          cpu: 4
+          usesh: true
+          prepare: |
+            pkg install -y cmake gcc10
+          run: |
+            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_C_COMPILER=$(which gcc10) -DCMAKE_CXX_COMPILER=$(which g++10) -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
+            cmake --build . --config ${{ matrix.build_type }} --parallel 4
+            ctest --build-config ${{ matrix.build_type }} --output-on-failure -R "^multi_frontend_threads$"

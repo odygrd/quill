@@ -35,21 +35,13 @@
 #elif defined(__CYGWIN__)
   #include <sched.h>
   #include <unistd.h>
-#elif defined(__linux__)
-  #include <pthread.h>
-  #include <sched.h>
-  #include <unistd.h>
-#elif defined(__NetBSD__)
-  #include <sched.h>
-  #include <unistd.h>
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
   #include <pthread_np.h>
   #include <sched.h>
   #include <unistd.h>
-#elif defined(__DragonFly__)
-  #include <sched.h>
-  #include <unistd.h>
 #else
+  // linux, anything else
+  #include <pthread.h>
   #include <sched.h>
   #include <unistd.h>
 #endif
@@ -90,6 +82,12 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   #if defined(__NetBSD__)
   cpuset_t* cpuset;
   cpuset = cpuset_create();
+  if (cpuset == nullptr)
+  {
+    QUILL_THROW(QuillError{"Failed to create cpuset"});
+  }
+  cpuset_zero(cpuset);
+  cpuset_set(cpu_id, cpuset);
   auto const err = pthread_setaffinity_np(pthread_self(), cpuset_size(cpuset), cpuset);
   cpuset_destroy(cpuset);
   #elif defined(__FreeBSD__)
@@ -97,6 +95,10 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   CPU_ZERO(&cpuset);
   CPU_SET(cpu_id, &cpuset);
   auto const err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset_t), &cpuset);
+  #elif defined(__OpenBSD__)
+  // OpenBSD doesn't support CPU affinity, so we'll use a placeholder
+  (void)cpu_id;
+  auto const err = 0; // Assume success
   #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
@@ -144,18 +146,25 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   std::strncpy(truncated_name, name, 15);
   truncated_name[15] = '\0';
 
-  #if defined(__FreeBSD__)
+  #if defined(__OpenBSD__)
   pthread_set_name_np(pthread_self(), name);
-  auto const res = 0;
-  #else
-  auto const res = pthread_setname_np(pthread_self(), name);
-  #endif
+  #elif defined(__NetBSD__)
+  auto const res = pthread_setname_np(pthread_self(), name, nullptr);
 
   if (res != 0)
   {
     QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
                                        " error: " + strerror(res)}});
   }
+  #else
+  auto const res = pthread_setname_np(pthread_self(), name);
+
+  if (res != 0)
+  {
+    QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
+                                       " error: " + strerror(res)}});
+  }
+  #endif
 #endif
 }
 
