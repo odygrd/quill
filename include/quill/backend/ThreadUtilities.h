@@ -31,14 +31,25 @@
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
   #include <pthread.h>
-#elif defined(__FreeBSD__) ||  defined(__DragonFly__) || defined(__OpenBSD__)
-  #include <sched.h>
+#elif defined(__NetBSD__)
+  #include <lwp.h>
+  #include <pthread.h>
   #include <unistd.h>
+#elif defined(__FreeBSD__)
   #include <pthread_np.h>
+  #include <sys/thr.h>
+  #include <unistd.h>
+#elif defined(__DragonFly__)
+  #include <pthread_np.h>
+  #include <sys/lwp.h>
+  #include <unistd.h>
+#elif defined(__OpenBSD__)
+  #include <pthread_np.h>
+  #include <unistd.h>
 #else
   // linux
   #include <pthread.h>
-  #include <sched.h>
+  #include <sys/syscall.h>
   #include <unistd.h>
 #endif
 
@@ -193,6 +204,8 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline uint32_t get_thread_id(
   return static_cast<uint32_t>(lwpid);
 #elif defined(__DragonFly__)
   return static_cast<uint32_t>(lwp_gettid());
+#elif defined(__OpenBSD__)
+  return static_cast<uint32_t>(getthrid());
 #else
   return reinterpret_cast<uintptr_t>(pthread_self()); // (Ab)use pthread_self as a last resort option
 #endif

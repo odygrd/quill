@@ -35,12 +35,12 @@
 #elif defined(__CYGWIN__)
   #include <sched.h>
   #include <unistd.h>
-#elif defined(__FreeBSD__) ||  defined(__DragonFly__) || defined(__OpenBSD__)
+#elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
+  #include <pthread_np.h>
   #include <sched.h>
   #include <unistd.h>
-  #include <pthread_np.h>
 #else
-  // linux
+  // linux, anything else
   #include <pthread.h>
   #include <sched.h>
   #include <unistd.h>
