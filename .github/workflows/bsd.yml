@@ -96,7 +96,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: DragonFly Build and Test (${{ matrix.build_type }})
-        uses: vmactions/dragonfly-vm@v1
+        uses: vmactions/dragonflybsd-vm@v1
         with:
           dragonfly-version: '6.4.0'
           architecture: 'x86_64'
