@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/ChronoTimeUtils.h"
 #include "quill/core/Common.h"
 #include "quill/core/Rdtsc.h"
 
@@ -59,19 +60,16 @@ public:
 
       for (size_t i = 0; i < trials; ++i)
       {
-        auto const beg_ts = std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::system_clock::now().time_since_epoch());
+        auto const beg_ts = detail::get_timestamp<std::chrono::steady_clock>();
         uint64_t const beg_tsc = rdtsc();
-
-        std::chrono::nanoseconds elapsed_ns;
         uint64_t end_tsc;
+        std::chrono::nanoseconds elapsed_ns;
+
         do
         {
-          auto const end_ts = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::system_clock::now().time_since_epoch());
+          auto const end_ts = detail::get_timestamp<std::chrono::steady_clock>();
           end_tsc = rdtsc();
-
-          elapsed_ns = end_ts - beg_ts; // calculates ns between two timespecs
+          elapsed_ns = end_ts - beg_ts;
         } while (elapsed_ns < spin_duration); // busy spin for 10ms
 
         rates[i] = static_cast<double>(end_tsc - beg_tsc) / static_cast<double>(elapsed_ns.count());
@@ -163,9 +161,7 @@ public:
     {
       uint64_t const beg = rdtsc();
       // we force convert to nanoseconds because the precision of system_clock::time-point is not portable across platforms.
-      int64_t const wall_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                  std::chrono::system_clock::now().time_since_epoch())
-                                  .count();
+      auto const wall_time = static_cast<int64_t>(detail::get_timestamp_ns<std::chrono::system_clock>());
       uint64_t const end = rdtsc();
 
       if (QUILL_LIKELY(end - beg <= lag))
