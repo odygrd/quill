@@ -97,7 +97,10 @@ public:
     if (!resync(2500))
     {
       // try to resync again with higher lag
-      resync(10000, true);
+      if (!resync(10000))
+      {
+        std::fprintf(stderr, "Failed to sync RdtscClock. Timestamps will be incorrect\n");
+      }
     }
   }
 
@@ -151,25 +154,19 @@ public:
   }
 
   /***/
-  bool resync(uint32_t lag, bool print_error = false) const noexcept
+  bool resync(uint32_t lag) const noexcept
   {
     // Sometimes we might get an interrupt and might never resync, so we will try again up to max_attempts
     constexpr uint8_t max_attempts{4};
 
-    uint64_t beg;
-    uint64_t end;
-    int64_t wall_time;
-
     for (uint8_t attempt = 0; attempt < max_attempts; ++attempt)
     {
-      beg = rdtsc();
-
+      uint64_t const beg = rdtsc();
       // we force convert to nanoseconds because the precision of system_clock::time-point is not portable across platforms.
-      wall_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::system_clock::now().time_since_epoch())
-                    .count();
-
-      end = rdtsc();
+      int64_t const wall_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                  std::chrono::system_clock::now().time_since_epoch())
+                                  .count();
+      uint64_t const end = rdtsc();
 
       if (QUILL_LIKELY(end - beg <= lag))
       {
@@ -184,18 +181,9 @@ public:
       }
     }
 
-    // we failed to return earlier, and we never re-synced, but we don't really want to keep retrying on each call
+    // we failed to return earlier and we never resynced, but we don't really want to keep retrying on each call
     // to time_since_epoch() so we do non accurate resync we will increase the resync duration to resync later
     _resync_interval_ticks = _resync_interval_ticks * 2;
-
-    if (QUILL_UNLIKELY(print_error))
-    {
-      std::fprintf(stderr,
-                   "Failed to sync RdtscClock. Timestamps will be incorrect.\n"
-                   "beg: %llu, end: %llu, lag: %u, diff: %llu, wall_time: %lld, ns_per_tick: %f\n",
-                   beg, end, lag, end - beg, wall_time, _ns_per_tick);
-    }
-
     return false;
   }
 

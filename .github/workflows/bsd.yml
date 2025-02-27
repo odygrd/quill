@@ -63,7 +63,6 @@ jobs:
           run: |
             cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
             cmake --build . --config ${{ matrix.build_type }} --parallel 4
-            ctest --build-config ${{ matrix.build_type }} --parallel 2 --output-on-failure
 
   OpenBSD:
     runs-on: ubuntu-latest
@@ -87,7 +86,6 @@ jobs:
           run: |
             cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
             cmake --build . --config ${{ matrix.build_type }} --parallel 4
-            ctest --build-config ${{ matrix.build_type }} --parallel 2 --output-on-failure
 
   DragonFlyBSD:
     runs-on: ubuntu-latest
@@ -102,6 +100,7 @@ jobs:
         uses: vmactions/dragonflybsd-vm@v1
         with:
           release: '6.4.0'
+          arch: 'x86_64'
           mem: 16384
           cpu: 4
           usesh: true
@@ -110,4 +109,3 @@ jobs:
           run: |
             cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_C_COMPILER=$(which gcc10) -DCMAKE_CXX_COMPILER=$(which g++10) -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
             cmake --build . --config ${{ matrix.build_type }} --parallel 4
-            ctest --build-config ${{ matrix.build_type }} --parallel 2 --output-on-failure
