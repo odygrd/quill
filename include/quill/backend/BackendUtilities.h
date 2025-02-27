@@ -146,18 +146,17 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   std::strncpy(truncated_name, name, 15);
   truncated_name[15] = '\0';
 
-  #if defined(__FreeBSD__)
+  #if defined(__OpenBSD__)
   pthread_set_name_np(pthread_self(), name);
-  auto const res = 0;
   #else
   auto const res = pthread_setname_np(pthread_self(), name);
-  #endif
 
   if (res != 0)
   {
     QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
                                        " error: " + strerror(res)}});
   }
+  #endif
 #endif
 }
 
