@@ -36,11 +36,7 @@ jobs:
           prepare: |
             pkg install -y cmake gcc
           run: |
-            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                  -DCMAKE_CXX_STANDARD=17 \
-                  -DQUILL_VERBOSE_MAKEFILE=ON \
-                  -DQUILL_BUILD_TESTS=ON \
-                  -DQUILL_BUILD_EXAMPLES=ON $GITHUB_WORKSPACE
-            threads=\$(sysctl -n hw.ncpu)
-            cmake --build . --config ${{ matrix.build_type }} --parallel $threads
-            ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel $threads --output-on-failure
+            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"; \
+            threads=\$(sysctl -n hw.ncpu); \
+            cmake --build . --config ${{ matrix.build_type }} --parallel \$threads; \
+            ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel \$threads --output-on-failure
