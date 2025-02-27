@@ -100,7 +100,6 @@ jobs:
         uses: vmactions/dragonflybsd-vm@v1
         with:
           release: '6.4.0'
-          arch: 'x86_64'
           mem: 16384
           cpu: 4
           usesh: true
