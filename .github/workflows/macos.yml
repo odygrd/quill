@@ -1,4 +1,4 @@
-name: macos
+name: macOS
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+      - 'scripts/**'
 
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
+      - 'scripts/**'
 
 jobs:
   build:

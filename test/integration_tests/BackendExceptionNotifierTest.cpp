@@ -39,7 +39,7 @@ TEST_CASE("backend_exception_notifier")
   // Set invalid thread name
   BackendOptions backend_options;
 
-  #if !defined(__FreeBSD__)
+  #if !(defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
   // On FreeBSD CPU_SET(cpu_id, &cpuset); with a big number crashes.
   // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
   backend_options.cpu_affinity = static_cast<uint16_t>(std::numeric_limits<uint16_t>::max() - 1);
@@ -68,7 +68,7 @@ TEST_CASE("backend_exception_notifier")
   LOG_INFO(logger, "frontend");
   logger->flush_log();
 
-  #if !defined(__FreeBSD__)
+  #if !(defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
   // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
   REQUIRE_GE(error_notifier_invoked.load(), 1);
   #endif
@@ -99,7 +99,7 @@ TEST_CASE("backend_exception_notifier")
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  #if !defined(__FreeBSD__)
+  #if !(defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
   // Look for the async errors
   std::string const expected_string_1 = "error handler invoked Failed to set cpu affinity ";
   std::string const expected_string_2 = "error handler invoked Failed to set thread name ";

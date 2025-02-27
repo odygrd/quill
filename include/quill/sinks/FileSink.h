@@ -37,18 +37,6 @@
 
   #include <io.h>
   #include <windows.h>
-#elif defined(__APPLE__)
-  #include <unistd.h>
-#elif defined(__CYGWIN__)
-  #include <unistd.h>
-#elif defined(__linux__)
-  #include <unistd.h>
-#elif defined(__NetBSD__)
-  #include <unistd.h>
-#elif defined(__FreeBSD__)
-  #include <unistd.h>
-#elif defined(__DragonFly__)
-  #include <unistd.h>
 #else
   #include <unistd.h>
 #endif

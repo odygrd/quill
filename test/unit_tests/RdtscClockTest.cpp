@@ -11,7 +11,7 @@ void check_wall_time_now(quill::detail::RdtscClock const& tsc_clock, size_t& fai
 {
   std::chrono::milliseconds constexpr offset{10};
 
-  auto const wall_time_chrono = std::chrono::system_clock::now().time_since_epoch();
+  auto const wall_time_chrono = quill::detail::get_timestamp<std::chrono::system_clock>();
   auto const wall_time_tsc = std::chrono::nanoseconds{tsc_clock.time_since_epoch(quill::detail::rdtsc())};
 
   auto const lower_bound = wall_time_chrono - offset;

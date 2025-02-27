@@ -8,6 +8,7 @@
 
 #include "quill/UserClockSource.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/ChronoTimeUtils.h"
 #include "quill/core/Codec.h"
 #include "quill/core/Common.h"
 #include "quill/core/FrontendOptions.h"
@@ -108,9 +109,7 @@ public:
     }
     else if (clock_source == ClockSourceType::System)
     {
-      current_timestamp = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                                  std::chrono::system_clock::now().time_since_epoch())
-                                                  .count());
+      current_timestamp = detail::get_timestamp_ns<std::chrono::system_clock>();
     }
     else
     {

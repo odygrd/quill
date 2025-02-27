@@ -7,21 +7,11 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
-
 #include <cstdint>
 
-#if defined(__aarch64__)
+#if (defined(__ARM_ARCH) || defined(_M_ARM) || defined(_M_ARM64) || defined(__PPC64__))
+  #include "quill/core/ChronoTimeUtils.h"
   #include <chrono>
-  #include <cstdint>
-#elif defined(__ARM_ARCH)
-  #include <chrono>
-  #include <cstdint>
-#elif (defined(_M_ARM) || defined(_M_ARM64))
-  #include <chrono>
-  #include <cstdint>
-#elif (defined(__PPC64__))
-  #include <chrono>
-  #include <cstdint>
 #else
   // assume x86-64 ..
   #if defined(_WIN32)
@@ -70,13 +60,13 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
   #endif
 
   // soft failover
-  return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+  return detail::get_timestamp_ns<std::chrono::steady_clock>();
 }
 #elif (defined(_M_ARM) || defined(_M_ARM64) || defined(__PPC64__))
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 {
   // soft failover
-  return static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+  return detail::get_timestamp_ns<std::chrono::steady_clock>();
 }
 #else
 /**

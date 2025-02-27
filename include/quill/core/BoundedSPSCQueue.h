@@ -15,29 +15,8 @@
 
 #if defined(_WIN32)
   #include <malloc.h>
-#elif defined(__APPLE__)
-  #include <sys/mman.h>
-  #include <unistd.h>
-#elif defined(__CYGWIN__)
-  #include <sys/mman.h>
-  #include <unistd.h>
-#elif defined(__linux__)
-  #include <sys/mman.h>
-#elif defined(__NetBSD__)
-  #include <lwp.h>
-  #include <sys/mman.h>
-  #include <unistd.h>
-#elif defined(__FreeBSD__)
-  #include <sys/mman.h>
-  #include <sys/thr.h>
-  #include <unistd.h>
-#elif defined(__DragonFly__)
-  #include <sys/lwp.h>
-  #include <sys/mman.h>
-  #include <unistd.h>
 #else
   #include <sys/mman.h>
-  #include <sys/stat.h>
   #include <unistd.h>
 #endif
 

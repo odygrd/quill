@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 
 #include "quill/DeferredFormatCodec.h"
@@ -13,6 +14,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 #include "quill/core/Rdtsc.h"
+#include "quill/core/ChronoTimeUtils.h"
 
 #include "quill/bundled/fmt/format.h"
 #include "quill/std/Chrono.h"
@@ -58,9 +60,7 @@ public:
     }
     else
     {
-      _start_tp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::steady_clock::now().time_since_epoch())
-                    .count();
+      _start_tp = detail::get_timestamp_ns<std::chrono::steady_clock>();
     }
   }
 
@@ -78,7 +78,7 @@ public:
     else
     {
       return std::chrono::duration<double>(std::chrono::nanoseconds{
-        std::chrono::steady_clock::now().time_since_epoch().count() - _start_tp});
+        detail::get_timestamp_ns<std::chrono::steady_clock>() - _start_tp});
     }
   }
 
@@ -97,7 +97,7 @@ public:
     else
     {
       return std::chrono::duration_cast<T>(std::chrono::nanoseconds{
-        std::chrono::steady_clock::now().time_since_epoch().count() - _start_tp});
+        detail::get_timestamp_ns<std::chrono::steady_clock>() - _start_tp});
     }
   }
 
@@ -112,9 +112,7 @@ public:
     }
     else
     {
-      _start_tp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::steady_clock::now().time_since_epoch())
-                    .count();
+      _start_tp = detail::get_timestamp_ns<std::chrono::steady_clock>();
     }
   }
 

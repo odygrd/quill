@@ -87,7 +87,7 @@ TEST_CASE("signal_handler_logger")
 #elif defined(__apple_build_version__)
     REQUIRE(quill::testing::file_contains(
       file_contents_b, std::string{"Received signal: Abort trap: 6 (signum: 6)"}));
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
     REQUIRE(quill::testing::file_contains(file_contents_b, std::string{"Received signal: Abort trap (signum: 6)"}));
 #else
     REQUIRE(quill::testing::file_contains(file_contents_b, std::string{"Received signal: Aborted (signum: 6)"}));
