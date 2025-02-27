@@ -5,10 +5,9 @@
   -->
 
   <br>
-  <img src="docs/logo.png" alt="logo" width="200" height="auto" />
+  <img src="docs/logo.png" alt="Quill C++ Logging Library" width="200" height="auto" />
   <h1>Quill</h1>
   <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
-  <h2 style="visibility: hidden; height: 0px; margin: 0px; padding: 0px;"> C++ Logging Library </h2>
 
   <div>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Aubuntu">
