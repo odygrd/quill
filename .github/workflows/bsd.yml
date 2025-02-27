@@ -57,7 +57,7 @@ jobs:
           mem: 16384
           usesh: true
           prepare: |
-            pkgin install -y cmake
+            /usr/sbin/pkg_add cmake
           run: |
             cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
             cmake --build . --config ${{ matrix.build_type }} --parallel 4
