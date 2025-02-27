@@ -6,8 +6,8 @@
   <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
 
   <div>
-    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Alinux">
-      <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/linux.yml?branch=master&label=linux&logo=linux&style=flat-square" alt="linux-ci" />
+    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Aubuntu">
+      <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/ubuntu.yml?branch=master&label=linux&logo=linux&style=flat-square" alt="linux-ci" />
     </a>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Amacos">
       <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/macos.yml?branch=master&label=macos&logo=apple&logoColor=white&style=flat-square" alt="macos-ci" />
