@@ -82,6 +82,12 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   #if defined(__NetBSD__)
   cpuset_t* cpuset;
   cpuset = cpuset_create();
+  if (cpuset == nullptr)
+  {
+    QUILL_THROW(QuillError{"Failed to create cpuset"});
+  }
+  cpuset_zero(cpuset);
+  cpuset_set(cpu_id, cpuset);
   auto const err = pthread_setaffinity_np(pthread_self(), cpuset_size(cpuset), cpuset);
   cpuset_destroy(cpuset);
   #elif defined(__FreeBSD__)
@@ -91,7 +97,7 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   auto const err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset_t), &cpuset);
   #elif defined(__OpenBSD__)
   // OpenBSD doesn't support CPU affinity, so we'll use a placeholder
-  auto const err = 0; // Assume success
+  auto const err = cpu_id; // Assume success
   #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
@@ -141,6 +147,8 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
 
   #if defined(__OpenBSD__)
   pthread_set_name_np(pthread_self(), name);
+  #elif defined(__NetBSD__)
+  auto const res = pthread_setname_np(pthread_self(), name, nullptr);
   #else
   auto const res = pthread_setname_np(pthread_self(), name);
 

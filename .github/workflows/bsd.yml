@@ -104,10 +104,7 @@ jobs:
           usesh: true
           prepare: |
             pkg install -y cmake gcc10
-            # Set the new GCC as the default compiler for the build.
-            export CC=/usr/local/bin/gcc-10
-            export CXX=/usr/local/bin/g++-10
           run: |
-            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
+            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_C_COMPILER=/usr/local/bin/gcc-10 -DCMAKE_CXX_COMPILER=/usr/local/bin/g++-10 -DCMAKE_CXX_STANDARD=17 -DQUILL_VERBOSE_MAKEFILE=ON -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON "$GITHUB_WORKSPACE"
             cmake --build . --config ${{ matrix.build_type }} --parallel 4
             ctest --build-config ${{ matrix.build_type }} --parallel 4 --output-on-failure
