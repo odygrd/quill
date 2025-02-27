@@ -35,7 +35,6 @@ jobs:
 
       - name: Configure, Build, and Test (${{ matrix.build_type }})
         run: |
-          cd /github/workspace
           mkdir -p build && cd build
           cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -DCMAKE_CXX_STANDARD=17 \
