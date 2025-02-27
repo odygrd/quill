@@ -59,16 +59,16 @@ public:
 
       for (size_t i = 0; i < trials; ++i)
       {
-        auto const beg_ts =
-          std::chrono::nanoseconds{std::chrono::steady_clock::now().time_since_epoch().count()};
+        auto const beg_ts = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::system_clock::now().time_since_epoch());
         uint64_t const beg_tsc = rdtsc();
 
         std::chrono::nanoseconds elapsed_ns;
         uint64_t end_tsc;
         do
         {
-          auto const end_ts =
-            std::chrono::nanoseconds{std::chrono::steady_clock::now().time_since_epoch().count()};
+          auto const end_ts = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::system_clock::now().time_since_epoch());
           end_tsc = rdtsc();
 
           elapsed_ns = end_ts - beg_ts; // calculates ns between two timespecs
@@ -163,8 +163,9 @@ public:
     {
       uint64_t const beg = rdtsc();
       // we force convert to nanoseconds because the precision of system_clock::time-point is not portable across platforms.
-      int64_t const wall_time =
-        std::chrono::nanoseconds{std::chrono::system_clock::now().time_since_epoch()}.count();
+      int64_t const wall_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                  std::chrono::system_clock::now().time_since_epoch())
+                                  .count();
       uint64_t const end = rdtsc();
 
       if (QUILL_LIKELY(end - beg <= lag))
