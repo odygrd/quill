@@ -163,7 +163,7 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
   // Apple, linux
   char thread_name[16] = {'\0'};
   auto res = pthread_getname_np(pthread_self(), &thread_name[0], 16);
-  
+
   if (res != 0)
   {
     QUILL_THROW(QuillError{"Failed to get thread name. error: " + std::to_string(res)});

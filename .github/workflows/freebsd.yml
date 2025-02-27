@@ -32,6 +32,7 @@ jobs:
         with:
           freebsd-version: '14.2'
           architecture: 'x86_64'
+          mem: 16384
           usesh: true
           prepare: |
             pkg install -y cmake
