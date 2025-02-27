@@ -147,9 +147,9 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   truncated_name[15] = '\0';
 
   #if defined(__OpenBSD__)
-  pthread_set_name_np(pthread_self(), name);
+  pthread_set_name_np(pthread_self(), truncated_name);
   #elif defined(__NetBSD__)
-  auto const res = pthread_setname_np(pthread_self(), name, nullptr);
+  auto const res = pthread_setname_np(pthread_self(), truncated_name, nullptr);
 
   if (res != 0)
   {
@@ -157,7 +157,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
                                        " error: " + strerror(res)}});
   }
   #else
-  auto const res = pthread_setname_np(pthread_self(), name);
+  auto const res = pthread_setname_np(pthread_self(), truncated_name);
 
   if (res != 0)
   {
