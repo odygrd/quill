@@ -42,11 +42,13 @@
 #elif defined(__NetBSD__)
   #include <sched.h>
   #include <unistd.h>
+  #include <pthread_np.h>
 #elif defined(__FreeBSD__)
   #include <pthread_np.h>
   #include <sched.h>
   #include <unistd.h>
 #elif defined(__DragonFly__)
+  #include <pthread_np.h>
   #include <sched.h>
   #include <unistd.h>
 #else

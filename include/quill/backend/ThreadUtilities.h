@@ -37,11 +37,14 @@
   #include <unistd.h>
 #elif defined(__NetBSD__)
   #include <lwp.h>
+  #include <pthread.h>
   #include <unistd.h>
 #elif defined(__FreeBSD__)
+  #include <pthread_np.h>
   #include <sys/thr.h>
   #include <unistd.h>
 #elif defined(__DragonFly__)
+  #include <pthread_np.h>
   #include <sys/lwp.h>
   #include <unistd.h>
 #endif
@@ -159,15 +162,13 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
 #else
   // Apple, linux
   char thread_name[16] = {'\0'};
-  #if defined(__FreeBSD__)
-  pthread_get_name_np(pthread_self(), &thread_name[0], 16);
-  #else
   auto res = pthread_getname_np(pthread_self(), &thread_name[0], 16);
+  
   if (res != 0)
   {
     QUILL_THROW(QuillError{"Failed to get thread name. error: " + std::to_string(res)});
   }
-  #endif
+
   return std::string{&thread_name[0], strlen(&thread_name[0])};
 #endif
 }
