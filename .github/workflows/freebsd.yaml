@@ -35,13 +35,13 @@ jobs:
 
       - name: Configure, Build, and Test (${{ matrix.build_type }})
         run: |
-          CMD="cd /github/workspace && mkdir -p build && cd build && \
+          cd /github/workspace
+          mkdir -p build && cd build
           cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -DCMAKE_CXX_STANDARD=17 \
                 -DQUILL_VERBOSE_MAKEFILE=ON \
                 -DQUILL_BUILD_TESTS=ON \
-                -DQUILL_BUILD_EXAMPLES=ON .. && \
-          threads=\$(sysctl -n hw.ncpu) && \
-          cmake --build . --config ${{ matrix.build_type }} --parallel \$threads && \
-          ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel \$threads --output-on-failure"
-          freebsd-run "$CMD"
+                -DQUILL_BUILD_EXAMPLES=ON .. 
+          threads=$(sysctl -n hw.ncpu)
+          cmake --build . --config ${{ matrix.build_type }} --parallel $threads
+          ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel $threads --output-on-failure
