@@ -68,9 +68,15 @@ TEST_CASE("backend_exception_notifier")
   LOG_INFO(logger, "frontend");
   logger->flush_log();
 
-  #if !(defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
+  #if (defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
+  // No checks on BSD
+  #elif defined(__linux__)
+  // On linux we truncate the thread name so only one error is expected
   // Check our handler was invoked since set_backend_thread_cpu_affinity should have failed
   REQUIRE_EQ(error_notifier_invoked.load(), 1);
+  #else
+  // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
+  REQUIRE_GE(error_notifier_invoked.load(), 1);
   #endif
 
   // Now we can try to get another exception by calling LOG_BACKTRACE without calling init first
