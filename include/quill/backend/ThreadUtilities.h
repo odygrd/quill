@@ -31,21 +31,14 @@
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
   #include <pthread.h>
-#elif defined(__linux__)
-  #include <pthread.h>
-  #include <sys/syscall.h>
+#elif defined(__FreeBSD__) ||  defined(__DragonFly__) || defined(__OpenBSD__)
+  #include <sched.h>
   #include <unistd.h>
-#elif defined(__NetBSD__)
-  #include <lwp.h>
-  #include <pthread.h>
-  #include <unistd.h>
-#elif defined(__FreeBSD__)
   #include <pthread_np.h>
-  #include <sys/thr.h>
-  #include <unistd.h>
-#elif defined(__DragonFly__)
-  #include <pthread_np.h>
-  #include <sys/lwp.h>
+#else
+  // linux
+  #include <pthread.h>
+  #include <sched.h>
   #include <unistd.h>
 #endif
 

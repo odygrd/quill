@@ -35,23 +35,13 @@
 #elif defined(__CYGWIN__)
   #include <sched.h>
   #include <unistd.h>
-#elif defined(__linux__)
-  #include <pthread.h>
-  #include <sched.h>
-  #include <unistd.h>
-#elif defined(__NetBSD__)
+#elif defined(__FreeBSD__) ||  defined(__DragonFly__) || defined(__OpenBSD__)
   #include <sched.h>
   #include <unistd.h>
   #include <pthread_np.h>
-#elif defined(__FreeBSD__)
-  #include <pthread_np.h>
-  #include <sched.h>
-  #include <unistd.h>
-#elif defined(__DragonFly__)
-  #include <pthread_np.h>
-  #include <sched.h>
-  #include <unistd.h>
 #else
+  // linux
+  #include <pthread.h>
   #include <sched.h>
   #include <unistd.h>
 #endif
@@ -99,6 +89,9 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   CPU_ZERO(&cpuset);
   CPU_SET(cpu_id, &cpuset);
   auto const err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset_t), &cpuset);
+  #elif defined(__OpenBSD__)
+  // OpenBSD doesn't support CPU affinity, so we'll use a placeholder
+  auto const err = 0; // Assume success
   #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
