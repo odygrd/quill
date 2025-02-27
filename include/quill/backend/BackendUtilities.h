@@ -150,6 +150,12 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   pthread_set_name_np(pthread_self(), name);
   #elif defined(__NetBSD__)
   auto const res = pthread_setname_np(pthread_self(), name, nullptr);
+
+  if (res != 0)
+  {
+    QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
+                                       " error: " + strerror(res)}});
+  }
   #else
   auto const res = pthread_setname_np(pthread_self(), name);
 
