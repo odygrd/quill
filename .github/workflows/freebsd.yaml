@@ -27,19 +27,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up FreeBSD VM
+      - name: FreeBSD Build and Test (${{ matrix.build_type }})
         uses: vmactions/freebsd-vm@v1
         with:
           freebsd-version: '14.2'
           architecture: 'x86_64'
-
-      - name: Configure, Build, and Test (${{ matrix.build_type }})
-        run: |
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                -DCMAKE_CXX_STANDARD=17 \
-                -DQUILL_VERBOSE_MAKEFILE=ON \
-                -DQUILL_BUILD_TESTS=ON \
-                -DQUILL_BUILD_EXAMPLES=ON .. 
-          threads=$(sysctl -n hw.ncpu)
-          cmake --build . --config ${{ matrix.build_type }} --parallel $threads
-          ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel $threads --output-on-failure
+          run: |
+            cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                  -DCMAKE_CXX_STANDARD=17 \
+                  -DQUILL_VERBOSE_MAKEFILE=ON \
+                  -DQUILL_BUILD_TESTS=ON \
+                  -DQUILL_BUILD_EXAMPLES=ON $GITHUB_WORKSPACE
+            threads=\$(sysctl -n hw.ncpu)
+            cmake --build . --config ${{ matrix.build_type }} --parallel $threads
+            ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel $threads --output-on-failure
