@@ -1,3 +1,4 @@
+- [v8.3.0](#v830)
 - [v8.2.0](#v820)
 - [v8.1.1](#v811)
 - [v8.1.0](#v810)
@@ -83,6 +84,13 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v8.3.0
+
+- Updated bundled `libfmt` to `11.1.4`.
+- Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
+- On Linux, setting a long backend thread name now truncates it instead of failing. ([#691](https://github.com/odygrd/quill/issues/691))
+- CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 
 ## v8.2.0
 
