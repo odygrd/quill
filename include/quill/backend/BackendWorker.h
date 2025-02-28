@@ -90,8 +90,7 @@ public:
     // This destructor will run during static destruction as the thread is part of the singleton
     stop();
 
-    RdtscClock const* rdtsc_clock{_rdtsc_clock.load()};
-    _rdtsc_clock.store(nullptr);
+    RdtscClock const* rdtsc_clock = _rdtsc_clock.exchange(nullptr);
     delete rdtsc_clock;
   }
 
