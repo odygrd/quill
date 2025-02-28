@@ -44,21 +44,23 @@ jobs:
           ls -l ${{runner.workspace}}
 
       - name: Configure
-        working-directory: ${{runner.workspace}}/build
         env:
           CXX: ${{matrix.cxx}}
           CXXFLAGS: ${{matrix.cxxflags}}
         run: |
+          cd ${{runner.workspace}}/build
           cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_options}} \
                 -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} \
                 -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 
       - name: Build
-        working-directory: ${{runner.workspace}}/build
-        run: cmake --build . --config ${{ matrix.build_type }} --parallel $(nproc)
+        run:
+          cd ${{runner.workspace}}/build
+          cmake --build . --config ${{ matrix.build_type }} --parallel $(nproc)
 
       - name: Test
-        working-directory: ${{runner.workspace}}/build
-        run: ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel $(nproc) --output-on-failure
+        run:
+          cd ${{runner.workspace}}/build 
+          ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel $(nproc) --output-on-failure
         env:
           CTEST_OUTPUT_ON_FAILURE: True
