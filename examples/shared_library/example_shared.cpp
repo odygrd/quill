@@ -14,7 +14,34 @@
  * To build Quill as a shared library on Windows, follow these steps:
  * - Ensure the `QUILL_DLL_EXPORT` and `QUILL_DLL_IMPORT` flags are set as required
  * - You also need to set the CMake option: `-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE`
+ *
+ * Note:
+ * On Windows, when using Quill inside a DLL that is dynamically loaded with `LoadLibrary` and then
+ * freed with `FreeLibrary` at runtime, it's important to call `flush_log()` in DllMain during
+ * `DLL_PROCESS_DETACH` in each DLL that is being unloaded.
+ *
+ * This ensures that no pending logs remain in the DLL being freed.
+ *
+ * BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+ * {
+ *   switch (ul_reason_for_call)
+ *   {
+ *   case DLL_PROCESS_ATTACH:
+ *     // Code to run when the DLL is loaded
+ *     break;
+ *   case DLL_THREAD_ATTACH:
+ *   case DLL_THREAD_DETACH:
+ *     // Code to run when a thread is created or destroyed
+ *     break;
+ *   case DLL_PROCESS_DETACH:
+ *     // Ensure any pending logs are flushed before the DLL is unloaded
+ *     global_logger_a->flush_log();
+ *     break;
+ *   }
+ *   return TRUE; // Successfully processed
+ * }
  */
+
 QUILL_EXPORT extern quill::Logger* global_logger_a;
 
 int main()
