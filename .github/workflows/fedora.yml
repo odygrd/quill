@@ -54,12 +54,12 @@ jobs:
                 -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 
       - name: Build
-        run:
+        run: |
           cd ${{runner.workspace}}/build
           cmake --build . --config ${{ matrix.build_type }} --parallel $(nproc)
 
       - name: Test
-        run:
+        run: |
           cd ${{runner.workspace}}/build 
           ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel $(nproc) --output-on-failure
         env:
