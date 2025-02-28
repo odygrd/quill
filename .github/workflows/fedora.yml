@@ -40,7 +40,7 @@ jobs:
         run: |
           dnf --setopt=retries=5 update -y
           ${{matrix.install}}
-          cmake -E make_directory ${{runner.workspace}}/build
+          mkdir -p ${{runner.workspace}}/build
 
       - name: Configure
         working-directory: ${{runner.workspace}}/build
