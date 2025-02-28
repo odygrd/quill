@@ -23,24 +23,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cxx: [g++-14.2]
+        cxx: [g++]
         build_type: [Debug, Release]
         std: [23]
         with_tests: [ON]
 
         include:
-          - cxx: g++-14.2
+          - cxx: g++
             install: |
+              dnf --setopt=retries=5 update -y
               dnf --setopt=retries=5 install -y gcc-c++ cmake make
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create Build Environment
+      - name: Install dependencies and create build environment
         run: |
-          dnf --setopt=retries=5 update -y
-          ${{matrix.install}}
+          ${{ matrix.install }}
           mkdir -p ${{runner.workspace}}/build
+          ls -l ${{runner.workspace}}
 
       - name: Configure
         working-directory: ${{runner.workspace}}/build
