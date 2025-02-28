@@ -10,8 +10,11 @@
   <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
 
   <div>
+    <a href="https://github.com/odygrd/quill/actions?query=workflow%3Afedora">
+      <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/fedora.yml?branch=master&label=Fedora&style=flat-square&logo=fedora" alt="fedora-ci" />
+    </a>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Aubuntu">
-      <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/ubuntu.yml?branch=master&label=Linux&style=flat-square&logo=linux" alt="linux-ci" />
+      <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/ubuntu.yml?branch=master&label=Ubuntu&style=flat-square&logo=ubuntu" alt="ubuntu-ci" />
     </a>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Absd">
       <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/bsd.yml?branch=master&label=BSD&style=flat-square&logo=openbsd" alt="bsd-ci" />
