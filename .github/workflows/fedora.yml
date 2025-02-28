@@ -31,7 +31,7 @@ jobs:
         include:
           - cxx: g++-14.2
             install: |
-              dnf --setopt=retries=5 install -y gcc-c++-14.2 cmake
+              dnf --setopt=retries=5 install -y gcc-c++ cmake make
 
     steps:
       - uses: actions/checkout@v4
