@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
@@ -27,6 +28,7 @@
 
   #include <codecvt>
   #include <locale>
+  #include <tlhelp32.h>
 #elif defined(__APPLE__)
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
@@ -99,7 +101,8 @@ ReturnT callRunTimeDynamicLinkedFunction(std::string const& dll_name,
                                          std::string const& function_name, Args... args)
 {
   // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreaddescription
-  // Windows Server 2016, Windows 10 LTSB 2016 and Windows 10 version 1607: e.g. GetThreadDescription is only available by Run Time Dynamic Linking in KernelBase.dll.
+  // Windows Server 2016, Windows 10 LTSB 2016 and Windows 10 version 1607:
+  // GetThreadDescription is only available by Run Time Dynamic Linking in KernelBase.dll.
 
   #ifdef UNICODE
   const HINSTANCE hinstLibrary = LoadLibraryW(s2ws(dll_name).c_str());
@@ -159,10 +162,10 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
   {
     QUILL_THROW(QuillError{"Failed to get thread name. Invalid data."});
   }
-
-  const std::wstring tname{&data[0], wcslen(&data[0])};
+  
+  std::wstring const wide_name{data, wcsnlen_s(data, 256)};
   LocalFree(data);
-  return ws2s(tname);
+  return ws2s(wide_name);
 #else
   // Apple, linux
   char thread_name[16] = {'\0'};
@@ -209,6 +212,68 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline uint32_t get_thread_id(
 #else
   return reinterpret_cast<uintptr_t>(pthread_self()); // (Ab)use pthread_self as a last resort option
 #endif
+}
+
+/**
+ * Returns the names of all threads in the process
+ * @return the names of all threads
+ */
+QUILL_NODISCARD inline std::vector<std::string> get_current_process_thread_names()
+{
+  std::vector<std::string> thread_names;
+
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(QUILL_NO_THREAD_NAME_SUPPORT)
+  // Disabled on MINGW / Cygwin.
+#elif defined(_WIN32)
+  DWORD current_process_id = GetCurrentProcessId();
+  HANDLE snapshot_handle = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+
+  if (snapshot_handle == INVALID_HANDLE_VALUE)
+  {
+    QUILL_THROW(QuillError{"Failed to create thread snapshot."});
+  }
+
+  THREADENTRY32 te = {sizeof(te)};
+  for (BOOL ok = Thread32First(snapshot_handle, &te); ok; ok = Thread32Next(snapshot_handle, &te))
+  {
+    if (te.th32OwnerProcessID == current_process_id)
+    {
+      HANDLE thread_handle = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, te.th32ThreadID);
+      if (thread_handle)
+      {
+        PWSTR thread_name = nullptr;
+
+        typedef HRESULT(WINAPI * GetThreadDescriptionSignature)(HANDLE, PWSTR*);
+        HRESULT hr = callRunTimeDynamicLinkedFunction<HRESULT, GetThreadDescriptionSignature>(
+          "KernelBase.dll", "GetThreadDescription", thread_handle, &thread_name);
+
+        if (FAILED(hr))
+        {
+          CloseHandle(thread_handle);
+          QUILL_THROW(QuillError{"Failed to get thread name"});
+        }
+
+        if (QUILL_UNLIKELY(thread_name == nullptr))
+        {
+          CloseHandle(thread_handle);
+          QUILL_THROW(QuillError{"Failed to get thread name. Invalid data."});
+        }
+
+        std::wstring const wide_name{thread_name, wcsnlen_s(thread_name, 256)};
+        LocalFree(thread_name);
+        CloseHandle(thread_handle);
+
+        thread_names.push_back(ws2s(wide_name));
+      }
+    }
+  }
+
+  CloseHandle(snapshot_handle);
+#else
+  // Apple, linux
+#endif
+
+  return thread_names;
 }
 } // namespace detail
 

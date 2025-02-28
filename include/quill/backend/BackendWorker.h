@@ -133,6 +133,7 @@ public:
   QUILL_ATTRIBUTE_COLD void run(BackendOptions const& options)
   {
     _ensure_linker_retains_symbols();
+    _ensure_single_backend_worker();
 
     std::thread worker(
       [this, &options]()
@@ -258,6 +259,39 @@ private:
       utf8_encode(reinterpret_cast<std::byte const*>(dummy.data()), dummy.size());
     (void)encode2;
 #endif
+  }
+
+  /**
+   * Due to Windows linkage issues when mixing shared libraries and static libraries, it is possible
+   * for the singleton that initializes the backend to be instantiated more than once.
+   * This situation may lead to multiple backend worker threads running simultaneously, which can
+   * cause unexpected behavior and crashes.
+   *
+   * Specifically, when the singleton is compiled into a static library that is linked into both a shared
+   * library and the main executable, separate instances may be created. The recommended solution is to
+   * compile the singleton into a shared library and export its symbols (e.g., using WINDOWS_EXPORT_ALL_SYMBOLS).
+   *
+   * This function retrieves all thread names in the current process and checks if one of them matches
+   * the backend worker thread name specified in _options.thread_name. If a match is found, a QuillError
+   * is thrown with a detailed explanation.
+   *
+   * @throw QuillError if a duplicate backend worker thread instance is detected.
+   */
+  QUILL_ATTRIBUTE_COLD void _ensure_single_backend_worker() const
+  {
+    std::vector<std::string> threadNames = get_current_process_thread_names();
+
+    // Check if a thread with the backend worker name already exists in this process.
+    auto it = std::find(threadNames.begin(), threadNames.end(), _options.thread_name);
+    if (it != threadNames.end())
+    {
+      QUILL_THROW(QuillError{
+        "Duplicate backend worker thread detected. This indicates that the logging library has "
+        "been compiled into multiple binary modules (for instance, one module using a static build "
+        "and another using a shared build), resulting in separate instances of the backend worker. "
+        "Please build and link the logging library uniformly as a shared library with exported "
+        "symbols to ensure a single backend instance."});
+    }
   }
 
   /**
