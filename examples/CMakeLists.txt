@@ -1,6 +1,7 @@
 add_subdirectory(recommended_usage)
 add_subdirectory(shared_library)
 add_subdirectory(advanced)
+add_subdirectory(shared_library_advanced)
 add_subdirectory(single_logger_multiple_sink_formats)
 
 # Define a variable with all example targets
