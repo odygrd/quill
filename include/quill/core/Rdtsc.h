@@ -16,6 +16,7 @@
   // assume x86-64 ..
   #if defined(_WIN32)
     #include <intrin.h>
+  #elif  defined(__riscv) || defined(__s390x__) || defined(__loongarch64)
   #elif __has_include(<x86gprintrin.h>) && !defined(__INTEL_COMPILER)
     #include <x86gprintrin.h>
   #else
@@ -61,6 +62,27 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 
   // soft failover
   return detail::get_timestamp_ns<std::chrono::steady_clock>();
+}
+#elif defined(__riscv)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
+{
+    uint64_t tsc;
+    __asm__ volatile("rdtime %0" : "=r"(tsc));
+    return tsc;
+}
+#elif defined(__loongarch64)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
+{
+    uint64_t tsc;
+    __asm__ volatile ("rdtime.d %0,$r0" : "=r" (tsc));
+    return tsc;
+}
+#elif defined(__s390x__)
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
+{
+    uint64_t tsc;
+    __asm__ volatile("stck %0" : "=Q" (tsc) : : "cc");
+    return tsc;
 }
 #elif (defined(_M_ARM) || defined(_M_ARM64) || defined(__PPC64__))
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
