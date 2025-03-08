@@ -93,6 +93,9 @@
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
 - Added a Windows-specific check to detect duplicate backend worker threads caused by inconsistent linkage (e.g., mixing
   static and shared libraries). ([#687](https://github.com/odygrd/quill/discussions/687#discussioncomment-12349621))
+- Added the `QUILL_DISABLE_FUNCTION_NAME` preprocessor flag and CMake option. This allows disabling `__FUNCTION__` in
+  `LOG_*` macros when `%(caller_function)` is not used in `PatternFormatter`. This eliminates Clang-Tidy warnings when
+  logging inside lambdas.
 - CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 

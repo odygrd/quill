@@ -37,6 +37,12 @@ Disables the non-prefixed `LOG_<LEVEL>` macros, keeping only the `QUILL_LOG_<LEV
 
 .. code:: cmake
 
+    add_compile_definitions(-DQUILL_DISABLE_FUNCTION_NAME)
+
+Disables the use of ``__FUNCTION__`` in ``LOG_*`` macros. When ``%(caller_function)`` is not used in ``PatternFormatter``, ``__FUNCTION__`` can be disabled to eliminate Clang-Tidy warnings when using ``LOG_*`` macros inside lambdas.
+
+.. code:: cmake
+
     add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=1)
 
 Enables immediate flushing after each log statement by calling ``flush_log()``. This blocks execution until the backend processes the log statement, effectively simulating synchronous logging. This option is useful in debug builds, especially when stepping through a debugger.
