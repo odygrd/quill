@@ -42,10 +42,12 @@
   #define QUILL_IMMEDIATE_FLUSH 0
 #endif
 
-#if defined(QUILL_DISABLE_FUNCTION_NAME)
-  #define QUILL_FUNCTION_NAME ""
-#else
-  #define QUILL_FUNCTION_NAME __FUNCTION__
+#if !defined(QUILL_FUNCTION_NAME)
+  #if defined(QUILL_DISABLE_FUNCTION_NAME)
+    #define QUILL_FUNCTION_NAME ""
+  #else
+    #define QUILL_FUNCTION_NAME __FUNCTION__
+  #endif
 #endif
 
 /** -- LOGV_ helpers begin -- **/
