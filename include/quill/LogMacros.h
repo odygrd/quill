@@ -42,6 +42,14 @@
   #define QUILL_IMMEDIATE_FLUSH 0
 #endif
 
+#if !defined(QUILL_FUNCTION_NAME)
+  #if defined(QUILL_DISABLE_FUNCTION_NAME)
+    #define QUILL_FUNCTION_NAME ""
+  #else
+    #define QUILL_FUNCTION_NAME __FUNCTION__
+  #endif
+#endif
+
 /** -- LOGV_ helpers begin -- **/
 
 // Helper macro to expand __VA_ARGS__ correctly in MSVC
@@ -307,7 +315,7 @@
   {                                                                                                \
     if (likelyhood(logger->template should_log_statement<log_level>()))                            \
     {                                                                                              \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, log_level);                             \
+      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                      \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
         quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
     }                                                                                              \
@@ -368,7 +376,7 @@
   {                                                                                                \
     if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))         \
     {                                                                                              \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Backtrace);            \
+      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Backtrace);     \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
         quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
     }                                                                                              \
@@ -383,7 +391,7 @@
   {                                                                                                           \
     if (logger->should_log_statement(log_level))                                                              \
     {                                                                                                         \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Dynamic);                         \
+      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Dynamic);                  \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true>(log_level, &macro_metadata, ##__VA_ARGS__); \
     }                                                                                                         \
   } while (0)
