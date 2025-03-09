@@ -99,7 +99,7 @@ public:
   {
     FileEventNotifier file_notifier;
 
-    file_notifier.after_open = [should_write_header, is_first_rotation = true](fs::path const&, FILE* file) mutable
+    file_notifier.after_open = [this, should_write_header, is_first_rotation = true](fs::path const&, FILE* file) mutable
     {
       if (is_first_rotation)
       {
@@ -112,7 +112,7 @@ public:
       if (should_write_header)
       {
         // we can't use write_header() because we need to append directly to the start of the file
-        write_header(file);
+        this->write_header(file);
       }
     };
 
@@ -184,7 +184,7 @@ public:
     _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
   }
 
-  static void write_header(FILE* file)
+  void write_header(FILE* file)
   {
     std::fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
     std::fwrite("\n", sizeof(char), 1, file);

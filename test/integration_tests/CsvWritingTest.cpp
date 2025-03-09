@@ -91,11 +91,11 @@ TEST_CASE("csv_writing")
 
     std::vector<std::string> const file_contents_1 = quill::testing::file_contents(filename_2_1);
     REQUIRE_EQ(file_contents_1.size(), 18);
-    REQUIRE_EQ(file_contents[0], "order_id,symbol,quantity,price,side");
+    REQUIRE_EQ(file_contents_1[0], "order_id,symbol,quantity,price,side");
 
     std::vector<std::string> const file_contents_2 = quill::testing::file_contents(filename_2_2);
     REQUIRE_EQ(file_contents_2.size(), 17);
-    REQUIRE_EQ(file_contents[0], "order_id,symbol,quantity,price,side");
+    REQUIRE_EQ(file_contents_2[0], "order_id,symbol,quantity,price,side");
   }
 
   testing::remove_file(filename);
