@@ -336,3 +336,10 @@ Dynamic logging macros provide runtime log level flexibility with a small overhe
 - :c:macro:`LOGV_DYNAMIC(logger, log_level, message, ...)`
 
 - :c:macro:`LOGJ_DYNAMIC(logger, log_level, message, ...)`
+
+Runtime Metadata Logging Macro
+------------------------------
+
+By default, the library creates and stores metadata information (e.g., source location) for each log statement at compile time. It is also possible to supply this metadata at runtime along with a preformatted log message. While this provides runtime flexibility, it introduces some overhead compared to compile-time metadata macros. Therefore, it is recommended to prefer using the compile-time metadata macros whenever possible. This runtime option can be particularly useful when forwarding logs received from another logging library to Quill.
+
+- :c:macro:`LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)`
