@@ -624,6 +624,11 @@ private:
       if (!transit_event->macro_metadata->has_named_args())
       {
         _populate_formatted_log_message(transit_event, transit_event->macro_metadata->message_format());
+
+        if (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadata)
+        {
+          _apply_runtime_metadata(transit_event);
+        }
       }
       else
       {
@@ -1406,7 +1411,7 @@ private:
   {
     // Generate a format string
     std::string format_string;
-    static constexpr std::string_view delimiter{"\x01\x02\x03"};
+    static constexpr std::string_view delimiter{QUILL_MAGIC_SEPARATOR};
 
     for (size_t i = 0; i < named_args.size(); ++i)
     {
@@ -1515,8 +1520,10 @@ private:
                            fmtquill::basic_format_args<fmtquill::format_context>{
                              _format_args_store.data(), _format_args_store.size()});
 
-      if (_options.check_printable_char && _format_args_store.has_string_related_type())
+      if (_options.check_printable_char && _format_args_store.has_string_related_type() &&
+          (transit_event->macro_metadata->event() != MacroMetadata::Event::LogWithRuntimeMetadata))
       {
+        // we do not want to sanitise LogWithRuntimeMetadata yet because it includes a special separator
         // if non-printable chars check is configured or if any of the provided arguments are strings
         sanitize_non_printable_chars(*transit_event->formatted_msg, _options);
       }
@@ -1534,6 +1541,56 @@ private:
       _options.error_notifier(error);
     }
 #endif
+  }
+
+  void _apply_runtime_metadata(TransitEvent* transit_event)
+  {
+    // Create a view of the formatted log message (containing msg, fileline, and function).
+    auto const formatted_log_message =
+      std::string_view{transit_event->formatted_msg->data(), transit_event->formatted_msg->size()};
+
+    static constexpr std::string_view delimiter{QUILL_MAGIC_SEPARATOR};
+
+    // Find the positions of the first two delimiters.
+    auto const first_delim = formatted_log_message.find(delimiter);
+    auto const second_delim = formatted_log_message.find(delimiter, first_delim + delimiter.size());
+
+    // Extract the three components:
+    // - log_message: the actual log text.
+    // - fileline: a combination of filename and line number.
+    // - function: the function name.
+    std::string_view log_message = formatted_log_message.substr(0, first_delim);
+    std::string_view fileline = formatted_log_message.substr(
+      first_delim + delimiter.size(), second_delim - first_delim - delimiter.size());
+    std::string_view function = formatted_log_message.substr(second_delim + delimiter.size());
+
+    // Use fileline and function as a composite key for runtime metadata lookup.
+    std::pair<std::string, std::string> const key =
+      std::make_pair(std::string{fileline}, std::string{function});
+
+    // Update the transit event's macro_metadata:
+    // If metadata for the given key exists, use it; otherwise, create new metadata in the backend thread.
+    if (auto search_it = _runtime_metadata.find(key); search_it != _runtime_metadata.end())
+    {
+      transit_event->macro_metadata = search_it->second.get();
+    }
+    else
+    {
+      auto [it, inserted] = _runtime_metadata.emplace(key, nullptr);
+      it->second =
+        std::make_unique<MacroMetadata>(it->first.first.data(), it->first.second.data(), "{}",
+                                        nullptr, LogLevel::Dynamic, MacroMetadata::Event::Log);
+      transit_event->macro_metadata = it->second.get();
+    }
+
+    // Resize the formatted message to retain only the log message.
+    transit_event->formatted_msg->try_resize(log_message.size());
+
+    if (_options.check_printable_char)
+    {
+      // If enabled, sanitize non-printable characters in the log message.
+      sanitize_non_printable_chars(*transit_event->formatted_msg, _options);
+    }
   }
 
   template <typename TFormattedMsg>
@@ -1577,6 +1634,17 @@ private:
   }
 
 private:
+  struct PairHash
+  {
+    std::size_t operator()(const std::pair<std::string, std::string>& p) const
+    {
+      auto h1 = std::hash<std::string>{}(p.first);
+      auto h2 = std::hash<std::string>{}(p.second);
+      // Combine the two hashes.
+      return h1 ^ (h2 << 1);
+    }
+  };
+
   friend class quill::ManualBackendWorker;
 
   ThreadContextManager& _thread_context_manager = ThreadContextManager::instance();
@@ -1589,7 +1657,7 @@ private:
   std::vector<ThreadContext*> _active_thread_contexts_cache;
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
-
+  std::unordered_map<std::pair<std::string, std::string>, std::unique_ptr<MacroMetadata>, PairHash> _runtime_metadata; /** Used to store runtime metadata **/
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/
   std::chrono::steady_clock::time_point _last_rdtsc_resync_time;

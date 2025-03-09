@@ -966,6 +966,16 @@
   QUILL_DYNAMIC_LOGGER_CALL(logger, nullptr, log_level,                                            \
                             QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
+#define QUILL_LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)        \
+  do                                                                                               \
+  {                                                                                                \
+    if (logger->should_log_statement(log_level))                                                   \
+    {                                                                                              \
+      logger->template log_statement_runtime_metadata<QUILL_IMMEDIATE_FLUSH>(                      \
+        log_level, file, line_number, function, message);                                          \
+    }                                                                                              \
+  } while (0)
+
 #if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS)
   #define TAGS(...) QUILL_TAGS(__VA_ARGS__)
   #define LOG_TRACE_L3(logger, fmt, ...) QUILL_LOG_TRACE_L3(logger, fmt, ##__VA_ARGS__)
@@ -1181,4 +1191,8 @@
     QUILL_LOGJ_ERROR_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOGJ_CRITICAL_TAGS(logger, tags, fmt, ...)                                               \
     QUILL_LOGJ_CRITICAL_TAGS(logger, tags, fmt, ##__VA_ARGS__)
+
+  #define LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)            \
+    QUILL_LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)
+
 #endif

@@ -23,6 +23,8 @@
   #define QUILL_THREAD_LOCAL thread_local
 #endif
 
+#define QUILL_MAGIC_SEPARATOR "\x01\x02\x03"
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
