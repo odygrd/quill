@@ -99,8 +99,7 @@ public:
   {
     FileEventNotifier file_notifier;
 
-    file_notifier.after_open =
-      [should_write_header, is_first_rotation = true](fs::path const&, FILE* file) mutable
+    file_notifier.after_open = [should_write_header, is_first_rotation = true](fs::path const&, FILE* file) mutable
     {
       if (is_first_rotation)
       {
