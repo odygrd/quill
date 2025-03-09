@@ -971,7 +971,7 @@
   {                                                                                                \
     if (logger->should_log_statement(log_level))                                                   \
     {                                                                                              \
-      logger->template log_statement_runtime_metadata<QUILL_IMMEDIATE_FLUSH>(                      \
+      logger->template log_statement_with_runtime_metadata<QUILL_IMMEDIATE_FLUSH>(                 \
         log_level, file, line_number, function, message);                                          \
     }                                                                                              \
   } while (0)
