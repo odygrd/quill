@@ -104,6 +104,24 @@
   ```c++
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo", "Hello");
   ```
+- The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted
+  `std::shared_ptr<Sink>`, but rotated files did not include the CSV header. This has now been improved—when using the
+  new constructor that accepts `quill::RotatingFileSinkConfig`, the CSV header is written at the start of each new
+  rotated file. ([#700](https://github.com/odygrd/quill/discussions/700))  
+  Example:
+  ```c++
+  quill::RotatingFileSinkConfig sink_config;
+  sink_config.set_open_mode('w');
+  sink_config.set_filename_append_option(FilenameAppendOption::None);
+  sink_config.set_rotation_max_file_size(512);
+  sink_config.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Index);
+
+  quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writer{"orders.csv", sink_config};
+  for (size_t i = 0; i < 40; ++i)
+  {
+    csv_writer.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
+  }
+  ```
 - CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 
