@@ -96,6 +96,14 @@
 - Added the `QUILL_DISABLE_FUNCTION_NAME` preprocessor flag and CMake option. This allows disabling `__FUNCTION__` in
   `LOG_*` macros when `%(caller_function)` is not used in `PatternFormatter`. This eliminates Clang-Tidy warnings when
   logging inside lambdas.
+- Added the `LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)` macro, which allows passing
+  runtime metadata (such as file, line number, and function) along with a log message. This feature provides runtime
+  flexibility, but it has a small overhead compared to the existing compile-time metadata macros. It is
+  especially useful when forwarding logs received from another logging library to
+  Quill. ([#696](https://github.com/odygrd/quill/issues/696))
+  ```c++
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo", "Hello");
+  ```
 - CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 
