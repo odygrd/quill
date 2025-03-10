@@ -185,6 +185,10 @@ public:
     _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
   }
 
+  /**
+   * Writes the csv header to the specified file
+   * @param file file to write
+   */
   void write_header(FILE* file)
   {
     std::fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
