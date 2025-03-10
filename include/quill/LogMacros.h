@@ -42,6 +42,14 @@
   #define QUILL_IMMEDIATE_FLUSH 0
 #endif
 
+#if !defined(QUILL_FUNCTION_NAME)
+  #if defined(QUILL_DISABLE_FUNCTION_NAME)
+    #define QUILL_FUNCTION_NAME ""
+  #else
+    #define QUILL_FUNCTION_NAME __FUNCTION__
+  #endif
+#endif
+
 /** -- LOGV_ helpers begin -- **/
 
 // Helper macro to expand __VA_ARGS__ correctly in MSVC
@@ -307,7 +315,7 @@
   {                                                                                                \
     if (likelyhood(logger->template should_log_statement<log_level>()))                            \
     {                                                                                              \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, log_level);                             \
+      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                      \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
         quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
     }                                                                                              \
@@ -368,7 +376,7 @@
   {                                                                                                \
     if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))         \
     {                                                                                              \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Backtrace);            \
+      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Backtrace);     \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
         quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
     }                                                                                              \
@@ -383,7 +391,7 @@
   {                                                                                                           \
     if (logger->should_log_statement(log_level))                                                              \
     {                                                                                                         \
-      QUILL_DEFINE_MACRO_METADATA(__FUNCTION__, fmt, tags, quill::LogLevel::Dynamic);                         \
+      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Dynamic);                  \
       logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true>(log_level, &macro_metadata, ##__VA_ARGS__); \
     }                                                                                                         \
   } while (0)
@@ -958,6 +966,16 @@
   QUILL_DYNAMIC_LOGGER_CALL(logger, nullptr, log_level,                                            \
                             QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
+#define QUILL_LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)        \
+  do                                                                                               \
+  {                                                                                                \
+    if (logger->should_log_statement(log_level))                                                   \
+    {                                                                                              \
+      logger->template log_statement_with_runtime_metadata<QUILL_IMMEDIATE_FLUSH>(                 \
+        log_level, file, line_number, function, message);                                          \
+    }                                                                                              \
+  } while (0)
+
 #if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS)
   #define TAGS(...) QUILL_TAGS(__VA_ARGS__)
   #define LOG_TRACE_L3(logger, fmt, ...) QUILL_LOG_TRACE_L3(logger, fmt, ##__VA_ARGS__)
@@ -1173,4 +1191,8 @@
     QUILL_LOGJ_ERROR_TAGS(logger, tags, fmt, ##__VA_ARGS__)
   #define LOGJ_CRITICAL_TAGS(logger, tags, fmt, ...)                                               \
     QUILL_LOGJ_CRITICAL_TAGS(logger, tags, fmt, ##__VA_ARGS__)
+
+  #define LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)            \
+    QUILL_LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)
+
 #endif

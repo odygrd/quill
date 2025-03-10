@@ -214,6 +214,20 @@ public:
     return true;
   }
 
+  template <bool immediate_flush>
+  void log_statement_with_runtime_metadata(LogLevel log_level, char const* filename,
+                                           uint32_t line_number, char const* function, char const* msg)
+  {
+    static constexpr char const* fmt_str =
+      "{}" QUILL_MAGIC_SEPARATOR "{}" QUILL_MAGIC_SEPARATOR "{}" QUILL_MAGIC_SEPARATOR "{}";
+
+    static constexpr MacroMetadata macro_metadata{
+      "[placeholder]", "[placeholder]",   fmt_str,
+      nullptr,         LogLevel::Dynamic, MacroMetadata::Event::LogWithRuntimeMetadata};
+
+    log_statement<immediate_flush, true>(log_level, &macro_metadata, msg, filename, line_number, function);
+  }
+
   /**
    * Init a backtrace for this logger.
    * Stores messages logged with LOG_BACKTRACE in a ring buffer messages and displays them later on demand.

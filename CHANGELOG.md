@@ -93,6 +93,35 @@
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
 - Added a Windows-specific check to detect duplicate backend worker threads caused by inconsistent linkage (e.g., mixing
   static and shared libraries). ([#687](https://github.com/odygrd/quill/discussions/687#discussioncomment-12349621))
+- Added the `QUILL_DISABLE_FUNCTION_NAME` preprocessor flag and CMake option. This allows disabling `__FUNCTION__` in
+  `LOG_*` macros when `%(caller_function)` is not used in `PatternFormatter`. This eliminates Clang-Tidy warnings when
+  logging inside lambdas.
+- Added the `LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)` macro, which allows passing
+  runtime metadata (such as file, line number, and function) along with a log message. This feature provides runtime
+  flexibility, but it has a small overhead compared to the existing compile-time metadata macros. It is
+  especially useful when forwarding logs received from another logging library to
+  Quill. ([#696](https://github.com/odygrd/quill/issues/696))
+  ```c++
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo", "Hello");
+  ```
+- The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted
+  `std::shared_ptr<Sink>`, but rotated files did not include the CSV header. This has now been improved—when using the
+  new constructor that accepts `quill::RotatingFileSinkConfig`, the CSV header is written at the start of each new
+  rotated file. ([#700](https://github.com/odygrd/quill/discussions/700))  
+  Example:
+  ```c++
+  quill::RotatingFileSinkConfig sink_config;
+  sink_config.set_open_mode('w');
+  sink_config.set_filename_append_option(FilenameAppendOption::None);
+  sink_config.set_rotation_max_file_size(512);
+  sink_config.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Index);
+
+  quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writer{"orders.csv", sink_config};
+  for (size_t i = 0; i < 40; ++i)
+  {
+    csv_writer.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
+  }
+  ```
 - CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 

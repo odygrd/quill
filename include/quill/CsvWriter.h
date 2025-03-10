@@ -1,5 +1,6 @@
 /**
  * @page copyright
+ * Copyright(c) 2020-present, Odysseas Georgoudis & quill contributors.
  * Distributed under the MIT License (http://opensource.org/licenses/MIT)
  */
 
@@ -8,8 +9,12 @@
 #include "quill/Frontend.h"
 #include "quill/core/Attributes.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/sinks/RotatingFileSink.h"
 #include "quill/sinks/Sink.h"
+#include "quill/sinks/StreamSink.h"
 
+#include <cstdio>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
@@ -54,16 +59,75 @@ public:
     _logger = frontend_t::create_or_get_logger(
       _logger_name_prefix + filename,
       frontend_t::template create_or_get_sink<FileSink>(filename,
-                                             [open_mode, filename_append]()
-                                             {
-                                               FileSinkConfig cfg;
-                                               cfg.set_open_mode(open_mode);
-                                               cfg.set_filename_append_option(filename_append);
-                                               return cfg;
-                                             }()),
+                                                        [open_mode, filename_append]()
+                                                        {
+                                                          FileSinkConfig cfg;
+                                                          cfg.set_open_mode(open_mode);
+                                                          cfg.set_filename_append_option(filename_append);
+                                                          return cfg;
+                                                        }()),
       PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
+    write_header();
+  }
+
+  /**
+   * Constructs a CsvWriter object that writes to a file.
+   *
+   * @param filename The name of the CSV file to write to.
+   * @param sink_config Configuration settings for the file sink.
+   * @param should_write_header Whether to write the header at the beginning of the CSV file.
+   */
+  CsvWriter(std::string const& filename, FileSinkConfig sink_config, bool should_write_header = true)
+  {
+    _logger = frontend_t::create_or_get_logger(
+      _logger_name_prefix + filename, frontend_t::template create_or_get_sink<FileSink>(filename, sink_config),
+      PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+
+    if (should_write_header)
+    {
+      write_header();
+    }
+  }
+
+  /**
+   * Constructs a CsvWriter object that writes to a rotating file.
+   *
+   * @param filename The name of the CSV file to write to.
+   * @param sink_config Configuration settings for the file sink.
+   * @param should_write_header Whether to write the header at the beginning of the CSV file.
+   */
+  CsvWriter(std::string const& filename, RotatingFileSinkConfig sink_config, bool should_write_header = true)
+  {
+    FileEventNotifier file_notifier;
+
+    file_notifier.after_open =
+      [this, should_write_header, is_first_rotation = true](fs::path const&, FILE* file) mutable
+    {
+      if (is_first_rotation)
+      {
+        // On the first rotation, skip writing the header because the logger isn't fully initialized.
+        is_first_rotation = false;
+        return;
+      }
+
+      if (should_write_header)
+      {
+        // For subsequent rotations, if header writing is enabled, append the header directly
+        write_header(file);
+      }
+    };
+
+    _logger = frontend_t::create_or_get_logger(
+      _logger_name_prefix + filename,
+      frontend_t::template create_or_get_sink<RotatingFileSink>(filename, sink_config, file_notifier),
+      PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+
+    // For the initial file (before any rotations), write the header if required.
+    if (should_write_header)
+    {
+      write_header();
+    }
   }
 
   /**
@@ -75,9 +139,9 @@ public:
   CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink)
   {
     _logger = frontend_t::create_or_get_logger(_logger_name_prefix + unique_name, std::move(sink),
-                                             PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+                                               PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
+    write_header();
   }
 
   /**
@@ -88,10 +152,10 @@ public:
    */
   CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks)
   {
-    _logger = frontend_t::create_or_get_logger(
-      _logger_name_prefix + unique_name, sinks, PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+    _logger = frontend_t::create_or_get_logger(_logger_name_prefix + unique_name, sinks,
+                                               PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
+    write_header();
   }
 
   /**
@@ -115,6 +179,24 @@ public:
   }
 
   /**
+   * Writes the csv header
+   */
+  void write_header()
+  {
+    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
+  }
+
+  /**
+   * Writes the csv header to the specified file
+   * @param file file to write
+   */
+  void write_header(FILE* file)
+  {
+    StreamSink::safe_fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
+    StreamSink::safe_fwrite("\n", sizeof(char), 1, file);
+  }
+
+  /**
    * @brief Flushes the log to ensure all data is written to the file.
    * This method will block the caller thread until the file is flushed, ensuring that all data are flushed to the file
    */
@@ -127,7 +209,7 @@ private:
   static constexpr MacroMetadata _line_metadata{
     "", "", TCsvSchema::format, nullptr, LogLevel::Info, MacroMetadata::Event::Log};
 
-  static inline std::string _logger_name_prefix {"__csv__"};
+  static inline std::string _logger_name_prefix{"__csv__"};
 
   LoggerImpl<TFrontendOptions>* _logger{nullptr};
 };

@@ -85,6 +85,15 @@ TEST_CASE("macros")
   LOG_BACKTRACE_TAGS(logger, TAGS("tag"), "C BT: {}", 255);
   LOG_DYNAMIC_TAGS(logger, quill::LogLevel::Critical, TAGS("tag"), "C DYN: {}", 420);
 
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "MacrosTest.cpp", 1234, "function()",
+                       "CA INF_11");
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "MacrosTest.cpp", 1234, "function()",
+                       "CA INF_0");
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Debug, "MacrosTest.cpp", 1234, "function()",
+                       "CA DBG_0");
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Debug, "MacrosTest.cpp", 123, "function()",
+                       "CA DBG_21");
+
   int var{1337};
   LOGV_TRACE_L3(logger, "D L3", var);
   LOGV_TRACE_L2(logger, "D L2", var);
@@ -235,6 +244,15 @@ TEST_CASE("macros")
     file_contents, std::string{"C LOG_CRITICAL  logger       C DYN: 420 [ #tag ]"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"BT LOG_BACKTRACE logger       C BT: 255 [ #tag ]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MacrosTest.cpp:1234          I LOG_INFO      logger       CA INF_11 [ ] []"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MacrosTest.cpp:1234          I LOG_INFO      logger       CA INF_0 [ ] []"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MacrosTest.cpp:1234          D LOG_DEBUG     logger       CA DBG_0 [ ] []"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MacrosTest.cpp:123           D LOG_DEBUG     logger       CA DBG_21 [ ] []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"T3 LOG_TRACE_L3  logger       D L3 [var: 1337]"}));
