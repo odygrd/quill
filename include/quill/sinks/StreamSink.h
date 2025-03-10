@@ -178,7 +178,6 @@ public:
    */
   QUILL_NODISCARD bool is_null() const noexcept { return _is_null; }
 
-protected:
   /**
    * @brief Writes data safely to the stream
    * @param ptr Pointer to the data to be written
@@ -197,6 +196,7 @@ protected:
     }
   }
 
+protected:
   /**
    * Flushes the stream
    */
