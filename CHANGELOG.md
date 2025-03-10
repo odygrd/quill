@@ -91,8 +91,10 @@
 - Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
 - On Linux, setting a long backend thread name now truncates it instead of
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
-- Added a Windows-specific check to detect duplicate backend worker threads caused by inconsistent linkage (e.g., mixing
-  static and shared libraries). ([#687](https://github.com/odygrd/quill/discussions/687#discussioncomment-12349621))
+- Added a runtime check to detect duplicate backend worker threads caused by inconsistent linkage  
+  (e.g., mixing static and shared libraries). If needed, this check can be disabled using the  
+  `check_backend_singleton_instance` flag in the
+  `BackendOptions`. ([#687](https://github.com/odygrd/quill/discussions/687#discussioncomment-12349621))
 - Added the `QUILL_DISABLE_FUNCTION_NAME` preprocessor flag and CMake option. This allows disabling `__FUNCTION__` in
   `LOG_*` macros when `%(caller_function)` is not used in `PatternFormatter`. This eliminates Clang-Tidy warnings when
   logging inside lambdas.

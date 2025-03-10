@@ -233,6 +233,28 @@ struct BackendOptions
    */
   std::array<std::string, 12> log_level_short_codes = {"T3", "T2", "T1", "D",  "I", "N",
                                                        "W",  "E",  "C",  "BT", "_", "DN"};
+
+  /**
+   * Enables a runtime check to detect multiple instances of the backend singleton.
+   *
+   * When mixing shared and static libraries, linkage issues can lead to multiple instances
+   * of the backend singleton. This may result in multiple backend worker threads running
+   * simultaneously, causing unexpected behavior or crashes.
+   *
+   * This issue commonly occurs on Windows when Quill is compiled as a static library and linked
+   * into both a shared library and the main executable, creating separate instances. While using
+   * Quill as a static library is generally recommended, in such cases, the preferred approach
+   * is to build Quill as a shared library and export its symbols
+   * (e.g., using `WINDOWS_EXPORT_ALL_SYMBOLS`).
+   *
+   * On Windows, this check is implemented using a named mutex, whereas on Linux and other POSIX
+   * systems, it relies on a named semaphore. In rare cases, this mechanism may interfere with
+   * certain environments or containerized deployments. If necessary, this check can be disabled
+   * by setting this option to `false`.
+   *
+   * Setting this option to `true` enables the check, while setting it to `false` disables it.
+   */
+  bool check_backend_singleton_instance = true;
 };
 
 QUILL_END_NAMESPACE
