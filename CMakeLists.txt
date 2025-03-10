@@ -165,6 +165,7 @@ set(HEADER_FILES
         include/quill/backend/BacktraceStorage.h
         include/quill/backend/ManualBackendWorker.h
         include/quill/backend/PatternFormatter.h
+        include/quill/backend/ProcessUniqueLock.h
         include/quill/backend/RdtscClock.h
         include/quill/backend/SignalHandler.h
         include/quill/backend/StringFromTime.h
