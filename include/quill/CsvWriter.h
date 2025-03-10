@@ -11,8 +11,10 @@
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/RotatingFileSink.h"
 #include "quill/sinks/Sink.h"
+#include "quill/sinks/StreamSink.h"
 
 #include <cstdio>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
@@ -104,15 +106,14 @@ public:
     {
       if (is_first_rotation)
       {
-        // we do not wand to try to write_header on first rotation because _logger is not created
-        // yet at that point
+        // On the first rotation, skip writing the header because the logger isn't fully initialized.
         is_first_rotation = false;
         return;
       }
 
       if (should_write_header)
       {
-        // we can't use write_header() because we need to append directly to the start of the file
+        // For subsequent rotations, if header writing is enabled, append the header directly
         write_header(file);
       }
     };
@@ -122,9 +123,9 @@ public:
       frontend_t::template create_or_get_sink<RotatingFileSink>(filename, sink_config, file_notifier),
       PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
+    // For the initial file (before any rotations), write the header if required.
     if (should_write_header)
     {
-      // write header for first rotation
       write_header();
     }
   }
@@ -191,8 +192,8 @@ public:
    */
   void write_header(FILE* file)
   {
-    std::fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
-    std::fwrite("\n", sizeof(char), 1, file);
+    StreamSink::safe_fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
+    StreamSink::safe_fwrite("\n", sizeof(char), 1, file);
   }
 
   /**
