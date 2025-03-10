@@ -113,7 +113,7 @@ public:
       if (should_write_header)
       {
         // we can't use write_header() because we need to append directly to the start of the file
-        this->write_header(file);
+        write_header(file);
       }
     };
 
