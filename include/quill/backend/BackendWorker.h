@@ -220,6 +220,8 @@ public:
     {
       _worker_thread.join();
     }
+
+    _worker_thread_id.store(0);
   }
 
   /**
