@@ -86,9 +86,9 @@ TEST_CASE("macros")
   LOG_DYNAMIC_TAGS(logger, quill::LogLevel::Critical, TAGS("tag"), "C DYN: {}", 420);
 
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "MacrosTest.cpp", 1234, "function()",
-                       "CA INF_11");
+                       "CA INF_{}", 11);
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "MacrosTest.cpp", 1234, "function()",
-                       "CA INF_0");
+                       "CA INF_{}", 0);
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Debug, "MacrosTest.cpp", 1234, "function()",
                        "CA DBG_0");
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Debug, "MacrosTest.cpp", 123, "function()",

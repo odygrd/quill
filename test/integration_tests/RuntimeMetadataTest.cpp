@@ -37,20 +37,24 @@ TEST_CASE("runtime_metadata")
       "%(message) "});
 
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "RuntimeMetadataTest.cpp", 1234, "function_1",
-                       "test message");
+                       "{}", "test message");
 
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Warning, "RuntimeMetadataTest.cpp", 1234,
-                       "function_1", "test message");
+                       "function_1", "{}", "test message");
 
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "RuntimeMetadataTest.cpp", 1234, "foo()",
-                       "test message");
+                       "{}", "test message");
 
   LOG_INFO(logger, "standard message {} {}", 123, 456);
 
-  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "app.cpp", 1234, "function_1", "test message");
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "app.cpp", 98, "foo()",
+                       "Runtime metadata with {} {}", 2, 3);
+
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "app.cpp", 1234, "function_1", "{}",
+                       "test message");
 
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "RuntimeMetadataTest.cpp", 98, "function_1",
-                       "test message");
+                       "{}", "test message");
 
   logger->flush_log();
   Frontend::remove_logger(logger);
@@ -60,7 +64,7 @@ TEST_CASE("runtime_metadata")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 6);
+  REQUIRE_EQ(file_contents.size(), 7);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"RuntimeMetadataTest.cpp:1234 function_1 LOG_INFO      logger       test message"}));
@@ -73,6 +77,12 @@ TEST_CASE("runtime_metadata")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      logger       standard message 123 456"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"app.cpp:98 foo() LOG_INFO      logger       Runtime metadata with 2 3"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"app.cpp:1234 function_1 LOG_INFO      logger       test message"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"app.cpp:1234 function_1 LOG_INFO      logger       test message"}));
