@@ -91,6 +91,8 @@
 - Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
 - On Linux, setting a long backend thread name now truncates it instead of
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
+- Added `Frontend::remove_logger_blocking(...)`, this function blocks the caller thread until the specified logger has
+  been fully removed.
 - Added a runtime check to detect duplicate backend worker threads caused by inconsistent linkage  
   (e.g., mixing static and shared libraries). If needed, this check can be disabled using the  
   `check_backend_singleton_instance` flag in the

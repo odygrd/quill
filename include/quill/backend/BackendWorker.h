@@ -592,7 +592,8 @@ private:
     read_pos += sizeof(format_args_decoder);
 
     // we need to check and do not try to format the flush events as that wouldn't be valid
-    if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
+    if ((transit_event->macro_metadata->event() != MacroMetadata::Event::Flush) &&
+        (transit_event->macro_metadata->event() != MacroMetadata::Event::LoggerRemovalRequest))
     {
       format_args_decoder(read_pos, _format_args_store);
 
@@ -638,7 +639,7 @@ private:
         }
       }
     }
-    else
+    else if (transit_event->macro_metadata->event() == MacroMetadata::Event::Flush)
     {
       // if this is a flush event then we do not need to format anything for the
       // transit_event, but we need to set the transit event's flush_flag pointer instead
@@ -646,6 +647,19 @@ private:
       std::memcpy(&flush_flag_tmp, read_pos, sizeof(uintptr_t));
       transit_event->flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
       read_pos += sizeof(uintptr_t);
+    }
+    else
+    {
+      // Store the logger name and the sync flag
+      assert(transit_event->macro_metadata->event() == MacroMetadata::Event::LoggerRemovalRequest);
+
+      uintptr_t logger_removal_flag_tmp;
+      std::memcpy(&logger_removal_flag_tmp, read_pos, sizeof(uintptr_t));
+      read_pos += sizeof(uintptr_t);
+      std::string_view const logger_name = Codec<std::string>::decode_arg(read_pos);
+
+      _logger_removal_flags.emplace(std::string{logger_name},
+                                    reinterpret_cast<std::atomic<bool>*>(logger_removal_flag_tmp));
     }
 
     if (transit_event->macro_metadata->log_level() == LogLevel::Dynamic)
@@ -1370,6 +1384,17 @@ private:
       // if loggers were removed also check for sinks to remove
       // cleanup_unused_sinks is expensive and should be only called when it is needed
       _sink_manager.cleanup_unused_sinks();
+
+      for (auto const& removed_logger_name : removed_loggers)
+      {
+        // Notify the user if the blocking call was used
+        auto search_it = _logger_removal_flags.find(removed_logger_name);
+        if (search_it != _logger_removal_flags.end())
+        {
+          search_it->second->store(true);
+          _logger_removal_flags.erase(search_it);
+        }
+      }
     }
   }
 
@@ -1636,6 +1661,7 @@ private:
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
   std::unordered_map<std::pair<std::string, std::string>, std::unique_ptr<MacroMetadata>, PairHash> _runtime_metadata; /** Used to store runtime metadata **/
+  std::unordered_map<std::string, std::atomic<bool>*> _logger_removal_flags; /** Maps logger names to atomic flags used for synchronizing remove_logger_blocking(). */
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/
   std::chrono::steady_clock::time_point _last_rdtsc_resync_time;

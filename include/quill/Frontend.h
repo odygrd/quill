@@ -18,11 +18,14 @@
 #include "quill/core/ThreadContextManager.h"
 #include "quill/sinks/Sink.h"
 
+#include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <initializer_list>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
@@ -156,14 +159,75 @@ public:
 
   /**
    * @brief Asynchronously removes the specified logger.
-   * When a logger is removed, any files associated with its sinks are also closed.
+   *
+   * When a logger is removed, if its underlying sinks are not shared by any other logger,
+   * they are destructed, and any associated files are also closed.
+   *
+   * A common use case for this function is when you want to close the underlying files that the logger is using.
+   *
+   * Since the exact removal timing is unknown, you should not attempt to create a new logger
+   * with the same name as the one being removed.
    *
    * @note Thread-safe
+   * @warning After calling this function, no thread should perform any further logging using this logger.
    * @param logger A pointer to the logger to remove.
    */
   static void remove_logger(detail::LoggerBase* logger)
   {
     detail::LoggerManager::instance().remove_logger(logger);
+  }
+
+  /**
+   * @brief Asynchronously removes the specified logger and blocks until removal is complete.
+   *
+   * When a logger is removed, any files associated with its sinks are also closed.
+   *
+   * A use case for this function is when you want to change the sinks of a logger.
+   * You can call this function to remove the logger and then recreate it with new sinks and the same name.
+   * However, no other threads should be using the logger after the call to this function.
+   *
+   * @note Thread-safe
+   * @warning After calling this function, no thread should perform any further logging using this logger.
+   * @param logger A pointer to the logger to remove.
+   * @param sleep_duration_ns The duration in nanoseconds to sleep between retries
+   */
+  static void remove_logger_blocking(logger_t* logger, uint32_t sleep_duration_ns = 100)
+  {
+    static constexpr MacroMetadata macro_metadata{
+      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::LoggerRemovalRequest};
+
+    std::atomic<bool> logger_removal_complete{false};
+    std::atomic<bool>* logger_removal_complete_ptr = &logger_removal_complete;
+
+    while (!logger->template log_statement<false, false>(
+      LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr),
+      logger->get_logger_name()))
+    {
+      // We do not want to drop the message if a dropping queue is used
+      if (sleep_duration_ns > 0)
+      {
+        std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+      }
+      else
+      {
+        std::this_thread::yield();
+      }
+    }
+
+    detail::LoggerManager::instance().remove_logger(logger);
+
+    while (!logger_removal_complete.load())
+    {
+      // The caller thread keeps checking the flag until the logger is removed
+      if (sleep_duration_ns > 0)
+      {
+        std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+      }
+      else
+      {
+        std::this_thread::yield();
+      }
+    }
   }
 
   /**
