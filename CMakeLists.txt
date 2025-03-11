@@ -162,6 +162,7 @@ set(HEADER_FILES
         include/quill/backend/BackendManager.h
         include/quill/backend/BackendOptions.h
         include/quill/backend/BackendWorker.h
+        include/quill/backend/BackendWorkerLock.h
         include/quill/backend/BacktraceStorage.h
         include/quill/backend/ManualBackendWorker.h
         include/quill/backend/PatternFormatter.h

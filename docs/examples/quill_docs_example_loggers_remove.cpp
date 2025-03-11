@@ -23,20 +23,11 @@ int main()
   LOG_INFO(g_logger, "A {} message with number {}", "log", 123);
 
   // Remove the logger
-  // total_loggers can help you check the logger is actually removed, as long as you are not
-  // creating/removing other loggers from different threads simultaneously
-  g_logger->flush_log();
-  size_t const total_loggers = quill::Frontend::get_number_of_loggers();
-  quill::Frontend::remove_logger(g_logger);
+  // Note:: remove_logger(g_logger) is not enough for this example. We must wait until the logger
+  // is removed in order to re-create one with the same name (logger_name)
+  quill::Frontend::remove_logger_blocking(g_logger);
 
-  // remove_logger is async, after this call logger is invalidated but still exists,
-  // we want to wait until it is actually removed by the Backend
-  // quill::Frontend::get_number_of_loggers() is the only function that will also take invalidated loggers into account
-  while (quill::Frontend::get_number_of_loggers() != (total_loggers - 1))
-  {
-    // wait
-  }
-
+  // Recreate a logger with the same name (logger_name)
   // Make sure you also update all references to the previous logger* (e.g. if stored as class
   // member) as the previous is now invalid after removal
   g_logger = quill::Frontend::create_or_get_logger(

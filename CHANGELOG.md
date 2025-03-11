@@ -91,18 +91,22 @@
 - Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
 - On Linux, setting a long backend thread name now truncates it instead of
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
-- Added a Windows-specific check to detect duplicate backend worker threads caused by inconsistent linkage (e.g., mixing
-  static and shared libraries). ([#687](https://github.com/odygrd/quill/discussions/687#discussioncomment-12349621))
+- Added `Frontend::remove_logger_blocking(...)`, this function blocks the caller thread until the specified logger has
+  been fully removed.
+- Added a runtime check to detect duplicate backend worker threads caused by inconsistent linkage  
+  (e.g., mixing static and shared libraries). If needed, this check can be disabled using the  
+  `check_backend_singleton_instance` flag in the
+  `BackendOptions`. ([#687](https://github.com/odygrd/quill/discussions/687#discussioncomment-12349621))
 - Added the `QUILL_DISABLE_FUNCTION_NAME` preprocessor flag and CMake option. This allows disabling `__FUNCTION__` in
   `LOG_*` macros when `%(caller_function)` is not used in `PatternFormatter`. This eliminates Clang-Tidy warnings when
   logging inside lambdas.
-- Added the `LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)` macro, which allows passing
+- Added the `LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, fmt, ...)` macro, which allows passing
   runtime metadata (such as file, line number, and function) along with a log message. This feature provides runtime
   flexibility, but it has a small overhead compared to the existing compile-time metadata macros. It is
   especially useful when forwarding logs received from another logging library to
   Quill. ([#696](https://github.com/odygrd/quill/issues/696))
   ```c++
-  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo", "Hello");
+  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo()", "Hello number {}", 8);
   ```
 - The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted
   `std::shared_ptr<Sink>`, but rotated files did not include the CSV header. This has now been improved—when using the

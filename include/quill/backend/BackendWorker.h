@@ -12,6 +12,7 @@
 
 #include "quill/backend/BackendOptions.h"
 #include "quill/backend/BackendUtilities.h"
+#include "quill/backend/BackendWorkerLock.h"
 #include "quill/backend/BacktraceStorage.h"
 #include "quill/backend/PatternFormatter.h"
 #include "quill/backend/RdtscClock.h"
@@ -132,7 +133,11 @@ public:
   QUILL_ATTRIBUTE_COLD void run(BackendOptions const& options)
   {
     _ensure_linker_retains_symbols();
-    _ensure_single_backend_worker();
+
+    if (options.check_backend_singleton_instance)
+    {
+      _backend_worker_lock = std::make_unique<BackendWorkerLock>(_process_id);
+    }
 
     std::thread worker(
       [this, &options]()
@@ -222,6 +227,7 @@ public:
     }
 
     _worker_thread_id.store(0);
+    _backend_worker_lock.reset(nullptr);
   }
 
   /**
@@ -260,39 +266,6 @@ private:
       utf8_encode(reinterpret_cast<std::byte const*>(dummy.data()), dummy.size());
     (void)encode2;
 #endif
-  }
-
-  /**
-   * Due to Windows linkage issues when mixing shared libraries and static libraries, it is possible
-   * for the singleton that initializes the backend to be instantiated more than once.
-   * This situation may lead to multiple backend worker threads running simultaneously, which can
-   * cause unexpected behavior and crashes.
-   *
-   * Specifically, when the singleton is compiled into a static library that is linked into both a shared
-   * library and the main executable, separate instances may be created. The recommended solution is to
-   * compile the singleton into a shared library and export its symbols (e.g., using WINDOWS_EXPORT_ALL_SYMBOLS).
-   *
-   * This function retrieves all thread names in the current process and checks if one of them matches
-   * the backend worker thread name specified in _options.thread_name. If a match is found, a QuillError
-   * is thrown with a detailed explanation.
-   *
-   * @throw QuillError if a duplicate backend worker thread instance is detected.
-   */
-  QUILL_ATTRIBUTE_COLD void _ensure_single_backend_worker() const
-  {
-    std::vector<std::string> threadNames = get_current_process_thread_names();
-
-    // Check if a thread with the backend worker name already exists in this process.
-    auto it = std::find(threadNames.begin(), threadNames.end(), _options.thread_name);
-    if (it != threadNames.end())
-    {
-      QUILL_THROW(QuillError{
-        "Duplicate backend worker thread detected. This indicates that the logging library has "
-        "been compiled into multiple binary modules (for instance, one module using a static build "
-        "and another using a shared build), resulting in separate instances of the backend worker. "
-        "Please build and link the logging library uniformly as a shared library with exported "
-        "symbols to ensure a single backend instance."});
-    }
   }
 
   /**
@@ -619,7 +592,8 @@ private:
     read_pos += sizeof(format_args_decoder);
 
     // we need to check and do not try to format the flush events as that wouldn't be valid
-    if (transit_event->macro_metadata->event() != MacroMetadata::Event::Flush)
+    if ((transit_event->macro_metadata->event() != MacroMetadata::Event::Flush) &&
+        (transit_event->macro_metadata->event() != MacroMetadata::Event::LoggerRemovalRequest))
     {
       format_args_decoder(read_pos, _format_args_store);
 
@@ -665,7 +639,7 @@ private:
         }
       }
     }
-    else
+    else if (transit_event->macro_metadata->event() == MacroMetadata::Event::Flush)
     {
       // if this is a flush event then we do not need to format anything for the
       // transit_event, but we need to set the transit event's flush_flag pointer instead
@@ -673,6 +647,19 @@ private:
       std::memcpy(&flush_flag_tmp, read_pos, sizeof(uintptr_t));
       transit_event->flush_flag = reinterpret_cast<std::atomic<bool>*>(flush_flag_tmp);
       read_pos += sizeof(uintptr_t);
+    }
+    else
+    {
+      // Store the logger name and the sync flag
+      assert(transit_event->macro_metadata->event() == MacroMetadata::Event::LoggerRemovalRequest);
+
+      uintptr_t logger_removal_flag_tmp;
+      std::memcpy(&logger_removal_flag_tmp, read_pos, sizeof(uintptr_t));
+      read_pos += sizeof(uintptr_t);
+      std::string_view const logger_name = Codec<std::string>::decode_arg(read_pos);
+
+      _logger_removal_flags.emplace(std::string{logger_name},
+                                    reinterpret_cast<std::atomic<bool>*>(logger_removal_flag_tmp));
     }
 
     if (transit_event->macro_metadata->log_level() == LogLevel::Dynamic)
@@ -1397,6 +1384,17 @@ private:
       // if loggers were removed also check for sinks to remove
       // cleanup_unused_sinks is expensive and should be only called when it is needed
       _sink_manager.cleanup_unused_sinks();
+
+      for (auto const& removed_logger_name : removed_loggers)
+      {
+        // Notify the user if the blocking call was used
+        auto search_it = _logger_removal_flags.find(removed_logger_name);
+        if (search_it != _logger_removal_flags.end())
+        {
+          search_it->second->store(true);
+          _logger_removal_flags.erase(search_it);
+        }
+      }
     }
   }
 
@@ -1651,6 +1649,7 @@ private:
 
   friend class quill::ManualBackendWorker;
 
+  std::unique_ptr<BackendWorkerLock> _backend_worker_lock;
   ThreadContextManager& _thread_context_manager = ThreadContextManager::instance();
   SinkManager& _sink_manager = SinkManager::instance();
   LoggerManager& _logger_manager = LoggerManager::instance();
@@ -1662,6 +1661,7 @@ private:
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
   std::unordered_map<std::pair<std::string, std::string>, std::unique_ptr<MacroMetadata>, PairHash> _runtime_metadata; /** Used to store runtime metadata **/
+  std::unordered_map<std::string, std::atomic<bool>*> _logger_removal_flags; /** Maps logger names to atomic flags used for synchronizing remove_logger_blocking(). */
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/
   std::chrono::steady_clock::time_point _last_rdtsc_resync_time;

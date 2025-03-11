@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "quill/core/Common.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/MacroMetadata.h"
 
@@ -966,13 +967,20 @@
   QUILL_DYNAMIC_LOGGER_CALL(logger, nullptr, log_level,                                            \
                             QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-#define QUILL_LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)        \
+#define QUILL_LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, fmt, ...)       \
   do                                                                                               \
   {                                                                                                \
     if (logger->should_log_statement(log_level))                                                   \
     {                                                                                              \
-      logger->template log_statement_with_runtime_metadata<QUILL_IMMEDIATE_FLUSH>(                 \
-        log_level, file, line_number, function, message);                                          \
+      static constexpr char const* fmt_enriched =                                                  \
+        fmt QUILL_MAGIC_SEPARATOR "{}" QUILL_MAGIC_SEPARATOR "{}" QUILL_MAGIC_SEPARATOR "{}";      \
+                                                                                                   \
+      static constexpr MacroMetadata macro_metadata{                                               \
+        "[placeholder]", "[placeholder]",   fmt_enriched,                                          \
+        nullptr,         LogLevel::Dynamic, MacroMetadata::Event::LogWithRuntimeMetadata};         \
+                                                                                                   \
+      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true>(                                 \
+        log_level, &macro_metadata, ##__VA_ARGS__, file, line_number, function);                   \
     }                                                                                              \
   } while (0)
 
@@ -1192,7 +1200,7 @@
   #define LOGJ_CRITICAL_TAGS(logger, tags, fmt, ...)                                               \
     QUILL_LOGJ_CRITICAL_TAGS(logger, tags, fmt, ##__VA_ARGS__)
 
-  #define LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)            \
-    QUILL_LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, message)
+  #define LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, fmt, ...)           \
+    QUILL_LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, fmt, ##__VA_ARGS__)
 
 #endif
