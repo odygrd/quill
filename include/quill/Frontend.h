@@ -168,8 +168,9 @@ public:
    * Since the exact removal timing is unknown, you should not attempt to create a new logger
    * with the same name as the one being removed.
    *
-   * @note Thread-safe
-   * @warning After calling this function, no thread should perform any further logging using this logger.
+   * @note This function is thread-safe. However, removing the same logger (`logger_t*`) from multiple threads is not allowed. You must ensure that remove_logger_blocking is only called by a single thread for a given logger.
+   * @warning After calling this function, no thread should use this logger.
+   *
    * @param logger A pointer to the logger to remove.
    */
   static void remove_logger(detail::LoggerBase* logger)
@@ -186,8 +187,9 @@ public:
    * You can call this function to remove the logger and then recreate it with new sinks and the same name.
    * However, no other threads should be using the logger after the call to this function.
    *
-   * @note Thread-safe
-   * @warning After calling this function, no thread should perform any further logging using this logger.
+   * @note This function is thread-safe. However, removing the same logger (`logger_t*`) from multiple threads is not allowed. You must ensure that remove_logger_blocking is only called by a single thread for a given logger.
+   * @warning After calling this function, no thread should use this logger.
+   *
    * @param logger A pointer to the logger to remove.
    * @param sleep_duration_ns The duration in nanoseconds to sleep between retries
    */
