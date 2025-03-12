@@ -110,6 +110,18 @@ JsonConsoleSink Class
 .. doxygenclass:: JsonConsoleSink
    :members:
 
+SyslogSink Class
+----------------
+
+.. doxygenclass:: SyslogSink
+   :members:
+
+SyslogSinkConfig Class
+----------------------
+
+.. doxygenclass:: SyslogSinkConfig
+   :members:
+
 CsvWriter Class
 ---------------
 

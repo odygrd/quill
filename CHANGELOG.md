@@ -91,6 +91,17 @@
 - Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
 - On Linux, setting a long backend thread name now truncates it instead of
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
+- Added the `SyslogSink`, which logs messages to the system's syslog.
+  
+    ```c++
+    auto sink = quill::Frontend::create_or_get_sink<quill::SyslogSink>(
+      "app", []()
+      {
+        quill::SyslogSinkConfig config;
+        config.set_identifier("app");
+        return config;
+      }());
+    ```
 - Added `Frontend::remove_logger_blocking(...)`, this function blocks the caller thread until the specified logger has
   been fully removed.
 - Added a runtime check to detect duplicate backend worker threads caused by inconsistent linkage  
@@ -105,27 +116,29 @@
   flexibility, but it has a small overhead compared to the existing compile-time metadata macros. It is
   especially useful when forwarding logs received from another logging library to
   Quill. ([#696](https://github.com/odygrd/quill/issues/696))
-  ```c++
-  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo()", "Hello number {}", 8);
-  ```
+  
+    ```c++
+    LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo()", "Hello number {}", 8);
+    ```
 - The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted
   `std::shared_ptr<Sink>`, but rotated files did not include the CSV header. This has now been improved—when using the
   new constructor that accepts `quill::RotatingFileSinkConfig`, the CSV header is written at the start of each new
   rotated file. ([#700](https://github.com/odygrd/quill/discussions/700))  
   Example:
-  ```c++
-  quill::RotatingFileSinkConfig sink_config;
-  sink_config.set_open_mode('w');
-  sink_config.set_filename_append_option(FilenameAppendOption::None);
-  sink_config.set_rotation_max_file_size(512);
-  sink_config.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Index);
-
-  quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writer{"orders.csv", sink_config};
-  for (size_t i = 0; i < 40; ++i)
-  {
-    csv_writer.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
-  }
-  ```
+  
+    ```c++
+    quill::RotatingFileSinkConfig sink_config;
+    sink_config.set_open_mode('w');
+    sink_config.set_filename_append_option(FilenameAppendOption::None);
+    sink_config.set_rotation_max_file_size(512);
+    sink_config.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Index);
+    
+    quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writer{"orders.csv", sink_config};
+    for (size_t i = 0; i < 40; ++i)
+    {
+      csv_writer.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
+    }
+    ```
 - CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 
@@ -135,17 +148,17 @@
   from pre-`v4` versions. Previously, users had to define a custom `Codec` for every non-trivially copyable user-defined
   type they wanted to log.
 
-  ```c++
-  template <>
-  struct quill::Codec<UserTypeA> : quill::DeferredFormatCodec<UserTypeA>
-  {
-  };
-  
-  template <>
-  struct quill::Codec<UserTypeB> : quill::DirectFormatCodec<UserTypeB>
-  {
-  };
-  ```
+   ```c++
+   template <>
+   struct quill::Codec<UserTypeA> : quill::DeferredFormatCodec<UserTypeA>
+   {
+   };
+      
+   template <>
+   struct quill::Codec<UserTypeB> : quill::DirectFormatCodec<UserTypeB>
+   {
+   };
+   ```
 
   - `DeferredFormatCodec` now supports both trivially and non-trivially copyable types:
     - For trivially copyable types, it behaves the same as `TriviallyCopyableTypeCodec`.
