@@ -122,6 +122,18 @@ SyslogSinkConfig Class
 .. doxygenclass:: SyslogSinkConfig
    :members:
 
+SystemdSink Class
+-----------------
+
+.. doxygenclass:: SystemdSink
+   :members:
+
+SystemdSinkConfig Class
+-----------------------
+
+.. doxygenclass:: SystemdSinkConfig
+   :members:
+
 CsvWriter Class
 ---------------
 

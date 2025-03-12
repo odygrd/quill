@@ -8,7 +8,6 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"
-#include "quill/core/QuillError.h"
 #include "quill/sinks/Sink.h"
 
 #include <array>
@@ -155,24 +154,26 @@ public:
   /**
    * @brief Writes a formatted log message to the stream
    */
-  void write_log(quill::MacroMetadata const* /*logMetadata*/, uint64_t /*logTimestamp*/,
-                 std::string_view /*threadId*/, std::string_view /*threadName*/,
-                 std::string const& /*processId*/, std::string_view /*loggerName*/, quill::LogLevel logLevel,
-                 std::string_view /*logLevelDescription*/, std::string_view /*logLevelShortCode*/,
-                 std::vector<std::pair<std::string, std::string>> const* /*namedArgs*/,
-                 std::string_view logMessage, std::string_view logStatement) override
+  void write_log(MacroMetadata const* /* log_metadata */,
+                 uint64_t /* log_timestamp */, std::string_view /* thread_id */,
+                 std::string_view /* thread_name */, std::string const& /* process_id */,
+                 std::string_view /* logger_name */, LogLevel log_level,
+                 std::string_view /* log_level_description */,
+                 std::string_view /* log_level_short_code */,
+                 std::vector<std::pair<std::string, std::string>> const* /* named_args */,
+                 std::string_view log_message, std::string_view log_statement) override
   {
     // Choose between formatted log statement or raw log message
-    std::string_view message = _config.should_format_message() ? logStatement : logMessage;
-    size_t messageLength = message.size();
+    std::string_view message = _config.should_format_message() ? log_statement : log_message;
+    size_t message_length = message.size();
 
     // Ensure the length does not exceed the maximum int value
-    if (messageLength > static_cast<size_t>(std::numeric_limits<int>::max()))
+    if (message_length > static_cast<size_t>(std::numeric_limits<int>::max()))
     {
-      messageLength = static_cast<size_t>(std::numeric_limits<int>::max());
+      message_length = static_cast<size_t>(std::numeric_limits<int>::max());
     }
 
-    ::syslog(_config.get_syslog_level(logLevel), "%.*s", static_cast<int>(messageLength), message.data());
+    ::syslog(_config.get_syslog_level(log_level), "%.*s", static_cast<int>(message_length), message.data());
   }
 
   /***/

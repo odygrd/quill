@@ -102,6 +102,17 @@
         return config;
       }());
     ```
+- Added the `SystemdSink`, which logs messages to the system's syslog.
+
+    ```c++
+    auto sink = quill::Frontend::create_or_get_sink<quill::SystemdSink>(
+      "app", []()
+      {
+        quill::SystemdSinkConfig config;
+        config.set_identifier("app");
+        return config;
+      }());
+    ```  
 - Added `Frontend::remove_logger_blocking(...)`, this function blocks the caller thread until the specified logger has
   been fully removed.
 - Added a runtime check to detect duplicate backend worker threads caused by inconsistent linkage  
