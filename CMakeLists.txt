@@ -224,6 +224,7 @@ set(HEADER_FILES
         include/quill/sinks/RotatingSink.h
         include/quill/sinks/Sink.h
         include/quill/sinks/StreamSink.h
+        include/quill/sinks/SyslogSink.h
 
         include/quill/std/Array.h
         include/quill/std/Chrono.h
