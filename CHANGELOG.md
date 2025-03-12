@@ -102,7 +102,7 @@
         return config;
       }());
     ```
-- Added the `SystemdSink`, which logs messages to the system's syslog.
+- Added the `SystemdSink`, which logs messages to systemd.
 
     ```c++
     auto sink = quill::Frontend::create_or_get_sink<quill::SystemdSink>(
