@@ -259,13 +259,15 @@ private:
 
     void* mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
 
+  #if defined(__linux__)
     if ((mem == MAP_FAILED) && (huge_pages_policy == HugePagesPolicy::Try))
     {
       // we tried but failed allocating huge pages, try normal pages instead
       flags &= ~MAP_HUGETLB;
       mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
     }
-
+  #endif
+    
     if (mem == MAP_FAILED)
     {
       QUILL_THROW(QuillError{std::string{"mmap failed. errno: "} + std::to_string(errno) +
