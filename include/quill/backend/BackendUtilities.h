@@ -146,7 +146,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   std::strncpy(truncated_name, name, 15);
   truncated_name[15] = '\0';
 
-  #if defined(__OpenBSD__)
+  #if defined(__OpenBSD__) || defined(__FreeBSD__)
   pthread_set_name_np(pthread_self(), truncated_name);
   #elif defined(__NetBSD__)
   auto const res = pthread_setname_np(pthread_self(), truncated_name, nullptr);
