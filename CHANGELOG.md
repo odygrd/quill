@@ -150,6 +150,9 @@
       csv_writer.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
     }
     ```
+- Replaced the `bool huge_pages_enabled` flag in `FrontendOptions` with `quill::HugePagesPolicy huge_pages_policy` enum,
+  allowing huge page allocation to be attempted with a fallback to normal pages if unavailable. If you are using a
+  custom `FrontendOptions` type, you will need to update it to use the new flag.
 - CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 
