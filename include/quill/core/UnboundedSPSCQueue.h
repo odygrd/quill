@@ -45,10 +45,10 @@ private:
     /**
      * Constructor
      * @param bounded_queue_capacity the capacity of the fixed buffer
-     * @param huge_pages_enabled enables huge pages
+     * @param huge_pages_policy enables huge pages
      */
-    explicit Node(size_t bounded_queue_capacity, bool huge_pages_enabled)
-      : bounded_queue(bounded_queue_capacity, huge_pages_enabled)
+    explicit Node(size_t bounded_queue_capacity, HugePagesPolicy huge_pages_policy)
+      : bounded_queue(bounded_queue_capacity, huge_pages_policy)
     {
     }
 
@@ -71,8 +71,9 @@ public:
   /**
    * Constructor
    */
-  explicit UnboundedSPSCQueue(size_t initial_bounded_queue_capacity, bool huges_pages_enabled = false)
-    : _producer(new Node(initial_bounded_queue_capacity, huges_pages_enabled)), _consumer(_producer)
+  explicit UnboundedSPSCQueue(size_t initial_bounded_queue_capacity,
+                              HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never)
+    : _producer(new Node(initial_bounded_queue_capacity, huge_pages_policy)), _consumer(_producer)
   {
   }
 
@@ -260,7 +261,7 @@ private:
     _producer->bounded_queue.commit_write();
 
     // We failed to reserve because the queue was full, create a new node with a new queue
-    auto const next_node = new Node{capacity, _producer->bounded_queue.huge_pages_enabled()};
+    auto const next_node = new Node{capacity, _producer->bounded_queue.huge_pages_policy()};
 
     // store the new node pointer as next in the current node
     _producer->next.store(next_node, std::memory_order_release);

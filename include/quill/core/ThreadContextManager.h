@@ -59,18 +59,18 @@ private:
 
 public:
   /***/
-  ThreadContext(QueueType queue_type, uint32_t initial_spsc_queue_capacity, bool huges_pages_enabled)
+  ThreadContext(QueueType queue_type, uint32_t initial_spsc_queue_capacity, HugePagesPolicy huge_pages_policy)
     : _queue_type(queue_type)
   {
     if (has_unbounded_queue_type())
     {
       new (&_spsc_queue_union.unbounded_spsc_queue)
-        UnboundedSPSCQueue{initial_spsc_queue_capacity, huges_pages_enabled};
+        UnboundedSPSCQueue{initial_spsc_queue_capacity, huge_pages_policy};
     }
     else if (has_bounded_queue_type())
     {
       new (&_spsc_queue_union.bounded_spsc_queue)
-        BoundedSPSCQueue{initial_spsc_queue_capacity, huges_pages_enabled};
+        BoundedSPSCQueue{initial_spsc_queue_capacity, huge_pages_policy};
     }
   }
 
@@ -341,8 +341,8 @@ class ScopedThreadContext
 {
 public:
   /***/
-  ScopedThreadContext(QueueType queue_type, uint32_t spsc_queue_capacity, bool huge_pages_enabled)
-    : _thread_context(std::make_shared<ThreadContext>(queue_type, spsc_queue_capacity, huge_pages_enabled))
+  ScopedThreadContext(QueueType queue_type, uint32_t spsc_queue_capacity, HugePagesPolicy huge_pages_policy)
+    : _thread_context(std::make_shared<ThreadContext>(queue_type, spsc_queue_capacity, huge_pages_policy))
   {
 #ifndef NDEBUG
     // Thread-local flag to track if an instance has been created for this thread.
@@ -400,7 +400,7 @@ template <typename TFrontendOptions>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context() noexcept
 {
   thread_local ScopedThreadContext scoped_thread_context{
-    TFrontendOptions::queue_type, TFrontendOptions::initial_queue_capacity, TFrontendOptions::huge_pages_enabled};
+    TFrontendOptions::queue_type, TFrontendOptions::initial_queue_capacity, TFrontendOptions::huge_pages_policy};
 
   return scoped_thread_context.get_thread_context();
 }

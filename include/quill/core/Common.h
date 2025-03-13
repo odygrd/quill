@@ -74,4 +74,14 @@ enum class ClockSourceType : uint8_t
   User
 };
 
+/**
+ * Enum for huge pages
+ */
+enum class HugePagesPolicy
+{
+  Never,  // Do not use huge pages
+  Always, // Use huge pages, fail if unavailable
+  Try     // Try huge pages, but fall back to normal pages if unavailable
+};
+
 QUILL_END_NAMESPACE

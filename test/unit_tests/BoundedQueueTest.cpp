@@ -58,7 +58,7 @@ TEST_CASE("read_write_buffer")
 
 TEST_CASE("bounded_queue_integer_overflow")
 {
-  BoundedSPSCQueueImpl<uint8_t> buffer{128, false, 0};
+  BoundedSPSCQueueImpl<uint8_t> buffer{128, quill::HugePagesPolicy::Never, 0};
   size_t constexpr iterations = static_cast<size_t>(std::numeric_limits<uint8_t>::max()) * 8ull;
 
   for (size_t i = 0; i < iterations; ++i)
