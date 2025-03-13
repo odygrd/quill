@@ -42,7 +42,7 @@ struct FrontendOptions
   /**
    * Enables huge pages on the frontend queues to reduce TLB misses. Available only for Linux.
    */
-  static constexpr bool huge_pages_enabled = false;
+  static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
 };
 
 QUILL_END_NAMESPACE

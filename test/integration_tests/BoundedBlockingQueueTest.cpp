@@ -17,7 +17,7 @@ struct CustomFrontendOptions
   static constexpr quill::QueueType queue_type = quill::QueueType::BoundedBlocking;
   static constexpr uint32_t initial_queue_capacity = 131'072;
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
-  static constexpr bool huge_pages_enabled = false;
+  static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
 };
 
 using CustomFrontend = FrontendImpl<CustomFrontendOptions>;

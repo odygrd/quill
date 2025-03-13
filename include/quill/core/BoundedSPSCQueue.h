@@ -52,14 +52,15 @@ class BoundedSPSCQueueImpl
 public:
   using integer_type = T;
 
-  QUILL_ATTRIBUTE_HOT explicit BoundedSPSCQueueImpl(integer_type capacity, bool huges_pages_enabled = false,
+  QUILL_ATTRIBUTE_HOT explicit BoundedSPSCQueueImpl(integer_type capacity,
+                                                    HugePagesPolicy huge_pages_policy = HugePagesPolicy::Never,
                                                     integer_type reader_store_percent = 5)
     : _capacity(next_power_of_two(capacity)),
       _mask(_capacity - 1),
       _bytes_per_batch(static_cast<integer_type>(static_cast<double>(_capacity * reader_store_percent) / 100.0)),
       _storage(static_cast<std::byte*>(_alloc_aligned(
-        2ull * static_cast<uint64_t>(_capacity), QUILL_CACHE_LINE_ALIGNED, huges_pages_enabled))),
-      _huge_pages_enabled(huges_pages_enabled)
+        2ull * static_cast<uint64_t>(_capacity), QUILL_CACHE_LINE_ALIGNED, huge_pages_policy))),
+      _huge_pages_policy(huge_pages_policy)
   {
     std::memset(_storage, 0, 2ull * static_cast<uint64_t>(_capacity));
 
@@ -187,7 +188,7 @@ public:
     return static_cast<integer_type>(_capacity);
   }
 
-  QUILL_NODISCARD bool huge_pages_enabled() const noexcept { return _huge_pages_enabled; }
+  QUILL_NODISCARD HugePagesPolicy huge_pages_policy() const noexcept { return _huge_pages_policy; }
 
 private:
 #if defined(QUILL_X86ARCH)
@@ -222,13 +223,14 @@ private:
    * Aligned alloc
    * @param size number of bytes to allocate. An integral multiple of alignment
    * @param alignment specifies the alignment. Must be a valid alignment supported by the implementation.
-   * @param huges_pages_enabled allocate huge pages, only supported on linux
+   * @param huge_pages_policy allocate huge pages, only supported on linux
    * @return On success, returns the pointer to the beginning of newly allocated memory.
    * To avoid a memory leak, the returned pointer must be deallocated with _free_aligned().
    * @throws QuillError on failure
    */
 
-  QUILL_NODISCARD static void* _alloc_aligned(size_t size, size_t alignment, QUILL_MAYBE_UNUSED bool huges_pages_enabled)
+  QUILL_NODISCARD static void* _alloc_aligned(size_t size, size_t alignment,
+                                              QUILL_MAYBE_UNUSED HugePagesPolicy huge_pages_policy)
   {
 #if defined(_WIN32)
     void* p = _aligned_malloc(size, alignment);
@@ -249,7 +251,7 @@ private:
     int flags = MAP_PRIVATE | MAP_ANONYMOUS;
 
   #if defined(__linux__)
-    if (huges_pages_enabled)
+    if (huge_pages_policy != HugePagesPolicy::Never)
     {
       flags |= MAP_HUGETLB;
     }
@@ -257,6 +259,15 @@ private:
 
     void* mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
 
+  #if defined(__linux__)
+    if ((mem == MAP_FAILED) && (huge_pages_policy == HugePagesPolicy::Try))
+    {
+      // we tried but failed allocating huge pages, try normal pages instead
+      flags &= ~MAP_HUGETLB;
+      mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
+    }
+  #endif
+    
     if (mem == MAP_FAILED)
     {
       QUILL_THROW(QuillError{std::string{"mmap failed. errno: "} + std::to_string(errno) +
@@ -307,7 +318,7 @@ private:
   integer_type const _mask;
   integer_type const _bytes_per_batch;
   std::byte* const _storage{nullptr};
-  bool const _huge_pages_enabled;
+  HugePagesPolicy const _huge_pages_policy;
 
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
   alignas(QUILL_CACHE_LINE_ALIGNED) integer_type _writer_pos{0};
