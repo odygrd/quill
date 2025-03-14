@@ -215,6 +215,7 @@ set(HEADER_FILES
 
         include/quill/filters/Filter.h
 
+        include/quill/sinks/AndroidSink.h
         include/quill/sinks/ConsoleSink.h
         include/quill/sinks/FileSink.h
         include/quill/sinks/JsonSink.h

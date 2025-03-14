@@ -69,6 +69,8 @@ public:
         "Please build and link the logging library uniformly as a shared library with exported "
         "symbols to ensure a single backend instance."});
     }
+#elif defined(__ANDROID__)
+    // disabled
 #else
     std::string name = "/QuillLock" + pid;
 
