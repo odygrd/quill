@@ -113,6 +113,18 @@
         return config;
       }());
     ```  
+- Added the `AndroidSink`, which integrates with Android's logging system.
+
+    ```c++
+    auto sink = quill::Frontend::create_or_get_sink<quill::AndroidSink>(
+      "s1", []()
+      {
+        quill::AndroidSinkConfig config;
+        config.set_tag("app");
+        config.set_format_message(true);
+        return config;
+      }());
+    ```  
 - Added `Frontend::remove_logger_blocking(...)`, this function blocks the caller thread until the specified logger has
   been fully removed.
 - Added a runtime check to detect duplicate backend worker threads caused by inconsistent linkage  

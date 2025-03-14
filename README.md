@@ -543,10 +543,31 @@ target_link_libraries(my_project PUBLIC quill::quill)
 
 ### Android NDK
 
-Building Quill for Android? Add this flag during configuration:
+When building Quill for Android, you might need to add this flag during configuration, but in most cases, it works without it:
 
 ```bash
 -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
+```
+
+For timestamps, use `quill::ClockSourceType::System`. Quill also includes an `AndroidSink`, which integrates with Android's logging system.
+
+#### Minimal Example to Start Logging on Android
+
+```c++
+quill::Backend::start();
+
+auto sink = quill::Frontend::create_or_get_sink<quill::AndroidSink>("app", [](){
+    quill::AndroidSinkConfig asc;
+    asc.set_tag("app");
+    asc.set_format_message(true);
+    return asc;
+}());
+
+auto logger = quill::Frontend::create_or_get_logger("root", std::move(sink),
+                                                    quill::PatternFormatterOptions {}, 
+                                                    quill::ClockSourceType::System);
+
+LOG_INFO(logger, "Test {}", 123);
 ```
 
 ### Meson

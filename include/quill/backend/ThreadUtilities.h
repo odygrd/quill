@@ -141,7 +141,8 @@ ReturnT callRunTimeDynamicLinkedFunction(std::string const& dll_name,
  */
 QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_name()
 {
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(QUILL_NO_THREAD_NAME_SUPPORT)
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__ANDROID__) || \
+  defined(QUILL_NO_THREAD_NAME_SUPPORT)
   // Disabled on MINGW / Cygwin.
   return std::string{"ThreadNameDisabled"};
 #elif defined(_WIN32)
@@ -160,7 +161,7 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
   {
     QUILL_THROW(QuillError{"Failed to get thread name. Invalid data."});
   }
-  
+
   std::wstring const wide_name{data, wcsnlen_s(data, 256)};
   LocalFree(data);
   return ws2s(wide_name);
