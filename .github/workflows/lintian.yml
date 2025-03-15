@@ -1,0 +1,24 @@
+name: Lintian Check
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  lintian:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Lintian
+        run: |
+          sudo apt update
+          sudo apt install -y lintian
+
+      - name: Run Lintian
+        run: lintian --pedantic --display-info --display-experimental .
