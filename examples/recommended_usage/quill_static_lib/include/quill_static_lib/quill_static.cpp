@@ -1,4 +1,4 @@
-#include "quill_wrapper.h"
+#include "quill_static.h"
 
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
