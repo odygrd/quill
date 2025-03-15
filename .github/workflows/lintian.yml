@@ -26,9 +26,10 @@ jobs:
           export DEBEMAIL="github-actions@noreply.com"
           # Use the -p flag to set the package name and version (<name>_<version> format)
           dh_make --single --yes --createorig -p quill_1.0-1
-          dch --newversion "1.0-1" "Automated CI build"
+          # Force the version update using -b
+          dch -b --newversion "1.0-1" "Automated CI build"
           dpkg-buildpackage -S -d
-
+      
       - name: Run Lintian
         run: |
           # Lintian will now run on the generated source changes file
