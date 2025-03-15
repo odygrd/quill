@@ -24,11 +24,9 @@ jobs:
         run: |
           export DEBFULLNAME="GitHub Actions"
           export DEBEMAIL="github-actions@noreply.com"
-          # Create a minimal debian/ directory for packaging
-          dh_make --single --yes --createorig --packagename quill
-          # Update the changelog to set the package version to 1.0-1
+          # Use the -p flag to set the package name and version (<name>_<version> format)
+          dh_make --single --yes --createorig -p quill_1.0-1
           dch --newversion "1.0-1" "Automated CI build"
-          # Build the source package (this generates a .dsc and a source .changes file)
           dpkg-buildpackage -S -d
 
       - name: Run Lintian
