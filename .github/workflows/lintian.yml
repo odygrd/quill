@@ -15,10 +15,18 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install Lintian
+      - name: Install Debian Packaging Tools
         run: |
           sudo apt update
-          sudo apt install -y lintian
+          sudo apt install -y lintian debhelper devscripts
+
+      - name: Create Debian Source Package
+        run: |
+          export DEBFULLNAME="GitHub Actions"
+          export DEBEMAIL="github-actions@noreply.com"
+          dch --create --package "quill" --newversion "1.0-1" "Automated CI build"
+          dpkg-buildpackage -S -d
 
       - name: Run Lintian
-        run: lintian --pedantic --display-info --display-experimental .
+        run: |
+          lintian --pedantic --display-info --display-experimental --fail-on warning ../quill_1.0-1_source.changes
