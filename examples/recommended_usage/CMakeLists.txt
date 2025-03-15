@@ -1,4 +1,4 @@
-add_subdirectory(quill_wrapper)
+add_subdirectory(quill_static_lib)
 
 set(EXAMPLE_TARGETS
         quill_example_recommended_usage
@@ -14,7 +14,7 @@ foreach (example_target ${EXAMPLE_TARGETS})
 
     add_executable(${example_target} ${source_file})
     set_common_compile_options(${example_target})
-    target_link_libraries(${example_target} quill_wrapper_recommended)
+    target_link_libraries(${example_target} quill_static_lib_recommended_usage)
 endforeach ()
 
 install(TARGETS ${EXAMPLE_TARGETS}

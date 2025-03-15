@@ -1,4 +1,4 @@
-#include "quill_wrapper_shared/quill_wrapper_shared.h"
+#include "quill_shared_lib/quill_shared.h"
 
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"

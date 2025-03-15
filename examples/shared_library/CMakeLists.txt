@@ -1,8 +1,8 @@
-add_subdirectory(quill_wrapper_shared)
+add_subdirectory(quill_shared_lib)
 
 add_executable(quill_example_shared_lib example_shared.cpp)
 set_common_compile_options(quill_example_shared_lib)
-target_link_libraries(quill_example_shared_lib quill_wrapper_shared)
+target_link_libraries(quill_example_shared_lib quill_shared_lib)
 
 # Optional
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -16,16 +16,16 @@ if (WIN32)
     # Post-build command to copy the DLL to the executable directory
     add_custom_command(TARGET quill_example_shared_lib POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:quill_wrapper_shared>   # DLL location
+            $<TARGET_FILE:quill_shared_lib>   # DLL location
             $<TARGET_FILE_DIR:quill_example_shared_lib>)  # Executable directory
 
     # The below will always copy
     #    # Custom target to copy all DLLs to the executable directory
     #    add_custom_target(copy_dll ALL
     #            COMMAND ${CMAKE_COMMAND} -E copy
-    #            $<TARGET_FILE:quill_wrapper_shared>          # DLL location
+    #            $<TARGET_FILE:quill_shared_lib>          # DLL location
     #            $<TARGET_FILE_DIR:quill_example_shared_lib>  # Executable directory
-    #            DEPENDS quill_wrapper_shared # Ensure all shared libs are built before copying
+    #            DEPENDS quill_shared_lib # Ensure all shared libs are built before copying
     #    )
     #
     #    # Ensure that the custom target is executed after quill_example_shared_lib is built
