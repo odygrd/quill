@@ -143,35 +143,35 @@ TEST_CASE("parse_log_level_from_env")
 
   // no env
   REQUIRE_EQ(lm.create_or_get_logger<Logger>("lg1", std::vector<std::shared_ptr<Sink>>{},
-                                             PatternFormatterOptions{}, ClockSourceType::Tsc, false)
+                                             PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr)
                ->get_log_level(),
              quill::LogLevel::Info);
 
   set_env("QUILL_LOG_LEVEL", "tracel3");
   lm.parse_log_level_from_env();
   REQUIRE_EQ(lm.create_or_get_logger<Logger>("lg2", std::vector<std::shared_ptr<Sink>>{},
-                                             PatternFormatterOptions{}, ClockSourceType::Tsc, false)
+                                             PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr)
                ->get_log_level(),
              quill::LogLevel::TraceL3);
 
   set_env("QUILL_LOG_LEVEL", "debug");
   lm.parse_log_level_from_env();
   REQUIRE_EQ(lm.create_or_get_logger<Logger>("lg3", std::vector<std::shared_ptr<Sink>>{},
-                                             PatternFormatterOptions{}, ClockSourceType::Tsc, false)
+                                             PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr)
                ->get_log_level(),
              quill::LogLevel::Debug);
 
   set_env("QUILL_LOG_LEVEL", "critical");
   lm.parse_log_level_from_env();
   REQUIRE_EQ(lm.create_or_get_logger<Logger>("lg4", std::vector<std::shared_ptr<Sink>>{},
-                                             PatternFormatterOptions{}, ClockSourceType::Tsc, false)
+                                             PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr)
                ->get_log_level(),
              quill::LogLevel::Critical);
 
   set_env("QUILL_LOG_LEVEL", "none");
   lm.parse_log_level_from_env();
   REQUIRE_EQ(lm.create_or_get_logger<Logger>("lg5", std::vector<std::shared_ptr<Sink>>{},
-                                             PatternFormatterOptions{}, ClockSourceType::Tsc, false)
+                                             PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr)
                ->get_log_level(),
              quill::LogLevel::None);
 }
