@@ -56,7 +56,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view log_level_to_string(
 /**
  * Converts a string to a LogLevel enum value
  * @param log_level the log level string to convert
- * "tracel3", "tracel2", "tracel1", "debug", "info", "notice", "warning", "error", "backtrace", "none"
+ * "tracel3", "tracel2", "tracel1", "debug", "info", "notice", "warning", "error", "critical", "backtrace", "none"
  * @return the corresponding LogLevel enum value
  */
 QUILL_NODISCARD LogLevel inline loglevel_from_string(std::string log_level)
