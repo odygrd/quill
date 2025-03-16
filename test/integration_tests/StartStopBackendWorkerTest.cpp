@@ -50,7 +50,7 @@ TEST_CASE("start_stop_backend_worker")
     }
 
     logger->flush_log();
-    Frontend::remove_logger(logger);
+    Frontend::remove_logger_blocking(logger);
 
     // Wait until the backend thread stops
     Backend::stop();
