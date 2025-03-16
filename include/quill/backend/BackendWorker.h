@@ -417,6 +417,9 @@ private:
         }
       }
     }
+
+    _cleanup_invalidated_thread_contexts();
+    _cleanup_invalidated_loggers();
   }
 
   /**
