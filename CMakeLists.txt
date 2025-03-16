@@ -330,7 +330,7 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
     set(QUILL_INC_DIR ${CMAKE_INSTALL_INCLUDEDIR} CACHE STRING
             "Installation directory for include files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
-    set(QUILL_PKGCONFIG_DIR ${CMAKE_INSTALL_PREFIX}/pkgconfig CACHE PATH
+    set(QUILL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE PATH
             "Installation directory for pkgconfig (.pc) files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
     if (WIN32)
