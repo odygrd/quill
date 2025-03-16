@@ -42,7 +42,8 @@ TEST_CASE("multiple_sinks_same_logger")
     FileEventNotifier{});
 
   std::string const stream = "stdout";
-  auto console_sink = Frontend::create_or_get_sink<ConsoleSink>("console_sink",
+  auto console_sink =
+    Frontend::create_or_get_sink<ConsoleSink>("console_sink",
                                               []()
                                               {
                                                 ConsoleSinkConfig csc;

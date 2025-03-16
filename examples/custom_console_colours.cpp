@@ -18,16 +18,18 @@ int main()
   quill::Backend::start(backend_options);
 
   // Create the sink
-  auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1", []()
-  {
-    quill::ConsoleSinkConfig config;
+  auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
+    "sink_id_1",
+    []()
+    {
+      quill::ConsoleSinkConfig config;
 
-    quill::ConsoleSinkConfig::Colours colours;
-    colours.assign_colour_to_log_level(quill::LogLevel::Info, quill::ConsoleSinkConfig::Colours::blue); // overwrite the colour for INFO
+      quill::ConsoleSinkConfig::Colours colours;
+      colours.assign_colour_to_log_level(quill::LogLevel::Info, quill::ConsoleSinkConfig::Colours::blue); // overwrite the colour for INFO
 
-    config.set_colours(colours);
-    return config;
-  }());
+      config.set_colours(colours);
+      return config;
+    }());
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
 
