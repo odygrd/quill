@@ -87,12 +87,50 @@
 
 ## v8.3.0
 
-- Updated bundled `libfmt` to `11.1.4`.
-- Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
-- On Linux, setting a long backend thread name now truncates it instead of
-  failing. ([#691](https://github.com/odygrd/quill/issues/691))
+## API Changes
+
+- Replaced the `bool huge_pages_enabled` flag in `FrontendOptions` with `quill::HugePagesPolicy huge_pages_policy` enum,
+  allowing huge page allocation to be attempted with a fallback to normal pages if unavailable. If you are using a
+  custom `FrontendOptions` type, you will need to update it to use the new
+  flag. ([#707](https://github.com/odygrd/quill/issues/707))
+- The `ConsoleSink` constructor now optionally accepts a `ConsoleSinkConfig`, similar to other sinks. If no
+  `ConsoleSinkConfig` is provided, a default one is used, logging to `stdout` with `ColourMode::Automatic`. For example:
+    ```c++
+    Frontend::create_or_get_sink<ConsoleSink>("console_sink",
+                                              []()
+                                              {
+                                                ConsoleSinkConfig csc;
+                                                csc.set_colour_mode(ConsoleSinkConfig::ColourMode::Never);
+                                                csc.set_stream("stderr");
+                                                return csc;
+                                              }());
+    ```
+
+## New Features
+
+- Added `Frontend::remove_logger_blocking(...)`, which blocks the caller thread until the specified logger is fully
+  removed.
+- Added the `LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, fmt, ...)` macro.  
+  This enables passing runtime metadata (such as file, line number, and function) along with a log message,  
+  providing greater flexibility when forwarding logs from other logging
+  libraries. ([#696](https://github.com/odygrd/quill/issues/696))
+
+    ```c++
+    LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo()", "Hello number {}", 8);
+    ```
+- Added a runtime check to detect duplicate backend worker threads caused by inconsistent linkage  
+  (e.g., mixing static and shared libraries). If needed, this check can be disabled using the  
+  `check_backend_singleton_instance` flag in
+  `BackendOptions`. ([#687](https://github.com/odygrd/quill/discussions/687#discussioncomment-12349621))
+- Added the `QUILL_DISABLE_FUNCTION_NAME` preprocessor flag and CMake option.  
+  This allows disabling `__FUNCTION__` in `LOG_*` macros when `%(caller_function)` is not used in `PatternFormatter`,  
+  eliminating Clang-Tidy warnings when logging inside lambdas.
+- It is now possible to override a logger's `PatternFormatter` on a per-sink basis. This allows the same logger to
+  output different formats for different sinks. Previously, achieving this required creating a custom sink type, but
+  this functionality is now built-in. See the
+  example: [sink_formatter_override.cpp](https://github.com/odygrd/quill/blob/master/examples/sink_formatter_override.cpp).
 - Added the `SyslogSink`, which logs messages to the system's syslog.
-  
+
     ```c++
     auto sink = quill::Frontend::create_or_get_sink<quill::SyslogSink>(
       "app", []()
@@ -124,31 +162,17 @@
         config.set_format_message(true);
         return config;
       }());
-    ```  
-- Added `Frontend::remove_logger_blocking(...)`, this function blocks the caller thread until the specified logger has
-  been fully removed.
-- Added a runtime check to detect duplicate backend worker threads caused by inconsistent linkage  
-  (e.g., mixing static and shared libraries). If needed, this check can be disabled using the  
-  `check_backend_singleton_instance` flag in the
-  `BackendOptions`. ([#687](https://github.com/odygrd/quill/discussions/687#discussioncomment-12349621))
-- Added the `QUILL_DISABLE_FUNCTION_NAME` preprocessor flag and CMake option. This allows disabling `__FUNCTION__` in
-  `LOG_*` macros when `%(caller_function)` is not used in `PatternFormatter`. This eliminates Clang-Tidy warnings when
-  logging inside lambdas.
-- Added the `LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, fmt, ...)` macro, which allows passing
-  runtime metadata (such as file, line number, and function) along with a log message. This feature provides runtime
-  flexibility, but it has a small overhead compared to the existing compile-time metadata macros. It is
-  especially useful when forwarding logs received from another logging library to
-  Quill. ([#696](https://github.com/odygrd/quill/issues/696))
-  
-    ```c++
-    LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "main.cpp", 20, "foo()", "Hello number {}", 8);
     ```
-- The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted
-  `std::shared_ptr<Sink>`, but rotated files did not include the CSV header. This has now been improved—when using the
-  new constructor that accepts `quill::RotatingFileSinkConfig`, the CSV header is written at the start of each new
-  rotated file. ([#700](https://github.com/odygrd/quill/discussions/700))  
-  Example:
-  
+
+## Improvements
+
+- Updated bundled `libfmt` to `11.1.4`.
+- The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted  
+  `std::shared_ptr<Sink>`, but rotated files did not include the CSV header.  
+  This has now been improved—when using the new constructor that accepts `quill::RotatingFileSinkConfig`,  
+  the CSV header is written at the start of each new rotated
+  file. ([#700](https://github.com/odygrd/quill/discussions/700))
+
     ```c++
     quill::RotatingFileSinkConfig sink_config;
     sink_config.set_open_mode('w');
@@ -162,10 +186,9 @@
       csv_writer.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
     }
     ```
-- Replaced the `bool huge_pages_enabled` flag in `FrontendOptions` with `quill::HugePagesPolicy huge_pages_policy` enum,
-  allowing huge page allocation to be attempted with a fallback to normal pages if unavailable. If you are using a
-  custom `FrontendOptions` type, you will need to update it to use the new
-  flag. ([#707](https://github.com/odygrd/quill/issues/707))
+- On Linux, setting a long backend thread name now truncates it instead of
+  failing. ([#691](https://github.com/odygrd/quill/issues/691))
+- Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
 - CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 
