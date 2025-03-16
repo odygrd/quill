@@ -1,6 +1,6 @@
 add_subdirectory(recommended_usage)
 add_subdirectory(shared_library)
-add_subdirectory(single_logger_multiple_sink_formats)
+#add_subdirectory(single_logger_multiple_sink_formats)
 
 # Define a variable with all example targets
 set(EXAMPLE_TARGETS
@@ -14,6 +14,7 @@ set(EXAMPLE_TARGETS
         quill_example_rotating_json_file_logging
         quill_example_rotating_json_file_logging_custom_json
         quill_example_signal_handler
+        quill_example_sink_formatter_override
         quill_example_stopwatch
         quill_example_logger_removal_with_file_event_notifier
         quill_example_custom_frontend_options
