@@ -99,10 +99,10 @@
     Frontend::create_or_get_sink<ConsoleSink>("console_sink",
                                               []()
                                               {
-                                                ConsoleSinkConfig csc;
-                                                csc.set_colour_mode(ConsoleSinkConfig::ColourMode::Never);
-                                                csc.set_stream("stderr");
-                                                return csc;
+                                                ConsoleSinkConfig config;
+                                                config.set_colour_mode(ConsoleSinkConfig::ColourMode::Never);
+                                                config.set_stream("stderr");
+                                                return config;
                                               }());
     ```
 
@@ -128,7 +128,7 @@
 - It is now possible to override a logger's `PatternFormatter` on a per-sink basis. This allows the same logger to
   output different formats for different sinks. Previously, achieving this required creating a custom sink type, but
   this functionality is now built-in. See the
-  example: [sink_formatter_override.cpp](https://github.com/odygrd/quill/blob/master/examples/sink_formatter_override.cpp).
+  example: [sink_formatter_override](https://github.com/odygrd/quill/blob/master/examples/sink_formatter_override.cpp).
 - Added the `SyslogSink`, which logs messages to the system's syslog.
 
     ```c++
