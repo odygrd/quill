@@ -1,6 +1,6 @@
 module(
     name = "quill",
-    version = "8.3.0",
+    version = "9.0.0",
     compatibility_level = 1,
 )
 
