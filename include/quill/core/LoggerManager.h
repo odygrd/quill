@@ -8,8 +8,8 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
-#include "quill/core/LoggerBase.h"
 #include "quill/core/LogLevel.h"
+#include "quill/core/LoggerBase.h"
 #include "quill/core/PatternFormatterOptions.h"
 #include "quill/core/Spinlock.h"
 
@@ -221,13 +221,13 @@ public:
     return _has_invalidated_loggers.load(std::memory_order_acquire);
   }
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD void parse_log_level_from_env()
+  QUILL_ATTRIBUTE_COLD void parse_log_level_from_env()
   {
     constexpr char const* field = "QUILL_LOG_LEVEL";
 
     std::string log_level;
 
-    #if defined(_MSC_VER)
+#if defined(_MSC_VER)
     size_t len = 0;
     char buf[128];
     bool const ok = ::getenv_s(&len, buf, sizeof(buf), field) == 0;
@@ -235,13 +235,13 @@ public:
     {
       log_level = buf;
     }
-    #else // revert to getenv
+#else // revert to getenv
     char* buf = ::getenv(field);
     if (buf)
     {
       log_level = buf;
     }
-    #endif
+#endif
 
     if (!log_level.empty())
     {
@@ -250,10 +250,7 @@ public:
   }
 
 private:
-  LoggerManager()
-  {
-    parse_log_level_from_env();
-  }
+  LoggerManager() { parse_log_level_from_env(); }
 
   ~LoggerManager() = default;
 

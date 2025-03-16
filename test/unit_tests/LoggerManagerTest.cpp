@@ -128,12 +128,12 @@ TEST_CASE("create_get_remove_logger")
 
 void set_env(const char* name, const char* value)
 {
-  #if defined(_WIN32)
+#if defined(_WIN32)
   std::string env_entry = std::string(name) + "=" + value;
   _putenv(env_entry.c_str());
-  #else
+#else
   setenv(name, value, 1); // 1 to overwrite
-  #endif
+#endif
 }
 
 /***/
