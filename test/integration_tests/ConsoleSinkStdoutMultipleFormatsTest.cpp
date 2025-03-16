@@ -31,10 +31,15 @@ TEST_CASE("console_sink_stdout_multiple_formats")
 
   quill::testing::CaptureStdout();
 
-  // Set writing logging to a file
-  std::string const stream = "stdout";
-  auto console_sink = Frontend::create_or_get_sink<ConsoleSink>(
-    "console_sink", quill::ConsoleSink::ColourMode::Never, stream);
+  auto console_sink =
+    Frontend::create_or_get_sink<ConsoleSink>("console_sink",
+                                              []()
+                                              {
+                                                ConsoleSinkConfig csc;
+                                                csc.set_colour_mode(ConsoleSinkConfig::ColourMode::Never);
+                                                csc.set_stream("stdout");
+                                                return csc;
+                                              }());
 
   Logger* logger_a = Frontend::create_or_get_logger(logger_name_a, console_sink);
   Logger* logger_b = Frontend::create_or_get_logger(

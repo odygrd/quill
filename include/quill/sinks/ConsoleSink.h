@@ -42,8 +42,7 @@ QUILL_BEGIN_NAMESPACE
 /** Forward Declaration **/
 class MacroMetadata;
 
-/***/
-class ConsoleSink : public StreamSink
+class ConsoleSinkConfig
 {
 public:
   enum class ColourMode
@@ -59,11 +58,7 @@ public:
   class Colours
   {
   public:
-    Colours()
-    {
-      // by default _using_colours is false
-      _log_level_colours.fill(white);
-    }
+    Colours() { apply_default_colours(); }
 
     ~Colours() = default;
 
@@ -95,6 +90,8 @@ public:
       _log_level_colours[log_lvl] = colour;
       _colours_enabled = true;
     }
+
+    QUILL_ATTRIBUTE_COLD void set_colours_enabled(bool value) { _colours_enabled = value; }
 
     /**
      * @return true if we are in terminal and have also enabled colours
@@ -255,48 +252,103 @@ public:
 
   private:
     std::array<std::string_view, 10> _log_level_colours; /**< Colours per log level */
-    bool _colours_enabled{false};
+    bool _colours_enabled{true};
     bool _colour_output_supported{false};
   };
 
   /**
-   * @brief Constructor with custom ConsoleColours
-   * @param colours console colours instance
-   * @param colour_mode Determines when console colours are enabled.
-   *                    - Always: Colours are always enabled.
-   *                    - Automatic: Colours are enabled automatically based on the environment (e.g., terminal support).
-   *                    - Never: Colours are never enabled.
-   * @param stream stream name can only be "stdout" or "stderr"
+   * @brief Sets custom colours for each log level.
+   *
+   * This function allows specifying a custom Colours instance, enabling fine-grained control
+   * over the colours used for different log levels in the console output.
+   *
+   * @param colours The Colours instance to use.
    */
-  explicit ConsoleSink(Colours const& colours, ColourMode colour_mode = ColourMode::Automatic,
-                       std::string const& stream = "stdout")
-    : StreamSink{stream, nullptr}, _colours(colours)
-  {
-    assert((stream == "stdout") || (stream == "stderr"));
-
-    // In this ctor we take a full copy of colours and in our instance we modify it
-    _colours._configure_colour_support(_file, colour_mode);
-  }
+  QUILL_ATTRIBUTE_COLD void set_colours(Colours colours) { _colours = colours; }
 
   /**
-   * @brief Constructor with default ConsoleColours
-   * @param colour_mode Determines when console colours are enabled.
-   *                    - Always: Colours are always enabled.
-   *                    - Automatic: Colours are enabled automatically based on the environment (e.g., terminal support).
-   *                    - Never: Colours are never enabled.
-   * @param stream stream name can only be "stdout" or "stderr"
+   * @brief Sets the colour mode for console output.
+   *
+   * This function determines when colours are applied in the console output.
+   * Valid options for the colour mode are:
+   *   - Always: Colours are always enabled.
+   *   - Automatic: Colours are enabled automatically based on the environment
+   *     (e.g., terminal support).
+   *   - Never: Colours are never enabled.
+   *
+   * The default value is 'Automatic'.
+   *
+   * @param colour_mode The desired colour mode.
    */
-  explicit ConsoleSink(ColourMode colour_mode = ColourMode::Automatic,
-                       std::string const& stream = "stdout")
-    : StreamSink{stream, nullptr}
+  QUILL_ATTRIBUTE_COLD void set_colour_mode(ColourMode colour_mode) { _colour_mode = colour_mode; }
+
+  /**
+   * @brief Sets the output stream for console logging.
+   *
+   * This function allows selecting the output stream where log messages should be printed.
+   * The valid options are:
+   *   - "stdout": Logs are printed to the standard output.
+   *   - "stderr": Logs are printed to the standard error.
+   *
+   * The default value is "stdout".
+   *
+   * @param stream The output stream to use.
+   */
+  QUILL_ATTRIBUTE_COLD void set_stream(std::string const& stream) { _stream = stream; }
+
+  /**
+   * @brief Sets custom pattern formatter options for this sink.
+   *
+   * By default, the logger's pattern formatter is used to format log messages.
+   * This function allows overriding the default formatter with custom options for this specific
+   * sink. If a custom formatter is provided, it will be used instead of the logger's formatter.
+   *
+   * @param options The custom pattern formatter options to use
+   */
+  QUILL_ATTRIBUTE_COLD void set_override_pattern_formatter_options(std::optional<PatternFormatterOptions> const& options)
   {
-    assert((stream == "stdout") || (stream == "stderr"));
+    _override_pattern_formatter_options = options;
+  }
 
-    _colours._configure_colour_support(_file, colour_mode);
+  /** Getters **/
+  QUILL_NODISCARD Colours const& colours() noexcept { return _colours; }
+  QUILL_NODISCARD ColourMode colour_mode() const noexcept { return _colour_mode; }
+  QUILL_NODISCARD std::string const& stream() const noexcept { return _stream; }
+  QUILL_NODISCARD std::optional<PatternFormatterOptions> const& override_pattern_formatter_options() const noexcept
+  {
+    return _override_pattern_formatter_options;
+  }
 
-    if (colour_mode != ColourMode::Never)
+private:
+  friend class ConsoleSink;
+
+  std::optional<PatternFormatterOptions> _override_pattern_formatter_options;
+  std::string _stream = "stdout";
+  Colours _colours;
+  ColourMode _colour_mode{ColourMode::Automatic};
+};
+
+/***/
+class ConsoleSink : public StreamSink
+{
+public:
+  /**
+   * @brief Constructor with custom ConsoleColours
+   * config
+   */
+  explicit ConsoleSink(ConsoleSinkConfig const& config = ConsoleSinkConfig{})
+    : StreamSink{config.stream(), nullptr, config.override_pattern_formatter_options()}, _config(config)
+  {
+    assert((_config.stream() == "stdout") || (config.stream() == "stderr"));
+
+    if (_config.colour_mode() == ConsoleSinkConfig::ColourMode::Never)
     {
-      _colours.apply_default_colours();
+      _config._colours.set_colours_enabled(false);
+    }
+    else
+    {
+      _config._colours._configure_colour_support(_file, _config.colour_mode());
+      _config._colours.set_colours_enabled(true);
     }
   }
 
@@ -325,10 +377,10 @@ public:
                                      std::vector<std::pair<std::string, std::string>> const* named_args,
                                      std::string_view log_message, std::string_view log_statement) override
   {
-    if (_colours.colours_enabled())
+    if (_config.colours().colours_enabled())
     {
       // Write colour code
-      std::string_view const colour_code = _colours.log_level_colour(log_level);
+      std::string_view const colour_code = _config.colours().log_level_colour(log_level);
       safe_fwrite(colour_code.data(), sizeof(char), colour_code.size(), _file);
 
       // Write record to file
@@ -337,7 +389,8 @@ public:
                             named_args, log_message, log_statement);
 
       // Reset colour code
-      safe_fwrite(Colours::reset.data(), sizeof(char), Colours::reset.size(), _file);
+      safe_fwrite(ConsoleSinkConfig::Colours::reset.data(), sizeof(char),
+                  ConsoleSinkConfig::Colours::reset.size(), _file);
     }
     else
     {
@@ -350,7 +403,7 @@ public:
 
 protected:
   // protected in case someone wants to derive from this class and create a custom one, e.g. for json logging to stdout
-  Colours _colours;
+  ConsoleSinkConfig _config;
 };
 
 QUILL_END_NAMESPACE

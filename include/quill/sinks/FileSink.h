@@ -160,6 +160,20 @@ public:
     _minimum_fsync_interval = value;
   }
 
+  /**
+   * @brief Sets custom pattern formatter options for this sink.
+   *
+   * By default, the logger's pattern formatter is used to format log messages.
+   * This function allows overriding the default formatter with custom options for this specific
+   * sink. If a custom formatter is provided, it will be used instead of the logger's formatter.
+   *
+   * @param options The custom pattern formatter options to use
+   */
+  QUILL_ATTRIBUTE_COLD void set_override_pattern_formatter_options(std::optional<PatternFormatterOptions> const& options)
+  {
+    _override_pattern_formatter_options = options;
+  }
+
   /** Getters **/
   QUILL_NODISCARD bool fsync_enabled() const noexcept { return _fsync_enabled; }
   QUILL_NODISCARD Timezone timezone() const noexcept { return _time_zone; }
@@ -177,12 +191,17 @@ public:
   {
     return _minimum_fsync_interval;
   }
+  QUILL_NODISCARD std::optional<PatternFormatterOptions> const& override_pattern_formatter_options() const noexcept
+  {
+    return _override_pattern_formatter_options;
+  }
 
 private:
   std::string _open_mode{'w'};
   std::string _append_filename_format_pattern;
   size_t _write_buffer_size{64 * 1024}; // Default size 64k
   std::chrono::milliseconds _minimum_fsync_interval{0};
+  std::optional<PatternFormatterOptions> _override_pattern_formatter_options;
   Timezone _time_zone{Timezone::LocalTime};
   FilenameAppendOption _filename_append_option{FilenameAppendOption::None};
   bool _fsync_enabled{false};
@@ -210,7 +229,7 @@ public:
     : StreamSink(_get_updated_filename_with_appended_datetime(filename, config.filename_append_option(),
                                                               config.append_filename_format_pattern(),
                                                               config.timezone(), start_time),
-                 nullptr, std::move(file_event_notifier)),
+                 nullptr, config.override_pattern_formatter_options(), std::move(file_event_notifier)),
       _config(config)
   {
     if (!_config.fsync_enabled() && (_config.minimum_fsync_interval().count() != 0))

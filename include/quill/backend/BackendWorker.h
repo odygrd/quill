@@ -991,10 +991,28 @@ private:
                                   thread_name, transit_event.logger_base->logger_name,
                                   transit_event.log_level(), log_message, log_statement))
       {
+        std::string_view log_to_write = log_statement;
+
+        // If the sink has an override pattern formatter to use, prepare the override formatted statement
+        if (sink->_override_pattern_formatter_options)
+        {
+          if (!sink->_override_pattern_formatter)
+          {
+            sink->_override_pattern_formatter =
+              std::make_shared<PatternFormatter>(*sink->_override_pattern_formatter_options);
+          }
+
+          log_to_write = sink->_override_pattern_formatter->format(
+            transit_event.timestamp, thread_id, thread_name, _process_id,
+            transit_event.logger_base->logger_name, log_level_description, log_level_short_code,
+            *transit_event.macro_metadata, transit_event.named_args.get(), log_message);
+        }
+
+        // Forward the message using the computed log statement
         sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
                         thread_name, _process_id, transit_event.logger_base->logger_name,
                         transit_event.log_level(), log_level_description, log_level_short_code,
-                        transit_event.named_args.get(), log_message, log_statement);
+                        transit_event.named_args.get(), log_message, log_to_write);
       }
     }
   }

@@ -8,6 +8,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"
+#include "quill/core/PatternFormatterOptions.h"
 #include "quill/core/QuillError.h"
 #include "quill/core/Spinlock.h"
 #include "quill/filters/Filter.h"
@@ -16,6 +17,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -25,6 +27,7 @@ QUILL_BEGIN_NAMESPACE
 
 /** Forward Declarations **/
 class MacroMetadata;
+class PatternFormatter;
 
 namespace detail
 {
@@ -41,7 +44,10 @@ public:
    * Constructor
    * Uses the default pattern formatter
    */
-  Sink() = default;
+  explicit Sink(std::optional<PatternFormatterOptions> override_pattern_formatter_options = std::nullopt)
+    : _override_pattern_formatter_options(std::move(override_pattern_formatter_options))
+  {
+  }
 
   /**
    * Destructor
@@ -192,6 +198,10 @@ protected:
 
 private:
   friend class detail::BackendWorker;
+
+  /** Override PatternFormatter for this sink **/
+  std::optional<PatternFormatterOptions> _override_pattern_formatter_options; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
+  std::shared_ptr<PatternFormatter> _override_pattern_formatter; /* The backend thread will set this once */
 
   /** Local Filters for this sink **/
   std::vector<Filter*> _local_filters;
