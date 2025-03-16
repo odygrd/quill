@@ -25,8 +25,6 @@ TEST_CASE("start_stop_backend_worker")
     Backend::start();
     REQUIRE_EQ(Backend::is_running(), true);
 
-    Frontend::preallocate();
-
     // Set writing logging to a file
     auto file_sink = Frontend::create_or_get_sink<FileSink>(
       filename,
@@ -49,13 +47,14 @@ TEST_CASE("start_stop_backend_worker")
       LOG_INFO(logger, "This is message {}", i);
     }
 
-    logger->flush_log();
-    Frontend::remove_logger_blocking(logger);
+    // we do not call flush log or remove_logger_blocking to also check that stop() will do those
+    Frontend::remove_logger(logger);
 
     // Wait until the backend thread stops
     Backend::stop();
     REQUIRE_EQ(Backend::get_thread_id(), 0);
     REQUIRE_EQ(Backend::is_running(), false);
+    REQUIRE_EQ(Frontend::get_number_of_loggers(), 0);
 
     // Read file and check
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
