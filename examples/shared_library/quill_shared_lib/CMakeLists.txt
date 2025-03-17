@@ -1,8 +1,8 @@
 set(LIB_NAME quill_shared_lib)
 
 add_library(${LIB_NAME} SHARED
-        include/quill_shared_lib/quill_shared.h
-        include/quill_shared_lib/quill_shared.cpp)
+        include/shared_lib/quill_shared.h
+        include/shared_lib/quill_shared.cpp)
 
 # Add include directories for this library
 target_include_directories(${LIB_NAME}
