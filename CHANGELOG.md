@@ -172,6 +172,7 @@
 ## Improvements
 
 - Updated bundled `libfmt` to `11.1.4`.
+- Updated `LOG_EVERY_N` macros to log on the first occurrence (0th call) instead of waiting until the Nth call.
 - The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted  
   `std::shared_ptr<Sink>`, but rotated files did not include the CSV header.  
   This has now been improved—when using the new constructor that accepts `quill::RotatingFileSinkConfig`,  
