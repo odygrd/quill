@@ -19,7 +19,7 @@
  */
 
 // Include our wrapper lib
-#include "static_lib/quill_static.h"
+#include "quill_static.h"
 
 // We need only those two headers in order to log
 #include "quill/LogMacros.h"
