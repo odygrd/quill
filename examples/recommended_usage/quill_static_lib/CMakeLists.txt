@@ -1,9 +1,9 @@
 set(LIB_NAME quill_static_lib_recommended_usage)
 
 add_library(${LIB_NAME} STATIC
-        include/quill_static_lib/overwrite_macros.h
-        include/quill_static_lib/quill_static.h
-        include/quill_static_lib/quill_static.cpp)
+        include/static_lib/overwrite_macros.h
+        include/static_lib/quill_static.h
+        include/static_lib/quill_static.cpp)
 
 # Add include directories for this library
 target_include_directories(${LIB_NAME}
