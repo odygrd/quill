@@ -358,17 +358,14 @@
   {                                                                                                   \
     if (likelyhood(logger->template should_log_statement<log_level>()))                               \
     {                                                                                                 \
-      thread_local uint64_t occurrences{0};                                                           \
-                                                                                                      \
-      if (occurrences >= n_occurrences - 1)                                                           \
+      thread_local uint64_t call_count = 0;                                                           \
+      thread_local uint64_t next_log_at = 0;                                                          \
+      if (call_count == next_log_at)                                                                  \
       {                                                                                               \
         QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ##__VA_ARGS__);                   \
-        occurrences = 0;                                                                              \
+        next_log_at += n_occurrences;                                                                 \
       }                                                                                               \
-      else                                                                                            \
-      {                                                                                               \
-        ++occurrences;                                                                                \
-      }                                                                                               \
+      ++call_count;                                                                                   \
     }                                                                                                 \
   } while (0)
 
