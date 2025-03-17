@@ -67,10 +67,10 @@ jobs:
       - name: Update apt and search for packages
         run: |
           sudo apt-get update
-          echo "Searching for ${matrix.gcc_package}..."
-          apt-cache search ${matrix.gcc_package}
-          echo "Searching for ${matrix.gpp_package}..."
-          apt-cache search ${matrix.gpp_package}
+          echo "Searching for ${{ matrix.gcc_package }}..."
+          apt-cache search ${{ matrix.gcc_package }}
+          echo "Searching for ${{ matrix.gpp_package }}..."
+          apt-cache search ${{ matrix.gpp_package }}
 
       - name: Install cross-compiler
         run: |
