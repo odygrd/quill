@@ -108,8 +108,11 @@
 
 ## New Features
 
-- Added `Frontend::remove_logger_blocking(...)`, which blocks the caller thread until the specified logger is fully
-  removed.
+- The default log level for each `Logger` can now be configured using the environment variable `QUILL_LOG_LEVEL`.
+  Supported values: `"tracel3"`, `"tracel2"`, `"tracel1"`, `"debug"`, `"info"`, `"notice"`, `"warning"`, `"error"`,
+  `"critical"`, `"none"`. When set, the logger is initialized with the corresponding log level. If
+  `logger->set_log_level(level)` is explicitly called in code, it will override the log level set via the environment
+  variable.
 - Added the `LOG_RUNTIME_METADATA(logger, log_level, file, line_number, function, fmt, ...)` macro.  
   This enables passing runtime metadata (such as file, line number, and function) along with a log message,  
   providing greater flexibility when forwarding logs from other logging
@@ -129,6 +132,8 @@
   output different formats for different sinks. Previously, achieving this required creating a custom sink type, but
   this functionality is now built-in. See the
   example: [sink_formatter_override](https://github.com/odygrd/quill/blob/master/examples/sink_formatter_override.cpp).
+- Added `Frontend::remove_logger_blocking(...)`, which blocks the caller thread until the specified logger is fully
+  removed.
 - Added the `SyslogSink`, which logs messages to the system's syslog.
 
     ```c++
