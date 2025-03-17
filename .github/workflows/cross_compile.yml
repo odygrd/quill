@@ -68,9 +68,9 @@ jobs:
         env:
           CXX: ${{ matrix.triplet }}-g++
         run: |
-          # Add linker flag for riscv64 to link against libatomic
-          if [ "${{ matrix.arch }}" = "riscv64" ]; then
-            LINK_FLAGS="-DCMAKE_EXE_LINKER_FLAGS=-latomic"
+          # For riscv64, add linker flags to resolve atomic builtins.
+          if [ "${{ matrix.arch }}" = "riscv64" ] || [ "${{ matrix.arch }}" = "armel" ]; then
+            LINK_FLAGS="-DCMAKE_EXE_LINKER_FLAGS='-latomic -static-libatomic'"
           else
             LINK_FLAGS=""
           fi
