@@ -42,6 +42,24 @@ jobs:
             triplet: riscv64-linux-gnu
           - arch: s390x
             triplet: s390x-linux-gnu
+          - arch: amd64
+            compiler_package: g++-x86_64-linux-gnu
+          - arch: arm64
+            compiler_package: g++-aarch64-linux-gnu
+          - arch: armel
+            compiler_package: g++-arm-linux-gnueabi
+          - arch: armhf
+            compiler_package: g++-arm-linux-gnueabihf
+          - arch: i386
+            compiler_package: g++-i686-linux-gnu
+          - arch: loong64
+            compiler_package: g++-loongarch64-linux-gnu
+          - arch: ppc64el
+            compiler_package: g++-powerpc64le-linux-gnu
+          - arch: riscv64
+            compiler_package: g++-riscv64-linux-gnu
+          - arch: s390x
+            compiler_package: g++-s390x-linux-gnu
 
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +67,7 @@ jobs:
       - name: Install cross-compiler
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-${{ matrix.triplet }}
+          sudo apt-get install -y ${{ matrix.compiler_package }}
 
       - name: Create Build Environment
         run: cmake -E make_directory ${{runner.workspace}}/build
