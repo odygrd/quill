@@ -69,11 +69,13 @@ jobs:
           CXX: ${{ matrix.triplet }}-g++
         run: |
           # For riscv64, add linker flags to resolve atomic builtins.
+
           if [ "${{ matrix.arch }}" = "riscv64" ] || [ "${{ matrix.arch }}" = "armel" ]; then
-            LINK_FLAGS="-DCMAKE_EXE_LINKER_FLAGS='-latomic -static-libatomic'"
+          LINK_FLAGS=(-DCMAKE_EXE_LINKER_FLAGS="-latomic -static-libatomic")
           else
-            LINK_FLAGS=""
+          LINK_FLAGS=()
           fi
+          
           cmake $GITHUB_WORKSPACE \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_STANDARD=17 \
