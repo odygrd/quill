@@ -22,67 +22,53 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [ amd64, arm64, armel, armhf, i386, loong64, ppc64el, riscv64, s390x ]
         include:
           - arch: amd64
             triplet: x86_64-linux-gnu
-            gcc_package: gcc-x86_64-linux-gnu
-            gpp_package: g++-x86_64-linux-gnu # Not needed but included for consistency
+            compiler_package: g++
           - arch: arm64
             triplet: aarch64-linux-gnu
-            gcc_package: gcc-aarch64-linux-gnu
-            gpp_package: g++-aarch64-linux-gnu
+            compiler_package: g++-aarch64-linux-gnu
           - arch: armel
             triplet: arm-linux-gnueabi
-            gcc_package: gcc-arm-linux-gnueabi
-            gpp_package: g++-arm-linux-gnueabi
+            compiler_package: g++-arm-linux-gnueabi
           - arch: armhf
             triplet: arm-linux-gnueabihf
-            gcc_package: gcc-arm-linux-gnueabihf
-            gpp_package: g++-arm-linux-gnueabihf
+            compiler_package: g++-arm-linux-gnueabihf
           - arch: i386
             triplet: i686-linux-gnu
-            gcc_package: gcc-i686-linux-gnu
-            gpp_package: g++-i686-linux-gnu
+            compiler_package: g++-i686-linux-gnu
           - arch: loong64
             triplet: loongarch64-linux-gnu
-            gcc_package: gcc-loongarch64-linux-gnu # Check if this exists!
-            gpp_package: g++-loongarch64-linux-gnu # Check if this exists!
+            compiler_package: g++-loongarch64-linux-gnu  # Verify availability
           - arch: ppc64el
             triplet: powerpc64le-linux-gnu
-            gcc_package: gcc-powerpc64le-linux-gnu
-            gpp_package: g++-powerpc64le-linux-gnu
+            compiler_package: g++-powerpc64le-linux-gnu
           - arch: riscv64
             triplet: riscv64-linux-gnu
-            gcc_package: gcc-riscv64-linux-gnu # Check if this exists!
-            gpp_package: g++-riscv64-linux-gnu # Check if this exists!
+            compiler_package: g++-riscv64-linux-gnu      # Verify availability
           - arch: s390x
             triplet: s390x-linux-gnu
-            gcc_package: gcc-s390x-linux-gnu
-            gpp_package: g++-s390x-linux-gnu
+            compiler_package: g++-s390x-linux-gnu
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update apt and search for packages
-        run: |
-          sudo apt-get update
-          echo "Searching for ${{ matrix.gcc_package }}..."
-          apt-cache search ${{ matrix.gcc_package }}
-          echo "Searching for ${{ matrix.gpp_package }}..."
-          apt-cache search ${{ matrix.gpp_package }}
-
       - name: Install cross-compiler
         run: |
-          sudo apt-get install -y --no-install-recommends ${matrix.gpp_package}
+          sudo apt-get update
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            sudo apt-get install -y g++
+          else
+            sudo apt-get install -y ${{ matrix.compiler_package }}
+          fi
 
       - name: Create Build Environment
-        run: cmake -E make_directory ${{runner.workspace}}/build
+        run: cmake -E make_directory ${{ runner.workspace }}/build
 
       - name: Configure CMake
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{ runner.workspace }}/build
         env:
-          CC: ${{ matrix.triplet }}-gcc
           CXX: ${{ matrix.triplet }}-g++
         run: |
           cmake $GITHUB_WORKSPACE \
@@ -93,7 +79,7 @@ jobs:
             -DQUILL_VERBOSE_MAKEFILE=ON
 
       - name: Build
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{ runner.workspace }}/build
         run: |
           threads=$(nproc)
           cmake --build . --config Release --parallel $threads
