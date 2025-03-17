@@ -263,6 +263,7 @@ public:
    * @param sleep_duration_ns The duration in nanoseconds to sleep between retries when the
    * blocking queue is full, and between checks for the flush completion. Default is 100 nanoseconds.
    *
+   * @warning Do not call this function from the destructor of a static object. This may lead to application crashes if the thread-local ThreadContext is destroyed before the static object invoking `flush_log`.
    * @note This function should only be called when the backend worker is running after Backend::start(...)
    * @note This function will block the calling thread until the flush message is processed by the backend thread.
    *       The calling thread can block for up to backend_options.sleep_duration. If you configure a custom
