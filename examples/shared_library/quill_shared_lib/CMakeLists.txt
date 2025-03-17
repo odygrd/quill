@@ -1,16 +1,14 @@
 set(LIB_NAME quill_shared_lib)
 
 add_library(${LIB_NAME} SHARED
-        include/shared_lib/quill_shared.h
-        include/shared_lib/quill_shared.cpp)
+        quill_shared.h
+        quill_shared.cpp)
 
 # Add include directories for this library
 target_include_directories(${LIB_NAME}
         PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR})
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 # Optional - Set the compiler flags for GCC/Clang
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
