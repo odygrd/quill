@@ -38,15 +38,12 @@ jobs:
           - arch: i386
             triplet: i686-linux-gnu
             compiler_package: g++-i686-linux-gnu
-          - arch: loong64
-            triplet: loongarch64-linux-gnu
-            compiler_package: g++-loongarch64-linux-gnu  # Verify availability
           - arch: ppc64el
             triplet: powerpc64le-linux-gnu
             compiler_package: g++-powerpc64le-linux-gnu
           - arch: riscv64
             triplet: riscv64-linux-gnu
-            compiler_package: g++-riscv64-linux-gnu      # Verify availability
+            compiler_package: g++-riscv64-linux-gnu
           - arch: s390x
             triplet: s390x-linux-gnu
             compiler_package: g++-s390x-linux-gnu
@@ -71,12 +68,18 @@ jobs:
         env:
           CXX: ${{ matrix.triplet }}-g++
         run: |
+          # Add linker flag for riscv64 to link against libatomic
+          if [ "${{ matrix.arch }}" = "riscv64" ]; then
+            LINK_FLAGS="-DCMAKE_EXE_LINKER_FLAGS=-latomic"
+          else
+            LINK_FLAGS=""
+          fi
           cmake $GITHUB_WORKSPACE \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_CXX_STANDARD=17 \
             -DQUILL_BUILD_TESTS=OFF \
             -DQUILL_BUILD_EXAMPLES=ON \
-            -DQUILL_VERBOSE_MAKEFILE=ON
+            -DQUILL_VERBOSE_MAKEFILE=ON $LINK_FLAGS
 
       - name: Build
         working-directory: ${{ runner.workspace }}/build
