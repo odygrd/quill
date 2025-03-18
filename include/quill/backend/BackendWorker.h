@@ -51,11 +51,13 @@
 #include <ctime>
 #include <exception>
 #include <functional>
+#include <iostream>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -931,8 +933,9 @@ private:
     {
       // if the log_message ends with \n we should exclude it
       size_t const log_message_size =
-        transit_event.formatted_msg->data()[transit_event.formatted_msg->size() - 1] == '\n'
-        ? transit_event.formatted_msg->size() - 2
+        ((transit_event.formatted_msg->size() > 0) &&
+         (transit_event.formatted_msg->data()[transit_event.formatted_msg->size() - 1] == '\n'))
+        ? transit_event.formatted_msg->size() - 1
         : transit_event.formatted_msg->size();
 
       // process the whole message without adding metadata to each line
@@ -952,6 +955,14 @@ private:
   {
     auto const msg =
       std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()};
+
+    // Process an empty message
+    if (QUILL_UNLIKELY(msg.empty()))
+    {
+      _write_log_statement(transit_event, thread_id, thread_name, log_level_description,
+                           log_level_short_code, msg);
+      return;
+    }
 
     size_t start = 0;
     while (start < msg.size())

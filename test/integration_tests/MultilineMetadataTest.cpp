@@ -53,13 +53,17 @@ TEST_CASE("multi_line_metadata")
            "data2");
   LOG_WARNING(logger_a, "Warning: Multiple issues detected:\n1. {}.\n2. {}.\n3. {}.", "issue1",
               "issue2", "issue3");
-  LOG_INFO(logger_a, "Another multiline info message.\nLine 2: {}\n", "data1", "data2");
+  LOG_INFO(logger_a, "Another multiline info message [{}]\nLine 2: [{}]\n", "data1", "data2");
+  LOG_INFO(logger_a, "");
+  LOG_INFO(logger_a, "End");
 
   LOG_INFO(logger_b, "This is a multiline info message.\nLine 2: {}.\nLine 3: {}.", "data3",
            "data4");
   LOG_WARNING(logger_b, "Warning: Multiple issues detected:\n1. {}.\n2. {}.\n3. {}.", "issue4",
               "issue5", "issue6");
-  LOG_INFO(logger_b, "Another multiline info message.\nLine 2: {}\n", "data1", "data2");
+  LOG_INFO(logger_b, "Another multiline info message [{}]\nLine 2: [{}]\n", "data1", "data2");
+  LOG_INFO(logger_b, "");
+  LOG_INFO(logger_b, "End");
 
   logger_a->flush_log();
   Frontend::remove_logger(logger_a);
@@ -70,7 +74,7 @@ TEST_CASE("multi_line_metadata")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 18);
+  REQUIRE_EQ(file_contents.size(), 22);
 
   std::string expected_string =
     logger_name_a + "     This is a multiline info message. DOCTEST_ANON_FUNC_2";
@@ -94,10 +98,17 @@ TEST_CASE("multi_line_metadata")
   expected_string = logger_name_a + "     3. issue3. DOCTEST_ANON_FUNC_2";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-  expected_string = logger_name_a + "     Another multiline info message. DOCTEST_ANON_FUNC_2";
+  expected_string =
+    logger_name_a + "     Another multiline info message [data1] DOCTEST_ANON_FUNC_2";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-  expected_string = logger_name_a + "     Line 2: data1 DOCTEST_ANON_FUNC_2";
+  expected_string = logger_name_a + "     Line 2: [data2] DOCTEST_ANON_FUNC_2";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+
+  expected_string = logger_name_a + "      DOCTEST_ANON_FUNC_2"; // empty message
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+
+  expected_string = logger_name_a + "     End";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
   expected_string = logger_name_b + "     This is a multiline info message.";
@@ -121,10 +132,16 @@ TEST_CASE("multi_line_metadata")
   expected_string = "3. issue6. DOCTEST_ANON_FUNC_2";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-  expected_string = logger_name_b + "     Another multiline info message.";
+  expected_string = logger_name_b + "     Another multiline info message [data1]";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-  expected_string = "Line 2: data DOCTEST_ANON_FUNC_2";
+  expected_string = "Line 2: [data2] DOCTEST_ANON_FUNC_2";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+
+  expected_string = logger_name_b + "      DOCTEST_ANON_FUNC_2"; // empty message
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+
+  expected_string = logger_name_b + "     End";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
   testing::remove_file(filename);
