@@ -172,6 +172,8 @@
 ## Improvements
 
 - Updated bundled `libfmt` to `11.1.4`.
+- When `add_metadata_to_multi_line_logs` in the `PatternFormatter` was set to false, fixed a bug where the last
+  character of the log message was dropped and added protection for empty messages.
 - Updated `LOG_EVERY_N` macros to log on the first occurrence (0th call) instead of waiting until the Nth call.
 - The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted  
   `std::shared_ptr<Sink>`, but rotated files did not include the CSV header.  
