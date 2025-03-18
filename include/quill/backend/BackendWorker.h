@@ -954,9 +954,9 @@ private:
     auto const msg =
       std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()};
 
-    // Process an empty message
     if (QUILL_UNLIKELY(msg.empty()))
     {
+      // Process an empty message
       _write_log_statement(transit_event, thread_id, thread_name, log_level_description,
                            log_level_short_code, msg);
       return;
