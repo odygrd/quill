@@ -19,11 +19,11 @@ TEST_CASE("unbounded_queue_shrink")
   // This queue will grow as we request 5 * 256
   for (uint32_t i = 0; i < 5; ++i)
   {
-    #if defined(_MSC_VER)
+#if defined(_MSC_VER)
     auto* write_buffer = buffer.prepare_write(CHUNK, quill::QueueType::UnboundedBlocking);
-    #else
+#else
     auto* write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(CHUNK);
-    #endif
+#endif
 
     REQUIRE(write_buffer);
     buffer.finish_write(CHUNK);

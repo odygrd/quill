@@ -209,6 +209,7 @@ public:
   /**
    * Shrinks the queue if capacity is a valid smaller power of 2.
    * @param capacity New target capacity.
+   * @note: Producer (frontend) is safe to call this - Do not call on the consumer (the backend worker)
    */
   void shrink(size_t capacity)
   {
