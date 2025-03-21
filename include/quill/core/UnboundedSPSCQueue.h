@@ -215,7 +215,7 @@ public:
   {
     if (capacity > (_producer->bounded_queue.capacity() >> 1))
     {
-      // We should only shrink if the new capacity is strictly less than previous_power_of_2
+      // We should only shrink if the new capacity is less or at least equal to the previous_power_of_2
       return;
     }
 
