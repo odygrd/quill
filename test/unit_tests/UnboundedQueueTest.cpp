@@ -11,15 +11,20 @@ using namespace quill::detail;
 
 TEST_CASE("unbounded_queue_shrink")
 {
-  constexpr size_t CHUNK {256};
-  constexpr size_t INITIAL_SIZE {1024};
+  constexpr size_t CHUNK{256};
+  constexpr size_t INITIAL_SIZE{1024};
 
   UnboundedSPSCQueue buffer{INITIAL_SIZE};
 
   // This queue will grow as we request 5 * 256
   for (uint32_t i = 0; i < 5; ++i)
   {
-    std::byte* write_buffer = buffer.prepare_write(CHUNK, quill::QueueType::UnboundedBlocking);
+    #if defined(_MSC_VER)
+    auto* write_buffer = buffer.prepare_write(CHUNK, quill::QueueType::UnboundedBlocking);
+    #else
+    auto* write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(CHUNK);
+    #endif
+
     REQUIRE(write_buffer);
     buffer.finish_write(CHUNK);
     buffer.commit_write();
