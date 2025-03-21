@@ -206,6 +206,29 @@ public:
     return _consumer->bounded_queue.empty() && (_consumer->next.load(std::memory_order_relaxed) == nullptr);
   }
 
+  /**
+   * Shrinks the queue if capacity is a valid smaller power of 2.
+   * @param capacity New target capacity.
+   */
+  void shrink(size_t capacity)
+  {
+    if (capacity > (_producer->bounded_queue.capacity() >> 1))
+    {
+      // We should only shrink if the new capacity is strictly less than previous_power_of_2
+      return;
+    }
+
+    // We want to shrink the queue, we will create a new queue with a smaller size
+    // the consumer will switch to the newer queue after emptying and deallocating the older queue
+    auto const next_node = new Node{capacity, _producer->bounded_queue.huge_pages_policy()};
+
+    // store the new node pointer as next in the current node
+    _producer->next.store(next_node, std::memory_order_release);
+
+    // producer is now using the next node
+    _producer = next_node;
+  }
+
 private:
   /***/
 #if defined(_MSC_VER)

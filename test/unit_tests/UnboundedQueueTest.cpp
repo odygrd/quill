@@ -9,6 +9,55 @@ TEST_SUITE_BEGIN("UnboundedQueue");
 
 using namespace quill::detail;
 
+TEST_CASE("unbounded_queue_shrink")
+{
+  constexpr size_t CHUNK {256};
+  constexpr size_t INITIAL_SIZE {1024};
+
+  UnboundedSPSCQueue buffer{INITIAL_SIZE};
+
+  // This queue will grow as we request 5 * 256
+  for (uint32_t i = 0; i < 5; ++i)
+  {
+    std::byte* write_buffer = buffer.prepare_write(CHUNK, quill::QueueType::UnboundedBlocking);
+    REQUIRE(write_buffer);
+    buffer.finish_write(CHUNK);
+    buffer.commit_write();
+  }
+
+  {
+    UnboundedSPSCQueue::ReadResult res = buffer.prepare_read();
+    REQUIRE(res.read_pos);
+    buffer.finish_read(INITIAL_SIZE);
+    buffer.commit_read();
+  }
+
+  {
+    // Now read again the next part from the allocated queue
+    UnboundedSPSCQueue::ReadResult res = buffer.prepare_read();
+    REQUIRE(res.read_pos);
+    REQUIRE(res.allocation);
+    REQUIRE_EQ(res.previous_capacity, INITIAL_SIZE);
+    REQUIRE_EQ(res.new_capacity, INITIAL_SIZE * 2);
+    buffer.finish_read(CHUNK);
+    buffer.commit_read();
+  }
+
+  // Shrink the queue
+  buffer.shrink(INITIAL_SIZE);
+
+  {
+    // On next read we should see the new queue - old is gone
+    UnboundedSPSCQueue::ReadResult res = buffer.prepare_read();
+    REQUIRE_EQ(res.read_pos, nullptr);
+    REQUIRE(res.allocation);
+    REQUIRE_EQ(res.previous_capacity, INITIAL_SIZE * 2);
+    REQUIRE_EQ(res.new_capacity, INITIAL_SIZE);
+    buffer.finish_read(CHUNK);
+    buffer.commit_read();
+  }
+}
+
 TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
 {
   UnboundedSPSCQueue buffer{1024};
