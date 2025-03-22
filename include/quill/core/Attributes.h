@@ -67,9 +67,9 @@
  * Portable maybe_unused
  */
 #ifndef QUILL_MAYBE_UNUSED
-  #if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused) && (defined(_HAS_CXX17) && _HAS_CXX17 == 1)
+  #if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused) && (__cplusplus >= 201703L)
     #define QUILL_MAYBE_UNUSED [[maybe_unused]]
-  #elif QUILL_HAS_ATTRIBUTE(__unused__) || defined(__GNUC__)
+  #elif QUILL_HAS_ATTRIBUTE(__unused__)
     #define QUILL_MAYBE_UNUSED __attribute__((__unused__))
   #elif defined(_MSC_VER)
     #define QUILL_MAYBE_UNUSED __pragma(warning(suppress : 4100))
@@ -85,7 +85,7 @@
  * is likely to be not-taken.
  */
 #ifndef QUILL_ATTRIBUTE_HOT
-  #if QUILL_HAS_ATTRIBUTE(hot) || (defined(__GNUC__) && !defined(__clang__))
+  #if QUILL_HAS_ATTRIBUTE(hot)
     #define QUILL_ATTRIBUTE_HOT __attribute__((hot))
   #else
     #define QUILL_ATTRIBUTE_HOT
@@ -93,7 +93,7 @@
 #endif
 
 #ifndef QUILL_ATTRIBUTE_COLD
-  #if QUILL_HAS_ATTRIBUTE(cold) || (defined(__GNUC__) && !defined(__clang__))
+  #if QUILL_HAS_ATTRIBUTE(cold)
     #define QUILL_ATTRIBUTE_COLD __attribute__((cold))
   #else
     #define QUILL_ATTRIBUTE_COLD
@@ -104,7 +104,7 @@
  * Used
  */
 #ifndef QUILL_ATTRIBUTE_USED
-  #if QUILL_HAS_ATTRIBUTE(used) || defined(__GNUC__) || defined(__clang__)
+  #if QUILL_HAS_ATTRIBUTE(used)
     #define QUILL_ATTRIBUTE_USED __attribute__((used))
   #else
     #define QUILL_ATTRIBUTE_USED
