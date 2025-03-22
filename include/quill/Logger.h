@@ -50,6 +50,11 @@ class LoggerImpl : public detail::LoggerBase
 public:
   using frontend_options_t = TFrontendOptions;
 
+  static constexpr bool using_unbounded_queue =
+    (frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
+    (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
+    (frontend_options_t::queue_type == QueueType::UnboundedDropping);
+
   /***/
   LoggerImpl(LoggerImpl const&) = delete;
   LoggerImpl& operator=(LoggerImpl const&) = delete;
@@ -360,11 +365,7 @@ private:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _prepare_write_buffer(size_t total_size)
   {
-    constexpr bool is_unbounded_queue = (frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
-      (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
-      (frontend_options_t::queue_type == QueueType::UnboundedDropping);
-
-    if constexpr (is_unbounded_queue)
+    if constexpr (using_unbounded_queue)
     {
       // MSVC doesn't like the template keyword, but every other compiler requires it
 #if defined(_MSC_VER)

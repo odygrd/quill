@@ -54,6 +54,64 @@ public:
   }
 
   /**
+   * Shrink the thread-local SPSC queue to the specified target capacity.
+   *
+   * This function helps manage memory usage by reducing the size of the thread-local queue.
+   * In scenarios where a thread pool executes multiple jobs, one job might log a burst of messages
+   * that causes the queue to grow significantly. Subsequent jobs may not require such a large capacity,
+   * so you can call this function to explicitly shrink the queue to a smaller size.
+   *
+   * @note This function only applies when using the **UnboundedQueue** configuration. It will have no effect
+   *       if the BoundedQueue is enabled.
+   * @note The function will only shrink the queue if the provided target capacity is smaller than the current
+   *       queue capacity. If the target capacity is greater than or equal to the current capacity, no change is made.
+   * @warning The Logger object may maintain multiple thread-local queues. This function will only shrink the queue
+   *          associated with the calling thread, so it is important that the appropriate thread invokes it.
+   *
+   * @param capacity The desired new capacity for the thread-local SPSC queue.
+   */
+  static void shrink_thread_local_queue(size_t capacity)
+  {
+    if constexpr (logger_t::using_unbounded_queue)
+    {
+      detail::get_local_thread_context<TFrontendOptions>()
+        ->template get_spsc_queue<TFrontendOptions::queue_type>()
+        .shrink(capacity);
+    }
+  }
+
+  /**
+   * Retrieve the current capacity of the thread-local SPSC queue.
+   *
+   * This function returns the capacity of the SPSC queue that belongs to the calling thread.
+   * It is particularly useful for monitoring how much an UnboundedQueue has grown over time,
+   * while for a BoundedQueue, the capacity remains constant.
+   *
+   * @note When using an UnboundedQueue, the function returns the capacity as determined by the producer,
+   *       reflecting the dynamic growth of the queue. For a BoundedQueue, the returned capacity is fixed.
+   * @note Since the Logger object can maintain multiple thread-local queues, this function always returns
+   *       the capacity of the queue associated with the thread that calls it. Ensure that the correct thread
+   *       is invoking this function to check its own queue.
+   *
+   * @return The current capacity of the thread-local SPSC queue.
+   */
+  QUILL_NODISCARD static size_t get_thread_local_queue_capacity() noexcept
+  {
+    if constexpr (logger_t::using_unbounded_queue)
+    {
+      return detail::get_local_thread_context<TFrontendOptions>()
+        ->template get_spsc_queue<TFrontendOptions::queue_type>()
+        .producer_capacity();
+    }
+    else
+    {
+      return detail::get_local_thread_context<TFrontendOptions>()
+        ->template get_spsc_queue<TFrontendOptions::queue_type>()
+        .capacity();
+    }
+  }
+
+  /**
    * @brief Creates a new sink or retrieves an existing one with the specified name.
    *
    * @param sink_name The name of the sink.
