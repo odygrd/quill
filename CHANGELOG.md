@@ -134,6 +134,10 @@
   example: [sink_formatter_override](https://github.com/odygrd/quill/blob/master/examples/sink_formatter_override.cpp).
 - Added `Frontend::remove_logger_blocking(...)`, which blocks the caller thread until the specified logger is fully
   removed.
+- Added `Frontend::shrink_thread_local_queue(capacity)` and `CustomFrontend::get_thread_local_queue_capacity()`.
+  These functions allow dynamic management of thread-local SPSC queues when using an unbounded queue configuration. They
+  enable on-demand shrinking of a queue that has grown due to bursty logging, helping to reduce memory usage, although
+  in typical scenarios they won't be required.
 - Added the `SyslogSink`, which logs messages to the system's syslog.
 
     ```c++
