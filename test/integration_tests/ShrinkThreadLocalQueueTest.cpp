@@ -35,6 +35,10 @@ TEST_CASE("shrink_thread_local_queue")
   // Start the logging backend thread
   Backend::start();
 
+  // just for testing - call before logging anything
+  CustomFrontend::shrink_thread_local_queue(8 * 1024);
+  REQUIRE_EQ(CustomFrontend::get_thread_local_queue_capacity(), 8 * 1024);
+  
   // Set writing logging to a file
   auto file_sink = CustomFrontend::create_or_get_sink<FileSink>(
     filename,
@@ -52,6 +56,8 @@ TEST_CASE("shrink_thread_local_queue")
 
   CustomLogger* logger = CustomFrontend::create_or_get_logger(logger_name, std::move(file_sink));
 
+  REQUIRE_EQ(CustomFrontend::get_thread_local_queue_capacity(), 8 * 1024);
+  
   size_t cnt{0};
   for (size_t iter = 0; iter < iterations; ++iter)
   {
