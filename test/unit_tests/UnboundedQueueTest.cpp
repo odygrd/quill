@@ -15,6 +15,7 @@ TEST_CASE("unbounded_queue_shrink")
   constexpr size_t INITIAL_SIZE{1024};
 
   UnboundedSPSCQueue buffer{INITIAL_SIZE};
+  REQUIRE_EQ(buffer.producer_capacity(), INITIAL_SIZE);
 
   // This queue will grow as we request 5 * 256
   for (uint32_t i = 0; i < 5; ++i)
@@ -49,7 +50,9 @@ TEST_CASE("unbounded_queue_shrink")
   }
 
   // Shrink the queue
+  REQUIRE_EQ(buffer.producer_capacity(), INITIAL_SIZE * 2);
   buffer.shrink(INITIAL_SIZE);
+  REQUIRE_EQ(buffer.producer_capacity(), INITIAL_SIZE);
 
   {
     // On next read we should see the new queue - old is gone

@@ -138,7 +138,7 @@ public:
   }
 
   /**
-   * Commit the write to notify the consumer bytes are ready to read
+   * Commit write to notify the consumer bytes are ready to read
    */
   QUILL_ATTRIBUTE_HOT void commit_write() noexcept { _producer->bounded_queue.commit_write(); }
 
@@ -149,6 +149,40 @@ public:
   {
     finish_write(nbytes);
     commit_write();
+  }
+
+  /**
+   * Return the current buffer's capacity
+   * @note: producer only
+   * @return capacity
+   */
+  QUILL_NODISCARD size_t producer_capacity() const noexcept
+  {
+    return _producer->bounded_queue.capacity();
+  }
+
+  /**
+   * Shrinks the queue if capacity is a valid smaller power of 2.
+   * @param capacity New target capacity.
+   * @note: producer (frontend) is safe to call this - Do not call on the consumer (the backend worker)
+   */
+  void shrink(size_t capacity)
+  {
+    if (capacity > (_producer->bounded_queue.capacity() >> 1))
+    {
+      // We should only shrink if the new capacity is less or at least equal to the previous_power_of_2
+      return;
+    }
+
+    // We want to shrink the queue, we will create a new queue with a smaller size
+    // the consumer will switch to the newer queue after emptying and deallocating the older queue
+    auto const next_node = new Node{capacity, _producer->bounded_queue.huge_pages_policy()};
+
+    // store the new node pointer as next in the current node
+    _producer->next.store(next_node, std::memory_order_release);
+
+    // producer is now using the next node
+    _producer = next_node;
   }
 
   /**
@@ -193,12 +227,14 @@ public:
 
   /**
    * Return the current buffer's capacity
+   * @note: consumer only
    * @return capacity
    */
   QUILL_NODISCARD size_t capacity() const noexcept { return _consumer->bounded_queue.capacity(); }
 
   /**
    * checks if the queue is empty
+   * @note consumer only
    * @return true if empty, false otherwise
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool empty() const noexcept
@@ -206,29 +242,6 @@ public:
     return _consumer->bounded_queue.empty() && (_consumer->next.load(std::memory_order_relaxed) == nullptr);
   }
 
-  /**
-   * Shrinks the queue if capacity is a valid smaller power of 2.
-   * @param capacity New target capacity.
-   * @note: Producer (frontend) is safe to call this - Do not call on the consumer (the backend worker)
-   */
-  void shrink(size_t capacity)
-  {
-    if (capacity > (_producer->bounded_queue.capacity() >> 1))
-    {
-      // We should only shrink if the new capacity is less or at least equal to the previous_power_of_2
-      return;
-    }
-
-    // We want to shrink the queue, we will create a new queue with a smaller size
-    // the consumer will switch to the newer queue after emptying and deallocating the older queue
-    auto const next_node = new Node{capacity, _producer->bounded_queue.huge_pages_policy()};
-
-    // store the new node pointer as next in the current node
-    _producer->next.store(next_node, std::memory_order_release);
-
-    // producer is now using the next node
-    _producer = next_node;
-  }
 
 private:
   /***/

@@ -50,6 +50,11 @@ class LoggerImpl : public detail::LoggerBase
 public:
   using frontend_options_t = TFrontendOptions;
 
+  static constexpr bool using_unbounded_queue =
+    (frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
+    (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
+    (frontend_options_t::queue_type == QueueType::UnboundedDropping);
+
   /***/
   LoggerImpl(LoggerImpl const&) = delete;
   LoggerImpl& operator=(LoggerImpl const&) = delete;
@@ -307,6 +312,58 @@ public:
     }
   }
 
+  /**
+   * Shrink the thread-local SPSC queue to the specified target capacity.
+   *
+   * This function helps manage memory usage by reducing the size of the thread-local queue.
+   * In scenarios where a thread pool executes multiple jobs, one job might log a burst of messages
+   * that causes the queue to grow significantly. Subsequent jobs may not require such a large capacity,
+   * so you can call this function to explicitly shrink the queue to a smaller size.
+   *
+   * @note This function only applies when using the **UnboundedQueue** configuration. It will have no effect
+   *       if the BoundedQueue is enabled.
+   * @note The function will only shrink the queue if the provided target capacity is smaller than the current
+   *       queue capacity. If the target capacity is greater than or equal to the current capacity, no change is made.
+   * @warning The Logger object may maintain multiple thread-local queues. This function will only shrink the queue
+   *          associated with the calling thread, so it is important that the appropriate thread invokes it.
+   *
+   * @param capacity The desired new capacity for the thread-local SPSC queue.
+   */
+  void shrink_thread_local_queue(size_t capacity)
+  {
+    if constexpr (using_unbounded_queue)
+    {
+      thread_context->get_spsc_queue<frontend_options_t::queue_type>().shrink(capacity);
+    }
+  }
+
+  /**
+   * Retrieve the current capacity of the thread-local SPSC queue.
+   *
+   * This function returns the capacity of the SPSC queue that belongs to the calling thread.
+   * It is particularly useful for monitoring how much an UnboundedQueue has grown over time,
+   * while for a BoundedQueue, the capacity remains constant.
+   *
+   * @note When using an UnboundedQueue, the function returns the capacity as determined by the producer,
+   *       reflecting the dynamic growth of the queue. For a BoundedQueue, the returned capacity is fixed.
+   * @note Since the Logger object can maintain multiple thread-local queues, this function always returns
+   *       the capacity of the queue associated with the thread that calls it. Ensure that the correct thread
+   *       is invoking this function to check its own queue.
+   *
+   * @return The current capacity of the thread-local SPSC queue.
+   */
+  QUILL_NODISCARD size_t get_thread_local_queue_capacity() const noexcept
+  {
+    if constexpr (using_unbounded_queue)
+    {
+      return thread_context->get_spsc_queue<frontend_options_t::queue_type>().producer_capacity();
+    }
+    else
+    {
+      return thread_context->get_spsc_queue<frontend_options_t::queue_type>().capacity();
+    }
+  }
+
 private:
   friend class detail::LoggerManager;
   friend class detail::BackendWorker;
@@ -360,11 +417,7 @@ private:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _prepare_write_buffer(size_t total_size)
   {
-    constexpr bool is_unbounded_queue = (frontend_options_t::queue_type == QueueType::UnboundedUnlimited) ||
-      (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
-      (frontend_options_t::queue_type == QueueType::UnboundedDropping);
-
-    if constexpr (is_unbounded_queue)
+    if constexpr (using_unbounded_queue)
     {
       // MSVC doesn't like the template keyword, but every other compiler requires it
 #if defined(_MSC_VER)
