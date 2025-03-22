@@ -197,6 +197,7 @@
 - On Linux, setting a long backend thread name now truncates it instead of
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
 - Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
+- Fixed `QUILL_ATTRIBUTE_HOT` and `QUILL_ATTRIBUTE_COLD` clang detection
 - CMake improvements: switched to range syntax for minimum required version and bumped minimum required CMake version to
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 - Correct the installation location of pkg-config files. They are now properly placed in `/usr/local/lib`.
