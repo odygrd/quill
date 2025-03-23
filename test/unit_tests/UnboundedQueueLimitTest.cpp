@@ -29,8 +29,7 @@ TEST_CASE("unbounded_queue_max_limit")
 #if defined(_MSC_VER)
   auto* write_buffer_b = buffer.prepare_write(two_gb, quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-  auto* write_buffer_b =
-    buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(two_gb);
+  auto* write_buffer_b = buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(two_gb);
 #endif
   REQUIRE(write_buffer_b);
   buffer.finish_write(two_gb);
@@ -40,16 +39,14 @@ TEST_CASE("unbounded_queue_max_limit")
 #if defined(_MSC_VER)
   auto* write_buffer_c = buffer.prepare_write(two_gb, quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-  auto* write_buffer_c =
-    buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(two_gb);
+  auto* write_buffer_c = buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(two_gb);
 #endif
   REQUIRE_FALSE(write_buffer_c);
 
 #if defined(_MSC_VER)
   write_buffer_c = buffer.prepare_write(two_gb, quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-  write_buffer_c =
-    buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(two_gb);
+  write_buffer_c = buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(two_gb);
 #endif
   REQUIRE_FALSE(write_buffer_c);
 
@@ -58,8 +55,7 @@ TEST_CASE("unbounded_queue_max_limit")
 #if defined(_MSC_VER)
   write_buffer_c = buffer.prepare_write(two_gb, quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-  write_buffer_c =
-    buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(two_gb);
+  write_buffer_c = buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(two_gb);
 #endif
   REQUIRE(write_buffer_c);
   buffer.finish_write(two_gb);
@@ -93,11 +89,9 @@ TEST_CASE("unbounded_queue_max_capacity")
   auto func = [&buffer]()
   {
 #if defined(_MSC_VER)
-    auto* write_buffer_z =
-      buffer.prepare_write(2 * two_mb, std::numeric_limits<uint64_t>::max());
+    auto* write_buffer_z = buffer.prepare_write(2 * two_mb, std::numeric_limits<uint64_t>::max());
 #else
-    auto* write_buffer_z =
-      buffer.prepare_write<std::numeric_limits<uint64_t>::max()>(2 * two_mb);
+    auto* write_buffer_z = buffer.prepare_write<std::numeric_limits<uint64_t>::max()>(2 * two_mb);
 #endif
     return write_buffer_z;
   };
@@ -115,11 +109,9 @@ TEST_CASE("unbounded_queue_max_limit")
   auto func = [&buffer]()
   {
 #if defined(_MSC_VER)
-    auto* write_buffer_z =
-      buffer.prepare_write(2 * two_mb, two_mb);
+    auto* write_buffer_z = buffer.prepare_write(2 * two_mb, two_mb);
 #else
-    auto* write_buffer_z =
-      buffer.prepare_write<two_mb>(2 * two_mb);
+    auto* write_buffer_z = buffer.prepare_write<two_mb>(2 * two_mb);
 #endif
     return write_buffer_z;
   };
