@@ -27,10 +27,10 @@ Quill utilizes a thread-local single-producer-single-consumer queue to relay log
 Initially, an unbounded queue with a small size is used to optimise performance.
 However, if the queue reaches its capacity, a new queue will be allocated, which may cause a slight performance penalty for the frontend.
 
-The default unbounded queue can expand up to a size of 2GB. If this limit is reached, the caller thread will block.
+The default unbounded queue can expand up to a size of `FrontendOptions::unbounded_queue_max_capacity`. If this limit is reached, the caller thread will block.
 It's possible to change the queue type within the :cpp:class:`FrontendOptions`.
 
-The queue size and type are configurable at runtime by providing a custom :cpp:class:`FrontendOptions` class.
+The queue size and type are configurable by providing a custom :cpp:class:`FrontendOptions` class.
 
 Manual Log Flushing
 -------------------

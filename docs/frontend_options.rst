@@ -7,8 +7,8 @@ The frontend options provide a flexible way to configure hot path settings. Thes
 
 Each frontend thread operates with its own queue, which can be configured with one of the following options:
 
-- **UnboundedBlocking**: Starts with a small initial capacity. The queue reallocates up to 2GB and then blocks further log messages.
-- **UnboundedDropping**: Starts with a small initial capacity. The queue reallocates up to 2GB and then discards log messages.
+- **UnboundedBlocking**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then blocks further log messages.
+- **UnboundedDropping**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then discards log messages.
 - **BoundedBlocking**: Has a fixed capacity and never reallocates. It blocks log messages when the limit is reached.
 - **BoundedDropping**: Has a fixed capacity and never reallocates. It discards log messages when the limit is reached.
 
