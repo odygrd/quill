@@ -16,8 +16,9 @@ using namespace quill;
 struct CustomFrontendOptions
 {
   static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
-  static constexpr uint32_t initial_queue_capacity = 16 * 1024; // 16 KiB
+  static constexpr size_t initial_queue_capacity = 16 * 1024; // 16 KiB
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
+  static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024 * 1024 * 1024; // 2 GiB
   static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
 };
 
@@ -38,7 +39,7 @@ TEST_CASE("shrink_thread_local_queue")
   // just for testing - call before logging anything
   CustomFrontend::shrink_thread_local_queue(8 * 1024);
   REQUIRE_EQ(CustomFrontend::get_thread_local_queue_capacity(), 8 * 1024);
-  
+
   // Set writing logging to a file
   auto file_sink = CustomFrontend::create_or_get_sink<FileSink>(
     filename,
@@ -57,7 +58,7 @@ TEST_CASE("shrink_thread_local_queue")
   CustomLogger* logger = CustomFrontend::create_or_get_logger(logger_name, std::move(file_sink));
 
   REQUIRE_EQ(CustomFrontend::get_thread_local_queue_capacity(), 8 * 1024);
-  
+
   size_t cnt{0};
   for (size_t iter = 0; iter < iterations; ++iter)
   {

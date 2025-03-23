@@ -17,9 +17,8 @@ struct FrontendOptions
 {
   /**
    * Each frontend thread has its own queue, which can be configured with various options:
-   * - UnboundedBlocking: Starts with initial_queue_capacity and reallocates up to 2GB, then blocks.
-   * - UnboundedDropping: Starts with initial_queue_capacity and reallocates up to 2GB, then drops log messages.
-   * - UnboundedUnlimited: Starts with initial_queue_capacity and reallocates without limit, subsequent queues are reallocated as needed. Never blocks or drops.
+   * - UnboundedBlocking: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then blocks.
+   * - UnboundedDropping: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then drops log messages.
    * - BoundedBlocking: Starts with initial_queue_capacity and never reallocates; blocks when the limit is reached.
    * - BoundedDropping: Starts with initial_queue_capacity and never reallocates; drops log messages when the limit is reached.
    *
@@ -28,10 +27,9 @@ struct FrontendOptions
   static constexpr QueueType queue_type = QueueType::UnboundedBlocking;
 
   /**
-   * Initial capacity of the queue. Used for UnboundedBlocking, UnboundedDropping, and
-   * UnboundedUnlimited. Also serves as the capacity for BoundedBlocking and BoundedDropping.
+   * Initial capacity of the queue.
    */
-  static constexpr uint32_t initial_queue_capacity = 128 * 1024; // 128 KiB
+  static constexpr size_t initial_queue_capacity = 128u * 1024u; // 128 KiB
 
   /**
    * Interval for retrying when using BoundedBlocking or UnboundedBlocking.
@@ -40,9 +38,15 @@ struct FrontendOptions
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
 
   /**
+   * Maximum capacity for unbounded queues (UnboundedBlocking, UnboundedDropping).
+   * This defines the maximum size to which the queue can grow before blocking or dropping messages.
+   */
+  static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024u * 1024u * 1024u; // 2 GiB
+
+  /**
    * Enables huge pages on the frontend queues to reduce TLB misses. Available only for Linux.
    */
-  static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
+  static constexpr HugePagesPolicy huge_pages_policy = HugePagesPolicy::Never;
 };
 
 QUILL_END_NAMESPACE

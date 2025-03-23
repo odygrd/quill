@@ -1,4 +1,5 @@
 #include "doctest/doctest.h"
+#include "quill/core/FrontendOptions.h"
 
 #include "quill/core/UnboundedSPSCQueue.h"
 #include <cstring>
@@ -21,9 +22,9 @@ TEST_CASE("unbounded_queue_shrink")
   for (uint32_t i = 0; i < 5; ++i)
   {
 #if defined(_MSC_VER)
-    auto* write_buffer = buffer.prepare_write(CHUNK, quill::QueueType::UnboundedBlocking);
+    auto* write_buffer = buffer.prepare_write(CHUNK, quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-    auto* write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(CHUNK);
+    auto* write_buffer = buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(CHUNK);
 #endif
 
     REQUIRE(write_buffer);
@@ -66,6 +67,50 @@ TEST_CASE("unbounded_queue_shrink")
   }
 }
 
+TEST_CASE("unbounded_queue_allocation_within_limit")
+{
+  UnboundedSPSCQueue buffer{1024};
+
+  static constexpr size_t two_mb = 2u * 1024u * 1024u;
+
+  // Attempt to allocate a buffer size that exceeds the default limit,
+  // ensuring that allocation within configurable bounds does not throw.
+  auto func = [&buffer]()
+  {
+    #if defined(_MSC_VER)
+    auto* write_buffer_z = buffer.prepare_write(2 * two_mb, std::numeric_limits<uint64_t>::max());
+    #else
+    auto* write_buffer_z = buffer.prepare_write<std::numeric_limits<uint64_t>::max()>(2 * two_mb);
+    #endif
+    return write_buffer_z;
+  };
+
+  REQUIRE_NOTHROW(func());
+  REQUIRE_EQ(buffer.producer_capacity(), 2 * two_mb);
+}
+
+TEST_CASE("unbounded_queue_allocation_exceeds_limit")
+{
+  UnboundedSPSCQueue buffer{1024};
+
+  constexpr static uint64_t two_mb = 2u * 1024u * 1024u;
+
+  // Attempt to allocate a buffer size that exceeds the specified capacity,
+  // which should trigger an exception.
+  auto func = [&buffer]()
+  {
+    #if defined(_MSC_VER)
+    auto* write_buffer_z = buffer.prepare_write(2 * two_mb, two_mb);
+    #else
+    auto* write_buffer_z = buffer.prepare_write<two_mb>(2 * two_mb);
+    #endif
+    return write_buffer_z;
+  };
+
+  REQUIRE_THROWS_AS(func(), quill::QuillError);
+  REQUIRE_EQ(buffer.producer_capacity(), 1024);
+}
+
 TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
 {
   UnboundedSPSCQueue buffer{1024};
@@ -78,18 +123,23 @@ TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
         for (uint32_t i = 0; i < 8192; ++i)
         {
 #if defined(_MSC_VER)
-          auto* write_buffer = buffer.prepare_write(sizeof(uint32_t), quill::QueueType::UnboundedBlocking);
+          auto* write_buffer =
+            buffer.prepare_write(sizeof(uint32_t), quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-          auto* write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(sizeof(uint32_t));
+          auto* write_buffer =
+            buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(sizeof(uint32_t));
 #endif
 
           while (!write_buffer)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
 #if defined(_MSC_VER)
-            write_buffer = buffer.prepare_write(sizeof(uint32_t), quill::QueueType::UnboundedBlocking);
+            write_buffer =
+              buffer.prepare_write(sizeof(uint32_t), quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-            write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(sizeof(uint32_t));
+            write_buffer =
+              buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(
+                sizeof(uint32_t));
 #endif
           }
 

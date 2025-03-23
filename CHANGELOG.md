@@ -93,6 +93,10 @@
   allowing huge page allocation to be attempted with a fallback to normal pages if unavailable. If you are using a
   custom `FrontendOptions` type, you will need to update it to use the new
   flag. ([#707](https://github.com/odygrd/quill/issues/707))
+- Previously, `QueueType::UnboundedDropping` and `QueueType::UnboundedBlocking` could grow up to 2 GB in size. This
+  limit is now configurable via `FrontendOptions::unbounded_queue_max_capacity`, which defaults to 2 GB.
+- `QueueType::UnboundedUnlimited` has been removed, as the same behavior can now be achieved by setting
+  `FrontendOptions::unbounded_queue_max_capacity` to the maximum value.
 - The `ConsoleSink` constructor now optionally accepts a `ConsoleSinkConfig`, similar to other sinks. If no
   `ConsoleSinkConfig` is provided, a default one is used, logging to `stdout` with `ColourMode::Automatic`. For example:
     ```c++

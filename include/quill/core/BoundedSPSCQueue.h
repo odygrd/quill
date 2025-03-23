@@ -267,7 +267,7 @@ private:
       mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
     }
   #endif
-    
+
     if (mem == MAP_FAILED)
     {
       QUILL_THROW(QuillError{std::string{"mmap failed. errno: "} + std::to_string(errno) +

@@ -141,7 +141,8 @@ class JsonFileSink : public detail::JsonSink<FileSink>
 public:
   JsonFileSink(fs::path const& filename, FileSinkConfig const& config,
                FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true)
-    : detail::JsonSink<FileSink>(filename, static_cast<FileSinkConfig const&>(config), std::move(file_event_notifier), do_fopen)
+    : detail::JsonSink<FileSink>(filename, static_cast<FileSinkConfig const&>(config),
+                                 std::move(file_event_notifier), do_fopen)
   {
   }
 

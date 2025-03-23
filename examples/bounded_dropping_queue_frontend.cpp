@@ -24,7 +24,7 @@ struct CustomFrontendOptions
   static constexpr quill::QueueType queue_type = quill::QueueType::BoundedDropping;
 
   // Set small capacity to demonstrate dropping messages in this example
-  static constexpr uint32_t initial_queue_capacity = 256;
+  static constexpr size_t initial_queue_capacity = 256;
 
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
   static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
