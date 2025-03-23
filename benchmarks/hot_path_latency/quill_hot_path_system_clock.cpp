@@ -13,8 +13,9 @@
 struct FrontendOptions
 {
   static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
-  static constexpr uint32_t initial_queue_capacity = 131'072;
+  static constexpr size_t initial_queue_capacity = 131'072;
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
+  static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024 * 1024 * 1024; // 2 GiB
   static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
 };
 

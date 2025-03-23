@@ -1,4 +1,5 @@
 #include "doctest/doctest.h"
+#include "quill/core/FrontendOptions.h"
 
 #include "quill/core/UnboundedSPSCQueue.h"
 #include <cstring>
@@ -21,9 +22,11 @@ TEST_CASE("unbounded_queue_shrink")
   for (uint32_t i = 0; i < 5; ++i)
   {
 #if defined(_MSC_VER)
-    auto* write_buffer = buffer.prepare_write(CHUNK, quill::QueueType::UnboundedBlocking);
+    auto* write_buffer = buffer.prepare_write(CHUNK, quill::QueueType::UnboundedBlocking,
+                                              quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-    auto* write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(CHUNK);
+    auto* write_buffer =
+      buffer.prepare_write<quill::QueueType::UnboundedBlocking, quill::FrontendOptions::unbounded_queue_max_capacity>(CHUNK);
 #endif
 
     REQUIRE(write_buffer);
@@ -78,18 +81,24 @@ TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
         for (uint32_t i = 0; i < 8192; ++i)
         {
 #if defined(_MSC_VER)
-          auto* write_buffer = buffer.prepare_write(sizeof(uint32_t), quill::QueueType::UnboundedBlocking);
+          auto* write_buffer = buffer.prepare_write(sizeof(uint32_t), quill::QueueType::UnboundedBlocking,
+                                                    quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-          auto* write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(sizeof(uint32_t));
+          auto* write_buffer =
+            buffer.prepare_write<quill::QueueType::UnboundedBlocking, quill::FrontendOptions::unbounded_queue_max_capacity>(
+              sizeof(uint32_t));
 #endif
 
           while (!write_buffer)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
 #if defined(_MSC_VER)
-            write_buffer = buffer.prepare_write(sizeof(uint32_t), quill::QueueType::UnboundedBlocking);
+            write_buffer = buffer.prepare_write(sizeof(uint32_t), quill::QueueType::UnboundedBlocking,
+                                                quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
-            write_buffer = buffer.prepare_write<quill::QueueType::UnboundedBlocking>(sizeof(uint32_t));
+            write_buffer =
+              buffer.prepare_write<quill::QueueType::UnboundedBlocking, quill::FrontendOptions::unbounded_queue_max_capacity>(
+                sizeof(uint32_t));
 #endif
           }
 

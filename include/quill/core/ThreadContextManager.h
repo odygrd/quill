@@ -59,18 +59,18 @@ private:
 
 public:
   /***/
-  ThreadContext(QueueType queue_type, uint32_t initial_spsc_queue_capacity, HugePagesPolicy huge_pages_policy)
+  ThreadContext(QueueType queue_type, size_t initial_queue_capacity, HugePagesPolicy huge_pages_policy)
     : _queue_type(queue_type)
   {
     if (has_unbounded_queue_type())
     {
       new (&_spsc_queue_union.unbounded_spsc_queue)
-        UnboundedSPSCQueue{initial_spsc_queue_capacity, huge_pages_policy};
+        UnboundedSPSCQueue{initial_queue_capacity, huge_pages_policy};
     }
     else if (has_bounded_queue_type())
     {
       new (&_spsc_queue_union.bounded_spsc_queue)
-        BoundedSPSCQueue{initial_spsc_queue_capacity, huge_pages_policy};
+        BoundedSPSCQueue{initial_queue_capacity, huge_pages_policy};
     }
   }
 

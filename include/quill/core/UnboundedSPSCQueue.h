@@ -107,9 +107,10 @@ public:
    */
 #if defined(_MSC_VER)
   // MSVC doesn't like this as template <QueueType queue_type> when called from Logger, while it compiles on MSVC there will be false positives from clang-tidy
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes, QueueType queue_type)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes, QueueType queue_type,
+                                                               size_t unbounded_queue_max_capacity)
 #else
-  template <QueueType queue_type>
+  template <QueueType queue_type, size_t unbounded_queue_max_capacity>
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(size_t nbytes)
 #endif
   {
@@ -122,9 +123,9 @@ public:
     }
 
 #if defined(_MSC_VER)
-    return _handle_full_queue(nbytes, queue_type);
+    return _handle_full_queue(nbytes, queue_type, unbounded_queue_max_capacity);
 #else
-    return _handle_full_queue<queue_type>(nbytes);
+    return _handle_full_queue<queue_type, unbounded_queue_max_capacity>(nbytes);
 #endif
   }
 
@@ -242,13 +243,12 @@ public:
     return _consumer->bounded_queue.empty() && (_consumer->next.load(std::memory_order_relaxed) == nullptr);
   }
 
-
 private:
   /***/
 #if defined(_MSC_VER)
-  QUILL_NODISCARD std::byte* _handle_full_queue(size_t nbytes, QueueType queue_type)
+  QUILL_NODISCARD std::byte* _handle_full_queue(size_t nbytes, QueueType queue_type, size_t unbounded_queue_max_capacity)
 #else
-  template <QueueType queue_type>
+  template <QueueType queue_type, size_t unbounded_queue_max_capacity>
   QUILL_NODISCARD std::byte* _handle_full_queue(size_t nbytes)
 #endif
   {
@@ -265,28 +265,27 @@ private:
     if constexpr ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
 #endif
     {
-      size_t constexpr max_bounded_queue_size = 2ull * 1024 * 1024 * 1024; // 2 GB
-
-      if (QUILL_UNLIKELY(capacity > max_bounded_queue_size))
+      if (QUILL_UNLIKELY(capacity > unbounded_queue_max_capacity))
       {
-        if (nbytes > max_bounded_queue_size)
+        if (nbytes > unbounded_queue_max_capacity)
         {
-          QUILL_THROW(QuillError{
-            "Logging single messages larger than 2 GB is not supported with the current queue "
-            "type. For UnboundedBlocking or UnboundedDropping queues, this limitation applies.\n"
-            "To log single messages larger than 2 GB, consider using the UnboundedUnlimited queue "
-            "type.\n"
-            "Message size: " +
-            std::to_string(nbytes) +
-            " bytes\n"
-            "Required queue capacity: " +
-            std::to_string(capacity) +
-            " bytes\n"
-            "Maximum allowed queue capacity: " +
-            std::to_string(max_bounded_queue_size) + " bytes"});
+          QUILL_THROW(
+            QuillError{"Logging single messages larger than the configured maximum queue capacity "
+                       "is not supported with the current queue type. This limitation applies to "
+                       "UnboundedBlocking and UnboundedDropping queues.\n"
+                       "To log single messages exceeding this limit, consider using the "
+                       "UnboundedUnlimited queue type.\n"
+                       "Message size: " +
+                       std::to_string(nbytes) +
+                       " bytes\n"
+                       "Required queue capacity: " +
+                       std::to_string(capacity) +
+                       " bytes\n"
+                       "Configured maximum queue capacity: " +
+                       std::to_string(unbounded_queue_max_capacity) + " bytes"});
         }
 
-        // we reached the max_bounded_queue_size we won't be allocating more
+        // we reached the unbounded_queue_max_capacity we won't be allocating more
         // instead return nullptr to block or drop
         return nullptr;
       }
