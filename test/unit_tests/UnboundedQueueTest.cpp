@@ -138,7 +138,7 @@ TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
               buffer.prepare_write(sizeof(uint32_t), quill::FrontendOptions::unbounded_queue_max_capacity);
 #else
             write_buffer =
-              buffer.prepare_write<quill::QueueType::UnboundedBlocking, quill::FrontendOptions::unbounded_queue_max_capacity>(
+              buffer.prepare_write<quill::FrontendOptions::unbounded_queue_max_capacity>(
                 sizeof(uint32_t));
 #endif
           }
