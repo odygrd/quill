@@ -69,8 +69,7 @@ public:
     }
     else if (has_bounded_queue_type())
     {
-      new (&_spsc_queue_union.bounded_spsc_queue)
-        BoundedSPSCQueue{initial_queue_capacity, huge_pages_policy};
+      new (&_spsc_queue_union.bounded_spsc_queue) BoundedSPSCQueue{initial_queue_capacity, huge_pages_policy};
     }
   }
 
@@ -93,16 +92,11 @@ public:
 
   /***/
   template <QueueType queue_type>
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT
-    std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedUnlimited) ||
-                         (queue_type == QueueType::UnboundedDropping),
-                       UnboundedSPSCQueue, BoundedSPSCQueue>&
-    get_spsc_queue() noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping), UnboundedSPSCQueue, BoundedSPSCQueue>& get_spsc_queue() noexcept
   {
     assert((_queue_type == queue_type) && "ThreadContext queue_type mismatch");
 
-    if constexpr ((queue_type == QueueType::UnboundedBlocking) ||
-                  (queue_type == QueueType::UnboundedUnlimited) || (queue_type == QueueType::UnboundedDropping))
+    if constexpr ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
     {
       return _spsc_queue_union.unbounded_spsc_queue;
     }
@@ -114,16 +108,12 @@ public:
 
   /***/
   template <QueueType queue_type>
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT
-    std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedUnlimited) ||
-                         (queue_type == QueueType::UnboundedDropping),
-                       UnboundedSPSCQueue, BoundedSPSCQueue> const&
-    get_spsc_queue() const noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping), UnboundedSPSCQueue, BoundedSPSCQueue> const& get_spsc_queue()
+    const noexcept
   {
     assert((_queue_type == queue_type) && "ThreadContext queue_type mismatch");
 
-    if constexpr ((queue_type == QueueType::UnboundedBlocking) ||
-                  (queue_type == QueueType::UnboundedUnlimited) || (queue_type == QueueType::UnboundedDropping))
+    if constexpr ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
     {
       return _spsc_queue_union.unbounded_spsc_queue;
     }
@@ -148,8 +138,7 @@ public:
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool has_unbounded_queue_type() const noexcept
   {
-    return (_queue_type == QueueType::UnboundedBlocking) ||
-      (_queue_type == QueueType::UnboundedDropping) || (_queue_type == QueueType::UnboundedUnlimited);
+    return (_queue_type == QueueType::UnboundedBlocking) || (_queue_type == QueueType::UnboundedDropping);
   }
 
   /***/

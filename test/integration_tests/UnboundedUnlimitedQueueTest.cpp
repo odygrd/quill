@@ -14,11 +14,11 @@ using namespace quill;
 // Define custom Frontend Options
 struct CustomFrontendOptions
 {
-  static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedUnlimited;
+  static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
   static constexpr size_t initial_queue_capacity = 131'072;
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
+  static constexpr size_t unbounded_queue_max_capacity = std::numeric_limits<size_t>::max();
   static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
-  static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024u * 1024u * 1024u; // 2 GiB
 };
 
 using CustomFrontend = FrontendImpl<CustomFrontendOptions>;

@@ -50,7 +50,6 @@ enum class QueueType
 {
   UnboundedBlocking,
   UnboundedDropping,
-  UnboundedUnlimited,
   BoundedBlocking,
   BoundedDropping
 };
