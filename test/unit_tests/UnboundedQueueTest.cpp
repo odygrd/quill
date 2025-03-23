@@ -67,6 +67,50 @@ TEST_CASE("unbounded_queue_shrink")
   }
 }
 
+TEST_CASE("unbounded_queue_allocation_within_limit")
+{
+  UnboundedSPSCQueue buffer{1024};
+
+  static constexpr size_t two_mb = 2u * 1024u * 1024u;
+
+  // Attempt to allocate a buffer size that exceeds the default limit,
+  // ensuring that allocation within configurable bounds does not throw.
+  auto func = [&buffer]()
+  {
+    #if defined(_MSC_VER)
+    auto* write_buffer_z = buffer.prepare_write(2 * two_mb, std::numeric_limits<uint64_t>::max());
+    #else
+    auto* write_buffer_z = buffer.prepare_write<std::numeric_limits<uint64_t>::max()>(2 * two_mb);
+    #endif
+    return write_buffer_z;
+  };
+
+  REQUIRE_NOTHROW(func());
+  REQUIRE_EQ(buffer.producer_capacity(), 2 * two_mb);
+}
+
+TEST_CASE("unbounded_queue_allocation_exceeds_limit")
+{
+  UnboundedSPSCQueue buffer{1024};
+
+  constexpr static uint64_t two_mb = 2u * 1024u * 1024u;
+
+  // Attempt to allocate a buffer size that exceeds the specified capacity,
+  // which should trigger an exception.
+  auto func = [&buffer]()
+  {
+    #if defined(_MSC_VER)
+    auto* write_buffer_z = buffer.prepare_write(2 * two_mb, two_mb);
+    #else
+    auto* write_buffer_z = buffer.prepare_write<two_mb>(2 * two_mb);
+    #endif
+    return write_buffer_z;
+  };
+
+  REQUIRE_THROWS_AS(func(), quill::QuillError);
+  REQUIRE_EQ(buffer.producer_capacity(), 1024);
+}
+
 TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
 {
   UnboundedSPSCQueue buffer{1024};

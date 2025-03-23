@@ -253,7 +253,7 @@ private:
   {
     // Then it means the queue doesn't have enough size
     size_t capacity = _producer->bounded_queue.capacity() * 2ull;
-    while (capacity < (nbytes + 1))
+    while (capacity < nbytes)
     {
       capacity = capacity * 2ull;
     }
