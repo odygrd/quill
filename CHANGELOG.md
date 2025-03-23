@@ -87,7 +87,7 @@
 
 ## v9.0.0
 
-## API Changes
+### API Changes
 
 - Replaced the `bool huge_pages_enabled` flag in `FrontendOptions` with `quill::HugePagesPolicy huge_pages_policy` enum,
   allowing huge page allocation to be attempted with a fallback to normal pages if unavailable. If you are using a
@@ -110,7 +110,7 @@
                                               }());
     ```
 
-## New Features
+### New Features
 
 - The default log level for each `Logger` can now be configured using the environment variable `QUILL_LOG_LEVEL`.
   Supported values: `"tracel3"`, `"tracel2"`, `"tracel1"`, `"debug"`, `"info"`, `"notice"`, `"warning"`, `"error"`,
@@ -177,7 +177,7 @@
       }());
     ```
 
-## Improvements
+### Improvements
 
 - Updated bundled `libfmt` to `11.1.4`.
 - When `add_metadata_to_multi_line_logs` in the `PatternFormatter` was set to false, fixed a bug where the last
