@@ -98,14 +98,14 @@ public:
     return _reader_pos == _writer_pos;
   }
 
-  QUILL_NODISCARD void request_shrink() noexcept { _shrink_requested = true; }
+  void request_shrink() noexcept { _shrink_requested = true; }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool shrink_requested() const noexcept
   {
     return _shrink_requested;
   }
 
-  QUILL_NODISCARD void shrink()
+  void shrink()
   {
     if (_capacity > _initial_capacity)
     {
