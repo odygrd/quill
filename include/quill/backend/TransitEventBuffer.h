@@ -20,7 +20,8 @@ class TransitEventBuffer
 {
 public:
   explicit TransitEventBuffer(size_t initial_capacity)
-    : _capacity(next_power_of_two(initial_capacity)),
+    : _initial_capacity(next_power_of_two(initial_capacity)),
+      _capacity(_initial_capacity),
       _storage(std::make_unique<TransitEvent[]>(_capacity)),
       _mask(_capacity - 1u)
   {
@@ -97,6 +98,26 @@ public:
     return _reader_pos == _writer_pos;
   }
 
+  void request_shrink() noexcept { _shrink_requested = true; }
+
+  void try_shrink()
+  {
+    // we only shrink empty buffers
+    if (_shrink_requested && empty())
+    {
+      if (_capacity > _initial_capacity)
+      {
+        _storage = std::make_unique<TransitEvent[]>(_initial_capacity);
+        _capacity = _initial_capacity;
+        _mask = _capacity - 1;
+        _writer_pos = 0;
+        _reader_pos = 0;
+      }
+
+      _shrink_requested = false;
+    }
+  }
+
 private:
   void _expand()
   {
@@ -120,11 +141,13 @@ private:
     _reader_pos = 0;
   }
 
+  size_t _initial_capacity;
   size_t _capacity;
   std::unique_ptr<TransitEvent[]> _storage;
   size_t _mask;
   size_t _reader_pos{0};
   size_t _writer_pos{0};
+  bool _shrink_requested{false};
 };
 
 } // namespace detail

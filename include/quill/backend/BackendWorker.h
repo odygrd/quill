@@ -319,6 +319,7 @@ private:
       {
         _cleanup_invalidated_thread_contexts();
         _cleanup_invalidated_loggers();
+        _try_shrink_empty_transit_event_buffers();
 
         // There is nothing left to do, and we can let this thread sleep for a while
         // buffer events are 0 here and also all the producer queues are empty
@@ -1162,6 +1163,13 @@ private:
 
     if (read_result.allocation)
     {
+      if ((read_result.new_capacity < read_result.previous_capacity) && thread_context->_transit_event_buffer)
+      {
+        // The user explicitly requested to shrink the queue, indicating a preference for low memory
+        // usage. To align with this intent, we also request shrinking the backend buffer.
+        thread_context->_transit_event_buffer->request_shrink();
+      }
+
       // When allocation_info has a value it means that the queue has re-allocated
       if (_options.error_notifier)
       {
@@ -1424,6 +1432,21 @@ private:
           search_it->second->store(true);
           _logger_removal_flags.erase(search_it);
         }
+      }
+    }
+  }
+
+  /**
+   * Shrinks empty TransitEvent buffers. This is triggered only when the user explicitly
+   * requests shrinking of the unbounded frontend queue to optimize memory usage.
+   */
+  QUILL_ATTRIBUTE_HOT void _try_shrink_empty_transit_event_buffers()
+  {
+    for (ThreadContext* thread_context : _active_thread_contexts_cache)
+    {
+      if (thread_context->_transit_event_buffer)
+      {
+        thread_context->_transit_event_buffer->try_shrink();
       }
     }
   }

@@ -64,8 +64,8 @@ struct BackendOptions
    * If a frontend threads continuously push messages to the queue (e.g., logging in a loop),
    * no logs can ever be processed.
    *
-   * When the soft limit is reached (default: 800), the backend worker thread will try to process
-   * a batch of cached transit events all at once
+   * When the soft limit is reached the backend worker thread will try to process a batch of cached
+   * transit events all at once
    *
    * The frontend queues are emptied on each iteration, so the actual popped messages
    * can be much greater than the transit_events_soft_limit.
