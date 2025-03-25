@@ -100,23 +100,22 @@ public:
 
   void request_shrink() noexcept { _shrink_requested = true; }
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool shrink_requested() const noexcept
+  void try_shrink()
   {
-    return _shrink_requested;
-  }
-
-  void shrink()
-  {
-    if (_capacity > _initial_capacity)
+    // we only shrink empty buffers
+    if (_shrink_requested && empty())
     {
-      _storage = std::make_unique<TransitEvent[]>(_initial_capacity);
-      _capacity = _initial_capacity;
-      _mask = _capacity - 1;
-      _writer_pos = 0;
-      _reader_pos = 0;
-    }
+      if (_capacity > _initial_capacity)
+      {
+        _storage = std::make_unique<TransitEvent[]>(_initial_capacity);
+        _capacity = _initial_capacity;
+        _mask = _capacity - 1;
+        _writer_pos = 0;
+        _reader_pos = 0;
+      }
 
-    _shrink_requested = false;
+      _shrink_requested = false;
+    }
   }
 
 private:
