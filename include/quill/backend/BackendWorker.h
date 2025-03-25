@@ -1163,7 +1163,7 @@ private:
 
     if (read_result.allocation)
     {
-      if (read_result.new_capacity < read_result.previous_capacity)
+      if ((read_result.new_capacity < read_result.previous_capacity) && thread_context->_transit_event_buffer)
       {
         // The user explicitly requested to shrink the queue, indicating a preference for low memory
         // usage. To align with this intent, we also request shrinking the backend buffer.
