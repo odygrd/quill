@@ -29,11 +29,10 @@ using CustomLogger = LoggerImpl<CustomFrontendOptions>;
 TEST_CASE("shrink_thread_local_queue")
 {
   static constexpr size_t number_of_messages = 5000;
-  static constexpr size_t iterations = 5;
+  static constexpr size_t iterations = 6;
   static constexpr char const* filename = "shrink_thread_local_queue.log";
   static std::string const logger_name = "logger";
 
-  // Start the logging backend thread
   Backend::start();
 
   // just for testing - call before logging anything
@@ -69,6 +68,13 @@ TEST_CASE("shrink_thread_local_queue")
 
     CustomFrontend::shrink_thread_local_queue(16 * 1024);
     REQUIRE_EQ(CustomFrontend::get_thread_local_queue_capacity(), 16 * 1024);
+
+    if (iter % 2 == 0)
+    {
+      // flush the log so that the backend goes idle and also backend shrink is tested
+      logger->flush_log();
+      std::this_thread::sleep_for(std::chrono::milliseconds{1});
+    }
   }
 
   logger->flush_log();
