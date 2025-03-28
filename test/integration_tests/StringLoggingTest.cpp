@@ -92,6 +92,7 @@ TEST_CASE("string_logging")
 
     char const* c_style_string_empty = "";
     const char* c_style_string = "Lorem ipsum";
+    char const* csn = nullptr;
 
     char c_style_char_array_empty[] = "";
     char const c_style_char_array[] = "dolor";
@@ -106,6 +107,7 @@ TEST_CASE("string_logging")
     const char* npcs = "Example\u0003String\u0004";
     LOG_INFO(logger, "non printable cs [{}]", npcs);
 
+    LOG_INFO(logger, "csn [{}]", csn);
     LOG_INFO(logger, "st [{}]", st);
     LOG_INFO(logger, "cas [{}]", cas);
     LOG_INFO(logger, "s [{}]", s);
@@ -160,7 +162,10 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 19);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 20);
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       csn [nullptr]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "                        right aligned"}));
