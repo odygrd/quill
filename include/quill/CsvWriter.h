@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -56,6 +57,13 @@ public:
   explicit CsvWriter(std::string const& filename, char open_mode = 'w',
                      FilenameAppendOption filename_append = FilenameAppendOption::None)
   {
+    bool should_write_header = true;
+
+    if ((open_mode == 'a') && fs::exists(filename))
+    {
+      should_write_header = false;
+    }
+
     _logger = frontend_t::create_or_get_logger(
       _logger_name_prefix + filename,
       frontend_t::template create_or_get_sink<FileSink>(filename,
@@ -68,7 +76,10 @@ public:
                                                         }()),
       PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    write_header();
+    if (should_write_header)
+    {
+      write_header();
+    }
   }
 
   /**
@@ -135,13 +146,17 @@ public:
    *
    * @param unique_name A unique name for this CsvWriter instance.
    * @param sink The sink to output the data to (e.g., a ConsoleSink or a user-defined Sink).
+   * @param should_write_header Whether to write the header at the beginning of the CSV file.
    */
-  CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink)
+  CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink, bool should_write_header = true)
   {
     _logger = frontend_t::create_or_get_logger(_logger_name_prefix + unique_name, std::move(sink),
                                                PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    write_header();
+    if (should_write_header)
+    {
+      write_header();
+    }
   }
 
   /**
@@ -149,13 +164,18 @@ public:
    *
    * @param unique_name A unique name for this CsvWriter instance.
    * @param sinks An initializer list of sinks to output the data to.
+   * @param should_write_header Whether to write the header at the beginning of the CSV file.
    */
-  CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks)
+  CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks,
+            bool should_write_header = true)
   {
     _logger = frontend_t::create_or_get_logger(_logger_name_prefix + unique_name, sinks,
                                                PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
-    write_header();
+    if (should_write_header)
+    {
+      write_header();
+    }
   }
 
   /**
