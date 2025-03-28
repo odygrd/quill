@@ -183,6 +183,8 @@
 - When `add_metadata_to_multi_line_logs` in the `PatternFormatter` was set to false, fixed a bug where the last
   character of the log message was dropped and added protection for empty messages.
 - Updated `LOG_EVERY_N` macros to log on the first occurrence (0th call) instead of waiting until the Nth call.
+- Added a `nullptr` check for `char*` and `const char*` during encoding, ensuring the library handles `nullptr` values
+  gracefully ([#735](https://github.com/odygrd/quill/discussions/735))
 - The `CsvWriter` could previously be used with `RotatingFileSink` via the constructor that accepted  
   `std::shared_ptr<Sink>`, but rotated files did not include the CSV header.  
   This has now been improved—when using the new constructor that accepts `quill::RotatingFileSinkConfig`,  
@@ -202,7 +204,7 @@
       csv_writer.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
     }
     ```
-- When `CsvWriter` is used with `open_mode == 'a'` it won't rewrite the header when the file already exists
+- When using `CsvWriter` with `open_mode == 'a'`, the header will no longer be rewritten if the file already exists.
 - On Linux, setting a long backend thread name now truncates it instead of
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
 - Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
@@ -230,18 +232,18 @@
    };
    ```
 
-  - `DeferredFormatCodec` now supports both trivially and non-trivially copyable types:
-    - For trivially copyable types, it behaves the same as `TriviallyCopyableTypeCodec`.
-    - For non-trivially copyable types, it works similarly to pre-`v4` by taking a copy of the object using the copy
-      constructor and placement new.
-  - `DirectFormatCodec` formats the object immediately in the hot path, serving as a shortcut to explicitly formatting
-    the object when logging.
-  - For advanced use cases, a custom `Codec` can still be defined for finer control over encoding/decoding.
+    - `DeferredFormatCodec` now supports both trivially and non-trivially copyable types:
+        - For trivially copyable types, it behaves the same as `TriviallyCopyableTypeCodec`.
+        - For non-trivially copyable types, it works similarly to pre-`v4` by taking a copy of the object using the copy
+          constructor and placement new.
+    - `DirectFormatCodec` formats the object immediately in the hot path, serving as a shortcut to explicitly formatting
+      the object when logging.
+    - For advanced use cases, a custom `Codec` can still be defined for finer control over encoding/decoding.
 
   See:
-  - [DeferredFormatCodec Usage](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging_deferred_format.cpp)
-  - [DirectFormatCodec Usage](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging_direct_format.cpp)
-  - [Documentation](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html#logging-user-defined-types)
+    - [DeferredFormatCodec Usage](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging_deferred_format.cpp)
+    - [DirectFormatCodec Usage](https://github.com/odygrd/quill/blob/master/examples/user_defined_types_logging_direct_format.cpp)
+    - [Documentation](https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html#logging-user-defined-types)
 
 - Added codec support for C-style arrays of user-defined types in `std/Array.h`
 - Fixed warnings: `-Wimplicit-int-float-conversion`, `-Wfloat-equal`, and `-Wdocumentation`.
@@ -1142,7 +1144,7 @@ within a distinct namespace, there are no conflicts even if you link your own `l
   ```
 
 - Fixed a bug in timestamp formatting that occasionally displayed an hour component of 0 as
-  24. ([#329](https://github.com/odygrd/quill/pull/329))
+    24. ([#329](https://github.com/odygrd/quill/pull/329))
 
 - Added support for specifying a runtime log level, allowing dynamic log level configuration at runtime.
   The new runtime log level feature provides flexibility when needed, with a minor overhead cost.

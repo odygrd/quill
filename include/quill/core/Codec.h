@@ -34,7 +34,8 @@ namespace detail
 
 /** We forward declare these to avoid including Utf8Conv.h **/
 QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern std::string utf8_encode(std::wstring_view str);
-QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern std::string utf8_encode(std::byte const* data, size_t wide_str_len);
+QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern std::string utf8_encode(std::byte const* data,
+                                                                                 size_t wide_str_len);
 
   #if defined(__MINGW32__)
     #pragma GCC diagnostic pop
@@ -103,6 +104,8 @@ struct is_std_string<std::basic_string<char, std::char_traits<char>, Allocator>>
 };
 } // namespace detail
 
+static constexpr std::string_view null_c_string{"nullptr"};
+
 /** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
 struct Codec
@@ -124,10 +127,18 @@ struct Codec
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
+#ifndef NDEBUG
+      if (arg)
+      {
+        assert(((strlen(arg) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
+               "len is outside the supported range");
+      }
+#endif
+
+      // for c strings we do an additional check for nullptr
       // include one extra for the zero termination
-      assert(((strlen(arg) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
-             "len is outside the supported range");
-      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(strlen(arg) + 1u));
+      auto const len = static_cast<uint32_t>(arg ? strlen(arg) : null_c_string.size());
+      return conditional_arg_size_cache.push_back(len + 1u);
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
@@ -178,7 +189,8 @@ struct Codec
     {
       // null terminator is included in the len for c style strings
       uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      std::memcpy(buffer, arg, len);
+      // for c strings we do an additional check for nullptr
+      std::memcpy(buffer, arg ? arg : null_c_string.data(), len);
       buffer += len;
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
@@ -284,10 +296,9 @@ template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
   QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, Args const&... args)
 {
-  if constexpr (!std::conjunction_v<std::disjunction<
-                  std::is_arithmetic<remove_cvref_t<Args>>, std::is_enum<remove_cvref_t<Args>>,
-                  std::is_same<remove_cvref_t<Args>, void const*>, is_std_string<remove_cvref_t<Args>>,
-                  std::is_same<remove_cvref_t<Args>, std::string_view>>...>)
+  if constexpr (!std::conjunction_v<std::disjunction<std::is_arithmetic<remove_cvref_t<Args>>, std::is_enum<remove_cvref_t<Args>>,
+                                                     std::is_same<remove_cvref_t<Args>, void const*>, is_std_string<remove_cvref_t<Args>>,
+                                                     std::is_same<remove_cvref_t<Args>, std::string_view>>...>)
   {
     // Clear the cache whenever processing involves non-fundamental types,
     // or when the arguments are not of type std::string or std::string_view.
@@ -313,8 +324,7 @@ QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, SizeCacheVector const& condi
                                 Args const&... args)
 {
   QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
-  (Codec<remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache,
-                                               conditional_arg_size_cache_index, args),
+  (Codec<remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, args),
    ...);
 }
 
