@@ -202,6 +202,7 @@
       csv_writer.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
     }
     ```
+- When `CsvWriter` is used with `open_mode == 'a'` it won't rewrite the header when the file already exists
 - On Linux, setting a long backend thread name now truncates it instead of
   failing. ([#691](https://github.com/odygrd/quill/issues/691))
 - Fixed BSD builds. ([#688](https://github.com/odygrd/quill/issues/688))
