@@ -87,7 +87,7 @@ public:
     if (timestamp >= _next_recalculation_timestamp)
     {
       // in this case we have to populate our cached string again using strftime
-      _pre_formatted_ts.clear();
+      _pre_formatted_ts.resize(0);
       _cached_indexes.clear();
 
       // Now populate a pre-formatted string for the next rec
@@ -378,7 +378,7 @@ protected:
   /***/
   QUILL_NODISCARD static time_t _nearest_quarter_hour_timestamp(time_t timestamp) noexcept
   {
-    time_t const nearest_quarter_hour_ts = timestamp - (timestamp % 900);
+    time_t const nearest_quarter_hour_ts = (timestamp / 900) * 900;
     return nearest_quarter_hour_ts;
   }
 

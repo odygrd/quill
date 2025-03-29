@@ -98,7 +98,7 @@ public:
   /***/
   QUILL_NODISCARD bool is_running() const noexcept
   {
-    return _is_worker_running.load(std::memory_order_relaxed);
+    return _is_worker_running.load(std::memory_order_acquire);
   }
 
   /**
@@ -140,7 +140,7 @@ public:
     }
 
     std::thread worker(
-      [this, &options]()
+      [this, options]()
       {
         _init(options);
 
