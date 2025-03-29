@@ -17,6 +17,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <vector>
 
 QUILL_BEGIN_NAMESPACE
 
@@ -52,13 +53,19 @@ public:
       // Convert rdtsc to wall time.
       // 1. Get real time and rdtsc current count
       // 2. Calculate how many rdtsc ticks can occur in one
-      // calculate _ticks_per_ns as the median over a number of observations.
+      // calculate _ticks_per_ns as the median over a number of observations
+      // we use always odd number of trials for easy median calc
       constexpr std::chrono::milliseconds spin_duration = std::chrono::milliseconds{10};
+      constexpr size_t max_trials = 15;
+      constexpr size_t min_trials = 3;
+      constexpr double convergence_threshold = 0.01; // 1% threshold
 
-      constexpr int trials = 13;
-      std::array<double, trials> rates = {{0}};
+      std::vector<double> rates;
+      rates.reserve(max_trials);
 
-      for (size_t i = 0; i < trials; ++i)
+      double previous_median = 0.0;
+
+      for (size_t i = 0; i < max_trials; ++i)
       {
         auto const beg_ts = detail::get_timestamp<std::chrono::steady_clock>();
         uint64_t const beg_tsc = rdtsc();
@@ -70,14 +77,31 @@ public:
           auto const end_ts = detail::get_timestamp<std::chrono::steady_clock>();
           end_tsc = rdtsc();
           elapsed_ns = end_ts - beg_ts;
-        } while (elapsed_ns < spin_duration); // busy spin for 10ms
+        } while (elapsed_ns < spin_duration);
 
-        rates[i] = static_cast<double>(end_tsc - beg_tsc) / static_cast<double>(elapsed_ns.count());
+        rates.push_back(static_cast<double>(end_tsc - beg_tsc) / static_cast<double>(elapsed_ns.count()));
+
+        // Check for convergence after minimum trials and only on an odd count of trials.
+        if (((i + 1) >= min_trials) && (((i + 1) % 2) != 0))
+        {
+          std::nth_element(rates.begin(), rates.begin() + static_cast<ptrdiff_t>((i + 1) / 2), rates.end());
+          double current_median = rates[(i + 1) / 2];
+
+          // If we've converged, break early
+          if (std::abs(current_median - previous_median) / current_median < convergence_threshold)
+          {
+            break;
+          }
+
+          previous_median = current_median;
+        }
       }
 
-      std::nth_element(rates.begin(), rates.begin() + trials / 2, rates.end());
+      // Calculate final median.
+      std::nth_element(rates.begin(), rates.begin() + static_cast<ptrdiff_t>(rates.size() / 2),
+                       rates.end());
 
-      double const ticks_per_ns = rates[trials / 2];
+      double const ticks_per_ns = rates[rates.size() / 2];
       _ns_per_tick = 1 / ticks_per_ns;
     }
 
