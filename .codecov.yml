@@ -3,3 +3,11 @@ ignore:
   - "examples"
   - "include/quill/bundled"
   - "test"
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: yes
+      macro: yes

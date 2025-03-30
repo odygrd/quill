@@ -136,7 +136,7 @@ TEST_CASE("construct")
       "EmptyArgsFunc",                               // caller_function
       "Curly braces with no name: {} and also {{}}", // message_format with empty {}
       "tag_empty",                                   // tags
-      quill::LogLevel::Warning,                         // log_level
+      quill::LogLevel::Warning,                      // log_level
       MacroMetadata::Event::FlushBacktrace           // event
     };
 
