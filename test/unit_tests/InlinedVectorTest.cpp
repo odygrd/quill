@@ -130,7 +130,7 @@ TEST_CASE("assign_access_index")
   REQUIRE_EQ(vec[2], 199);
 
   {
-    bool throws {false};
+    bool throws{false};
 
     try
     {
@@ -166,7 +166,7 @@ TEST_CASE("assign_access_index")
   REQUIRE_EQ(vec[4], 230);
 
   {
-    bool throws {false};
+    bool throws{false};
 
     try
     {
