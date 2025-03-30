@@ -254,7 +254,6 @@ set(HEADER_FILES
         include/quill/LogMacros.h
         include/quill/StopWatch.h
         include/quill/StringRef.h
-        include/quill/TriviallyCopyableCodec.h
         include/quill/UserClockSource.h
         include/quill/Utility.h
 )

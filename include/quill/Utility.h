@@ -26,27 +26,31 @@ namespace utility
  * @return A string containing the hexadecimal representation of the given buffer.
  */
 template <typename T>
-QUILL_NODISCARD std::string to_hex(T* buffer, size_t size) noexcept
+QUILL_NODISCARD std::string to_hex(T const* buffer, size_t size)
 {
   static constexpr char hex_chars[] = "0123456789ABCDEF";
 
+  if (!buffer || size == 0)
+  {
+    return {};
+  }
+
+  // Each byte needs 2 hex chars, and all but the last one need spaces
   std::string hex_string;
-  hex_string.reserve(3 * size);
+  hex_string.reserve(size > 0 ? (3 * size - 1) : 0);
 
   for (size_t i = 0; i < size; ++i)
   {
-    // 00001111 mask
-    static constexpr uint8_t mask = 0x0Fu;
+    const auto byte = static_cast<uint8_t>(buffer[i]);
 
-    // add the first four bits
-    hex_string += hex_chars[(buffer[i] >> 4u) & mask];
+    // Add the first four bits
+    hex_string += hex_chars[(byte >> 4) & 0x0F];
+    // Add the remaining bits
+    hex_string += hex_chars[byte & 0x0F];
 
-    // add the remaining bits
-    hex_string += hex_chars[buffer[i] & mask];
-
+    // Add a space delimiter after all but the last byte
     if (i != (size - 1))
     {
-      // add a space delimiter
       hex_string += ' ';
     }
   }

@@ -70,16 +70,7 @@ public:
    */
   [[nodiscard]] std::chrono::duration<double> elapsed() const
   {
-    if constexpr (ClockType == ClockSourceType::Tsc)
-    {
-      return std::chrono::duration<double>(std::chrono::nanoseconds{
-        static_cast<uint64_t>(static_cast<double>(rdtsc() - _start_tp) * _ns_per_tick)});
-    }
-    else
-    {
-      return std::chrono::duration<double>(std::chrono::nanoseconds{
-        detail::get_timestamp_ns<std::chrono::steady_clock>() - _start_tp});
-    }
+    return elapsed_as<std::chrono::duration<double>>();
   }
 
   /**
