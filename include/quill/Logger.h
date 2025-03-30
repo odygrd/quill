@@ -119,6 +119,11 @@ public:
     {
       current_timestamp = user_clock->now();
     }
+    else
+    {
+      // not expected
+      current_timestamp = 0;
+    }
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
