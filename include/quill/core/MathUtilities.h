@@ -43,7 +43,7 @@ QUILL_NODISCARD constexpr T max_power_of_two() noexcept
  * @return the next power of 2
  */
 template <typename T>
-QUILL_NODISCARD T next_power_of_two(T n)
+QUILL_NODISCARD T next_power_of_two(T n) noexcept
 {
   constexpr T max_power_of_2 = max_power_of_two<T>();
 

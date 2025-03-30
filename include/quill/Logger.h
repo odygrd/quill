@@ -115,7 +115,7 @@ public:
     {
       current_timestamp = detail::get_timestamp_ns<std::chrono::system_clock>();
     }
-    else
+    else if (user_clock)
     {
       current_timestamp = user_clock->now();
     }

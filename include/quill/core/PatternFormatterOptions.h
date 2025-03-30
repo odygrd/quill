@@ -92,7 +92,7 @@ public:
   bool add_metadata_to_multi_line_logs;
 
   /***/
-  bool operator==(const PatternFormatterOptions& other) const
+  bool operator==(PatternFormatterOptions const& other) const noexcept
   {
     return format_pattern == other.format_pattern && timestamp_pattern == other.timestamp_pattern &&
       timestamp_timezone == other.timestamp_timezone &&
@@ -100,7 +100,7 @@ public:
   }
 
   /***/
-  bool operator!=(const PatternFormatterOptions& other) const { return !(*this == other); }
+  bool operator!=(PatternFormatterOptions const& other) const noexcept { return !(*this == other); }
 };
 
 QUILL_END_NAMESPACE

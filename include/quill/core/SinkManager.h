@@ -69,6 +69,8 @@ public:
   template <typename TSink, typename... Args>
   std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
+    static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
+
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
     LockGuard const lock{_spinlock};
 
