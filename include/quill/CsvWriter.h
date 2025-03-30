@@ -183,7 +183,6 @@ public:
    */
   ~CsvWriter()
   {
-    _logger->flush_log();
     frontend_t::remove_logger(_logger);
   }
 
