@@ -87,7 +87,7 @@ public:
     if (timestamp >= _next_recalculation_timestamp)
     {
       // in this case we have to populate our cached string again using strftime
-      _pre_formatted_ts.resize(0);
+      _pre_formatted_ts.clear();
       _cached_indexes.clear();
 
       // Now populate a pre-formatted string for the next rec
