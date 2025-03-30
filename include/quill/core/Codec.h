@@ -180,7 +180,7 @@ struct Codec
         // no '\0' in c array
         assert(len == N + 1);
         std::memcpy(buffer, arg, N);
-        buffer[len - 1] = std::byte{'\0'};
+        buffer[N] = std::byte{'\0'};
       }
       else
       {
