@@ -124,6 +124,9 @@ TEST_CASE("assign_access_index")
   // Assign a new value to index 2
   vec.assign(2, 199);
 
+  // Assign value to invalid index
+  REQUIRE_THROWS(vec.assign(3, 199));
+
   // Verify that the value has been updated
   REQUIRE_EQ(vec[0], 10);
   REQUIRE_EQ(vec[1], 99);
