@@ -163,10 +163,10 @@ public:
    * Constructs a CsvWriter object that writes to multiple sinks.
    *
    * @param unique_name A unique name for this CsvWriter instance.
-   * @param sinks An initializer list of sinks to output the data to.
+   * @param sinks A list of sinks to output the data to.
    * @param should_write_header Whether to write the header at the beginning of the CSV file.
    */
-  CsvWriter(std::string const& unique_name, std::initializer_list<std::shared_ptr<Sink>> sinks,
+  CsvWriter(std::string const& unique_name, std::vector<std::shared_ptr<Sink>> sinks,
             bool should_write_header = true)
   {
     _logger = frontend_t::create_or_get_logger(_logger_name_prefix + unique_name, sinks,
@@ -181,10 +181,7 @@ public:
   /**
    * Destructor for CsvWriter. Flushes the log and removes the logger.
    */
-  ~CsvWriter()
-  {
-    frontend_t::remove_logger(_logger);
-  }
+  ~CsvWriter() { frontend_t::remove_logger_blocking(_logger); }
 
   /**
    * Appends a row to the CSV file. This function is also thread safe.
