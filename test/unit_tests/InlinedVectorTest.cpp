@@ -103,7 +103,7 @@ TEST_CASE("stress_test")
   }
 }
 
-TEST_CASE("assign_valid_index")
+TEST_CASE("assign_access_index")
 {
   // Create an InlinedVector with uint32_t and a small capacity
   InlinedVector<uint32_t, 4> vec;
@@ -121,13 +121,66 @@ TEST_CASE("assign_valid_index")
   REQUIRE_EQ(vec[1], 99);
   REQUIRE_EQ(vec[2], 30);
 
-  // Assign a new value to the last element (index 2)
+  // Assign a new value to index 2
   vec.assign(2, 199);
 
   // Verify that the value has been updated
   REQUIRE_EQ(vec[0], 10);
   REQUIRE_EQ(vec[1], 99);
   REQUIRE_EQ(vec[2], 199);
+
+  {
+    bool throws {false};
+
+    try
+    {
+      // we only pushed_back 3 elements, trying to access the 4th will fail
+      uint32_t const elem = vec[3];
+      (void)elem;
+    }
+    catch (std::exception const&)
+    {
+      throws = true;
+    }
+
+    REQUIRE(throws);
+  }
+
+  // Add one more
+  vec.push_back(130);
+
+  // Verify that the values
+  REQUIRE_EQ(vec[0], 10);
+  REQUIRE_EQ(vec[1], 99);
+  REQUIRE_EQ(vec[2], 199);
+  REQUIRE_EQ(vec[3], 130);
+
+  // Add one more - vector will switch to heap
+  vec.push_back(230);
+
+  // Verify that the values
+  REQUIRE_EQ(vec[0], 10);
+  REQUIRE_EQ(vec[1], 99);
+  REQUIRE_EQ(vec[2], 199);
+  REQUIRE_EQ(vec[3], 130);
+  REQUIRE_EQ(vec[4], 230);
+
+  {
+    bool throws {false};
+
+    try
+    {
+      // we only pushed_back 5 elements, trying to access the 6th will fail
+      uint32_t const elem = vec[5];
+      (void)elem;
+    }
+    catch (std::exception const&)
+    {
+      throws = true;
+    }
+
+    REQUIRE(throws);
+  }
 }
 
 TEST_SUITE_END();
