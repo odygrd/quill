@@ -109,8 +109,6 @@ struct is_std_string<std::basic_string<char, std::char_traits<char>, Allocator>>
 };
 } // namespace detail
 
-static constexpr std::string_view null_c_string{"nullptr"};
-
 /** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
 struct Codec
@@ -136,9 +134,8 @@ struct Codec
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
       // for c strings we do an additional check for nullptr
-      size_t len =
-        arg ? detail::safe_strnlen(arg, std::numeric_limits<uint32_t>::max()) : null_c_string.size();
-      len += 1u; // include one extra for the zero termination
+      // include one extra for the zero termination
+      size_t len = detail::safe_strnlen(arg, std::numeric_limits<uint32_t>::max()) + 1u;
 
       if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
       {
@@ -196,8 +193,13 @@ struct Codec
     {
       // null terminator is included in the len for c style strings
       uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      // for c strings we do an additional check for nullptr
-      std::memcpy(buffer, arg ? arg : null_c_string.data(), len);
+
+      if (arg)
+      {
+        std::memcpy(buffer, arg, len - 1);
+      }
+
+      buffer[len - 1] = std::byte{'\0'};
       buffer += len;
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
