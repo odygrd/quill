@@ -88,6 +88,11 @@ void codec_not_found_for_type()
 
 QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexcept
 {
+  if (!str)
+  {
+    return 0;
+  }
+
   auto end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
   return end ? static_cast<size_t>(end - str) : maxlen;
 }
@@ -104,8 +109,6 @@ struct is_std_string<std::basic_string<char, std::char_traits<char>, Allocator>>
 };
 } // namespace detail
 
-static constexpr std::string_view null_c_string{"nullptr"};
-
 /** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
 struct Codec
@@ -121,24 +124,25 @@ struct Codec
     else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
     {
       size_t constexpr N = std::extent_v<Arg>;
-      assert(((detail::safe_strnlen(arg, N) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
-             "len is outside the supported range");
-      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(detail::safe_strnlen(arg, N) + 1u));
+      size_t len = detail::safe_strnlen(arg, N) + 1u;
+      if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
+      {
+        len = std::numeric_limits<uint32_t>::max();
+      }
+      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
-#ifndef NDEBUG
-      if (arg)
-      {
-        assert(((strlen(arg) + 1u) <= std::numeric_limits<uint32_t>::max()) &&
-               "len is outside the supported range");
-      }
-#endif
-
       // for c strings we do an additional check for nullptr
       // include one extra for the zero termination
-      auto const len = static_cast<uint32_t>(arg ? strlen(arg) : null_c_string.size());
-      return conditional_arg_size_cache.push_back(len + 1u);
+      size_t len = detail::safe_strnlen(arg, std::numeric_limits<uint32_t>::max()) + 1u;
+
+      if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
+      {
+        len = std::numeric_limits<uint32_t>::max();
+      }
+
+      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
@@ -176,7 +180,7 @@ struct Codec
         // no '\0' in c array
         assert(len == N + 1);
         std::memcpy(buffer, arg, N);
-        buffer[len - 1] = std::byte{'\0'};
+        buffer[N] = std::byte{'\0'};
       }
       else
       {
@@ -189,8 +193,8 @@ struct Codec
     {
       // null terminator is included in the len for c style strings
       uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      // for c strings we do an additional check for nullptr
-      std::memcpy(buffer, arg ? arg : null_c_string.data(), len);
+      std::memcpy(buffer, arg, len - 1);
+      buffer[len - 1] = std::byte{'\0'};
       buffer += len;
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
@@ -229,7 +233,8 @@ struct Codec
     {
       // c strings or char array
       auto arg = reinterpret_cast<char const*>(buffer);
-      buffer += strlen(arg) + 1; // for c_strings we add +1 to the length as we also want to copy the null terminated char
+      buffer += detail::safe_strnlen(arg, std::numeric_limits<uint32_t>::max()) +
+        1u; // for c_strings we add +1 to the length as we also want to copy the null terminated char
       return arg;
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
@@ -265,7 +270,8 @@ struct Codec
       // pass the string_view to args_store to avoid the dynamic allocation
       // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
       // for std::string_view we would need fmt/format.h
-      args_store->push_back(fmtquill::string_view{arg, strlen(arg)});
+      args_store->push_back(
+        fmtquill::string_view{arg, detail::safe_strnlen(arg, std::numeric_limits<uint32_t>::max())});
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {

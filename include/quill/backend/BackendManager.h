@@ -90,7 +90,7 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD uint64_t convert_rdtsc_to_epoch_time(uint64_t rdtsc_value) const noexcept
+  QUILL_NODISCARD uint64_t convert_rdtsc_to_epoch_time(uint64_t rdtsc_value) const
   {
     return _backend_worker.time_since_epoch(rdtsc_value);
   }

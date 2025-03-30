@@ -26,12 +26,12 @@ quill::Logger* create_logger()
 
   // work out the log index number to add to the filename
   std::string log_index;
-  int highest_index = 0;
   fs::path const log_path = fs::current_path() / path_name;
 
   if (std::filesystem::exists(log_path))
   {
-    int file_int = 0;
+    int highest_index = 0;
+    int file_int;
 
     // iterate through files in folder, find the highest log index number in filenames.
     for (const auto& file : std::filesystem::directory_iterator(log_path))

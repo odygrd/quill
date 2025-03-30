@@ -32,7 +32,8 @@ public:
 
   // Move constructor
   TransitEventBuffer(TransitEventBuffer&& other) noexcept
-    : _capacity(other._capacity),
+    : _initial_capacity(other._initial_capacity),
+      _capacity(other._capacity),
       _storage(std::move(other._storage)),
       _mask(other._mask),
       _reader_pos(other._reader_pos),
@@ -49,6 +50,7 @@ public:
   {
     if (this != &other)
     {
+      _initial_capacity = other._initial_capacity;
       _capacity = other._capacity;
       _storage = std::move(other._storage);
       _mask = other._mask;

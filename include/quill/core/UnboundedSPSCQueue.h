@@ -21,7 +21,7 @@ QUILL_BEGIN_NAMESPACE
 namespace detail
 {
 /**
- * A singe-producer single-consumer FIFO circular buffer
+ * A single-producer single-consumer FIFO circular buffer
  *
  * The buffer allows producing and consuming objects
  *

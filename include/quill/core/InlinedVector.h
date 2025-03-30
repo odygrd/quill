@@ -103,8 +103,7 @@ public:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
   {
-#ifdef __MINGW32__
-  // Disable the array bounds warning for MinGW
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
@@ -123,7 +122,7 @@ public:
       return _storage.heap_buffer[index];
     }
 
-#ifdef __MINGW32__
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
   // Re-enable the array bounds warning
   #pragma GCC diagnostic pop
 #endif

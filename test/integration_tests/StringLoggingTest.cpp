@@ -123,13 +123,14 @@ TEST_CASE("string_logging")
     LOG_INFO(logger, "c_style_char_array [{}]", c_style_char_array);
     LOG_INFO(logger, "c_style_string_array_non_terminated [{}]", c_style_string_array_non_terminated);
 
-    LOG_INFO(logger,
-             "Lorem ipsum dolor sit amet, consectetur [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] "
-             "[{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}]",
-             s, "elit", 1, 3.14, empty_s, begin_s, end_s, empty_sv, c_style_string_empty, c_style_string,
-             c_style_char_array_empty, c_style_char_array, c_style_string_array_non_terminated, s,
-             "elit", 1, 3.14, empty_s, begin_s, end_s, empty_sv, c_style_string_empty, c_style_string,
-             c_style_char_array_empty, c_style_char_array, c_style_string_array_non_terminated);
+    LOG_INFO(
+      logger,
+      "Lorem ipsum dolor sit amet, consectetur [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] "
+      "[{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}]",
+      s, "elit", 1, 3.14, empty_s, begin_s, end_s, empty_sv, c_style_string_empty, c_style_string,
+      c_style_char_array_empty, c_style_char_array, c_style_string_array_non_terminated, s, "elit",
+      1, 3.14, empty_s, begin_s, end_s, empty_sv, c_style_string_empty, c_style_string,
+      c_style_char_array_empty, c_style_char_array, c_style_string_array_non_terminated, csn);
 
     LOG_ERROR(logger,
               "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [{}] [{}] "
@@ -165,7 +166,7 @@ TEST_CASE("string_logging")
   REQUIRE_EQ(file_contents.size(), number_of_messages + 20);
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       csn [nullptr]"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       csn []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "                        right aligned"}));
@@ -219,7 +220,7 @@ TEST_CASE("string_logging")
     file_contents, std::string{"LOG_INFO      " + logger_name + "       c_style_string_array_non_terminated [ABC]"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       Lorem ipsum dolor sit amet, consectetur [adipiscing] [elit] [1] [3.14] [] [begin_s] [end_s] [] [] [Lorem ipsum] [] [dolor] [ABC] [adipiscing] [elit] [1] [3.14] [] [begin_s] [end_s] [] [] [Lorem ipsum] [] [dolor] [ABC]"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Lorem ipsum dolor sit amet, consectetur [adipiscing] [elit] [1] [3.14] [] [begin_s] [end_s] [] [] [Lorem ipsum] [] [dolor] [ABC] [adipiscing] [elit] [1] [3.14] [] [begin_s] [end_s] [] [] [Lorem ipsum] [] [dolor] [ABC] []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_ERROR     " + logger_name + "       Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [2] [true] [begin_s] [] [] [ABC] [] [Lorem ipsum] [end_s] [] [dolor] [2] [true] [begin_s] [] [] [ABC] [] [Lorem ipsum] [end_s] [] [dolor]"}));

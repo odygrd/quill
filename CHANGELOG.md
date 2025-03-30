@@ -214,6 +214,7 @@
   `3.12`. ([#686](https://github.com/odygrd/quill/issues/686))
 - Correct the installation location of pkg-config files. They are now properly placed in `/usr/local/lib`.
   ([#715](https://github.com/odygrd/quill/issues/715))
+- Removed deprecated `TriviallyCopyableTypeCodec`
 
 ## v8.2.0
 

@@ -115,9 +115,14 @@ public:
     {
       current_timestamp = detail::get_timestamp_ns<std::chrono::system_clock>();
     }
-    else
+    else if (user_clock)
     {
       current_timestamp = user_clock->now();
+    }
+    else
+    {
+      // not expected
+      current_timestamp = 0;
     }
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
@@ -359,15 +364,7 @@ private:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _prepare_write_buffer(size_t total_size)
   {
-    if constexpr (using_unbounded_queue)
-    {
-      // MSVC doesn't like the template keyword, but every other compiler requires it
-      return thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
-    }
-    else
-    {
-      return thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
-    }
+    return thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
   }
 };
 
