@@ -314,6 +314,21 @@ TEST_CASE("loglevel_from_string")
   }
 
   {
+    std::string log_level{"Trace_L1"};
+    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL1);
+  }
+
+  {
+    std::string log_level{"Trace_L2"};
+    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL2);
+  }
+
+  {
+    std::string log_level{"Trace_L3"};
+    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL3);
+  }
+
+  {
 #ifndef QUILL_NO_EXCEPTIONS
     std::string log_level{"dummy"};
     auto func = [log_level]()
