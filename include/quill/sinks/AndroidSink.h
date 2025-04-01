@@ -114,7 +114,7 @@ public:
     size_t const message_length = message.size();
 
     __android_log_print(_config.get_android_level(log_level), _config.tag().data(), "%.*s",
-                        message_length, message.data());
+                        static_cast<int>(message_length), message.data());
   }
 
   /***/
