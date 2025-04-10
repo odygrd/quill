@@ -12,6 +12,12 @@
 
 using namespace quill;
 
+void log_runtime_message(quill::Logger* quill_logger, quill::LogLevel log_level,
+                         std::string_view filename, uint32_t lineno, std::string_view arg)
+{
+  QUILL_LOG_RUNTIME_METADATA(quill_logger, log_level, filename, lineno, "", "{}", arg);
+}
+
 /***/
 TEST_CASE("runtime_metadata")
 {
@@ -50,9 +56,6 @@ TEST_CASE("runtime_metadata")
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "app.cpp", 98, "foo()",
                        "Runtime metadata with {} {}", 2, 3);
 
-  std::string test_string = "test message";
-  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "app.cpp", 1234, "function_1", "{}", test_string);
-
   std::string file_name = "RuntimeMetadataTest.cpp";
   uint32_t line_number = 98;
   std::string function_name = "function_1";
@@ -60,6 +63,8 @@ TEST_CASE("runtime_metadata")
   uint32_t b = 2;
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, file_name, line_number, function_name,
                        "a={} and b={}", a, b);
+
+  log_runtime_message(logger, quill::LogLevel::Info, "app.cpp", 1234, "test message");
 
   logger->flush_log();
   Frontend::remove_logger(logger);
@@ -85,12 +90,9 @@ TEST_CASE("runtime_metadata")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"app.cpp:98 foo() LOG_INFO      logger       Runtime metadata with 2 3"}));
-
+  
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"app.cpp:1234 function_1 LOG_INFO      logger       test message"}));
-
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"app.cpp:1234 function_1 LOG_INFO      logger       test message"}));
+    file_contents, std::string{"app.cpp:1234  LOG_INFO      logger       test message"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"RuntimeMetadataTest.cpp:98 function_1 LOG_INFO      logger       a=1 and b=2"}));
