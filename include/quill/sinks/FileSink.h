@@ -197,7 +197,7 @@ public:
   }
 
 private:
-  std::string _open_mode{'w'};
+  std::string _open_mode{'a'};
   std::string _append_filename_format_pattern;
   size_t _write_buffer_size{64 * 1024}; // Default size 64k
   std::chrono::milliseconds _minimum_fsync_interval{0};
