@@ -41,7 +41,6 @@ struct TransitEvent
 
   /**
    * Copy constructor and assignment operator are deleted to prevent accidental copying.
-   * Use the `clone` function for explicit and controlled duplication.
    */
   TransitEvent(TransitEvent const& other) = delete;
   TransitEvent& operator=(TransitEvent const& other) = delete;
@@ -76,7 +75,8 @@ struct TransitEvent
   }
 
   /***/
-  void copy_to(TransitEvent& other) const {
+  void copy_to(TransitEvent& other) const
+  {
     other.timestamp = timestamp;
     other.macro_metadata = macro_metadata;
     other.logger_base = logger_base;
@@ -87,7 +87,8 @@ struct TransitEvent
     other.formatted_msg->reserve(formatted_msg->size());
     other.formatted_msg->append(*formatted_msg);
 
-    if (this->named_args) {
+    if (this->named_args)
+    {
       other.named_args = std::make_unique<std::vector<std::pair<std::string, std::string>>>(*this->named_args);
     }
   }
