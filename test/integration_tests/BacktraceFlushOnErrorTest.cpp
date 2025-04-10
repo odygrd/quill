@@ -6,6 +6,7 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#include <chrono>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -52,6 +53,19 @@ TEST_CASE("backtrace_flush_on_error")
   }
   LOG_ERROR(logger, "After error");
 
+  // flush here and resume test
+  logger->flush_log();
+
+  // reset backtrace for 4 messages for error
+  logger->init_backtrace(4, LogLevel::Error);
+
+  for (size_t i = 0; i < 512; ++i)
+  {
+    LOG_BACKTRACE(logger, "More backtrace log {}", i);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+  LOG_ERROR(logger, "After another error");
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -61,7 +75,7 @@ TEST_CASE("backtrace_flush_on_error")
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
-  REQUIRE_EQ(file_contents.size(), 4);
+  REQUIRE_EQ(file_contents.size(), 9);
 
   std::string expected_string_1 = "LOG_INFO      " + logger_name + "       Before backtrace log";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string_1));
@@ -74,6 +88,21 @@ TEST_CASE("backtrace_flush_on_error")
 
   std::string expected_string_4 = "LOG_BACKTRACE " + logger_name + "       Backtrace log 11";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string_4));
+
+  std::string expected_string_5 = "LOG_BACKTRACE " + logger_name + "       More backtrace log 508";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string_5));
+
+  std::string expected_string_6 = "LOG_BACKTRACE " + logger_name + "       More backtrace log 509";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string_6));
+
+  std::string expected_string_7 = "LOG_BACKTRACE " + logger_name + "       More backtrace log 510";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string_7));
+
+  std::string expected_string_8 = "LOG_BACKTRACE " + logger_name + "       More backtrace log 511";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string_8));
+
+  std::string expected_string_9 = "LOG_ERROR     " + logger_name + "       After another error";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string_9));
 
   testing::remove_file(filename);
 }

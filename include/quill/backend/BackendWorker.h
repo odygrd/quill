@@ -528,6 +528,8 @@ private:
     // Allocate a new TransitEvent or use an existing one to store the message from the queue
     TransitEvent* transit_event = thread_context->_transit_event_buffer->back();
 
+    assert(transit_event->formatted_msg);
+
     std::memcpy(&transit_event->timestamp, read_pos, sizeof(transit_event->timestamp));
     read_pos += sizeof(transit_event->timestamp);
 
@@ -828,9 +830,14 @@ private:
       {
         if (transit_event.logger_base->backtrace_storage)
         {
-          // this is a backtrace log and we will store it
+          // this is a backtrace log and we will store the transit event
+          // we need to pass a copy of transit_event here and not move the existing
+          // the transit events are reused
+          TransitEvent transit_event_copy;
+          transit_event.copy_to(transit_event_copy);
+
           transit_event.logger_base->backtrace_storage->store(
-            std::move(transit_event), thread_context.thread_id(), thread_context.thread_name());
+            std::move(transit_event_copy), thread_context.thread_id(), thread_context.thread_name());
         }
         else
         {
