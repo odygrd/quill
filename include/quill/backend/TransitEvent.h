@@ -87,9 +87,9 @@ struct TransitEvent
     other.formatted_msg->reserve(formatted_msg->size());
     other.formatted_msg->append(*formatted_msg);
 
-    if (this->named_args)
+    if (named_args)
     {
-      other.named_args = std::make_unique<std::vector<std::pair<std::string, std::string>>>(*this->named_args);
+      other.named_args = std::make_unique<std::vector<std::pair<std::string, std::string>>>(*named_args);
     }
   }
 
