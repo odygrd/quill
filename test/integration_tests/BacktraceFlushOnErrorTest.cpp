@@ -56,7 +56,7 @@ TEST_CASE("backtrace_flush_on_error")
   // flush here and resume test
   logger->flush_log();
 
-  // Reset backtrace for 4 messages for error
+  // reset backtrace for 4 messages for error
   logger->init_backtrace(4, LogLevel::Error);
 
   for (size_t i = 0; i < 512; ++i)
