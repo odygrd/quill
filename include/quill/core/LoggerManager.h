@@ -146,7 +146,7 @@ public:
       // the logger. This section is not performance-critical.
       logger_ptr = _find_logger(logger_name);
 
-      if (_env_log_level)
+      if (logger_ptr && _env_log_level)
       {
         logger_ptr->set_log_level(*_env_log_level);
       }
