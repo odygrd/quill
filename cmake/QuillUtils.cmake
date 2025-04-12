@@ -38,7 +38,7 @@ function(set_common_compile_options target_name)
             -Wall -Wextra -pedantic -Werror -Wredundant-decls -Wfloat-equal>
 
             # GCC-specific hardening and security flags
-            $<$<CXX_COMPILER_ID:GNU>:
+            $<$<AND:$<CXX_COMPILER_ID:GNU>,$<BOOL:${QUILL_ENABLE_GCC_HARDENING}>>:
             -fstack-protector-strong
             -fstack-clash-protection
             -Wformat

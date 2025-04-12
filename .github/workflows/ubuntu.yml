@@ -63,6 +63,7 @@ jobs:
             std: 23
             os: ubuntu-24.04
             with_tests: ON
+            cmake_options: -DQUILL_ENABLE_GCC_HARDENING=ON
             install: sudo apt -o Acquire::Retries=5 install g++-14
 
           - cxx: g++-14
@@ -70,6 +71,7 @@ jobs:
             std: 23
             os: ubuntu-24.04
             with_tests: ON
+            cmake_options: -DQUILL_ENABLE_GCC_HARDENING=ON
             install: sudo apt -o Acquire::Retries=5 install g++-14
 
             # Builds the examples with no exceptions
