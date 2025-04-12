@@ -37,6 +37,16 @@ function(set_common_compile_options target_name)
             $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
             -Wall -Wextra -pedantic -Werror -Wredundant-decls -Wfloat-equal>
 
+            # GCC-specific hardening and security flags
+            $<$<CXX_COMPILER_ID:GNU>:
+            -fstack-protector-strong
+            -fstack-clash-protection
+            -Wformat
+            -Werror=format-security
+            -fcf-protection
+            -Wdate-time
+            -D_FORTIFY_SOURCE=2>
+
             # Clang specific options
             $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:
             -Wimplicit-int-float-conversion -Wdocumentation>
