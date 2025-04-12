@@ -57,7 +57,21 @@ jobs:
             os: ubuntu-22.04
             with_tests: ON
             install: sudo apt -o Acquire::Retries=5 install g++-13
-            
+
+          - cxx: g++-14
+            build_type: Release
+            std: 23
+            os: ubuntu-24.04
+            with_tests: ON
+            install: sudo apt -o Acquire::Retries=5 install g++-14
+
+          - cxx: g++-14
+            build_type: Debug
+            std: 23
+            os: ubuntu-24.04
+            with_tests: ON
+            install: sudo apt -o Acquire::Retries=5 install g++-14
+
             # Builds the examples with no exceptions
           - cxx: g++-10
             build_type: Release
