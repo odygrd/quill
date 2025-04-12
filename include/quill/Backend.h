@@ -23,7 +23,7 @@ QUILL_BEGIN_NAMESPACE
 /** Version Info - When updating VersionMajor please also update the namespace in Attributes.h **/
 constexpr uint32_t VersionMajor{9};
 constexpr uint32_t VersionMinor{0};
-constexpr uint32_t VersionPatch{0};
+constexpr uint32_t VersionPatch{1};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
 class Backend
@@ -41,7 +41,7 @@ public:
                      // Run the backend worker thread, we wait here until the thread enters the main loop
                      detail::BackendManager::instance().start_backend_thread(options);
 
-                     // Setup an exit handler to call stop when the main application exits.
+                     // Set up an exit handler to call stop when the main application exits.
                      // always call stop on destruction to log everything. std::atexit seems to be
                      // working better with dll on windows compared to using ~LogManagerSingleton().
                      std::atexit([]() { detail::BackendManager::instance().stop_backend_thread(); });

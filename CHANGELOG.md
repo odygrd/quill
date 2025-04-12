@@ -1,3 +1,4 @@
+- [v9.0.1](#v901)
 - [v9.0.0](#v900)
 - [v8.2.0](#v820)
 - [v8.1.1](#v811)
@@ -84,6 +85,13 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v9.0.1
+
+- Fix crash when `LOG_BACKTRACE` is used ([#744](https://github.com/odygrd/quill/issues/744))
+- Add missing namespace in `QUILL_LOG_RUNTIME_METADATA` ([#743](https://github.com/odygrd/quill/issues/743))
+- Check for `nullptr` `Logger*` before setting log level via `QUILL_LOG_LEVEL` environment variable ([#749](https://github.com/odygrd/quill/issues/749))
+- Change default mode of `FileSink` `fopen` to `a` to avoid overwriting existing files
 
 ## v9.0.0
 
