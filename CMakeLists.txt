@@ -35,6 +35,9 @@ option(QUILL_ENABLE_INSTALL "Enable the CMake install target when Quill is not t
 
 option(QUILL_DOCS_GEN "Generate documentation during the build process." OFF)
 
+# Internal option
+set(QUILL_ENABLE_GCC_HARDENING OFF CACHE INTERNAL "")
+
 #-------------------------------------------------------------------------------------------------------
 # Determine if quill is built as a subproject (using add_subdirectory) or if it is the master project.
 #-------------------------------------------------------------------------------------------------------
