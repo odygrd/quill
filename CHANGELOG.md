@@ -1,3 +1,4 @@
+- [v9.0.2](#v902)
 - [v9.0.1](#v901)
 - [v9.0.0](#v900)
 - [v8.2.0](#v820)
@@ -85,6 +86,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v9.0.2
+
+- Add missing namespace in `QUILL_LOG_RUNTIME_METADATA` ([#743](https://github.com/odygrd/quill/issues/743))
 
 ## v9.0.1
 
