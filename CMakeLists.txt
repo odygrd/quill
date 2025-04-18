@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12...4.0)
-project(quill)
+project(quill_2xx)
 
 #-------------------------------------------------------------------------------------------------------
 # Options
@@ -70,9 +70,9 @@ endif ()
 #---------------------------------------------------------------------------------------
 if (NOT CMAKE_CXX_STANDARD)
     # If CMAKE_CXX_STANDARD is not set, configure it to 17 by default
-    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
-elseif (CMAKE_CXX_STANDARD LESS 17)
+elseif (CMAKE_CXX_STANDARD LESS 20)
     # If CMAKE_CXX_STANDARD is set but less than 17, issue a fatal error
     message(FATAL_ERROR "Quill requires at least C++17. Please set CMAKE_CXX_STANDARD to 17 or higher.")
 endif ()

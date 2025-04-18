@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Set.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
@@ -19,13 +20,16 @@
 #include <set>
 #include <type_traits>
 #include <vector>
+#include <concepts>
 
 QUILL_BEGIN_NAMESPACE
 
+template <typename T, typename Key, typename Compare, typename Allocator>
+concept IsSetOrMultiSet = std::disjunction<std::is_same<T, std::set<Key, Compare, Allocator>>, std::is_same<T, std::multiset<Key, Compare, Allocator>>>::value;
+
 template <template <typename...> class SetType, typename Key, typename Compare, typename Allocator>
-struct Codec<SetType<Key, Compare, Allocator>,
-             std::enable_if_t<std::disjunction_v<std::is_same<SetType<Key, Compare, Allocator>, std::set<Key, Compare, Allocator>>,
-                                                 std::is_same<SetType<Key, Compare, Allocator>, std::multiset<Key, Compare, Allocator>>>>>
+      requires IsSetOrMultiSet<SetType<Key, Compare, Allocator>, Key, Compare, Allocator>
+struct Codec<SetType<Key, Compare, Allocator>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      SetType<Key, Compare, Allocator> const& arg) noexcept
