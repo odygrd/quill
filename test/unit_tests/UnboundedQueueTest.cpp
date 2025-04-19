@@ -65,7 +65,7 @@ TEST_CASE("unbounded_queue_shrink")
 
 TEST_CASE("unbounded_queue_allocation_within_limit")
 {
-  UnboundedSPSCQueue buffer{1024, std::numeric_limits<uint64_t>::max()};
+  UnboundedSPSCQueue buffer{1024, std::numeric_limits<uint32_t>::max()};
 
   static constexpr size_t two_mb = 2u * 1024u * 1024u;
 

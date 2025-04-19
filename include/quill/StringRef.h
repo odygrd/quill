@@ -35,7 +35,7 @@ public:
   explicit StringRef(std::string const& str) : _str_view(str) {};
   explicit StringRef(std::string_view str) : _str_view(str) {};
   explicit StringRef(char const* str)
-    : _str_view(str, detail::safe_strnlen(str, std::numeric_limits<uint32_t>::max())) {};
+    : _str_view(str, detail::safe_strnlen(str, quill::MAX_MEMCHR_EXAMINE_SIZE)) {};
   StringRef(char const* str, size_t size) : _str_view(str, size) {};
 
   QUILL_NODISCARD std::string_view const& get_string_view() const noexcept { return _str_view; }
