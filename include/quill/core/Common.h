@@ -83,11 +83,4 @@ enum class HugePagesPolicy
   Try     // Try huge pages, but fall back to normal pages if unavailable
 };
 
-#if defined(__i386__) || defined(__arm__)
-// On i386, armel and armhf std::memchr "max number of bytes to examine" set to maximum size of unsigned int which does not work
-// current Debian package is using architecture any
-static constexpr int32_t MAX_MEMCHR_EXAMINE_SIZE = 2147483647;  // 2^31 - 1
-#else
-static constexpr uint32_t MAX_MEMCHR_EXAMINE_SIZE = 4294967295;  // 2^32 - 1
-#endif
 QUILL_END_NAMESPACE

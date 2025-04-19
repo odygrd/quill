@@ -86,6 +86,7 @@ void codec_not_found_for_type()
     "For more information see https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html\n");
 }
 
+/***/
 QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexcept
 {
   if (!str)
@@ -97,6 +98,20 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexc
   return end ? static_cast<size_t>(end - str) : maxlen;
 }
 
+/***/
+QUILL_NODISCARD inline size_t safe_strnlen(char const* str) noexcept
+{
+#if defined(__i386__) || defined(__arm__)
+  // On i386, armel and armhf std::memchr "max number of bytes to examine" set to maximum size of
+  // unsigned int which does not compile
+  // Currently Debian package is using architecture `any` which includes them
+  static constexpr int32_t max_len = std::numeric_limits<int32_t>::max();
+#else
+  static constexpr uint32_t max_len = std::numeric_limits<uint32_t>::max();
+#endif
+
+  return safe_strnlen(str, max_len);
+}
 /** std string detection, ignoring the Allocator type **/
 template <typename T>
 struct is_std_string : std::false_type
@@ -125,9 +140,9 @@ struct Codec
     {
       size_t constexpr N = std::extent_v<Arg>;
       size_t len = detail::safe_strnlen(arg, N) + 1u;
-      if (QUILL_UNLIKELY(len > quill::MAX_MEMCHR_EXAMINE_SIZE))
+      if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
       {
-        len = quill::MAX_MEMCHR_EXAMINE_SIZE;
+        len = std::numeric_limits<uint32_t>::max();
       }
       return conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
     }
@@ -135,13 +150,11 @@ struct Codec
     {
       // for c strings we do an additional check for nullptr
       // include one extra for the zero termination
-      size_t len = detail::safe_strnlen(arg, quill::MAX_MEMCHR_EXAMINE_SIZE) + 1u;
-
-      if (QUILL_UNLIKELY(len > quill::MAX_MEMCHR_EXAMINE_SIZE))
+      size_t len = detail::safe_strnlen(arg) + 1u;
+      if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
       {
-        len = quill::MAX_MEMCHR_EXAMINE_SIZE;
+        len = std::numeric_limits<uint32_t>::max();
       }
-
       return conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
@@ -233,8 +246,8 @@ struct Codec
     {
       // c strings or char array
       auto arg = reinterpret_cast<char const*>(buffer);
-      buffer += detail::safe_strnlen(arg, quill::MAX_MEMCHR_EXAMINE_SIZE) +
-        1u; // for c_strings we add +1 to the length as we also want to copy the null terminated char
+      // for c_strings we add +1 to the length as we also want to copy the null terminated char
+      buffer += detail::safe_strnlen(arg) + 1u;
       return arg;
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
@@ -270,8 +283,7 @@ struct Codec
       // pass the string_view to args_store to avoid the dynamic allocation
       // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
       // for std::string_view we would need fmt/format.h
-      args_store->push_back(
-        fmtquill::string_view{arg, detail::safe_strnlen(arg, quill::MAX_MEMCHR_EXAMINE_SIZE)});
+      args_store->push_back(fmtquill::string_view{arg, detail::safe_strnlen(arg)});
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
