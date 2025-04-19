@@ -125,9 +125,9 @@ struct Codec
     {
       size_t constexpr N = std::extent_v<Arg>;
       size_t len = detail::safe_strnlen(arg, N) + 1u;
-      if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
+      if (QUILL_UNLIKELY(len > quill::MAX_MEMCHR_EXAMINE_SIZE))
       {
-        len = std::numeric_limits<uint32_t>::max();
+        len = quill::MAX_MEMCHR_EXAMINE_SIZE;
       }
       return conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
     }
@@ -135,11 +135,11 @@ struct Codec
     {
       // for c strings we do an additional check for nullptr
       // include one extra for the zero termination
-      size_t len = detail::safe_strnlen(arg, std::numeric_limits<uint32_t>::max()) + 1u;
+      size_t len = detail::safe_strnlen(arg, quill::MAX_MEMCHR_EXAMINE_SIZE) + 1u;
 
-      if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
+      if (QUILL_UNLIKELY(len > quill::MAX_MEMCHR_EXAMINE_SIZE))
       {
-        len = std::numeric_limits<uint32_t>::max();
+        len = quill::MAX_MEMCHR_EXAMINE_SIZE;
       }
 
       return conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
@@ -233,7 +233,7 @@ struct Codec
     {
       // c strings or char array
       auto arg = reinterpret_cast<char const*>(buffer);
-      buffer += detail::safe_strnlen(arg, std::numeric_limits<uint32_t>::max()) +
+      buffer += detail::safe_strnlen(arg, quill::MAX_MEMCHR_EXAMINE_SIZE) +
         1u; // for c_strings we add +1 to the length as we also want to copy the null terminated char
       return arg;
     }
@@ -271,7 +271,7 @@ struct Codec
       // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
       // for std::string_view we would need fmt/format.h
       args_store->push_back(
-        fmtquill::string_view{arg, detail::safe_strnlen(arg, std::numeric_limits<uint32_t>::max())});
+        fmtquill::string_view{arg, detail::safe_strnlen(arg, quill::MAX_MEMCHR_EXAMINE_SIZE)});
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
