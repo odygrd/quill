@@ -472,6 +472,7 @@ To get started with Quill, clone the repository and install it using CMake:
 
 ```bash
 git clone http://github.com/odygrd/quill.git
+cd quill
 mkdir cmake_build
 cd cmake_build
 cmake ..
