@@ -21,6 +21,7 @@
   #include <io.h>
   #include <locale>
   #include <sys/stat.h>
+  #include <vector>
 #endif
 
 namespace quill
@@ -134,13 +135,18 @@ size_t CapturedStream::_get_file_size(FILE* file)
 FILE* CapturedStream::_fopen(char const* path, char const* mode)
 {
 #if defined(_WIN32)
-  struct wchar_codecvt : public std::codecvt<wchar_t, char, std::mbstate_t>
-  {
-  };
-  std::wstring_convert<wchar_codecvt> converter;
-  std::wstring wide_path = converter.from_bytes(path);
-  std::wstring wide_mode = converter.from_bytes(mode);
-  return _wfopen(wide_path.c_str(), wide_mode.c_str());
+  // Convert path to wide string
+  size_t path_len = std::mbstowcs(nullptr, path, 0) + 1;
+  std::vector<wchar_t> wide_path(path_len);
+  std::mbstowcs(wide_path.data(), path, path_len);
+
+  // Convert mode to wide string
+  size_t mode_len = std::mbstowcs(nullptr, mode, 0) + 1;
+  std::vector<wchar_t> wide_mode(mode_len);
+  std::mbstowcs(wide_mode.data(), mode, mode_len);
+
+  // Use _wfopen with the converted wide strings
+  return _wfopen(wide_path.data(), wide_mode.data());
 #else
   return fopen(path, mode);
 #endif // _WIN32
