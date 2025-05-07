@@ -1,3 +1,4 @@
+- [vtbd](#vtbd)
 - [v9.0.2](#v902)
 - [v9.0.1](#v901)
 - [v9.0.0](#v900)
@@ -86,6 +87,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## vtbd
+
+- Add support for `void*` formatting ([#759](https://github.com/odygrd/quill/issues/759))
 
 ## v9.0.2
 

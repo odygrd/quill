@@ -89,6 +89,12 @@ TEST_CASE("arithmetic_types_logging")
   int* ptr_test = &v;
   LOG_INFO(logger, "pointer [{}]", static_cast<void const*>(ptr_test));
 
+  void* void_ptr{nullptr};
+  void const* void_const_ptr{nullptr};
+
+  LOG_INFO(logger, "void pointer [{}]", void_ptr);
+  LOG_INFO(logger, "void const pointer [{}]", void_const_ptr);
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -138,10 +144,27 @@ TEST_CASE("arithmetic_types_logging")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       cri [-123]"}));
 
-  std::string expected_ptr_value_str{"LOG_INFO      " + logger_name + "       pointer ["};
-  expected_ptr_value_str += fmtquill::format("{}", fmtquill::ptr(ptr_test));
-  expected_ptr_value_str += "]";
-  REQUIRE(quill::testing::file_contains(file_contents, expected_ptr_value_str));
+  {
+    std::string expected_ptr_value_str{"LOG_INFO      " + logger_name + "       pointer ["};
+    expected_ptr_value_str += fmtquill::format("{}", fmtquill::ptr(ptr_test));
+    expected_ptr_value_str += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_ptr_value_str));
+  }
+
+  {
+    std::string expected_ptr_value_str{"LOG_INFO      " + logger_name + "       void pointer ["};
+    expected_ptr_value_str += fmtquill::format("{}", fmtquill::ptr(void_ptr));
+    expected_ptr_value_str += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_ptr_value_str));
+  }
+
+  {
+    std::string expected_ptr_value_str{"LOG_INFO      " + logger_name +
+                                       "       void const pointer ["};
+    expected_ptr_value_str += fmtquill::format("{}", fmtquill::ptr(void_const_ptr));
+    expected_ptr_value_str += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_ptr_value_str));
+  }
 
   REQUIRE(quill::testing::file_contains(
     file_contents,
