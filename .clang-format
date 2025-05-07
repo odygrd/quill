@@ -33,6 +33,7 @@ PenaltyBreakFirstLessLess: 120
 PenaltyExcessCharacter: 1
 PenaltyReturnTypeOnItsOwnLine: 1000
 PointerAlignment: Left
+QualifierAlignment: Right
 SpaceBeforeAssignmentOperators: true
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
