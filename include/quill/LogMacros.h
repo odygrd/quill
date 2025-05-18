@@ -39,8 +39,9 @@
   #define QUILL_COMPILE_ACTIVE_LOG_LEVEL -1
 #endif
 
-#if !defined(QUILL_IMMEDIATE_FLUSH)
-  #define QUILL_IMMEDIATE_FLUSH 0
+#if !defined(QUILL_ENABLE_IMMEDIATE_FLUSH)
+  // This is controlled by a runtime flag; we can have it always enabled by default in compile time
+  #define QUILL_ENABLE_IMMEDIATE_FLUSH 1
 #endif
 
 #if !defined(QUILL_FUNCTION_NAME)
@@ -317,7 +318,7 @@
     if (likelyhood(logger->template should_log_statement<log_level>()))                            \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                      \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
+      logger->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH, false>(                         \
         quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
     }                                                                                              \
   } while (0)
@@ -375,7 +376,7 @@
     if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))         \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Backtrace);     \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, false>(                                \
+      logger->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH, false>(                         \
         quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__);                                    \
     }                                                                                              \
   } while (0)
@@ -384,14 +385,15 @@
  * Dynamic runtime log level with a tiny overhead
  * @Note: Prefer using the compile time log level macros
  */
-#define QUILL_DYNAMIC_LOGGER_CALL(logger, tags, log_level, fmt, ...)                                          \
-  do                                                                                                          \
-  {                                                                                                           \
-    if (logger->should_log_statement(log_level))                                                              \
-    {                                                                                                         \
-      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Dynamic);                  \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true>(log_level, &macro_metadata, ##__VA_ARGS__); \
-    }                                                                                                         \
+#define QUILL_DYNAMIC_LOGGER_CALL(logger, tags, log_level, fmt, ...)                               \
+  do                                                                                               \
+  {                                                                                                \
+    if (logger->should_log_statement(log_level))                                                   \
+    {                                                                                              \
+      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Dynamic);       \
+      logger->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH, true>(                          \
+        log_level, &macro_metadata, ##__VA_ARGS__);                                                \
+    }                                                                                              \
   } while (0)
 
 #if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L3
@@ -979,7 +981,7 @@
                                                            quill::LogLevel::Dynamic,                             \
                                                            quill::MacroMetadata::Event::LogWithRuntimeMetadata}; \
                                                                                                                  \
-      logger->template log_statement<QUILL_IMMEDIATE_FLUSH, true>(                                               \
+      logger->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH, true>(                                        \
         log_level, &macro_metadata, ##__VA_ARGS__, file, line_number, function);                                 \
     }                                                                                                            \
   } while (0)

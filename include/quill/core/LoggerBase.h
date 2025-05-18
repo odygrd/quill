@@ -136,6 +136,24 @@ public:
   }
 
   /**
+   * Sets the immediate flush behavior for logging.
+   *
+   * Immediate flush is useful primarily for debugging purposes. When enabled,
+   * it will call flush_log after each log message, ensuring the message is written
+   * to the underlying sink synchronously.
+   *
+   * This is particularly valuable when:
+   * - Running the application in a debugger
+   * - Requiring synchronized logging for debugging
+   *
+   * @warning Enabling immediate flush can significantly impact application performance
+   * and should only be used during debugging. It is disabled by default.
+   *
+   * @param value true to enable immediate flush, false to disable
+   */
+  void set_immediate_flush(bool value) { immediate_flush.store(value); }
+
+  /**
    * Checks if the given log_statement_level can be logged by this logger
    * @return bool if a statement can be logged based on the current log level
    */
@@ -168,6 +186,7 @@ protected:
   PatternFormatterOptions pattern_formatter_options; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
   ClockSourceType clock_source; /* Set by the frontend and accessed by the frontend AND backend */
   std::atomic<LogLevel> log_level{LogLevel::Info}; /* used by frontend only */
+  std::atomic<bool> immediate_flush{false};        /* used by frontend only */
   std::atomic<LogLevel> backtrace_flush_level{LogLevel::None}; /** Updated by the frontend at any time, accessed by the backend */
   std::atomic<bool> valid{true}; /* Updated by the frontend at any time, accessed by the backend */
 };

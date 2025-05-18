@@ -72,7 +72,7 @@ public:
    *
    * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
    */
-  template <bool immediate_flush, bool has_dynamic_log_level, typename... Args>
+  template <bool enable_immediate_flush, bool has_dynamic_log_level, typename... Args>
   QUILL_ATTRIBUTE_HOT bool log_statement(QUILL_MAYBE_UNUSED LogLevel dynamic_log_level,
                                          MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
@@ -210,9 +210,12 @@ public:
 
     thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_and_commit_write(total_size);
 
-    if constexpr (immediate_flush)
+    if constexpr (enable_immediate_flush)
     {
-      this->flush_log();
+      if (immediate_flush.load(std::memory_order_relaxed))
+      {
+        this->flush_log();
+      }
     }
 
     return true;
@@ -220,9 +223,9 @@ public:
 
   /**
    * Init a backtrace for this logger.
-   * Stores messages logged with LOG_BACKTRACE in a ring buffer messages and displays them later on demand.
+   * Stores messages logged with LOG_BACKTRACE in a ring buffer and displays them later on demand.
    * @param max_capacity The max number of messages to store in the backtrace
-   * @param flush_level If this loggers logs any message higher or equal to this severity level the backtrace will also get flushed.
+   * @param flush_level If this logger logs any message higher or equal to this severity level, the backtrace will also get flushed.
    * Default level is None meaning the user has to call flush_backtrace explicitly
    */
   void init_backtrace(uint32_t max_capacity, LogLevel flush_level = LogLevel::None)
