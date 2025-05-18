@@ -221,9 +221,9 @@ struct BackendOptions
    * The indices correspond to LogLevel enum values defined elsewhere in the codebase.
    * These names provide human-readable identifiers for each log level.
    */
-  std::array<std::string, 12> log_level_descriptions = {
+  std::array<std::string, 11> log_level_descriptions = {
     "TRACE_L3", "TRACE_L2", "TRACE_L1", "DEBUG",     "INFO", "NOTICE",
-    "WARNING",  "ERROR",    "CRITICAL", "BACKTRACE", "NONE", "DYNAMIC"};
+    "WARNING",  "ERROR",    "CRITICAL", "BACKTRACE", "NONE"};
 
   /**
    * @brief Short codes or identifiers for each log level.
@@ -231,8 +231,8 @@ struct BackendOptions
    * Provides short codes representing each log level for compact identification and usage.
    * The indices correspond to LogLevel enum values defined elsewhere in the codebase.
    */
-  std::array<std::string, 12> log_level_short_codes = {"T3", "T2", "T1", "D",  "I", "N",
-                                                       "W",  "E",  "C",  "BT", "_", "DN"};
+  std::array<std::string, 11> log_level_short_codes = {"T3", "T2", "T1", "D",  "I", "N",
+                                                       "W",  "E",  "C",  "BT", "_"};
 
   /**
    * Enables a runtime check to detect multiple instances of the backend singleton.

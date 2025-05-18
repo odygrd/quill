@@ -95,6 +95,37 @@
   properly ([#767](https://github.com/odygrd/quill/issues/767))
 - Fix false positive `-Wstringop-overread` warning in GCC ([#766](https://github.com/odygrd/quill/issues/766))
 
+- The immediate flush feature (already present in previous versions) helps with debugging by blocking the thread until
+  the log statement has been written to the file. If you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`,
+  this functionality has been moved to runtime. Instead, enable this feature by calling
+  `logger->set_immediate_flush(true)` on each logger instance. `QUILL_ENABLE_IMMEDIATE_FLUSH` still exists as a
+  compile-time preprocessor flag but is now set to `1` by default. Setting `QUILL_ENABLE_IMMEDIATE_FLUSH 0` in the
+  preprocessor will eliminate the `if` branch from the hotpath and disable this feature regardless of the
+  value of `logger->set_immediate_flush(true)`.
+
+- The `QUILL_LOG_RUNTIME_METADATA` macro requires `file`, `function` and `fmt` to be passed as `char const*` and
+  `line_number` as `uint32_t`. This is a breaking change from the previous version.
+
+- Internally, refactored how runtime metadata are handled for more flexibility, providing three macros for logging with
+  runtime metadata:
+  - `QUILL_LOG_RUNTIME_METADATA_DEEP` - Takes a deep copy of `fmt`, `file`, `function` and `tags`. Most flexible
+    option, useful for forwarding logs from another logging library.
+  - `QUILL_LOG_RUNTIME_METADATA_HYBRID` - Will take a deep copy of `fmt` and `tags` and will take `file` and
+    `function` as reference. This is used for the new macro-free mode.
+  - `QUILL_LOG_RUNTIME_METADATA_SHALLOW` - Will take everything as reference. This is used when logging with
+    compile-time metadata and using, for example, a dynamic log-level such as `LOG_DYNAMIC`.
+
+- There is a new macro-free mode that allows logging without macros. You have two options: either
+  `#include "quill/LogMacros.h"` or `#include "quill/LogFunctions.h"`. The macro mode still remains the recommended and
+  main method for logging. The new macro-free log has higher overhead than using macros. To use the macro-free mode, for
+  example:
+
+  ```cpp
+  quill::debug(logger, "A {} message with number {}", "test", 123);
+  ```
+
+  See macro-free mode docs [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details.
+
 ## v9.0.2
 
 - Add missing namespace in `QUILL_LOG_RUNTIME_METADATA` ([#743](https://github.com/odygrd/quill/issues/743))
@@ -103,7 +134,8 @@
 
 - Fix crash when `LOG_BACKTRACE` is used ([#744](https://github.com/odygrd/quill/issues/744))
 - Add missing namespace in `QUILL_LOG_RUNTIME_METADATA` ([#743](https://github.com/odygrd/quill/issues/743))
-- Check for `nullptr` `Logger*` before setting log level via `QUILL_LOG_LEVEL` environment variable ([#749](https://github.com/odygrd/quill/issues/749))
+- Check for `nullptr` `Logger*` before setting log level via `QUILL_LOG_LEVEL` environment
+  variable ([#749](https://github.com/odygrd/quill/issues/749))
 - Change default mode of `FileSink` `fopen` to `a` to avoid overwriting existing files
 
 ## v9.0.0

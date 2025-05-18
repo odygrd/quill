@@ -9,6 +9,7 @@ set(EXAMPLE_TARGETS
         quill_example_backtrace_logging
         quill_example_bounded_dropping_queue_frontend
         quill_example_console_logging
+        quill_example_console_logging_macro_free
         quill_example_custom_console_colours
         quill_example_rotating_file_logging
         quill_example_rotating_json_file_logging

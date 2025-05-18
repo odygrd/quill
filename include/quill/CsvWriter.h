@@ -191,7 +191,7 @@ public:
   template <typename... Args>
   void append_row(Args&&... fields)
   {
-    _logger->template log_statement<false, false>(LogLevel::None, &_line_metadata, fields...);
+    _logger->template log_statement<false>(&_line_metadata, fields...);
   }
 
   /**
@@ -199,7 +199,7 @@ public:
    */
   void write_header()
   {
-    _logger->template log_statement<false, false>(LogLevel::None, &_header_metadata, TCsvSchema::header);
+    _logger->template log_statement<false>(&_header_metadata, TCsvSchema::header);
   }
 
   /**

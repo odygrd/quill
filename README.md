@@ -78,7 +78,8 @@
 
 ## ✨ Introduction
 
-**Quill** is a **high-performance asynchronous logging library** written in **C++**. It is designed for low-latency, performance-critical applications where every microsecond counts.
+**Quill** is a **high-performance asynchronous logging library** written in **C++**. It is designed for low-latency,
+performance-critical applications where every microsecond counts.
 
 - **Performance-Focused**: Quill consistently outperforms many popular logging libraries.
 - **Feature-Rich**: Packed with advanced features to meet diverse logging needs.
@@ -111,7 +112,8 @@ You can install Quill using the package manager of your choice:
 
 ### Setup
 
-Once installed, you can start using Quill with the following code:
+Once installed, you can start using Quill with the macro-based logging interface, which is the recommended approach for
+optimal performance.
 
 ```c++
 #include "quill/Backend.h"
@@ -129,6 +131,29 @@ int main()
     "root", quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1"));
 
   LOG_INFO(logger, "Hello from {}!", std::string_view{"Quill"});
+}
+```
+
+Alternatively, you can use the macro-free mode.
+See [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details on performance
+trade-offs.
+
+```c++
+#include "quill/Backend.h"
+#include "quill/Frontend.h"
+#include "quill/LogFunctions.h"
+#include "quill/Logger.h"
+#include "quill/sinks/ConsoleSink.h"
+#include <string_view>
+
+int main()
+{
+  quill::Backend::start();
+
+  quill::Logger* logger = quill::Frontend::create_or_get_logger(
+    "root", quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1"));
+
+  quill::info(logger, "Hello from {}!", std::string_view{"Quill"});
 }
 ```
 
@@ -544,13 +569,15 @@ target_link_libraries(my_project PUBLIC quill::quill)
 
 ### Android NDK
 
-When building Quill for Android, you might need to add this flag during configuration, but in most cases, it works without it:
+When building Quill for Android, you might need to add this flag during configuration, but in most cases, it works
+without it:
 
 ```bash
 -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
 ```
 
-For timestamps, use `quill::ClockSourceType::System`. Quill also includes an `AndroidSink`, which integrates with Android's logging system.
+For timestamps, use `quill::ClockSourceType::System`. Quill also includes an `AndroidSink`, which integrates with
+Android's logging system.
 
 #### Minimal Example to Start Logging on Android
 

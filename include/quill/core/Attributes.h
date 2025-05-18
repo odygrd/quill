@@ -17,6 +17,23 @@
     }
 #endif
 
+#ifdef _MSVC_LANG
+#  define QUILL_CPLUSPLUS _MSVC_LANG
+#else
+#  define QUILL_CPLUSPLUS __cplusplus
+#endif
+
+/**
+ * __has_include
+ */
+#ifndef QUILL_HAS_INCLUDE
+  #ifdef __has_include
+    #define QUILL_HAS_INCLUDE(x) __has_include(x)
+  #else
+    #define QUILL_HAS_INCLUDE(x) 0
+  #endif
+#endif
+
 /**
  * __has_feature
  */

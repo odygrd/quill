@@ -210,6 +210,7 @@ set(HEADER_FILES
         include/quill/core/QuillError.h
         include/quill/core/Rdtsc.h
         include/quill/core/SinkManager.h
+        include/quill/core/SourceLocation.h
         include/quill/core/Spinlock.h
         include/quill/core/ThreadContextManager.h
         include/quill/core/TimeUtilities.h
@@ -253,6 +254,7 @@ set(HEADER_FILES
         include/quill/DeferredFormatCodec.h
         include/quill/DirectFormatCodec.h
         include/quill/Frontend.h
+        include/quill/LogFunctions.h
         include/quill/Logger.h
         include/quill/LogMacros.h
         include/quill/StopWatch.h
