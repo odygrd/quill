@@ -120,16 +120,16 @@ private:
   ~SignalHandlerContext() = default;
 };
 
-#define QUILL_SIGNAL_HANDLER_LOG(logger, log_level, fmt, ...)                                              \
-  do                                                                                                       \
-  {                                                                                                        \
-    if (logger->template should_log_statement<log_level>())                                                \
-    {                                                                                                      \
-      static constexpr quill::MacroMetadata macro_metadata{                                                \
-        "SignalHandler:~", "", fmt, nullptr, log_level, quill::MacroMetadata::Event::Log};                 \
-                                                                                                           \
-      logger->template log_statement<false, false>(quill::LogLevel::None, &macro_metadata, ##__VA_ARGS__); \
-    }                                                                                                      \
+#define QUILL_SIGNAL_HANDLER_LOG(logger, log_level, fmt, ...)                                      \
+  do                                                                                               \
+  {                                                                                                \
+    if (logger->template should_log_statement<log_level>())                                        \
+    {                                                                                              \
+      static constexpr quill::MacroMetadata macro_metadata{                                        \
+        "SignalHandler:~", "", fmt, nullptr, log_level, quill::MacroMetadata::Event::Log};         \
+                                                                                                   \
+      logger->template log_statement<false>(&macro_metadata, ##__VA_ARGS__);                       \
+    }                                                                                              \
   } while (0)
 
 /***/

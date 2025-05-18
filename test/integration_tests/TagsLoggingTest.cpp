@@ -3,6 +3,7 @@
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
+#include "quill/LogFunctions.h"
 #include "quill/LogMacros.h"
 #include "quill/Utility.h"
 #include "quill/sinks/FileSink.h"
@@ -49,8 +50,12 @@ TEST_CASE("tags_logging")
 
   LOG_TRACE_L3_TAGS(logger, TAGS(TAG_1, TAG_2), "Lorem ipsum dolor sit amet, consectetur {} {} {}",
                     "elit", 1, 3.14);
+  tracel3(logger, Tags{TAG_1, TAG_2}, "Lorem ipsum dolor sit amet, consectetur {} {} {}", "elit", 11, 33.14);
+
   LOG_TRACE_L2_TAGS(logger, TAGS(TAG_1, TAG_2), "Lorem ipsum dolor sit amet, consectetur {} {} {}",
                     "elit", 1, 3.14);
+  tracel2(logger, Tags{TAG_1}, "Lorem ipsum dolor sit amet, consectetur {} {} {}", "elit", 11, 33.14);
+
   LOG_TRACE_L1_TAGS(logger, TAGS(TAG_1, TAG_2), "Lorem ipsum dolor sit amet, consectetur {} {} {}",
                     "elit", 1, 3.14);
   LOG_DEBUG_TAGS(logger, TAGS(TAG_1, TAG_2), "Lorem ipsum dolor sit amet, consectetur {} {} {}",
@@ -87,7 +92,7 @@ TEST_CASE("tags_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 13);
+  REQUIRE_EQ(file_contents.size(), 15);
 
   REQUIRE(quill::testing::file_contains(
     file_contents,
@@ -95,8 +100,18 @@ TEST_CASE("tags_logging")
                 "       [ #TAG_A #TAG_B ] Lorem ipsum dolor sit amet, consectetur elit 1 3.14"}));
   REQUIRE(quill::testing::file_contains(
     file_contents,
+    std::string{"LOG_TRACE_L3  " + logger_name +
+                "       [ #TAG_A #TAG_B ] Lorem ipsum dolor sit amet, consectetur elit 11 33.14"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents,
     std::string{"LOG_TRACE_L2  " + logger_name +
                 "       [ #TAG_A #TAG_B ] Lorem ipsum dolor sit amet, consectetur elit 1 3.14"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents,
+    std::string{"LOG_TRACE_L2  " + logger_name +
+                "       [ #TAG_A ] Lorem ipsum dolor sit amet, consectetur elit 11 33.14"}));
+
   REQUIRE(quill::testing::file_contains(
     file_contents,
     std::string{"LOG_TRACE_L1  " + logger_name +

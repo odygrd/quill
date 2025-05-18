@@ -221,7 +221,13 @@ struct Codec
     {
       // null terminator is included in the len for c style strings
       uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      std::memcpy(buffer, arg, len - 1);
+
+      if (arg)
+      {
+        // avoid gcc warning, even when size == 0
+        std::memcpy(buffer, arg, len - 1);
+      }
+
       buffer[len - 1] = std::byte{'\0'};
       buffer += len;
     }

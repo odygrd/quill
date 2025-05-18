@@ -597,6 +597,13 @@ private:
     std::memcpy(&format_args_decoder, read_pos, sizeof(format_args_decoder));
     read_pos += sizeof(format_args_decoder);
 
+    if ((transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
+        (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
+        (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy))
+    {
+      _apply_runtime_metadata(read_pos, transit_event);
+    }
+
     // we need to check and do not try to format the flush events as that wouldn't be valid
     if ((transit_event->macro_metadata->event() != MacroMetadata::Event::Flush) &&
         (transit_event->macro_metadata->event() != MacroMetadata::Event::LoggerRemovalRequest))
@@ -606,11 +613,6 @@ private:
       if (!transit_event->macro_metadata->has_named_args())
       {
         _populate_formatted_log_message(transit_event, transit_event->macro_metadata->message_format());
-
-        if (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadata)
-        {
-          _apply_runtime_metadata(transit_event);
-        }
       }
       else
       {
@@ -666,21 +668,6 @@ private:
 
       _logger_removal_flags.emplace(std::string{logger_name},
                                     reinterpret_cast<std::atomic<bool>*>(logger_removal_flag_tmp));
-    }
-
-    if (transit_event->macro_metadata->log_level() == LogLevel::Dynamic)
-    {
-      // if this is a dynamic log level we need to read the log level from the buffer
-      std::memcpy(&transit_event->dynamic_log_level, read_pos, sizeof(transit_event->dynamic_log_level));
-      read_pos += sizeof(transit_event->dynamic_log_level);
-    }
-    else
-    {
-      // Important: if a dynamic log level is not being used, then this must
-      // not have a value, otherwise the wrong log level may be used later.
-      // We can't assume that this member (or any member of TransitEvent) has
-      // its default value because TransitEvents may be reused.
-      transit_event->dynamic_log_level = LogLevel::None;
     }
 
     // commit this transit event
@@ -766,10 +753,11 @@ private:
     } // clang-format on
 #endif
 
-    // Finally clean up any remaining fields in the transit event
-    if (transit_event->named_args)
+    // Finally, clean up any remaining fields in the transit event
+    if (transit_event->extra_data)
     {
-      transit_event->named_args->clear();
+      transit_event->extra_data->named_args.clear();
+      transit_event->extra_data->runtime_metadata.has_runtime_metadata = false;
     }
 
     thread_context->_transit_event_buffer->pop_front();
@@ -930,7 +918,7 @@ private:
                           _options.log_level_short_codes.size());
 
     if (transit_event.logger_base->pattern_formatter->get_options().add_metadata_to_multi_line_logs &&
-        (!transit_event.named_args || transit_event.named_args->empty()))
+        (!transit_event.get_named_args() || transit_event.get_named_args()->empty()))
     {
       // This is only supported when named_args are not used
       _process_multi_line_message(transit_event, thread_id, thread_name, log_level_description, log_level_short_code);
@@ -1003,7 +991,7 @@ private:
     std::string_view const log_statement = transit_event.logger_base->pattern_formatter->format(
       transit_event.timestamp, thread_id, thread_name, _process_id,
       transit_event.logger_base->logger_name, log_level_description, log_level_short_code,
-      *transit_event.macro_metadata, transit_event.named_args.get(), log_message);
+      *transit_event.macro_metadata, transit_event.get_named_args(), log_message);
 
     for (auto& sink : transit_event.logger_base->sinks)
     {
@@ -1025,14 +1013,14 @@ private:
           log_to_write = sink->_override_pattern_formatter->format(
             transit_event.timestamp, thread_id, thread_name, _process_id,
             transit_event.logger_base->logger_name, log_level_description, log_level_short_code,
-            *transit_event.macro_metadata, transit_event.named_args.get(), log_message);
+            *transit_event.macro_metadata, transit_event.get_named_args(), log_message);
         }
 
         // Forward the message using the computed log statement
         sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
                         thread_name, _process_id, transit_event.logger_base->logger_name,
                         transit_event.log_level(), log_level_description, log_level_short_code,
-                        transit_event.named_args.get(), log_message, log_to_write);
+                        transit_event.get_named_args(), log_message, log_to_write);
       }
     }
   }
@@ -1519,11 +1507,11 @@ private:
       named_args[idx].second = formatted_values_str.substr(start);
     }
 
-    // We call sanitize_non_printable_chars for each value, because formatted_values_str already
+    // We call sanitize_non_printable_chars for each value because formatted_values_str already
     // contains non-printable characters for the argument separation
     if (options.check_printable_char && format_args_store.has_string_related_type())
     {
-      // if non-printable chars check is configured or if any of the provided arguments are strings
+      // if non-printable chars check is configured, or if any of the provided arguments are strings
       for (auto& named_arg : named_args)
       {
         sanitize_non_printable_chars(named_arg.second, options);
@@ -1534,32 +1522,26 @@ private:
   void _populate_formatted_named_args(TransitEvent* transit_event,
                                       std::vector<std::pair<std::string, std::string>> const& arg_names)
   {
-    if (!transit_event->named_args)
-    {
-      // named arg logs, we lazy initialise the named args buffer
-      transit_event->named_args = std::make_unique<std::vector<std::pair<std::string, std::string>>>();
-    }
+    transit_event->ensure_extra_data();
 
-    transit_event->named_args->resize(arg_names.size());
+    auto* named_args = &transit_event->extra_data->named_args;
+
+    named_args->resize(arg_names.size());
 
     // We first populate the arg names in the transit buffer
     for (size_t i = 0; i < arg_names.size(); ++i)
     {
-      (*transit_event->named_args)[i].first = arg_names[i].first;
+      (*named_args)[i].first = arg_names[i].first;
     }
 
     for (size_t i = arg_names.size(); i < static_cast<size_t>(_format_args_store.size()); ++i)
     {
       // we do not have a named_arg for the argument value here so we just append its index as a placeholder
-      transit_event->named_args->push_back(
-        std::pair<std::string, std::string>(fmtquill::format("_{}", i), std::string{}));
+      named_args->push_back(std::pair<std::string, std::string>(fmtquill::format("_{}", i), std::string{}));
     }
 
     // Then populate all the values of each arg
-    QUILL_TRY
-    {
-      _format_and_split_arguments(arg_names, *transit_event->named_args, _format_args_store, _options);
-    }
+    QUILL_TRY { _format_and_split_arguments(arg_names, *named_args, _format_args_store, _options); }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const&)
     {
@@ -1580,11 +1562,8 @@ private:
                            fmtquill::basic_format_args<fmtquill::format_context>{
                              _format_args_store.data(), _format_args_store.size()});
 
-      if (_options.check_printable_char && _format_args_store.has_string_related_type() &&
-          (transit_event->macro_metadata->event() != MacroMetadata::Event::LogWithRuntimeMetadata))
+      if (_options.check_printable_char && _format_args_store.has_string_related_type())
       {
-        // we do not want to sanitise LogWithRuntimeMetadata yet because it includes a special separator
-        // if non-printable chars check is configured or if any of the provided arguments are strings
         sanitize_non_printable_chars(*transit_event->formatted_msg, _options);
       }
     }
@@ -1603,56 +1582,50 @@ private:
 #endif
   }
 
-  void _apply_runtime_metadata(TransitEvent* transit_event)
+  void _apply_runtime_metadata(std::byte*& read_pos, TransitEvent* transit_event)
   {
-    // Create a view over the complete formatted log message.
-    // Format: file, line, function, message (separated by QUILL_MAGIC_SEPARATOR).
-    auto const formatted_view =
-      std::string_view{transit_event->formatted_msg->data(), transit_event->formatted_msg->size()};
+    char const* fmt;
+    char const* file;
+    char const* function;
+    char const* tags;
 
-    static constexpr std::string_view delimiter{QUILL_MAGIC_SEPARATOR};
-
-    // Find the positions of the first three delimiters.
-    auto const pos_first_delim = formatted_view.find(delimiter);
-    auto const pos_second_delim = formatted_view.find(delimiter, pos_first_delim + delimiter.size());
-    auto const pos_third_delim = formatted_view.find(delimiter, pos_second_delim + delimiter.size());
-
-    // Extract the four components
-    std::string_view message = formatted_view.substr(0, pos_first_delim);
-    std::string_view file = formatted_view.substr(
-      pos_first_delim + delimiter.size(), pos_second_delim - pos_first_delim - delimiter.size());
-    std::string_view line = formatted_view.substr(
-      pos_second_delim + delimiter.size(), pos_third_delim - pos_second_delim - delimiter.size());
-    std::string_view function_name = formatted_view.substr(pos_third_delim + delimiter.size());
-
-    std::string const fileline = std::string{file} + ":" + std::string{line};
-
-    // Use fileline and function_name as a composite key for runtime metadata lookup.
-    std::pair<std::string, std::string> const metadata_key =
-      std::make_pair(fileline, std::string{function_name});
-
-    // Use existing metadata if available; otherwise, create new metadata.
-    if (auto search_it = _runtime_metadata.find(metadata_key); search_it != _runtime_metadata.end())
+    if (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy)
     {
-      transit_event->macro_metadata = search_it->second.get();
+      fmt = Codec<char const*>::decode_arg(read_pos);
+      file = Codec<char const*>::decode_arg(read_pos);
+      function = Codec<char const*>::decode_arg(read_pos);
+      tags = Codec<char const*>::decode_arg(read_pos);
+    }
+    else if (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy)
+    {
+      fmt = static_cast<char const*>(Codec<void const*>::decode_arg(read_pos));
+      file = static_cast<char const*>(Codec<void const*>::decode_arg(read_pos));
+      function = static_cast<char const*>(Codec<void const*>::decode_arg(read_pos));
+      tags = static_cast<char const*>(Codec<void const*>::decode_arg(read_pos));
+    }
+    else if (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy)
+    {
+      fmt = Codec<char const*>::decode_arg(read_pos);
+      file = static_cast<char const*>(Codec<void const*>::decode_arg(read_pos));
+      function = static_cast<char const*>(Codec<void const*>::decode_arg(read_pos));
+      tags = Codec<char const*>::decode_arg(read_pos);
     }
     else
     {
-      auto [it, inserted] = _runtime_metadata.emplace(metadata_key, nullptr);
-      it->second = std::make_unique<MacroMetadata>(
-        it->first.first.data() /* fileline */, it->first.second.data() /* function_name */, "{}",
-        nullptr, LogLevel::Dynamic, MacroMetadata::Event::Log);
-      transit_event->macro_metadata = it->second.get();
+      QUILL_THROW(
+        QuillError{"Unexpected event type in _apply_runtime_metadata. This should never happen."});
     }
 
-    // Resize the formatted message to retain only the log message
-    transit_event->formatted_msg->try_resize(message.size());
+    auto const line = Codec<uint32_t>::decode_arg(read_pos);
+    auto const log_level = Codec<LogLevel>::decode_arg(read_pos);
 
-    if (_options.check_printable_char)
-    {
-      // sanitize non-printable characters if enabled.
-      sanitize_non_printable_chars(*transit_event->formatted_msg, _options);
-    }
+    auto temp = TransitEvent::RuntimeMetadata{file, line, function, tags, fmt, log_level};
+
+    transit_event->ensure_extra_data();
+    transit_event->extra_data->runtime_metadata = temp;
+
+    // point to the runtime metadata
+    transit_event->macro_metadata = &transit_event->extra_data->runtime_metadata.macro_metadata;
   }
 
   template <typename TFormattedMsg>
@@ -1696,17 +1669,6 @@ private:
   }
 
 private:
-  struct PairHash
-  {
-    std::size_t operator()(const std::pair<std::string, std::string>& p) const
-    {
-      auto h1 = std::hash<std::string>{}(p.first);
-      auto h2 = std::hash<std::string>{}(p.second);
-      // Combine the two hashes.
-      return h1 ^ (h2 << 1);
-    }
-  };
-
   friend class quill::ManualBackendWorker;
 
   std::unique_ptr<BackendWorkerLock> _backend_worker_lock;
@@ -1720,7 +1682,6 @@ private:
   std::vector<ThreadContext*> _active_thread_contexts_cache;
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
-  std::unordered_map<std::pair<std::string, std::string>, std::unique_ptr<MacroMetadata>, PairHash> _runtime_metadata; /** Used to store runtime metadata **/
   std::unordered_map<std::string, std::atomic<bool>*> _logger_removal_flags; /** Maps logger names to atomic flags used for synchronizing remove_logger_blocking(). */
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/

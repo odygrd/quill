@@ -12,32 +12,30 @@
 #include <string_view>
 #include <vector>
 
-using namespace quill;
-
 /***/
 TEST_CASE("macros")
 {
   static constexpr char const* filename = "macros.log";
   static std::string const logger_name = "logger";
 
-  Backend::start();
+  quill::Backend::start();
 
   // Set writing logging to a file
-  auto file_sink = Frontend::create_or_get_sink<FileSink>(
+  auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
     filename,
     []()
     {
-      FileSinkConfig cfg;
+      quill::FileSinkConfig cfg;
       cfg.set_open_mode('w');
       return cfg;
     }(),
-    FileEventNotifier{});
+    quill::FileEventNotifier{});
 
-  Logger* logger = Frontend::create_or_get_logger(
+  quill::Logger* logger = quill::Frontend::create_or_get_logger(
     logger_name, std::move(file_sink),
-    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
-                            "%(log_level_short_code) LOG_%(log_level:<9) "
-                            "%(logger:<12) %(message) [ %(tags)] [%(named_args)]"});
+    quill::PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
+                                   "%(log_level_short_code) LOG_%(log_level:<9) "
+                                   "%(logger:<12) %(message) [ %(tags)] [%(named_args)]"});
   logger->init_backtrace(1, quill::LogLevel::Error);
   logger->set_log_level(quill::LogLevel::TraceL3);
 
@@ -87,12 +85,12 @@ TEST_CASE("macros")
 
   LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "MacrosTest.cpp", 1234, "function()",
                        "CA INF_{}", 11);
-  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Info, "MacrosTest.cpp", 1234, "function()",
-                       "CA INF_{}", 0);
-  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Debug, "MacrosTest.cpp", 1234, "function()",
-                       "CA DBG_0");
-  LOG_RUNTIME_METADATA(logger, quill::LogLevel::Debug, "MacrosTest.cpp", 123, "function()",
-                       "CA DBG_21");
+  LOG_RUNTIME_METADATA_SHALLOW(logger, quill::LogLevel::Info, "MacrosTest.cpp", 1234, "function()",
+                               "", "CA INF_{}", 0);
+  LOG_RUNTIME_METADATA_HYBRID(logger, quill::LogLevel::Debug, "MacrosTest.cpp", 1234, "function()",
+                              "", "CA DBG_0");
+  LOG_RUNTIME_METADATA_DEEP(logger, quill::LogLevel::Debug, "MacrosTest.cpp", 123, "function()",
+                            "#TEST", "CA DBG_21");
 
   int var{1337};
   LOGV_TRACE_L3(logger, "D L3", var);
@@ -180,10 +178,10 @@ TEST_CASE("macros")
   LOGJ_CRITICAL_TAGS(logger, TAGS("tag"), "K CRT", var);
 
   logger->flush_log();
-  Frontend::remove_logger(logger);
+  quill::Frontend::remove_logger(logger);
 
   // Wait until the backend thread stops for test stability
-  Backend::stop();
+  quill::Backend::stop();
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
@@ -252,7 +250,7 @@ TEST_CASE("macros")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"MacrosTest.cpp:1234          D LOG_DEBUG     logger       CA DBG_0 [ ] []"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"MacrosTest.cpp:123           D LOG_DEBUG     logger       CA DBG_21 [ ] []"}));
+    file_contents, std::string{"MacrosTest.cpp:123           D LOG_DEBUG     logger       CA DBG_21 [ #TEST] []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"T3 LOG_TRACE_L3  logger       D L3 [var: 1337]"}));
@@ -414,5 +412,5 @@ TEST_CASE("macros")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"C LOG_CRITICAL  logger       K CRT 1337 [ #tag ] [var: 1337]"}));
 
-  testing::remove_file(filename);
+  quill::testing::remove_file(filename);
 }
