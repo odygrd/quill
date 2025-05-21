@@ -1,3 +1,4 @@
+- [v9.0.3](#v903)
 - [v9.0.2](#v902)
 - [v9.0.1](#v901)
 - [v9.0.0](#v900)
@@ -86,6 +87,12 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v9.0.3
+
+- Added the `QUILL_DISABLE_FILE_INFO` preprocessor flag and CMake option.  
+  This allows disabling `__FILE__` in `LOG_*` macros when `%(file_name)` or `%(line_number)` is not used in `PatternFormatter`,  
+  removing embedded strings from built binaries.
 
 ## v9.0.2
 

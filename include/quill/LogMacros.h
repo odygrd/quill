@@ -51,6 +51,14 @@
   #endif
 #endif
 
+#if !defined(QUILL_FILE_INFO)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_FILE_INFO ""
+  #else
+    #define QUILL_FILE_INFO __FILE__ ":" QUILL_STRINGIFY(__LINE__)
+  #endif
+#endif
+
 /** -- LOGV_ helpers begin -- **/
 
 // Helper macro to expand __VA_ARGS__ correctly in MSVC
@@ -307,8 +315,7 @@
 #define QUILL_DEFINE_MACRO_METADATA(caller_function, fmt, tags, log_level)                         \
   static constexpr quill::MacroMetadata macro_metadata                                             \
   {                                                                                                \
-    __FILE__ ":" QUILL_STRINGIFY(__LINE__), caller_function, fmt, tags, log_level,                 \
-      quill::MacroMetadata::Event::Log                                                             \
+    QUILL_FILE_INFO, caller_function, fmt, tags, log_level, quill::MacroMetadata::Event::Log       \
   }
 
 #define QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ...)                           \
