@@ -148,12 +148,13 @@ public:
     if (_file_event_notifier.before_write)
     {
       std::string const user_log_statement = _file_event_notifier.before_write(log_statement);
-
       safe_fwrite(user_log_statement.data(), sizeof(char), user_log_statement.size(), _file);
+      _file_size += user_log_statement.size();
     }
     else
     {
       safe_fwrite(log_statement.data(), sizeof(char), log_statement.size(), _file);
+      _file_size += log_statement.size();
     }
 
     _write_occurred = true;
@@ -215,6 +216,7 @@ protected:
 protected:
   fs::path _filename;
   FILE* _file{nullptr};
+  size_t _file_size{0}; /**< The current file size */
   FileEventNotifier _file_event_notifier;
   bool _is_null{false};
   bool _write_occurred{false};
