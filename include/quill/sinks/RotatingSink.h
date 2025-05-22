@@ -289,7 +289,7 @@ public:
 
     if (!this->is_null())
     {
-      _file_size = _get_file_size(this->_filename);
+      this->_file_size = _get_file_size(this->_filename);
     }
   }
 
@@ -344,8 +344,6 @@ public:
     base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
                           logger_name, log_level, log_level_description, log_level_short_code,
                           named_args, log_message, log_statement);
-
-    _file_size += log_statement.size();
   }
 
 private:
@@ -366,7 +364,7 @@ private:
   void _size_rotation(size_t log_msg_size, uint64_t record_timestamp_ns)
   {
     // Calculate the new size of the file
-    if (_file_size + log_msg_size > _config.rotation_max_file_size())
+    if ((this->_file_size + log_msg_size) > _config.rotation_max_file_size())
     {
       _rotate_files(record_timestamp_ns);
     }
@@ -463,7 +461,7 @@ private:
     // Open file for logging
     this->open_file(this->_filename, "w");
     _open_file_timestamp = record_timestamp_ns;
-    _file_size = 0;
+    this->_file_size = 0;
   }
 
   /***/
@@ -802,7 +800,6 @@ protected:
   std::deque<FileInfo> _created_files; /**< We store in a queue the filenames we created, first: index, second: date/datetime, third: base_filename */
   uint64_t _next_rotation_time;        /**< The next rotation time point */
   uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
-  size_t _file_size{0};                /**< The current file size */
   RotatingFileSinkConfig _config;
 };
 
