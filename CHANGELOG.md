@@ -93,6 +93,7 @@
 - Add support for `void*` formatting ([#759](https://github.com/odygrd/quill/issues/759))
 - Fix a bug in `RotatingJsonFileSink.h` where file size-based rotation wasn't triggering
   properly ([#767](https://github.com/odygrd/quill/issues/767))
+- Fix false positive `-Wstringop-overread` warning in GCC ([#766](https://github.com/odygrd/quill/issues/766))
 
 ## v9.0.2
 
