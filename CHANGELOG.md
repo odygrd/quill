@@ -1,4 +1,4 @@
-- [vtbd](#vtbd)
+- [v9.0.3](#v903)
 - [v9.0.2](#v902)
 - [v9.0.1](#v901)
 - [v9.0.0](#v900)
@@ -88,7 +88,7 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## vtbd
+## v9.0.3
 
 - Add support for `void*` formatting ([#759](https://github.com/odygrd/quill/issues/759))
 - Fix a bug in `RotatingJsonFileSink.h` where file size-based rotation wasn't triggering

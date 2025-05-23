@@ -1,4 +1,4 @@
-project('quill', 'cpp', version : '9.0.2', default_options : ['warning_level=3', 'cpp_std=c++17'])
+project('quill', 'cpp', version : '9.0.3', default_options : ['warning_level=3', 'cpp_std=c++17'])
 
 inc_dirs = include_directories('include')
 
