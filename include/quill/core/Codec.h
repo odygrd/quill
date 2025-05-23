@@ -94,7 +94,20 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexc
     return 0;
   }
 
+#if defined(__GNUC__) && !defined(__clang__)
+  // Suppress false positive in GCC - memchr safely stops at null terminator
+  #pragma GCC diagnostic push
+  #if __GNUC__ >= 13
+    #pragma GCC diagnostic ignored "-Wstringop-overread"
+  #endif
+#endif
+
   auto end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#endif
+
   return end ? static_cast<size_t>(end - str) : maxlen;
 }
 
