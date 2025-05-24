@@ -91,18 +91,18 @@
 
 ## v10.0.0
 
-### API Changes
+### New Features
 
-- The immediate flush feature (already present in previous versions) helps with debugging by blocking the thread until
-  the log statement has been written to the file. If you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`,
-  this functionality has been moved to runtime. Instead, enable this feature by calling
-  `logger->set_immediate_flush(true)` on each logger instance. `QUILL_ENABLE_IMMEDIATE_FLUSH` still exists as a
-  compile-time preprocessor flag but is now set to `1` by default. Setting `QUILL_ENABLE_IMMEDIATE_FLUSH 0` in the
-  preprocessor will eliminate the `if` branch from the hotpath and disable this feature regardless of the
-  value of `logger->set_immediate_flush(true)`.
+- There is a new macro-free mode that allows logging without macros. You have two options: either
+  `#include "quill/LogMacros.h"` or `#include "quill/LogFunctions.h"`. The macro mode still remains the recommended and
+  main method for logging. The new macro-free log has higher overhead than using macros. To use the macro-free mode, for
+  example:
 
-- The `QUILL_LOG_RUNTIME_METADATA` macro requires `file`, `function` and `fmt` to be passed as `char const*` and
-  `line_number` as `uint32_t`. This is a breaking change from the previous version.
+  ```cpp
+  quill::debug(logger, "A {} message with number {}", "test", 123);
+  ```
+
+  See macro-free mode docs [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details.
 
 ### Improvements
 
@@ -117,18 +117,18 @@
 
 - Update bundled `libfmt` to `v11.2.0`
 
-### New Features
+### API Changes
 
-- There is a new macro-free mode that allows logging without macros. You have two options: either
-  `#include "quill/LogMacros.h"` or `#include "quill/LogFunctions.h"`. The macro mode still remains the recommended and
-  main method for logging. The new macro-free log has higher overhead than using macros. To use the macro-free mode, for
-  example:
+- The immediate flush feature (already present in previous versions) helps with debugging by blocking the thread until
+  the log statement has been written to the file. If you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`,
+  this functionality has been moved to runtime. Instead, enable this feature by calling
+  `logger->set_immediate_flush(true)` on each logger instance. `QUILL_ENABLE_IMMEDIATE_FLUSH` still exists as a
+  compile-time preprocessor flag but is now set to `1` by default. Setting `QUILL_ENABLE_IMMEDIATE_FLUSH 0` in the
+  preprocessor will eliminate the `if` branch from the hotpath and disable this feature regardless of the
+  value of `logger->set_immediate_flush(true)`.
 
-  ```cpp
-  quill::debug(logger, "A {} message with number {}", "test", 123);
-  ```
-
-  See macro-free mode docs [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details.
+- The `QUILL_LOG_RUNTIME_METADATA` macro requires `file`, `function` and `fmt` to be passed as `char const*` and
+  `line_number` as `uint32_t`. This is a breaking change from the previous version.
 
 ## v9.0.3
 
