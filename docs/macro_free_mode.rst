@@ -18,7 +18,7 @@ The macro-free approach comes with performance implications:
 
 3. **No Compile-Time Removal**: Cannot be completely compiled out with ``QUILL_COMPILE_ACTIVE_LOG_LEVEL_<LEVEL>`` as macros can
 
-4. **Backend Thread Impact**: Slightly reduced throughput in the backend due to runtime metadata storage and processing
+4. **Backend Thread Impact**: Reduced throughput in the backend due to runtime metadata storage and processing
 
 For performance-critical logging paths, the macro-based logging interface is recommended.
 
