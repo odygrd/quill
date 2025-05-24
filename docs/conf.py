@@ -35,7 +35,7 @@ breathe_projects = {
 project = 'Quill'
 copyright = '2024, Odysseas Georgoudis'
 author = 'Odysseas Georgoudis'
-release = 'v9.0.3'
+release = 'v10.0.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
