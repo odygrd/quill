@@ -12,7 +12,7 @@
 #         memcpy(ptr_ + size_, begin, count * sizeof(T));
 #       } else
 # 6) in chrono.h   if (std::is_same<Period, std::micro>::value) return "us";
-
+# 7) Add GCC diagnostic ignored "-Wfloat-equal" CC diagnostic ignored "-Wstringop-overflow" to format.h
 import sys
 import os
 import re

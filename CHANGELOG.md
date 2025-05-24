@@ -115,6 +115,8 @@
   - `QUILL_LOG_RUNTIME_METADATA_SHALLOW` - Will take everything as reference. This is used when logging with
     compile-time metadata and using, for example, a dynamic log-level such as `LOG_DYNAMIC`.
 
+- Update bundled `libfmt` to `v11.2.0`
+
 ### New Features
 
 - There is a new macro-free mode that allows logging without macros. You have two options: either

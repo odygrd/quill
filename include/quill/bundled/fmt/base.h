@@ -25,7 +25,7 @@
 #endif
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMTQUILL_VERSION 110104
+#define FMTQUILL_VERSION 110200
 
 // Detect compiler versions.
 #if defined(__clang__) && !defined(__ibmxl__)
@@ -213,20 +213,6 @@
 #  define FMTQUILL_DEPRECATED /* deprecated */
 #endif
 
-#ifdef FMTQUILL_ALWAYS_INLINE
-// Use the provided definition.
-#elif FMTQUILL_GCC_VERSION || FMTQUILL_CLANG_VERSION
-#  define FMTQUILL_ALWAYS_INLINE inline __attribute__((always_inline))
-#else
-#  define FMTQUILL_ALWAYS_INLINE inline
-#endif
-// A version of FMTQUILL_ALWAYS_INLINE to prevent code bloat in debug mode.
-#ifdef NDEBUG
-#  define FMTQUILL_INLINE FMTQUILL_ALWAYS_INLINE
-#else
-#  define FMTQUILL_INLINE inline
-#endif
-
 #if FMTQUILL_GCC_VERSION || FMTQUILL_CLANG_VERSION
 #  define FMTQUILL_VISIBILITY(value) __attribute__((visibility(value)))
 #else
@@ -251,6 +237,28 @@
 #  define FMTQUILL_MSC_WARNING(...) __pragma(warning(__VA_ARGS__))
 #else
 #  define FMTQUILL_MSC_WARNING(...)
+#endif
+
+// Enable minimal optimizations for more compact code in debug mode.
+FMTQUILL_PRAGMA_GCC(push_options)
+#if !defined(__OPTIMIZE__) && !defined(__CUDACC__) && !defined(FMTQUILL_MODULE)
+FMTQUILL_PRAGMA_GCC(optimize("Og"))
+#  define FMTQUILL_GCC_OPTIMIZED
+#endif
+FMTQUILL_PRAGMA_CLANG(diagnostic push)
+
+#ifdef FMTQUILL_ALWAYS_INLINE
+// Use the provided definition.
+#elif FMTQUILL_GCC_VERSION || FMTQUILL_CLANG_VERSION
+#  define FMTQUILL_ALWAYS_INLINE inline __attribute__((always_inline))
+#else
+#  define FMTQUILL_ALWAYS_INLINE inline
+#endif
+// A version of FMTQUILL_ALWAYS_INLINE to prevent code bloat in debug mode.
+#if defined(NDEBUG) || defined(FMTQUILL_GCC_OPTIMIZED)
+#  define FMTQUILL_INLINE FMTQUILL_ALWAYS_INLINE
+#else
+#  define FMTQUILL_INLINE inline
 #endif
 
 #ifndef FMTQUILL_BEGIN_NAMESPACE
@@ -301,13 +309,6 @@
   using unused = int[];          \
   (void)unused { 0, (expr, 0)... }
 
-// Enable minimal optimizations for more compact code in debug mode.
-FMTQUILL_PRAGMA_GCC(push_options)
-#if !defined(__OPTIMIZE__) && !defined(__CUDACC__) && !defined(FMTQUILL_MODULE)
-FMTQUILL_PRAGMA_GCC(optimize("Og"))
-#endif
-FMTQUILL_PRAGMA_CLANG(diagnostic push)
-
 FMTQUILL_BEGIN_NAMESPACE
 
 // Implementations of enable_if_t and other metafunctions for older systems.
@@ -329,8 +330,8 @@ using underlying_t = typename std::underlying_type<T>::type;
 template <typename T> using decay_t = typename std::decay<T>::type;
 using nullptr_t = decltype(nullptr);
 
-#if FMTQUILL_GCC_VERSION && FMTQUILL_GCC_VERSION < 500
-// A workaround for gcc 4.9 to make void_t work in a SFINAE context.
+#if (FMTQUILL_GCC_VERSION && FMTQUILL_GCC_VERSION < 500) || FMTQUILL_MSC_VERSION
+// A workaround for gcc 4.9 & MSVC v141 to make void_t work in a SFINAE context.
 template <typename...> struct void_t_impl {
   using type = void;
 };
@@ -530,20 +531,20 @@ template <typename Char> class basic_string_view {
 
   constexpr basic_string_view() noexcept : data_(nullptr), size_(0) {}
 
-  /// Constructs a string reference object from a C string and a size.
+  /// Constructs a string view object from a C string and a size.
   constexpr basic_string_view(const Char* s, size_t count) noexcept
       : data_(s), size_(count) {}
 
   constexpr basic_string_view(nullptr_t) = delete;
 
-  /// Constructs a string reference object from a C string.
+  /// Constructs a string view object from a C string.
 #if FMTQUILL_GCC_VERSION
   FMTQUILL_ALWAYS_INLINE
 #endif
   FMTQUILL_CONSTEXPR20 basic_string_view(const Char* s) : data_(s) {
 #if FMTQUILL_HAS_BUILTIN(__builtin_strlen) || FMTQUILL_GCC_VERSION || FMTQUILL_CLANG_VERSION
-    if (std::is_same<Char, char>::value) {
-      size_ = __builtin_strlen(detail::narrow(s));
+    if (std::is_same<Char, char>::value && !detail::is_constant_evaluated()) {
+      size_ = __builtin_strlen(detail::narrow(s));  // strlen is not costexpr.
       return;
     }
 #endif
@@ -552,7 +553,7 @@ template <typename Char> class basic_string_view {
     size_ = len;
   }
 
-  /// Constructs a string reference from a `std::basic_string` or a
+  /// Constructs a string view from a `std::basic_string` or a
   /// `std::basic_string_view` object.
   template <typename S,
             FMTQUILL_ENABLE_IF(detail::is_std_string_like<S>::value&& std::is_same<
@@ -589,7 +590,6 @@ template <typename Char> class basic_string_view {
     return starts_with(basic_string_view<Char>(s));
   }
 
-  // Lexicographically compare this string reference to other.
   FMTQUILL_CONSTEXPR auto compare(basic_string_view other) const -> int {
     int result =
         detail::compare(data_, other.data_, min_of(size_, other.size_));
@@ -620,7 +620,7 @@ template <typename Char> class basic_string_view {
 
 using string_view = basic_string_view<char>;
 
-/// Specifies if `T` is an extended character type. Can be specialized by users.
+// DEPRECATED! Will be merged with is_char and moved to detail.
 template <typename T> struct is_xchar : std::false_type {};
 template <> struct is_xchar<wchar_t> : std::true_type {};
 template <> struct is_xchar<char16_t> : std::true_type {};
@@ -629,7 +629,7 @@ template <> struct is_xchar<char32_t> : std::true_type {};
 template <> struct is_xchar<char8_t> : std::true_type {};
 #endif
 
-// DEPRECATED! Will be replaced with an alias to prevent specializations.
+// Specifies if `T` is a character (code unit) type.
 template <typename T> struct is_char : is_xchar<T> {};
 template <> struct is_char<char> : std::true_type {};
 
@@ -1036,6 +1036,11 @@ enum {
 
 struct view {};
 
+template <typename T, typename Enable = std::true_type>
+struct is_view : std::false_type {};
+template <typename T>
+struct is_view<T, bool_constant<sizeof(T) != 0>> : std::is_base_of<view, T> {};
+
 template <typename Char, typename T> struct named_arg;
 template <typename T> struct is_named_arg : std::false_type {};
 template <typename T> struct is_static_named_arg : std::false_type {};
@@ -1068,6 +1073,16 @@ template <typename Char> struct named_arg_info {
   int id;
 };
 
+// named_args is non-const to suppress a bogus -Wmaybe-uninitalized in gcc 13.
+template <typename Char>
+FMTQUILL_CONSTEXPR void check_for_duplicate(named_arg_info<Char>* named_args,
+                                       int named_arg_index,
+                                       basic_string_view<Char> arg_name) {
+  for (int i = 0; i < named_arg_index; ++i) {
+    if (named_args[i].name == arg_name) report_error("duplicate named arg");
+  }
+}
+
 template <typename Char, typename T, FMTQUILL_ENABLE_IF(!is_named_arg<T>::value)>
 void init_named_arg(named_arg_info<Char>*, int& arg_index, int&, const T&) {
   ++arg_index;
@@ -1075,6 +1090,7 @@ void init_named_arg(named_arg_info<Char>*, int& arg_index, int&, const T&) {
 template <typename Char, typename T, FMTQUILL_ENABLE_IF(is_named_arg<T>::value)>
 void init_named_arg(named_arg_info<Char>* named_args, int& arg_index,
                     int& named_arg_index, const T& arg) {
+  check_for_duplicate<Char>(named_args, named_arg_index, arg.name);
   named_args[named_arg_index++] = {arg.name, arg_index++};
 }
 
@@ -1088,12 +1104,13 @@ template <typename T, typename Char,
           FMTQUILL_ENABLE_IF(is_static_named_arg<T>::value)>
 FMTQUILL_CONSTEXPR void init_static_named_arg(named_arg_info<Char>* named_args,
                                          int& arg_index, int& named_arg_index) {
+  check_for_duplicate<Char>(named_args, named_arg_index, T::name);
   named_args[named_arg_index++] = {T::name, arg_index++};
 }
 
 // To minimize the number of types we need to deal with, long is translated
 // either to int or to long long depending on its size.
-enum { long_short = sizeof(long) == sizeof(int) };
+enum { long_short = sizeof(long) == sizeof(int) && FMTQUILL_BUILTIN_TYPES };
 using long_type = conditional_t<long_short, int, long long>;
 using ulong_type = conditional_t<long_short, unsigned, unsigned long long>;
 
@@ -1710,7 +1727,17 @@ class format_string_checker {
       -> const Char* {
     context_.advance_to(begin);
     if (id >= 0 && id < NUM_ARGS) return parse_funcs_[id](context_);
-    while (begin != end && *begin != '}') ++begin;
+
+    // If id is out of range, it means we do not know the type and cannot parse
+    // the format at compile time. Instead, skip over content until we finish
+    // the format spec, accounting for any nested replacements.
+    for (int bracket_count = 0;
+         begin != end && (bracket_count > 0 || *begin != '}'); ++begin) {
+      if (*begin == '{')
+        ++bracket_count;
+      else if (*begin == '}')
+        --bracket_count;
+    }
     return begin;
   }
 
@@ -2720,7 +2747,7 @@ template <typename... T> struct fstring {
   template <size_t N>
   FMTQUILL_CONSTEVAL FMTQUILL_ALWAYS_INLINE fstring(const char (&s)[N]) : str(s, N - 1) {
     using namespace detail;
-    static_assert(count<(std::is_base_of<view, remove_reference_t<T>>::value &&
+    static_assert(count<(is_view<remove_cvref_t<T>>::value &&
                          std::is_reference<T>::value)...>() == 0,
                   "passing views as lvalues is disallowed");
     if (FMTQUILL_USE_CONSTEVAL) parse_format_string<char>(s, checker(s, arg_pack()));
