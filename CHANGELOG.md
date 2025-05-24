@@ -1,3 +1,4 @@
+- [v10.0.0](#v1000)
 - [v9.0.3](#v903)
 - [v9.0.2](#v902)
 - [v9.0.1](#v901)
@@ -88,12 +89,9 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v9.0.3
+## v10.0.0
 
-- Add support for `void*` formatting ([#759](https://github.com/odygrd/quill/issues/759))
-- Fix a bug in `RotatingJsonFileSink.h` where file size-based rotation wasn't triggering
-  properly ([#767](https://github.com/odygrd/quill/issues/767))
-- Fix false positive `-Wstringop-overread` warning in GCC ([#766](https://github.com/odygrd/quill/issues/766))
+### API Changes
 
 - The immediate flush feature (already present in previous versions) helps with debugging by blocking the thread until
   the log statement has been written to the file. If you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`,
@@ -106,6 +104,8 @@
 - The `QUILL_LOG_RUNTIME_METADATA` macro requires `file`, `function` and `fmt` to be passed as `char const*` and
   `line_number` as `uint32_t`. This is a breaking change from the previous version.
 
+### Improvements
+
 - Internally, refactored how runtime metadata are handled for more flexibility, providing three macros for logging with
   runtime metadata:
   - `QUILL_LOG_RUNTIME_METADATA_DEEP` - Takes a deep copy of `fmt`, `file`, `function` and `tags`. Most flexible
@@ -114,6 +114,8 @@
     `function` as reference. This is used for the new macro-free mode.
   - `QUILL_LOG_RUNTIME_METADATA_SHALLOW` - Will take everything as reference. This is used when logging with
     compile-time metadata and using, for example, a dynamic log-level such as `LOG_DYNAMIC`.
+
+### New Features
 
 - There is a new macro-free mode that allows logging without macros. You have two options: either
   `#include "quill/LogMacros.h"` or `#include "quill/LogFunctions.h"`. The macro mode still remains the recommended and
@@ -125,6 +127,13 @@
   ```
 
   See macro-free mode docs [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details.
+
+## v9.0.3
+
+- Add support for `void*` formatting ([#759](https://github.com/odygrd/quill/issues/759))
+- Fix a bug in `RotatingJsonFileSink.h` where file size-based rotation wasn't triggering
+  properly ([#767](https://github.com/odygrd/quill/issues/767))
+- Fix false positive `-Wstringop-overread` warning in GCC ([#766](https://github.com/odygrd/quill/issues/766))
 
 ## v9.0.2
 
