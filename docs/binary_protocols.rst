@@ -5,8 +5,8 @@ Binary Protocols
 
 Logging Binary Protocols with Deferred Formatting
 -------------------------------------------------
-Quill provides efficient logging of binary data in human-readable text format. While the logged data might be in
-binary format initially, Quill always produces text-based log files.
+The library provides efficient logging of binary data in human-readable text format. While the logged data might be in
+binary format initially, The library always produces text-based log files.
 The ``BinaryDataDeferredFormatCodec`` enables efficient logging of variable-sized binary data by:
 
 1. Copying the raw binary bytes on the hot path (critical performance section)
@@ -17,7 +17,7 @@ custom binary formats without impacting application performance.
 
 Implementation Steps
 --------------------
-To use binary data logging with deferred formatting, follow these steps:
+To log binary data logging with deferred formatting, follow these steps:
 
 1. Create a Tag Struct
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -25,13 +25,11 @@ First, define an empty struct to serve as a tag for your binary protocol
 
 .. code-block:: cpp
 
-    struct MyBinaryProtocol
-    {
-    };
+    struct MyBinaryProtocol { };
 
 2. Define a Type Alias Using BinaryData
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Create a type alias using ``quill::BinaryData<Tag>`` to reference your binary data:
+Create a type alias using ``quill::BinaryData<T>`` to reference your binary data:
 
 .. code-block:: cpp
 
@@ -78,7 +76,7 @@ Now you can log binary data efficiently:
 .. code-block:: cpp
 
     // Assuming you have binary data in a buffer
-    std::vector<uint8_t> binary_buffer = get_binary_data();
+    std::span<uint8_t> binary_buffer = get_binary_data();
 
     // Log the binary data - only a memcpy happens here (on the hot path)
     // The actual formatting will be deferred to the backend thread
@@ -91,7 +89,7 @@ SBE is a binary encoding protocol often used in financial systems. (See https://
 
 For SBE messages, you can leverage SBE's generated code to decode and format messages:
 
-.. literalinclude:: examples/sbe_binary_data/quill_docs_example_basic.cpp
+.. literalinclude:: ../examples/sbe_binary_data/sbe_logging.cpp
    :language: cpp
    :linenos:
 
@@ -123,6 +121,6 @@ Binary Protocol Logging with Custom Message Types
 In addition to SBE, you can use this approach with any binary protocol. This example demonstrates
 logging different types of binary messages with custom formatting:
 
-.. literalinclude:: examples/binary_protocol_logging.cpp
+.. literalinclude:: ../examples/binary_protocol_logging.cpp
    :language: cpp
    :linenos:
