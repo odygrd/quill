@@ -179,7 +179,7 @@ TEST_CASE("binary_data_logging")
       Entity entity;
       entity.id = 3;
       auto name = std::to_string(i);
-      strcpy_s(&entity.name[0], sizeof(entity.name), name.c_str());
+      strcpy(&entity.name[0], name.c_str());
 
       std::memcpy(buffer.data(), &entity, sizeof(Entity));
       encoded_size = sizeof(Entity);
