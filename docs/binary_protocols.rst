@@ -1,7 +1,7 @@
-.. title:: Logging Binary Protocols
+.. title:: Binary Protocols
 
-Logging Binary Protocols with Deferred Formatting
-=================================================
+Binary Protocols
+================
 
 Introduction
 ------------
