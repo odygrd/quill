@@ -117,7 +117,7 @@ int main()
   auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "trading", std::move(console_sink),
-    quill::PatternFormatterOptions{"%(time) %(message)", "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
+    quill::PatternFormatterOptions{"[%(time)] %(message)", "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
 
   // Sample data for our demonstration
   std::array<std::string, 9> symbols = {"AAPL", "MSFT", "AMZN", "GOOGL", "META",
@@ -145,7 +145,7 @@ int main()
     // Step 5: Log the binary data using TradingProtocolRef
     // Only a memcpy happens here (on the hot path)
     // The actual formatting will be deferred to the backend thread
-    LOG_INFO(logger, "{}", TradingProtocolRef{reinterpret_cast<uint8_t*>(buffer.data()), encoded_size});
+    LOG_INFO(logger, "[SEND] {}", TradingProtocolRef{reinterpret_cast<uint8_t*>(buffer.data()), encoded_size});
   }
 
   // Log cancel order messages for some orders
@@ -161,7 +161,7 @@ int main()
     size_t const encoded_size = cancel.encodedLength() + sbe::sample::MessageHeader::encodedLength();
 
     // Step 5: Log using the same pattern - formatting happens in the backend thread
-    LOG_INFO(logger, "{}", TradingProtocolRef{reinterpret_cast<uint8_t*>(buffer.data()), encoded_size});
+    LOG_INFO(logger, "[SEND] {}", TradingProtocolRef{reinterpret_cast<uint8_t*>(buffer.data()), encoded_size});
   }
 
   return 0;

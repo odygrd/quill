@@ -1,6 +1,6 @@
 add_subdirectory(recommended_usage)
 add_subdirectory(shared_library)
-add_subdirectory(sbe)
+add_subdirectory(sbe_binary_data)
 
 # Define a variable with all example targets
 set(EXAMPLE_TARGETS
