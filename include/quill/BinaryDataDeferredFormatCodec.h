@@ -32,33 +32,22 @@ public:
   using ValueType = T;
 
   /**
-   * @brief Constructor from uint8_t pointer
+   * @brief Template constructor that accepts any pointer type that can be safely
+   * reinterpreted as binary data
    *
+   * @tparam T The source pointer type (char, uint8_t, std::byte, etc.)
    * @param data Pointer to the binary data
    * @param size Size of the binary data in bytes
    *
    * @note If size exceeds uint32_t max value, it will be capped
    */
-  BinaryData(uint8_t const* data, size_t size)
+  template <typename T>
+  BinaryData(T const* data, size_t size)
     : _data{reinterpret_cast<std::byte const*>(data)},
       _size{size > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max()
                                                         : static_cast<uint32_t>(size)}
   {
-  }
-
-  /**
-   * @brief Constructor from std::byte pointer
-   *
-   * @param data Pointer to the binary data
-   * @param size Size of the binary data in bytes
-   *
-   * @note If size exceeds uint32_t max value, it will be capped
-   */
-  BinaryData(std::byte const* data, size_t size)
-    : _data{data},
-      _size{size > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max()
-                                                        : static_cast<uint32_t>(size)}
-  {
+    static_assert(sizeof(T) == 1, "BinaryData only accepts byte-sized element types");
   }
 
   /**
@@ -136,12 +125,12 @@ struct BinaryDataDeferredFormatCodec
   static_assert(std::is_same_v<BinaryData<typename T::ValueType>, T>,
                 "BinaryDataDeferredFormatCodec can only be used with BinaryData");
 
-  static size_t compute_encoded_size(quill::detail::SizeCacheVector&, T const& arg)
+  static size_t compute_encoded_size(detail::SizeCacheVector&, T const& arg)
   {
     return sizeof(uint32_t) + arg._size;
   }
 
-  static void encode(std::byte*& buffer, quill::detail::SizeCacheVector const&, uint32_t, T const& arg)
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t, T const& arg)
   {
     std::memcpy(buffer, &arg._size, sizeof(uint32_t));
     buffer += sizeof(uint32_t);
@@ -160,7 +149,7 @@ struct BinaryDataDeferredFormatCodec
     return binary_data_ref;
   }
 
-  static void decode_and_store_arg(std::byte*& buffer, quill::DynamicFormatArgStore* args_store)
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     args_store->push_back(decode_arg(buffer));
   }

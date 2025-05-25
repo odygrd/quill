@@ -48,11 +48,11 @@ Specialize the ``fmtquill::formatter`` template for your binary data type to def
     {
         constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-        auto format(::MyBinaryProtocolData const& bin_data_ref, format_context& ctx) const
+        auto format(::MyBinaryProtocolData const& bin_data, format_context& ctx) const
         {
             // Option 1: Convert binary data to hex representation
             return fmtquill::format_to(ctx.out(), "{}",
-                quill::utility::to_hex(bin_data_ref.data(), bin_data_ref.size()));
+                quill::utility::to_hex(bin_data.data(), bin_data.size()));
 
             // Option 2: Parse binary data into a structured format
             // Custom parsing logic based on your protocol specification
@@ -116,3 +116,13 @@ on the critical path. The log output might look like this.
     [12:54:22.305738429] [SEND] {"Name": "CancelOrder", "sbeTemplateId": 2, "orderId": 2000002, "origOrderId": 2, "cancelQuantity": 700, "reason": "Price away from market"}
     [12:54:22.305738723] [SEND] {"Name": "CancelOrder", "sbeTemplateId": 2, "orderId": 2000003, "origOrderId": 3, "cancelQuantity": 800, "reason": "Timeout"}
     [12:54:22.305738978] [SEND] {"Name": "CancelOrder", "sbeTemplateId": 2, "orderId": 2000004, "origOrderId": 4, "cancelQuantity": 900, "reason": "User requested"}
+
+Binary Protocol Logging with Custom Message Types
+------------------------------------------------
+
+In addition to SBE, you can use this approach with any binary protocol. This example demonstrates
+logging different types of binary messages with custom formatting:
+
+.. literalinclude:: examples/binary_protocol_logging_example.cpp
+   :language: cpp
+   :linenos:

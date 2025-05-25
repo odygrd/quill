@@ -75,10 +75,10 @@ struct fmtquill::formatter<BinaryTypeData>
 {
   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-  auto format(::BinaryTypeData const& bin_data_ref, format_context& ctx) const
+  auto format(::BinaryTypeData const& bin_data, format_context& ctx) const
   {
     uint32_t id;
-    std::memcpy(&id, bin_data_ref.data(), sizeof(uint32_t));
+    std::memcpy(&id, bin_data.data(), sizeof(uint32_t));
 
     std::stringstream oss;
 
@@ -86,21 +86,21 @@ struct fmtquill::formatter<BinaryTypeData>
     {
       // Process Position data
       Position position;
-      std::memcpy(&position, bin_data_ref.data(), sizeof(Position));
+      std::memcpy(&position, bin_data.data(), sizeof(Position));
       oss << position;
     }
     else if (id == 2)
     {
       // Process StateInfo data
       StateInfo state;
-      std::memcpy(&state, bin_data_ref.data(), sizeof(StateInfo));
+      std::memcpy(&state, bin_data.data(), sizeof(StateInfo));
       oss << state;
     }
     else if (id == 3)
     {
       // Process Entity data
       Entity entity;
-      std::memcpy(&entity, bin_data_ref.data(), sizeof(Entity));
+      std::memcpy(&entity, bin_data.data(), sizeof(Entity));
       oss << entity;
     }
 

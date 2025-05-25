@@ -66,32 +66,32 @@ struct fmtquill::formatter<TradingProtocolData>
 {
   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-  auto format(::TradingProtocolData const& bin_data_ref, format_context& ctx) const
+  auto format(::TradingProtocolData const& bin_data, format_context& ctx) const
   {
     // Option 1: Convert binary data to hexadecimal representation
     // Useful when you don't need to parse the structure
-    // return fmtquill::format_to(ctx.out(), "{}", quill::utility::to_hex(bin_data_ref.data(), bin_data_ref.size()));
+    // return fmtquill::format_to(ctx.out(), "{}", quill::utility::to_hex(bin_data.data(), bin_data.size()));
 
     // Option 2: Parse the binary data into a meaningful representation
     // Get raw data pointer in the format expected by the SBE API
-    char* data = reinterpret_cast<char*>(const_cast<std::byte*>(bin_data_ref.data()));
+    char* data = reinterpret_cast<char*>(const_cast<std::byte*>(bin_data.data()));
     std::stringstream oss;
 
     // Parse the SBE message header to determine message type
-    sbe::sample::MessageHeader header{data, bin_data_ref.size()};
+    sbe::sample::MessageHeader header{data, bin_data.size()};
 
     if (header.templateId() == sbe::sample::NewOrder::sbeTemplateId())
     {
       sbe::sample::NewOrder msg;
       msg.wrapForDecode(data, sbe::sample::MessageHeader::encodedLength(), header.blockLength(),
-                        header.version(), bin_data_ref.size());
+                        header.version(), bin_data.size());
       oss << msg;
     }
     else if (header.templateId() == sbe::sample::CancelOrder::sbeTemplateId())
     {
       sbe::sample::CancelOrder msg;
       msg.wrapForDecode(data, sbe::sample::MessageHeader::encodedLength(), header.blockLength(),
-                        header.version(), bin_data_ref.size());
+                        header.version(), bin_data.size());
       oss << msg;
     }
 
