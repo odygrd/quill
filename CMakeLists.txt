@@ -250,6 +250,7 @@ set(HEADER_FILES
 
         include/quill/Backend.h
         include/quill/BackendTscClock.h
+        include/quill/BinaryDataDeferredFormatCodec.h
         include/quill/CsvWriter.h
         include/quill/DeferredFormatCodec.h
         include/quill/DirectFormatCodec.h

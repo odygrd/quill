@@ -104,6 +104,12 @@
 
   See macro-free mode docs [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details.
 
+- Added `BinaryDataDeferredFormatCodec` for efficient binary data logging. This codec allows efficient logging of
+  variable-sized binary data by copying the raw bytes on the hot path and deferring the formatting to the backend
+  thread. This is particularly useful for logging binary protocol messages (like SBE, FIX, or custom binary formats)
+  without impacting application performance. See the
+  example [sbe_logging](https://github.com/odygrd/quill/blob/master/examples/sbe_logging.cpp) for details.
+
 ### Improvements
 
 - Internally, refactored how runtime metadata are handled for more flexibility, providing three macros for logging with
