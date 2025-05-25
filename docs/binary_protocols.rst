@@ -123,6 +123,6 @@ Binary Protocol Logging with Custom Message Types
 In addition to SBE, you can use this approach with any binary protocol. This example demonstrates
 logging different types of binary messages with custom formatting:
 
-.. literalinclude:: examples/binary_protocol_logging_example.cpp
+.. literalinclude:: examples/binary_protocol_logging.cpp
    :language: cpp
    :linenos:

@@ -109,7 +109,7 @@
   thread. This is particularly useful for logging binary protocol messages (like SBE or custom binary formats),
   network packets, and raw binary data without impacting application performance. See the
   example [sbe_logging](https://github.com/odygrd/quill/blob/master/examples/sbe_logging.cpp) and
-  [binary_protocol_logging_example](https://github.com/odygrd/quill/blob/master/examples/binary_protocol_logging_example.cpp)
+  [binary_protocol_logging](https://github.com/odygrd/quill/blob/master/examples/binary_protocol_logging.cpp)
   for details.
   For documentation, see [Binary Protocol Logging](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
 

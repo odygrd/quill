@@ -6,7 +6,7 @@ set(EXAMPLE_TARGETS
         quill_example_backend_thread_notify
         quill_example_backend_tsc_clock
         quill_example_backtrace_logging
-        quill_example_binary_protocol_logging_example
+        quill_example_binary_protocol_logging
         quill_example_bounded_dropping_queue_frontend
         quill_example_console_logging
         quill_example_console_logging_macro_free
