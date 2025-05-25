@@ -3,8 +3,8 @@
 Binary Protocols
 ================
 
-Introduction
-------------
+Logging Binary Protocols with Deferred Formatting
+-------------------------------------------------
 Quill provides efficient logging of binary data in human-readable text format. While the logged data might be in
 binary format initially, Quill always produces text-based log files.
 The ``BinaryDataDeferredFormatCodec`` enables efficient logging of variable-sized binary data by:
