@@ -41,13 +41,13 @@ public:
    *
    * @note If size exceeds uint32_t max value, it will be capped
    */
-  template <typename T>
-  BinaryData(T const* data, size_t size)
+  template <typename U>
+  BinaryData(U const* data, size_t size)
     : _data{reinterpret_cast<std::byte const*>(data)},
       _size{size > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max()
                                                         : static_cast<uint32_t>(size)}
   {
-    static_assert(sizeof(T) == 1, "BinaryData only accepts byte-sized element types");
+    static_assert(sizeof(U) == 1, "BinaryData only accepts byte-sized element types");
   }
 
   /**
