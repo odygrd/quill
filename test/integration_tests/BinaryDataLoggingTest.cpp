@@ -20,9 +20,9 @@ using namespace quill;
 // Sample structs with descriptive names
 struct Position
 {
-  uint32_t id{1};
-  uint32_t width{};
-  uint32_t height{};
+  uint32_t id;
+  uint32_t width;
+  uint32_t height;
 };
 
 std::ostream& operator<<(std::ostream& os, Position const& position)
@@ -33,9 +33,9 @@ std::ostream& operator<<(std::ostream& os, Position const& position)
 
 struct StateInfo
 {
-  uint32_t id{2};
-  int64_t timestamp{};
-  int64_t magnitude{};
+  uint32_t id;
+  int64_t timestamp;
+  int64_t magnitude;
   bool active{};
 };
 
@@ -47,8 +47,8 @@ std::ostream& operator<<(std::ostream& os, StateInfo const& state)
 
 struct Entity
 {
-  uint32_t id{3};
-  char name[24]{'\0'};
+  uint32_t id;
+  char name[24];
 };
 
 std::ostream& operator<<(std::ostream& os, Entity const& entity)
@@ -154,6 +154,7 @@ TEST_CASE("binary_data_logging")
     {
       // encode position data
       Position position;
+      position.id = 1;
       position.width = i;
       position.height = i * 10;
 
@@ -164,6 +165,7 @@ TEST_CASE("binary_data_logging")
     {
       // encode state info data
       StateInfo state;
+      state.id = 2;
       state.timestamp = i * 1000;
       state.magnitude = i * 10000;
       state.active = (i % 2 == 0); // Alternate between true and false
@@ -175,6 +177,7 @@ TEST_CASE("binary_data_logging")
     {
       // encode entity data
       Entity entity;
+      entity.id = 3;
       auto name = std::to_string(i);
       strcpy_s(&entity.name[0], sizeof(entity.name), name.c_str());
 
