@@ -1,0 +1,50 @@
+<sbe:messageSchema
+        xmlns:ns2="http://www.fixprotocol.org/ns/simple/1.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:sbe="http://fixprotocol.io/2016/sbe"
+        package="sbe.sample"
+        id="1"
+        version="1"
+        semanticVersion="1.0.0"
+        description="SBE Sample Trading Messages"
+        byteOrder="littleEndian"
+        xsi:schemaLocation="http://fixprotocol.io/2016/sbe sbe.xsd">
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root.">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <composite name="VarString" semanticType="String" description="Free ASCII format text field.">
+            <type name="length" primitiveType="uint8" maxValue="40"
+                  description="Length of free format text field defined by client."/>
+            <type name="varData" primitiveType="char" length="0" characterEncoding="ASCII"
+                  description="Free ASCII format text field defined by client."/>
+        </composite>
+        <enum name="Side" encodingType="uint8" description="Order side">
+            <validValue name="BUY" description="Buy order">1</validValue>
+            <validValue name="SELL" description="Sell order">2</validValue>
+        </enum>
+        <enum name="OrderType" encodingType="uint8" description="Order type">
+            <validValue name="MARKET" description="Market order">1</validValue>
+            <validValue name="LIMIT" description="Limit order">2</validValue>
+            <validValue name="STOP" description="Stop order">3</validValue>
+        </enum>
+    </types>
+
+    <sbe:message name="NewOrder" id="1">
+        <field name="orderId" id="1" type="uint64" description="Unique order identifier"/>
+        <field name="price" id="2" type="uint32" description="Price in hundredths of a tick"/>
+        <field name="quantity" id="3" type="uint32" description="Order quantity"/>
+        <field name="side" id="4" type="Side" description="Order side"/>
+        <data name="symbol" id="5" type="VarString" semanticType="String" description="Instrument identifier"/>
+    </sbe:message>
+
+    <sbe:message name="CancelOrder" id="2">
+        <field name="orderId" id="1" type="uint64" description="Order identifier to cancel"/>
+        <field name="origOrderId" id="2" type="uint64" description="Original order identifier"/>
+        <field name="cancelQuantity" id="3" type="uint32" description="Quantity to cancel"/>
+        <data name="reason" id="4" type="VarString" semanticType="String" description="Cancellation reason"/>
+    </sbe:message>
+</sbe:messageSchema>

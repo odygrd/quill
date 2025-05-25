@@ -1,12 +1,12 @@
 add_subdirectory(recommended_usage)
 add_subdirectory(shared_library)
-#add_subdirectory(single_logger_multiple_sink_formats)
 
 # Define a variable with all example targets
 set(EXAMPLE_TARGETS
         quill_example_backend_thread_notify
         quill_example_backend_tsc_clock
         quill_example_backtrace_logging
+        quill_example_binary_protocol_logging
         quill_example_bounded_dropping_queue_frontend
         quill_example_console_logging
         quill_example_console_logging_macro_free
@@ -37,6 +37,8 @@ set(EXAMPLE_TARGETS
 
 # Add additional examples that are using exceptions in the example code
 if (NOT QUILL_NO_EXCEPTIONS)
+    add_subdirectory(sbe_binary_data)
+
     list(APPEND EXAMPLE_TARGETS quill_example_user_defined_types_multi_format)
 endif ()
 

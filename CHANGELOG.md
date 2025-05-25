@@ -102,7 +102,16 @@
   quill::debug(logger, "A {} message with number {}", "test", 123);
   ```
 
-  See macro-free mode docs [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details.
+  See macro-free mode documentation [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details.
+
+- Added `BinaryDataDeferredFormatCodec` for efficient binary data logging. This codec allows efficient logging of
+  variable-sized binary data by copying the raw bytes on the hot path and deferring the formatting to the backend
+  thread. This is particularly useful for logging binary protocol messages (like SBE or custom binary formats),
+  network packets, and raw binary data without impacting application performance. See the
+  example [sbe_logging](https://github.com/odygrd/quill/blob/master/examples/sbe_logging.cpp) and
+  [binary_protocol_logging](https://github.com/odygrd/quill/blob/master/examples/binary_protocol_logging.cpp)
+  for details.
+  For documentation, see [Binary Protocol Logging](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
 
 ### Improvements
 
