@@ -111,7 +111,7 @@
   example [sbe_logging](https://github.com/odygrd/quill/blob/master/examples/sbe_binary_data/sbe_logging.cpp) and
   [binary_protocol_logging](https://github.com/odygrd/quill/blob/master/examples/binary_protocol_logging.cpp)
   for details.
-  For documentation, see [Binary Protocol Logging](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
+  For documentation, see [here](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
 
 ### Improvements
 
