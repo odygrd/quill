@@ -35,7 +35,6 @@ public:
    * @brief Template constructor that accepts any pointer type that can be safely
    * reinterpreted as binary data
    *
-   * @tparam T The source pointer type (char, uint8_t, std::byte, etc.)
    * @param data Pointer to the binary data
    * @param size Size of the binary data in bytes
    *

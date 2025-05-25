@@ -106,8 +106,8 @@
 
 - Added `BinaryDataDeferredFormatCodec` for efficient binary data logging. This codec allows efficient logging of
   variable-sized binary data by copying the raw bytes on the hot path and deferring the formatting to the backend
-  thread. This is particularly useful for logging binary protocol messages (like SBE, FIX, or custom binary formats)
-  without impacting application performance. See the
+  thread. This is particularly useful for logging binary protocol messages (like SBE or custom binary formats),
+  network packets, and raw binary data without impacting application performance. See the
   example [sbe_logging](https://github.com/odygrd/quill/blob/master/examples/sbe_logging.cpp) and
   [binary_protocol_logging_example](https://github.com/odygrd/quill/blob/master/examples/binary_protocol_logging_example.cpp)
   for details.

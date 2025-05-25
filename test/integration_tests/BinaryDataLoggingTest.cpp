@@ -144,6 +144,9 @@ TEST_CASE("binary_data_logging")
   std::array<std::byte, 64> buffer{};
   uint32_t encoded_size{0};
 
+  std::byte* data_null = nullptr;
+  LOG_INFO(logger, "null data [{}]", BinaryTypeData{data_null, encoded_size});
+
   // Log different types of data in rotation
   for (uint32_t i = 0; i < message_count; ++i)
   {
@@ -190,13 +193,15 @@ TEST_CASE("binary_data_logging")
 
   // Read file and verify log contents
   std::vector<std::string> const file_contents = quill::testing::file_contents(log_filename);
-  REQUIRE_EQ(file_contents.size(), message_count);
+  REQUIRE_EQ(file_contents.size(), message_count + 1);
 
   // Verify each logged message matches expected format
+  std::string expected_string;
+  expected_string = "null data []";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+
   for (size_t i = 0; i < message_count; ++i)
   {
-    std::string expected_string;
-
     if ((i % 3) == 0)
     {
       expected_string = "Position {" + std::to_string(i) + ", " + std::to_string(i * 10) + "}";
