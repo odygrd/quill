@@ -1,6 +1,5 @@
 add_subdirectory(recommended_usage)
 add_subdirectory(shared_library)
-add_subdirectory(sbe_binary_data)
 
 # Define a variable with all example targets
 set(EXAMPLE_TARGETS
@@ -37,6 +36,8 @@ set(EXAMPLE_TARGETS
 
 # Add additional examples that are using exceptions in the example code
 if (NOT QUILL_NO_EXCEPTIONS)
+    add_subdirectory(sbe_binary_data)
+
     list(APPEND EXAMPLE_TARGETS quill_example_user_defined_types_multi_format)
 endif ()
 
