@@ -47,7 +47,7 @@ struct StateInfo
   uint32_t id;
   int64_t timestamp;
   int64_t magnitude;
-  bool active{};
+  bool active;
 };
 
 std::ostream& operator<<(std::ostream& os, StateInfo const& state)
