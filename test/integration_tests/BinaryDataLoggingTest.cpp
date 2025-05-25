@@ -48,7 +48,7 @@ std::ostream& operator<<(std::ostream& os, StateInfo const& state)
 struct Entity
 {
   uint32_t id{3};
-  char name[24]{};
+  char name[24]{'\0'};
 };
 
 std::ostream& operator<<(std::ostream& os, Entity const& entity)
