@@ -40,7 +40,7 @@ QUILL_NODISCARD std::string to_hex(T const* buffer, size_t size, bool uppercase 
   }
 
   // Select the appropriate character set based on the uppercase parameter
-  const char* hex_chars = uppercase ? hex_chars_upper : hex_chars_lower;
+  char const* hex_chars = uppercase ? hex_chars_upper : hex_chars_lower;
 
   // Each byte needs 2 hex chars, and all but the last one need spaces
   std::string hex_string;
