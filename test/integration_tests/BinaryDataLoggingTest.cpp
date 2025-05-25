@@ -11,16 +11,16 @@
 #include "quill/bundled/fmt/format.h"
 
 #include <cstdio>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
 using namespace quill;
 
 // Sample structs with descriptive names
 struct Position
 {
-  uint32_t id {1};
+  uint32_t id{1};
   uint32_t width{};
   uint32_t height{};
 };
@@ -33,7 +33,7 @@ std::ostream& operator<<(std::ostream& os, Position const& position)
 
 struct StateInfo
 {
-  uint32_t id {2};
+  uint32_t id{2};
   int64_t timestamp{};
   int64_t magnitude{};
   bool active;
@@ -47,7 +47,7 @@ std::ostream& operator<<(std::ostream& os, StateInfo const& state)
 
 struct Entity
 {
-  uint32_t id {3};
+  uint32_t id{3};
   char name[24];
 };
 
@@ -139,10 +139,10 @@ TEST_CASE("binary_data_logging")
     FileEventNotifier{});
 
   Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink),
-    PatternFormatterOptions{"%(message)"});
+                                                  PatternFormatterOptions{"%(message)"});
 
   std::array<std::byte, 64> buffer{};
-  uint32_t encoded_size {0};
+  uint32_t encoded_size{0};
 
   // Log different types of data in rotation
   for (uint32_t i = 0; i < message_count; ++i)
@@ -163,7 +163,7 @@ TEST_CASE("binary_data_logging")
       StateInfo state;
       state.timestamp = i * 1000;
       state.magnitude = i * 10000;
-      state.active = (i % 2 == 0);  // Alternate between true and false
+      state.active = (i % 2 == 0); // Alternate between true and false
 
       std::memcpy(buffer.data(), &state, sizeof(StateInfo));
       encoded_size = sizeof(StateInfo);
@@ -204,8 +204,8 @@ TEST_CASE("binary_data_logging")
     else if ((i % 3) == 1)
     {
       bool is_active = (i % 2 == 0);
-      expected_string = "StateInfo {" + std::to_string(i * 1000) + ", " + std::to_string(i * 10000) +
-                         ", " + (is_active ? "1" : "0") + "}";
+      expected_string = "StateInfo {" + std::to_string(i * 1000) + ", " +
+        std::to_string(i * 10000) + ", " + (is_active ? "1" : "0") + "}";
     }
     else if ((i % 3) == 2)
     {
