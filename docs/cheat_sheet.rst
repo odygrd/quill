@@ -45,9 +45,10 @@ Disables the use of ``__FUNCTION__`` in ``LOG_*`` macros. When ``%(caller_functi
 
     add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=0)
 
-Immediate flushing calls ``flush_log()`` on each statement. This blocks execution until the backend processes the log statement, effectively simulating synchronous logging. This option is useful in debug builds, especially when stepping through a debugger.
-This feature can be enabled in runtime on a `Logger` instance.
-Setting `QUILL_ENABLE_IMMEDIATE_FLUSH 0` in the preprocessor will eliminate the `if` branch from the hotpath and disable this feature regardless of the value of `logger->set_immediate_flush(true)`
+Immediate flushing blocks the calling thread until a log message has been written to its destination, effectively simulating synchronous logging.
+This feature can be enabled at runtime on a ``Logger`` instance by calling ``logger->set_immediate_flush(true)``.
+Setting ``QUILL_ENABLE_IMMEDIATE_FLUSH=0`` in the preprocessor disables this feature completely, eliminating the conditional branch from the hot path and improving performance.
+When disabled at compile time, ``logger->set_immediate_flush(true)`` will have no effect.
 
 .. code:: cmake
 
