@@ -29,13 +29,13 @@ First, define an empty struct to serve as a tag for your binary protocol
     {
     };
 
-2. Define a Type Alias Using BinaryDataRef
+2. Define a Type Alias Using BinaryData
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Create a type alias using ``quill::BinaryDataRef<Tag>`` to reference your binary data:
+Create a type alias using ``quill::BinaryData<Tag>`` to reference your binary data:
 
 .. code-block:: cpp
 
-    using MyBinaryProtocolRef = quill::BinaryDataRef<MyBinaryProtocol>;
+    using MyBinaryProtocolData = quill::BinaryData<MyBinaryProtocol>;
 
 3. Implement a Formatter for Your Binary Data Type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -44,11 +44,11 @@ Specialize the ``fmtquill::formatter`` template for your binary data type to def
 .. code-block:: cpp
 
     template <>
-    struct fmtquill::formatter<MyBinaryProtocolRef>
+    struct fmtquill::formatter<MyBinaryProtocolData>
     {
         constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-        auto format(::MyBinaryProtocolRef const& bin_data_ref, format_context& ctx) const
+        auto format(::MyBinaryProtocolData const& bin_data_ref, format_context& ctx) const
         {
             // Option 1: Convert binary data to hex representation
             return fmtquill::format_to(ctx.out(), "{}",
@@ -67,7 +67,7 @@ Specialize the ``quill::Codec`` template to use ``BinaryDataDeferredFormatCodec`
 .. code-block:: cpp
 
     template <>
-    struct quill::Codec<MyBinaryProtocolRef> : quill::BinaryDataDeferredFormatCodec<MyBinaryProtocolRef>
+    struct quill::Codec<MyBinaryProtocolData> : quill::BinaryDataDeferredFormatCodec<MyBinaryProtocolData>
     {
     };
 
@@ -83,7 +83,7 @@ Now you can log binary data efficiently:
     // Log the binary data - only a memcpy happens here (on the hot path)
     // The actual formatting will be deferred to the backend thread
     LOG_INFO(logger, "Received message: {}",
-        MyBinaryProtocolRef{binary_buffer.data(), binary_buffer.size()});
+        MyBinaryProtocolData{binary_buffer.data(), binary_buffer.size()});
 
 Using with SBE (Simple Binary Encoding)
 ---------------------------------------

@@ -26,7 +26,7 @@ QUILL_BEGIN_NAMESPACE
  * The template parameter T is used as a tag to give semantic meaning to the binary data
  */
 template <typename T>
-class BinaryDataRef
+class BinaryData
 {
 public:
   using ValueType = T;
@@ -39,7 +39,7 @@ public:
    *
    * @note If size exceeds uint32_t max value, it will be capped
    */
-  BinaryDataRef(uint8_t const* data, size_t size)
+  BinaryData(uint8_t const* data, size_t size)
     : _data{reinterpret_cast<std::byte const*>(data)},
       _size{size > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max()
                                                         : static_cast<uint32_t>(size)}
@@ -54,7 +54,7 @@ public:
    *
    * @note If size exceeds uint32_t max value, it will be capped
    */
-  BinaryDataRef(std::byte const* data, size_t size)
+  BinaryData(std::byte const* data, size_t size)
     : _data{data},
       _size{size > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max()
                                                         : static_cast<uint32_t>(size)}
@@ -103,15 +103,15 @@ private:
  * struct TradingProtocol { };
  *
  * // 2. Create a type alias for your binary data
- * using TradingProtocolRef = quill::BinaryDataRef<TradingProtocol>;
+ * using TradingProtocolData = quill::BinaryData<TradingProtocol>;
  *
  * // 3. Implement a formatter for your type
  * template <>
- * struct fmtquill::formatter<TradingProtocolRef>
+ * struct fmtquill::formatter<TradingProtocolData>
  * {
  *   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
  *
- *   auto format(::TradingProtocolRef const& binary_data, format_context& ctx) const
+ *   auto format(::TradingProtocolData const& binary_data, format_context& ctx) const
  *   {
  *     // Format binary data as needed, e.g. parse protocol messages or convert to hex
  *     return fmtquill::format_to(ctx.out(), "{}",
@@ -121,20 +121,20 @@ private:
  *
  * // 4. Specialize the codec for your type
  * template <>
- * struct quill::Codec<TradingProtocolRef> : quill::BinaryDataDeferredFormatCodec<TradingProtocolRef>
+ * struct quill::Codec<TradingProtocolData> : quill::BinaryDataDeferredFormatCodec<TradingProtocolData>
  * {
  * };
  *
  * // Now you can log binary data efficiently
- * LOG_INFO(logger, "Binary message: {}", TradingProtocolRef{data_ptr, data_size});
+ * LOG_INFO(logger, "Binary message: {}", TradingProtocolData{data_ptr, data_size});
  * ```
  */
 
 template <typename T>
 struct BinaryDataDeferredFormatCodec
 {
-  static_assert(std::is_same_v<BinaryDataRef<typename T::ValueType>, T>,
-                "BinaryDataDeferredFormatCodec can only be used with BinaryDataRef");
+  static_assert(std::is_same_v<BinaryData<typename T::ValueType>, T>,
+                "BinaryDataDeferredFormatCodec can only be used with BinaryData");
 
   static size_t compute_encoded_size(quill::detail::SizeCacheVector&, T const& arg)
   {

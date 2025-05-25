@@ -29,7 +29,7 @@
  * ## How It Works
  *
  * 1. Create a tag struct to identify your binary protocol type
- * 2. Define a type alias using `quill::BinaryDataRef<YourTag>`
+ * 2. Define a type alias using `quill::BinaryData<YourTag>`
  * 3. Implement a formatter for your binary data type
  * 4. Specialize `quill::Codec` to use `quill::BinaryDataDeferredFormatCodec`
  * 5. Log your binary data using the type alias
@@ -50,10 +50,10 @@ struct TradingProtocol
 };
 
 /**
- * Step 2: Create a BinaryDataRef specialization for your protocol
+ * Step 2: Create a BinaryData specialization for your protocol
  * This type alias will be used when logging binary data of this specific protocol.
  */
-using TradingProtocolRef = quill::BinaryDataRef<TradingProtocol>;
+using TradingProtocolData = quill::BinaryData<TradingProtocol>;
 
 /**
  * Step 3: Implement a formatter for your binary data type
@@ -62,11 +62,11 @@ using TradingProtocolRef = quill::BinaryDataRef<TradingProtocol>;
  * appropriately.
  */
 template <>
-struct fmtquill::formatter<TradingProtocolRef>
+struct fmtquill::formatter<TradingProtocolData>
 {
   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-  auto format(::TradingProtocolRef const& bin_data_ref, format_context& ctx) const
+  auto format(::TradingProtocolData const& bin_data_ref, format_context& ctx) const
   {
     // Option 1: Convert binary data to hexadecimal representation
     // Useful when you don't need to parse the structure
@@ -103,7 +103,7 @@ struct fmtquill::formatter<TradingProtocolRef>
  * Step 4: Specialize the Codec for your binary data type
  */
 template <>
-struct quill::Codec<TradingProtocolRef> : quill::BinaryDataDeferredFormatCodec<TradingProtocolRef>
+struct quill::Codec<TradingProtocolData> : quill::BinaryDataDeferredFormatCodec<TradingProtocolData>
 {
 };
 
@@ -142,10 +142,10 @@ int main()
 
     size_t const encoded_size = order.encodedLength() + sbe::sample::MessageHeader::encodedLength();
 
-    // Step 5: Log the binary data using TradingProtocolRef
+    // Step 5: Log the binary data using TradingProtocolData
     // Only a memcpy happens here (on the hot path)
     // The actual formatting will be deferred to the backend thread
-    LOG_INFO(logger, "[SEND] {}", TradingProtocolRef{reinterpret_cast<uint8_t*>(buffer.data()), encoded_size});
+    LOG_INFO(logger, "[SEND] {}", TradingProtocolData{reinterpret_cast<uint8_t*>(buffer.data()), encoded_size});
   }
 
   // Log cancel order messages for some orders
@@ -161,7 +161,7 @@ int main()
     size_t const encoded_size = cancel.encodedLength() + sbe::sample::MessageHeader::encodedLength();
 
     // Step 5: Log using the same pattern - formatting happens in the backend thread
-    LOG_INFO(logger, "[SEND] {}", TradingProtocolRef{reinterpret_cast<uint8_t*>(buffer.data()), encoded_size});
+    LOG_INFO(logger, "[SEND] {}", TradingProtocolData{reinterpret_cast<uint8_t*>(buffer.data()), encoded_size});
   }
 
   return 0;
