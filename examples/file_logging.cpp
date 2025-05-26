@@ -52,8 +52,7 @@ int main()
   pfo.timestamp_timezone = quill::Timezone::GmtTime;
   pfo.source_location_path_depth = 2;
 
-  quill::Logger* logger =
-    quill::Frontend::create_or_get_logger("root", std::move(file_sink), pfo);
+  quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink), pfo);
 
   // set the log level of the logger to debug (default is info)
   logger->set_log_level(quill::LogLevel::Debug);
