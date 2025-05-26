@@ -100,9 +100,9 @@ public:
    * Determines the depth of the file path shown in source location attributes:
    * - std::numeric_limits<uint8_t>::max() (default): Shows the full path
    *   e.g., "/home/foo/src/project/example/main.cpp:5"
-   * - 1: Shows only the file and its immediate parent directory
+   * - 1: Shows only the file
    *   e.g., "main.cpp:5"
-   * - 2: Shows the file and two parent directory levels
+   * - 2: Shows the file and its immediate parent directory
    *   e.g., "example/main.cpp:5"
    * - etc
    *
