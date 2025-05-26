@@ -41,6 +41,9 @@ TEST_CASE("single_frontend_thread")
 
   Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink));
 
+  // no specific reason just for usage
+  logger->set_immediate_flush(number_of_messages / 4);
+
   for (size_t i = 0; i < number_of_messages; ++i)
   {
     LOG_INFO(logger, "This is message {}", i);
