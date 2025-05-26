@@ -152,7 +152,7 @@ public:
    * @param flush_every_n_messages number of messages before auto-flush (0 to disable)
    */
 
-  void set_immediate_flush(uint32_t flush_every_n_messages)
+  void set_immediate_flush(uint32_t flush_every_n_messages = 1)
   {
     message_flush_threshold.store(flush_every_n_messages, std::memory_order_relaxed);
   }
