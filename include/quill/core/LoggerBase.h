@@ -33,7 +33,7 @@ class BacktraceStorage;
 class LoggerManager;
 
 /***/
-class alignas(QUILL_CACHE_LINE_SIZE) LoggerBase
+class LoggerBase
 {
 public:
   /***/
