@@ -33,7 +33,7 @@ class BacktraceStorage;
 class LoggerManager;
 
 /***/
-class LoggerBase
+class alignas(QUILL_CACHE_LINE_SIZE) LoggerBase
 {
 public:
   /***/
@@ -42,8 +42,8 @@ public:
              UserClockSource* user_clock)
     : logger_name(static_cast<std::string&&>(logger_name)),
       user_clock(user_clock),
-      pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options)),
-      clock_source(clock_source)
+      clock_source(clock_source),
+      pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options))
   {
 #ifndef NDEBUG
     for (auto const& sink : sinks)
@@ -136,22 +136,26 @@ public:
   }
 
   /**
-   * Sets the immediate flush behavior for logging.
+   * Sets the flush interval for logging based on message count.
    *
-   * Immediate flush is useful primarily for debugging purposes. When enabled,
-   * it will call flush_log after each log message, ensuring the message is written
-   * to the underlying sink synchronously.
+   * When enabled, this will automatically call flush_log after the specified
+   * number of messages have been logged
    *
    * This is particularly valuable when:
-   * - Running the application in a debugger
-   * - Requiring synchronized logging for debugging
+   * - Running the application in a debugger, pass flush_every_n_messages == 1
+   * - Requiring synchronized logging for debugging, pass flush_every_n_messages == 1
+   * - Dropping messages in a high-throughput simulation when using BoundedQueue, that you normally wouldn't drop in production environment
    *
    * @warning Enabling immediate flush can significantly impact application performance
    * and should only be used during debugging. It is disabled by default.
    *
-   * @param value true to enable immediate flush, false to disable
+   * @param flush_every_n_messages number of messages before auto-flush (0 to disable)
    */
-  void set_immediate_flush(bool value) { immediate_flush.store(value); }
+
+  void set_immediate_flush(uint32_t flush_every_n_messages)
+  {
+    message_flush_threshold.store(flush_every_n_messages, std::memory_order_relaxed);
+  }
 
   /**
    * Checks if the given log_statement_level can be logged by this logger
@@ -178,17 +182,22 @@ protected:
   friend class LoggerManager;
 
   static inline QUILL_THREAD_LOCAL ThreadContext* thread_context = nullptr; /* Set and accessed by the frontend */
-  std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
-  std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
-  std::vector<std::shared_ptr<Sink>> sinks; /* Set by the frontend and accessed by the backend */
-  std::string logger_name; /* Set by the frontend, accessed by the frontend AND backend */
+
+  // -- frontend hot cache line BEGIN --
+  std::string logger_name; /* Set by the frontend once, accessed by the frontend AND backend */
   UserClockSource* user_clock{nullptr}; /* A non owned pointer to a custom timestamp clock, valid only when provided. used by frontend only */
-  PatternFormatterOptions pattern_formatter_options; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
+  std::atomic<uint32_t> message_flush_threshold{0};   /* used by frontend only */
+  std::atomic<uint32_t> messages_since_last_flush{0}; /* used by frontend only */
   ClockSourceType clock_source; /* Set by the frontend and accessed by the frontend AND backend */
   std::atomic<LogLevel> log_level{LogLevel::Info}; /* used by frontend only */
-  std::atomic<bool> immediate_flush{false};        /* used by frontend only */
   std::atomic<LogLevel> backtrace_flush_level{LogLevel::None}; /** Updated by the frontend at any time, accessed by the backend */
   std::atomic<bool> valid{true}; /* Updated by the frontend at any time, accessed by the backend */
+  // -- frontend hot cache line END --
+
+  PatternFormatterOptions pattern_formatter_options; /* Set by the frontend once and accessed by the backend to initialise PatternFormatter */
+  std::vector<std::shared_ptr<Sink>> sinks; /* Set by the frontend once and accessed by the backend */
+  std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
+  std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
 };
 } // namespace detail
 

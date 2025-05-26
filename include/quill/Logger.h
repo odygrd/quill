@@ -452,9 +452,15 @@ private:
 
     if constexpr (enable_immediate_flush)
     {
-      if (immediate_flush.load(std::memory_order_relaxed))
+      uint32_t const threshold = message_flush_threshold.load(std::memory_order_relaxed);
+      if (QUILL_UNLIKELY(threshold != 0))
       {
-        this->flush_log();
+        uint32_t const prev = messages_since_last_flush.fetch_add(1, std::memory_order_relaxed);
+        if ((prev + 1) >= threshold)
+        {
+          messages_since_last_flush.store(0, std::memory_order_relaxed);
+          this->flush_log();
+        }
       }
     }
   }
