@@ -162,7 +162,7 @@ private:
     while (*source_location)
     {
       char cur = *source_location++;
-      if (cur == '/' || cur == PATH_PREFERRED_SEPARATOR)
+      if (cur == '/' || cur == detail::PATH_PREFERRED_SEPARATOR)
       {
         file = source_location;
       }
@@ -179,13 +179,6 @@ private:
   }
 
 private:
-  // define our own PATH_PREFERRED_SEPARATOR to not include <filesystem>
-#if defined(_WIN32) && !defined(__CYGWIN__)
-  static constexpr wchar_t PATH_PREFERRED_SEPARATOR = L'\\';
-#else
-  static constexpr char PATH_PREFERRED_SEPARATOR = '/';
-#endif
-
   static constexpr uint8_t NAMED_ARGS_FLAG = 0x01;
 
   char const* _source_location{nullptr};

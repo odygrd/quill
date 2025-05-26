@@ -113,6 +113,12 @@
   for details.
   For documentation, see [here](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
 
+- Added `source_location_path_depth` option in `PatternFormatterOptions` to control the depth of file paths shown in
+  the `%(source_location)` attribute. This allows customizing the displayed path length from the full path (default) to
+  just the filename or including specific levels of parent directories. For example, setting depth to 1 shows only the
+  filename (e.g., "main.cpp:5"), while depth 2 shows the file and its immediate parent directory (e.g., "
+  example/main.cpp:5").
+
 ### Improvements
 
 - Internally, refactored how runtime metadata are handled for more flexibility, providing three macros for logging with

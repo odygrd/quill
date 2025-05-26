@@ -9,6 +9,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 
+#include <limits>
 #include <string>
 
 QUILL_BEGIN_NAMESPACE
@@ -62,7 +63,9 @@ public:
    *
    * @warning The same attribute cannot be used twice in the same format pattern.
    */
-  std::string format_pattern;
+  std::string format_pattern{
+    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+    "%(message)"};
 
   /**
    * @brief The format pattern for timestamps.
@@ -73,14 +76,14 @@ public:
    * - %Qus : Microseconds
    * - %Qns : Nanoseconds
    */
-  std::string timestamp_pattern;
+  std::string timestamp_pattern{"%H:%M:%S.%Qns"};
 
   /**
    * @brief The timezone to use for timestamps.
    *
    * Determines whether timestamps are formatted in local time or GMT.
    */
-  Timezone timestamp_timezone;
+  Timezone timestamp_timezone{Timezone::LocalTime};
 
   /**
    * @brief Whether to add metadata to each line of multi-line log messages.
@@ -89,7 +92,23 @@ public:
    * to every line of multi-line log entries, maintaining consistency
    * across all log outputs.
    */
-  bool add_metadata_to_multi_line_logs;
+  bool add_metadata_to_multi_line_logs{true};
+
+  /**
+   * @brief Controls how much of the source location path to display.
+   *
+   * Determines the depth of the file path shown in source location attributes:
+   * - std::numeric_limits<uint8_t>::max() (default): Shows the full path
+   *   e.g., "/home/foo/src/project/example/main.cpp:5"
+   * - 1: Shows only the file and its immediate parent directory
+   *   e.g., "main.cpp:5"
+   * - 2: Shows the file and two parent directory levels
+   *   e.g., "example/main.cpp:5"
+   * - etc
+   *
+   * This affects only %(source_location) attribute.
+   */
+  uint8_t source_location_path_depth{std::numeric_limits<uint8_t>::max()}; // max means full path
 
   /***/
   bool operator==(PatternFormatterOptions const& other) const noexcept

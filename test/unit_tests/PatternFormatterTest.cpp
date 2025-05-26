@@ -492,4 +492,155 @@ TEST_CASE("pattern_timestamp_move_constructor")
   REQUIRE_EQ(formatted_string, expected_string);
 }
 
+TEST_CASE("pattern_formatter_source_location_depth_1")
+{
+  PatternFormatterOptions po;
+  po.format_pattern = "%(source_location)";
+  po.source_location_path_depth = 1;
+  PatternFormatter default_pattern_formatter{po};
+
+  uint64_t const ts{1579815761000023021};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{__FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                               __func__,
+                               "This the {} formatter {}",
+                               nullptr,
+                               LogLevel::Info,
+                               MacroMetadata::Event::Log};
+
+  // Format to a buffer
+  fmtquill::memory_buffer log_msg;
+  fmtquill::format_to(std::back_inserter(log_msg),
+                      fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  auto const& formatted_buffer = default_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
+
+  // Convert the buffer to a string
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+
+  // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
+  std::string const expected_string = "PatternFormatterTest.cpp:505\n";
+  auto const found_expected = formatted_string.find(expected_string);
+  REQUIRE_NE(found_expected, std::string::npos);
+}
+
+TEST_CASE("pattern_formatter_source_location_depth_2")
+{
+  PatternFormatterOptions po;
+  po.format_pattern = "%(source_location)";
+  po.source_location_path_depth = 2;
+  PatternFormatter default_pattern_formatter{po};
+
+  uint64_t const ts{1579815761000023021};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{__FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                               __func__,
+                               "This the {} formatter {}",
+                               nullptr,
+                               LogLevel::Info,
+                               MacroMetadata::Event::Log};
+
+  // Format to a buffer
+  fmtquill::memory_buffer log_msg;
+  fmtquill::format_to(std::back_inserter(log_msg),
+                      fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  auto const& formatted_buffer = default_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
+
+  // Convert the buffer to a string
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+
+  // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
+  std::string const expected_string =
+    "unit_tests" + std::string{detail::PATH_PREFERRED_SEPARATOR} + "PatternFormatterTest.cpp:542\n";
+  auto const found_expected = formatted_string.find(expected_string);
+  REQUIRE_NE(found_expected, std::string::npos);
+}
+
+TEST_CASE("pattern_formatter_source_location_depth_3")
+{
+  PatternFormatterOptions po;
+  po.format_pattern = "%(source_location)";
+  po.source_location_path_depth = 3;
+  PatternFormatter default_pattern_formatter{po};
+
+  uint64_t const ts{1579815761000023021};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{__FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                               __func__,
+                               "This the {} formatter {}",
+                               nullptr,
+                               LogLevel::Info,
+                               MacroMetadata::Event::Log};
+
+  // Format to a buffer
+  fmtquill::memory_buffer log_msg;
+  fmtquill::format_to(std::back_inserter(log_msg),
+                      fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  auto const& formatted_buffer = default_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
+
+  // Convert the buffer to a string
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+
+  // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
+  std::string const expected_string = "test" + std::string{detail::PATH_PREFERRED_SEPARATOR} +
+    "unit_tests" + std::string{detail::PATH_PREFERRED_SEPARATOR} + "PatternFormatterTest.cpp:580\n";
+  auto const found_expected = formatted_string.find(expected_string);
+  REQUIRE_NE(found_expected, std::string::npos);
+}
+
+TEST_CASE("pattern_formatter_source_location_depth_100")
+{
+  PatternFormatterOptions po;
+  po.format_pattern = "%(source_location)";
+  po.source_location_path_depth = 100;
+  PatternFormatter default_pattern_formatter{po};
+
+  uint64_t const ts{1579815761000023021};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{__FILE__ ":" QUILL_STRINGIFY(__LINE__),
+                               __func__,
+                               "This the {} formatter {}",
+                               nullptr,
+                               LogLevel::Info,
+                               MacroMetadata::Event::Log};
+
+  // Format to a buffer
+  fmtquill::memory_buffer log_msg;
+  fmtquill::format_to(std::back_inserter(log_msg),
+                      fmtquill::runtime(macro_metadata.message_format()), "pattern", 1234);
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  auto const& formatted_buffer = default_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()});
+
+  // Convert the buffer to a string
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+
+  // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
+  std::string const expected_string = "quill" + std::string{detail::PATH_PREFERRED_SEPARATOR} + "test" + std::string{detail::PATH_PREFERRED_SEPARATOR} +
+    "unit_tests" + std::string{detail::PATH_PREFERRED_SEPARATOR} + "PatternFormatterTest.cpp:618\n";
+  auto const found_expected = formatted_string.find(expected_string);
+  REQUIRE_NE(found_expected, std::string::npos);
+}
+
 TEST_SUITE_END();
