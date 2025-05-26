@@ -42,8 +42,8 @@ public:
              UserClockSource* user_clock)
     : logger_name(static_cast<std::string&&>(logger_name)),
       user_clock(user_clock),
-      clock_source(clock_source),
-      pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options))
+      pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options)),
+      clock_source(clock_source)
   {
 #ifndef NDEBUG
     for (auto const& sink : sinks)
@@ -182,22 +182,18 @@ protected:
   friend class LoggerManager;
 
   static inline QUILL_THREAD_LOCAL ThreadContext* thread_context = nullptr; /* Set and accessed by the frontend */
-
-  // -- frontend hot cache line BEGIN --
-  std::string logger_name; /* Set by the frontend once, accessed by the frontend AND backend */
+  std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
+  std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
+  std::vector<std::shared_ptr<Sink>> sinks; /* Set by the frontend and accessed by the backend */
+  std::string logger_name; /* Set by the frontend, accessed by the frontend AND backend */
   UserClockSource* user_clock{nullptr}; /* A non owned pointer to a custom timestamp clock, valid only when provided. used by frontend only */
+  PatternFormatterOptions pattern_formatter_options; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
   std::atomic<uint32_t> message_flush_threshold{0};   /* used by frontend only */
   std::atomic<uint32_t> messages_since_last_flush{0}; /* used by frontend only */
   ClockSourceType clock_source; /* Set by the frontend and accessed by the frontend AND backend */
   std::atomic<LogLevel> log_level{LogLevel::Info}; /* used by frontend only */
   std::atomic<LogLevel> backtrace_flush_level{LogLevel::None}; /** Updated by the frontend at any time, accessed by the backend */
   std::atomic<bool> valid{true}; /* Updated by the frontend at any time, accessed by the backend */
-  // -- frontend hot cache line END --
-
-  PatternFormatterOptions pattern_formatter_options; /* Set by the frontend once and accessed by the backend to initialise PatternFormatter */
-  std::vector<std::shared_ptr<Sink>> sinks; /* Set by the frontend once and accessed by the backend */
-  std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
-  std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
 };
 } // namespace detail
 
