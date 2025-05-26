@@ -128,13 +128,16 @@
 
 ### API Changes
 
-- The immediate flush feature (already present in previous versions) helps with debugging by blocking the thread until
-  the log statement has been written to the file. If you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`,
-  this functionality has been moved to runtime. Instead, enable this feature by calling
-  `logger->set_immediate_flush(true)` on each logger instance. `QUILL_ENABLE_IMMEDIATE_FLUSH` still exists as a
-  compile-time preprocessor flag but is now set to `1` by default. Setting `QUILL_ENABLE_IMMEDIATE_FLUSH 0` in the
-  preprocessor will eliminate the `if` branch from the hotpath and disable this feature regardless of the
-  value of `logger->set_immediate_flush(true)`.
+- The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime.
+  This feature helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread. If
+  you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`, this functionality has been moved to runtime with
+  more flexibility. Instead of using a boolean flag, you can now specify the flush interval by calling
+  `logger->set_immediate_flush(flush_every_n_messages)` on each logger instance. Set it to `1` for per-message flushing,
+  or to a higher value to flush after that many messages. Setting it to `0` disables
+  flushing which is the default behaviour. `QUILL_ENABLE_IMMEDIATE_FLUSH` still exists as a compile-time preprocessor
+  flag and is set to `1` by default. Setting `QUILL_ENABLE_IMMEDIATE_FLUSH 0` in the preprocessor will eliminate the
+  `if` branch from the hot path and disable this feature entirely, regardless of the value passed to
+  `set_immediate_flush(flush_every_n_messages)`.
 
 - The `QUILL_LOG_RUNTIME_METADATA` macro requires `file`, `function` and `fmt` to be passed as `char const*` and
   `line_number` as `uint32_t`. This is a breaking change from the previous version.
