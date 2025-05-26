@@ -80,23 +80,23 @@ public:
             macro_metadata->event() != MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy) &&
            "Should not be called with MacroMetadata::Event::LogWithRuntimeMetadata");
 
-    assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
+    assert(_valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 #endif
 
     // Store the timestamp of the log statement at the start of the call. This gives a more accurate
     // timestamp, especially if the queue is full
     uint64_t const current_timestamp = _get_message_timestamp();
 
-    if (QUILL_UNLIKELY(thread_context == nullptr))
+    if (QUILL_UNLIKELY(_thread_context == nullptr))
     {
       // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
-      thread_context = detail::get_local_thread_context<frontend_options_t>();
+      _thread_context = detail::get_local_thread_context<frontend_options_t>();
     }
 
     // Need to know how much size we need from the queue
     size_t total_size = sizeof(current_timestamp) + (sizeof(uintptr_t) * 3) +
       detail::compute_encoded_size_and_cache_string_lengths(
-                          thread_context->get_conditional_arg_size_cache(), fmt_args...);
+                          _thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
     std::byte* write_buffer = _reserve_queue_space(total_size, macro_metadata);
 
@@ -117,7 +117,7 @@ public:
                                   detail::decode_and_store_args<detail::remove_cvref_t<Args>...>);
 
     // encode remaining arguments
-    detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
 #ifndef NDEBUG
     assert((write_buffer > write_begin) && "write_buffer must be greater than write_begin");
@@ -160,17 +160,17 @@ public:
             macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) &&
            "Should only be called with MacroMetadata::Event::LogWithRuntimeMetadata");
 
-    assert(valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
+    assert(_valid.load(std::memory_order_acquire) && "Invalidated loggers can not log");
 #endif
 
     // Store the timestamp of the log statement at the start of the call. This gives a more accurate
     // timestamp, especially if the queue is full
     uint64_t const current_timestamp = _get_message_timestamp();
 
-    if (QUILL_UNLIKELY(thread_context == nullptr))
+    if (QUILL_UNLIKELY(_thread_context == nullptr))
     {
       // This caches the ThreadContext pointer to avoid repeatedly calling get_local_thread_context()
-      thread_context = detail::get_local_thread_context<frontend_options_t>();
+      _thread_context = detail::get_local_thread_context<frontend_options_t>();
     }
 
     // Need to know how much size we need from the queue
@@ -180,20 +180,20 @@ public:
     if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy)
     {
       total_size += detail::compute_encoded_size_and_cache_string_lengths(
-        thread_context->get_conditional_arg_size_cache(), fmt, file_path, function_name, tags,
+        _thread_context->get_conditional_arg_size_cache(), fmt, file_path, function_name, tags,
         line_number, log_level, fmt_args...);
     }
     else if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy)
     {
       total_size += detail::compute_encoded_size_and_cache_string_lengths(
-        thread_context->get_conditional_arg_size_cache(), static_cast<void const*>(fmt),
+        _thread_context->get_conditional_arg_size_cache(), static_cast<void const*>(fmt),
         static_cast<void const*>(file_path), static_cast<void const*>(function_name),
         static_cast<void const*>(tags), line_number, log_level, fmt_args...);
     }
     else if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy)
     {
       total_size += detail::compute_encoded_size_and_cache_string_lengths(
-        thread_context->get_conditional_arg_size_cache(), fmt, static_cast<void const*>(file_path),
+        _thread_context->get_conditional_arg_size_cache(), fmt, static_cast<void const*>(file_path),
         static_cast<void const*>(function_name), tags, line_number, log_level, fmt_args...);
     }
     else
@@ -222,19 +222,19 @@ public:
     if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy)
     {
       // encode runtime metadata and remaining arguments
-      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt, file_path,
-                     function_name, tags, line_number, log_level, fmt_args...);
+      detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(), fmt,
+                     file_path, function_name, tags, line_number, log_level, fmt_args...);
     }
     else if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy)
     {
-      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
+      detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(),
                      static_cast<void const*>(fmt), static_cast<void const*>(file_path),
                      static_cast<void const*>(function_name), static_cast<void const*>(tags),
                      line_number, log_level, fmt_args...);
     }
     else if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy)
     {
-      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt,
+      detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(), fmt,
                      static_cast<void const*>(file_path), static_cast<void const*>(function_name),
                      tags, line_number, log_level, fmt_args...);
     }
@@ -400,7 +400,7 @@ private:
                                                                       MacroMetadata const* macro_metadata)
   {
     std::byte* write_buffer =
-      thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
+      _thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
 
     if constexpr ((frontend_options_t::queue_type == QueueType::BoundedDropping) ||
                   (frontend_options_t::queue_type == QueueType::UnboundedDropping))
@@ -410,7 +410,7 @@ private:
         // not enough space to push to queue message is dropped
         if (macro_metadata->event() == MacroMetadata::Event::Log)
         {
-          thread_context->increment_failure_counter();
+          _thread_context->increment_failure_counter();
         }
       }
     }
@@ -421,7 +421,7 @@ private:
       {
         if (macro_metadata->event() == MacroMetadata::Event::Log)
         {
-          thread_context->increment_failure_counter();
+          _thread_context->increment_failure_counter();
         }
 
         do
@@ -433,7 +433,7 @@ private:
 
           // not enough space to push to queue, keep trying
           write_buffer =
-            thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
+            _thread_context->get_spsc_queue<frontend_options_t::queue_type>().prepare_write(total_size);
         } while (write_buffer == nullptr);
       }
     }
@@ -448,7 +448,7 @@ private:
   template <bool enable_immediate_flush>
   QUILL_ATTRIBUTE_HOT void _commit_log_statement(size_t total_size)
   {
-    thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_and_commit_write(total_size);
+    _thread_context->get_spsc_queue<frontend_options_t::queue_type>().finish_and_commit_write(total_size);
 
     if constexpr (enable_immediate_flush)
     {

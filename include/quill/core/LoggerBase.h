@@ -180,7 +180,7 @@ protected:
   friend class BackendWorker;
   friend class LoggerManager;
 
-  static inline QUILL_THREAD_LOCAL ThreadContext* thread_context = nullptr; /* Set and accessed by the frontend */
+  static inline QUILL_THREAD_LOCAL ThreadContext* _thread_context = nullptr; /* Set and accessed by the frontend */
 
   // -- frontend access BEGIN --
   std::string _logger_name; /* Set by the frontend once, accessed by the frontend AND backend */
