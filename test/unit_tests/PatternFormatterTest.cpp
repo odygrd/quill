@@ -637,8 +637,9 @@ TEST_CASE("pattern_formatter_source_location_depth_100")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
-  std::string const expected_string = "quill" + std::string{detail::PATH_PREFERRED_SEPARATOR} + "test" + std::string{detail::PATH_PREFERRED_SEPARATOR} +
-    "unit_tests" + std::string{detail::PATH_PREFERRED_SEPARATOR} + "PatternFormatterTest.cpp:618\n";
+  std::string const expected_string = "quill" + std::string{detail::PATH_PREFERRED_SEPARATOR} +
+    "test" + std::string{detail::PATH_PREFERRED_SEPARATOR} + "unit_tests" +
+    std::string{detail::PATH_PREFERRED_SEPARATOR} + "PatternFormatterTest.cpp:618\n";
   auto const found_expected = formatted_string.find(expected_string);
   REQUIRE_NE(found_expected, std::string::npos);
 }

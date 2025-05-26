@@ -204,7 +204,8 @@ public:
               }
 
               // Stop if we've reached the beginning of the string
-              if (i == 0) break;
+              if (i == 0)
+                break;
             }
 
             if (!found_separator)
