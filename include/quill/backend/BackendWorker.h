@@ -539,7 +539,7 @@ private:
     std::memcpy(&transit_event->logger_base, read_pos, sizeof(transit_event->logger_base));
     read_pos += sizeof(transit_event->logger_base);
 
-    if (transit_event->logger_base->clock_source == ClockSourceType::Tsc)
+    if (transit_event->logger_base->_clock_source == ClockSourceType::Tsc)
     {
       // If using the rdtsc clock, convert the value to nanoseconds since epoch.
       // This conversion ensures that every transit inserted in the buffer below has a timestamp in
@@ -558,7 +558,7 @@ private:
     }
 
     // Check if strict log timestamp order is enabled and the clock source is not User
-    if ((transit_event->logger_base->clock_source != ClockSourceType::User) &&
+    if ((transit_event->logger_base->_clock_source != ClockSourceType::User) &&
         (ts_now != std::numeric_limits<uint64_t>::max()))
     {
       // We only check against `ts_now` for real timestamps, not custom timestamps by the user, and
@@ -804,11 +804,11 @@ private:
         // If the severity of the message is higher than the backtrace flush severity we will also
         // flush the backtrace of the logger
         if (QUILL_UNLIKELY(transit_event.log_level() >=
-                           transit_event.logger_base->backtrace_flush_level.load(std::memory_order_relaxed)))
+                           transit_event.logger_base->_backtrace_flush_level.load(std::memory_order_relaxed)))
         {
-          if (transit_event.logger_base->backtrace_storage)
+          if (transit_event.logger_base->_backtrace_storage)
           {
-            transit_event.logger_base->backtrace_storage->process(
+            transit_event.logger_base->_backtrace_storage->process(
               [this](TransitEvent const& te, std::string_view thread_id, std::string_view thread_name)
               { _dispatch_transit_event_to_sinks(te, thread_id, thread_name); });
           }
@@ -816,7 +816,7 @@ private:
       }
       else
       {
-        if (transit_event.logger_base->backtrace_storage)
+        if (transit_event.logger_base->_backtrace_storage)
         {
           // this is a backtrace log and we will store the transit event
           // we need to pass a copy of transit_event here and not move the existing
@@ -824,7 +824,7 @@ private:
           TransitEvent transit_event_copy;
           transit_event.copy_to(transit_event_copy);
 
-          transit_event.logger_base->backtrace_storage->store(
+          transit_event.logger_base->_backtrace_storage->store(
             std::move(transit_event_copy), thread_context.thread_id(), thread_context.thread_name());
         }
         else
@@ -838,21 +838,21 @@ private:
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::InitBacktrace)
     {
       // we can just convert the capacity back to int here and use it
-      if (!transit_event.logger_base->backtrace_storage)
+      if (!transit_event.logger_base->_backtrace_storage)
       {
         // Lazy BacktraceStorage creation
-        transit_event.logger_base->backtrace_storage = std::make_shared<BacktraceStorage>();
+        transit_event.logger_base->_backtrace_storage = std::make_shared<BacktraceStorage>();
       }
 
-      transit_event.logger_base->backtrace_storage->set_capacity(static_cast<uint32_t>(std::stoul(
+      transit_event.logger_base->_backtrace_storage->set_capacity(static_cast<uint32_t>(std::stoul(
         std::string{transit_event.formatted_msg->begin(), transit_event.formatted_msg->end()})));
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushBacktrace)
     {
-      if (transit_event.logger_base->backtrace_storage)
+      if (transit_event.logger_base->_backtrace_storage)
       {
         // process all records in backtrace for this logger and log them
-        transit_event.logger_base->backtrace_storage->process(
+        transit_event.logger_base->_backtrace_storage->process(
           [this](TransitEvent const& te, std::string_view thread_id, std::string_view thread_name)
           { _dispatch_transit_event_to_sinks(te, thread_id, thread_name); });
       }
@@ -880,32 +880,32 @@ private:
   {
     // First check to see if we should init the pattern formatter on a new Logger
     // Look up to see if we have the formatter and if not create it
-    if (QUILL_UNLIKELY(!transit_event.logger_base->pattern_formatter))
+    if (QUILL_UNLIKELY(!transit_event.logger_base->_pattern_formatter))
     {
       // Search for an existing pattern_formatter in each logger
       _logger_manager.for_each_logger(
         [&transit_event](LoggerBase* logger)
         {
-          if (logger->pattern_formatter &&
-              (logger->pattern_formatter->get_options() == transit_event.logger_base->pattern_formatter_options))
+          if (logger->_pattern_formatter &&
+              (logger->_pattern_formatter->get_options() == transit_event.logger_base->_pattern_formatter_options))
           {
             // hold a copy of the shared_ptr of the same formatter
-            transit_event.logger_base->pattern_formatter = logger->pattern_formatter;
+            transit_event.logger_base->_pattern_formatter = logger->_pattern_formatter;
             return true;
           }
 
           return false;
         });
 
-      if (!transit_event.logger_base->pattern_formatter)
+      if (!transit_event.logger_base->_pattern_formatter)
       {
         // Didn't find an existing formatter  need to create a new pattern formatter
-        transit_event.logger_base->pattern_formatter =
-          std::make_shared<PatternFormatter>(transit_event.logger_base->pattern_formatter_options);
+        transit_event.logger_base->_pattern_formatter =
+          std::make_shared<PatternFormatter>(transit_event.logger_base->_pattern_formatter_options);
       }
     }
 
-    assert(transit_event.logger_base->pattern_formatter &&
+    assert(transit_event.logger_base->_pattern_formatter &&
            "transit_event->logger_base->pattern_formatter should be valid here");
 
     // proceed after ensuring a pattern formatter exists
@@ -917,7 +917,7 @@ private:
       log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
                           _options.log_level_short_codes.size());
 
-    if (transit_event.logger_base->pattern_formatter->get_options().add_metadata_to_multi_line_logs &&
+    if (transit_event.logger_base->_pattern_formatter->get_options().add_metadata_to_multi_line_logs &&
         (!transit_event.get_named_args() || transit_event.get_named_args()->empty()))
     {
       // This is only supported when named_args are not used
@@ -988,15 +988,15 @@ private:
                                                 std::string_view const& log_level_short_code,
                                                 std::string_view const& log_message) const
   {
-    std::string_view const log_statement = transit_event.logger_base->pattern_formatter->format(
+    std::string_view const log_statement = transit_event.logger_base->_pattern_formatter->format(
       transit_event.timestamp, thread_id, thread_name, _process_id,
-      transit_event.logger_base->logger_name, log_level_description, log_level_short_code,
+      transit_event.logger_base->_logger_name, log_level_description, log_level_short_code,
       *transit_event.macro_metadata, transit_event.get_named_args(), log_message);
 
-    for (auto& sink : transit_event.logger_base->sinks)
+    for (auto& sink : transit_event.logger_base->_sinks)
     {
       if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp, thread_id,
-                                  thread_name, transit_event.logger_base->logger_name,
+                                  thread_name, transit_event.logger_base->_logger_name,
                                   transit_event.log_level(), log_message, log_statement))
       {
         std::string_view log_to_write = log_statement;
@@ -1012,13 +1012,13 @@ private:
 
           log_to_write = sink->_override_pattern_formatter->format(
             transit_event.timestamp, thread_id, thread_name, _process_id,
-            transit_event.logger_base->logger_name, log_level_description, log_level_short_code,
+            transit_event.logger_base->_logger_name, log_level_description, log_level_short_code,
             *transit_event.macro_metadata, transit_event.get_named_args(), log_message);
         }
 
         // Forward the message using the computed log statement
         sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
-                        thread_name, _process_id, transit_event.logger_base->logger_name,
+                        thread_name, _process_id, transit_event.logger_base->_logger_name,
                         transit_event.log_level(), log_level_description, log_level_short_code,
                         transit_event.get_named_args(), log_message, log_to_write);
       }
@@ -1244,7 +1244,7 @@ private:
       {
         if (logger->is_valid_logger())
         {
-          for (std::shared_ptr<Sink> const& sink : logger->sinks)
+          for (std::shared_ptr<Sink> const& sink : logger->_sinks)
           {
             Sink* logger_sink_ptr = sink.get();
             auto search_it = std::find_if(_active_sinks_cache.begin(), _active_sinks_cache.end(),

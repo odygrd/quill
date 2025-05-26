@@ -271,7 +271,7 @@ public:
     }
 
     // Also store the desired flush log level
-    backtrace_flush_level.store(flush_level, std::memory_order_relaxed);
+    _backtrace_flush_level.store(flush_level, std::memory_order_relaxed);
   }
 
   /**
@@ -355,10 +355,10 @@ private:
         static_cast<PatternFormatterOptions&&>(pattern_formatter_options), clock_source, user_clock)
 
   {
-    if (this->user_clock)
+    if (this->_user_clock)
     {
       // if a user clock is provided then set the ClockSourceType to User
-      this->clock_source = ClockSourceType::User;
+      this->_clock_source = ClockSourceType::User;
     }
   }
 
@@ -371,19 +371,19 @@ private:
     // This is very rare but might lead to out-of-order timestamp in the log file if a thread blocks
     // on _reserve_queue_space for too long
 
-    if (clock_source == ClockSourceType::Tsc)
+    if (_clock_source == ClockSourceType::Tsc)
     {
       return detail::rdtsc();
     }
 
-    if (clock_source == ClockSourceType::System)
+    if (_clock_source == ClockSourceType::System)
     {
       return detail::get_timestamp_ns<std::chrono::system_clock>();
     }
 
-    if (user_clock)
+    if (_user_clock)
     {
-      return user_clock->now();
+      return _user_clock->now();
     }
 
     // not expected
@@ -452,13 +452,13 @@ private:
 
     if constexpr (enable_immediate_flush)
     {
-      uint32_t const threshold = message_flush_threshold.load(std::memory_order_relaxed);
+      uint32_t const threshold = _message_flush_threshold.load(std::memory_order_relaxed);
       if (QUILL_UNLIKELY(threshold != 0))
       {
-        uint32_t const prev = messages_since_last_flush.fetch_add(1, std::memory_order_relaxed);
+        uint32_t const prev = _messages_since_last_flush.fetch_add(1, std::memory_order_relaxed);
         if ((prev + 1) >= threshold)
         {
-          messages_since_last_flush.store(0, std::memory_order_relaxed);
+          _messages_since_last_flush.store(0, std::memory_order_relaxed);
           this->flush_log();
         }
       }

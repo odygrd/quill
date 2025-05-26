@@ -40,10 +40,10 @@ public:
   LoggerBase(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
              UserClockSource* user_clock)
-    : logger_name(static_cast<std::string&&>(logger_name)),
-      user_clock(user_clock),
-      pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options)),
-      clock_source(clock_source)
+    : _logger_name(static_cast<std::string&&>(logger_name)),
+      _user_clock(user_clock),
+      _clock_source(clock_source),
+      _pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options))
   {
 #ifndef NDEBUG
     for (auto const& sink : sinks)
@@ -52,7 +52,7 @@ public:
     }
 #endif
 
-    this->sinks = static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks);
+    this->_sinks = static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks);
   }
 
   /***/
@@ -66,19 +66,19 @@ public:
    * Returns the name of the logger.
    * @return A constant reference to the logger's name.
    */
-  QUILL_NODISCARD std::string const& get_logger_name() const noexcept { return logger_name; }
+  QUILL_NODISCARD std::string const& get_logger_name() const noexcept { return _logger_name; }
 
   /**
    * Returns the user-defined clock source.
    * @return A pointer to the constant UserClockSource object.
    */
-  QUILL_NODISCARD UserClockSource* get_user_clock_source() const noexcept { return user_clock; }
+  QUILL_NODISCARD UserClockSource* get_user_clock_source() const noexcept { return _user_clock; }
 
   /**
    * Returns the type of clock source being used.
    * @return The ClockSourceType enum value representing the current clock source.
    */
-  QUILL_NODISCARD ClockSourceType get_clock_source_type() const noexcept { return clock_source; }
+  QUILL_NODISCARD ClockSourceType get_clock_source_type() const noexcept { return _clock_source; }
 
   /**
    * Returns the pattern formatter options.
@@ -86,7 +86,7 @@ public:
    */
   QUILL_NODISCARD PatternFormatterOptions const& get_pattern_formatter_options() const noexcept
   {
-    return pattern_formatter_options;
+    return _pattern_formatter_options;
   }
 
   /**
@@ -96,13 +96,13 @@ public:
    */
   QUILL_NODISCARD std::vector<std::shared_ptr<Sink>> const& get_sinks() const noexcept
   {
-    return sinks;
+    return _sinks;
   }
 
   /**
    * This function sets the logger's validity flag to false, indicating that the logger is no longer valid.
    */
-  void mark_invalid() { valid.store(false, std::memory_order_release); }
+  void mark_invalid() { _valid.store(false, std::memory_order_release); }
 
   /**
    * @brief Checks if the logger is valid.
@@ -110,7 +110,7 @@ public:
    */
   QUILL_NODISCARD bool is_valid_logger() const noexcept
   {
-    return valid.load(std::memory_order_acquire);
+    return _valid.load(std::memory_order_acquire);
   }
 
   /**
@@ -118,7 +118,7 @@ public:
    */
   QUILL_NODISCARD LogLevel get_log_level() const noexcept
   {
-    return log_level.load(std::memory_order_relaxed);
+    return _log_level.load(std::memory_order_relaxed);
   }
 
   /**
@@ -132,7 +132,7 @@ public:
       QUILL_THROW(QuillError{"LogLevel::Backtrace is only used internally. Please don't use it."});
     }
 
-    log_level.store(new_log_level, std::memory_order_relaxed);
+    _log_level.store(new_log_level, std::memory_order_relaxed);
   }
 
   /**
@@ -153,7 +153,7 @@ public:
    */
   void set_immediate_flush(uint32_t flush_every_n_messages = 1)
   {
-    message_flush_threshold.store(flush_every_n_messages, std::memory_order_relaxed);
+    _message_flush_threshold.store(flush_every_n_messages, std::memory_order_relaxed);
   }
 
   /**
@@ -181,18 +181,22 @@ protected:
   friend class LoggerManager;
 
   static inline QUILL_THREAD_LOCAL ThreadContext* thread_context = nullptr; /* Set and accessed by the frontend */
-  std::shared_ptr<PatternFormatter> pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
-  std::shared_ptr<BacktraceStorage> backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
-  std::vector<std::shared_ptr<Sink>> sinks; /* Set by the frontend and accessed by the backend */
-  std::string logger_name; /* Set by the frontend, accessed by the frontend AND backend */
-  UserClockSource* user_clock{nullptr}; /* A non owned pointer to a custom timestamp clock, valid only when provided. used by frontend only */
-  PatternFormatterOptions pattern_formatter_options; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
-  std::atomic<uint32_t> message_flush_threshold{0};   /* used by frontend only */
-  std::atomic<uint32_t> messages_since_last_flush{0}; /* used by frontend only */
-  ClockSourceType clock_source; /* Set by the frontend and accessed by the frontend AND backend */
-  std::atomic<LogLevel> log_level{LogLevel::Info}; /* used by frontend only */
-  std::atomic<LogLevel> backtrace_flush_level{LogLevel::None}; /** Updated by the frontend at any time, accessed by the backend */
-  std::atomic<bool> valid{true}; /* Updated by the frontend at any time, accessed by the backend */
+
+  // -- frontend access BEGIN --
+  std::string _logger_name; /* Set by the frontend once, accessed by the frontend AND backend */
+  UserClockSource* _user_clock{nullptr}; /* A non-owned pointer to a custom timestamp clock, valid only when provided. used by frontend only */
+  std::atomic<uint32_t> _message_flush_threshold{0};   /* used by frontend only */
+  std::atomic<uint32_t> _messages_since_last_flush{0}; /* used by frontend only */
+  ClockSourceType _clock_source; /* Set by the frontend and accessed by the frontend AND backend */
+  std::atomic<LogLevel> _log_level{LogLevel::Info}; /* used by frontend only */
+  std::atomic<LogLevel> _backtrace_flush_level{LogLevel::None}; /** Updated by the frontend at any time, accessed by the backend */
+  std::atomic<bool> _valid{true}; /* Updated by the frontend at any time, accessed by the backend */
+  // -- frontend access END --
+
+  PatternFormatterOptions _pattern_formatter_options; /* Set by the frontend once and accessed by the backend to initialise PatternFormatter */
+  std::vector<std::shared_ptr<Sink>> _sinks; /* Set by the frontend once and accessed by the backend */
+  std::shared_ptr<PatternFormatter> _pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */
+  std::shared_ptr<BacktraceStorage> _backtrace_storage; /* The backend thread will construct this, we never access it on the frontend */
 };
 } // namespace detail
 
