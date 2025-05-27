@@ -1,5 +1,4 @@
 #include "doctest/doctest.h"
-#include "misc/DocTestExtensions.h"
 
 #include "quill/backend/PatternFormatter.h"
 #include "quill/core/Common.h"
@@ -515,7 +514,7 @@ TEST_CASE("pattern_formatter_source_location_prefix")
 
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
-    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:503\n";
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:502\n";
     REQUIRE_EQ(formatted_string, expected_string);
   }
 
@@ -529,7 +528,7 @@ TEST_CASE("pattern_formatter_source_location_prefix")
 
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
-    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:503\n";
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:502\n";
     REQUIRE_EQ(formatted_string, expected_string);
   }
 }
