@@ -519,7 +519,8 @@ TEST_CASE("pattern_formatter_source_location_prefix")
   }
 
   {
-    po.source_location_path_strip_prefix = std::string{"quill"} + detail::PATH_PREFERRED_SEPARATOR;
+    po.source_location_path_strip_prefix =
+      std::string{"quill"} + static_cast<char>(detail::PATH_PREFERRED_SEPARATOR);
     PatternFormatter pattern_formatter{po};
 
     auto const& formatted_buffer =
