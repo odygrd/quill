@@ -492,7 +492,7 @@ TEST_CASE("pattern_timestamp_move_constructor")
   REQUIRE_EQ(formatted_string, expected_string);
 }
 
-TEST_CASE("pattern_formatter_source_location_depth")
+TEST_CASE("pattern_formatter_source_location_prefix")
 {
   std::vector<std::pair<std::string, std::string>> named_args;
   uint64_t const ts{1579815761000023021};
@@ -505,60 +505,42 @@ TEST_CASE("pattern_formatter_source_location_depth")
   po.format_pattern = "%(source_location)";
 
   {
-    po.source_location_path_depth = 1;
+    po.source_location_path_strip_prefix = "quill";
     PatternFormatter pattern_formatter{po};
 
     auto const& formatted_buffer =
       pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
                                macro_metadata, &named_args, std::string_view{});
 
-    std::string const expected_string = "PatternFormatterTest.cpp:502\n";
-    auto const found_expected = formatted_buffer.find(expected_string);
-    REQUIRE_NE(found_expected, std::string::npos);
+    std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+
+#if defined(_WIN32)
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:502\n";
+#else
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:502\n";
+#endif
+
+    REQUIRE_EQ(formatted_string, expected_string);
   }
 
   {
-    po.source_location_path_depth = 2;
+    po.source_location_path_strip_prefix =
+      std::string{"quill"} + static_cast<char>(detail::PATH_PREFERRED_SEPARATOR);
     PatternFormatter pattern_formatter{po};
 
     auto const& formatted_buffer =
       pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
                                macro_metadata, &named_args, std::string_view{});
 
-    std::string const expected_string = "unit_tests" +
-      std::string{detail::PATH_PREFERRED_SEPARATOR} + "PatternFormatterTest.cpp:502\n";
-    auto const found_expected = formatted_buffer.find(expected_string);
-    REQUIRE_NE(found_expected, std::string::npos);
-  }
+    std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
-  {
-    po.source_location_path_depth = 3;
-    PatternFormatter pattern_formatter{po};
+#if defined(_WIN32)
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:502\n";
+#else
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:502\n";
+#endif
 
-    auto const& formatted_buffer =
-      pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
-                               macro_metadata, &named_args, std::string_view{});
-
-    std::string const expected_string = "test" + std::string{detail::PATH_PREFERRED_SEPARATOR} +
-      "unit_tests" + std::string{detail::PATH_PREFERRED_SEPARATOR} +
-      "PatternFormatterTest.cpp:502\n";
-    auto const found_expected = formatted_buffer.find(expected_string);
-    REQUIRE_NE(found_expected, std::string::npos);
-  }
-
-  {
-    po.source_location_path_depth = 100;
-    PatternFormatter pattern_formatter{po};
-
-    auto const& formatted_buffer =
-      pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
-                               macro_metadata, &named_args, std::string_view{});
-
-    std::string const expected_string = "quill" + std::string{detail::PATH_PREFERRED_SEPARATOR} +
-      "test" + std::string{detail::PATH_PREFERRED_SEPARATOR} + "unit_tests" +
-      std::string{detail::PATH_PREFERRED_SEPARATOR} + "PatternFormatterTest.cpp:502\n";
-    auto const found_expected = formatted_buffer.find(expected_string);
-    REQUIRE_NE(found_expected, std::string::npos);
+    REQUIRE_EQ(formatted_string, expected_string);
   }
 }
 

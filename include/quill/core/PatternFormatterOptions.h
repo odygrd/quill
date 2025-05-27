@@ -79,6 +79,18 @@ public:
   std::string timestamp_pattern{"%H:%M:%S.%Qns"};
 
   /**
+   * @brief Sets a path prefix to be stripped from source location paths.
+   *
+   * When set, any source location paths that start with this prefix will have the prefix removed:
+   * - For example, with prefix "/home/user/", a path like "/home/user/project/test.cpp:5"
+   *   would be displayed as "project/test.cpp:5"
+   * - If empty (default), the full path is shown
+   *
+   * This affects only the %(source_location) attribute.
+   */
+  std::string source_location_path_strip_prefix{};
+
+  /**
    * @brief The timezone to use for timestamps.
    *
    * Determines whether timestamps are formatted in local time or GMT.
@@ -93,22 +105,6 @@ public:
    * across all log outputs.
    */
   bool add_metadata_to_multi_line_logs{true};
-
-  /**
-   * @brief Controls how much of the source location path to display.
-   *
-   * Determines the depth of the file path shown in source location attributes:
-   * - std::numeric_limits<uint8_t>::max() (default): Shows the full path
-   *   e.g., "/home/foo/src/project/example/main.cpp:5"
-   * - 1: Shows only the file
-   *   e.g., "main.cpp:5"
-   * - 2: Shows the file and its immediate parent directory
-   *   e.g., "example/main.cpp:5"
-   * - etc
-   *
-   * This affects only %(source_location) attribute.
-   */
-  uint8_t source_location_path_depth{std::numeric_limits<uint8_t>::max()}; // max means full path
 
   /***/
   bool operator==(PatternFormatterOptions const& other) const noexcept
