@@ -116,7 +116,8 @@
 - Added `source_location_path_strip_prefix` option in `PatternFormatterOptions` to customize the display of the
   `%(source_location)` attribute of `PatternFormatter`. When set, any paths that contain this prefix will have
   the prefix and everything before it stripped from the displayed path. For example, with prefix "projects",
-  a source location like "/home/user/projects/app/main.cpp:5" would be displayed as "app/main.cpp:5".
+  a source location like "/home/user/projects/app/main.cpp:5" would be displayed as "app/main.cpp:
+  5". ([#772](https://github.com/odygrd/quill/issues/772))
 
 - The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
   helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread.
