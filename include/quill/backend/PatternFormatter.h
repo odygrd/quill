@@ -169,7 +169,71 @@ public:
 
     if (_is_set_in_pattern[Attribute::SourceLocation])
     {
-      _set_arg_val<Attribute::SourceLocation>(log_statement_metadata.source_location());
+      std::string_view source_location = log_statement_metadata.source_location();
+
+      if (_options.source_location_path_depth == std::numeric_limits<uint8_t>::max())
+      {
+        // Use full path (default behavior)
+        _set_arg_val<Attribute::SourceLocation>(source_location);
+      }
+      else
+      {
+        // Find the colon that separates file path from line number
+        size_t const colon_pos = source_location.rfind(':');
+        if (QUILL_LIKELY(colon_pos != std::string_view::npos))
+        {
+          // Get the file path part (without the line number)
+          std::string_view file_path = source_location.substr(0, colon_pos);
+
+          // Count back from the end to find the position after the Nth path separator
+          size_t pos = file_path.length();
+          uint8_t separators_to_find = _options.source_location_path_depth;
+
+          while (separators_to_find > 0 && pos > 0)
+          {
+            // Look for the last path separator (either '/' or platform-specific separator)
+            bool found_separator = false;
+            for (size_t i = pos - 1; i != std::string_view::npos; --i)
+            {
+              char cur = file_path[i];
+              if (cur == '/' || cur == detail::PATH_PREFERRED_SEPARATOR)
+              {
+                pos = i;
+                found_separator = true;
+                break;
+              }
+
+              // Stop if we've reached the beginning of the string
+              if (i == 0)
+                break;
+            }
+
+            if (!found_separator)
+            {
+              // No more separators found, use the full path
+              break;
+            }
+
+            separators_to_find--;
+          }
+
+          // If we found enough separators, use the truncated path + the line number part
+          if (separators_to_find == 0)
+          {
+            _set_arg_val<Attribute::SourceLocation>(source_location.substr(pos + 1));
+          }
+          else
+          {
+            // Not enough path components, use the full path
+            _set_arg_val<Attribute::SourceLocation>(source_location);
+          }
+        }
+        else
+        {
+          // No colon found, use the full source location
+          _set_arg_val<Attribute::SourceLocation>(source_location);
+        }
+      }
     }
 
     if (_is_set_in_pattern[Attribute::ShortSourceLocation])

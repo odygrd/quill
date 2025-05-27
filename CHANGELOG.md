@@ -113,6 +113,15 @@
   for details.
   For documentation, see [here](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
 
+- Added `source_location_path_depth` option in `PatternFormatterOptions` to control the depth of file paths shown in
+  the `%(source_location)` attribute of `PatternFormatter`. This allows customizing the displayed path length from the
+  full path (default) to just the filename or including specific levels of parent directories. For example, setting
+  depth to 1 shows only the filename (e.g., "main.cpp:5"), while depth 2 shows the file and its immediate parent
+  directory (e.g., "example/main.cpp:5").
+
+- The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
+  helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread.
+
 ### Improvements
 
 - Internally, refactored how runtime metadata are handled for more flexibility, providing three macros for logging with
@@ -128,10 +137,8 @@
 
 ### API Changes
 
-- The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime.
-  This feature helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread. If
-  you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`, this functionality has been moved to runtime with
-  more flexibility. Instead of using a boolean flag, you can now specify the flush interval by calling
+- If you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`, this functionality has been moved to runtime
+  with more flexibility. Instead of using a boolean flag, you can now specify the flush interval by calling
   `logger->set_immediate_flush(flush_every_n_messages)` on each logger instance. Set it to `1` for per-message flushing,
   or to a higher value to flush after that many messages. Setting it to `0` disables
   flushing which is the default behaviour. `QUILL_ENABLE_IMMEDIATE_FLUSH` still exists as a compile-time preprocessor
