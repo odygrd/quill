@@ -50,7 +50,7 @@ int main()
     "LOG_%(log_level:<9) %(logger:<12) %(message)";
   pfo.timestamp_pattern = ("%H:%M:%S.%Qns");
   pfo.timestamp_timezone = quill::Timezone::GmtTime;
-  pfo.source_location_path_depth = 2;
+  pfo.source_location_path_strip_prefix = "quill";
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink), pfo);
 

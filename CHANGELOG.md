@@ -113,11 +113,11 @@
   for details.
   For documentation, see [here](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
 
-- Added `source_location_path_depth` option in `PatternFormatterOptions` to control the depth of file paths shown in
-  the `%(source_location)` attribute of `PatternFormatter`. This allows customizing the displayed path length from the
-  full path (default) to just the filename or including specific levels of parent directories. For example, setting
-  depth to 1 shows only the filename (e.g., "main.cpp:5"), while depth 2 shows the file and its immediate parent
-  directory (e.g., "example/main.cpp:5").
+- Added `source_location_path_strip_prefix` option in `PatternFormatterOptions` to customize the display of the
+  `%(source_location)` attribute of `PatternFormatter`. When set, any paths that contain this prefix will have
+  the prefix and everything before it stripped from the displayed path. For example, with prefix "/home/user/projects/",
+  a source location like "/home/user/projects/app/main.cpp:5" would be displayed as "app/main.cpp:5". This allows
+  for cleaner log output while maintaining path context.
 
 - The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
   helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread.
