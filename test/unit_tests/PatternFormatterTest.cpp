@@ -529,7 +529,12 @@ TEST_CASE("pattern_formatter_source_location_prefix")
 
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
+#if defined(_WIN32)
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:502\n";
+#else
     std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:502\n";
+#endif
+
     REQUIRE_EQ(formatted_string, expected_string);
   }
 }
