@@ -1,0 +1,71 @@
+name: gcc15
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: gcc:15.1
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx: [ g++ ]
+        build_type: [ Debug, Release ]
+        std: [ 23 ]
+        with_tests: [ ON ]
+
+        include:
+          - cxx: g++
+            install: |
+              apt-get update
+              apt-get install -y cmake make
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies and create build environment
+        run: |
+          ${{ matrix.install }}
+          mkdir -p ${{runner.workspace}}/build
+          ls -l ${{runner.workspace}}
+
+      - name: Configure
+        env:
+          CXX: ${{matrix.cxx}}
+          CXXFLAGS: ${{matrix.cxxflags}}
+        run: |
+          cd ${{runner.workspace}}/build
+          cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_options}} \
+                -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} \
+                -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
+
+      - name: Build
+        run: |
+          cd ${{runner.workspace}}/build
+          cmake --build . --config ${{ matrix.build_type }} --parallel $(nproc)
+
+      - name: Test
+        run: |
+          cd ${{runner.workspace}}/build 
+          ctest --build-config ${{ matrix.build_type }} ${{ matrix.ctest_options }} --parallel $(nproc) --output-on-failure
+        env:
+          CTEST_OUTPUT_ON_FAILURE: True
