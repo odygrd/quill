@@ -4,9 +4,9 @@
 #include "quill/core/Common.h"
 #include "quill/core/MacroMetadata.h"
 #include <chrono>
+#include <string>
 #include <string_view>
 #include <vector>
-#include <string>
 
 TEST_SUITE_BEGIN("PatternFormatter");
 
@@ -46,7 +46,7 @@ TEST_CASE("default_pattern_formatter")
 
   // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
   std::string const expected_string =
-    "[31341] PatternFormatterTest.cpp:25  LOG_INFO      test_logger  This the pattern formatter "
+    "[31341] PatternFormatterTest.cpp:26  LOG_INFO      test_logger  This the pattern formatter "
     "1234\n";
   auto const found_expected = formatted_string.find(expected_string);
   REQUIRE_NE(found_expected, std::string::npos);
@@ -119,7 +119,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:99 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:100 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_7]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -157,7 +157,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:137 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:138 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_9]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -195,7 +195,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:175 LOG_DEBUG test_logger This "
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:176 LOG_DEBUG test_logger This "
     "the 1234 formatter pattern [DOCTEST_ANON_FUNC_11]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -233,7 +233,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:213 LOG_DEBUG test_logger This the "
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:214 LOG_DEBUG test_logger This the "
     "1234 formatter pattern [DOCTEST_ANON_FUNC_13]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -274,7 +274,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:252 "
+      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:253 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_15]\n";
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -316,7 +316,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:294 "
+      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:295 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_17]\n";
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -375,7 +375,7 @@ TEST_CASE("custom_pattern")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:355 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:356 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -487,7 +487,7 @@ TEST_CASE("pattern_timestamp_move_constructor")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:467 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:468 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_27]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -516,9 +516,9 @@ TEST_CASE("pattern_formatter_source_location_prefix")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
 #if defined(_WIN32)
-    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:502\n";
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:503\n";
 #else
-    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:502\n";
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:503\n";
 #endif
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -536,9 +536,9 @@ TEST_CASE("pattern_formatter_source_location_prefix")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
 #if defined(_WIN32)
-    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:502\n";
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:503\n";
 #else
-    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:502\n";
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:503\n";
 #endif
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -549,11 +549,12 @@ struct PatternFormatterMock : public PatternFormatter
 {
   PatternFormatterMock() : PatternFormatter(PatternFormatterOptions{}) {};
 
-  std::string process_source_location_path(std::string_view source_location, std::string const& strip_prefix,
-                                                bool remove_relative_paths) const
+  std::string process_source_location_path(std::string_view source_location,
+                                           std::string const& strip_prefix, bool remove_relative_paths) const
   {
     // windows complains for REQUIRE_EQ(std::string, std::string_view)
-    return std::string {PatternFormatter::_process_source_location_path(source_location, strip_prefix, remove_relative_paths)};
+    return std::string{PatternFormatter::_process_source_location_path(
+      source_location, strip_prefix, remove_relative_paths)};
   }
 };
 
@@ -563,9 +564,9 @@ TEST_CASE("process_source_location_path")
 
   // Test with basic prefix
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
     #endif
 
@@ -587,7 +588,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\..\\..\\quill\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/../../quill/test/unit_tests/file.cpp";
     #endif
 
@@ -609,7 +610,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\..\\..\\quill\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/../../quill/test/unit_tests/file.cpp";
     #endif
 
@@ -631,7 +632,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
     #endif
 
@@ -653,7 +654,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
     #endif
 
@@ -668,7 +669,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
     #endif
 
@@ -683,7 +684,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "..\\..\\..\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "../../../test/unit_tests/file.cpp";
     #endif
 
@@ -705,7 +706,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\home\\user\\..\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/home/user/../test/unit_tests/file.cpp";
     #endif
 
@@ -727,7 +728,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\home\\user\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/home/user/test/unit_tests/file.cpp";
     #endif
 
@@ -742,7 +743,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\..\\..\\..\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/home/user/quill/../../../test/unit_tests/file.cpp";
     #endif
 
@@ -764,7 +765,7 @@ TEST_CASE("process_source_location_path")
   {
     #if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\..\\..\\..\\test\\unit_tests\\file.cpp";
-    #else
+#else
     char const* path = "/home/user/quill/../../../test/unit_tests/file.cpp";
     #endif
 
