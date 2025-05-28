@@ -34,7 +34,7 @@ quill::Logger* create_logger()
     int file_int;
 
     // iterate through files in folder, find the highest log index number in filenames.
-    for (const auto& file : std::filesystem::directory_iterator(log_path))
+    for (auto const& file : std::filesystem::directory_iterator(log_path))
     {
       if (file.is_regular_file())
       {
@@ -115,7 +115,7 @@ TEST_CASE("flush_multiple_loggers")
   fs::path const log_path = fs::current_path() / path_name;
 
   REQUIRE_EQ(created_files.size(), 3);
-  for (const auto& file : created_files)
+  for (auto const& file : created_files)
   {
     std::vector<std::string> const file_contents = quill::testing::file_contents(file);
     REQUIRE_EQ(file_contents.size(), 1);
@@ -155,7 +155,7 @@ TEST_CASE("flush_multiple_loggers")
   Backend::stop();
 
   // Remove all files
-  for (const auto& file : created_files)
+  for (auto const& file : created_files)
   {
     testing::remove_file(file);
   }

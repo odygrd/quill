@@ -12,9 +12,9 @@
 #include "quill/DeferredFormatCodec.h"
 #include "quill/backend/RdtscClock.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/ChronoTimeUtils.h"
 #include "quill/core/Common.h"
 #include "quill/core/Rdtsc.h"
-#include "quill/core/ChronoTimeUtils.h"
 
 #include "quill/bundled/fmt/format.h"
 #include "quill/std/Chrono.h"
@@ -87,8 +87,8 @@ public:
     }
     else
     {
-      return std::chrono::duration_cast<T>(std::chrono::nanoseconds{
-        detail::get_timestamp_ns<std::chrono::steady_clock>() - _start_tp});
+      return std::chrono::duration_cast<T>(
+        std::chrono::nanoseconds{detail::get_timestamp_ns<std::chrono::steady_clock>() - _start_tp});
     }
   }
 
@@ -135,8 +135,8 @@ template <quill::ClockSourceType ClockType>
 struct fmtquill::formatter<quill::detail::StopWatch<ClockType>> : fmtquill::formatter<double>
 {
   template <typename FormatContext>
-  auto format(quill::detail::StopWatch<ClockType> const& sw,
-              FormatContext& ctx) const -> decltype(ctx.out())
+  auto format(quill::detail::StopWatch<ClockType> const& sw, FormatContext& ctx) const
+    -> decltype(ctx.out())
   {
     return fmtquill::formatter<double>::format(sw.elapsed().count(), ctx);
   }

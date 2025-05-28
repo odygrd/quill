@@ -166,7 +166,7 @@ public:
         return false;
       }
 
-      static constexpr const char* terms[] = {
+      static constexpr char const* terms[] = {
         "ansi",          "color",     "console",        "cygwin",         "gnome",
         "konsole",       "kterm",     "linux",          "msys",           "putty",
         "rxvt",          "screen",    "vt100",          "xterm",          "tmux",
@@ -175,7 +175,7 @@ public:
         "kde-konsole"};
 
       // Loop through each term and check if it's found in env_p
-      for (const char* term : terms)
+      for (char const* term : terms)
       {
         if (std::strstr(env_p, term) != nullptr)
         {

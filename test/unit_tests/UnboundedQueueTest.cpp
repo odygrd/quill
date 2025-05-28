@@ -110,15 +110,13 @@ TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
       {
         for (uint32_t i = 0; i < 8192; ++i)
         {
-          auto* write_buffer =
-            buffer.prepare_write(sizeof(uint32_t));
+          auto* write_buffer = buffer.prepare_write(sizeof(uint32_t));
 
           while (!write_buffer)
           {
             std::this_thread::sleep_for(std::chrono::microseconds{2});
 
-            write_buffer =
-              buffer.prepare_write(sizeof(uint32_t));
+            write_buffer = buffer.prepare_write(sizeof(uint32_t));
           }
 
           std::memcpy(write_buffer, &i, sizeof(uint32_t));

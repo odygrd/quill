@@ -45,7 +45,7 @@ CapturedStream::CapturedStream(int fd) : fd_(fd), uncaptured_fd_(dup(fd))
     FAIL("Unable to create a temporary file in " << temp_dir_path;);
   }
 
-  const int captured_fd = creat(temp_file_path, _S_IREAD | _S_IWRITE);
+  int const captured_fd = creat(temp_file_path, _S_IREAD | _S_IWRITE);
   if (captured_fd == -1)
   {
     FAIL("Unable to open_file temporary file " << temp_file_path);
@@ -155,7 +155,7 @@ FILE* CapturedStream::_fopen(char const* path, char const* mode)
 int CapturedStream::_fclose(FILE* fp) { return fclose(fp); }
 
 // Starts capturing an output stream (stdout/stderr).
-void CaptureStream(int fd, const char* stream_name, CapturedStream** stream)
+void CaptureStream(int fd, char const* stream_name, CapturedStream** stream)
 {
   if (*stream != nullptr)
   {
@@ -177,11 +177,11 @@ std::string GetCapturedStream(CapturedStream** captured_stream)
 
 #if defined(_MSC_VER) || defined(__BORLANDC__)
 // MSVC and C++Builder do not provide a definition of STDERR_FILENO.
-const int kStdOutFileno = 1;
-const int kStdErrFileno = 2;
+int const kStdOutFileno = 1;
+int const kStdErrFileno = 2;
 #else
 const int kStdOutFileno = STDOUT_FILENO;
-const int kStdErrFileno = STDERR_FILENO;
+int const kStdErrFileno = STDERR_FILENO;
 #endif // _MSC_VER
 
 void CaptureStdout() { CaptureStream(kStdOutFileno, "stdout", &g_captured_stdout); }

@@ -10,7 +10,7 @@
   #define QUILL_BEGIN_NAMESPACE                                                                    \
     namespace quill                                                                                \
     {                                                                                              \
-    inline namespace v10                                                                            \
+    inline namespace v10                                                                           \
     {
   #define QUILL_END_NAMESPACE                                                                      \
     }                                                                                              \
@@ -18,9 +18,9 @@
 #endif
 
 #ifdef _MSVC_LANG
-#  define QUILL_CPLUSPLUS _MSVC_LANG
+  #define QUILL_CPLUSPLUS _MSVC_LANG
 #else
-#  define QUILL_CPLUSPLUS __cplusplus
+  #define QUILL_CPLUSPLUS __cplusplus
 #endif
 
 /**

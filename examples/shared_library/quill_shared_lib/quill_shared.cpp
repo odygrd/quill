@@ -24,7 +24,4 @@ void setup_quill()
                                    "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
 }
 
-quill::Logger* get_logger(std::string const& name)
-{
-  return quill::Frontend::get_logger(name);
-}
+quill::Logger* get_logger(std::string const& name) { return quill::Frontend::get_logger(name); }

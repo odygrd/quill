@@ -138,9 +138,9 @@ public:
     favorite_colors.push_back("green");
   };
 
-  bool operator<(const CustomTypeCC& other) const { return this->age < other.age; }
+  bool operator<(CustomTypeCC const& other) const { return this->age < other.age; }
 
-  bool operator==(const CustomTypeCC& other) const
+  bool operator==(CustomTypeCC const& other) const
   {
     return this->age == other.age && this->name == other.name && this->surname == other.surname;
   }
@@ -154,7 +154,7 @@ public:
 /***/
 struct CustomTypeCCHash
 {
-  std::size_t operator()(const CustomTypeCC& obj) const
+  std::size_t operator()(CustomTypeCC const& obj) const
   {
     return std::hash<uint32_t>()(obj.age); // Hash only the `age`
   }

@@ -17,6 +17,7 @@ import sys
 import os
 import re
 
+
 def rename(file_path, macro_replace, namespace_replace):
     # Read the source file
     with open(file_path, 'r') as file:
@@ -38,6 +39,7 @@ def rename(file_path, macro_replace, namespace_replace):
     with open(file_path, 'w') as file:
         file.write(updated_content)
 
+
 def process_directory(directory, macro_replace, namespace_replace):
     for root, _, files in os.walk(directory):
         for file_name in files:
@@ -45,6 +47,7 @@ def process_directory(directory, macro_replace, namespace_replace):
                 file_path = os.path.join(root, file_name)
                 rename(file_path, macro_replace, namespace_replace)
                 print(f"Macros, 'fmt::', and 'namespace fmt' replaced successfully in '{file_path}'.")
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:

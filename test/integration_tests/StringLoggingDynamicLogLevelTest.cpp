@@ -50,7 +50,7 @@ TEST_CASE("string_logging_dynamic_log_level")
     std::string_view empty_sv{};
 
     char const* c_style_string_empty = "";
-    const char* c_style_string = "Lorem ipsum";
+    char const* c_style_string = "Lorem ipsum";
 
     char c_style_char_array_empty[] = "";
     char const c_style_char_array[] = "dolor";

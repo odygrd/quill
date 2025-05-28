@@ -107,7 +107,7 @@ TEST_CASE("macro_free_json_file_logging")
           info(logger, "Hello from thread");
 
           // Log a message with non-printable chars
-          const char* npcs = "Example\u0003String\u0004";
+          char const* npcs = "Example\u0003String\u0004";
 
           info(logger, "contains non-printable {npcs}", npcs);
 

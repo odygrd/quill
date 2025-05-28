@@ -53,7 +53,7 @@ TEST_CASE("std_pair_logging")
     std::pair<char const*, std::string> scva = {"c style", "string test"};
     LOG_INFO(logger, "scva {}", scva);
 
-    std::pair<std::pair<std::string, std::string_view>, std::pair<const char*, uint32_t>> cp = {
+    std::pair<std::pair<std::string, std::string_view>, std::pair<char const*, uint32_t>> cp = {
       {"pair", "testing"}, {"first", 2}};
     LOG_INFO(logger, "cp {}", cp);
 
