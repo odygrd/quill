@@ -1,4 +1,4 @@
-name: Fedora
+name: gcc15
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
