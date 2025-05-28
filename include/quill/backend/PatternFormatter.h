@@ -239,7 +239,7 @@ protected:
     {
       // Remove any relative paths (e.g., relative paths can appear when using a mounted volume under docker)
       static constexpr std::string_view relative_path = "../";
-      if (std::size_t n = result.rfind(relative_path); n != std::string_view::npos)
+      if (size_t n = result.rfind(relative_path); n != std::string_view::npos)
       {
         result = result.substr(n + relative_path.size());
       }
