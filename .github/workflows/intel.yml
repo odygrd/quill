@@ -24,7 +24,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: intel/oneapi-basekit:2022.1.2-devel-ubuntu20.04
+      image: intel/oneapi-basekit:2022.1.2-devel-ubuntu18.04
     strategy:
       fail-fast: false
       matrix:
