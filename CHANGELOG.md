@@ -119,6 +119,11 @@
   a source location like "/home/user/projects/app/main.cpp:5" would be displayed as "app/main.cpp:
   5". ([#772](https://github.com/odygrd/quill/issues/772))
 
+- Added `source_location_remove_relative_paths` option in `PatternFormatterOptions` to remove relative path
+  components from the `%(source_location)` attribute of `PatternFormatter`. When enabled, relative path
+  components like "../" are processed and removed, simplifying paths from `__FILE__` which might contain
+  relative paths like "../../../test/main.cpp". ([#778](https://github.com/odygrd/quill/issues/778))
+
 - The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
   helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread.
 

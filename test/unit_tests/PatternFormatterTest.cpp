@@ -544,4 +544,186 @@ TEST_CASE("pattern_formatter_source_location_prefix")
   }
 }
 
+struct PatternFormatterMock : public PatternFormatter
+{
+  PatternFormatterMock() : PatternFormatter(PatternFormatterOptions{}) {};
+
+  std::string_view process_source_location_path(std::string_view source_location, std::string const& strip_prefix,
+                                                bool remove_relative_paths) const
+  {
+    return PatternFormatter::_process_source_location_path(source_location, strip_prefix, remove_relative_paths);
+  }
+};
+
+TEST_CASE("process_source_location_path")
+{
+  PatternFormatterMock formatter;
+
+  // Test with basic prefix
+  {
+    char const* path = "/home/user/quill/test/unit_tests/file.cpp";
+    std::string prefix = "quill";
+    bool remove_relative = false;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+
+#if defined(_WIN32)
+    std::string const expected = "test\\unit_tests\\file.cpp";
+#else
+    std::string const expected = "test/unit_tests/file.cpp";
+#endif
+
+    REQUIRE_EQ(result, expected);
+  }
+
+  // Test with relative paths before prefix
+  {
+    char const* path = "/../../quill/test/unit_tests/file.cpp";
+    std::string prefix = "quill";
+    bool remove_relative = true;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+
+#if defined(_WIN32)
+    std::string const expected = "test\\unit_tests\\file.cpp";
+#else
+    std::string const expected = "test/unit_tests/file.cpp";
+#endif
+
+    REQUIRE_EQ(result, expected);
+  }
+
+  // Test with relative paths before prefix, but without removing relative paths
+  {
+    char const* path = "/../../quill/test/unit_tests/file.cpp";
+    std::string prefix = "quill";
+    bool remove_relative = false;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+
+#if defined(_WIN32)
+    std::string const expected = "test\\unit_tests\\file.cpp";
+#else
+    std::string const expected = "test/unit_tests/file.cpp";
+#endif
+
+    REQUIRE_EQ(result, expected);
+  }
+
+  // Test with prefix including separator
+  {
+    char const* path = "/home/user/quill/test/unit_tests/file.cpp";
+    std::string prefix = std::string{"quill"} + static_cast<char>(detail::PATH_PREFERRED_SEPARATOR);
+    bool remove_relative = false;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+
+#if defined(_WIN32)
+    std::string const expected = "test\\unit_tests\\file.cpp";
+#else
+    std::string const expected = "test/unit_tests/file.cpp";
+#endif
+
+    REQUIRE_EQ(result, expected);
+  }
+
+  // Test with prefix not found
+  {
+    char const* path = "/home/user/quill/test/unit_tests/file.cpp";
+    std::string prefix = "notfound";
+    bool remove_relative = false;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+    REQUIRE_EQ(result, path);
+  }
+
+  // Test with empty prefix
+  {
+    char const* path = "/home/user/quill/test/unit_tests/file.cpp";
+    std::string prefix{};
+    bool remove_relative = false;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+    REQUIRE_EQ(result, path);
+  }
+
+  // Test with relative path
+  {
+    char const* path = "../../../test/unit_tests/file.cpp";
+    std::string prefix{};
+    bool remove_relative = true;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+
+#if defined(_WIN32)
+    std::string const expected = "test\\unit_tests\\file.cpp";
+#else
+    std::string const expected = "test/unit_tests/file.cpp";
+#endif
+
+    REQUIRE_EQ(result, expected);
+  }
+
+  // Test with relative path in the middle
+  {
+    char const* path = "/home/user/../test/unit_tests/file.cpp";
+    std::string prefix{};
+    bool remove_relative = true;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+
+#if defined(_WIN32)
+    std::string const expected = "test\\unit_tests\\file.cpp";
+#else
+    std::string const expected = "test/unit_tests/file.cpp";
+#endif
+
+    REQUIRE_EQ(result, expected);
+  }
+
+  // Test with no relative path
+  {
+    char const* path = "/home/user/test/unit_tests/file.cpp";
+    std::string prefix{};
+    bool remove_relative = true;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+    REQUIRE_EQ(result, path);
+  }
+
+  // Test with both prefix and relative path
+  {
+    char const* path = "/home/user/quill/../../../test/unit_tests/file.cpp";
+    std::string prefix = "quill";
+    bool remove_relative = true;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+
+#if defined(_WIN32)
+    std::string const expected = "test\\unit_tests\\file.cpp";
+#else
+    std::string const expected = "test/unit_tests/file.cpp";
+#endif
+
+    REQUIRE_EQ(result, expected);
+  }
+
+  // Test with both prefix and relative path false
+  {
+    char const* path = "/home/user/quill/../../../test/unit_tests/file.cpp";
+    std::string prefix = "quill";
+    bool remove_relative = false;
+
+    auto result = formatter.process_source_location_path(path, prefix, remove_relative);
+
+#if defined(_WIN32)
+    std::string const expected = "..\\..\\..\\test\\unit_tests\\file.cpp";
+#else
+    std::string const expected = "../../../test/unit_tests/file.cpp";
+#endif
+
+    REQUIRE_EQ(result, expected);
+  }
+}
+
 TEST_SUITE_END();

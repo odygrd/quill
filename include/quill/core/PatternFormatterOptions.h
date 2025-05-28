@@ -106,12 +106,24 @@ public:
    */
   bool add_metadata_to_multi_line_logs{true};
 
+  /**
+   * @brief Whether to remove relative path components from source location paths.
+   *
+   * If true, relative path components like "../" will be processed and removed
+   * from source location paths, simplifying the displayed path.
+   *
+   * This affects only the %(source_location) attribute.
+   */
+  bool source_location_remove_relative_paths{false};
+
   /***/
   bool operator==(PatternFormatterOptions const& other) const noexcept
   {
     return format_pattern == other.format_pattern && timestamp_pattern == other.timestamp_pattern &&
+      source_location_path_strip_prefix == other.source_location_path_strip_prefix &&
       timestamp_timezone == other.timestamp_timezone &&
-      add_metadata_to_multi_line_logs == other.add_metadata_to_multi_line_logs;
+      add_metadata_to_multi_line_logs == other.add_metadata_to_multi_line_logs &&
+      source_location_remove_relative_paths == other.source_location_remove_relative_paths;
   }
 
   /***/
