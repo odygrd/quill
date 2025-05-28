@@ -125,7 +125,8 @@
   relative paths like "../../../test/main.cpp". ([#778](https://github.com/odygrd/quill/issues/778))
 
 - The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
-  helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread.
+  helps with debugging by ensuring log statements are flushed to the sink, blocking the caller
+  thread. ([#660](https://github.com/odygrd/quill/issues/660))
 
 - Added helper macros for easy logging of user-defined types. Two new macros are available in `quill/HelperMacros.h`:
   - `QUILL_LOGGABLE_DIRECT_FORMAT(Type)`: For types that contain pointers or have lifetime dependencies
