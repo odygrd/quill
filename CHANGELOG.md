@@ -133,7 +133,7 @@
   - `QUILL_LOGGABLE_DEFERRED_FORMAT(Type)`: For types that only contain value types and are safe to copy
 
   Note that these macros require you to provide either an `operator<<` for your type and they are just shortcuts to
-  existing functionality.
+  existing functionality. ([#777](https://github.com/odygrd/quill/issues/777))
 
   Example usage:
   ```cpp
