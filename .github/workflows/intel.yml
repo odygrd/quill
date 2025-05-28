@@ -1,4 +1,4 @@
-name: Intel oneAPI
+name: Intel oneAPI on Ubuntu 22.04
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,9 +22,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: intel/oneapi-basekit:2022.1.2-devel-ubuntu18.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -35,8 +33,12 @@ jobs:
         include:
           - cxx: icx
             install: |
-              apt-get update
-              apt-get install -y cmake make
+              sudo apt-get update
+              sudo apt-get install -y wget gnupg lsb-release cmake make
+              wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+              echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+              sudo apt-get update
+              sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
 
     steps:
       - uses: actions/checkout@v4
