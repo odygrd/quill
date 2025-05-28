@@ -255,6 +255,7 @@ set(HEADER_FILES
         include/quill/DeferredFormatCodec.h
         include/quill/DirectFormatCodec.h
         include/quill/Frontend.h
+        include/quill/HelperMacros.h
         include/quill/LogFunctions.h
         include/quill/Logger.h
         include/quill/LogMacros.h
