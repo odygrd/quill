@@ -238,7 +238,13 @@ protected:
     if (remove_relative_paths)
     {
       // Remove any relative paths (e.g., relative paths can appear when using a mounted volume under docker)
+
+#if defined(_WIN32) && !defined(__CYGWIN__)
+      static constexpr std::string_view relative_path = "..\\";
+#else
       static constexpr std::string_view relative_path = "../";
+#endif
+      
       if (size_t n = result.rfind(relative_path); n != std::string_view::npos)
       {
         result = result.substr(n + relative_path.size());
