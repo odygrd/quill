@@ -26,7 +26,7 @@
   template <>                                                                                      \
   struct quill::Codec<type> : quill::DeferredFormatCodec<type>                                     \
   {                                                                                                \
-  }
+  };
 
 /**
  * Convenient macro to define a formatter for a user defined type.
@@ -42,4 +42,4 @@
   template <>                                                                                      \
   struct quill::Codec<type> : quill::DirectFormatCodec<type>                                       \
   {                                                                                                \
-  }
+  };

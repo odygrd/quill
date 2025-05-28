@@ -39,7 +39,7 @@ std::ostream& operator<<(std::ostream& os, User const& user)
 
 // Use direct formatting for unsafe types with pointer members
 // This will format the object immediately when the log statement is called
-QUILL_LOGGABLE_DIRECT_FORMAT(User);
+QUILL_LOGGABLE_DIRECT_FORMAT(User)
 
 /**
  * Example of a SAFE type for asynchronous logging
@@ -63,7 +63,7 @@ std::ostream& operator<<(std::ostream& os, Product const& product)
 
 // Safe types can use asynchronous formatting
 // The object will be copied and formatted later by the backend thread
-QUILL_LOGGABLE_DEFERRED_FORMAT(Product);
+QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
 
 int main()
 {
