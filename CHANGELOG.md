@@ -135,13 +135,13 @@
   std::ostream& operator<<(std::ostream& os, User const& user) { /* ... */ }
   
   // For types with pointers - will format immediately
-  QUILL_LOGGABLE_DIRECT_FORMAT(User);
+  QUILL_LOGGABLE_DIRECT_FORMAT(User)
   
   class Product { /* ... */ };
   std::ostream& operator<<(std::ostream& os, Product const& product) { /* ... */ }
   
   // For types with only value members - can format asynchronously
-  QUILL_LOGGABLE_DEFERRED_FORMAT(Product);
+  QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
   ```
 
 ### Improvements

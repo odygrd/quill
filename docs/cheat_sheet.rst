@@ -716,7 +716,7 @@ Example:
     }
 
     // Mark as unsafe type - will be formatted immediately
-    QUILL_LOGGABLE_DIRECT_FORMAT(User);
+    QUILL_LOGGABLE_DIRECT_FORMAT(User)
 
     class Product
     {
@@ -734,6 +734,6 @@ Example:
     }
 
     // Mark as safe type - can be formatted asynchronously
-    QUILL_LOGGABLE_DEFERRED_FORMAT(Product);
+    QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
 
 Note that using these macros requires you to provide an ``operator<<`` for your type.
