@@ -119,15 +119,21 @@
   a source location like "/home/user/projects/app/main.cpp:5" would be displayed as "app/main.cpp:
   5". ([#772](https://github.com/odygrd/quill/issues/772))
 
+- Added `source_location_remove_relative_paths` option in `PatternFormatterOptions` to remove relative path
+  components from the `%(source_location)` attribute of `PatternFormatter`. When enabled, relative path
+  components like "../" are processed and removed, simplifying paths from `__FILE__` which might contain
+  relative paths like "../../../test/main.cpp". ([#778](https://github.com/odygrd/quill/issues/778))
+
 - The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
-  helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread.
+  helps with debugging by ensuring log statements are flushed to the sink, blocking the caller
+  thread. ([#660](https://github.com/odygrd/quill/issues/660))
 
 - Added helper macros for easy logging of user-defined types. Two new macros are available in `quill/HelperMacros.h`:
   - `QUILL_LOGGABLE_DIRECT_FORMAT(Type)`: For types that contain pointers or have lifetime dependencies
   - `QUILL_LOGGABLE_DEFERRED_FORMAT(Type)`: For types that only contain value types and are safe to copy
 
   Note that these macros require you to provide either an `operator<<` for your type and they are just shortcuts to
-  existing functionality.
+  existing functionality. ([#777](https://github.com/odygrd/quill/issues/777))
 
   Example usage:
   ```cpp
