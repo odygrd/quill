@@ -15,14 +15,14 @@ QUILL_BEGIN_NAMESPACE
 
 struct SourceLocation
 {
-  static constexpr SourceLocation current(const char* file = __builtin_FILE(),
-                                          const char* function = __builtin_FUNCTION(),
+  static constexpr SourceLocation current(char const* file = __builtin_FILE(),
+                                          char const* function = __builtin_FUNCTION(),
                                           std::uint_least32_t line = __builtin_LINE()) noexcept
   {
     return SourceLocation{file, function, line};
   }
 
-  constexpr SourceLocation(const char* file, const char* function, std::uint_least32_t line)
+  constexpr SourceLocation(char const* file, char const* function, std::uint_least32_t line)
     : _file(file), _function(function), _line(line)
   {
   }
@@ -32,8 +32,8 @@ struct SourceLocation
   QUILL_NODISCARD constexpr std::uint_least32_t line() const noexcept { return _line; }
 
 private:
-  const char* _file;
-  const char* _function;
+  char const* _file;
+  char const* _function;
   std::uint_least32_t _line;
 };
 

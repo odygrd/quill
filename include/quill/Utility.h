@@ -50,7 +50,7 @@ QUILL_NODISCARD std::string to_hex(T const* buffer, size_t size, bool uppercase 
 
   for (size_t i = 0; i < size; ++i)
   {
-    const auto byte = static_cast<uint8_t>(buffer[i]);
+    auto const byte = static_cast<uint8_t>(buffer[i]);
 
     // Add the first four bits (high nibble)
     hex_string[pos++] = hex_chars[byte >> 4];

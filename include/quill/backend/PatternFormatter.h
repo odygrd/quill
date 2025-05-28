@@ -244,7 +244,7 @@ protected:
 #else
       static constexpr std::string_view relative_path = "../";
 #endif
-      
+
       if (size_t n = result.rfind(relative_path); n != std::string_view::npos)
       {
         result = result.substr(n + relative_path.size());

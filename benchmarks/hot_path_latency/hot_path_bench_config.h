@@ -18,14 +18,11 @@
  */
 // #define PERF_ENABLED
 
-#define THREAD_LIST_COUNT                                                                          \
-  std::vector<uint16_t> { 1, 4 }
+#define THREAD_LIST_COUNT std::vector<uint16_t>{1, 4}
 
-#define MESSAGES_PER_ITERATION                                                                     \
-  std::size_t { 20 }
+#define MESSAGES_PER_ITERATION std::size_t{20}
 
-#define ITERATIONS                                                                                 \
-  std::size_t { 10000 }
+#define ITERATIONS std::size_t{10000}
 
 /**
  * Min-Max wait duration between each iteration - This lets the backend thread catch up
@@ -34,8 +31,6 @@
  * to reallocate more space in the queue slowing it down.
  * This benchmark is measuring latency not high throughput
  * **/
-#define MIN_WAIT_DURATION                                                                          \
-  std::chrono::microseconds { 2000 }
+#define MIN_WAIT_DURATION std::chrono::microseconds{2000}
 
-#define MAX_WAIT_DURATION                                                                          \
-  std::chrono::microseconds { 2200 }
+#define MAX_WAIT_DURATION std::chrono::microseconds{2200}

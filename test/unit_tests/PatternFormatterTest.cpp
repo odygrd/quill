@@ -568,7 +568,7 @@ TEST_CASE("process_source_location_path")
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix = "quill";
     bool remove_relative = false;
@@ -586,11 +586,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with relative paths before prefix
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\..\\..\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/../../quill/test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix = "quill";
     bool remove_relative = true;
@@ -608,11 +608,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with relative paths before prefix, but without removing relative paths
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\..\\..\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/../../quill/test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix = "quill";
     bool remove_relative = false;
@@ -630,11 +630,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with prefix including separator
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix = std::string{"quill"} + static_cast<char>(detail::PATH_PREFERRED_SEPARATOR);
     bool remove_relative = false;
@@ -652,11 +652,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with prefix not found
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix = "notfound";
     bool remove_relative = false;
@@ -667,11 +667,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with empty prefix
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix{};
     bool remove_relative = false;
@@ -682,11 +682,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with relative path
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "..\\..\\..\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "../../../test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix{};
     bool remove_relative = true;
@@ -704,11 +704,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with relative path in the middle
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\home\\user\\..\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/../test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix{};
     bool remove_relative = true;
@@ -726,11 +726,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with no relative path
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\home\\user\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix{};
     bool remove_relative = true;
@@ -741,11 +741,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with both prefix and relative path
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\..\\..\\..\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/../../../test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix = "quill";
     bool remove_relative = true;
@@ -763,11 +763,11 @@ TEST_CASE("process_source_location_path")
 
   // Test with both prefix and relative path false
   {
-    #if defined(_WIN32)
+#if defined(_WIN32)
     char const* path = "\\home\\user\\quill\\..\\..\\..\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/../../../test/unit_tests/file.cpp";
-    #endif
+#endif
 
     std::string prefix = "quill";
     bool remove_relative = false;

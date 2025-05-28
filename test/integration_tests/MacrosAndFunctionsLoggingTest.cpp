@@ -3,8 +3,8 @@
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
-#include "quill/LogMacros.h"
 #include "quill/LogFunctions.h"
+#include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
 #include <cstdio>
@@ -65,7 +65,8 @@ TEST_CASE("macros_and_functions_logging_test")
 
   for (size_t i = 0; i < number_of_messages; ++i)
   {
-    std::string expected_string = "LOG_INFO      " + logger_name + "       This is message " + std::to_string(i);
+    std::string expected_string =
+      "LOG_INFO      " + logger_name + "       This is message " + std::to_string(i);
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
     expected_string = "LOG_WARNING   " + logger_name + "       This is message " + std::to_string(i);

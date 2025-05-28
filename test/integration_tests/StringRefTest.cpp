@@ -39,8 +39,8 @@ TEST_CASE("string_no_copy_logging")
   static std::string s = "adipiscing";
   static std::string_view sv = "string_view";
   static char const* c_style_string_empty = "";
-  static const char* c_style_string = "Lorem ipsum";
-  static const char* npcs = "Example\u0003String\u0004";
+  static char const* c_style_string = "Lorem ipsum";
+  static char const* npcs = "Example\u0003String\u0004";
 
   std::string s1 = "adipiscing_1";
   char const* s2 = "adipiscing_2";

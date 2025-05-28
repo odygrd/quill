@@ -2,18 +2,19 @@ import re
 import json
 import urllib.parse
 
+
 def generate_chart_url(markdown_table, title):
     # Define a static color mapping with bright and distinct colors
     color_mapping = {
-        'Quill Bounded Dropping Queue': 'rgba(0,128,0,0.6)',    # Green
-        'fmtlog': 'rgba(255,99,132,0.6)',                        # Light Red
-        'Quill Unbounded Queue': 'rgba(0,255,0,0.6)',           # Bright Green
-        'PlatformLab NanoLog': 'rgba(255,159,64,0.6)',          # Orange
-        'MS BinLog': 'rgba(153,102,255,0.6)',                    # Purple
-        'XTR': 'rgba(255,206,86,0.6)',                           # Yellow
-        'Reckless': 'rgba(255,99,71,0.6)',                       # Tomato Red
-        'Iyengar NanoLog': 'rgba(100,149,237,0.6)',               # Cornflower Blue
-        'spdlog': 'rgba(0,128,128,0.6)',                         # Teal
+        'Quill Bounded Dropping Queue': 'rgba(0,128,0,0.6)',  # Green
+        'fmtlog': 'rgba(255,99,132,0.6)',  # Light Red
+        'Quill Unbounded Queue': 'rgba(0,255,0,0.6)',  # Bright Green
+        'PlatformLab NanoLog': 'rgba(255,159,64,0.6)',  # Orange
+        'MS BinLog': 'rgba(153,102,255,0.6)',  # Purple
+        'XTR': 'rgba(255,206,86,0.6)',  # Yellow
+        'Reckless': 'rgba(255,99,71,0.6)',  # Tomato Red
+        'Iyengar NanoLog': 'rgba(100,149,237,0.6)',  # Cornflower Blue
+        'spdlog': 'rgba(0,128,128,0.6)',  # Teal
         'g3log': 'rgba(255,165,0,0.6)',  # Orange Red
         'BqLog': 'rgba(75,0,130,0.6)'  # Indigo
     }
@@ -84,6 +85,7 @@ def generate_chart_url(markdown_table, title):
     chart_url = f"{base_url}?c={encoded_chart}"
 
     return chart_url
+
 
 # Define multiple markdown tables and titles
 markdown_tables = [

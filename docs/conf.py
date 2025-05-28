@@ -12,6 +12,7 @@ def configureDoxyfile(input_dir, output_dir):
     with open('Doxyfile', 'w') as file:
         file.write(filedata)
 
+
 # Set paths for local build
 input_dir = '../include/quill'
 output_dir = 'build'

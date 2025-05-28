@@ -123,8 +123,8 @@ public:
   }
 
   // Disable copy and assignment.
-  BackendWorkerLock(const BackendWorkerLock&) = delete;
-  BackendWorkerLock& operator=(const BackendWorkerLock&) = delete;
+  BackendWorkerLock(BackendWorkerLock const&) = delete;
+  BackendWorkerLock& operator=(BackendWorkerLock const&) = delete;
 
 private:
 #if defined(_WIN32)
