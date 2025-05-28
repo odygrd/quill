@@ -33,6 +33,7 @@ set(EXAMPLE_TARGETS
         quill_example_user_defined_types_logging_custom_codec
         quill_example_user_defined_types_logging_deferred_format
         quill_example_user_defined_types_logging_direct_format
+        quill_example_user_defined_types_logging_simple
 )
 
 # Add additional examples that are using exceptions in the example code

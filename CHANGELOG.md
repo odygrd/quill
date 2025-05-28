@@ -122,6 +122,28 @@
 - The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
   helps with debugging by ensuring log statements are flushed to the sink, blocking the caller thread.
 
+- Added helper macros for easy logging of user-defined types. Two new macros are available in `quill/HelperMacros.h`:
+  - `QUILL_LOGGABLE_DIRECT_FORMAT(Type)`: For types that contain pointers or have lifetime dependencies
+  - `QUILL_LOGGABLE_DEFERRED_FORMAT(Type)`: For types that only contain value types and are safe to copy
+
+  Note that these macros require you to provide either an `operator<<` for your type and they are just shortcuts to
+  existing functionality.
+
+  Example usage:
+  ```cpp
+  class User { /* ... */ };
+  std::ostream& operator<<(std::ostream& os, User const& user) { /* ... */ }
+  
+  // For types with pointers - will format immediately
+  QUILL_LOGGABLE_DIRECT_FORMAT(User)
+  
+  class Product { /* ... */ };
+  std::ostream& operator<<(std::ostream& os, Product const& product) { /* ... */ }
+  
+  // For types with only value members - can format asynchronously
+  QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
+  ```
+
 ### Improvements
 
 - Internally, refactored how runtime metadata are handled for more flexibility, providing three macros for logging with
