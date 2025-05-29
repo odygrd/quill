@@ -383,20 +383,20 @@ Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 
 ### Compilation Time
 
-Compile times are measured using `clang 15` and for `Release` build.
+Compile times are measured using `clang 17` and for `Release` build.
 
 Below, you can find the additional headers that the library will include when you need to log, following
 the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
 example
 
-![quill_v5_1_compiler_profile.speedscope.png](docs%2Fquill_v5_1_compiler_profile.speedscope.png)
+![quill_v10_0_compiler_profile.speedscope.png](docs%2Fquill_v10_0_compiler_profile.speedscope.png)
 
 There is also a compile-time benchmark measuring the compilation time of 2000 auto-generated log statements with
 various arguments. You can find
 it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp). It takes
 approximately 30 seconds to compile.
 
-![quill_v5_1_compiler_bench.speedscope.png](docs%2Fquill_v5_1_compiler_bench.speedscope.png)
+![quill_v10_0_compiler_bench.speedscope.png](docs%2Fquill_v10_0_compiler_bench.speedscope.png)
 
 ### Verdict
 
