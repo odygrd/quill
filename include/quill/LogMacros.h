@@ -332,8 +332,7 @@
 #define QUILL_DEFINE_MACRO_METADATA(caller_function, fmt, tags, log_level)                         \
   static constexpr quill::MacroMetadata macro_metadata                                             \
   {                                                                                                \
-    QUILL_FILE_INFO, caller_function, fmt, tags, log_level,     \
-      quill::MacroMetadata::Event::Log                                                             \
+    QUILL_FILE_INFO, caller_function, fmt, tags, log_level, quill::MacroMetadata::Event::Log       \
   }
 
 #define QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ...)                            \
