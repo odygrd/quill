@@ -138,7 +138,7 @@ struct TransitEvent
     RuntimeMetadata(char const* file, uint32_t line, char const* function, char const* in_tags,
                     char const* in_fmt, LogLevel log_level)
       : fmt(in_fmt),
-        source_location(std::string{file} + ":" + std::to_string(line)),
+        source_location(_format_file_location(file, line)),
         function_name(function),
         tags(in_tags),
         macro_metadata(source_location.data(), function_name.data(), fmt.data(),
@@ -187,6 +187,18 @@ struct TransitEvent
     std::string tags;
     MacroMetadata macro_metadata;
     bool has_runtime_metadata{false};
+
+  private:
+    QUILL_NODISCARD static std::string _format_file_location(char const* file, uint32_t line)
+    {
+      if (!file || (file[0] == '\0' && line == 0))
+      {
+        return std::string{};
+      }
+
+      // Format as "file:line"
+      return std::string{file} + ":" + std::to_string(line);
+    }
   };
 
   struct ExtraData
