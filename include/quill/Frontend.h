@@ -259,9 +259,8 @@ public:
     std::atomic<bool> logger_removal_complete{false};
     std::atomic<bool>* logger_removal_complete_ptr = &logger_removal_complete;
 
-    while (!logger->template log_statement<false, false>(
-      LogLevel::None, &macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr),
-      logger->get_logger_name()))
+    while (!logger->template log_statement<false>(
+      &macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr), logger->get_logger_name()))
     {
       // We do not want to drop the message if a dropping queue is used
       if (sleep_duration_ns > 0)

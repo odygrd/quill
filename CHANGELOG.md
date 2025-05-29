@@ -1,3 +1,4 @@
+- [v10.0.0](#v1000)
 - [v9.0.3](#v903)
 - [v9.0.2](#v902)
 - [v9.0.1](#v901)
@@ -88,11 +89,104 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v9.0.3
+## v10.0.0
 
+### New Features
+
+- There is a new macro-free mode that allows logging without macros. You have two options: either
+  `#include "quill/LogMacros.h"` or `#include "quill/LogFunctions.h"`. The macro mode still remains the recommended and
+  main method for logging. The new macro-free log has higher overhead than using macros. To use the macro-free mode, for
+  example:
+
+  ```cpp
+  quill::debug(logger, "A {} message with number {}", "test", 123);
+  ```
+
+  See macro-free mode documentation [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details.
+
+- Added `BinaryDataDeferredFormatCodec` for efficient binary data logging. This codec allows efficient logging of
+  variable-sized binary data by copying the raw bytes on the hot path and deferring the formatting to the backend
+  thread. This is particularly useful for logging binary protocol messages (like SBE or custom binary formats),
+  network packets, and raw binary data without impacting application performance. See the
+  example [sbe_logging](https://github.com/odygrd/quill/blob/master/examples/sbe_binary_data/sbe_logging.cpp) and
+  [binary_protocol_logging](https://github.com/odygrd/quill/blob/master/examples/binary_protocol_logging.cpp)
+  for details.
+  For documentation, see [here](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
+
+- Added `source_location_path_strip_prefix` option in `PatternFormatterOptions` to customize the display of the
+  `%(source_location)` attribute of `PatternFormatter`. When set, any paths that contain this prefix will have
+  the prefix and everything before it stripped from the displayed path. For example, with prefix "projects",
+  a source location like "/home/user/projects/app/main.cpp:5" would be displayed as "app/main.cpp:
+  5". ([#772](https://github.com/odygrd/quill/issues/772))
+
+- Added `source_location_remove_relative_paths` option in `PatternFormatterOptions` to remove relative path
+  components from the `%(source_location)` attribute of `PatternFormatter`. When enabled, relative path
+  components like "../" are processed and removed, simplifying paths from `__FILE__` which might contain
+  relative paths like "../../../test/main.cpp". ([#778](https://github.com/odygrd/quill/issues/778))
+
+- The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
+  helps with debugging by ensuring log statements are flushed to the sink, blocking the caller
+  thread. ([#660](https://github.com/odygrd/quill/issues/660))
+
+- Added helper macros for easy logging of user-defined types. Two new macros are available in `quill/HelperMacros.h`:
+  - `QUILL_LOGGABLE_DIRECT_FORMAT(Type)`: For types that contain pointers or have lifetime dependencies
+  - `QUILL_LOGGABLE_DEFERRED_FORMAT(Type)`: For types that only contain value types and are safe to copy
+
+  Note that these macros require you to provide either an `operator<<` for your type and they are just shortcuts to
+  existing functionality. ([#777](https://github.com/odygrd/quill/issues/777))
+
+  Example usage:
+  ```cpp
+  class User { /* ... */ };
+  std::ostream& operator<<(std::ostream& os, User const& user) { /* ... */ }
+  
+  // For types with pointers - will format immediately
+  QUILL_LOGGABLE_DIRECT_FORMAT(User)
+  
+  class Product { /* ... */ };
+  std::ostream& operator<<(std::ostream& os, Product const& product) { /* ... */ }
+  
+  // For types with only value members - can format asynchronously
+  QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
+  ```
+  
 - Added the `QUILL_DISABLE_FILE_INFO` preprocessor flag and CMake option.  
   This allows disabling `__FILE__` in `LOG_*` macros when `%(file_name)` or `%(line_number)` is not used in `PatternFormatter`,  
   removing embedded strings from built binaries.
+
+### Improvements
+
+- Internally, refactored how runtime metadata are handled for more flexibility, providing three macros for logging with
+  runtime metadata:
+  - `QUILL_LOG_RUNTIME_METADATA_DEEP` - Takes a deep copy of `fmt`, `file`, `function` and `tags`. Most flexible
+    option, useful for forwarding logs from another logging library.
+  - `QUILL_LOG_RUNTIME_METADATA_HYBRID` - Will take a deep copy of `fmt` and `tags` and will take `file` and
+    `function` as reference. This is used for the new macro-free mode.
+  - `QUILL_LOG_RUNTIME_METADATA_SHALLOW` - Will take everything as reference. This is used when logging with
+    compile-time metadata and using, for example, a dynamic log-level such as `LOG_DYNAMIC`.
+
+- Update bundled `libfmt` to `v11.2.0`
+
+### API Changes
+
+- If you were previously setting `QUILL_ENABLE_IMMEDIATE_FLUSH` to `1`, this functionality has been moved to runtime
+  with more flexibility. Instead of using a boolean flag, you can now specify the flush interval by calling
+  `logger->set_immediate_flush(flush_every_n_messages)` on each logger instance. Set it to `1` for per-message flushing,
+  or to a higher value to flush after that many messages. Setting it to `0` disables
+  flushing which is the default behaviour. `QUILL_ENABLE_IMMEDIATE_FLUSH` still exists as a compile-time preprocessor
+  flag and is set to `1` by default. Setting `QUILL_ENABLE_IMMEDIATE_FLUSH 0` in the preprocessor will eliminate the
+  `if` branch from the hot path and disable this feature entirely, regardless of the value passed to
+  `set_immediate_flush(flush_every_n_messages)`.
+
+- The `QUILL_LOG_RUNTIME_METADATA` macro requires `file`, `function` and `fmt` to be passed as `char const*` and
+  `line_number` as `uint32_t`. This is a breaking change from the previous version.
+
+## v9.0.3
+
+- Add support for `void*` formatting ([#759](https://github.com/odygrd/quill/issues/759))
+- Fix a bug in `RotatingJsonFileSink.h` where file size-based rotation wasn't triggering
+  properly ([#767](https://github.com/odygrd/quill/issues/767))
+- Fix false positive `-Wstringop-overread` warning in GCC ([#766](https://github.com/odygrd/quill/issues/766))
 
 ## v9.0.2
 
@@ -102,7 +196,8 @@
 
 - Fix crash when `LOG_BACKTRACE` is used ([#744](https://github.com/odygrd/quill/issues/744))
 - Add missing namespace in `QUILL_LOG_RUNTIME_METADATA` ([#743](https://github.com/odygrd/quill/issues/743))
-- Check for `nullptr` `Logger*` before setting log level via `QUILL_LOG_LEVEL` environment variable ([#749](https://github.com/odygrd/quill/issues/749))
+- Check for `nullptr` `Logger*` before setting log level via `QUILL_LOG_LEVEL` environment
+  variable ([#749](https://github.com/odygrd/quill/issues/749))
 - Change default mode of `FileSink` `fopen` to `a` to avoid overwriting existing files
 
 ## v9.0.0

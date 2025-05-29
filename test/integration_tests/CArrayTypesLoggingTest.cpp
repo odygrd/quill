@@ -54,7 +54,7 @@ enum class TestEnumClass : uint64_t
   Test6 = 6
 };
 
-std::ostream& operator<<(std::ostream& os, const TestEnumClass& test_enum_class)
+std::ostream& operator<<(std::ostream& os, TestEnumClass const& test_enum_class)
 {
   switch (test_enum_class)
   {

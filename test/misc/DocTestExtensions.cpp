@@ -21,6 +21,7 @@
   #include <io.h>
   #include <locale>
   #include <sys/stat.h>
+  #include <vector>
 #endif
 
 namespace quill
@@ -44,7 +45,7 @@ CapturedStream::CapturedStream(int fd) : fd_(fd), uncaptured_fd_(dup(fd))
     FAIL("Unable to create a temporary file in " << temp_dir_path;);
   }
 
-  const int captured_fd = creat(temp_file_path, _S_IREAD | _S_IWRITE);
+  int const captured_fd = creat(temp_file_path, _S_IREAD | _S_IWRITE);
   if (captured_fd == -1)
   {
     FAIL("Unable to open_file temporary file " << temp_file_path);
@@ -134,13 +135,18 @@ size_t CapturedStream::_get_file_size(FILE* file)
 FILE* CapturedStream::_fopen(char const* path, char const* mode)
 {
 #if defined(_WIN32)
-  struct wchar_codecvt : public std::codecvt<wchar_t, char, std::mbstate_t>
-  {
-  };
-  std::wstring_convert<wchar_codecvt> converter;
-  std::wstring wide_path = converter.from_bytes(path);
-  std::wstring wide_mode = converter.from_bytes(mode);
-  return _wfopen(wide_path.c_str(), wide_mode.c_str());
+  // Convert path to wide string
+  size_t path_len = std::mbstowcs(nullptr, path, 0) + 1;
+  std::vector<wchar_t> wide_path(path_len);
+  std::mbstowcs(wide_path.data(), path, path_len);
+
+  // Convert mode to wide string
+  size_t mode_len = std::mbstowcs(nullptr, mode, 0) + 1;
+  std::vector<wchar_t> wide_mode(mode_len);
+  std::mbstowcs(wide_mode.data(), mode, mode_len);
+
+  // Use _wfopen with the converted wide strings
+  return _wfopen(wide_path.data(), wide_mode.data());
 #else
   return fopen(path, mode);
 #endif // _WIN32
@@ -149,7 +155,7 @@ FILE* CapturedStream::_fopen(char const* path, char const* mode)
 int CapturedStream::_fclose(FILE* fp) { return fclose(fp); }
 
 // Starts capturing an output stream (stdout/stderr).
-void CaptureStream(int fd, const char* stream_name, CapturedStream** stream)
+void CaptureStream(int fd, char const* stream_name, CapturedStream** stream)
 {
   if (*stream != nullptr)
   {
@@ -171,11 +177,11 @@ std::string GetCapturedStream(CapturedStream** captured_stream)
 
 #if defined(_MSC_VER) || defined(__BORLANDC__)
 // MSVC and C++Builder do not provide a definition of STDERR_FILENO.
-const int kStdOutFileno = 1;
-const int kStdErrFileno = 2;
+int const kStdOutFileno = 1;
+int const kStdErrFileno = 2;
 #else
 const int kStdOutFileno = STDOUT_FILENO;
-const int kStdErrFileno = STDERR_FILENO;
+int const kStdErrFileno = STDERR_FILENO;
 #endif // _MSC_VER
 
 void CaptureStdout() { CaptureStream(kStdOutFileno, "stdout", &g_captured_stdout); }

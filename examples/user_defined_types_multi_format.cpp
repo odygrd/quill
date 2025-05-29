@@ -38,7 +38,7 @@ struct fmtquill::formatter<Point>
   }
 
   template <typename FormatContext>
-  auto format(const Point& p, FormatContext& ctx) const -> decltype(ctx.out())
+  auto format(Point const& p, FormatContext& ctx) const -> decltype(ctx.out())
   {
     switch (presentation)
     {

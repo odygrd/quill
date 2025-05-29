@@ -30,7 +30,7 @@ QUILL_BEGIN_NAMESPACE
 template <typename T, std::size_t N>
 struct Codec<T[N], std::enable_if_t<std::negation_v<std::is_same<T, char>>>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, const T (&arg)[N]) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, T const (&arg)[N]) noexcept
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)
     {
@@ -55,7 +55,7 @@ struct Codec<T[N], std::enable_if_t<std::negation_v<std::is_same<T, char>>>>
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, const T (&arg)[N]) noexcept
+                     uint32_t& conditional_arg_size_cache_index, T const (&arg)[N]) noexcept
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)
     {

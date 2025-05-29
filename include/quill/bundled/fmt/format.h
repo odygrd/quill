@@ -122,6 +122,7 @@
 #  define FMTQUILL_NOINLINE
 #endif
 
+// GCC 4.9 doesn't support qualified names in specializations.
 namespace std {
 template <typename T> struct iterator_traits<fmtquill::basic_appender<T>> {
   using iterator_category = output_iterator_tag;
@@ -717,7 +718,7 @@ using is_integer =
 
 #if defined(FMTQUILL_USE_FLOAT128)
 // Use the provided definition.
-#elif FMTQUILL_CLANG_VERSION && FMTQUILL_HAS_INCLUDE(<quadmath.h>)
+#elif FMTQUILL_CLANG_VERSION >= 309 && FMTQUILL_HAS_INCLUDE(<quadmath.h>)
 #  define FMTQUILL_USE_FLOAT128 1
 #elif FMTQUILL_GCC_VERSION && defined(_GLIBCXX_USE_FLOAT128) && \
     !defined(__STRICT_ANSI__)
@@ -733,11 +734,10 @@ struct float128 {};
 
 template <typename T> using is_float128 = std::is_same<T, float128>;
 
-template <typename T>
-using is_floating_point =
-    bool_constant<std::is_floating_point<T>::value || is_float128<T>::value>;
+template <typename T> struct is_floating_point : std::is_floating_point<T> {};
+template <> struct is_floating_point<float128> : std::true_type {};
 
-template <typename T, bool = std::is_floating_point<T>::value>
+template <typename T, bool = is_floating_point<T>::value>
 struct is_fast_float : bool_constant<std::numeric_limits<T>::is_iec559 &&
                                      sizeof(T) <= sizeof(double)> {};
 template <typename T> struct is_fast_float<T, false> : std::false_type {};
@@ -1625,7 +1625,7 @@ constexpr auto convert_float(T value) -> convert_float_result<T> {
 }
 
 template <typename Char, typename OutputIt>
-FMTQUILL_NOINLINE FMTQUILL_CONSTEXPR auto fill(OutputIt it, size_t n,
+FMTQUILL_CONSTEXPR FMTQUILL_NOINLINE auto fill(OutputIt it, size_t n,
                                      const basic_specs& specs) -> OutputIt {
   auto fill_size = specs.fill_size();
   if (fill_size == 1) return detail::fill_n(it, n, specs.fill_unit<Char>());
@@ -2484,8 +2484,8 @@ template <typename T>
 struct has_isfinite<T, enable_if_t<sizeof(std::isfinite(T())) != 0>>
     : std::true_type {};
 
-template <typename T, FMTQUILL_ENABLE_IF(std::is_floating_point<T>::value&&
-                                        has_isfinite<T>::value)>
+template <typename T,
+          FMTQUILL_ENABLE_IF(is_floating_point<T>::value&& has_isfinite<T>::value)>
 FMTQUILL_CONSTEXPR20 auto isfinite(T value) -> bool {
   constexpr T inf = T(std::numeric_limits<double>::infinity());
   if (is_constant_evaluated())

@@ -11,7 +11,8 @@ def generate_chart_url(markdown_table, title):
         'spdlog': 'rgba(0,128,128,0.6)',  # Teal
         'Reckless': 'rgba(255,99,71,0.6)',  # Tomato Red
         'XTR': 'rgba(255,206,86,0.6)',  # Yellow
-        'BqLog': 'rgba(75,0,130,0.6)'  # Indigo
+        'BqLog': 'rgba(75,0,130,0.6)',  # Indigo
+        'Quill - Macro Free Mode': 'rgba(0,206,209,0.6)'  # Dark Turquoise
     }
 
     # Parse the markdown table
@@ -81,12 +82,15 @@ def generate_chart_url(markdown_table, title):
 markdown_table = """
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
-| [Quill](http://github.com/odygrd/quill)                           |        5.70        |    701 ms    |
-| [BqLog](https://github.com/Tencent/BqLog)                         |        4.93        |    811 ms    |
-| [spdlog](http://github.com/gabime/spdlog)                         |        3.54        |   1128 ms    |
-| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.90        |   1378 ms    |
+| [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       62.12        |    64 ms     |
+| [BqLog (binary log)](https://github.com/Tencent/BqLog)            |       15.24        |    262 ms    |
+| [XTR](https://github.com/choll/xtr)                               |        8.25        |    484 ms    |
+| [Quill](http://github.com/odygrd/quill)                           |        5.30        |    754 ms    |
+| [spdlog](http://github.com/gabime/spdlog)                         |        4.32        |    925 ms    |
+| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.77        |   1443 ms    |
 | [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |
-| [XTR](https://github.com/choll/xtr)                               |        2.61        |   1534 ms    |
+| [Quill - Macro Free Mode](https://github.com/choll/xtr)           |        2.65        |   1510 ms    |
+| [BqLog](https://github.com/Tencent/BqLog)                         |        2.53        |   1580 ms    |
 """
 
 # Generate the chart URL without MS BinLog

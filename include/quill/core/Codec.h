@@ -94,7 +94,20 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexc
     return 0;
   }
 
+#if defined(__GNUC__) && !defined(__clang__)
+  // Suppress false positive in GCC - memchr safely stops at null terminator
+  #pragma GCC diagnostic push
+  #if __GNUC__ >= 13
+    #pragma GCC diagnostic ignored "-Wstringop-overread"
+  #endif
+#endif
+
   auto end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#endif
+
   return end ? static_cast<size_t>(end - str) : maxlen;
 }
 
@@ -132,7 +145,8 @@ struct Codec
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t compute_encoded_size(
     QUILL_MAYBE_UNUSED detail::SizeCacheVector& conditional_arg_size_cache, QUILL_MAYBE_UNUSED Arg const& arg) noexcept
   {
-    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
+    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>,
+                                     std::is_same<Arg, void const*>, std::is_same<Arg, void*>>)
     {
       return sizeof(Arg);
     }
@@ -178,7 +192,8 @@ struct Codec
                                          QUILL_MAYBE_UNUSED uint32_t& conditional_arg_size_cache_index,
                                          Arg const& arg) noexcept
   {
-    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
+    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>,
+                                     std::is_same<Arg, void const*>, std::is_same<Arg, void*>>)
     {
       std::memcpy(buffer, &arg, sizeof(Arg));
       buffer += sizeof(Arg);
@@ -206,7 +221,13 @@ struct Codec
     {
       // null terminator is included in the len for c style strings
       uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      std::memcpy(buffer, arg, len - 1);
+
+      if (arg)
+      {
+        // avoid gcc warning, even when size == 0
+        std::memcpy(buffer, arg, len - 1);
+      }
+
       buffer[len - 1] = std::byte{'\0'};
       buffer += len;
     }
@@ -234,7 +255,8 @@ struct Codec
   /***/
   static auto decode_arg(std::byte*& buffer)
   {
-    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
+    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>,
+                                     std::is_same<Arg, void const*>, std::is_same<Arg, void*>>)
     {
       Arg arg;
       std::memcpy(&arg, buffer, sizeof(Arg));
@@ -270,7 +292,8 @@ struct Codec
   /***/
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>, std::is_same<Arg, void const*>>)
+    if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>,
+                                     std::is_same<Arg, void const*>, std::is_same<Arg, void*>>)
     {
       args_store->push_back(decode_arg(buffer));
     }
@@ -314,9 +337,10 @@ template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
   QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, Args const&... args)
 {
-  if constexpr (!std::conjunction_v<std::disjunction<std::is_arithmetic<remove_cvref_t<Args>>, std::is_enum<remove_cvref_t<Args>>,
-                                                     std::is_same<remove_cvref_t<Args>, void const*>, is_std_string<remove_cvref_t<Args>>,
-                                                     std::is_same<remove_cvref_t<Args>, std::string_view>>...>)
+  if constexpr (!std::conjunction_v<std::disjunction<
+                  std::is_arithmetic<remove_cvref_t<Args>>, std::is_enum<remove_cvref_t<Args>>,
+                  std::is_same<remove_cvref_t<Args>, void const*>, std::is_same<remove_cvref_t<Args>, void*>,
+                  is_std_string<remove_cvref_t<Args>>, std::is_same<remove_cvref_t<Args>, std::string_view>>...>)
   {
     // Clear the cache whenever processing involves non-fundamental types,
     // or when the arguments are not of type std::string or std::string_view.

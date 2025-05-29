@@ -49,9 +49,12 @@ Disables the use of ``__FILE__`` and ``__LINE__`` in ``LOG_*`` macros. When ``%(
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=1)
+    add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=0)
 
-Enables immediate flushing after each log statement by calling ``flush_log()``. This blocks execution until the backend processes the log statement, effectively simulating synchronous logging. This option is useful in debug builds, especially when stepping through a debugger.
+Immediate flushing blocks the calling thread until a log message has been written to its destination, effectively simulating synchronous logging.
+This feature can be enabled at runtime on a ``Logger`` instance by calling ``logger->set_immediate_flush(true)``.
+Setting ``QUILL_ENABLE_IMMEDIATE_FLUSH=0`` in the preprocessor disables this feature completely, eliminating the conditional branch from the hot path and improving performance.
+When disabled at compile time, ``logger->set_immediate_flush(flush_every_n_messages)`` will have no effect.
 
 .. code:: cmake
 
@@ -676,3 +679,67 @@ If the external specialization derives from ``fmt::ostream_formatter``, the abov
     struct quill::Codec<User> : DeferredFormatCodec<User>
     {
     };
+
+Helper Macros for Logging User Defined Types
+--------------------------------------------
+The library provides helper macros to simplify logging of user-defined types, available by including ``quill/HelperMacros.h``.
+
+.. code:: cpp
+
+    #include "quill/HelperMacros.h"
+
+    // For types containing pointers or other unsafe members
+    QUILL_LOGGABLE_DIRECT_FORMAT(Type);
+
+    // For types that only contain value types and are safe to copy
+    QUILL_LOGGABLE_DEFERRED_FORMAT(Type);
+
+These macros automatically generate the necessary codec specializations for your user-defined types, making it easier to log custom classes:
+
+**1. QUILL_LOGGABLE_DIRECT_FORMAT**
+   Use for types that contain pointer members or have lifetime dependencies that make them unsafe to copy across threads.
+   This macro sets up a DirectFormatCodec that formats the object immediately when the log statement is called.
+
+**2. QUILL_LOGGABLE_DEFERRED_FORMAT**
+   Use for types that only contain value types (no pointers) and are safe to copy.
+   This macro sets up a DeferredFormatCodec that allows the object to be copied and formatted later by the backend thread.
+
+Example:
+
+.. code:: cpp
+
+    class User
+    {
+    public:
+      std::string name;
+      uint64_t* value_ptr{nullptr};  // Contains a pointer - unsafe to copy
+    };
+
+    std::ostream& operator<<(std::ostream& os, User const& user)
+    {
+      os << "User(name: " << user.name << ", value: " << (user.value_ptr ? *user.value_ptr : 0) << ")";
+      return os;
+    }
+
+    // Mark as unsafe type - will be formatted immediately
+    QUILL_LOGGABLE_DIRECT_FORMAT(User)
+
+    class Product
+    {
+    public:
+      std::string name;      // Only contains value types
+      double price{0.0};     // Safe to copy across threads
+      int quantity{0};
+    };
+
+    std::ostream& operator<<(std::ostream& os, Product const& product)
+    {
+      os << "Product(name: " << product.name << ", price: $" << product.price
+         << ", quantity: " << product.quantity << ")";
+      return os;
+    }
+
+    // Mark as safe type - can be formatted asynchronously
+    QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
+
+Note that using these macros requires you to provide an ``operator<<`` for your type.

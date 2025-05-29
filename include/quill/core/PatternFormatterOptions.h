@@ -9,6 +9,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 
+#include <limits>
 #include <string>
 
 QUILL_BEGIN_NAMESPACE
@@ -62,7 +63,9 @@ public:
    *
    * @warning The same attribute cannot be used twice in the same format pattern.
    */
-  std::string format_pattern;
+  std::string format_pattern{
+    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+    "%(message)"};
 
   /**
    * @brief The format pattern for timestamps.
@@ -73,14 +76,26 @@ public:
    * - %Qus : Microseconds
    * - %Qns : Nanoseconds
    */
-  std::string timestamp_pattern;
+  std::string timestamp_pattern{"%H:%M:%S.%Qns"};
+
+  /**
+   * @brief Sets a path prefix to be stripped from source location paths.
+   *
+   * When set, any source location paths that start with this prefix will have the prefix removed:
+   * - For example, with prefix "/home/user/", a path like "/home/user/project/test.cpp:5"
+   *   would be displayed as "project/test.cpp:5"
+   * - If empty (default), the full path is shown
+   *
+   * This affects only the %(source_location) attribute.
+   */
+  std::string source_location_path_strip_prefix{};
 
   /**
    * @brief The timezone to use for timestamps.
    *
    * Determines whether timestamps are formatted in local time or GMT.
    */
-  Timezone timestamp_timezone;
+  Timezone timestamp_timezone{Timezone::LocalTime};
 
   /**
    * @brief Whether to add metadata to each line of multi-line log messages.
@@ -89,14 +104,26 @@ public:
    * to every line of multi-line log entries, maintaining consistency
    * across all log outputs.
    */
-  bool add_metadata_to_multi_line_logs;
+  bool add_metadata_to_multi_line_logs{true};
+
+  /**
+   * @brief Whether to remove relative path components from source location paths.
+   *
+   * If true, relative path components like "../" will be processed and removed
+   * from source location paths, simplifying the displayed path.
+   *
+   * This affects only the %(source_location) attribute.
+   */
+  bool source_location_remove_relative_paths{false};
 
   /***/
   bool operator==(PatternFormatterOptions const& other) const noexcept
   {
     return format_pattern == other.format_pattern && timestamp_pattern == other.timestamp_pattern &&
+      source_location_path_strip_prefix == other.source_location_path_strip_prefix &&
       timestamp_timezone == other.timestamp_timezone &&
-      add_metadata_to_multi_line_logs == other.add_metadata_to_multi_line_logs;
+      add_metadata_to_multi_line_logs == other.add_metadata_to_multi_line_logs &&
+      source_location_remove_relative_paths == other.source_location_remove_relative_paths;
   }
 
   /***/

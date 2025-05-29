@@ -73,7 +73,8 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
   };
 
   // on main
-  auto log_func = [logger](uint64_t k, uint64_t i, double d) {
+  auto log_func = [logger](uint64_t k, uint64_t i, double d)
+  {
     // Main logging function
     // This will get called MESSAGES_PER_ITERATION * ITERATIONS for each caller thread.
     // MESSAGES_PER_ITERATION will get averaged to a single number

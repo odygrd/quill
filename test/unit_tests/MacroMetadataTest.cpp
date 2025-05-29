@@ -160,7 +160,7 @@ TEST_CASE("construct")
       "Value is {x}",          // message_format with a single named argument {x}
       "tag_single",            // tags
       quill::LogLevel::Error,  // log_level
-      MacroMetadata::Event::LogWithRuntimeMetadata // event
+      MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy // event
     };
 
     REQUIRE_STREQ(macro_metadata.message_format(), "Value is {x}");
@@ -170,7 +170,7 @@ TEST_CASE("construct")
     REQUIRE_EQ(macro_metadata.file_name(), std::string_view{"SingleArg.cpp"});
     REQUIRE_STREQ(macro_metadata.short_source_location(), "SingleArg.cpp:300");
     REQUIRE_STREQ(macro_metadata.caller_function(), "SingleArgFunc");
-    REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::LogWithRuntimeMetadata);
+    REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy);
     REQUIRE_EQ(macro_metadata.has_named_args(), true);
   }
 

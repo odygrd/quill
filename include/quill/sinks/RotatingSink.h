@@ -244,7 +244,7 @@ private:
 /**
  * @brief The RotatingSink class
  */
-template<typename TBase>
+template <typename TBase>
 class RotatingSink : public TBase
 {
 public:
@@ -261,8 +261,8 @@ public:
    * @param start_time start time
    */
   RotatingSink(fs::path const& filename, RotatingFileSinkConfig const& config,
-                   FileEventNotifier file_event_notifier = FileEventNotifier{},
-                   std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
+               FileEventNotifier file_event_notifier = FileEventNotifier{},
+               std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
     : base_type(filename, static_cast<FileSinkConfig const&>(config), std::move(file_event_notifier), false),
       _config(config)
   {
@@ -289,7 +289,7 @@ public:
 
     if (!this->is_null())
     {
-      _file_size = _get_file_size(this->_filename);
+      this->_file_size = _get_file_size(this->_filename);
     }
   }
 
@@ -321,8 +321,8 @@ public:
     if (this->is_null())
     {
       base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                            logger_name, log_level, log_level_description, log_level_short_code,
-                            named_args, log_message, log_statement);
+                           logger_name, log_level, log_level_description, log_level_short_code,
+                           named_args, log_message, log_statement);
       return;
     }
 
@@ -342,10 +342,8 @@ public:
 
     // write to file
     base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                          logger_name, log_level, log_level_description, log_level_short_code,
-                          named_args, log_message, log_statement);
-
-    _file_size += log_statement.size();
+                         logger_name, log_level, log_level_description, log_level_short_code,
+                         named_args, log_message, log_statement);
   }
 
 private:
@@ -366,7 +364,7 @@ private:
   void _size_rotation(size_t log_msg_size, uint64_t record_timestamp_ns)
   {
     // Calculate the new size of the file
-    if (_file_size + log_msg_size > _config.rotation_max_file_size())
+    if ((this->_file_size + log_msg_size) > _config.rotation_max_file_size())
     {
       _rotate_files(record_timestamp_ns);
     }
@@ -463,7 +461,7 @@ private:
     // Open file for logging
     this->open_file(this->_filename, "w");
     _open_file_timestamp = record_timestamp_ns;
-    _file_size = 0;
+    this->_file_size = 0;
   }
 
   /***/
@@ -480,7 +478,7 @@ private:
     // if we are starting in "w" mode, then we also should clean all previous log files of the previous run
     if (_config.remove_old_files() && (open_mode == "w"))
     {
-      for (const auto& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
+      for (auto const& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
       {
         if (entry.path().extension().string() != filename.extension().string())
         {
@@ -542,7 +540,7 @@ private:
     else if (open_mode == "a")
     {
       // we need to recover the index from the existing files
-      for (const auto& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
+      for (auto const& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
       {
         // is_directory() does not exist in std::experimental::filesystem
         if (entry.path().extension().string() != filename.extension().string())
@@ -802,7 +800,6 @@ protected:
   std::deque<FileInfo> _created_files; /**< We store in a queue the filenames we created, first: index, second: date/datetime, third: base_filename */
   uint64_t _next_rotation_time;        /**< The next rotation time point */
   uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
-  size_t _file_size{0};                /**< The current file size */
   RotatingFileSinkConfig _config;
 };
 

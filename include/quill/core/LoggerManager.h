@@ -166,8 +166,8 @@ public:
       return get_logger(logger_name);
     }
 
-    return create_or_get_logger<TLogger>(logger_name, source_logger->sinks, source_logger->pattern_formatter_options,
-                                         source_logger->clock_source, source_logger->user_clock);
+    return create_or_get_logger<TLogger>(logger_name, source_logger->_sinks, source_logger->_pattern_formatter_options,
+                                         source_logger->_clock_source, source_logger->_user_clock);
   }
 
   /***/

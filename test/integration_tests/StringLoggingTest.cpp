@@ -23,7 +23,7 @@ public:
   CustomAllocator() noexcept : std::allocator<T>() {}
 
   template <typename U>
-  explicit CustomAllocator(const CustomAllocator<U>& other) noexcept : std::allocator<T>(other)
+  explicit CustomAllocator(CustomAllocator<U> const& other) noexcept : std::allocator<T>(other)
   {
   }
 
@@ -39,13 +39,13 @@ public:
 };
 
 template <typename T, typename U>
-bool operator==(const CustomAllocator<T>&, const CustomAllocator<U>&)
+bool operator==(CustomAllocator<T> const&, CustomAllocator<U> const&)
 {
   return true;
 }
 
 template <typename T, typename U>
-bool operator!=(const CustomAllocator<T>&, const CustomAllocator<U>&)
+bool operator!=(CustomAllocator<T> const&, CustomAllocator<U> const&)
 {
   return false;
 }
@@ -91,7 +91,7 @@ TEST_CASE("string_logging")
     std::string_view empty_sv{};
 
     char const* c_style_string_empty = "";
-    const char* c_style_string = "Lorem ipsum";
+    char const* c_style_string = "Lorem ipsum";
     char const* csn = nullptr;
 
     char c_style_char_array_empty[] = "";
@@ -104,7 +104,7 @@ TEST_CASE("string_logging")
 
     LOG_INFO(logger, "{:>30}", "right aligned");
 
-    const char* npcs = "Example\u0003String\u0004";
+    char const* npcs = "Example\u0003String\u0004";
     LOG_INFO(logger, "non printable cs [{}]", npcs);
 
     LOG_INFO(logger, "csn [{}]", csn);

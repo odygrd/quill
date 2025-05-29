@@ -169,7 +169,10 @@ public:
 
     if (_is_set_in_pattern[Attribute::SourceLocation])
     {
-      _set_arg_val<Attribute::SourceLocation>(log_statement_metadata.source_location());
+      _set_arg_val<Attribute::SourceLocation>(_process_source_location_path(
+        log_statement_metadata.source_location(), _options.source_location_path_strip_prefix,
+        _options.source_location_remove_relative_paths));
+      ;
     }
 
     if (_is_set_in_pattern[Attribute::ShortSourceLocation])
@@ -222,6 +225,57 @@ public:
 
   /***/
   QUILL_NODISCARD PatternFormatterOptions const& get_options() const noexcept { return _options; }
+
+protected:
+  /***/
+  QUILL_NODISCARD static std::string_view _process_source_location_path(std::string_view source_location,
+                                                                        std::string const& strip_prefix,
+                                                                        bool remove_relative_paths)
+  {
+    std::string_view result = source_location;
+
+    // First, handle removal of relative paths if requested
+    if (remove_relative_paths)
+    {
+      // Remove any relative paths (e.g., relative paths can appear when using a mounted volume under docker)
+
+#if defined(_WIN32) && !defined(__CYGWIN__)
+      static constexpr std::string_view relative_path = "..\\";
+#else
+      static constexpr std::string_view relative_path = "../";
+#endif
+
+      if (size_t n = result.rfind(relative_path); n != std::string_view::npos)
+      {
+        result = result.substr(n + relative_path.size());
+      }
+    }
+
+    // Then handle prefix stripping
+    if (!strip_prefix.empty())
+    {
+      // Find the last occurrence of the prefix in the path
+      size_t prefix_pos = result.rfind(strip_prefix);
+
+      if (prefix_pos != std::string_view::npos)
+      {
+        size_t after_prefix_pos = prefix_pos + strip_prefix.size();
+
+        // If the prefix doesn't end with a separator and there is a character after the prefix
+        // and that character is a separator, skip it as well
+        if (after_prefix_pos < result.length() && result[after_prefix_pos] == detail::PATH_PREFERRED_SEPARATOR)
+        {
+          after_prefix_pos++;
+        }
+
+        return result.substr(after_prefix_pos);
+      }
+      // Prefix not found, use the full path
+    }
+
+    // No prefix set or prefix not found, use the full path
+    return result;
+  }
 
 private:
   void _set_pattern()
@@ -313,7 +367,7 @@ private:
   template <size_t Idx, size_t NamedIdx, typename Arg, typename... Args>
   constexpr void _store_named_args(
     std::array<fmtquill::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS>& named_args_store,
-    const Arg& arg, const Args&... args)
+    Arg const& arg, Args const&... args)
   {
     named_args_store[NamedIdx] = {arg.name, Idx};
     _store_named_args<Idx + 1, NamedIdx + 1>(named_args_store, args...);

@@ -31,8 +31,7 @@ enum class LogLevel : uint8_t
   Error,
   Critical,
   Backtrace, /**< This is only used for backtrace logging. Should not be set by the user. */
-  None,
-  Dynamic /**< This is only used for dynamic logging. Should not be set by the user. */
+  None
 };
 
 namespace detail
@@ -120,11 +119,6 @@ QUILL_NODISCARD LogLevel inline loglevel_from_string(std::string log_level)
   if (log_level == "none")
   {
     return LogLevel::None;
-  }
-
-  if (log_level == "dynamic")
-  {
-    return LogLevel::Dynamic;
   }
 
   std::string const error_msg = "LogLevel enum value does not exist for \"" + log_level + "\"";

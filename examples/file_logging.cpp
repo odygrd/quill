@@ -44,14 +44,26 @@ int main()
     }(),
     quill::FileEventNotifier{});
 
-  quill::Logger* logger = quill::Frontend::create_or_get_logger(
-    "root", std::move(file_sink),
-    quill::PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
-                                   "LOG_%(log_level:<9) %(logger:<12) %(message)",
-                                   "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
+  quill::PatternFormatterOptions pfo;
+  pfo.format_pattern =
+    "%(time) [%(thread_id)] %(source_location:<28) "
+    "LOG_%(log_level:<9) %(logger:<12) %(message)";
+  pfo.timestamp_pattern = ("%H:%M:%S.%Qns");
+  pfo.timestamp_timezone = quill::Timezone::GmtTime;
+  pfo.source_location_path_strip_prefix = "quill";
+
+  quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink), pfo);
 
   // set the log level of the logger to debug (default is info)
   logger->set_log_level(quill::LogLevel::Debug);
+
+#ifndef NDEBUG
+  // In debug mode, force immediate flushing of log messages
+  // This blocks the caller thread until log entry is written to disk
+  // Simulates synchronous logging behavior for easier debugging
+  // Note: This can impact performance and should only be used during development
+  logger->set_immediate_flush(1u);
+#endif
 
   LOG_INFO(logger, "log something {}", 123);
   LOG_DEBUG(logger, "something else {}", 456);

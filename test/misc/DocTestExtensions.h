@@ -76,7 +76,7 @@ QUILL_MAYBE_UNUSED static CapturedStream* g_captured_stderr = nullptr;
 QUILL_MAYBE_UNUSED static CapturedStream* g_captured_stdout = nullptr;
 
 // Starts capturing an output stream (stdout/stderr).
-void CaptureStream(int fd, const char* stream_name, CapturedStream** stream);
+void CaptureStream(int fd, char const* stream_name, CapturedStream** stream);
 
 // Stops capturing the output stream and returns the captured string.
 std::string GetCapturedStream(CapturedStream** captured_stream);

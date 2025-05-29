@@ -51,8 +51,11 @@ The format output can be customised by providing a string of certain attributes.
 +-------------------------+--------------------------+----------------------------------------+
 | process_id              | %(process_id)            | Process ID                             |
 +-------------------------+--------------------------+----------------------------------------+
-| source_location         | %(source_location)       | Full source file path and line number  |
-|                         |                          | as a single string                     |
+| source_location         | %(source_location)       | Source file path and line number       |
+|                         |                          | as a single string. See                |
+|                         |                          | `source_location_path_depth`           |
+|                         |                          | `PatternFormatterOptions`              |
+|                         |                          | to control directory depth             |
 +-------------------------+--------------------------+----------------------------------------+
 | short_source_location   | %(short_source_location) | Filename and line number as a single   |
 |                         |                          | string formatted as filename:line,     |

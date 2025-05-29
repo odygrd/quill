@@ -20,14 +20,6 @@ TEST_CASE("loglevel_to_string")
   REQUIRE_EQ(bo.log_level_short_codes.size(), bo.log_level_descriptions.size());
 
   {
-    LogLevel log_level{LogLevel::Dynamic};
-    REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
-                                              bo.log_level_descriptions.size())
-                    .data(),
-                  "DYNAMIC");
-  }
-
-  {
     LogLevel log_level{LogLevel::None};
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_descriptions.data(),
                                               bo.log_level_descriptions.size())
@@ -138,14 +130,6 @@ TEST_CASE("loglevel_to_short_code")
   BackendOptions bo;
 
   {
-    LogLevel log_level{LogLevel::Dynamic};
-    REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_short_codes.data(),
-                                              bo.log_level_short_codes.size())
-                    .data(),
-                  "DN");
-  }
-
-  {
     LogLevel log_level{LogLevel::None};
     REQUIRE_STREQ(detail::log_level_to_string(log_level, bo.log_level_short_codes.data(),
                                               bo.log_level_short_codes.size())
@@ -253,11 +237,6 @@ TEST_CASE("loglevel_to_short_code")
 /***/
 TEST_CASE("loglevel_from_string")
 {
-  {
-    std::string log_level{"Dynamic"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Dynamic);
-  }
-
   {
     std::string log_level{"None"};
     REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::None);

@@ -107,7 +107,7 @@ TEST_CASE("json_file_logging")
           LOG_INFO(logger, "Hello from thread");
 
           // Log a message with non-printable chars
-          const char* npcs = "Example\u0003String\u0004";
+          char const* npcs = "Example\u0003String\u0004";
 
           LOG_INFO(logger, "contains non-printable {npcs}", npcs);
 

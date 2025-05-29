@@ -41,6 +41,13 @@ namespace detail
  */
 static constexpr size_t QUILL_CACHE_LINE_SIZE{64u};
 static constexpr size_t QUILL_CACHE_LINE_ALIGNED{2 * QUILL_CACHE_LINE_SIZE};
+
+// define our own PATH_PREFERRED_SEPARATOR to not include <filesystem>
+#if defined(_WIN32) && !defined(__CYGWIN__)
+static constexpr wchar_t PATH_PREFERRED_SEPARATOR = L'\\';
+#else
+static constexpr char PATH_PREFERRED_SEPARATOR = '/';
+#endif
 } // namespace detail
 
 /**

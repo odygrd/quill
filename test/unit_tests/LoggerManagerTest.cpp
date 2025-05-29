@@ -126,7 +126,7 @@ TEST_CASE("create_get_remove_logger")
   REQUIRE_EQ(lm.get_valid_logger(), nullptr);
 }
 
-void set_env(const char* name, const char* value)
+void set_env(char const* name, char const* value)
 {
 #if defined(_WIN32)
   std::string env_entry = std::string(name) + "=" + value;

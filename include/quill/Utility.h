@@ -23,35 +23,44 @@ namespace utility
  *
  * @param buffer Pointer to the input buffer.
  * @param size Size of the input buffer.
+ * @param uppercase If true, use uppercase hex characters (A-F); if false, use lowercase (a-f).
  * @return A string containing the hexadecimal representation of the given buffer.
  */
 template <typename T>
-QUILL_NODISCARD std::string to_hex(T const* buffer, size_t size)
+QUILL_NODISCARD std::string to_hex(T const* buffer, size_t size, bool uppercase = true)
 {
-  static constexpr char hex_chars[] = "0123456789ABCDEF";
+  static_assert(sizeof(T) == 1, "to_hex only accepts byte-sized element types");
 
-  if (!buffer || size == 0)
+  static constexpr char hex_chars_upper[] = "0123456789ABCDEF";
+  static constexpr char hex_chars_lower[] = "0123456789abcdef";
+
+  if (QUILL_UNLIKELY(!buffer || size == 0))
   {
-    return {};
+    return std::string{};
   }
+
+  // Select the appropriate character set based on the uppercase parameter
+  char const* hex_chars = uppercase ? hex_chars_upper : hex_chars_lower;
 
   // Each byte needs 2 hex chars, and all but the last one need spaces
   std::string hex_string;
-  hex_string.reserve(size > 0 ? (3 * size - 1) : 0);
+  hex_string.resize(3 * size - 1);
+
+  size_t pos = 0;
 
   for (size_t i = 0; i < size; ++i)
   {
-    const auto byte = static_cast<uint8_t>(buffer[i]);
+    auto const byte = static_cast<uint8_t>(buffer[i]);
 
-    // Add the first four bits
-    hex_string += hex_chars[(byte >> 4) & 0x0F];
-    // Add the remaining bits
-    hex_string += hex_chars[byte & 0x0F];
+    // Add the first four bits (high nibble)
+    hex_string[pos++] = hex_chars[byte >> 4];
+    // Add the remaining bits (low nibble)
+    hex_string[pos++] = hex_chars[byte & 0x0F];
 
     // Add a space delimiter after all but the last byte
-    if (i != (size - 1))
+    if (i < size - 1)
     {
-      hex_string += ' ';
+      hex_string[pos++] = ' ';
     }
   }
 

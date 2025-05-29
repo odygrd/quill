@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "quill/sinks/RotatingSink.h"
 #include "quill/sinks/JsonSink.h"
+#include "quill/sinks/RotatingSink.h"
 
 QUILL_BEGIN_NAMESPACE
 
