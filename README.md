@@ -379,7 +379,7 @@ Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 | [Quill - Macro Free Mode](https://github.com/choll/xtr)           |        2.65        |   1510 ms    |
 | [BqLog](https://github.com/Tencent/BqLog)                         |        2.53        |   1580 ms    |
 
-![throughput_chart.webp](docs%2Fcharts%2Fthroughput_chart.webp)
+![throughput.webp](docs%2Fcharts%2Fthroughput.webp)
 
 ### Compilation Time
 
