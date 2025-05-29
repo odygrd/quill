@@ -43,6 +43,12 @@ Disables the use of ``__FUNCTION__`` in ``LOG_*`` macros. When ``%(caller_functi
 
 .. code:: cmake
 
+    add_compile_definitions(-DQUILL_DISABLE_FILE_INFO)
+
+Disables the use of ``__FILE__`` and ``__LINE__`` in ``LOG_*`` macros. When ``%(file_name)`` or ``%(line_number)`` is not used in ``PatternFormatter``, ``__FILE__`` and ``__LINE__`` can be disabled to remove embedded strings from built binaries.
+
+.. code:: cmake
+
     add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=0)
 
 Immediate flushing blocks the calling thread until a log message has been written to its destination, effectively simulating synchronous logging.

@@ -149,6 +149,10 @@
   // For types with only value members - can format asynchronously
   QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
   ```
+  
+- Added the `QUILL_DISABLE_FILE_INFO` preprocessor flag and CMake option.  
+  This allows disabling `__FILE__` in `LOG_*` macros when `%(file_name)` or `%(line_number)` is not used in `PatternFormatter`,  
+  removing embedded strings from built binaries.
 
 ### Improvements
 
