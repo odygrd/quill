@@ -128,6 +128,12 @@
   helps with debugging by ensuring log statements are flushed to the sink, blocking the caller
   thread. ([#660](https://github.com/odygrd/quill/issues/660))
 
+- Added the `QUILL_DISABLE_FILE_INFO` preprocessor flag and CMake option.  
+  This disables `__FILE__` and `__LINE__` information in log statements at compile time when location-related patterns
+  (`%(file_name)`, `%(line_number)`, `%(short_source_location)`, `%(source_location)`)
+  are not needed in the `PatternFormatter`. This removes embedded source path strings from built binaries from the
+  security viewpoint.
+
 - Added helper macros for easy logging of user-defined types. Two new macros are available in `quill/HelperMacros.h`:
   - `QUILL_LOGGABLE_DIRECT_FORMAT(Type)`: For types that contain pointers or have lifetime dependencies
   - `QUILL_LOGGABLE_DEFERRED_FORMAT(Type)`: For types that only contain value types and are safe to copy
@@ -149,10 +155,6 @@
   // For types with only value members - can format asynchronously
   QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
   ```
-  
-- Added the `QUILL_DISABLE_FILE_INFO` preprocessor flag and CMake option.  
-  This allows disabling `__FILE__` in `LOG_*` macros when `%(file_name)` or `%(line_number)` is not used in `PatternFormatter`,  
-  removing embedded strings from built binaries.
 
 ### Improvements
 

@@ -52,11 +52,27 @@
   #endif
 #endif
 
+#if !defined(QUILL_FILE_NAME)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_FILE_NAME ""
+  #else
+    #define QUILL_FILE_NAME __FILE__
+  #endif
+#endif
+
+#if !defined(QUILL_LINE_NO)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_LINE_NO ""
+  #else
+    #define QUILL_LINE_NO __LINE__
+  #endif
+#endif
+
 #if !defined(QUILL_FILE_INFO)
   #if defined(QUILL_DISABLE_FILE_INFO)
     #define QUILL_FILE_INFO ""
   #else
-    #define QUILL_FILE_INFO __FILE__ ":" QUILL_STRINGIFY(__LINE__)
+    #define QUILL_FILE_INFO QUILL_FILE_NAME ":" QUILL_STRINGIFY(QUILL_LINE_NO)
   #endif
 #endif
 
@@ -316,7 +332,8 @@
 #define QUILL_DEFINE_MACRO_METADATA(caller_function, fmt, tags, log_level)                         \
   static constexpr quill::MacroMetadata macro_metadata                                             \
   {                                                                                                \
-    QUILL_FILE_INFO, caller_function, fmt, tags, log_level, quill::MacroMetadata::Event::Log       \
+    QUILL_FILE_INFO, caller_function, fmt, tags, log_level,     \
+      quill::MacroMetadata::Event::Log                                                             \
   }
 
 #define QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ...)                            \
@@ -943,20 +960,20 @@
   QUILL_BACKTRACE_LOGGER_CALL(logger, nullptr, QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
 #define QUILL_LOG_DYNAMIC(logger, log_level, fmt, ...)                                             \
-  QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, __FILE__, __LINE__, QUILL_FUNCTION_NAME,   \
-                                     "", fmt, ##__VA_ARGS__)
+  QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, QUILL_FILE_NAME, QUILL_LINE_NO,            \
+                                     QUILL_FUNCTION_NAME, "", fmt, ##__VA_ARGS__)
 
 #define QUILL_LOG_DYNAMIC_TAGS(logger, log_level, tags, fmt, ...)                                  \
-  QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, __FILE__, __LINE__, QUILL_FUNCTION_NAME,   \
-                                     tags, fmt, ##__VA_ARGS__)
+  QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, QUILL_FILE_NAME, QUILL_LINE_NO,            \
+                                     QUILL_FUNCTION_NAME, tags, fmt, ##__VA_ARGS__)
 
-#define QUILL_LOGV_DYNAMIC(logger, log_level, fmt, ...)                                              \
-  QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, __FILE__, __LINE__, QUILL_FUNCTION_NAME, "", \
-                                     QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
+#define QUILL_LOGV_DYNAMIC(logger, log_level, fmt, ...)                                                      \
+  QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, QUILL_FILE_NAME, QUILL_LINE_NO, QUILL_FUNCTION_NAME, \
+                                     "", QUILL_GENERATE_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
-#define QUILL_LOGJ_DYNAMIC(logger, log_level, fmt, ...)                                              \
-  QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, __FILE__, __LINE__, QUILL_FUNCTION_NAME, "", \
-                                     QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
+#define QUILL_LOGJ_DYNAMIC(logger, log_level, fmt, ...)                                                      \
+  QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, QUILL_FILE_NAME, QUILL_LINE_NO, QUILL_FUNCTION_NAME, \
+                                     "", QUILL_GENERATE_NAMED_FORMAT_STRING(fmt, ##__VA_ARGS__), ##__VA_ARGS__)
 
 #define QUILL_LOG_RUNTIME_METADATA_CALL(event, logger, log_level, file, line_number, function, tags, fmt, ...) \
   do                                                                                                           \

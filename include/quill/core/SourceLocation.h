@@ -11,13 +11,37 @@
 #include "quill/core/Attributes.h"
 #include <cstdint>
 
+#if !defined(QUILL_BUILTIN_FUNCTION_NAME)
+  #if defined(QUILL_DISABLE_FUNCTION_NAME)
+    #define QUILL_BUILTIN_FUNCTION_NAME ""
+  #else
+    #define QUILL_BUILTIN_FUNCTION_NAME __builtin_FUNCTION()
+  #endif
+#endif
+
+#if !defined(QUILL_BUILTIN_FILE_NAME)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_BUILTIN_FILE_NAME ""
+  #else
+    #define QUILL_BUILTIN_FILE_NAME __builtin_FILE()
+  #endif
+#endif
+
+#if !defined(QUILL_BUILTIN_LINE_NO)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_BUILTIN_LINE_NO 0u
+  #else
+    #define QUILL_BUILTIN_LINE_NO __builtin_LINE()
+  #endif
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 struct SourceLocation
 {
-  static constexpr SourceLocation current(char const* file = __builtin_FILE(),
-                                          char const* function = __builtin_FUNCTION(),
-                                          std::uint_least32_t line = __builtin_LINE()) noexcept
+  static constexpr SourceLocation current(char const* file = QUILL_BUILTIN_FILE_NAME,
+                                          char const* function = QUILL_BUILTIN_FUNCTION_NAME,
+                                          std::uint_least32_t line = QUILL_BUILTIN_LINE_NO) noexcept
   {
     return SourceLocation{file, function, line};
   }

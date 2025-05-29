@@ -39,13 +39,13 @@ Disables the non-prefixed `LOG_<LEVEL>` macros, keeping only the `QUILL_LOG_<LEV
 
     add_compile_definitions(-DQUILL_DISABLE_FUNCTION_NAME)
 
-Disables the use of ``__FUNCTION__`` in ``LOG_*`` macros. When ``%(caller_function)`` is not used in ``PatternFormatter``, ``__FUNCTION__`` can be disabled to eliminate Clang-Tidy warnings when using ``LOG_*`` macros inside lambdas.
+Disables ``__FUNCTION__`` information in log statements at compile time when the function-related pattern (``%(caller_function)``) is not needed in the ``PatternFormatter``. This can also be used to eliminate Clang-Tidy warnings when using log statements inside lambda expressions.
 
 .. code:: cmake
 
     add_compile_definitions(-DQUILL_DISABLE_FILE_INFO)
 
-Disables the use of ``__FILE__`` and ``__LINE__`` in ``LOG_*`` macros. When ``%(file_name)`` or ``%(line_number)`` is not used in ``PatternFormatter``, ``__FILE__`` and ``__LINE__`` can be disabled to remove embedded strings from built binaries.
+Disables ``__FILE__`` and ``__LINE__`` information in log statements at compile time when location-related patterns (``%(file_name)``, ``%(line_number)``, ``%(short_source_location)``, ``%(source_location)``) are not needed in the ``PatternFormatter``. This removes embedded source path strings from built binaries from the security viewpoint.
 
 .. code:: cmake
 
