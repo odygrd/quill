@@ -87,12 +87,20 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
   on_thread_exit();
 }
 #else
+  #if defined(BENCH_VECTOR_LARGESTR)
+inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iteration,
+                              std::function<void()> const& on_thread_start,
+                              std::function<void(uint64_t, uint64_t, std::vector<std::string>)> const& log_func,
+                              std::function<void()> const& on_thread_exit, uint16_t current_thread_num,
+                              std::vector<uint64_t>& latencies, double rdtsc_ns_per_tick)
+  #else
 /***/
 inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iteration,
                               std::function<void()> const& on_thread_start,
                               std::function<void(uint64_t, uint64_t, double)> const& log_func,
                               std::function<void()> const& on_thread_exit, uint16_t current_thread_num,
                               std::vector<uint64_t>& latencies, double rdtsc_ns_per_tick)
+  #endif
 {
   // running thread affinity
   quill::detail::set_cpu_affinity(get_cpu_to_pin_thread(current_thread_num));
@@ -100,10 +108,32 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
   on_thread_start();
 
   unsigned int aux;
+
+  #if defined(BENCH_VECTOR_LARGESTR)
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> length_dist(50, 60); // large strings
+  std::uniform_int_distribution<int> char_dist(65, 90);   // ASCII uppercase letters
+  #endif
+
   // Main Benchmark
   for (size_t iteration = 0; iteration < num_iterations; ++iteration)
   {
+  #if defined(BENCH_VECTOR_LARGESTR)
+    std::vector<std::string> d(16);
+
+    for (std::string& str : d)
+    {
+      int length = length_dist(gen);
+      str.reserve(length);
+      for (int i = 0; i < length; ++i)
+      {
+        str.push_back(static_cast<char>(char_dist(gen)));
+      }
+    }
+  #else
     double const d = static_cast<double>(iteration) + (0.1 * static_cast<double>(iteration));
+  #endif
 
     auto const start = __rdtscp(&aux);
     for (size_t i = 0; i < messages_per_iteration; ++i)
@@ -124,12 +154,20 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 }
 #endif
 
+#if defined(BENCH_VECTOR_LARGESTR)
+inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t thread_count,
+                          size_t num_iterations, [[maybe_unused]] size_t messages_per_iteration,
+                          std::function<void()> const& on_thread_start,
+                          std::function<void(uint64_t, uint64_t, std::vector<std::string> const&)> const& log_func,
+                          std::function<void()> const& on_thread_exit)
+#else
 /***/
 inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t thread_count,
                           size_t num_iterations, [[maybe_unused]] size_t messages_per_iteration,
                           std::function<void()> const& on_thread_start,
                           std::function<void(uint64_t, uint64_t, double)> const& log_func,
                           std::function<void()> const& on_thread_exit)
+#endif
 {
   // main thread affinity
   quill::detail::set_cpu_affinity(0);

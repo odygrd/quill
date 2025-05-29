@@ -10,6 +10,10 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#if defined(BENCH_VECTOR_LARGESTR)
+  #include "quill/std/Vector.h"
+#endif
+
 struct FrontendOptions
 {
   static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
@@ -72,15 +76,13 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
     logger->flush_log();
   };
 
-  // on main
-  auto log_func = [logger](uint64_t k, uint64_t i, double d)
-  {
-    // Main logging function
-    // This will get called MESSAGES_PER_ITERATION * ITERATIONS for each caller thread.
-    // MESSAGES_PER_ITERATION will get averaged to a single number
-
-    LOG_INFO(logger, "Logging iteration: {}, message: {}, double: {}", k, i, d);
-  };
+#if defined(BENCH_VECTOR_LARGESTR)
+  auto log_func = [logger](uint64_t i, uint64_t j, std::vector<std::string> const& s)
+  { LOG_INFO(logger, "Logging int: {}, int: {}, vector: {}", i, j, s); };
+#else
+  auto log_func = [logger](uint64_t i, uint64_t j, double s)
+  { LOG_INFO(logger, "Logging iteration: {}, message: {}, double: {}", i, j, s); };
+#endif
 
   /** ALWAYS REQUIRED **/
   // Run the benchmark for n threads
