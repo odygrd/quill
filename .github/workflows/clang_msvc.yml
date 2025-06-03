@@ -1,4 +1,4 @@
-name: Windows
+name: Clang-MSVC
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
