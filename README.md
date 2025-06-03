@@ -109,6 +109,7 @@ You can install Quill using the package manager of your choice:
 |     Bzlmod      | `bazel_dep(name = "quill", version = "x.y.z")` |
 |      xmake      |             `xrepo install quill`              |
 |       nix       |            `nix-shell -p quill-log`            |
+|     build2      |                  `libquill`                    |
 
 ### Setup
 
