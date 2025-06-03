@@ -1,0 +1,62 @@
+name: Windows
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+
+jobs:
+  clang_msvc:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        build_type: [ Debug, Release ]
+        std: [ 17, 20 ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "18.1"
+
+      - name: Create Build Directory
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure with Clang-CL
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
+            -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+            -DQUILL_BUILD_TESTS=ON \
+            -DQUILL_BUILD_EXAMPLES=ON \
+            -DQUILL_VERBOSE_MAKEFILE=ON
+
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          cmake --build . --config ${{matrix.build_type}} --parallel $threads
+
+      - name: Test
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          ctest --build-config ${{matrix.build_type}} --output-on-failure
