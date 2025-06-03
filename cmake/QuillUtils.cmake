@@ -64,8 +64,11 @@ function(set_common_compile_options target_name)
             -Wno-gnu-zero-variadic-macro-arguments
             >
 
-            # MSVC-specific options (including Clang on Windows)
-            $<$<PLATFORM_ID:Windows>:/bigobj /WX /W4 /wd4324 /wd4996>
+            # MSVC-specific options
+            $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<PLATFORM_ID:Windows>>:/bigobj /WX /W4 /wd4324 /wd4996>
+
+            # Clang on Windows (use -f flags instead of /f flags)
+            $<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Windows>>:-Wno-gnu-zero-variadic-macro-arguments -Werror -Wall -Wextra>
     )
 
     if (QUILL_NO_EXCEPTIONS)
