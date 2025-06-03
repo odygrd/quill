@@ -39,18 +39,18 @@ jobs:
       - name: Create Build Directory
         run: cmake -E make_directory ${{runner.workspace}}/build
 
-      - name: Configure with Clang-CL
+      - name: Configure with Clang
         shell: bash
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{ github.workspace }}   # This is your project root!
         run: |
           cmake -S . -B build -G "Ninja" \
-          -DCMAKE_C_COMPILER=clang \
-          -DCMAKE_CXX_COMPILER=clang++ \
-          -DCMAKE_BUILD_TYPE=Debug \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DQUILL_BUILD_TESTS=ON \
-          -DQUILL_BUILD_EXAMPLES=ON \
-          -DQUILL_VERBOSE_MAKEFILE=ON
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+            -DCMAKE_CXX_STANDARD=${{matrix.std}} \
+            -DQUILL_BUILD_TESTS=ON \
+            -DQUILL_BUILD_EXAMPLES=ON \
+            -DQUILL_VERBOSE_MAKEFILE=ON
 
       - name: Build
         working-directory: ${{runner.workspace}}/build
