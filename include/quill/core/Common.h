@@ -43,9 +43,11 @@ static constexpr size_t QUILL_CACHE_LINE_SIZE{64u};
 static constexpr size_t QUILL_CACHE_LINE_ALIGNED{2 * QUILL_CACHE_LINE_SIZE};
 
 // define our own PATH_PREFERRED_SEPARATOR to not include <filesystem>
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__clang__)
+// Regular Windows (MSVC, MinGW): use backslashes
 static constexpr wchar_t PATH_PREFERRED_SEPARATOR = L'\\';
 #else
+// Non-Windows OR Clang on Windows: use forward slashes
 static constexpr char PATH_PREFERRED_SEPARATOR = '/';
 #endif
 } // namespace detail
