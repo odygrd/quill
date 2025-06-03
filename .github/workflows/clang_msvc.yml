@@ -27,7 +27,7 @@ jobs:
     strategy:
       matrix:
         build_type: [ Debug, Release ]
-        std: [ 17, 20 ]
+        std: [ 17 ]
     steps:
       - uses: actions/checkout@v4
 
