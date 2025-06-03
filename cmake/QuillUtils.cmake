@@ -33,9 +33,13 @@ function(set_common_compile_options target_name)
     endif ()
 
     target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
-            # General warnings for Clang, AppleClang, and GNU
-            $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-            -Wall -Wextra -pedantic -Werror -Wredundant-decls -Wfloat-equal>
+            # General warnings for Clang, AppleClang, and GNU, but NOT on Windows
+            $<$<AND:
+            $<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>,
+            $<NOT:$<PLATFORM_ID:Windows>>
+            >:
+            -Wall -Wextra -pedantic -Werror -Wredundant-decls -Wfloat-equal
+            >
 
             # GCC-specific hardening and security flags
             $<$<AND:$<CXX_COMPILER_ID:GNU>,$<BOOL:${QUILL_ENABLE_GCC_HARDENING}>>:
@@ -45,22 +49,36 @@ function(set_common_compile_options target_name)
             -Werror=format-security
             -fcf-protection
             -Wdate-time
-            -D_FORTIFY_SOURCE=2>
+            -D_FORTIFY_SOURCE=2
+            >
 
-            # Clang specific options
-            $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:
-            -Wimplicit-int-float-conversion -Wdocumentation>
+            # Clang specific options, but NOT on Windows
+            $<$<AND:
+            $<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,
+            $<NOT:$<PLATFORM_ID:Windows>>
+            >:
+            -Wimplicit-int-float-conversion -Wdocumentation
+            >
 
-            # Disable C++20 extension warnings for Clang > 17
-            $<$<AND:$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,17>>:
-            -Wno-c++20-extensions>
+            # Disable C++20 extension warnings for Clang > 17, but NOT on Windows
+            $<$<AND:
+            $<CXX_COMPILER_ID:Clang>,
+            $<VERSION_GREATER:$<CXX_COMPILER_VERSION>,17>,
+            $<NOT:$<PLATFORM_ID:Windows>>
+            >:
+            -Wno-c++20-extensions
+            >
 
-            # Disable specific warning for Clang and AppleClang
-            $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:
-            -Wno-gnu-zero-variadic-macro-arguments>
+            # Disable specific warning for Clang and AppleClang, but NOT on Windows
+            $<$<AND:
+            $<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,
+            $<NOT:$<PLATFORM_ID:Windows>>
+            >:
+            -Wno-gnu-zero-variadic-macro-arguments
+            >
 
-            # MSVC-specific options
-            $<$<CXX_COMPILER_ID:MSVC>:/bigobj /WX /W4 /wd4324 /wd4996>
+            # MSVC-specific options (including Clang on Windows)
+            $<$<PLATFORM_ID:Windows>:/bigobj /WX /W4 /wd4324 /wd4996>
     )
 
     if (QUILL_NO_EXCEPTIONS)
