@@ -43,7 +43,7 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}   # This is your project root!
         run: |
-          cmake -S . -B build -G "Ninja" \
+          cmake -S . -B . -G "Ninja" \
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_CXX_COMPILER=clang++ \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
