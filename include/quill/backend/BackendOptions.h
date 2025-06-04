@@ -109,10 +109,11 @@ struct BackendOptions
    * next iteration. The timestamp check is performed with microsecond precision.
    *
    * Example scenario:
-   * 1. Frontend thread takes a timestamp, then sleeps before pushing to the queue.
+   * 1. Frontend thread takes a timestamp at the very start of logging, then becomes delayed
+   *    (preempted, blocked, processing slowly, etc.) before pushing to the queue.
    * 2. Backend thread takes timestamp `now()` and subtracts the grace period, reads queues up to
    *    the adjusted `now()`, and writes the logs.
-   * 3. Frontend thread wakes up and pushes to the queue.
+   * 3. Frontend thread wakes up and pushes the message with its already-recorded timestamp to the queue.
    * 4. Backend thread reads and writes the delayed timestamp, resulting in an out-of-order log.
    *
    * Setting this option to a non-zero value causes a minor delay in reading the messages from the

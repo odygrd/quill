@@ -51,7 +51,7 @@ Disables ``__FILE__`` and ``__LINE__`` information in log statements at compile 
 
     option(QUILL_DETAILED_FUNCTION_NAME "Use detailed function name (__PRETTY_FUNCTION__ or __FUNCSIG__) instead of __FUNCTION__ in LOG_* macros" OFF)
 
-Enables the use of compiler-specific detailed function signatures (such as ``__PRETTY_FUNCTION__`` on GCC/Clang or ``__FUNCSIG__`` on MSVC) instead of the standard ``__FUNCTION__`` in log macros. This option is only relevant when ``%(caller_function)`` is used in the pattern formatter. When enabled, you can further customize the function name display by providing a processing function via ``PatternFormatterOptions::process_detailed_function_name``.
+Enables the use of compiler-specific detailed function signatures (such as ``__PRETTY_FUNCTION__`` on GCC/Clang or ``__FUNCSIG__`` on MSVC) instead of the standard ``__FUNCTION__`` in log macros. This option is only relevant when ``%(caller_function)`` is used in the pattern formatter. When enabled, you can further customize the function name display by providing a processing function via ``PatternFormatterOptions::process_function_name``.
 
 .. code:: cmake
 
