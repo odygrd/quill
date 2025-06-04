@@ -834,6 +834,4 @@ TEST_CASE("process_source_location_path")
   }
 }
 
-TEST_CASE("extract_qualified_function_name") {}
-
 TEST_SUITE_END();
