@@ -124,16 +124,11 @@ public:
 
     if (_is_set_in_pattern[Attribute::CallerFunction])
     {
-      if (!_options.extract_qualified_function_names)
-      {
-        _set_arg_val<Attribute::CallerFunction>(std::string_view{log_statement_metadata.caller_function()});
-      }
-      else
-      {
-        // only when QUILL_DETAILED_FUNCTION_NAME is used
-        _set_arg_val<Attribute::CallerFunction>(_extract_qualified_function_name(
-          log_statement_metadata.caller_function(), _options.function_name_strip_namespace));
-      }
+      std::string_view const function_name = _options.process_function_name
+        ? _options.process_function_name(log_statement_metadata.caller_function())
+        : std::string_view{log_statement_metadata.caller_function()};
+
+      _set_arg_val<Attribute::CallerFunction>(function_name);
     }
 
     if (_is_set_in_pattern[Attribute::LogLevel])
@@ -284,70 +279,6 @@ protected:
 
     // No prefix set or prefix not found, use the full path
     return result;
-  }
-
-  /***/
-  QUILL_NODISCARD static std::string_view _extract_qualified_function_name(char const* function_signature,
-                                                                           std::string_view strip_namespace)
-  {
-    char const* func = function_signature;
-    std::size_t len;
-
-    char const* paren = strchr(function_signature, '('); // find the start of the function parenthesis
-    if QUILL_LIKELY (paren != nullptr)
-    {
-      // First locate the return type and parameters boundary
-      char const* space = nullptr;
-      char const* begin = paren;
-      int tmpl_arg = 0;
-
-      // Scan backward to find the space after the return type
-      while (begin > func)
-      {
-        char c = *--begin;
-        if (c == '>')
-        {
-          ++tmpl_arg;
-        }
-        else if (c == '<')
-        {
-          --tmpl_arg;
-        }
-        else if (c == ' ' && tmpl_arg == 0)
-        {
-          space = begin;
-          break;
-        }
-      }
-
-      if (space != nullptr)
-      {
-        // Start from after the space that follows the return type
-        func = space + 1;
-        len = paren - func;
-
-        // Strip off leading namespace if it exists
-        if (!strip_namespace.empty())
-        {
-          if (strncmp(func, strip_namespace.data(), strip_namespace.size()) == 0)
-          {
-            func += strip_namespace.size();
-            len -= strip_namespace.size();
-          }
-        }
-      }
-      else
-      {
-        // Fallback if no space found
-        len = paren - func;
-      }
-    }
-    else
-    {
-      len = strlen(func);
-    }
-
-    return std::string_view(func, len);
   }
 
 private:

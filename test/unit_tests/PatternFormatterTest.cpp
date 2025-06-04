@@ -545,6 +545,56 @@ TEST_CASE("pattern_formatter_source_location_prefix")
   }
 }
 
+TEST_CASE("pattern_formatter_process_function_name")
+{
+  std::vector<std::pair<std::string, std::string>> named_args;
+  uint64_t const ts{1579815761000023021};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "{}}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  PatternFormatterOptions po;
+  po.format_pattern = "%(caller_function)";
+  po.process_function_name = [](char const* function_name)
+  {
+    std::string_view sv{function_name};
+    // Check if the string ends with a number after an underscore
+    size_t pos = sv.rfind('_');
+    if (pos != std::string_view::npos && pos < sv.length() - 1)
+    {
+      // Check if the characters after the underscore are all digits
+      bool all_digits = true;
+      for (size_t i = pos + 1; i < sv.length(); ++i)
+      {
+        if (!std::isdigit(sv[i]))
+        {
+          all_digits = false;
+          break;
+        }
+      }
+
+      // If they are all digits, remove the underscore and the digits
+      if (all_digits)
+      {
+        return sv.substr(0, pos);
+      }
+    }
+    return sv;
+  };
+
+  PatternFormatter pattern_formatter{po};
+
+  auto const& formatted_buffer =
+    pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
+                             macro_metadata, &named_args, std::string_view{});
+
+  // in this test we remove e.g. _31 from the function name with process_function_name
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+  std::string const expected_string = "DOCTEST_ANON_FUNC\n";
+  REQUIRE_EQ(formatted_string, expected_string);
+}
+
 struct PatternFormatterMock : public PatternFormatter
 {
   PatternFormatterMock() : PatternFormatter(PatternFormatterOptions{}) {};
@@ -555,11 +605,6 @@ struct PatternFormatterMock : public PatternFormatter
     // windows complains for REQUIRE_EQ(std::string, std::string_view)
     return std::string{PatternFormatter::_process_source_location_path(
       source_location, strip_prefix, remove_relative_paths)};
-  }
-
-  std::string _extract_qualified_function_name(char const* function_signature, std::string_view strip_namespace)
-  {
-    return std::string{PatternFormatter::_extract_qualified_function_name(function_signature, strip_namespace)};
   }
 };
 
@@ -789,120 +834,6 @@ TEST_CASE("process_source_location_path")
   }
 }
 
-TEST_CASE("extract_qualified_function_name")
-{
-  PatternFormatterMock formatter;
-  std::string_view strip_namespace = "quill::";
-
-  // Nested namespaces with const member function
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "std::string_view foo::bar::baz::some_function() const", "foo::bar::"),
-             "baz::some_function");
-
-  // Simple class member function with const
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "quill::Format<char, double> quill::FormatterType::serialize() const", strip_namespace),
-             "FormatterType::serialize");
-
-  // Template class member function with single template parameter
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "quill::Format<char, double> quill::FormatterT<std::string>::serialize() const", strip_namespace),
-             "FormatterT<std::string>::serialize");
-
-  // Template class member function with multiple template parameters
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "quill::Format<char, double> quill::FormatterT<char, int>::serialize() const", strip_namespace),
-             "FormatterT<char, int>::serialize");
-
-  // Simple free function without parameters
-  REQUIRE_EQ(formatter._extract_qualified_function_name("void quill::free_func()", strip_namespace),
-             "free_func");
-
-  // Simple function without parameters
-  REQUIRE_EQ(formatter._extract_qualified_function_name("log_from_new_logger", strip_namespace),
-             "log_from_new_logger");
-
-  // Simple function without parameters
-  REQUIRE_EQ(formatter._extract_qualified_function_name("log_from_new_logger", ""),
-             "log_from_new_logger");
-
-  // Nested namespace free function without parameters
-  REQUIRE_EQ(formatter._extract_qualified_function_name("void quill::bar::free_func()", strip_namespace),
-             "bar::free_func");
-
-  // Free function with parameters
-  REQUIRE_EQ(formatter._extract_qualified_function_name("void quill::free_func(double)", strip_namespace),
-             "free_func");
-
-  // Empty function signature
-  REQUIRE_EQ(formatter._extract_qualified_function_name("", strip_namespace), "");
-
-  // Function with no namespace
-  REQUIRE_EQ(formatter._extract_qualified_function_name("void standalone_func()", strip_namespace),
-             "standalone_func");
-
-  // Complex template parameters with nested types
-  REQUIRE_EQ(
-    formatter._extract_qualified_function_name(
-      "void quill::TemplateClass<std::vector<std::pair<int, std::string>>>::complex_func() const", strip_namespace),
-    "TemplateClass<std::vector<std::pair<int, std::string>>>::complex_func");
-
-  // Multiple template parameters with namespaces
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "template<typename T> quill::Result<std::optional<T>, std::error_code> "
-               "quill::Parser<T>::parse() const",
-               strip_namespace),
-             "Parser<T>::parse");
-
-  // Operator overloads
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "bool quill::Logger::operator==(const Logger&) const", strip_namespace),
-             "Logger::operator==");
-
-  // Function with rvalue reference parameters
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "void quill::Handler::process(Message&& msg)", strip_namespace),
-             "Handler::process");
-
-  // Templated return type with multiple template parameters
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "std::pair<std::vector<int>, std::string> quill::Processor::get_result() const", strip_namespace),
-             "Processor::get_result");
-
-  // Nested classes
-  REQUIRE_EQ(formatter._extract_qualified_function_name("void quill::Outer::Inner::nested_func()", strip_namespace),
-             "Outer::Inner::nested_func");
-
-  // Function with noexcept specifier
-  REQUIRE_EQ(formatter._extract_qualified_function_name("void quill::SafeFunc::process() noexcept", strip_namespace),
-             "SafeFunc::process");
-
-  // Function with trailing return type
-  REQUIRE_EQ(formatter._extract_qualified_function_name("auto quill::Modern::func() -> result_type", strip_namespace),
-             "Modern::func");
-
-  // Empty namespace to strip
-  REQUIRE_EQ(formatter._extract_qualified_function_name("void quill::free_func()", ""),
-             "quill::free_func");
-
-  // Namespace that doesn't match
-  REQUIRE_EQ(formatter._extract_qualified_function_name("void quill::free_func()", "other::"),
-             "quill::free_func");
-
-  // Function with variadic templates
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "template<typename... Args> void quill::Logger::log(Args&&... args)", strip_namespace),
-             "Logger::log");
-
-  // Function with volatile qualifier
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "int quill::State::get_value() const volatile", strip_namespace),
-             "State::get_value");
-
-  // Function with both const and noexcept
-  REQUIRE_EQ(formatter._extract_qualified_function_name(
-               "void quill::Safe::process() const noexcept", strip_namespace),
-             "Safe::process");
-}
+TEST_CASE("extract_qualified_function_name") {}
 
 TEST_SUITE_END();

@@ -49,6 +49,12 @@ Disables ``__FILE__`` and ``__LINE__`` information in log statements at compile 
 
 .. code:: cmake
 
+    option(QUILL_DETAILED_FUNCTION_NAME "Use detailed function name (__PRETTY_FUNCTION__ or __FUNCSIG__) instead of __FUNCTION__ in LOG_* macros" OFF)
+
+Enables the use of compiler-specific detailed function signatures (such as ``__PRETTY_FUNCTION__`` on GCC/Clang or ``__FUNCSIG__`` on MSVC) instead of the standard ``__FUNCTION__`` in log macros. This option is only relevant when ``%(caller_function)`` is used in the pattern formatter. When enabled, you can further customize the function name display by providing a processing function via ``PatternFormatterOptions::process_detailed_function_name``.
+
+.. code:: cmake
+
     add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=0)
 
 Immediate flushing blocks the calling thread until a log message has been written to its destination, effectively simulating synchronous logging.
@@ -66,6 +72,12 @@ For example, to keep only warning level and above:
 .. code:: cmake
 
     add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+
+Hiding File Names and Functions From Build Binaries
+--------------------------------------------------
+From a security standpoint, embedded source file paths and function signatures in binaries can leak sensitive information about your codebase structure.
+To protect use both the `-DQUILL_DISABLE_FUNCTION_NAME` and `-DQUILL_DISABLE_FILE_INFO` compile definitions described above.
+When both options are enabled, neither function names nor file paths will be embedded in your binary, significantly reducing the information available to anyone examining the compiled code.
 
 LOGV Macros
 -----------

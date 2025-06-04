@@ -91,17 +91,23 @@ public:
   std::string source_location_path_strip_prefix{};
 
   /**
-   * @brief Namespace to strip from qualified function names.
+   * @brief Function pointer for custom processing of detailed function names for %(caller_function)
    *
-   * When extract_qualified_function_names is true, the specified namespace
-   * prefix will be removed from extracted function names:
-   * - For example, with "quill::", "quill::Logger::log()" becomes "Logger::log()"
-   * - If empty (default), the full qualified name is shown
+   * This is most useful when QUILL_DETAILED_FUNCTION_NAME is enabled, as it allows
+   * custom processing of the detailed function signature provided by the compiler.
    *
-   * This option has effect only when extract_qualified_function_names is true
-   * and QUILL_DETAILED_FUNCTION_NAME is enabled.
+   * Since the format of __PRETTY_FUNCTION__ or equivalent is compiler-specific,
+   * this function allows users to implement their own parsing/formatting logic.
+   *
+   * The function takes one parameter:
+   * - The raw function signature string from the compiler (e.g., from __PRETTY_FUNCTION__)
+   *
+   * It should return a string_view representing the processed function name.
+   *
+   * If set to nullptr (default), the logger will use the unprocessed function name
+   * as provided by the compiler.
    */
-  std::string function_name_strip_namespace{};
+  std::string_view (*process_function_name)(char const*){nullptr};
 
   /**
    * @brief The timezone to use for timestamps.
@@ -129,31 +135,14 @@ public:
    */
   bool source_location_remove_relative_paths{false};
 
-  /**
-   * @brief Whether to extract qualified names from detailed function signatures.
-   *
-   * When QUILL_DETAILED_FUNCTION_NAME cmake option or preprocessor flag is enabled
-   * and __PRETTY_FUNCTION__ (or __FUNCSIG__ on MSVC) is used, setting this flag to true
-   * will extract the qualified function name from the full signature.
-   *
-   * For example, with __PRETTY_FUNCTION__:
-   * - Input:  "std::string_view quill::Logger::log() const"
-   * - Output: "Logger::log"
-   *
-   * This option has effect only when QUILL_DETAILED_FUNCTION_NAME is enabled.
-   */
-  bool extract_qualified_function_names{false};
-
   /***/
   bool operator==(PatternFormatterOptions const& other) const noexcept
   {
     return format_pattern == other.format_pattern && timestamp_pattern == other.timestamp_pattern &&
       source_location_path_strip_prefix == other.source_location_path_strip_prefix &&
-      function_name_strip_namespace == other.function_name_strip_namespace &&
-      timestamp_timezone == other.timestamp_timezone &&
+      timestamp_timezone == other.timestamp_timezone && process_function_name == other.process_function_name &&
       add_metadata_to_multi_line_logs == other.add_metadata_to_multi_line_logs &&
-      source_location_remove_relative_paths == other.source_location_remove_relative_paths &&
-      extract_qualified_function_names == other.extract_qualified_function_names;
+      source_location_remove_relative_paths == other.source_location_remove_relative_paths;
   }
 
   /***/

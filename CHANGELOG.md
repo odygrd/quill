@@ -134,6 +134,18 @@
   are not needed in the `PatternFormatter`. This removes embedded source path strings from built binaries from the
   security viewpoint.
 
+- Added the `QUILL_DETAILED_FUNCTION_NAME` CMake option. When enabled, this option uses compiler-specific detailed
+  function signatures (such as `__PRETTY_FUNCTION__` on GCC/Clang or `__FUNCSIG__` on MSVC) instead of the standard
+  `__FUNCTION__` in log macros. This provides more complete function information, including return types, namespaces,
+  and parameter types. This option is only relevant when `%(caller_function)` is used in the pattern
+  formatter. ([#785](https://github.com/odygrd/quill/issues/785))
+
+- Added `process_function_name` customisation point in `PatternFormatterOptions`. This function allows custom processing
+  of the function signature before it's displayed in logs. This makes more sense to use when
+  `QUILL_DETAILED_FUNCTION_NAME` is used. This provides flexibility to trim, format, or otherwise modify function
+  signatures to improve readability in log output when using the `%(caller_function)`
+  pattern. ([#785](https://github.com/odygrd/quill/issues/785))
+
 - Added helper macros for easy logging of user-defined types. Two new macros are available in `quill/HelperMacros.h`:
   - `QUILL_LOGGABLE_DIRECT_FORMAT(Type)`: For types that contain pointers or have lifetime dependencies
   - `QUILL_LOGGABLE_DEFERRED_FORMAT(Type)`: For types that only contain value types and are safe to copy
