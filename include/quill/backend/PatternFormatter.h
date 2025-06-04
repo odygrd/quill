@@ -124,7 +124,11 @@ public:
 
     if (_is_set_in_pattern[Attribute::CallerFunction])
     {
-      _set_arg_val<Attribute::CallerFunction>(log_statement_metadata.caller_function());
+      std::string_view const function_name = _options.process_function_name
+        ? _options.process_function_name(log_statement_metadata.caller_function())
+        : std::string_view{log_statement_metadata.caller_function()};
+
+      _set_arg_val<Attribute::CallerFunction>(function_name);
     }
 
     if (_is_set_in_pattern[Attribute::LogLevel])
@@ -291,7 +295,7 @@ private:
 
     _set_arg<Attribute::Time>(std::string_view("time"));
     _set_arg<Attribute::FileName>(std::string_view("file_name"));
-    _set_arg<Attribute::CallerFunction>("caller_function");
+    _set_arg<Attribute::CallerFunction>(std::string_view("caller_function"));
     _set_arg<Attribute::LogLevel>(std::string_view("log_level"));
     _set_arg<Attribute::LogLevelShortCode>(std::string_view("log_level_short_code"));
     _set_arg<Attribute::LineNumber>("line_number");

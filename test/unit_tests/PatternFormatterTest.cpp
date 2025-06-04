@@ -545,6 +545,56 @@ TEST_CASE("pattern_formatter_source_location_prefix")
   }
 }
 
+TEST_CASE("pattern_formatter_process_function_name")
+{
+  std::vector<std::pair<std::string, std::string>> named_args;
+  uint64_t const ts{1579815761000023021};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "{}}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  PatternFormatterOptions po;
+  po.format_pattern = "%(caller_function)";
+  po.process_function_name = [](char const* function_name)
+  {
+    std::string_view sv{function_name};
+    // Check if the string ends with a number after an underscore
+    size_t pos = sv.rfind('_');
+    if (pos != std::string_view::npos && pos < sv.length() - 1)
+    {
+      // Check if the characters after the underscore are all digits
+      bool all_digits = true;
+      for (size_t i = pos + 1; i < sv.length(); ++i)
+      {
+        if (!std::isdigit(sv[i]))
+        {
+          all_digits = false;
+          break;
+        }
+      }
+
+      // If they are all digits, remove the underscore and the digits
+      if (all_digits)
+      {
+        return sv.substr(0, pos);
+      }
+    }
+    return sv;
+  };
+
+  PatternFormatter pattern_formatter{po};
+
+  auto const& formatted_buffer =
+    pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
+                             macro_metadata, &named_args, std::string_view{});
+
+  // in this test we remove e.g. _31 from the function name with process_function_name
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+  std::string const expected_string = "DOCTEST_ANON_FUNC\n";
+  REQUIRE_EQ(formatted_string, expected_string);
+}
+
 struct PatternFormatterMock : public PatternFormatter
 {
   PatternFormatterMock() : PatternFormatter(PatternFormatterOptions{}) {};

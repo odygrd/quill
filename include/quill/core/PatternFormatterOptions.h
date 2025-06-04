@@ -91,6 +91,25 @@ public:
   std::string source_location_path_strip_prefix{};
 
   /**
+   * @brief Function pointer for custom processing of detailed function names for %(caller_function)
+   *
+   * This is most useful when QUILL_DETAILED_FUNCTION_NAME is enabled, as it allows
+   * custom processing of the detailed function signature provided by the compiler.
+   *
+   * Since the format of __PRETTY_FUNCTION__ or equivalent is compiler-specific,
+   * this function allows users to implement their own parsing/formatting logic.
+   *
+   * The function takes one parameter:
+   * - The raw function signature string from the compiler (e.g., from __PRETTY_FUNCTION__)
+   *
+   * It should return a string_view representing the processed function name.
+   *
+   * If set to nullptr (default), the logger will use the unprocessed function name
+   * as provided by the compiler.
+   */
+  std::string_view (*process_function_name)(char const*){nullptr};
+
+  /**
    * @brief The timezone to use for timestamps.
    *
    * Determines whether timestamps are formatted in local time or GMT.
@@ -121,7 +140,7 @@ public:
   {
     return format_pattern == other.format_pattern && timestamp_pattern == other.timestamp_pattern &&
       source_location_path_strip_prefix == other.source_location_path_strip_prefix &&
-      timestamp_timezone == other.timestamp_timezone &&
+      timestamp_timezone == other.timestamp_timezone && process_function_name == other.process_function_name &&
       add_metadata_to_multi_line_logs == other.add_metadata_to_multi_line_logs &&
       source_location_remove_relative_paths == other.source_location_remove_relative_paths;
   }
