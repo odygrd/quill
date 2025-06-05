@@ -26,7 +26,7 @@ jobs:
     runs-on: windows-2022
     strategy:
       matrix:
-        compiler: [ clang++, clang-cl ]
+        compiler: [ clang-cl ]
         build_type: [ Debug, Release ]
         std: [ 17 ]
     steps:

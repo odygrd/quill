@@ -29,6 +29,50 @@
   #define QUILL_MAGIC_SEPARATOR "\x01\x02\x03"
 #endif
 
+#if !defined(QUILL_FUNCTION_NAME)
+  #if defined(QUILL_DISABLE_FUNCTION_NAME) && defined(QUILL_DETAILED_FUNCTION_NAME)
+    #error "QUILL_DISABLE_FUNCTION_NAME and QUILL_DETAILED_FUNCTION_NAME are mutually exclusive"
+  #endif
+
+  #if defined(QUILL_DISABLE_FUNCTION_NAME)
+    #define QUILL_FUNCTION_NAME ""
+  #elif defined(QUILL_DETAILED_FUNCTION_NAME)
+    #if defined(_MSC_VER)
+      #define QUILL_FUNCTION_NAME __FUNCSIG__
+    #elif defined(__clang__) || defined(__GNUC__) || defined(__INTEL_COMPILER)
+      #define QUILL_FUNCTION_NAME __PRETTY_FUNCTION__
+    #else
+      #define QUILL_FUNCTION_NAME __FUNCTION__
+    #endif
+  #else
+    #define QUILL_FUNCTION_NAME __FUNCTION__
+  #endif
+#endif
+
+#if !defined(QUILL_FILE_NAME)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_FILE_NAME ""
+  #else
+    #define QUILL_FILE_NAME __FILE__
+  #endif
+#endif
+
+#if !defined(QUILL_LINE_NO)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_LINE_NO ""
+  #else
+    #define QUILL_LINE_NO __LINE__
+  #endif
+#endif
+
+#if !defined(QUILL_FILE_INFO)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_FILE_INFO ""
+  #else
+    #define QUILL_FILE_INFO QUILL_FILE_NAME ":" QUILL_STRINGIFY(QUILL_LINE_NO)
+  #endif
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
