@@ -64,7 +64,7 @@ function(set_common_compile_options target_name)
             -Wno-gnu-zero-variadic-macro-arguments
             >
 
-            # MSVC-specific options
+            # Windows-specific options
             $<$<PLATFORM_ID:Windows>:$<$<OR:$<CXX_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:Clang>>:/bigobj /WX /W4 /wd4324 /wd4996>>
     )
 
