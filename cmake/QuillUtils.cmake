@@ -69,6 +69,11 @@ function(set_common_compile_options target_name)
     )
 
     if (QUILL_NO_EXCEPTIONS)
+        # Modify CMake's default flags for MSVC to remove /EHsc
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+            string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+        endif ()
+
         # Add flags -fno-exceptions -fno-rtti to make sure we support them
         target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
                 $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
