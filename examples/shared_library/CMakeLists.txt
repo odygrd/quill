@@ -4,8 +4,9 @@ add_executable(quill_example_shared_lib example_shared.cpp)
 set_common_compile_options(quill_example_shared_lib)
 target_link_libraries(quill_example_shared_lib quill_shared_lib)
 
-# Optional
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+# Optional - apply visibility flag except for clang-cl
+if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR
+(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT CMAKE_CXX_COMPILER MATCHES "clang-cl"))
     target_compile_options(quill_example_shared_lib PRIVATE -fvisibility=hidden)
 endif ()
 
