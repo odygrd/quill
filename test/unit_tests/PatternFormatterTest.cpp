@@ -515,7 +515,7 @@ TEST_CASE("pattern_formatter_source_location_prefix")
 
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:503\n";
 #else
     std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:503\n";
@@ -535,7 +535,7 @@ TEST_CASE("pattern_formatter_source_location_prefix")
 
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:503\n";
 #else
     std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:503\n";
@@ -614,7 +614,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with basic prefix
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
@@ -625,7 +625,7 @@ TEST_CASE("process_source_location_path")
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected = "test\\unit_tests\\file.cpp";
 #else
     std::string const expected = "test/unit_tests/file.cpp";
@@ -636,7 +636,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with relative paths before prefix
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\..\\..\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/../../quill/test/unit_tests/file.cpp";
@@ -647,7 +647,7 @@ TEST_CASE("process_source_location_path")
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected = "test\\unit_tests\\file.cpp";
 #else
     std::string const expected = "test/unit_tests/file.cpp";
@@ -658,7 +658,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with relative paths before prefix, but without removing relative paths
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\..\\..\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/../../quill/test/unit_tests/file.cpp";
@@ -669,7 +669,7 @@ TEST_CASE("process_source_location_path")
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected = "test\\unit_tests\\file.cpp";
 #else
     std::string const expected = "test/unit_tests/file.cpp";
@@ -680,7 +680,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with prefix including separator
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
@@ -691,7 +691,7 @@ TEST_CASE("process_source_location_path")
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected = "test\\unit_tests\\file.cpp";
 #else
     std::string const expected = "test/unit_tests/file.cpp";
@@ -702,7 +702,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with prefix not found
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
@@ -717,7 +717,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with empty prefix
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\home\\user\\quill\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
@@ -732,7 +732,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with relative path
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "..\\..\\..\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "../../../test/unit_tests/file.cpp";
@@ -743,7 +743,7 @@ TEST_CASE("process_source_location_path")
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected = "test\\unit_tests\\file.cpp";
 #else
     std::string const expected = "test/unit_tests/file.cpp";
@@ -754,7 +754,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with relative path in the middle
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\home\\user\\..\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/../test/unit_tests/file.cpp";
@@ -765,7 +765,7 @@ TEST_CASE("process_source_location_path")
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected = "test\\unit_tests\\file.cpp";
 #else
     std::string const expected = "test/unit_tests/file.cpp";
@@ -776,7 +776,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with no relative path
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\home\\user\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/test/unit_tests/file.cpp";
@@ -791,7 +791,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with both prefix and relative path
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\home\\user\\quill\\..\\..\\..\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/../../../test/unit_tests/file.cpp";
@@ -802,7 +802,7 @@ TEST_CASE("process_source_location_path")
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected = "test\\unit_tests\\file.cpp";
 #else
     std::string const expected = "test/unit_tests/file.cpp";
@@ -813,7 +813,7 @@ TEST_CASE("process_source_location_path")
 
   // Test with both prefix and relative path false
   {
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     char const* path = "\\home\\user\\quill\\..\\..\\..\\test\\unit_tests\\file.cpp";
 #else
     char const* path = "/home/user/quill/../../../test/unit_tests/file.cpp";
@@ -824,7 +824,7 @@ TEST_CASE("process_source_location_path")
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);
 
-#if defined(_WIN32) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
     std::string const expected = "..\\..\\..\\test\\unit_tests\\file.cpp";
 #else
     std::string const expected = "../../../test/unit_tests/file.cpp";

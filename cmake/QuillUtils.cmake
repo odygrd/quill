@@ -64,23 +64,25 @@ function(set_common_compile_options target_name)
             -Wno-gnu-zero-variadic-macro-arguments
             >
 
-            # MSVC-specific options
-            $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<PLATFORM_ID:Windows>>:/bigobj /WX /W4 /wd4324 /wd4996>
-
-            # Clang on Windows (use -f flags instead of /f flags)
-            $<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Windows>>:-Wno-gnu-zero-variadic-macro-arguments>
+            # Windows-specific options
+            $<$<PLATFORM_ID:Windows>:$<$<OR:$<CXX_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:Clang>>:/bigobj /WX /W4 /wd4324 /wd4996>>
     )
 
     if (QUILL_NO_EXCEPTIONS)
+        # Modify CMake's default flags for MSVC to remove /EHsc
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+            string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+        endif ()
+
         # Add flags -fno-exceptions -fno-rtti to make sure we support them
         target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
                 $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
                 -fno-exceptions -fno-rtti>
                 $<$<CXX_COMPILER_ID:MSVC>:/wd4702 /GR- /EHs-c- /D_HAS_EXCEPTIONS=0>)
     else ()
-        # Additional MSVC specific options
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-            target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY} /EHsc)
-        endif ()
+        # Additional MSVC specific options - only set for non-QUILL_NO_EXCEPTIONS builds
+        target_compile_options(${target_name} ${COMPILE_OPTIONS_VISIBILITY}
+                $<$<CXX_COMPILER_ID:MSVC>:/EHsc>)
     endif ()
 endfunction()
+

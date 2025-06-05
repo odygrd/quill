@@ -243,7 +243,7 @@ protected:
     {
       // Remove any relative paths (e.g., relative paths can appear when using a mounted volume under docker)
 
-#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__clang__)
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
       static constexpr std::string_view relative_path = "..\\";
 #else
       static constexpr std::string_view relative_path = "../";

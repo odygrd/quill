@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/Common.h"
 
 #include <exception>
 #include <string>
@@ -20,7 +21,7 @@
     {                                                                                              \
       if (QUILL_UNLIKELY(!(expression)))                                                           \
       {                                                                                            \
-        printf("Quill fatal error: %s (%s:%d)\n", error, __FILE__, __LINE__);                      \
+        printf("Quill fatal error: %s (%s:%d)\n", error, QUILL_FILE_NAME, QUILL_LINE_NO);          \
         std::abort();                                                                              \
       }                                                                                            \
     } while (0)

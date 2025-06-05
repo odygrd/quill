@@ -11,5 +11,7 @@ target_include_directories(${LIB_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
+set_common_compile_options(${LIB_NAME})
+
 # Link quill dependency
 target_link_libraries(${LIB_NAME} PUBLIC quill::quill)

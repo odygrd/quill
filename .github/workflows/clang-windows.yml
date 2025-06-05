@@ -26,6 +26,7 @@ jobs:
     runs-on: windows-2022
     strategy:
       matrix:
+        compiler: [ clang-cl ]
         build_type: [ Debug, Release ]
         std: [ 17 ]
     steps:
@@ -43,9 +44,18 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
+          # Set compiler paths based on matrix selection
+          if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
+            C_COMPILER="clang"
+            CXX_COMPILER="clang++"
+          else
+            C_COMPILER="clang-cl"
+            CXX_COMPILER="clang-cl"
+          fi
+          
           cmake -S . -B "${{ runner.workspace }}/build" -G "Ninja" \
-            -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER="$C_COMPILER" \
+            -DCMAKE_CXX_COMPILER="$CXX_COMPILER" \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DCMAKE_CXX_STANDARD=${{matrix.std}} \
             -DQUILL_BUILD_TESTS=ON \
