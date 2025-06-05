@@ -11,7 +11,8 @@ target_include_directories(${LIB_NAME}
         $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 # Optional - Set the compiler flags for GCC/Clang
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR
+(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT CMAKE_CXX_COMPILER MATCHES "clang-cl"))
     target_compile_options(${LIB_NAME} PRIVATE -fvisibility=hidden)
 endif ()
 
