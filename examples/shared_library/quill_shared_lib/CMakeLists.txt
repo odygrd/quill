@@ -10,6 +10,8 @@ target_include_directories(${LIB_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
+set_common_compile_options(${LIB_NAME})
+
 # Optional - Set the compiler flags for GCC/Clang
 if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR
 (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT CMAKE_CXX_COMPILER MATCHES "clang-cl"))
