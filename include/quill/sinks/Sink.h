@@ -47,6 +47,20 @@ public:
   explicit Sink(std::optional<PatternFormatterOptions> override_pattern_formatter_options = std::nullopt)
     : _override_pattern_formatter_options(std::move(override_pattern_formatter_options))
   {
+    if (_override_pattern_formatter_options)
+    {
+      PatternFormatterOptions default_options{};
+      if (_override_pattern_formatter_options->add_metadata_to_multi_line_logs != default_options.add_metadata_to_multi_line_logs)
+      {
+        QUILL_THROW(QuillError{
+          "The 'add_metadata_to_multi_line_logs' option cannot be configured at the Sink level. "
+          "This setting affects message processing and must be configured at the Logger level by "
+          "passing PatternFormatterOptions to quill::Frontend::create_or_get_logger() instead. If "
+          "your application requires both multiline messages with metadata and without metadata, "
+          "create two separate Logger instances with unique names and different "
+          "PatternFormatterOptions configurations."});
+      }
+    }
   }
 
   /**
