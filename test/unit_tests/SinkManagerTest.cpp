@@ -1,6 +1,7 @@
 #include "doctest/doctest.h"
 
 #include "quill/core/SinkManager.h"
+#include "quill/sinks/ConsoleSink.h"
 #include "quill/sinks/FileSink.h"
 #include <cstdio>
 
@@ -63,6 +64,30 @@ TEST_CASE("subscribe_get_active_different_sinks")
 
   std::remove(file_1.data());
   std::remove(file_2.data());
+}
+
+/***/
+TEST_CASE("sink_throws_with_unsupported_pattern_formatter_option")
+{
+  quill::PatternFormatterOptions pattern_formatter_options;
+  pattern_formatter_options.format_pattern =
+    "[%(time) %(logger)[%(process_id)][%(log_level)]] - %(message)";
+  pattern_formatter_options.timestamp_pattern = "%D %H:%M:%S.%Qms";
+  pattern_formatter_options.timestamp_timezone = quill::Timezone::LocalTime;
+  pattern_formatter_options.add_metadata_to_multi_line_logs = false;
+
+  {
+    quill::ConsoleSinkConfig config;
+    config.set_override_pattern_formatter_options(pattern_formatter_options);
+    REQUIRE_THROWS(SinkManager::instance().create_or_get_sink<quill::ConsoleSink>(
+      "console_sink", std::move(config)));
+  }
+
+  {
+    quill::FileSinkConfig config;
+    config.set_override_pattern_formatter_options(pattern_formatter_options);
+    REQUIRE_THROWS(SinkManager::instance().create_or_get_sink<quill::FileSink>("file_sink", std::move(config)));
+  }
 }
 
 TEST_SUITE_END();
