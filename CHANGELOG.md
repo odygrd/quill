@@ -179,6 +179,13 @@
   - `QUILL_LOG_RUNTIME_METADATA_SHALLOW` - Will take everything as reference. This is used when logging with
     compile-time metadata and using, for example, a dynamic log-level such as `LOG_DYNAMIC`.
 
+- When a Sink with override `PatternFormatterOptions` is used and if no other sink exists using the `Logger`
+  `PatternFormatterOptions`, then the backend thread will no longer perform a redundant format log statement.
+
+- When using a sink with overridden `PatternFormatterOptions`, the `log_statement` that is passed to the
+  `Filter::filter()` will now be formatted based on the overridden options instead of using the `Logger`
+  `PatternFormatterOptions`.
+
 - Update bundled `libfmt` to `v11.2.0`
 
 ### API Changes

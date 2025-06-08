@@ -988,35 +988,52 @@ private:
                                                 std::string_view const& log_level_short_code,
                                                 std::string_view const& log_message) const
   {
-    std::string_view const log_statement = transit_event.logger_base->_pattern_formatter->format(
-      transit_event.timestamp, thread_id, thread_name, _process_id,
-      transit_event.logger_base->_logger_name, log_level_description, log_level_short_code,
-      *transit_event.macro_metadata, transit_event.get_named_args(), log_message);
+    std::string_view default_log_statement;
 
+    // Process each sink with the appropriate formatting and filtering
     for (auto& sink : transit_event.logger_base->_sinks)
     {
-      if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp, thread_id,
-                                  thread_name, transit_event.logger_base->_logger_name,
-                                  transit_event.log_level(), log_message, log_statement))
+      std::string_view log_to_write;
+
+      // Determine which formatted log to use
+      if (!sink->_override_pattern_formatter_options)
       {
-        std::string_view log_to_write = log_statement;
-
-        // If the sink has an override pattern formatter to use, prepare the override formatted statement
-        if (sink->_override_pattern_formatter_options)
+        if (default_log_statement.empty())
         {
-          if (!sink->_override_pattern_formatter)
-          {
-            sink->_override_pattern_formatter =
-              std::make_shared<PatternFormatter>(*sink->_override_pattern_formatter_options);
-          }
-
-          log_to_write = sink->_override_pattern_formatter->format(
+          // Use the default formatted log statement, here by checking empty() we try to format once
+          // even for multiple sinks
+          default_log_statement = transit_event.logger_base->_pattern_formatter->format(
             transit_event.timestamp, thread_id, thread_name, _process_id,
             transit_event.logger_base->_logger_name, log_level_description, log_level_short_code,
             *transit_event.macro_metadata, transit_event.get_named_args(), log_message);
         }
 
-        // Forward the message using the computed log statement
+        log_to_write = default_log_statement;
+      }
+      else
+      {
+        // Sink has override_pattern_formatter_options, we do not include PatternFormatter
+        // in the frontend fo this reason we init PatternFormatter here
+        if (!sink->_override_pattern_formatter)
+        {
+          // Initialize override formatter if needed
+          sink->_override_pattern_formatter =
+            std::make_shared<PatternFormatter>(*sink->_override_pattern_formatter_options);
+        }
+
+        // Use the sink's override formatter
+        log_to_write = sink->_override_pattern_formatter->format(
+          transit_event.timestamp, thread_id, thread_name, _process_id,
+          transit_event.logger_base->_logger_name, log_level_description, log_level_short_code,
+          *transit_event.macro_metadata, transit_event.get_named_args(), log_message);
+      }
+
+      // Apply filters now that we have the formatted log
+      if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp, thread_id,
+                                  thread_name, transit_event.logger_base->_logger_name,
+                                  transit_event.log_level(), log_message, log_to_write))
+      {
+        // Forward the message using the computed log statement that passed the filter
         sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
                         thread_name, _process_id, transit_event.logger_base->_logger_name,
                         transit_event.log_level(), log_level_description, log_level_short_code,
