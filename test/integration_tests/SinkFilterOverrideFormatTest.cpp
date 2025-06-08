@@ -56,8 +56,8 @@ public:
 TEST_CASE("sink_filter_override_format")
 {
   // Tests that when we override the format of a sink, the filter gets the overridden format in log_statement
-  static constexpr char const* filename_a = "sink_filter_a.log";
-  static constexpr char const* filename_b = "sink_filter_b.log";
+  static constexpr char const* filename_a = "sink_filter_override_format_a.log";
+  static constexpr char const* filename_b = "sink_filter_override_format_b.log";
   static std::string const logger_name = "logger";
 
   // Start the logging backend thread

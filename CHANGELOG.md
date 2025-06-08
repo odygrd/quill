@@ -179,6 +179,10 @@
   - `QUILL_LOG_RUNTIME_METADATA_SHALLOW` - Will take everything as reference. This is used when logging with
     compile-time metadata and using, for example, a dynamic log-level such as `LOG_DYNAMIC`.
 
+- When using a sink with overridden `PatternFormatterOptions`, the option `add_metadata_to_multi_line_logs` will now be
+  correctly applied at the Sink level. Previously, this option was only available and effective at the Logger level
+  `PatternFormatter`.
+
 - When a Sink with override `PatternFormatterOptions` is used and if no other sink exists using the `Logger`
   `PatternFormatterOptions`, then the backend thread will no longer perform a redundant format log statement.
 

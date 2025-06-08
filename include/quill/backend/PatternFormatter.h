@@ -94,7 +94,6 @@ public:
   /***/
   ~PatternFormatter() = default;
 
-  /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(
     uint64_t timestamp, std::string_view thread_id, std::string_view thread_name,
     std::string_view process_id, std::string_view logger, std::string_view log_level_description,
@@ -109,122 +108,59 @@ public:
       return std::string_view{};
     }
 
-    // clear out existing buffer
+    // clear out the existing buffer
     _formatted_log_message_buffer.clear();
 
-    if (_is_set_in_pattern[Attribute::Time])
+    if (QUILL_UNLIKELY(log_msg.empty()))
     {
-      _set_arg_val<Attribute::Time>(_timestamp_formatter.format_timestamp(std::chrono::nanoseconds{timestamp}));
+      // Process an empty message
+      return _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
+                     log_level_short_code, log_statement_metadata, named_args, log_msg);
     }
 
-    if (_is_set_in_pattern[Attribute::FileName])
+    std::string_view formatted_log_msg;
+
+    // Check if we need to handle multi-line formatting
+    if (_options.add_metadata_to_multi_line_logs && (!named_args || named_args->empty()))
     {
-      _set_arg_val<Attribute::FileName>(log_statement_metadata.file_name());
-    }
+      // multi line metadata only supported when named_args are not used
+      size_t start = 0;
 
-    if (_is_set_in_pattern[Attribute::CallerFunction])
-    {
-      std::string_view const function_name = _options.process_function_name
-        ? _options.process_function_name(log_statement_metadata.caller_function())
-        : std::string_view{log_statement_metadata.caller_function()};
-
-      _set_arg_val<Attribute::CallerFunction>(function_name);
-    }
-
-    if (_is_set_in_pattern[Attribute::LogLevel])
-    {
-      _set_arg_val<Attribute::LogLevel>(log_level_description);
-    }
-
-    if (_is_set_in_pattern[Attribute::LogLevelShortCode])
-    {
-      _set_arg_val<Attribute::LogLevelShortCode>(log_level_short_code);
-    }
-
-    if (_is_set_in_pattern[Attribute::LineNumber])
-    {
-      _set_arg_val<Attribute::LineNumber>(log_statement_metadata.line());
-    }
-
-    if (_is_set_in_pattern[Attribute::Logger])
-    {
-      _set_arg_val<Attribute::Logger>(logger);
-    }
-
-    if (_is_set_in_pattern[Attribute::FullPath])
-    {
-      _set_arg_val<Attribute::FullPath>(log_statement_metadata.full_path());
-    }
-
-    if (_is_set_in_pattern[Attribute::ThreadId])
-    {
-      _set_arg_val<Attribute::ThreadId>(thread_id);
-    }
-
-    if (_is_set_in_pattern[Attribute::ThreadName])
-    {
-      _set_arg_val<Attribute::ThreadName>(thread_name);
-    }
-
-    if (_is_set_in_pattern[Attribute::ProcessId])
-    {
-      _set_arg_val<Attribute::ProcessId>(process_id);
-    }
-
-    if (_is_set_in_pattern[Attribute::SourceLocation])
-    {
-      _set_arg_val<Attribute::SourceLocation>(_process_source_location_path(
-        log_statement_metadata.source_location(), _options.source_location_path_strip_prefix,
-        _options.source_location_remove_relative_paths));
-      ;
-    }
-
-    if (_is_set_in_pattern[Attribute::ShortSourceLocation])
-    {
-      _set_arg_val<Attribute::ShortSourceLocation>(log_statement_metadata.short_source_location());
-    }
-
-    if (_is_set_in_pattern[Attribute::NamedArgs])
-    {
-      _formatted_named_args_buffer.clear();
-
-      if (named_args)
+      while (start < log_msg.size())
       {
-        for (size_t i = 0; i < named_args->size(); ++i)
+        size_t const end = log_msg.find_first_of('\n', start);
+
+        if (end == std::string_view::npos)
         {
-          _formatted_named_args_buffer.append((*named_args)[i].first);
-          _formatted_named_args_buffer.append(std::string_view{": "});
-          _formatted_named_args_buffer.append((*named_args)[i].second);
-
-          if (i != named_args->size() - 1)
-          {
-            _formatted_named_args_buffer.append(std::string_view{", "});
-          }
+          // Handle the last line or a single line without a newline
+          formatted_log_msg =
+            _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
+                    log_level_short_code, log_statement_metadata, named_args,
+                    std::string_view(log_msg.data() + start, log_msg.size() - start));
+          break;
         }
+
+        // Write the current line
+        formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
+                                    log_level_short_code, log_statement_metadata, named_args, std::string_view(log_msg.data() + start, end - start));
+
+        start = end + 1;
       }
-
-      _set_arg_val<Attribute::NamedArgs>(
-        std::string_view{_formatted_named_args_buffer.data(), _formatted_named_args_buffer.size()});
     }
-
-    if (_is_set_in_pattern[Attribute::Tags])
+    else
     {
-      if (log_statement_metadata.tags())
-      {
-        _set_arg_val<Attribute::Tags>(std::string_view{log_statement_metadata.tags()});
-      }
-      else
-      {
-        _set_arg_val<Attribute::Tags>(std::string_view{});
-      }
+      // Use the regular format method for single-line messages
+
+      // if the log_message ends with \n we should exclude it
+      assert(!log_msg.empty() && "Already checked non empty message earlier");
+      size_t const log_message_size =
+        (log_msg[log_msg.size() - 1] == '\n') ? log_msg.size() - 1 : log_msg.size();
+
+      formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
+                                  log_level_short_code, log_statement_metadata, named_args, std::string_view{log_msg.data(), log_message_size});
     }
 
-    _set_arg_val<Attribute::Message>(log_msg);
-
-    fmtquill::vformat_to(std::back_inserter(_formatted_log_message_buffer), _fmt_format,
-                         fmtquill::basic_format_args(_args.data(), static_cast<int>(_args.size())));
-
-    return std::string_view{_formatted_log_message_buffer.data(), _formatted_log_message_buffer.size()};
+    return formatted_log_msg;
   }
 
   /***/
@@ -511,6 +447,128 @@ private:
     }
 
     return std::make_pair(pattern, order_index);
+  }
+
+  /***/
+  QUILL_ATTRIBUTE_HOT std::string_view _format(
+    uint64_t timestamp, std::string_view thread_id, std::string_view thread_name,
+    std::string_view process_id, std::string_view logger, std::string_view log_level_description,
+    std::string_view log_level_short_code, MacroMetadata const& log_statement_metadata,
+    std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_msg)
+  {
+    if (_is_set_in_pattern[Attribute::Time])
+    {
+      _set_arg_val<Attribute::Time>(_timestamp_formatter.format_timestamp(std::chrono::nanoseconds{timestamp}));
+    }
+
+    if (_is_set_in_pattern[Attribute::FileName])
+    {
+      _set_arg_val<Attribute::FileName>(log_statement_metadata.file_name());
+    }
+
+    if (_is_set_in_pattern[Attribute::CallerFunction])
+    {
+      std::string_view const function_name = _options.process_function_name
+        ? _options.process_function_name(log_statement_metadata.caller_function())
+        : std::string_view{log_statement_metadata.caller_function()};
+
+      _set_arg_val<Attribute::CallerFunction>(function_name);
+    }
+
+    if (_is_set_in_pattern[Attribute::LogLevel])
+    {
+      _set_arg_val<Attribute::LogLevel>(log_level_description);
+    }
+
+    if (_is_set_in_pattern[Attribute::LogLevelShortCode])
+    {
+      _set_arg_val<Attribute::LogLevelShortCode>(log_level_short_code);
+    }
+
+    if (_is_set_in_pattern[Attribute::LineNumber])
+    {
+      _set_arg_val<Attribute::LineNumber>(log_statement_metadata.line());
+    }
+
+    if (_is_set_in_pattern[Attribute::Logger])
+    {
+      _set_arg_val<Attribute::Logger>(logger);
+    }
+
+    if (_is_set_in_pattern[Attribute::FullPath])
+    {
+      _set_arg_val<Attribute::FullPath>(log_statement_metadata.full_path());
+    }
+
+    if (_is_set_in_pattern[Attribute::ThreadId])
+    {
+      _set_arg_val<Attribute::ThreadId>(thread_id);
+    }
+
+    if (_is_set_in_pattern[Attribute::ThreadName])
+    {
+      _set_arg_val<Attribute::ThreadName>(thread_name);
+    }
+
+    if (_is_set_in_pattern[Attribute::ProcessId])
+    {
+      _set_arg_val<Attribute::ProcessId>(process_id);
+    }
+
+    if (_is_set_in_pattern[Attribute::SourceLocation])
+    {
+      _set_arg_val<Attribute::SourceLocation>(_process_source_location_path(
+        log_statement_metadata.source_location(), _options.source_location_path_strip_prefix,
+        _options.source_location_remove_relative_paths));
+      ;
+    }
+
+    if (_is_set_in_pattern[Attribute::ShortSourceLocation])
+    {
+      _set_arg_val<Attribute::ShortSourceLocation>(log_statement_metadata.short_source_location());
+    }
+
+    if (_is_set_in_pattern[Attribute::NamedArgs])
+    {
+      _formatted_named_args_buffer.clear();
+
+      if (named_args)
+      {
+        for (size_t i = 0; i < named_args->size(); ++i)
+        {
+          _formatted_named_args_buffer.append((*named_args)[i].first);
+          _formatted_named_args_buffer.append(std::string_view{": "});
+          _formatted_named_args_buffer.append((*named_args)[i].second);
+
+          if (i != named_args->size() - 1)
+          {
+            _formatted_named_args_buffer.append(std::string_view{", "});
+          }
+        }
+      }
+
+      _set_arg_val<Attribute::NamedArgs>(
+        std::string_view{_formatted_named_args_buffer.data(), _formatted_named_args_buffer.size()});
+    }
+
+    if (_is_set_in_pattern[Attribute::Tags])
+    {
+      if (log_statement_metadata.tags())
+      {
+        _set_arg_val<Attribute::Tags>(std::string_view{log_statement_metadata.tags()});
+      }
+      else
+      {
+        _set_arg_val<Attribute::Tags>(std::string_view{});
+      }
+    }
+
+    _set_arg_val<Attribute::Message>(log_msg);
+
+    fmtquill::vformat_to(std::back_inserter(_formatted_log_message_buffer), _fmt_format,
+                         fmtquill::basic_format_args(_args.data(), static_cast<int>(_args.size())));
+
+    return std::string_view{_formatted_log_message_buffer.data(), _formatted_log_message_buffer.size()};
   }
 
 private:
