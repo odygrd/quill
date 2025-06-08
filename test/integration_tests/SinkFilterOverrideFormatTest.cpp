@@ -17,14 +17,15 @@ class FileFilterA : public Filter
 public:
   FileFilterA() : Filter("FileFilterA") {}
 
-  QUILL_NODISCARD bool filter(quill::MacroMetadata const* log_metadata,
-                              uint64_t /** log_timestamp **/, std::string_view /** thread_id **/,
-                              std::string_view /** thread_name **/, std::string_view /** logger_name **/,
-                              quill::LogLevel /** log_level **/, std::string_view /** log_message **/,
-                              std::string_view /** log_statement **/) noexcept override
+  QUILL_NODISCARD bool filter(quill::MacroMetadata const* log_metadata, uint64_t /** log_timestamp **/,
+                              std::string_view /** thread_id **/, std::string_view /** thread_name **/,
+                              std::string_view /** logger_name **/, quill::LogLevel /** log_level **/,
+                              std::string_view /** log_message **/, std::string_view log_statement) noexcept override
   {
     if (log_metadata->log_level() < LogLevel::Warning)
     {
+      // we expect to match the override format pattern here
+      REQUIRE_EQ(log_statement, std::string{"Lorem ipsum dolor sit amet, consectetur adipiscing elit [file]\n"});
       return true;
     }
     return false;
@@ -39,10 +40,12 @@ public:
   bool filter(quill::MacroMetadata const* log_metadata, uint64_t /** log_timestamp **/,
               std::string_view /** thread_id **/, std::string_view /** thread_name **/,
               std::string_view /** logger_name **/, quill::LogLevel /** log_level **/,
-              std::string_view /** log_message **/, std::string_view /** log_statement **/) noexcept override
+              std::string_view /** log_message **/, std::string_view log_statement) noexcept override
   {
     if (log_metadata->log_level() >= LogLevel::Warning)
     {
+      // we expect to match the override format pattern here
+      REQUIRE_EQ(log_statement, std::string{"Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [logger]\n"});
       return true;
     }
     return false;
@@ -50,8 +53,9 @@ public:
 };
 
 /***/
-TEST_CASE("sink_filter")
+TEST_CASE("sink_filter_override_format")
 {
+  // Tests that when we override the format of a sink, the filter gets the overridden format in log_statement
   static constexpr char const* filename_a = "sink_filter_a.log";
   static constexpr char const* filename_b = "sink_filter_b.log";
   static std::string const logger_name = "logger";
@@ -64,8 +68,13 @@ TEST_CASE("sink_filter")
     filename_a,
     []()
     {
+      // Override format
+      PatternFormatterOptions formatter_options_file_sink_a;
+      formatter_options_file_sink_a.format_pattern = "%(message) [file]";
+
       FileSinkConfig cfg;
       cfg.set_open_mode('w');
+      cfg.set_override_pattern_formatter_options(formatter_options_file_sink_a);
       return cfg;
     }(),
     FileEventNotifier{});
@@ -88,6 +97,7 @@ TEST_CASE("sink_filter")
     filename_b,
     []()
     {
+      // No format override for file_sink_b
       FileSinkConfig cfg;
       cfg.set_open_mode('w');
       return cfg;
@@ -98,7 +108,8 @@ TEST_CASE("sink_filter")
   file_sink_b->add_filter(std::make_unique<FileFilterB>());
 
   Logger* logger =
-    Frontend::create_or_get_logger(logger_name, {std::move(file_sink_a), std::move(file_sink_b)});
+    Frontend::create_or_get_logger(logger_name, {std::move(file_sink_a), std::move(file_sink_b)},
+                                   PatternFormatterOptions{"%(message) [logger]"});
 
   LOG_INFO(logger, "Lorem ipsum dolor sit amet, consectetur adipiscing elit");
   LOG_ERROR(logger, "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante");
@@ -114,15 +125,12 @@ TEST_CASE("sink_filter")
   std::vector<std::string> const file_contents_a = quill::testing::file_contents(filename_a);
   REQUIRE_EQ(file_contents_a.size(), 1);
   REQUIRE(quill::testing::file_contains(
-    file_contents_a,
-    std::string{"LOG_INFO      " + logger_name + "       Lorem ipsum dolor sit amet, consectetur adipiscing elit"}));
+    file_contents_a, std::string{"Lorem ipsum dolor sit amet, consectetur adipiscing elit [file]"}));
 
   std::vector<std::string> const file_contents_b = quill::testing::file_contents(filename_b);
   REQUIRE_EQ(file_contents_b.size(), 1);
   REQUIRE(quill::testing::file_contains(
-    file_contents_b,
-    std::string{"LOG_ERROR     " + logger_name +
-                "       Nulla tempus, libero at dignissim viverra, lectus libero finibus ante"}));
+    file_contents_b, std::string{"Nulla tempus, libero at dignissim viverra, lectus libero finibus ante [logger]"}));
 
   testing::remove_file(filename_a);
   testing::remove_file(filename_b);

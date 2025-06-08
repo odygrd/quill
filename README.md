@@ -373,7 +373,7 @@ Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 | [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       62.12        |    64 ms     |
 | [BqLog (binary log)](https://github.com/Tencent/BqLog)            |       15.24        |    262 ms    |
 | [XTR](https://github.com/choll/xtr)                               |        8.25        |    484 ms    |
-| [Quill](http://github.com/odygrd/quill)                           |        5.30        |    754 ms    |
+| [Quill](http://github.com/odygrd/quill)                           |        5.15        |    776 ms    |
 | [spdlog](http://github.com/gabime/spdlog)                         |        4.32        |    925 ms    |
 | [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.77        |   1443 ms    |
 | [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |
