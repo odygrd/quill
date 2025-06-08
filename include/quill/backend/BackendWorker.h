@@ -917,65 +917,9 @@ private:
       log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
                           _options.log_level_short_codes.size());
 
-    if (transit_event.logger_base->_pattern_formatter->get_options().add_metadata_to_multi_line_logs &&
-        (!transit_event.get_named_args() || transit_event.get_named_args()->empty()))
-    {
-      // This is only supported when named_args are not used
-      _process_multi_line_message(transit_event, thread_id, thread_name, log_level_description, log_level_short_code);
-    }
-    else
-    {
-      // if the log_message ends with \n we should exclude it
-      size_t const log_message_size =
-        ((transit_event.formatted_msg->size() > 0) &&
-         (transit_event.formatted_msg->data()[transit_event.formatted_msg->size() - 1] == '\n'))
-        ? transit_event.formatted_msg->size() - 1
-        : transit_event.formatted_msg->size();
-
-      // process the whole message without adding metadata to each line
-      _write_log_statement(transit_event, thread_id, thread_name, log_level_description, log_level_short_code,
-                           std::string_view{transit_event.formatted_msg->data(), log_message_size});
-    }
-  }
-
-  /**
-   * Splits and writes a transit event that has multiple lines
-   */
-  QUILL_ATTRIBUTE_HOT void _process_multi_line_message(TransitEvent const& transit_event,
-                                                       std::string_view const& thread_id,
-                                                       std::string_view const& thread_name,
-                                                       std::string_view const& log_level_description,
-                                                       std::string_view const& log_level_short_code) const
-  {
-    auto const msg =
-      std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()};
-
-    if (QUILL_UNLIKELY(msg.empty()))
-    {
-      // Process an empty message
-      _write_log_statement(transit_event, thread_id, thread_name, log_level_description,
-                           log_level_short_code, msg);
-      return;
-    }
-
-    size_t start = 0;
-    while (start < msg.size())
-    {
-      size_t const end = msg.find_first_of('\n', start);
-
-      if (end == std::string_view::npos)
-      {
-        // Handle the last line or a single line without a newline
-        _write_log_statement(transit_event, thread_id, thread_name, log_level_description, log_level_short_code,
-                             std::string_view(msg.data() + start, msg.size() - start));
-        break;
-      }
-
-      // Write the current line
-      _write_log_statement(transit_event, thread_id, thread_name, log_level_description,
-                           log_level_short_code, std::string_view(msg.data() + start, end - start));
-      start = end + 1;
-    }
+    _write_log_statement(
+      transit_event, thread_id, thread_name, log_level_description, log_level_short_code,
+      std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()});
   }
 
   /**
