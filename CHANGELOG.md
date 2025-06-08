@@ -113,6 +113,10 @@
   for details.
   For documentation, see [here](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html).
 
+- The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
+  helps with debugging by ensuring log statements are flushed to the sink, blocking the caller
+  thread. ([#660](https://github.com/odygrd/quill/issues/660))
+  
 - Added `source_location_path_strip_prefix` option in `PatternFormatterOptions` to customize the display of the
   `%(source_location)` attribute of `PatternFormatter`. When set, any paths that contain this prefix will have
   the prefix and everything before it stripped from the displayed path. For example, with prefix "projects",
@@ -123,10 +127,6 @@
   components from the `%(source_location)` attribute of `PatternFormatter`. When enabled, relative path
   components like "../" are processed and removed, simplifying paths from `__FILE__` which might contain
   relative paths like "../../../test/main.cpp". ([#778](https://github.com/odygrd/quill/issues/778))
-
-- The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
-  helps with debugging by ensuring log statements are flushed to the sink, blocking the caller
-  thread. ([#660](https://github.com/odygrd/quill/issues/660))
 
 - Added the `QUILL_DISABLE_FILE_INFO` preprocessor flag and CMake option.  
   This disables `__FILE__` and `__LINE__` information in log statements at compile time when location-related patterns
