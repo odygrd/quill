@@ -1,3 +1,4 @@
+- [v10.0.1](#v1001)
 - [v10.0.0](#v1000)
 - [v9.0.3](#v903)
 - [v9.0.2](#v902)
@@ -88,6 +89,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v10.0.1
+
+- Fixed PatternFormatter test to work with any repository name instead of hardcoded `quill` ([#795](https://github.com/odygrd/quill/issues/795))
+- Fixed Windows compiler warnings when clang-cl >= 19 is used
 
 ## v10.0.0
 
