@@ -35,7 +35,7 @@ jobs:
       - name: Install LLVM
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: "18.1"
+          version: "19.1.7"
 
       - name: Create Build Directory
         run: cmake -E make_directory ${{runner.workspace}}/build

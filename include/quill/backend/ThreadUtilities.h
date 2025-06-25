@@ -113,13 +113,18 @@ ReturnT callRunTimeDynamicLinkedFunction(std::string const& dll_name,
     QUILL_THROW(QuillError{std::string{"Failed to load library " + dll_name}});
   }
 
-  auto const callable = reinterpret_cast<Signature>(GetProcAddress(hinstLibrary, function_name.c_str()));
+  // Using a C-style cast or memcpy to avoid Clang's strict function pointer casting rules
+  FARPROC proc_address = GetProcAddress(hinstLibrary, function_name.c_str());
 
-  if (QUILL_UNLIKELY(callable == nullptr))
+  if (QUILL_UNLIKELY(proc_address == nullptr))
   {
     FreeLibrary(hinstLibrary);
     QUILL_THROW(QuillError{std::string{"Failed to call " + function_name + " " + dll_name}});
   }
+
+  // Use memcpy to avoid the strict cast warning in Clang
+  Signature callable;
+  memcpy(&callable, &proc_address, sizeof(proc_address));
 
   ReturnT const hr = callable(static_cast<Args&&>(args)...);
   BOOL const fFreeResult = FreeLibrary(hinstLibrary);
