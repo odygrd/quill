@@ -87,7 +87,7 @@ performance-critical applications where every microsecond counts.
 - **Extensive Documentation**: Comprehensive guides and examples available.
 - **Community-Driven**: Open to contributions, feedback, and feature requests.
 
-Try it on [Compiler Explorer](https://godbolt.org/z/szncr8c8d)
+Try it on [Compiler Explorer](https://godbolt.org/z/8EPGc8z8q)
 
 ---
 
