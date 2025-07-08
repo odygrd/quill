@@ -1,3 +1,4 @@
+- TBD
 - [v10.0.1](#v1001)
 - [v10.0.0](#v1000)
 - [v9.0.3](#v903)
@@ -89,6 +90,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## TBD
+
+- Added unique prefixes to internal macro variables to prevent conflicts with user variable names in the same scope.
 
 ## v10.0.1
 
