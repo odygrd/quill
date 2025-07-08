@@ -30,7 +30,7 @@ or
     target_compile_definitions(${TARGET} PUBLIC -DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
 
 .. note::
-    When using `_LIMIT` macros, you might need to manually `# include <chrono>` in your code. This header is not automatically included to avoid imposing unnecessary dependencies on all logging macros when only specific ones require it.
+    When using `_LIMIT` macros, you might need to manually `#include <chrono>` in your code. This header is not automatically included to avoid imposing unnecessary dependencies on all logging macros when only specific ones require it.
 
 Standard Logging Macros
 -----------------------
