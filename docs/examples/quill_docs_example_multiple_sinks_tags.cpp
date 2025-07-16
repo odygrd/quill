@@ -46,8 +46,8 @@ int main()
     quill::Frontend::create_or_get_logger("root", {std::move(file_sink_a), std::move(file_sink_b)});
 
   LOG_INFO_TAGS(logger, TAGS(SINK_A_TAG), "Hello from {}", "sink example");
-  LOG_INFO_TAGS(logger, TAGS(SINK_A_TAG), "Using logger_a");
+  LOG_INFO_TAGS(logger, TAGS(SINK_A_TAG), "Using sink_a");
 
   LOG_INFO_TAGS(logger, TAGS(SINK_B_TAG), "Different data for sink B");
-  LOG_INFO_TAGS(logger, TAGS(SINK_B_TAG), "Using logger_b");
+  LOG_INFO_TAGS(logger, TAGS(SINK_B_TAG), "Using sink_b");
 }
