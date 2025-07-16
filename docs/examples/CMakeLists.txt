@@ -11,6 +11,9 @@ set(EXAMPLE_TARGETS
         quill_docs_example_filter_1
         quill_docs_example_json_logging
         quill_docs_example_loggers_remove
+        quill_docs_example_multiple_sinks
+        quill_docs_example_multiple_sinks_tags
+        quill_docs_example_tags_with_custom_sink
         quill_docs_timestamp_types_1
 )
 

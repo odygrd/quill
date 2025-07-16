@@ -43,3 +43,22 @@ This can be useful if you want to direct log output to alternative destinations,
 .. literalinclude:: ../examples/user_defined_sink.cpp
    :language: cpp
    :linenos:
+
+Routing Log Messages to Multiple Sinks
+--------------------------------------
+
+The library provides multiple approaches for routing log messages to different sinks. The following examples demonstrate two common patterns using ``FileSink``, but the same principles apply when using custom ``Sinks`` and ``Filters``.
+
+1. Using multiple ``Logger`` instances, each bound to a specific ``Sink``:
+   This approach is straightforward and provides clear separation of log streams.
+
+.. literalinclude:: examples/quill_docs_example_multiple_sinks.cpp
+   :language: cpp
+   :linenos:
+
+2. Using a single ``Logger`` instance with multiple ``Sinks`` and tag-based filtering:
+   This approach centralizes logging through a single logger while still directing messages to different destinations.
+
+.. literalinclude:: examples/quill_docs_example_multiple_sinks_tags.cpp
+   :language: cpp
+   :linenos:
