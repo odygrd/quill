@@ -179,8 +179,6 @@ private:
   }
 
 private:
-  static constexpr uint8_t NAMED_ARGS_FLAG = 0x01;
-
   char const* _source_location{nullptr};
   char const* _caller_function{nullptr};
   char const* _message_format{nullptr};

@@ -22,3 +22,12 @@ Output:
     2024-08-11 01:23:44.463 [46228] tags_logging.cpp:42          WARNING   #foo #bar Warning with tags
     2024-08-11 01:23:44.463 [46228] tags_logging.cpp:43          ERROR     #foo #bar #baz Info with tags
     2024-08-11 01:23:44.463 [46228] tags_logging.cpp:45          INFO      Without tags
+
+Tag Processing in Sinks
+-----------------------
+
+Tags can be accessed at the Sink level and used for additional log processing or filtering. This enables more log handling based on tag content. For example:
+
+.. literalinclude:: examples/quill_docs_example_tags_with_custom_sink.cpp
+   :language: cpp
+   :linenos:
