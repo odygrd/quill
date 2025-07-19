@@ -9,19 +9,30 @@
 #include "quill/core/Attributes.h"
 #include <cstdint>
 
-#if (defined(__ARM_ARCH) || defined(_M_ARM) || defined(_M_ARM64) || defined(__PPC64__))
+#include "quill/core/Attributes.h"
+#include <cstdint>
+
+#if defined(__ARM_ARCH) || defined(_M_ARM) || defined(_M_ARM64) || defined(__PPC64__)
+  // ARM or PowerPC — use ChronoTimeUtils for timestamping
   #include "quill/core/ChronoTimeUtils.h"
   #include <chrono>
+
+#elif defined(__riscv) || defined(__s390x__) || defined(__loongarch64)
+  // RISC-V, IBM Z (s390x), or LoongArch — no special intrinsics required
+
 #else
-  // assume x86-64 ..
-  #if defined(_WIN32)
+  // Assume x86 or x86-64 platform
+  #if __has_include(<intrin.h>) && defined(_WIN32)
+    // Use Windows-specific intrinsics
     #include <intrin.h>
-  #elif defined(__riscv) || defined(__s390x__) || defined(__loongarch64)
   #elif __has_include(<x86gprintrin.h>) && !defined(__INTEL_COMPILER)
+    // Use x86 general-purpose intrinsics if available and not using Intel compiler
     #include <x86gprintrin.h>
   #else
+    // Fallback to standard x86 intrinsics
     #include <x86intrin.h>
   #endif
+
 #endif
 
 QUILL_BEGIN_NAMESPACE
