@@ -17,6 +17,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
@@ -203,7 +204,12 @@ public:
 
     // we failed to return earlier and we never resynced, but we don't really want to keep retrying on each call
     // to time_since_epoch() so we do non accurate resync we will increase the resync duration to resync later
-    _resync_interval_ticks = _resync_interval_ticks * 2;
+    constexpr int64_t max_int64_half = std::numeric_limits<int64_t>::max() / 2;
+    if (_resync_interval_ticks <= max_int64_half)
+    {
+      _resync_interval_ticks = _resync_interval_ticks * 2;
+    }
+
     return false;
   }
 

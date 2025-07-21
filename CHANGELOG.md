@@ -93,7 +93,10 @@
 
 ## TBD
 
-- Added unique prefixes to internal macro variables to prevent conflicts with user variable names in the same scope.
+- Added unique prefixes to internal macro variables to prevent conflicts with user variable names in the same
+  scope. ([#799](https://github.com/odygrd/quill/issues/799)
+- Added overflow check when doubling resync interval in `RdtscClock::resync()` to prevent potential UBSan
+  warnings ([#809](https://github.com/odygrd/quill/issues/809)
 
 ## v10.0.1
 
