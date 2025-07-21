@@ -111,12 +111,22 @@ public:
 
   /***/
   explicit RdtscClock(std::chrono::nanoseconds resync_interval)
-    : _resync_interval_ticks(static_cast<std::int64_t>(static_cast<double>(resync_interval.count()) *
-                                                       RdtscTicks::instance().ns_per_tick())),
-      _resync_interval_original(_resync_interval_ticks),
-      _ns_per_tick(RdtscTicks::instance().ns_per_tick())
-
+    : _ns_per_tick(RdtscTicks::instance().ns_per_tick())
   {
+    double const calc_value = static_cast<double>(resync_interval.count()) * _ns_per_tick;
+
+    // Check for overflow and negative values
+    if (calc_value >= static_cast<double>(std::numeric_limits<int64_t>::max()) || calc_value < 0)
+    {
+      _resync_interval_ticks = std::numeric_limits<int64_t>::max();
+    }
+    else
+    {
+      _resync_interval_ticks = static_cast<int64_t>(calc_value);
+    }
+
+    _resync_interval_original = _resync_interval_ticks;
+
     if (!resync(2500))
     {
       // try to resync again with higher lag
