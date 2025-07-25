@@ -97,6 +97,7 @@
   scope. ([#799](https://github.com/odygrd/quill/issues/799)
 - Added overflow check when doubling resync interval in `RdtscClock::resync()` to prevent potential UBSan
   warnings ([#809](https://github.com/odygrd/quill/issues/809)
+- Improved `Utility::to_hex` function
 
 ## v10.0.1
 
