@@ -52,6 +52,7 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
         ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/installing.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/json_logging.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/log_levels.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/log_tagging.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/loggers.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/logging_macros.rst
