@@ -65,3 +65,11 @@ Quill provides the following log levels, from most to least verbose:
 
 Each log level corresponds to a specific macro (e.g., ``LOG_INFO``, ``LOG_DEBUG``, etc.) that encodes the log level directly in the macro name.
 
+In addition to the level-specific macros, Quill also provides the ``LOG_DYNAMIC`` macro that accepts the log level as a runtime parameter:
+
+.. code-block:: cpp
+
+   LOG_DYNAMIC(logger, quill::LogLevel::Info, "This log level is determined at runtime");
+
+This is useful when the appropriate log level can only be determined during program execution, for example when passing the log level as a function argument or calculating it based on runtime conditions. Note that this flexibility comes with a minor performance cost compared to the static level macros.
+
