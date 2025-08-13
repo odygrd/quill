@@ -98,7 +98,8 @@
 - Added overflow check when doubling resync interval in `RdtscClock::resync()` to prevent potential UBSan
   warnings ([#809](https://github.com/odygrd/quill/issues/809)
 - Improved `Utility::to_hex` function
-
+- Fixed an issue where `BackendWorker::_exit` was always executed during destruction, even when the backend thread had already stopped
+  
 ## v10.0.1
 
 - Fixed PatternFormatter test to work with any repository name instead of hardcoded `quill` ([#795](https://github.com/odygrd/quill/issues/795))
