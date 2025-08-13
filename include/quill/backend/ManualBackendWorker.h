@@ -25,7 +25,13 @@ public:
   {
   }
 
-  ~ManualBackendWorker() { _backend_worker->_exit(); }
+  ~ManualBackendWorker()
+  {
+    if (_started)
+    {
+      _backend_worker->_exit();
+    }
+  }
 
   /**
    * @brief Initializes the ManualBackendWorker with the specified backend options.
@@ -40,6 +46,7 @@ public:
     options.sleep_duration = std::chrono::nanoseconds{0};
     options.enable_yield_when_idle = false;
     _backend_worker->_init(options);
+    _started = true;
   }
 
   /**
@@ -106,6 +113,7 @@ public:
 
 private:
   detail::BackendWorker* _backend_worker;
+  bool _started{false};
 };
 
 QUILL_END_NAMESPACE
