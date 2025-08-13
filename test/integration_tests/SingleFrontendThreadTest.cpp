@@ -50,10 +50,12 @@ TEST_CASE("single_frontend_thread")
   }
 
   logger->flush_log();
-  Frontend::remove_logger(logger);
 
   // Wait until the backend thread stops for test stability
   Backend::stop();
+
+  // Log after stopped
+  LOG_INFO(logger, "Backend Stopped");
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
