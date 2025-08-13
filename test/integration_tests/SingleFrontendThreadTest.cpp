@@ -50,7 +50,6 @@ TEST_CASE("single_frontend_thread")
   }
 
   logger->flush_log();
-  Frontend::remove_logger(logger);
 
   // Wait until the backend thread stops for test stability
   Backend::stop();
