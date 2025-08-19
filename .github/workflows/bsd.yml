@@ -105,7 +105,7 @@ jobs:
       - name: DragonFly Build and Test (${{ matrix.build_type }})
         uses: vmactions/dragonflybsd-vm@v1
         with:
-          release: '6.4.0'
+          release: '6.4.2'
           mem: 16384
           cpu: 4
           usesh: true
