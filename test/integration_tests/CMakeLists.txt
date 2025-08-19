@@ -28,8 +28,8 @@ function(quill_add_test TEST_NAME SOURCES)
             PRIVATE
             ..)
 
-    # Link dependencies
-    target_link_libraries(${TEST_NAME} quill)
+    # Link dependencies with atomic lib for armel.
+    target_link_libraries(${TEST_NAME} quill atomic)
 
     if (QUILL_ENABLE_EXTENSIVE_TESTS)
         target_compile_definitions(${TEST_NAME} PRIVATE QUILL_ENABLE_EXTENSIVE_TESTS)
