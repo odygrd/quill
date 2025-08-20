@@ -695,7 +695,12 @@ private:
   /***/
   static uint64_t _calculate_initial_rotation_tp(uint64_t start_time_ns, RotatingFileSinkConfig const& config)
   {
+// time_t on i386 is 32 bits so casting out of range number results in zero
+#if (defined(__i386))
+    time_t const time_now = static_cast<time_t>(start_time_ns / 1000000000);
+#else
     time_t const time_now = static_cast<time_t>(start_time_ns) / 1000000000;
+#endif
     tm date;
 
     // here we do this because of `daily_rotation_time_str` that might have specified the time in UTC
