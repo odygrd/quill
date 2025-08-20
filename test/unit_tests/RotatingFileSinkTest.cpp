@@ -1966,4 +1966,323 @@ TEST_CASE("rotating_file_sink_invalid_params")
   REQUIRE_FALSE(fs::exists(filename));
 }
 
+/***/
+TEST_CASE("rotating_file_sink_date_append_mode")
+{
+  fs::path const filename_base = "rotating_file_sink_date_append_mode.log";
+  uint32_t iter{0};
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+
+  // Run 0
+  {
+    auto rfh = RotatingFileSink{filename_base,
+                                []()
+                                {
+                                  quill::RotatingFileSinkConfig cfg;
+                                  cfg.set_open_mode('a');
+                                  cfg.set_filename_append_option(quill::FilenameAppendOption::StartDate);
+                                  cfg.set_rotation_max_file_size(512);
+                                  cfg.set_max_backup_files(7);
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{},
+                                std::chrono::time_point<std::chrono::system_clock>(
+                                  std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // write some records to the file
+    for (size_t i = 0; i < 100; ++i)
+    {
+      std::string s{"Record [" + std::to_string(iter) + "][" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+      formatted_log_statement.append("\n");
+
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+
+    iter += 1;
+  }
+
+  fs::path const filename = filename_base.stem().string() + "_20230612.log";
+  fs::path const filename_1 = filename_base.stem().string() + "_20230612.1.log";
+  fs::path const filename_2 = filename_base.stem().string() + "_20230612.2.log";
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(fs::exists(filename_2));
+
+  {
+    // Read file contents once
+    std::vector<std::string> const file_contents = testing::file_contents(filename);
+    std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+    std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
+
+    // Verify main file contains records [0][68] through [0][99] (32 records)
+    for (uint32_t j = 68; j < 100; ++j)
+    {
+      std::string expected_record = "Record [0][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents, expected_record), true);
+    }
+
+    // Verify file1 contains records [0][34] through [0][67] (34 records)
+    for (uint32_t j = 34; j < 68; ++j)
+    {
+      std::string expected_record = "Record [0][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_1, expected_record), true);
+    }
+
+    // Verify file2 contains records [0][0] through [0][33] (34 records)
+    for (uint32_t j = 0; j < 34; ++j)
+    {
+      std::string expected_record = "Record [0][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_2, expected_record), true);
+    }
+
+    // Verify exact record counts
+    REQUIRE_EQ(file_contents.size(), 32);   // [0][68-99] = 32 records
+    REQUIRE_EQ(file_contents_1.size(), 34); // [0][34-67] = 34 records
+    REQUIRE_EQ(file_contents_2.size(), 34); // [0][0-33] = 34 records
+  }
+
+  // Run 1 - Recovery
+  {
+    auto rfh = RotatingFileSink{filename_base,
+                                []()
+                                {
+                                  quill::RotatingFileSinkConfig cfg;
+                                  cfg.set_open_mode('a');
+                                  cfg.set_filename_append_option(quill::FilenameAppendOption::StartDate);
+                                  cfg.set_rotation_max_file_size(512);
+                                  cfg.set_max_backup_files(7);
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{},
+                                std::chrono::time_point<std::chrono::system_clock>(
+                                  std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // write some records to the file
+    for (size_t i = 0; i < 100; ++i)
+    {
+      std::string s{"Record [" + std::to_string(iter) + "][" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+      formatted_log_statement.append("\n");
+
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+
+    iter += 1;
+  }
+
+  fs::path const filename_3 = filename_base.stem().string() + "_20230612.3.log";
+  fs::path const filename_4 = filename_base.stem().string() + "_20230612.4.log";
+  fs::path const filename_5 = filename_base.stem().string() + "_20230612.5.log";
+
+  // Recovered and created 3 new files
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(fs::exists(filename_2));
+  REQUIRE(fs::exists(filename_3));
+  REQUIRE(fs::exists(filename_4));
+  REQUIRE(fs::exists(filename_5));
+
+  // Verify ALL file contents
+  {
+    // Read file contents once
+    std::vector<std::string> const file_contents = testing::file_contents(filename);
+    std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+    std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
+    std::vector<std::string> const file_contents_3 = testing::file_contents(filename_3);
+    std::vector<std::string> const file_contents_4 = testing::file_contents(filename_4);
+    std::vector<std::string> const file_contents_5 = testing::file_contents(filename_5);
+
+    for (uint32_t j = 70; j < 100; ++j)
+    {
+      std::string expected_record = "Record [1][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents, expected_record), true);
+    }
+
+    for (uint32_t j = 36; j < 70; ++j)
+    {
+      std::string expected_record = "Record [1][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_1, expected_record), true);
+    }
+
+    for (uint32_t j = 2; j < 36; ++j)
+    {
+      std::string expected_record = "Record [1][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_2, expected_record), true);
+    }
+
+    for (uint32_t j = 0; j < 2; ++j)
+    {
+      std::string expected_record = "Record [1][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_3, expected_record), true);
+    }
+
+    for (uint32_t j = 68; j < 100; ++j)
+    {
+      std::string expected_record = "Record [0][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_3, expected_record), true);
+    }
+
+    for (uint32_t j = 34; j < 68; ++j)
+    {
+      std::string expected_record = "Record [0][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_4, expected_record), true);
+    }
+
+    for (uint32_t j = 0; j < 34; ++j)
+    {
+      std::string expected_record = "Record [0][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_5, expected_record), true);
+    }
+
+    // Verify exact record counts
+    REQUIRE_EQ(file_contents.size(), 30);
+    REQUIRE_EQ(file_contents_1.size(), 34);
+    REQUIRE_EQ(file_contents_2.size(), 34);
+    REQUIRE_EQ(file_contents_3.size(), 34);
+    REQUIRE_EQ(file_contents_4.size(), 34);
+    REQUIRE_EQ(file_contents_5.size(), 34);
+  }
+
+  // Run 2 - Continue testing backup functionality
+  {
+    auto rfh = RotatingFileSink{filename_base,
+                                []()
+                                {
+                                  quill::RotatingFileSinkConfig cfg;
+                                  cfg.set_open_mode('a');
+                                  cfg.set_filename_append_option(quill::FilenameAppendOption::StartDate);
+                                  cfg.set_rotation_max_file_size(512);
+                                  cfg.set_max_backup_files(7);
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{},
+                                std::chrono::time_point<std::chrono::system_clock>(
+                                  std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // write some records to the file
+    for (size_t i = 0; i < 100; ++i)
+    {
+      std::string s{"Record [" + std::to_string(iter) + "][" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+      formatted_log_statement.append("\n");
+
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+
+    iter += 1;
+  }
+
+  fs::path const filename_6 = filename_base.stem().string() + "_20230612.6.log";
+  fs::path const filename_7 = filename_base.stem().string() + "_20230612.7.log";
+  fs::path const filename_8 = filename_base.stem().string() + "_20230612.8.log";
+
+  // Should have created 3 more files
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(fs::exists(filename_2));
+  REQUIRE(fs::exists(filename_3));
+  REQUIRE(fs::exists(filename_4));
+  REQUIRE(fs::exists(filename_5));
+  REQUIRE(fs::exists(filename_6));
+  REQUIRE(fs::exists(filename_7));
+  REQUIRE_FALSE(fs::exists(filename_8));
+
+  // Verify record content after Run 2
+  {
+    std::vector<std::string> const file_contents = testing::file_contents(filename);
+    std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+    std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
+    std::vector<std::string> const file_contents_3 = testing::file_contents(filename_3);
+    std::vector<std::string> const file_contents_4 = testing::file_contents(filename_4);
+    std::vector<std::string> const file_contents_5 = testing::file_contents(filename_5);
+    std::vector<std::string> const file_contents_6 = testing::file_contents(filename_6);
+    std::vector<std::string> const file_contents_7 = testing::file_contents(filename_7);
+
+    // Based on the actual distribution pattern observed:
+    // Main file contains: Record [2][72] through Record [2][99]
+    for (uint32_t j = 72; j < 100; ++j)
+    {
+      std::string expected_record = "Record [2][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents, expected_record), true);
+    }
+
+    // filename_1 contains: Record [2][38] through Record [2][71]
+    for (uint32_t j = 38; j < 72; ++j)
+    {
+      std::string expected_record = "Record [2][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_1, expected_record), true);
+    }
+
+    // filename_2 contains: Record [2][4] through Record [2][37]
+    for (uint32_t j = 4; j < 38; ++j)
+    {
+      std::string expected_record = "Record [2][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_2, expected_record), true);
+    }
+
+    // filename_3 contains: Record [1][70] through Record [1][99] and Record [2][0] through Record [2][3]
+    for (uint32_t j = 70; j < 100; ++j)
+    {
+      std::string expected_record = "Record [1][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_3, expected_record), true);
+    }
+    for (uint32_t j = 0; j < 4; ++j)
+    {
+      std::string expected_record = "Record [2][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_3, expected_record), true);
+    }
+
+    // filename_4 contains: Record [1][36] through Record [1][69]
+    for (uint32_t j = 36; j < 70; ++j)
+    {
+      std::string expected_record = "Record [1][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_4, expected_record), true);
+    }
+
+    // filename_5 contains: Record [1][2] through Record [1][35]
+    for (uint32_t j = 2; j < 36; ++j)
+    {
+      std::string expected_record = "Record [1][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_5, expected_record), true);
+    }
+
+    // filename_6 contains: Record [0][68] through Record [0][99] and Record [1][0] through Record [1][1]
+    for (uint32_t j = 68; j < 100; ++j)
+    {
+      std::string expected_record = "Record [0][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_6, expected_record), true);
+    }
+    for (uint32_t j = 0; j < 2; ++j)
+    {
+      std::string expected_record = "Record [1][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_6, expected_record), true);
+    }
+
+    // filename_7 contains: Record [0][34] through Record [0][67]
+    for (uint32_t j = 34; j < 68; ++j)
+    {
+      std::string expected_record = "Record [0][" + std::to_string(j) + "]";
+      REQUIRE_EQ(testing::file_contains(file_contents_7, expected_record), true);
+    }
+  }
+
+  // Clean up all files
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+  testing::remove_file(filename_3);
+  testing::remove_file(filename_4);
+  testing::remove_file(filename_5);
+  testing::remove_file(filename_6);
+  testing::remove_file(filename_7);
+}
+
 TEST_SUITE_END();
