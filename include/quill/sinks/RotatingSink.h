@@ -460,7 +460,7 @@ private:
     _created_files.emplace_front(this->_filename, 0, std::string{});
 
     // Open file for logging
-    this->open_file(this->_filename, "w");
+    this->open_file(this->_filename, _config.open_mode());
     _open_file_timestamp = record_timestamp_ns;
     this->_file_size = 0;
   }
