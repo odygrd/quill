@@ -16,6 +16,7 @@
 
 #include "quill/bundled/fmt/format.h"
 
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -140,9 +141,10 @@ class JsonFileSink : public detail::JsonSink<FileSink>
 {
 public:
   JsonFileSink(fs::path const& filename, FileSinkConfig const& config,
-               FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true)
+               FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
+               std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
     : detail::JsonSink<FileSink>(filename, static_cast<FileSinkConfig const&>(config),
-                                 std::move(file_event_notifier), do_fopen)
+                                 std::move(file_event_notifier), do_fopen, start_time)
   {
   }
 

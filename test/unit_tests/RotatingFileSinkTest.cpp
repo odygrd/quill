@@ -1966,4 +1966,213 @@ TEST_CASE("rotating_file_sink_invalid_params")
   REQUIRE_FALSE(fs::exists(filename));
 }
 
+/***/
+TEST_CASE("rotating_file_sink_date_append_mode")
+{
+  fs::path const filename_base = "rotating_file_sink_date_append_mode.log";
+  uint32_t iter{0};
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+
+  auto make_sink = [&](uint64_t ts)
+  {
+    return RotatingFileSink{
+      filename_base,
+      []()
+      {
+        quill::RotatingFileSinkConfig cfg;
+        cfg.set_open_mode('a');
+        cfg.set_filename_append_option(quill::FilenameAppendOption::StartDate);
+        cfg.set_rotation_max_file_size(512);
+        cfg.set_max_backup_files(7);
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(ts / 1000000000))};
+  };
+
+  auto write_records = [&](RotatingFileSink& rfh, uint32_t iter_id)
+  {
+    for (size_t i = 0; i < 100; ++i)
+    {
+      std::string s{"Record [" + std::to_string(iter_id) + "][" + std::to_string(i) + "]"};
+      std::string formatted_log_statement = s + "\n";
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  };
+
+  auto read_all_records = [&](std::vector<fs::path> const& files)
+  {
+    std::vector<std::string> all;
+    for (auto const& f : files)
+    {
+      if (fs::exists(f))
+      {
+        auto contents = testing::file_contents(f);
+        all.insert(all.end(), contents.begin(), contents.end());
+      }
+    }
+    return all;
+  };
+
+  auto filter_records = [&](std::vector<std::string> const& all, uint32_t iter_id)
+  {
+    std::vector<std::string> result;
+    std::string prefix = "Record [" + std::to_string(iter_id) + "][";
+    for (auto const& rec : all)
+    {
+      if (rec.rfind(prefix, 0) == 0) // starts with prefix
+      {
+        result.push_back(rec);
+      }
+    }
+    return result;
+  };
+
+  auto verify_records_exist = [&](std::vector<std::string> const& records, uint32_t iter_id, uint32_t count)
+  {
+    REQUIRE_EQ(records.size(), count);
+    for (uint32_t j = 0; j < count; ++j)
+    {
+      std::string expected_record =
+        "Record [" + std::to_string(iter_id) + "][" + std::to_string(j) + "]";
+      REQUIRE_EQ(std::count(records.begin(), records.end(), expected_record), 1);
+    }
+  };
+
+  // Run 0
+  {
+    auto rfh = make_sink(timestamp_20230612);
+    write_records(rfh, iter);
+    iter++;
+  }
+
+  // Collect all existing files after run 0
+  std::vector<fs::path> run0_files;
+  std::string base_pattern = filename_base.stem().string() + "_20230612";
+
+  // Add the main file
+  fs::path main_file = base_pattern + ".log";
+  if (fs::exists(main_file))
+  {
+    run0_files.push_back(main_file);
+  }
+
+  // Add numbered backup files that exist after run 0
+  for (int i = 1; i <= 10; ++i)
+  {
+    fs::path backup_file = base_pattern + "." + std::to_string(i) + ".log";
+    if (fs::exists(backup_file))
+    {
+      run0_files.push_back(backup_file);
+    }
+  }
+
+  {
+    auto all = read_all_records(run0_files);
+    auto iter0 = filter_records(all, 0);
+
+    REQUIRE_EQ(all.size(), 100);
+    REQUIRE_EQ(iter0.size(), all.size());
+  }
+
+  // Run 1 (Recovery)
+  {
+    auto rfh = make_sink(timestamp_20230612);
+    write_records(rfh, iter);
+    iter++;
+  }
+
+  // Collect all existing files after run 1
+  std::vector<fs::path> run1_files;
+  std::string run1_pattern = filename_base.stem().string() + "_20230612";
+
+  // Add the main file
+  fs::path run1_main_file = run1_pattern + ".log";
+  if (fs::exists(run1_main_file))
+  {
+    run1_files.push_back(run1_main_file);
+  }
+
+  // Add numbered backup files that exist after run 1
+  for (int i = 1; i <= 10; ++i)
+  { // Check more files than expected to be thorough
+    fs::path backup_file = run1_pattern + "." + std::to_string(i) + ".log";
+    if (fs::exists(backup_file))
+    {
+      run1_files.push_back(backup_file);
+    }
+  }
+
+  {
+    auto all = read_all_records(run1_files);
+    auto iter0 = filter_records(all, 0);
+    auto iter1 = filter_records(all, 1);
+
+    REQUIRE_GE(iter1.size(), 100);
+    REQUIRE_GE(all.size(), 200);
+  }
+
+  // Run 2
+  {
+    auto rfh = make_sink(timestamp_20230612);
+    write_records(rfh, iter);
+    iter++;
+  }
+
+  // Collect all existing files with the date pattern
+  std::vector<fs::path> all_files;
+  std::string run2_pattern = filename_base.stem().string() + "_20230612";
+
+  // Add the main file
+  fs::path run2_main_file = run2_pattern + ".log";
+  if (fs::exists(run2_main_file))
+  {
+    all_files.push_back(run2_main_file);
+  }
+
+  // Add numbered backup files (check more than max_backup_files to catch any extra files)
+  for (int i = 1; i <= 10; ++i)
+  {
+    fs::path backup_file = run2_pattern + "." + std::to_string(i) + ".log";
+    if (fs::exists(backup_file))
+    {
+      all_files.push_back(backup_file);
+    }
+  }
+
+  // Verify we don't exceed max_backup_files (7 + 1 main = 8 total max)
+  fs::path filename_8 = run2_pattern + ".8.log";
+  REQUIRE_FALSE(fs::exists(filename_8)); // max_backup_files = 7
+
+  {
+    auto all = read_all_records(all_files);
+
+    // Due to backup file limit (7), older files may be deleted.
+    auto iter0 = filter_records(all, 0);
+    auto iter1 = filter_records(all, 1);
+    auto iter2 = filter_records(all, 2);
+
+    // The most recent iterations (1 and 2) should be complete
+    verify_records_exist(iter1, 1, 100);
+    verify_records_exist(iter2, 2, 100);
+
+    // Records from iteration 0 may be partially lost due to backup file limit
+    // but iteration 2 (most recent) should always be complete
+    REQUIRE_GE(all.size(), 250);
+    REQUIRE_LE(all.size(), 300);
+  }
+
+  // Clean up all files with the date pattern, regardless of test success/failure
+  std::string final_cleanup_pattern = filename_base.stem().string() + "_20230612";
+  fs::path final_cleanup_main = final_cleanup_pattern + ".log";
+  testing::remove_file(final_cleanup_main);
+
+  for (int i = 1; i <= 15; ++i)
+  {
+    fs::path final_backup_file = final_cleanup_pattern + "." + std::to_string(i) + ".log";
+    testing::remove_file(final_backup_file);
+  }
+}
+
 TEST_SUITE_END();
