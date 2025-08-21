@@ -51,6 +51,11 @@ function(set_common_compile_options target_name)
             -D_FORTIFY_SOURCE=2
             >
 
+            # GCC >= 7.1 specific: suppress PSABI warning
+            $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,7.1>>:
+            -Wno-psabi
+            >
+
             # Clang specific options, but NOT on Windows
             $<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<NOT:$<PLATFORM_ID:Windows>>>:
             -Wimplicit-int-float-conversion -Wdocumentation
