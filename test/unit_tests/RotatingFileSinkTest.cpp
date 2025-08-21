@@ -1846,6 +1846,127 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
 }
 
 /***/
+TEST_CASE("rotating_file_sink_index_dont_remove_unrelated_files")
+{
+  fs::path const filename = "rotating_file_sink_index_dont_remove_unrelated_files.log";
+  fs::path const filename_1 = "rotating_file_sink_index_dont_remove_unrelated_files.1.log";
+  fs::path const filename_2 = "rotating_file_sink_index_dont_remove_unrelated_files.2.log";
+  fs::path const filename_3 = "rotating_file_sink_index_dont_remove_unrelated_files.3.log";
+  fs::path const filename_yaml = "rotating_file_sink_index_dont_remove_unrelated_files.yaml";
+  fs::path const filename_other = "config_rotating_file_sink_index_dont_remove_unrelated_files";
+
+  // create all files simulating the previous run
+  testing::create_file(filename, "Existing [2]");
+  testing::create_file(filename_1, "Existing [1]");
+  testing::create_file(filename_2, "Existing [0]");
+  testing::create_file(filename_3, "Existing [-1]");
+  testing::create_file(filename_yaml, "YAML config");
+  testing::create_file(filename_other, "YAML config");
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(fs::exists(filename_2));
+  REQUIRE(fs::exists(filename_3));
+  REQUIRE(fs::exists(filename_yaml));
+  REQUIRE(fs::exists(filename_other));
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_remove_old_files(true);
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    REQUIRE(!fs::exists(filename_1));
+    REQUIRE(!fs::exists(filename_2));
+    REQUIRE(!fs::exists(filename_3));
+    REQUIRE(fs::exists(filename_yaml));
+    REQUIRE(fs::exists(filename_other));
+
+    // write some records to the file
+    for (size_t i = 0; i < 4; ++i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      // Add a big string to rotate the file
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(fs::exists(filename_2));
+  REQUIRE(fs::exists(filename_3));
+
+  // Read file and check
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [3]"), true);
+
+  std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [2]"), true);
+
+  std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
+  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [1]"), true);
+
+  std::vector<std::string> const file_contents_3 = testing::file_contents(filename_3);
+  REQUIRE_EQ(testing::file_contains(file_contents_3, "Record [0]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+  testing::remove_file(filename_3);
+  testing::remove_file(filename_yaml);
+  testing::remove_file(filename_other);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_invalid_params")
+{
+  fs::path const filename = "rotating_file_sink_invalid_params.log";
+  REQUIRE_THROWS(RotatingFileSink{filename, []()
+                                  {
+                                    RotatingFileSinkConfig cfg;
+                                    cfg.set_rotation_max_file_size(128);
+                                    cfg.set_open_mode('w');
+                                    return cfg;
+                                  }()});
+
+  REQUIRE_FALSE(fs::exists(filename));
+
+  REQUIRE_THROWS(RotatingFileSink{filename, []()
+                                  {
+                                    RotatingFileSinkConfig cfg;
+                                    cfg.set_rotation_frequency_and_interval('Z', 123);
+                                    cfg.set_open_mode('w');
+                                    return cfg;
+                                  }()});
+
+  REQUIRE_FALSE(fs::exists(filename));
+
+  REQUIRE_THROWS(RotatingFileSink{filename, []()
+                                  {
+                                    RotatingFileSinkConfig cfg;
+                                    cfg.set_rotation_frequency_and_interval('M', 0);
+                                    cfg.set_open_mode('w');
+                                    return cfg;
+                                  }()});
+
+  REQUIRE_FALSE(fs::exists(filename));
+}
+
+/***/
 TEST_CASE("rotating_file_sink_date_append_mode")
 {
   fs::path const filename_base = "rotating_file_sink_date_append_mode.log";
