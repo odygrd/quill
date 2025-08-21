@@ -16,6 +16,12 @@ function(quill_add_test TEST_NAME SOURCES)
 
     set_common_compile_options(${TEST_NAME})
 
+    if (NOT MSVC)
+        # disable false warning on armel/armhf
+        set_source_files_properties( PatternFormatterTest.cpp PROPERTIES
+        COMPILE_FLAGS "-Wno-unused-value")
+    endif()
+
     # Add sources
     target_sources(${TEST_NAME} PRIVATE ${SOURCES} ${HEADER_FILES})
 
