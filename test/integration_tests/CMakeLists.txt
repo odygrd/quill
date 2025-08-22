@@ -29,7 +29,12 @@ function(quill_add_test TEST_NAME SOURCES)
             ..)
 
     # Link dependencies
-    target_link_libraries(${TEST_NAME} quill)
+    check_cxx_atomics_available(HAVE_CXX_ATOMIC)
+    if (HAVE_CXX_ATOMIC)
+        target_link_libraries(${TEST_NAME} quill)
+    else()
+        target_link_libraries(${TEST_NAME} quill atomic)
+    endif()
 
     if (QUILL_ENABLE_EXTENSIVE_TESTS)
         target_compile_definitions(${TEST_NAME} PRIVATE QUILL_ENABLE_EXTENSIVE_TESTS)

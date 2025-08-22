@@ -1,3 +1,5 @@
+include(CheckCXXSourceCompiles)
+
 # Get Quill version from include/quill/Version.h and store it as QUILL_VERSION
 function(quill_extract_version)
     file(READ "${CMAKE_CURRENT_LIST_DIR}/include/quill/Backend.h" file_contents)
@@ -86,3 +88,18 @@ function(set_common_compile_options target_name)
     endif ()
 endfunction()
 
+function(check_cxx_atomics_available variable)
+  set(SAVED_CMAKE_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES}")
+  set(CMAKE_REQUIRED_LIBRARIES "")
+
+  check_cxx_source_compiles("
+    #include <atomic>
+    #include <cstdint>
+    std::atomic<uint64_t> counter;
+    int main() {
+      uint64_t res = std::atomic_fetch_add(&counter, 1);
+      return (int)res;
+    }" ${variable})
+
+  set(CMAKE_REQUIRED_LIBRARIES "${SAVED_CMAKE_REQUIRED_LIBRARIES}")
+endfunction()
