@@ -56,7 +56,10 @@ TEST_CASE("std_optional_logging")
 
     std::optional<std::string> esp{std::nullopt};
     LOG_INFO(logger, "esp [{}]", esp);
-
+#if !defined(__clang__) && defined(__GNUC__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-value"
+#endif
     std::optional<std::string_view> svp{"svp_testing"};
     LOG_INFO(logger, "svp [{}]", svp);
 
@@ -65,8 +68,11 @@ TEST_CASE("std_optional_logging")
 
     std::optional<double> d{333.221};
     LOG_INFO(logger, "d [{}]", d);
-
     LOG_INFO(logger, "zzzz [{}] [{}] [{}] [{}] [{}]", d, "test", *svp, *sp, ccp);
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
   }
 
   logger->flush_log();
