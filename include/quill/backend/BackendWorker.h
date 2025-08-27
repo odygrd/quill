@@ -672,7 +672,8 @@ private:
 
     // commit this transit event
     thread_context->_transit_event_buffer->push_back();
-
+    _format_args_store.clear();
+    
     return true;
   }
 
