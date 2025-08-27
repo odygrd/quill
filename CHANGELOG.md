@@ -97,7 +97,7 @@
   scope. ([#799](https://github.com/odygrd/quill/issues/799)
 - Added overflow check when doubling resync interval in `RdtscClock::resync()` to prevent potential UBSan
   warnings ([#809](https://github.com/odygrd/quill/issues/809)
-- Improved `Utility::to_hex` function
+- Improved `Utility::to_hex` function and `StringFromTime`
 - Fixed an issue where `BackendWorker::_exit` was always executed during destruction, even when the backend thread had already stopped
 - Fixed `RotatingFileSink` to correctly handle `FilenameAppendOption::StartDate` configuration ([#822](https://github.com/odygrd/quill/issues/822))
  

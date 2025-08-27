@@ -141,32 +141,61 @@ public:
     total_seconds -= minutes * 60;
     uint32_t const seconds = total_seconds;
 
+    // only update components that have changed
+    bool const hours_changed = (hours != _prev_hours);
+    bool const minutes_changed = (minutes != _prev_minutes);
+    bool const seconds_changed = (seconds != _prev_seconds);
+
+    // Update cached values
+    _prev_hours = hours;
+    _prev_minutes = minutes;
+    _prev_seconds = seconds;
+
     for (auto const& index : _cached_indexes)
     {
       // for each cached index we have, replace it when the new value
       switch (index.second)
       {
       case format_type::H:
-        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", hours);
+        if (hours_changed)
+        {
+          fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", hours);
+        }
         break;
       case format_type::M:
-        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", minutes);
+        if (minutes_changed)
+        {
+          fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", minutes);
+        }
         break;
       case format_type::S:
-        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", seconds);
+        if (seconds_changed)
+        {
+          fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}", seconds);
+        }
         break;
       case format_type::I:
-        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}",
-                            (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
+        if (hours_changed)
+        {
+          fmtquill::format_to(&_pre_formatted_ts[index.first], "{:02}",
+                              (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
+        }
         break;
       case format_type::l:
-        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:2}",
-                            (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
+        if (hours_changed)
+        {
+          fmtquill::format_to(&_pre_formatted_ts[index.first], "{:2}",
+                              (hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours)));
+        }
         break;
       case format_type::k:
-        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:2}", hours);
+        if (hours_changed)
+        {
+          fmtquill::format_to(&_pre_formatted_ts[index.first], "{:2}", hours);
+        }
         break;
       case format_type::s:
+        // Timestamp in seconds always changes
         fmtquill::format_to(&_pre_formatted_ts[index.first], "{:10}", _cached_timestamp);
         break;
       default:
@@ -241,6 +270,13 @@ protected:
     // also cache the seconds
     _cached_seconds =
       static_cast<uint32_t>((time_info.tm_hour * 3600) + (time_info.tm_min * 60) + time_info.tm_sec);
+
+    // Initialize previous time component tracking
+    uint32_t total_seconds = _cached_seconds;
+    _prev_hours = total_seconds / 3600;
+    total_seconds -= _prev_hours * 3600;
+    _prev_minutes = total_seconds / 60;
+    _prev_seconds = total_seconds - _prev_minutes * 60;
 
     // Now run through all parts and call strftime
     for (auto const& format_part : _initial_parts)
@@ -444,6 +480,11 @@ private:
 
   /** The seconds of hh:mm:ss of the pre-formatted string this is after using gmtime or localtime on cached_timestamp */
   uint32_t _cached_seconds{0};
+
+  /** Previous time components for change detection */
+  uint32_t _prev_hours{0};
+  uint32_t _prev_minutes{0};
+  uint32_t _prev_seconds{0};
 
   /** gmtime or localtime */
   Timezone _time_zone{Timezone::GmtTime};
