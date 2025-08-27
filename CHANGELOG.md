@@ -100,7 +100,8 @@
 - Improved `Utility::to_hex` function and `StringFromTime`
 - Fixed an issue where `BackendWorker::_exit` was always executed during destruction, even when the backend thread had already stopped
 - Fixed `RotatingFileSink` to correctly handle `FilenameAppendOption::StartDate` configuration ([#822](https://github.com/odygrd/quill/issues/822))
- 
+- Fixed unnecessary allocation caused by empty `std::vector` while `BackendWorker` is idle on Windows ([#827](https://github.com/odygrd/quill/issues/827)
+
 ## v10.0.1
 
 - Fixed PatternFormatter test to work with any repository name instead of hardcoded `quill` ([#795](https://github.com/odygrd/quill/issues/795))

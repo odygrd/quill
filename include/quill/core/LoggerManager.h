@@ -179,10 +179,8 @@ public:
 
   /***/
   template <typename TCheckQueuesEmpty>
-  QUILL_NODISCARD std::vector<std::string> cleanup_invalidated_loggers(TCheckQueuesEmpty check_queues_empty)
+  void cleanup_invalidated_loggers(TCheckQueuesEmpty check_queues_empty, std::vector<std::string>& removed_loggers)
   {
-    std::vector<std::string> removed_loggers;
-
     if (_has_invalidated_loggers.load(std::memory_order_acquire))
     {
       _has_invalidated_loggers.store(false, std::memory_order_release);
@@ -211,8 +209,6 @@ public:
         }
       }
     }
-
-    return removed_loggers;
   }
 
   /***/

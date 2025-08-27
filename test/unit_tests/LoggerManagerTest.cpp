@@ -56,8 +56,8 @@ TEST_CASE("create_get_remove_logger")
     REQUIRE_EQ(lm.get_number_of_loggers(), 2);
 
     // Logger is not removed yet because we have pending records
-    std::vector<std::string> const removed_loggers =
-      lm.cleanup_invalidated_loggers([]() { return false; });
+    std::vector<std::string> removed_loggers;
+    lm.cleanup_invalidated_loggers([]() { return false; }, removed_loggers);
 
     REQUIRE_EQ(removed_loggers.size(), 0);
     REQUIRE_EQ(lm.get_number_of_loggers(), 2);
@@ -75,8 +75,8 @@ TEST_CASE("create_get_remove_logger")
     REQUIRE_EQ(lm.get_number_of_loggers(), 2);
 
     // Logger is removed since we pass true meaning the queue is empty
-    std::vector<std::string> const removed_loggers =
-      lm.cleanup_invalidated_loggers([]() { return true; });
+    std::vector<std::string> removed_loggers;
+    lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
 
     REQUIRE_EQ(removed_loggers.size(), 1);
     REQUIRE_EQ(removed_loggers[0], "logger_1");
@@ -96,8 +96,8 @@ TEST_CASE("create_get_remove_logger")
     REQUIRE_EQ(lm.get_all_loggers().size(), 0);
 
     // Logger is not removed yet because we have pending records
-    std::vector<std::string> const removed_loggers =
-      lm.cleanup_invalidated_loggers([]() { return false; });
+    std::vector<std::string> removed_loggers;
+    lm.cleanup_invalidated_loggers([]() { return false; }, removed_loggers);
 
     REQUIRE_EQ(removed_loggers.size(), 0);
 
@@ -113,8 +113,8 @@ TEST_CASE("create_get_remove_logger")
     REQUIRE_EQ(lm.get_all_loggers().size(), 0);
 
     // Logger is removed since we pass true meaning the queue is empty
-    std::vector<std::string> const removed_loggers =
-      lm.cleanup_invalidated_loggers([]() { return true; });
+    std::vector<std::string> removed_loggers;
+    lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
 
     REQUIRE_EQ(removed_loggers.size(), 1);
     REQUIRE_EQ(removed_loggers[0], "logger_2");

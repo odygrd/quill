@@ -1366,21 +1366,21 @@ private:
   QUILL_ATTRIBUTE_HOT void _cleanup_invalidated_loggers()
   {
     // since there are no messages we can check for invalidated loggers and clean them up
-    std::vector<std::string> const removed_loggers = _logger_manager.cleanup_invalidated_loggers(
+    _logger_manager.cleanup_invalidated_loggers(
       [this]()
       {
         // check the queues are empty each time before removing a logger to avoid
         // potential race condition of the logger* still being in the queue
         return _check_frontend_queues_and_cached_transit_events_empty();
-      });
+      }, _removed_loggers);
 
-    if (!removed_loggers.empty())
+    if (!_removed_loggers.empty())
     {
       // if loggers were removed also check for sinks to remove
       // cleanup_unused_sinks is expensive and should be only called when it is needed
       _sink_manager.cleanup_unused_sinks();
 
-      for (auto const& removed_logger_name : removed_loggers)
+      for (auto const& removed_logger_name : _removed_loggers)
       {
         // Notify the user if the blocking call was used
         auto search_it = _logger_removal_flags.find(removed_logger_name);
@@ -1641,6 +1641,7 @@ private:
   std::thread _worker_thread;
 
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
+  std::vector<std::string> _removed_loggers; /** Even an empty vector causes an allocation on Windows */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
