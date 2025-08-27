@@ -384,7 +384,6 @@ using FormatArgsDecoder = void (*)(std::byte*& data, DynamicFormatArgStore& args
 template <typename... Args>
 void decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
 {
-  args_store.clear();
   decode_and_store_arg<Args...>(buffer, &args_store);
 }
 } // namespace detail
