@@ -1390,6 +1390,8 @@ private:
           _logger_removal_flags.erase(search_it);
         }
       }
+
+      _removed_loggers.clear();
     }
   }
 

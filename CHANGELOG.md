@@ -101,6 +101,7 @@
 - Fixed an issue where `BackendWorker::_exit` was always executed during destruction, even when the backend thread had already stopped
 - Fixed `RotatingFileSink` to correctly handle `FilenameAppendOption::StartDate` configuration ([#822](https://github.com/odygrd/quill/issues/822))
 - Fixed unnecessary allocation caused by empty `std::vector` while `BackendWorker` is idle on Windows ([#827](https://github.com/odygrd/quill/issues/827)
+- Fixed `FileSink::open_mode` string comparison for file mode flags
 
 ## v10.0.1
 
