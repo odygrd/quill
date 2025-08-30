@@ -115,10 +115,15 @@ public:
 
   /**
    * @brief Sets the open mode for the file.
-   * Valid options for the open mode are 'a' or 'w'. The default value is 'a'.
    * @param open_mode open mode for the file.
    */
   QUILL_ATTRIBUTE_COLD void set_open_mode(char open_mode) { _open_mode = open_mode; }
+
+  /**
+   * @brief Sets the open mode for the file.
+   * @param open_mode open mode for the file.
+   */
+  QUILL_ATTRIBUTE_COLD void set_open_mode(std::string_view open_mode) { _open_mode = open_mode; }
 
   /**
    * @brief Sets the user-defined buffer size for fwrite operations.

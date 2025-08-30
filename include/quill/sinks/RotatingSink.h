@@ -477,7 +477,7 @@ private:
     }
 
     // if we are starting in "w" mode, then we also should clean all previous log files of the previous run
-    if (_config.remove_old_files() && (open_mode == "w"))
+    if (_config.remove_old_files() && (open_mode.find('w') != std::string::npos))
     {
       for (auto const& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
       {
@@ -538,7 +538,7 @@ private:
         }
       }
     }
-    else if (open_mode == "a")
+    else if (open_mode.find('a') != std::string::npos)
     {
       // we need to recover the index from the existing files
       for (auto const& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
