@@ -1,4 +1,4 @@
-- TBD
+- [v10.1.0](#v1010)
 - [v10.0.1](#v1001)
 - [v10.0.0](#v1000)
 - [v9.0.3](#v903)
@@ -91,16 +91,19 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## TBD
+## v10.1.0
 
-- Added unique prefixes to internal macro variables to prevent conflicts with user variable names in the same
-  scope. ([#799](https://github.com/odygrd/quill/issues/799)
-- Added overflow check when doubling resync interval in `RdtscClock::resync()` to prevent potential UBSan
-  warnings ([#809](https://github.com/odygrd/quill/issues/809)
-- Improved `Utility::to_hex` function and `StringFromTime`
-- Fixed an issue where `BackendWorker::_exit` was always executed during destruction, even when the backend thread had already stopped
+- Fixed potential conflicts by adding unique prefixes to internal macro variables to prevent conflicts with user
+  variable names in the same
+  scope. ([#799](https://github.com/odygrd/quill/issues/799))
+- Fixed potential `UBSan` warnings by adding overflow check when doubling resync interval in
+  `RdtscClock::resync()` ([#809](https://github.com/odygrd/quill/issues/809))
+- Minor improvements in `Utility::to_hex` function and `StringFromTime`
+- Fixed an issue where `BackendWorker::_exit` was always executed during destruction, even when the backend thread had
+  already stopped ([#815](https://github.com/odygrd/quill/issues/815))
 - Fixed `RotatingFileSink` to correctly handle `FilenameAppendOption::StartDate` configuration ([#822](https://github.com/odygrd/quill/issues/822))
-- Fixed unnecessary allocation caused by empty `std::vector` while `BackendWorker` is idle on Windows ([#827](https://github.com/odygrd/quill/issues/827)
+- Fixed unnecessary allocation caused by empty `std::vector` while `BackendWorker` is idle on
+  Windows ([#827](https://github.com/odygrd/quill/issues/827))
 - Fixed `FileSink::open_mode` string comparison for file mode flags
 
 ## v10.0.1
