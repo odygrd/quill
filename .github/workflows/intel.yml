@@ -40,10 +40,14 @@ jobs:
         shell: bash
         run: |
           source /opt/intel/oneapi/setvars.sh
-          # Export relevant vars into GITHUB_ENV for later steps
-          env | grep ONEAPI_ >> $GITHUB_ENV
+          # Export Intel environment to GITHUB_ENV
           echo "CXX=icpx" >> $GITHUB_ENV
           echo "CC=icx" >> $GITHUB_ENV
+          echo "PATH=$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$LIBRARY_PATH" >> $GITHUB_ENV
+          echo "CPATH=$CPATH" >> $GITHUB_ENV
+          echo "ONEAPI_ROOT=$ONEAPI_ROOT" >> $GITHUB_ENV
       
       - name: Verify compiler
         run: |
