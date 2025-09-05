@@ -40,7 +40,15 @@ jobs:
         shell: bash
         run: |
           source /opt/intel/oneapi/setvars.sh
-          echo "source /opt/intel/oneapi/setvars.sh" >> $GITHUB_ENV
+          # Export relevant vars into GITHUB_ENV for later steps
+          env | grep ONEAPI_ >> $GITHUB_ENV
+          echo "CXX=icpx" >> $GITHUB_ENV
+          echo "CC=icx" >> $GITHUB_ENV
+      
+      - name: Verify compiler
+        run: |
+          echo "CXX=$CXX"
+          $CXX --version
 
       - name: Prepare build directory
         run: mkdir -p ${{ runner.workspace }}/build
