@@ -1,4 +1,4 @@
-name: intelllvm-2025.2.1
+name: intelllvm
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
