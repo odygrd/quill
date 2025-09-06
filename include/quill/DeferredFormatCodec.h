@@ -138,20 +138,31 @@ struct DeferredFormatCodec
     }
     else
     {
+      static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>,
+              "T must be move or copy constructible");
+
       auto aligned_ptr = align_pointer(buffer, alignof(T));
       auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
-
-      static_assert(is_move_constructible<T>::value, "T is not move-constructible!");
-      T arg{std::move(*tmp)};
-
-      if constexpr (!std::is_trivially_destructible_v<T>)
-      {
-        // Destroy tmp
-        tmp->~T();
-      }
-
       buffer += sizeof(T) + alignof(T) - 1;
-      return arg;
+
+      if constexpr (std::is_move_constructible_v<T>)
+      {
+        T arg{std::move(*tmp)};
+        if constexpr (!std::is_trivially_destructible_v<T>)
+        {
+          tmp->~T();
+        }
+        return arg;
+      }
+      else
+      {
+        T arg{*tmp};
+        if constexpr (!std::is_trivially_destructible_v<T>)
+        {
+          tmp->~T();
+        }
+        return T{arg};
+      }
     }
   }
 
