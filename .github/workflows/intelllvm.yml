@@ -1,0 +1,78 @@
+name: intelllvm
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [ Debug, Release ]
+        std: [ 17 ]
+        with_tests: [ ON ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Intel oneAPI DPC++ Compiler 2025.2.1
+        run: |
+          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | sudo tee /etc/apt/trusted.gpg.d/GPG-PUB-KEY-INTEL-SW-PRODUCTS.asc
+          echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          sudo apt-get update
+          sudo apt-get install -y intel-oneapi-compiler-dpcpp-cpp cmake make
+
+      - name: Setup Intel oneAPI environment
+        shell: bash
+        run: |
+          source /opt/intel/oneapi/setvars.sh
+          # Export Intel environment to GITHUB_ENV
+          echo "CXX=icpx" >> $GITHUB_ENV
+          echo "CC=icx" >> $GITHUB_ENV
+          echo "PATH=$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$LIBRARY_PATH" >> $GITHUB_ENV
+          echo "CPATH=$CPATH" >> $GITHUB_ENV
+          echo "ONEAPI_ROOT=$ONEAPI_ROOT" >> $GITHUB_ENV
+      
+      - name: Verify compiler
+        run: |
+          echo "CXX=$CXX"
+          $CXX --version
+
+      - name: Prepare build directory
+        run: mkdir -p ${{ runner.workspace }}/build
+
+      - name: Configure
+        shell: bash
+        env:
+          CXX: icpx
+        run: |
+          cd ${{ runner.workspace }}/build
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=${{ matrix.std }} -DQUILL_BUILD_TESTS=${{ matrix.with_tests }} -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
+
+      - name: Build
+        run: |
+          cd ${{ runner.workspace }}/build
+          cmake --build . --config ${{ matrix.build_type }} --parallel $(nproc)
+
+      - name: Test
+        env:
+          CTEST_OUTPUT_ON_FAILURE: True
+        run: |
+          cd ${{ runner.workspace }}/build
+          ctest --build-config ${{ matrix.build_type }} --parallel $(nproc) --output-on-failure
