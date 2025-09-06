@@ -20,7 +20,8 @@ int main()
   backend_options.cpu_affinity = 5;
   backend_options.transit_events_hard_limit = 1;
   backend_options.transit_events_soft_limit = 1;
-
+  backend_options.log_timestamp_ordering_grace_period = std::chrono::microseconds{1};
+  
   // Start the logging backend thread and give it some tiem to init
   quill::Backend::start(backend_options);
 
