@@ -46,7 +46,7 @@ struct BackendOptions
   /**
    * Specifies the duration the backend sleeps if there is no remaining work to process in the queues.
    */
-  std::chrono::nanoseconds sleep_duration = std::chrono::nanoseconds{500};
+  std::chrono::nanoseconds sleep_duration = std::chrono::microseconds{100};
 
   /**
    * The backend pops all log messages from the frontend queues and buffers them in a
@@ -55,7 +55,7 @@ struct BackendOptions
    * transit_events_hard_limit The backend will use a separate transit_event_buffer for each
    * frontend thread. The capacity must be a power of two.
    */
-  uint32_t transit_event_buffer_initial_capacity = 128;
+  uint32_t transit_event_buffer_initial_capacity = 256;
 
   /**
    * The backend gives priority to reading messages from the frontend queues of all
@@ -72,7 +72,7 @@ struct BackendOptions
    *
    * @note This number represents a limit across the messages received from ALL frontend threads.
    */
-  size_t transit_events_soft_limit = 4096;
+  size_t transit_events_soft_limit = 8192;
 
   /**
    * The backend gives priority to reading messages from the frontend queues and temporarily
@@ -89,7 +89,7 @@ struct BackendOptions
    *
    * @note This number represents a limit PER frontend threads.
    */
-  size_t transit_events_hard_limit = 32'768;
+  size_t transit_events_hard_limit = 65'536;
 
   /**
    * The backend iterates through all frontend lock-free queues and pops all messages from each
@@ -120,8 +120,16 @@ struct BackendOptions
    * lock-free queues but ensures correct timestamp order.
    *
    * Setting `log_timestamp_ordering_grace_period` to zero disables strict timestamp ordering.
+   *
+   * - 0μs: Fastest processing, may process messages out of timestamp order
+   * - 1-5μs: Good default - minimal delay, occasional reordering possible
+   * - 10-20μs: Better ordering when threads have different queue arrival timing
+   * - 100μs+: Stricter ordering, but risk of SPSC queue filling up at high throughput logging
+   *
+   * This compensates for timing differences in when threads push to their queues,
+   * not for timestamp accuracy itself.
    */
-  std::chrono::microseconds log_timestamp_ordering_grace_period{1};
+  std::chrono::microseconds log_timestamp_ordering_grace_period{5};
 
   /**
    * When this option is enabled and the application is terminating, the backend worker thread
