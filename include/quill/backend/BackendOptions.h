@@ -207,7 +207,7 @@ struct BackendOptions
    *
    * This setting applies globally and affects all sinks in the application.
    */
-  std::chrono::milliseconds sink_min_flush_interval = std::chrono::milliseconds{100};
+  std::chrono::milliseconds sink_min_flush_interval = std::chrono::milliseconds{200};
 
   /**
    * This option enables a check that verifies the log message contains only printable characters
