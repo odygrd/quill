@@ -105,7 +105,8 @@
 - Fixed unnecessary allocation caused by empty `std::vector` while `BackendWorker` is idle on
   Windows ([#827](https://github.com/odygrd/quill/issues/827))
 - Fixed `FileSink::open_mode` string comparison for file mode flags
-
+- Adjusted default `BackendOptions` values for broader system compatibility and typical usage patterns
+  
 ## v10.0.1
 
 - Fixed PatternFormatter test to work with any repository name instead of hardcoded `quill` ([#795](https://github.com/odygrd/quill/issues/795))
