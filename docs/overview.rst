@@ -41,11 +41,11 @@ using :cpp:func:`LoggerImpl::flush_log`. The calling thread will **block** until
 Synchronized Logs for Debugging
 -------------------------------
 
-Sometimes, synchronized logging is necessary during application debugging. This can be achieved by configuring the logger to invoke :cpp:func:`LoggerImpl::flush_log` with each log statement using the `QUILL_IMMEDIATE_FLUSH` preprocessor variable.
+Sometimes, synchronized logging is necessary during application debugging. This can be achieved by calling :cpp:func:`LoggerImpl::set_immediate_flush` to enable immediate flushing for a specific logger instance.
 
-Enabling `QUILL_IMMEDIATE_FLUSH` causes the calling thread to pause until the log is processed and written to the log file by the backend thread before proceeding, which may have a notable impact on performance.
+This causes the calling thread to pause until the log is processed and written to the log file by the backend thread before proceeding, which may have a notable impact on performance.
 
-To enable this behavior, define `QUILL_IMMEDIATE_FLUSH` before including `LogMacros.h` or pass it as a compiler flag.
+Note that the immediate flush feature can be completely disabled at compile time by defining `QUILL_ENABLE_IMMEDIATE_FLUSH=0`, which eliminates the conditional branch from the hot path for better performance when immediate flushing is never needed.
 
 Handling Application Crashes
 ----------------------------

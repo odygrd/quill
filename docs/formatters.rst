@@ -97,3 +97,89 @@ Customizing Log Message Formats
 .. literalinclude:: examples/quill_docs_example_custom_format.cpp
    :language: cpp
    :linenos:
+
+Advanced Pattern Formatter Configuration
+-----------------------------------------
+
+The :cpp:class:`PatternFormatterOptions` class provides additional configuration options beyond the basic format pattern:
+
+**Source Location Path Customization**
+
+You can customize how source file paths are displayed when using the ``%(source_location)`` attribute (full path + line number):
+
+.. code-block:: cpp
+
+   quill::PatternFormatterOptions options;
+   
+   // Strip common path prefixes to shorten source locations
+   options.source_location_path_strip_prefix = "/home/user/project/";
+   // "/home/user/project/src/main.cpp:42" becomes "src/main.cpp:42"
+   
+   // Remove relative path components like "../"
+   options.source_location_remove_relative_paths = true;
+   // "../../src/utils/../main.cpp:15" becomes "src/main.cpp:15"
+
+.. note::
+   These options only affect the ``%(source_location)`` attribute, which shows the full file path. The ``%(short_source_location)`` attribute (filename only + line number) is not affected by these settings.
+
+**Custom Function Name Processing**
+
+By default, the ``%(caller_function)`` attribute shows basic function names. However, you can enable detailed function signatures by defining ``QUILL_DETAILED_FUNCTION_NAME`` before including Quill headers or as a compiler flag:
+
+.. code-block:: cpp
+
+   #define QUILL_DETAILED_FUNCTION_NAME
+   #include "quill/LogMacros.h"
+   
+   // Or compile with: -DQUILL_DETAILED_FUNCTION_NAME
+
+When ``QUILL_DETAILED_FUNCTION_NAME`` is enabled, the logger uses compiler-specific macros (like ``__PRETTY_FUNCTION__``) to provide full function signatures including return types, namespaces, class names, and parameter types. Since these detailed signatures can be verbose and compiler-specific, you can provide a custom processing function to format them:
+
+.. code-block:: cpp
+
+   quill::PatternFormatterOptions options;
+   
+   // Custom function to extract just the function name from detailed signatures
+   options.process_function_name = [](const char* detailed_name) -> std::string_view {
+       // Example: Extract "myFunction" from "void MyClass::myFunction(int, const std::string&)"
+       // Implementation depends on your compiler and requirements
+       std::string_view name(detailed_name);
+       // ... custom parsing logic to extract just the function name ...
+       return name;
+   };
+
+.. note::
+   The ``process_function_name`` callback is only used when ``QUILL_DETAILED_FUNCTION_NAME`` is enabled. Without this define, ``%(caller_function)`` shows simple function names and this callback is ignored.
+
+**Timestamp Configuration**
+
+Control timestamp timezone and format:
+
+.. code-block:: cpp
+
+   quill::PatternFormatterOptions options;
+   
+   // Use GMT timezone instead of local time
+   options.timestamp_timezone = quill::Timezone::GmtTime;
+   
+   // Customize timestamp format (same as strftime + fractional specifiers)
+   options.timestamp_pattern = "%Y-%m-%d %H:%M:%S.%Qms";  // Include date and milliseconds
+
+**Multi-line Message Handling**
+
+Control whether metadata is added to each line of multi-line log messages:
+
+.. code-block:: cpp
+
+   quill::PatternFormatterOptions options;
+   
+   // Disable metadata on continuation lines for cleaner multi-line output
+   options.add_metadata_to_multi_line_logs = false;
+   
+   // With add_metadata_to_multi_line_logs = true (default):
+   // 2024-01-15 10:30:45.123 [1234] main.cpp:42 LOG_INFO     MyLogger Line 1
+   // 2024-01-15 10:30:45.123 [1234] main.cpp:42 LOG_INFO     MyLogger Line 2
+   
+   // With add_metadata_to_multi_line_logs = false:
+   // 2024-01-15 10:30:45.123 [1234] main.cpp:42 LOG_INFO     MyLogger Line 1
+   //                                                                   Line 2

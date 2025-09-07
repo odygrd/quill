@@ -190,7 +190,7 @@ Outputs:
 
 Logging Strings Without Additional Copy
 ---------------------------------------
-By default, the logger takes a deep copy of any string. To log an immutable string with a valid lifetime without copying, use ``quill::utility::StringRef``.
+By default, the logger takes a deep copy of any string for thread safety. To log an immutable string with a valid lifetime without copying (e.g., string literals, static strings), use ``quill::utility::StringRef``.
 
 .. code:: cpp
 
@@ -302,7 +302,7 @@ To log user-defined types, you need to define how they should be serialized or c
        - If the type is **not trivially copyable**, it should have both a **copy constructor** and a **move constructor**.
 
     2. **Use DirectFormatCodec**
-       Suitable for objects that are not safe to copy across threads or for cases where formatting occurs in the slow path. This method converts the object to a string immediately in the hot path using `fmt::format`.
+       Suitable for objects that are not safe to copy across threads (e.g., contain raw pointers, references, or non-copyable resources). This method converts the object to a string immediately in the hot path using `fmt::format`, which increases hot-path latency.
 
     3. **Implement a Custom Codec**
        For maximum flexibility, you can define a custom codec to specify exactly how the object should be serialized and deserialized.
@@ -480,7 +480,7 @@ Writing Custom Codec
 Serialising Non Trivially Copyable User Defined Types With Public Members
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members`` as long as the relevant header file from ``quill/std/`` for that type is included.
+Note that STL types can be used in custom codecs by passing them to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members``, provided you include the relevant header from ``quill/std/`` for each STL type used.
 
 .. code:: cpp
 

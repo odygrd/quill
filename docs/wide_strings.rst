@@ -3,7 +3,9 @@
 Wide Strings
 ============
 
-The library does not provide support for writing Unicode characters to log files; only ASCII characters are supported. However, on Windows, wide strings compatible with ASCII encoding are supported.
+The library does not provide native support for writing Unicode characters to log files; only ASCII characters are supported by default. Non-ASCII characters (including UTF-8 encoded text) are automatically converted to their hexadecimal representation (e.g., Chinese characters appear as ``\xE4\xB8\xAD``). To log UTF-8 or other Unicode text properly, you need to disable character sanitization in :cpp:struct:`BackendOptions` (see :doc:`backend_options`).
+
+However, on Windows, wide strings compatible with ASCII encoding are supported.
 
 It is possible to pass wide characters, wide strings, or wide string views to the logger, but this functionality is specific to Windows.
 
