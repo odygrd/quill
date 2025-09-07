@@ -9,7 +9,7 @@ Each :cpp:class:`Sink` can be associated with one or multiple :cpp:class:`Filter
 
 By default, a logger sends all log messages to its ``Sinks``. Filters provide a way to intercept and selectively process log records before they are outputted.
 
-A filter is implemented as a callable object that evaluates each log statement and returns a boolean value. This boolean value determines whether the log statement should be forwarded to the ``Sink`` or filtered out.
+A filter is implemented as a callable object that evaluates each log statement on the backend thread and returns a boolean value. When the filter returns ``true``, the log statement is forwarded to the ``Sink``; when ``false``, the log statement is discarded.
 
 Filtering Logs with the Built-In Filter
 ---------------------------------------

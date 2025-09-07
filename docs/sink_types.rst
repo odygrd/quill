@@ -49,6 +49,26 @@ SyslogSink
 
 The :cpp:class:`SyslogSink` leverages the syslog API to send messages.
 
+SystemdSink
+~~~~~~~~~~~
+
+The :cpp:class:`SystemdSink` sends log messages to systemd's journal using the systemd journal API, providing structured logging with systemd metadata.
+
+StreamSink
+~~~~~~~~~~
+
+The :cpp:class:`StreamSink` allows logging to any output stream derived from `std::ostream`, providing flexibility for custom output destinations.
+
+AndroidSink
+~~~~~~~~~~~
+
+The :cpp:class:`AndroidSink` sends log messages to the Android logging system using the Android NDK logging API.
+
+NullSink
+~~~~~~~~
+
+The :cpp:class:`NullSink` discards all log messages, useful for performance testing or disabling specific logger output without removing logging calls.
+
 .. note:: Macro Collision Notice
 
    When including ``syslog.h`` via :cpp:class:`SyslogSink`, the header defines macros such as ``LOG_INFO``

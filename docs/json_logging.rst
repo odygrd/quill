@@ -3,7 +3,7 @@
 JSON Logging
 ============
 
-The library supports outputting JSON-structured logs to either the console or a file. To utilize this feature, you need to use named arguments within the format string, specifically inside the ``{}`` placeholders, when invoking the ``LOG_`` macros.
+The library supports outputting structured JSON logs to either the console or a file. To utilize this feature, you must use named arguments within the format string placeholders (e.g., ``{name}`` instead of ``{}``) when invoking the ``LOG_`` macros.
 
 For convenience, the ``LOGJ_`` macros offer an alternative method for logging l-values, automatically including the argument names in the placeholders. These macros support up to 20 arguments.
 

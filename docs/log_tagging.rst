@@ -3,7 +3,7 @@
 Log Tagging
 ===========
 
-In addition to creating multiple `Logger` instances, each with a unique name, which can be used as a runtime tag to filter and search logs using `%(logger)` in the `PatternFormatter` format, you can also add static compile-time tags to your log messages. This enhances your ability to search, monitor, categorize, and understand events in your software.
+In addition to creating multiple `Logger` instances, each with a unique name, you can add static compile-time tags to your log messages. These tags are embedded directly into the log message format at compile time, providing zero runtime overhead for categorization. This enhances your ability to search, monitor, categorize, and understand events in your software.
 
 These static tags are included as hashtag-style keywords within your log messages, making it easier to filter and categorize logs based on these predefined tags.
 

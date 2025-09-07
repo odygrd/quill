@@ -5,9 +5,9 @@ Quick Start
 
 The library is header only and consists of two main components: the frontend and the backend.
 
-The **frontend** captures a copy of the log arguments and metadata from each ``LOG_*`` statement and places them in a thread-local SPSC queue buffer.
+The **frontend** captures a copy of the log arguments and metadata from each ``LOG_*`` statement and places them in a thread-local SPSC (Single Producer Single Consumer) queue buffer. Each frontend thread has its own lock-free queue, ensuring no contention between logging threads.
 
-The **backend** runs in a separate thread, spawned by the library, asynchronously consuming messages from the frontend, formatting them, and writing them to the configured sinks.
+The **backend** runs in a separate thread, spawned by the library, asynchronously consuming messages from all frontend queues, formatting them, and writing them to the configured sinks.
 
 To use the library, you need to start the backend thread in your application. Then, set up one or more output ``Sinks`` and a ``Logger``.
 
