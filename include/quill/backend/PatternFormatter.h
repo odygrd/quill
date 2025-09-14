@@ -141,10 +141,16 @@ public:
         }
 
         // Write the current line
+        size_t line_length = end - start;
+        if (_options.pattern_suffix != '\n')
+        {
+          // When suffix is not '\n', include the newline character in the message
+          line_length++;
+        }
+        
         formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger,
                                     log_level_description, log_level_short_code, log_statement_metadata,
-                                    named_args, std::string_view(log_msg.data() + start, end - start));
-
+                                    named_args, std::string_view(log_msg.data() + start, line_length));
         start = end + 1;
       }
     }

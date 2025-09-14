@@ -113,7 +113,7 @@ TEST_CASE("binary_file_writer")
 
       data_buffer.resize(sizeof(SmallData));
       std::memcpy(data_buffer.data(), &data, sizeof(SmallData));
-      expected_messages.push_back({message_type, sizeof(SmallData)});
+      expected_messages.push_back({message_type, static_cast<uint32_t>(sizeof(SmallData))});
     }
     else if (message_type == 1)
     {
@@ -125,7 +125,7 @@ TEST_CASE("binary_file_writer")
 
       data_buffer.resize(sizeof(MediumData));
       std::memcpy(data_buffer.data(), &data, sizeof(MediumData));
-      expected_messages.push_back({message_type, sizeof(MediumData)});
+      expected_messages.push_back({message_type, static_cast<uint32_t>(sizeof(MediumData))});
     }
     else // message_type == 2
     {
@@ -140,7 +140,7 @@ TEST_CASE("binary_file_writer")
 
       data_buffer.resize(sizeof(LargeData));
       std::memcpy(data_buffer.data(), &data, sizeof(LargeData));
-      expected_messages.push_back({message_type, sizeof(LargeData)});
+      expected_messages.push_back({message_type, static_cast<uint32_t>(sizeof(LargeData))});
     }
 
     message_data.push_back(data_buffer);
@@ -188,11 +188,11 @@ TEST_CASE("binary_file_writer")
   size_t expected_variable_size = 0;
   for (auto const& msg : expected_messages)
   {
-    expected_variable_size += sizeof(uint32_t) + msg.second; // header + data
+    expected_variable_size += sizeof(uint32_t) + static_cast<size_t>(msg.second); // header + data
   }
 
-  std::streampos expected_file_size =
-    expected_variable_size + static_cast<std::streampos>(4 * (sizeof(uint32_t) + 5));
+  std::streampos expected_file_size = static_cast<std::streampos>(expected_variable_size) +
+    static_cast<std::streampos>(4 * (sizeof(uint32_t) + 5));
 
   REQUIRE_EQ(file_size, expected_file_size);
 

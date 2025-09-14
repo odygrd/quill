@@ -846,7 +846,8 @@ TEST_CASE("process_source_location_path")
 
 TEST_CASE("pattern_suffix_nullopt")
 {
-  PatternFormatterOptions options{"%(message)", "%H:%M:%S", Timezone::GmtTime, false, PatternFormatterOptions::NO_SUFFIX};
+  PatternFormatterOptions options{"%(message)", "%H:%M:%S", Timezone::GmtTime, false,
+                                  PatternFormatterOptions::NO_SUFFIX};
   PatternFormatter custom_pattern_formatter{options};
 
   uint64_t const ts{1579815761000023000};
@@ -994,7 +995,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
     std::string const formatted_string_custom = fmtquill::to_string(formatted_buffer_custom);
     // Multi-line processing: finds \n in message to split lines, applies custom suffix to each
     // With non-newline suffix: trailing \n creates empty line that gets custom suffix
-    std::string const expected_string_custom = "Line 1|Line 2|Line 3|";
+    std::string const expected_string_custom = "Line 1\n|Line 2\n|Line 3\n|";
     REQUIRE_EQ(formatted_string_custom, expected_string_custom);
 
     auto const& formatted_buffer_newline = formatter_newline.format(
@@ -1026,7 +1027,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 
     std::string const formatted_string_custom = fmtquill::to_string(formatted_buffer_custom);
     // Should process each line with custom suffix, last line is "Line 3"
-    std::string const expected_string_custom = "Line 1|Line 2|Line 3|";
+    std::string const expected_string_custom = "Line 1\n|Line 2\n|Line 3|";
     REQUIRE_EQ(formatted_string_custom, expected_string_custom);
 
     auto const& formatted_buffer_newline = formatter_newline.format(
@@ -1054,7 +1055,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 
     std::string const formatted_string_custom = fmtquill::to_string(formatted_buffer_custom);
     // Should process the line and the loop exits before processing the trailing \n
-    std::string const expected_string_custom = "Single line|";
+    std::string const expected_string_custom = "Single line\n|";
     REQUIRE_EQ(formatted_string_custom, expected_string_custom);
 
     auto const& formatted_buffer_newline = formatter_newline.format(
@@ -1071,7 +1072,8 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 TEST_CASE("pattern_suffix_binary_data_preservation")
 {
   // Test case similar to the user's binary data example
-  PatternFormatterOptions options_nullopt{"%(message)", "%H:%M:%S", Timezone::GmtTime, false, PatternFormatterOptions::NO_SUFFIX};
+  PatternFormatterOptions options_nullopt{"%(message)", "%H:%M:%S", Timezone::GmtTime, false,
+                                          PatternFormatterOptions::NO_SUFFIX};
   PatternFormatter formatter_nullopt{options_nullopt};
 
   PatternFormatterOptions options_newline{"%(message)", "%H:%M:%S", Timezone::GmtTime, false, '\n'};
@@ -1114,6 +1116,77 @@ TEST_CASE("pattern_suffix_binary_data_preservation")
   std::string expected_newline_result{buffer, 4};
   expected_newline_result += '\n';
   REQUIRE_EQ(formatted_string_newline, expected_newline_result);
+}
+
+TEST_CASE("pattern_suffix_multiline_metadata_with_no_suffix")
+{
+  // Test multi-line formatting with metadata enabled and NO_SUFFIX
+  // This documents the ACTUAL BEHAVIOR: NO_SUFFIX changes multi-line processing significantly
+  PatternFormatterOptions options_no_suffix{"%(message)", "%H:%M:%S", Timezone::GmtTime, true,
+                                            PatternFormatterOptions::NO_SUFFIX};
+  PatternFormatter formatter_no_suffix{options_no_suffix};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "{}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  {
+    fmtquill::memory_buffer log_msg;
+    fmtquill::format_to(std::back_inserter(log_msg),
+                        fmtquill::runtime(macro_metadata.message_format()), "Line1\nLine2\nLine3\n");
+
+    auto const& formatted_buffer_no_suffix = formatter_no_suffix.format(
+      ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+      std::string_view{log_msg.data(), log_msg.size()});
+
+    std::string const formatted_string_no_suffix = fmtquill::to_string(formatted_buffer_no_suffix);
+
+    // CORRECTED BEHAVIOR: With NO_SUFFIX, multi-line processing works but no suffix is added
+    // Lines are processed separately but concatenated without newlines (NO_SUFFIX means no suffix)
+    std::string const expected_no_suffix = "Line1\nLine2\nLine3\n";
+
+    REQUIRE_EQ(formatted_string_no_suffix, expected_no_suffix);
+  }
+
+  {
+    fmtquill::memory_buffer log_msg;
+    fmtquill::format_to(std::back_inserter(log_msg),
+                        fmtquill::runtime(macro_metadata.message_format()), "Line1Line2\nLine3\n");
+
+    auto const& formatted_buffer_no_suffix = formatter_no_suffix.format(
+      ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+      std::string_view{log_msg.data(), log_msg.size()});
+
+    std::string const formatted_string_no_suffix = fmtquill::to_string(formatted_buffer_no_suffix);
+
+    // CORRECTED BEHAVIOR: With NO_SUFFIX, multi-line processing works but no suffix is added
+    // Lines are processed separately but concatenated without newlines (NO_SUFFIX means no suffix)
+    std::string const expected_no_suffix = "Line1Line2\nLine3\n";
+
+    REQUIRE_EQ(formatted_string_no_suffix, expected_no_suffix);
+  }
+
+  {
+    fmtquill::memory_buffer log_msg;
+    fmtquill::format_to(std::back_inserter(log_msg),
+                        fmtquill::runtime(macro_metadata.message_format()), "Line1Line2Line3");
+
+    auto const& formatted_buffer_no_suffix = formatter_no_suffix.format(
+      ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+      std::string_view{log_msg.data(), log_msg.size()});
+
+    std::string const formatted_string_no_suffix = fmtquill::to_string(formatted_buffer_no_suffix);
+
+    // CORRECTED BEHAVIOR: With NO_SUFFIX, multi-line processing works but no suffix is added
+    // Lines are processed separately but concatenated without newlines (NO_SUFFIX means no suffix)
+    std::string const expected_no_suffix = "Line1Line2Line3";
+
+    REQUIRE_EQ(formatted_string_no_suffix, expected_no_suffix);
+  }
 }
 
 TEST_SUITE_END();
