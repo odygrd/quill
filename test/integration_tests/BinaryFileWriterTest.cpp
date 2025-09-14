@@ -132,11 +132,11 @@ TEST_CASE("binary_file_writer")
       // Large message (32 bytes)
       LargeData data;
       data.id = 300 + i;
-      data.timestamp = i * 1000;
+      data.timestamp = static_cast<uint64_t>(i) * 1000;
       data.value = i * 100;
       std::memset(data.name, 0, sizeof(data.name));
       std::string name = "Msg" + std::to_string(i);
-      std::strncpy(data.name, name.c_str(), sizeof(data.name) - 1);
+      std::memcpy(data.name, name.c_str(), std::min(name.size(), sizeof(data.name) - 1));
 
       data_buffer.resize(sizeof(LargeData));
       std::memcpy(data_buffer.data(), &data, sizeof(LargeData));
@@ -202,19 +202,21 @@ TEST_CASE("binary_file_writer")
   {
     // HEADER: Read 4-byte size header for this message
     uint32_t size;
-    if (!infile.read(reinterpret_cast<char*>(&size), sizeof(size)))
+    std::array<char, sizeof(uint32_t)> size_bytes{};
+    if (!infile.read(size_bytes.data(), sizeof(size_bytes)))
     {
       break;
     }
+    std::memcpy(&size, size_bytes.data(), sizeof(size));
 
     // HEADER VERIFICATION: Size should match expected message size
     REQUIRE_EQ(size, expected_messages[count].second);
 
     uint32_t message_type = expected_messages[count].first;
-    std::vector<uint8_t> read_buffer(size);
+    std::vector<char> read_buffer(size);
 
     // DATA: Read the actual message bytes
-    REQUIRE(infile.read(reinterpret_cast<char*>(read_buffer.data()), size));
+    REQUIRE(infile.read(read_buffer.data(), static_cast<std::streamsize>(size)));
 
     // DATA VERIFICATION: Verify message content based on type
     if (message_type == 0)
@@ -243,7 +245,7 @@ TEST_CASE("binary_file_writer")
       std::memcpy(&read_data, read_buffer.data(), sizeof(LargeData));
 
       REQUIRE_EQ(read_data.id, 300 + count);
-      REQUIRE_EQ(read_data.timestamp, count * 1000);
+      REQUIRE_EQ(read_data.timestamp, static_cast<uint64_t>(count) * 1000);
       REQUIRE_EQ(read_data.value, count * 100);
 
       std::string expected_name = "Msg" + std::to_string(count);
@@ -267,10 +269,12 @@ TEST_CASE("binary_file_writer")
   {
     // HEADER: Read 4-byte size header for edge case message
     uint32_t edge_size;
-    REQUIRE(infile.read(reinterpret_cast<char*>(&edge_size), sizeof(edge_size)));
+    std::array<char, sizeof(uint32_t)> edge_size_bytes{};
+    REQUIRE(infile.read(edge_size_bytes.data(), sizeof(edge_size_bytes)));
+    std::memcpy(&edge_size, edge_size_bytes.data(), sizeof(edge_size));
 
     // HEADER VERIFICATION: Size should be exactly 5 bytes
-    REQUIRE_EQ(edge_size, 5);
+    REQUIRE_EQ(edge_size, 5u);
 
     // DATA: Read the 5 bytes of raw binary data
     char edge_read_buffer[5];
