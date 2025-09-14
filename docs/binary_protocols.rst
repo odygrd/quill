@@ -140,6 +140,6 @@ To write raw bytes to files, you **must** configure these critical options:
 
 This example demonstrates asynchronously writing raw binary data to a file:
 
-.. literalinclude:: examples/binary_file_writer.cpp
+.. literalinclude:: examples/quill_docs_binary_file_writer.cpp
    :language: cpp
    :linenos:
