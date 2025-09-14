@@ -846,7 +846,7 @@ TEST_CASE("process_source_location_path")
 
 TEST_CASE("pattern_suffix_nullopt")
 {
-  PatternFormatterOptions options{"%(message)", "%H:%M:%S", Timezone::GmtTime, false, std::nullopt};
+  PatternFormatterOptions options{"%(message)", "%H:%M:%S", Timezone::GmtTime, false, PatternFormatterOptions::NO_SUFFIX};
   PatternFormatter custom_pattern_formatter{options};
 
   uint64_t const ts{1579815761000023000};
@@ -1071,7 +1071,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 TEST_CASE("pattern_suffix_binary_data_preservation")
 {
   // Test case similar to the user's binary data example
-  PatternFormatterOptions options_nullopt{"%(message)", "%H:%M:%S", Timezone::GmtTime, false, std::nullopt};
+  PatternFormatterOptions options_nullopt{"%(message)", "%H:%M:%S", Timezone::GmtTime, false, PatternFormatterOptions::NO_SUFFIX};
   PatternFormatter formatter_nullopt{options_nullopt};
 
   PatternFormatterOptions options_newline{"%(message)", "%H:%M:%S", Timezone::GmtTime, false, '\n'};

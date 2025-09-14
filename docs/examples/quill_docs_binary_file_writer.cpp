@@ -89,7 +89,7 @@ int main()
   quill::PatternFormatterOptions binary_pfo;
   binary_pfo.format_pattern = "%(message)";
   binary_pfo.add_metadata_to_multi_line_logs = false;
-  binary_pfo.pattern_suffix = std::nullopt;
+  binary_pfo.pattern_suffix = quill::PatternFormatterOptions::NO_SUFFIX;
 
   // Create a file sink and logger
   auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("weather_data.bin",

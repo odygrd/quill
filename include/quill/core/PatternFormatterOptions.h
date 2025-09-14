@@ -10,7 +10,6 @@
 #include "quill/core/Common.h"
 
 #include <limits>
-#include <optional>
 #include <string>
 
 QUILL_BEGIN_NAMESPACE
@@ -31,7 +30,7 @@ public:
                                    std::string timestamp_pattern = "%H:%M:%S.%Qns",
                                    Timezone timestamp_timezone = Timezone::LocalTime,
                                    bool add_metadata_to_multi_line_logs = true,
-                                   std::optional<char> pattern_suffix = '\n')
+                                   char pattern_suffix = '\n')
     : format_pattern(static_cast<std::string&&>(format_pattern)),
       timestamp_pattern(static_cast<std::string&&>(timestamp_pattern)),
       timestamp_timezone(timestamp_timezone),
@@ -141,11 +140,17 @@ public:
   /**
    * @brief Character to append at the end of each formatted log pattern.
    *
-   * This optional character is appended to the formatted log message pattern.
+   * This character is appended to the formatted log message pattern.
    * - If set to a character (e.g., '\n'), that character will be appended
-   * - If set to std::nullopt, no character will be appended
+   * - If set to NO_SUFFIX, no character will be appended
    */
-  std::optional<char> pattern_suffix{'\n'};
+  char pattern_suffix{'\n'};
+
+  /**
+   * @brief Special value to indicate no pattern suffix should be appended
+   * Using -1 cast to char ensures this value is unlikely to conflict with legitimate suffix characters
+   */
+  static constexpr char NO_SUFFIX = static_cast<char>(-1);
 
   /***/
   bool operator==(PatternFormatterOptions const& other) const noexcept

@@ -154,8 +154,7 @@ public:
       assert(!log_msg.empty() && "Already checked non empty message earlier");
       size_t log_message_size = log_msg.size();
 
-      if (_options.pattern_suffix.has_value() && _options.pattern_suffix.value() == '\n' &&
-          log_msg[log_msg.size() - 1] == '\n')
+      if (_options.pattern_suffix == '\n' && log_msg[log_msg.size() - 1] == '\n')
       {
         // if the log_message ends with \n we exclude it (only when using newline suffix)
         log_message_size = log_msg.size() - 1;
@@ -353,9 +352,9 @@ private:
     // Attribute enum and the args we are passing here must be in sync
     static_assert(PatternFormatter::Attribute::ATTR_NR_ITEMS == sizeof...(Args));
 
-    if (_options.pattern_suffix.has_value())
+    if (_options.pattern_suffix != PatternFormatterOptions::NO_SUFFIX)
     {
-      pattern += _options.pattern_suffix.value();
+      pattern += _options.pattern_suffix;
     }
 
     std::array<size_t, PatternFormatter::Attribute::ATTR_NR_ITEMS> order_index{};
