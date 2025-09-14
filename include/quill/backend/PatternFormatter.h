@@ -141,8 +141,9 @@ public:
         }
 
         // Write the current line
-        formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
-                                    log_level_short_code, log_statement_metadata, named_args, std::string_view(log_msg.data() + start, end - start));
+        formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger,
+                                    log_level_description, log_level_short_code, log_statement_metadata,
+                                    named_args, std::string_view(log_msg.data() + start, end - start));
 
         start = end + 1;
       }
@@ -150,14 +151,19 @@ public:
     else
     {
       // Use the regular format method for single-line messages
-
-      // if the log_message ends with \n we should exclude it
       assert(!log_msg.empty() && "Already checked non empty message earlier");
-      size_t const log_message_size =
-        (log_msg[log_msg.size() - 1] == '\n') ? log_msg.size() - 1 : log_msg.size();
+      size_t log_message_size = log_msg.size();
 
-      formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
-                                  log_level_short_code, log_statement_metadata, named_args, std::string_view{log_msg.data(), log_message_size});
+      if (_options.pattern_suffix.has_value() && _options.pattern_suffix.value() == '\n' &&
+          log_msg[log_msg.size() - 1] == '\n')
+      {
+        // if the log_message ends with \n we exclude it (only when using newline suffix)
+        log_message_size = log_msg.size() - 1;
+      }
+
+      formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger,
+                                  log_level_description, log_level_short_code, log_statement_metadata,
+                                  named_args, std::string_view{log_msg.data(), log_message_size});
     }
 
     return formatted_log_msg;
@@ -347,7 +353,10 @@ private:
     // Attribute enum and the args we are passing here must be in sync
     static_assert(PatternFormatter::Attribute::ATTR_NR_ITEMS == sizeof...(Args));
 
-    pattern += "\n";
+    if (_options.pattern_suffix.has_value())
+    {
+      pattern += _options.pattern_suffix.value();
+    }
 
     std::array<size_t, PatternFormatter::Attribute::ATTR_NR_ITEMS> order_index{};
     order_index.fill(PatternFormatter::Attribute::ATTR_NR_ITEMS - 1);
