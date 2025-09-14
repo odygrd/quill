@@ -131,7 +131,7 @@ Raw Binary File Writing
 While Quill is primarily designed for human-readable text logging, it can also be configured to write raw bytes directly to files. This is useful for asynchronously writing binary data received from sources like network sockets, sensors, or other external systems to .bin files without any processing or formatting.
 
 .. note::
-   This is **not binary protocol logging** - it's simply asynchronous writing of raw bytes to files using Quill's backend thread.
+   This is **not binary logging** - it's simply asynchronous writing of raw bytes to files using Quill's backend thread.
 
 To write raw bytes to files, you **must** configure these critical options:
 
