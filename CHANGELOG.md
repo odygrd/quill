@@ -1,3 +1,4 @@
+- [v10.2.0](#v1020)
 - [v10.1.0](#v1010)
 - [v10.0.1](#v1001)
 - [v10.0.0](#v1000)
@@ -90,6 +91,9 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v10.2.0
+- Fixed `PatternFormatter` automatic newline appending by making the suffix ('\n') configurable or optionally disabled via `PatternFormatterOptions`
 
 ## v10.1.0
 

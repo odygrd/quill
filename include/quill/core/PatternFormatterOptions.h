@@ -29,11 +29,13 @@ public:
                                      "LOG_%(log_level:<9) %(logger:<12) %(message)",
                                    std::string timestamp_pattern = "%H:%M:%S.%Qns",
                                    Timezone timestamp_timezone = Timezone::LocalTime,
-                                   bool add_metadata_to_multi_line_logs = true)
+                                   bool add_metadata_to_multi_line_logs = true,
+                                   char pattern_suffix = '\n')
     : format_pattern(static_cast<std::string&&>(format_pattern)),
       timestamp_pattern(static_cast<std::string&&>(timestamp_pattern)),
       timestamp_timezone(timestamp_timezone),
-      add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs)
+      add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs),
+      pattern_suffix(pattern_suffix)
   {
   }
 
@@ -135,6 +137,21 @@ public:
    */
   bool source_location_remove_relative_paths{false};
 
+  /**
+   * @brief Character to append at the end of each formatted log pattern.
+   *
+   * This character is appended to the formatted log message pattern.
+   * - If set to a character (e.g., '\n'), that character will be appended
+   * - If set to NO_SUFFIX, no character will be appended
+   */
+  char pattern_suffix{'\n'};
+
+  /**
+   * @brief Special value to indicate no pattern suffix should be appended
+   * Using -1 cast to char ensures this value is unlikely to conflict with legitimate suffix characters
+   */
+  static constexpr char NO_SUFFIX = static_cast<char>(-1);
+
   /***/
   bool operator==(PatternFormatterOptions const& other) const noexcept
   {
@@ -142,7 +159,8 @@ public:
       source_location_path_strip_prefix == other.source_location_path_strip_prefix &&
       timestamp_timezone == other.timestamp_timezone && process_function_name == other.process_function_name &&
       add_metadata_to_multi_line_logs == other.add_metadata_to_multi_line_logs &&
-      source_location_remove_relative_paths == other.source_location_remove_relative_paths;
+      source_location_remove_relative_paths == other.source_location_remove_relative_paths &&
+      pattern_suffix == other.pattern_suffix;
   }
 
   /***/

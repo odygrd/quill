@@ -1,5 +1,6 @@
 # Define a variable with all example targets
 set(EXAMPLE_TARGETS
+        quill_docs_binary_file_writer
         quill_docs_example_backend_options
         quill_docs_example_backtrace_logging_1
         quill_docs_example_backtrace_logging_2

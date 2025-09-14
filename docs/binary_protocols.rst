@@ -116,11 +116,30 @@ on the critical path. The log output might look like this.
     [12:54:22.305738978] [SEND] {"Name": "CancelOrder", "sbeTemplateId": 2, "orderId": 2000004, "origOrderId": 4, "cancelQuantity": 900, "reason": "User requested"}
 
 Binary Protocol Logging with Custom Message Types
-------------------------------------------------
+-------------------------------------------------
 
 In addition to SBE, you can use this approach with any binary protocol. This example demonstrates
 logging different types of binary messages with custom formatting:
 
 .. literalinclude:: ../examples/binary_protocol_logging.cpp
+   :language: cpp
+   :linenos:
+
+Raw Binary File Writing
+-----------------------
+
+While Quill is primarily designed for human-readable text logging, it can also be configured to write raw bytes directly to files. This is useful for asynchronously writing binary data received from sources like network sockets, sensors, or other external systems to .bin files without any processing or formatting.
+
+.. note::
+   This is **not binary logging** - it's simply asynchronous writing of raw bytes to files using Quill's backend thread.
+
+To write raw bytes to files, you **must** configure these critical options:
+
+1. **Backend Options**: Disable character validation (global setting)
+2. **Pattern Formatter**: Use message-only pattern with no suffix (for the binary logger only)
+
+This example demonstrates asynchronously writing raw binary data to a file:
+
+.. literalinclude:: examples/binary_file_writer.cpp
    :language: cpp
    :linenos:
