@@ -94,6 +94,7 @@
 
 ## v10.2.0
 - Fixed `PatternFormatter` automatic newline appending by making the suffix ('\n') configurable or optionally disabled via `PatternFormatterOptions`
+- Increased `RdtscClock` resync lag thresholds to improve cross-system compatibility
 
 ## v10.1.0
 
