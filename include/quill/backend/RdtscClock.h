@@ -127,10 +127,10 @@ public:
 
     _resync_interval_original = _resync_interval_ticks;
 
-    if (!resync(2500))
+    if (!resync(resync_lag_cycles))
     {
       // try to resync again with higher lag
-      if (!resync(10000))
+      if (!resync(resync_lag_cycles * 2u))
       {
         std::fprintf(stderr, "Failed to sync RdtscClock. Timestamps will be incorrect\n");
       }
@@ -151,7 +151,7 @@ public:
     // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value
     if (diff > _resync_interval_ticks)
     {
-      resync(2500);
+      resync(resync_lag_cycles);
       diff = static_cast<int64_t>(rdtsc_value - _base[index].base_tsc);
     }
 
@@ -241,6 +241,7 @@ private:
   }
 
 private:
+  static constexpr uint32_t resync_lag_cycles {50'000};
   mutable int64_t _resync_interval_ticks{0};
   int64_t _resync_interval_original{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
   double _ns_per_tick{0};
