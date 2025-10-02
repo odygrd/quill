@@ -22,11 +22,13 @@
 #include "quill/std/Pair.h"
 #include "quill/std/Tuple.h"
 
+#include "quill/HelperMacros.h"
 #include "quill/std/Map.h"
 #include "quill/std/Set.h"
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
 
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -165,6 +167,34 @@ template <>
 struct quill::Codec<CustomTypeCC> : quill::DirectFormatCodec<CustomTypeCC>
 {
 };
+
+/***/
+enum CustomEnum
+{
+  A,
+  BB,
+  CCC
+};
+
+/***/
+std::ostream& operator<<(std::ostream& os, CustomEnum const& e)
+{
+  switch (e)
+  {
+  case CustomEnum::A:
+    os << "A";
+    break;
+  case CustomEnum::BB:
+    os << "BB";
+    break;
+  case CustomEnum::CCC:
+    os << "CCC";
+    break;
+  }
+  return os;
+}
+
+QUILL_LOGGABLE_DIRECT_FORMAT(CustomEnum)
 
 /***/
 TEST_CASE("custom_type_defined_type_direct_format_logging")
@@ -317,6 +347,15 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
     LOG_INFO(logger, "CustomTypeCC UnSet {}", custom_type_cc_unset);
   }
 
+  {
+    CustomEnum e{CustomEnum::A};
+    LOG_INFO(logger, "CustomEnum_1 [{}]", e);
+    e = CustomEnum::BB;
+    LOG_INFO(logger, "CustomEnum_2 [{}]", e);
+    e = CustomEnum::CCC;
+    LOG_INFO(logger, "CustomEnum_3 [{}]", e);
+  }
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -325,7 +364,7 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 16);
+  REQUIRE_EQ(file_contents.size(), 19);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
@@ -374,6 +413,15 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeCC UnSet {\"Name: Another, Surname: Name, Age: 13, Favorite Colors: [\\\"red\\\", \\\"blue\\\", \\\"green\\\"]\""}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum_1 [A]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum_2 [BB]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum_3 [CCC]"}));
 
   testing::remove_file(filename);
 }

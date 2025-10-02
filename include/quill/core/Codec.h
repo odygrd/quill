@@ -337,13 +337,12 @@ template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
   QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, Args const&... args)
 {
-  if constexpr (!std::conjunction_v<std::disjunction<
-                  std::is_arithmetic<remove_cvref_t<Args>>, std::is_enum<remove_cvref_t<Args>>,
-                  std::is_same<remove_cvref_t<Args>, void const*>, std::is_same<remove_cvref_t<Args>, void*>,
-                  is_std_string<remove_cvref_t<Args>>, std::is_same<remove_cvref_t<Args>, std::string_view>>...>)
+  if constexpr (!std::conjunction_v<std::disjunction<std::is_arithmetic<remove_cvref_t<Args>>, std::is_same<remove_cvref_t<Args>, void const*>,
+                                                     std::is_same<remove_cvref_t<Args>, void*>, is_std_string<remove_cvref_t<Args>>,
+                                                     std::is_same<remove_cvref_t<Args>, std::string_view>>...>)
   {
-    // Clear the cache whenever processing involves non-fundamental types,
-    // or when the arguments are not of type std::string or std::string_view.
+    // Clear the cache if any argument type is not one of:
+    // arithmetic, void*, std::string, or std::string_view.
     conditional_arg_size_cache.clear();
   }
 
