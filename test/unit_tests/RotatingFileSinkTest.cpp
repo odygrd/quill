@@ -2175,4 +2175,150 @@ TEST_CASE("rotating_file_sink_date_append_mode")
   }
 }
 
+/***/
+TEST_CASE("rotating_file_sink_rotation_on_creation_enabled")
+{
+  // Test that when rotation_on_creation is enabled, an existing non-empty file gets rotated on creation
+  fs::path const filename = "rotating_file_sink_rotation_on_creation_enabled.log";
+  fs::path const filename_1 = "rotating_file_sink_rotation_on_creation_enabled.1.log";
+
+  // First, create a file with some content
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_rotation_on_creation(false);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    std::string s{"Initial Record"};
+    std::string formatted_log_statement;
+    formatted_log_statement.append(s.data(), s.data() + s.size());
+
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE_FALSE(fs::exists(filename_1));
+
+  // Now create a new sink with rotation_on_creation enabled
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_rotation_on_creation(true);
+                                  cfg.set_open_mode('a');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    // The existing file should have been rotated to .1
+    REQUIRE(fs::exists(filename_1));
+
+    // Write a new record to the main file
+    std::string s{"New Record"};
+    std::string formatted_log_statement;
+    formatted_log_statement.append(s.data(), s.data() + s.size());
+
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+  }
+
+  // Verify the rotated file contains the initial record
+  std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Initial Record"), true);
+
+  // Verify the main file contains the new record
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "New Record"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
+{
+  // Test rotation_on_creation with Date naming scheme
+  fs::path const filename = "rotating_file_sink_rotation_on_creation_date.log";
+  fs::path const filename_dated = "rotating_file_sink_rotation_on_creation_date.20230612.log";
+
+  std::chrono::system_clock::time_point const start_time =
+    std::chrono::system_clock::time_point{std::chrono::seconds{1686528000}}; // 2023-06-12 00:00:00
+
+  // First, create a file with some content
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_rotation_naming_scheme(
+                                    RotatingFileSinkConfig::RotationNamingScheme::Date);
+                                  cfg.set_rotation_on_creation(false);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{},
+                                start_time};
+
+    std::string s{"Initial Record"};
+    std::string formatted_log_statement;
+    formatted_log_statement.append(s.data(), s.data() + s.size());
+
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE_FALSE(fs::exists(filename_dated));
+
+  // Now create a new sink with rotation_on_creation enabled
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_rotation_naming_scheme(
+                                    RotatingFileSinkConfig::RotationNamingScheme::Date);
+                                  cfg.set_rotation_on_creation(true);
+                                  cfg.set_open_mode('a');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{},
+                                start_time};
+
+    // The existing file should have been rotated with date suffix
+    REQUIRE(fs::exists(filename_dated));
+    REQUIRE(fs::exists(filename));
+
+    // Write a new record to the main file
+    std::string s{"New Record"};
+    std::string formatted_log_statement;
+    formatted_log_statement.append(s.data(), s.data() + s.size());
+
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+  }
+
+  // Verify the rotated file contains the initial record
+  std::vector<std::string> const file_contents_1 = testing::file_contents(filename_dated);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Initial Record"), true);
+
+  // Verify the main file contains the new record
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "New Record"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_dated);
+}
+
 TEST_SUITE_END();

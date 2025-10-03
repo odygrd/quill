@@ -155,6 +155,18 @@ public:
     _rotation_naming_scheme = value;
   }
 
+  /**
+   * @brief Sets whether to force rotation on file sink creation/startup.
+   * When enabled, if a log file with the same name exists on startup, it will be rotated
+   * according to the RotationNamingScheme before starting to write new logs.
+   * This allows creating a new log file for every program run. The default value is false.
+   * @param value True to force rotation on creation, false otherwise.
+   */
+  QUILL_ATTRIBUTE_COLD void set_rotation_on_creation(bool value)
+  {
+    _rotation_on_creation = value;
+  }
+
   /** Getter methods **/
   QUILL_NODISCARD size_t rotation_max_file_size() const noexcept { return _rotation_max_file_size; }
   QUILL_NODISCARD uint32_t max_backup_files() const noexcept { return _max_backup_files; }
@@ -173,6 +185,7 @@ public:
   {
     return _rotation_naming_scheme;
   }
+  QUILL_NODISCARD bool rotation_on_creation() const noexcept { return _rotation_on_creation; }
 
 private:
   /***/
@@ -239,6 +252,7 @@ private:
   RotationNamingScheme _rotation_naming_scheme{RotationNamingScheme::Index};
   bool _overwrite_rolled_files{true};
   bool _remove_old_files{true};
+  bool _rotation_on_creation{false};
 };
 
 /**
@@ -287,6 +301,12 @@ public:
       std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
 
     _created_files.emplace_front(this->_filename, 0, std::string{});
+
+    // Check if we need to rotate on creation
+    if (_config.rotation_on_creation() && !this->is_null() && _get_file_size(this->_filename) > 0)
+    {
+      _rotate_files(today_timestamp_ns);
+    }
 
     if (!this->is_null())
     {
