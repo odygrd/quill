@@ -11,7 +11,6 @@
 #include "quill/sinks/StreamSink.h"
 
 #include <array>
-#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -339,7 +338,8 @@ public:
   explicit ConsoleSink(ConsoleSinkConfig const& config = ConsoleSinkConfig{})
     : StreamSink{config.stream(), nullptr, config.override_pattern_formatter_options()}, _config(config)
   {
-    assert((_config.stream() == "stdout") || (config.stream() == "stderr"));
+    QUILL_ASSERT(_config.stream() == "stdout" || config.stream() == "stderr",
+                 "Invalid stream name in ConsoleSink constructor, must be 'stdout' or 'stderr'");
 
     if (_config.colour_mode() == ConsoleSinkConfig::ColourMode::Never)
     {

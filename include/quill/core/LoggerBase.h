@@ -14,7 +14,6 @@
 #include "quill/core/ThreadContextManager.h"
 
 #include <atomic>
-#include <cassert>
 #include <memory>
 #include <string>
 #include <vector>
@@ -45,10 +44,10 @@ public:
       _clock_source(clock_source),
       _pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options))
   {
-#ifndef NDEBUG
+#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
     for (auto const& sink : sinks)
     {
-      assert(sink && "sink pointer is nullptr");
+      QUILL_ASSERT(sink, "sink pointer is nullptr in LoggerBase constructor");
     }
 #endif
 

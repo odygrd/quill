@@ -48,7 +48,7 @@ int main()
 {
   setup_quill();
 
-  assert(global_logger_a == get_logger("root"));
+  QUILL_ASSERT(global_logger_a == get_logger("root"), "global_logger_a is not set");
 
   // Change the LogLevel to print everything
   global_logger_a->set_log_level(quill::LogLevel::TraceL3);

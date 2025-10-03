@@ -48,8 +48,9 @@ struct Codec<std::forward_list<T, Allocator>>
       ++number_of_elements;
     }
 
-    assert((number_of_elements <= std::numeric_limits<uint32_t>::max()) &&
-           "len is outside the supported range");
+    QUILL_ASSERT(
+      number_of_elements <= std::numeric_limits<uint32_t>::max(),
+      "Forward list size exceeds uint32_t max in Codec<std::forward_list>::compute_encoded_size()");
     conditional_arg_size_cache.assign(index, static_cast<uint32_t>(number_of_elements));
     return total_size;
   }

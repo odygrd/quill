@@ -13,7 +13,6 @@
 #include "quill/core/TimeUtilities.h"
 #include "quill/sinks/StreamSink.h"
 
-#include <cassert>
 #include <cerrno>
 #include <chrono>
 #include <cstdint>

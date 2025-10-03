@@ -12,7 +12,6 @@
 #include "quill/core/QuillError.h"
 
 #include <atomic>
-#include <cassert>
 #include <cstddef>
 #include <string>
 
@@ -284,7 +283,9 @@ private:
     // reserve again, this time we know we will always succeed, cast to void* to ignore
     std::byte* const write_pos = _producer->bounded_queue.prepare_write(nbytes);
 
-    assert(write_pos && "write_pos is nullptr");
+    QUILL_ASSERT(
+      write_pos,
+      "write_pos is nullptr after allocating new node in UnboundedSPSCQueue::prepare_write()");
 
     return write_pos;
   }

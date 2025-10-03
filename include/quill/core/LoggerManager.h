@@ -15,7 +15,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cassert>
 #include <cstdlib>
 #include <initializer_list>
 #include <memory>
@@ -152,8 +151,9 @@ public:
       }
     }
 
-    assert(logger_ptr);
-    assert(logger_ptr->is_valid_logger());
+    QUILL_ASSERT(logger_ptr, "logger_ptr is nullptr in LoggerManager::get_logger()");
+    QUILL_ASSERT(logger_ptr->is_valid_logger(),
+                 "logger is not valid in LoggerManager::get_logger()");
     return logger_ptr;
   }
 

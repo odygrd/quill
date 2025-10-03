@@ -14,7 +14,6 @@
 #include "quill/core/UnboundedSPSCQueue.h"
 
 #include <atomic>
-#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
@@ -95,7 +94,7 @@ public:
   template <QueueType queue_type>
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping), UnboundedSPSCQueue, BoundedSPSCQueue>& get_spsc_queue() noexcept
   {
-    assert((_queue_type == queue_type) && "ThreadContext queue_type mismatch");
+    QUILL_ASSERT(_queue_type == queue_type, "ThreadContext queue_type mismatch in get_spsc_queue()");
 
     if constexpr ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
     {
@@ -112,7 +111,8 @@ public:
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::conditional_t<(queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping), UnboundedSPSCQueue, BoundedSPSCQueue> const& get_spsc_queue()
     const noexcept
   {
-    assert((_queue_type == queue_type) && "ThreadContext queue_type mismatch");
+    QUILL_ASSERT(_queue_type == queue_type,
+                 "ThreadContext queue_type mismatch in get_spsc_queue() const");
 
     if constexpr ((queue_type == QueueType::UnboundedBlocking) || (queue_type == QueueType::UnboundedDropping))
     {
@@ -290,25 +290,29 @@ public:
       }
     }
 
-    assert(thread_context_it != _thread_contexts.end() &&
-           "Attempting to remove a non existent thread context");
+    QUILL_ASSERT(thread_context_it != _thread_contexts.end(),
+                 "Attempting to remove a non-existent thread context in "
+                 "ThreadContextManager::unregister_thread_context()");
 
-    assert(!thread_context_it->get()->is_valid() && "Attempting to remove a valid thread context");
+    QUILL_ASSERT(!thread_context_it->get()->is_valid(),
+                 "Attempting to remove a valid thread context in "
+                 "ThreadContextManager::unregister_thread_context()");
 
-#ifndef NDEBUG
-    assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());
+    QUILL_ASSERT(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type(),
+                 "Invalid queue type in ThreadContextManager::unregister_thread_context()");
 
     if (thread_context->has_unbounded_queue_type())
     {
-      assert(thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty() &&
-             "Attempting to remove a thread context with a non empty queue");
+      QUILL_ASSERT(thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty(),
+                   "Attempting to remove a thread context with a non-empty unbounded queue in "
+                   "ThreadContextManager::unregister_thread_context()");
     }
     else if (thread_context->has_bounded_queue_type())
     {
-      assert(thread_context->get_spsc_queue_union().bounded_spsc_queue.empty() &&
-             "Attempting to remove a thread context with a non empty queue");
+      QUILL_ASSERT(thread_context->get_spsc_queue_union().bounded_spsc_queue.empty(),
+                   "Attempting to remove a thread context with a non-empty bounded queue in "
+                   "ThreadContextManager::unregister_thread_context()");
     }
-#endif
 
     _thread_contexts.erase(thread_context_it);
 
@@ -336,7 +340,7 @@ public:
     : _thread_context(std::make_shared<ThreadContext>(
         queue_type, initial_queue_capacity, unbounded_queue_max_capacity, huge_pages_policy))
   {
-#ifndef NDEBUG
+#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
     // Thread-local flag to track if an instance has been created for this thread.
     // This ensures that get_local_thread_context() is not called with different template arguments
     // when using custom FrontendOptions. Having multiple thread contexts in a single thread is fine
@@ -344,8 +348,8 @@ public:
     // per thread.
     thread_local bool thread_local_instance_created = false;
 
-    assert(!thread_local_instance_created &&
-           R"(ScopedThreadContext can only be instantiated once per thread. It appears you may be combining default FrontendOptions with custom FrontendOptions. Ensure only one set of FrontendOptions is used to maintain a single thread context per thread.)");
+    QUILL_ASSERT(!thread_local_instance_created,
+                 R"(ScopedThreadContext can only be instantiated once per thread. It appears you may be combining default FrontendOptions with custom FrontendOptions. Ensure only one set of FrontendOptions is used to maintain a single thread context per thread.)");
 
     thread_local_instance_created = true;
 #endif
@@ -375,7 +379,8 @@ public:
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_thread_context() const noexcept
   {
-    assert(_thread_context && "_thread_context can not be null");
+    QUILL_ASSERT(_thread_context,
+                 "_thread_context cannot be null in ScopedThreadContext::get_thread_context()");
     return _thread_context.get();
   }
 
