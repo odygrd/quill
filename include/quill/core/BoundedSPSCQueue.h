@@ -6,7 +6,6 @@
 #include "quill/core/QuillError.h"
 
 #include <atomic>
-#include <cassert>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
@@ -214,7 +213,8 @@ private:
    */
   QUILL_NODISCARD static std::byte* _align_pointer(void* pointer, size_t alignment) noexcept
   {
-    assert(is_power_of_two(alignment) && "alignment must be a power of two");
+    QUILL_ASSERT(is_power_of_two(alignment),
+                 "alignment must be a power of two in BoundedSPSCQueue::_align_pointer()");
     return reinterpret_cast<std::byte*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) &
                                         ~(alignment - 1ul));
   }

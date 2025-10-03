@@ -12,7 +12,6 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -206,7 +205,7 @@ struct Codec
       if (QUILL_UNLIKELY(len > N))
       {
         // no '\0' in c array
-        assert(len == N + 1);
+        QUILL_ASSERT(len == N + 1, "Invalid length for c array in Codec::encode(), expected N + 1");
         std::memcpy(buffer, arg, N);
         buffer[N] = std::byte{'\0'};
       }

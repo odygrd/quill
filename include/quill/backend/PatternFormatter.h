@@ -157,7 +157,9 @@ public:
     else
     {
       // Use the regular format method for single-line messages
-      assert(!log_msg.empty() && "Already checked non empty message earlier");
+      QUILL_ASSERT(
+        !log_msg.empty(),
+        "log_msg should not be empty, already checked earlier in PatternFormatter::format()");
       size_t log_message_size = log_msg.size();
 
       if (_options.pattern_suffix == '\n' && log_msg[log_msg.size() - 1] == '\n')

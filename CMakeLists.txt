@@ -19,6 +19,8 @@ option(QUILL_DETAILED_FUNCTION_NAME "Use detailed function name (__PRETTY_FUNCTI
 
 option(QUILL_DISABLE_FILE_INFO "Disable the use of __FILE__ and __LINE__ in `LOG_*` macros when the file name and the line number are not needed." OFF)
 
+option(QUILL_ENABLE_ASSERTIONS "Enable assertions in release builds. When disabled, assertions are only active in debug builds." OFF)
+
 option(QUILL_BUILD_EXAMPLES "Enable this option to build and install the examples. Set this to ON to include example projects in the build process and have them installed after configuring with CMake." OFF)
 
 option(QUILL_BUILD_TESTS "Enable this option to build the test suite." OFF)
@@ -125,6 +127,7 @@ message(STATUS "QUILL_DISABLE_NON_PREFIXED_MACROS: " ${QUILL_DISABLE_NON_PREFIXE
 message(STATUS "QUILL_DISABLE_FUNCTION_NAME: " ${QUILL_DISABLE_FUNCTION_NAME})
 message(STATUS "QUILL_DETAILED_FUNCTION_NAME: " ${QUILL_DETAILED_FUNCTION_NAME})
 message(STATUS "QUILL_DISABLE_FILE_INFO: " ${QUILL_DISABLE_FILE_INFO})
+message(STATUS "QUILL_ENABLE_ASSERTIONS: " ${QUILL_ENABLE_ASSERTIONS})
 message(STATUS "QUILL_ENABLE_INSTALL: " ${QUILL_ENABLE_INSTALL})
 
 #---------------------------------------------------------------------------------------
@@ -301,6 +304,10 @@ endif ()
 
 if (QUILL_DISABLE_FILE_INFO)
     target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_DISABLE_FILE_INFO)
+endif ()
+
+if (QUILL_ENABLE_ASSERTIONS)
+    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_ENABLE_ASSERTIONS)
 endif ()
 
 if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)

@@ -42,7 +42,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
@@ -437,7 +436,8 @@ private:
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
-      assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());
+      QUILL_ASSERT(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type(),
+                   "Invalid queue type in BackendWorker::_read_and_decode_frontend_queues()");
 
       if (thread_context->has_unbounded_queue_type())
       {
@@ -498,7 +498,10 @@ private:
       }
 
       // Finish reading
-      assert((read_pos >= read_begin) && "read_buffer should be greater or equal to read_begin");
+      QUILL_ASSERT(
+        read_pos >= read_begin,
+        "read_pos must be >= read_begin in BackendWorker::_read_and_decode_frontend_queue()");
+
       auto const bytes_read = static_cast<size_t>(read_pos - read_begin);
       frontend_queue.finish_read(bytes_read);
       total_bytes_read += bytes_read;
@@ -523,12 +526,16 @@ private:
                                                                        ThreadContext* thread_context,
                                                                        uint64_t ts_now)
   {
-    assert(thread_context->_transit_event_buffer);
+    QUILL_ASSERT(thread_context->_transit_event_buffer,
+                 "transit_event_buffer is nullptr in "
+                 "BackendWorker::_populate_transit_event_from_frontend_queue()");
 
     // Allocate a new TransitEvent or use an existing one to store the message from the queue
     TransitEvent* transit_event = thread_context->_transit_event_buffer->back();
 
-    assert(transit_event->formatted_msg);
+    QUILL_ASSERT(
+      transit_event->formatted_msg,
+      "formatted_msg is nullptr in BackendWorker::_populate_transit_event_from_frontend_queue()");
 
     std::memcpy(&transit_event->timestamp, read_pos, sizeof(transit_event->timestamp));
     read_pos += sizeof(transit_event->timestamp);
@@ -564,7 +571,7 @@ private:
       // We only check against `ts_now` for real timestamps, not custom timestamps by the user, and
       // when the grace period is enabled
 
-#ifndef NDEBUG
+#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
       // Check the timestamps we are comparing have the same digits
       auto count_digits = [](uint64_t number)
       {
@@ -577,7 +584,10 @@ private:
         return digits;
       };
 
-      assert(count_digits(transit_event->timestamp) == count_digits(ts_now));
+      QUILL_ASSERT(count_digits(transit_event->timestamp) == count_digits(ts_now),
+                   "Timestamp digits mismatch in "
+                   "BackendWorker::_populate_transit_event_from_frontend_queue(), log timestamp "
+                   "has different magnitude than current time");
 #endif
 
       // Ensure the message timestamp is not greater than ts_now.
@@ -659,7 +669,10 @@ private:
     else
     {
       // Store the logger name and the sync flag
-      assert(transit_event->macro_metadata->event() == MacroMetadata::Event::LoggerRemovalRequest);
+      QUILL_ASSERT(
+        transit_event->macro_metadata->event() == MacroMetadata::Event::LoggerRemovalRequest,
+        "Unexpected event type in BackendWorker::_populate_transit_event_from_frontend_queue(), "
+        "expected LoggerRemovalRequest");
 
       uintptr_t logger_removal_flag_tmp;
       std::memcpy(&logger_removal_flag_tmp, read_pos, sizeof(uintptr_t));
@@ -687,9 +700,10 @@ private:
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
-      assert(thread_context->_transit_event_buffer &&
-             "transit_event_buffer should always be valid here as we always populate it with the "
-             "_active_thread_contexts_cache");
+      QUILL_ASSERT(thread_context->_transit_event_buffer,
+                   "transit_event_buffer is nullptr in "
+                   "BackendWorker::has_pending_events_for_caching_when_transit_event_buffer_empty()"
+                   ", should be valid in _active_thread_contexts_cache");
 
       if (thread_context->_transit_event_buffer->empty())
       {
@@ -722,9 +736,10 @@ private:
 
     for (ThreadContext* tc : _active_thread_contexts_cache)
     {
-      assert(tc->_transit_event_buffer &&
-             "transit_event_buffer should always be valid here as we always populate it with the "
-             "_active_thread_contexts_cache");
+      QUILL_ASSERT(tc->_transit_event_buffer,
+                   "transit_event_buffer is nullptr in "
+                   "BackendWorker::_process_lowest_timestamp_transit_event(), should be valid in "
+                   "_active_thread_contexts_cache");
 
       TransitEvent const* te = tc->_transit_event_buffer->front();
       if (te && (min_ts > te->timestamp))
@@ -741,7 +756,10 @@ private:
     }
 
     TransitEvent* transit_event = thread_context->_transit_event_buffer->front();
-    assert(transit_event && "transit_buffer is set only when transit_event is valid");
+    QUILL_ASSERT(
+      transit_event,
+      "transit_event is nullptr in BackendWorker::_process_lowest_timestamp_transit_event() when "
+      "transit_buffer is set");
 
     std::atomic<bool>* flush_flag{nullptr};
 
@@ -906,8 +924,9 @@ private:
       }
     }
 
-    assert(transit_event.logger_base->_pattern_formatter &&
-           "transit_event->logger_base->pattern_formatter should be valid here");
+    QUILL_ASSERT(transit_event.logger_base->_pattern_formatter,
+                 "pattern_formatter is nullptr in BackendWorker::_process_transit_event(), should "
+                 "have been created earlier");
 
     // proceed after ensuring a pattern formatter exists
     std::string_view const log_level_description =
@@ -1157,7 +1176,9 @@ private:
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
-      assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());
+      QUILL_ASSERT(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type(),
+                   "Invalid queue type in "
+                   "BackendWorker::_check_frontend_queues_and_cached_transit_events_empty()");
 
       if (thread_context->has_unbounded_queue_type())
       {
@@ -1168,9 +1189,10 @@ private:
         all_empty &= thread_context->get_spsc_queue_union().bounded_spsc_queue.empty();
       }
 
-      assert(thread_context->_transit_event_buffer &&
-             "transit_event_buffer should always be valid here as we always populate it with the "
-             "_active_thread_contexts_cache");
+      QUILL_ASSERT(thread_context->_transit_event_buffer,
+                   "transit_event_buffer is nullptr in "
+                   "BackendWorker::_check_frontend_queues_and_cached_transit_events_empty(), "
+                   "should be valid in _active_thread_contexts_cache");
 
       all_empty &= thread_context->_transit_event_buffer->empty();
     }
@@ -1315,11 +1337,13 @@ private:
       // We also want to empty the queue from all LogRecords before removing the thread context
       if (!thread_context->is_valid())
       {
-        assert(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type());
+        QUILL_ASSERT(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type(),
+                     "Invalid queue type in BackendWorker::_update_active_thread_contexts_cache()");
 
-        assert(thread_context->_transit_event_buffer &&
-               "transit_event_buffer should always be valid here as we always populate it with the "
-               "_active_thread_contexts_cache");
+        QUILL_ASSERT(thread_context->_transit_event_buffer,
+                     "transit_event_buffer is nullptr in "
+                     "BackendWorker::_update_active_thread_contexts_cache(), should be valid in "
+                     "_active_thread_contexts_cache");
 
         // detect empty queue
         if (thread_context->has_unbounded_queue_type())

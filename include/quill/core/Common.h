@@ -11,6 +11,13 @@
 #include <cstddef>
 #include <cstdint>
 
+#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
+
+  #include <cstdio>
+  #include <cstdlib>
+
+#endif
+
 /**
  * Convert number to string
  */
@@ -70,6 +77,42 @@
     #define QUILL_FILE_INFO ""
   #else
     #define QUILL_FILE_INFO QUILL_FILE_NAME ":" QUILL_STRINGIFY(QUILL_LINE_NO)
+  #endif
+#endif
+
+#if !defined(QUILL_ASSERT)
+  #if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
+    #define QUILL_ASSERT(expr, msg)                                                                \
+      do                                                                                           \
+      {                                                                                            \
+        if QUILL_UNLIKELY (!(expr))                                                                \
+        {                                                                                          \
+          std::fprintf(stderr, "Quill assertion failed: %s, file %s, line %d. %s\n", #expr,        \
+                       __FILE__, __LINE__, msg);                                                   \
+          std::abort();                                                                            \
+        }                                                                                          \
+      } while (0)
+  #else
+    #define QUILL_ASSERT(expr, msg) ((void)0)
+  #endif
+#endif
+
+#if !defined(QUILL_ASSERT_WITH_FMT)
+  #if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
+    #define QUILL_ASSERT_WITH_FMT(expr, fmt, ...)                                                  \
+      do                                                                                           \
+      {                                                                                            \
+        if QUILL_UNLIKELY (!(expr))                                                                \
+        {                                                                                          \
+          char quill_assert_msg_buf[512];                                                          \
+          std::snprintf(quill_assert_msg_buf, sizeof(quill_assert_msg_buf), fmt, __VA_ARGS__);     \
+          std::fprintf(stderr, "Quill assertion failed: %s, file %s, line %d. %s\n", #expr,        \
+                       __FILE__, __LINE__, quill_assert_msg_buf);                                  \
+          std::abort();                                                                            \
+        }                                                                                          \
+      } while (0)
+  #else
+    #define QUILL_ASSERT_WITH_FMT(expr, fmt, ...) ((void)0)
   #endif
 #endif
 

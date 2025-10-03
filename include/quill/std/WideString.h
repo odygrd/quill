@@ -14,7 +14,6 @@
 
   #include "quill/bundled/fmt/format.h"
 
-  #include <cassert>
   #include <cstddef>
   #include <cstdint>
   #include <limits>
@@ -43,7 +42,9 @@ struct Codec<T,
       len = arg.size();
     }
 
-    assert((len <= std::numeric_limits<uint32_t>::max()) && "len is outside the supported range");
+    QUILL_ASSERT(
+      len <= std::numeric_limits<uint32_t>::max(),
+      "Wide string length exceeds uint32_t max in Codec<std::wstring>::compute_encoded_size()");
     conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
 
     // also include the size of the string in the buffer as a separate variable

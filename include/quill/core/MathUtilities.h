@@ -8,7 +8,6 @@
 
 #include "quill/core/Attributes.h"
 
-#include <cassert>
 #include <cstdint>
 #include <limits>
 
@@ -63,7 +62,8 @@ QUILL_NODISCARD T next_power_of_two(T n) noexcept
     result <<= 1;
   }
 
-  assert(is_power_of_two(static_cast<uint64_t>(result)) && "result is not a power of 2");
+  QUILL_ASSERT(is_power_of_two(static_cast<uint64_t>(result)),
+               "result is not a power of 2 in next_power_of_two()");
 
   return result;
 }
