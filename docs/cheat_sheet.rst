@@ -31,6 +31,12 @@ Disables features that require thread name retrieval. This is useful for compati
 
 .. code:: cmake
 
+    add_compile_definitions(-DQUILL_ENABLE_ASSERTIONS)
+
+Enables internal assertions in release builds. By default, assertions are active only in debug builds ``(!defined(NDEBUG))``. Defining this flag forces them on even in release mode, which can help catch issues at runtime.
+
+.. code:: cmake
+
     add_compile_definitions(-DQUILL_DISABLE_NON_PREFIXED_MACROS)
 
 Disables the non-prefixed `LOG_<LEVEL>` macros, keeping only the `QUILL_LOG_<LEVEL>` macros. This helps prevent conflicts with other logging libraries.

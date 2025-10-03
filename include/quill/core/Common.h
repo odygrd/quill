@@ -66,7 +66,7 @@
 
 #if !defined(QUILL_LINE_NO)
   #if defined(QUILL_DISABLE_FILE_INFO)
-    #define QUILL_LINE_NO ""
+    #define QUILL_LINE_NO 0
   #else
     #define QUILL_LINE_NO __LINE__
   #endif
