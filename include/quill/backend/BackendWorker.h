@@ -68,6 +68,12 @@ class ManualBackendWorker; // Forward declaration
 
 namespace detail
 {
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(push)
+#pragma warning(disable : 4324)
+#endif
+
 class BackendWorker
 {
 public:
@@ -1685,6 +1691,11 @@ private:
   std::condition_variable _wake_up_cv;
   bool _wake_up_flag{false};
 };
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(pop)
+#endif
+
 } // namespace detail
 
 QUILL_END_NAMESPACE
