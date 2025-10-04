@@ -99,6 +99,7 @@
 - Increased `RdtscClock` resync lag thresholds to improve cross-system compatibility
 - Added `QUILL_ENABLE_ASSERTIONS` CMake option and preprocessor flag to enable assertions in release builds
 - Allow `RotatingSink` to rotate the file on creation with `rotation_on_creation()`
+- Silence MSVC warnings (4324, 4996) in source code instead of CMake
 
 ## v10.1.0
 

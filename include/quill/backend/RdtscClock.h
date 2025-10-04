@@ -24,6 +24,12 @@ QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(push)
+#pragma warning(disable : 4324)
+#endif
+
 /**
  * Converts tsc ticks to nanoseconds since epoch
  */
@@ -249,6 +255,11 @@ private:
   alignas(QUILL_CACHE_LINE_ALIGNED) mutable std::atomic<uint32_t> _version{0};
   mutable std::array<BaseTimeTsc, 2> _base{};
 };
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(pop)
+#endif
+
 } // namespace detail
 
 QUILL_END_NAMESPACE

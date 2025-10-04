@@ -7,6 +7,11 @@
 #include <thread>
 #include <vector>
 
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
 TEST_SUITE_BEGIN("BoundedQueue");
 
 using namespace quill::detail;
@@ -135,3 +140,7 @@ TEST_CASE("bounded_queue_read_write_multithreaded_plain_ints")
 }
 
 TEST_SUITE_END();
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(pop)
+#endif

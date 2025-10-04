@@ -15,6 +15,11 @@
 #include <string>
 #include <vector>
 
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
 using namespace quill;
 
 // Sample structs with descriptive names
@@ -225,3 +230,7 @@ TEST_CASE("binary_data_logging")
 
   testing::remove_file(log_filename);
 }
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(pop)
+#endif

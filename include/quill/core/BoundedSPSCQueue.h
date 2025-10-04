@@ -42,6 +42,12 @@ QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(push)
+#pragma warning(disable : 4324)
+#endif
+
 /**
  * A bounded single producer single consumer ring buffer.
  */
@@ -332,6 +338,11 @@ private:
 };
 
 using BoundedSPSCQueue = BoundedSPSCQueueImpl<size_t>;
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(pop)
+#endif
+
 } // namespace detail
 
 QUILL_END_NAMESPACE

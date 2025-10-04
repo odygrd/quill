@@ -11,6 +11,11 @@
 #include <sstream>
 #include <utility>
 
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
 /**
  * @brief Efficient binary data logging with deferred formatting
  *
@@ -231,3 +236,7 @@ int main()
 
   return 0;
 }
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(pop)
+#endif

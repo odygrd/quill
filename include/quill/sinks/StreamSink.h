@@ -26,6 +26,11 @@
 
 QUILL_BEGIN_NAMESPACE
 
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
 /** Forward Declaration **/
 class MacroMetadata;
 
@@ -221,5 +226,9 @@ protected:
   bool _is_null{false};
   bool _write_occurred{false};
 };
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+#pragma warning(pop)
+#endif
 
 QUILL_END_NAMESPACE
