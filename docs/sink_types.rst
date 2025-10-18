@@ -57,7 +57,12 @@ The :cpp:class:`SystemdSink` sends log messages to systemd's journal using the s
 StreamSink
 ~~~~~~~~~~
 
-The :cpp:class:`StreamSink` allows logging to any output stream derived from `std::ostream`, providing flexibility for custom output destinations.
+StreamSink
+~~~~~~~~~~
+
+The :cpp:class:`StreamSink` is a base sink class used to write log messages to C-style ``FILE*`` streams, such as 
+``stdout``, ``stderr``, or files opened with ``fopen``.
+It is typically used as a foundation for higher-level sinks like :cpp:class:`FileSink` and :cpp:class:`ConsoleSink`.
 
 AndroidSink
 ~~~~~~~~~~~
