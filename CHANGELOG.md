@@ -97,6 +97,7 @@
 - Fixed segmentation fault when `DirectFormatCodec` was used with enums types ([#848](https://github.com/odygrd/quill/issues/848))
 - Fixed a compiler error when `LOG_DYNAMIC` is used with `QUILL_DISABLE_FILE_INFO` ([#847](https://github.com/odygrd/quill/issues/847))
 - Fixed process ID capture in `BackendWorker` to support `fork()` correctly ([#860](https://github.com/odygrd/quill/issues/860))
+- Updated `BackendOptions::check_printable_char` to allow tab (`\t`) and carriage return (`\r`) characters by default ([#856](https://github.com/odygrd/quill/issues/856))
 - Increased `RdtscClock` resync lag thresholds to improve cross-system compatibility
 - Added `QUILL_ENABLE_ASSERTIONS` CMake option and preprocessor flag to enable assertions in release builds
 - Allow `RotatingSink` to rotate the file on creation with `rotation_on_creation()`

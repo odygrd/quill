@@ -223,7 +223,7 @@ struct BackendOptions
    *   std::function<bool(char c)> check_printable_char = {}
    */
   std::function<bool(char c)> check_printable_char = [](char c)
-  { return (c >= ' ' && c <= '~') || (c == '\n'); };
+  { return (c >= ' ' && c <= '~') || (c == '\n') || (c == '\t') || (c == '\r'); };
 
   /**
    * Holds descriptive names for various log levels used in logging operations.
