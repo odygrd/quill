@@ -80,7 +80,7 @@ public:
   /**
    * Constructor
    */
-  BackendWorker() { _process_id = std::to_string(get_process_id()); }
+  BackendWorker() = default;
 
   /**
    * Deleted
@@ -138,6 +138,8 @@ public:
   QUILL_ATTRIBUTE_COLD void run(BackendOptions const& options)
   {
     _ensure_linker_retains_symbols();
+
+    _process_id = std::to_string(get_process_id());
 
     if (options.check_backend_singleton_instance)
     {
