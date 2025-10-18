@@ -81,7 +81,7 @@ jobs:
       - name: OpenBSD Build and Test (${{ matrix.build_type }})
         uses: vmactions/openbsd-vm@v1
         with:
-          release: '7.6'
+          release: '7.7'
           arch: 'x86_64'
           mem: 16384
           cpu: 4
