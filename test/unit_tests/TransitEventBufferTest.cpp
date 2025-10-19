@@ -149,6 +149,17 @@ TEST_CASE("transit_event_large_format_buffer_with_reallocations")
     te->get_named_args()->emplace_back("iteration_" + std::to_string(iteration), std::to_string(buffer_size));
 
     expected_data.emplace_back(buffer_size, large_string);
+
+    // Call back multiple times for additional testing
+    for (size_t j = 0; j < 3; ++j)
+    {
+      // Pull same record and verify again
+      TransitEvent* te2 = bte.back();
+      REQUIRE(te2);
+      std::string_view actual_msg(te2->formatted_msg->data(), te2->formatted_msg->size());
+      REQUIRE_EQ(actual_msg, large_string);
+    }
+
     bte.push_back();
 
     // Verify the buffer is handling reallocation correctly
@@ -158,19 +169,23 @@ TEST_CASE("transit_event_large_format_buffer_with_reallocations")
   // Verify all data integrity after multiple reallocations
   for (size_t i = 0; i < expected_data.size(); ++i)
   {
-    TransitEvent* te = bte.front();
-    REQUIRE(te);
+    // Call front multiple times for additional testing
+    for (size_t j = 0; j < 3; ++j)
+    {
+      TransitEvent* te = bte.front();
+      REQUIRE(te);
 
-    // Check formatted_msg content and size
-    REQUIRE_EQ(te->formatted_msg->size(), expected_data[i].first);
-    std::string_view actual_msg(te->formatted_msg->data(), te->formatted_msg->size());
-    REQUIRE_EQ(actual_msg, expected_data[i].second);
+      // Check formatted_msg content and size
+      REQUIRE_EQ(te->formatted_msg->size(), expected_data[i].first);
+      std::string_view actual_msg(te->formatted_msg->data(), te->formatted_msg->size());
+      REQUIRE_EQ(actual_msg, expected_data[i].second);
 
-    // Verify named_args are intact
-    std::string expected_key = "iteration_" + std::to_string(i);
-    std::string expected_value = std::to_string(expected_data[i].first);
-    REQUIRE_STREQ((*te->get_named_args())[0].first.data(), expected_key.data());
-    REQUIRE_STREQ((*te->get_named_args())[0].second.data(), expected_value.data());
+      // Verify named_args are intact
+      std::string expected_key = "iteration_" + std::to_string(i);
+      std::string expected_value = std::to_string(expected_data[i].first);
+      REQUIRE_STREQ((*te->get_named_args())[0].first.data(), expected_key.data());
+      REQUIRE_STREQ((*te->get_named_args())[0].second.data(), expected_value.data());
+    }
 
     bte.pop_front();
   }
