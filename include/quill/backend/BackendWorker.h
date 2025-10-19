@@ -555,25 +555,15 @@ private:
     std::memcpy(&transit_event->macro_metadata, read_pos, sizeof(transit_event->macro_metadata));
     read_pos += sizeof(transit_event->macro_metadata);
 
-    LoggerBase* logger_base;
-    std::memcpy(&logger_base, read_pos, sizeof(logger_base));
-    read_pos += sizeof(logger_base);
-
-    QUILL_ASSERT(logger_base, "logger_base is nullptr after memcpy from queue");
-
-    QUILL_ASSERT(logger_base->_clock_source == ClockSourceType::Tsc ||
-                 logger_base->_clock_source == ClockSourceType::System ||
-                 logger_base->_clock_source == ClockSourceType::User,
-                 "logger_base->_clock_source has invalid enum value - possible memory corruption");
-
-    transit_event->logger_base = logger_base;
+    std::memcpy(&transit_event->logger_base, read_pos, sizeof(transit_event->logger_base));
+    read_pos += sizeof(transit_event->logger_base);
 
     QUILL_ASSERT(transit_event->logger_base,
                  "transit_event->logger_base is nullptr after memcpy from queue");
 
     QUILL_ASSERT(transit_event->logger_base->_clock_source == ClockSourceType::Tsc ||
-                 transit_event->logger_base->_clock_source == ClockSourceType::System ||
-                 transit_event->logger_base->_clock_source == ClockSourceType::User,
+                   transit_event->logger_base->_clock_source == ClockSourceType::System ||
+                   transit_event->logger_base->_clock_source == ClockSourceType::User,
                  "transit_event->logger_base->_clock_source has invalid enum value - possible "
                  "memory corruption");
 
