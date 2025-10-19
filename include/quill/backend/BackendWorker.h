@@ -542,6 +542,10 @@ private:
     TransitEvent* transit_event = thread_context->_transit_event_buffer->back();
 
     QUILL_ASSERT(
+      transit_event,
+      "transit_event is nullptr in BackendWorker::_populate_transit_event_from_frontend_queue()");
+
+    QUILL_ASSERT(
       transit_event->formatted_msg,
       "formatted_msg is nullptr in BackendWorker::_populate_transit_event_from_frontend_queue()");
 
@@ -553,6 +557,15 @@ private:
 
     std::memcpy(&transit_event->logger_base, read_pos, sizeof(transit_event->logger_base));
     read_pos += sizeof(transit_event->logger_base);
+
+    QUILL_ASSERT(transit_event->logger_base,
+                 "transit_event->logger_base is nullptr after memcpy from queue");
+
+    QUILL_ASSERT(transit_event->logger_base->_clock_source == ClockSourceType::Tsc ||
+                   transit_event->logger_base->_clock_source == ClockSourceType::System ||
+                   transit_event->logger_base->_clock_source == ClockSourceType::User,
+                 "transit_event->logger_base->_clock_source has invalid enum value - possible "
+                 "memory corruption");
 
     if (transit_event->logger_base->_clock_source == ClockSourceType::Tsc)
     {

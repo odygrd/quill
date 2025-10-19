@@ -37,12 +37,14 @@ public:
       _storage(std::move(other._storage)),
       _mask(other._mask),
       _reader_pos(other._reader_pos),
-      _writer_pos(other._writer_pos)
+      _writer_pos(other._writer_pos),
+      _shrink_requested(other._shrink_requested)
   {
     other._capacity = 0;
     other._mask = 0;
     other._reader_pos = 0;
     other._writer_pos = 0;
+    other._shrink_requested = false;
   }
 
   // Move assignment operator
@@ -56,11 +58,13 @@ public:
       _mask = other._mask;
       _reader_pos = other._reader_pos;
       _writer_pos = other._writer_pos;
+      _shrink_requested = other._shrink_requested;
 
       other._capacity = 0;
       other._mask = 0;
       other._reader_pos = 0;
       other._writer_pos = 0;
+      other._shrink_requested = false;
     }
     return *this;
   }

@@ -93,6 +93,7 @@ struct TransitEvent
     other.flush_flag = flush_flag;
 
     // manually copy the fmt::buffer
+    other.formatted_msg->clear();
     other.formatted_msg->reserve(formatted_msg->size());
     other.formatted_msg->append(*formatted_msg);
 
