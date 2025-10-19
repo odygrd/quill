@@ -64,7 +64,7 @@ public:
       other._mask = 0;
       other._reader_pos = 0;
       other._writer_pos = 0;
-      other._shrink_requested = false;      
+      other._shrink_requested = false;
     }
     return *this;
   }
