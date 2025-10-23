@@ -18,6 +18,12 @@ QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 template <typename T, size_t N>
 class InlinedVector
 {
@@ -101,13 +107,8 @@ public:
   /**
    * Access element
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
+  QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
   {
-#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
-
     if (QUILL_UNLIKELY(index >= _size))
     {
       QUILL_THROW(QuillError{"index out of bounds"});
@@ -121,11 +122,6 @@ public:
     {
       return _storage.heap_buffer[index];
     }
-
-#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
-  // Re-enable the array bounds warning
-  #pragma GCC diagnostic pop
-#endif
   }
 
   /**
@@ -162,6 +158,11 @@ private:
   size_t _size{0};
   size_t _capacity{N};
 };
+
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  // Re-enable the array bounds warning
+  #pragma GCC diagnostic pop
+#endif
 
 /**
  * A vector that stores sizes for specific operations using `uint32_t` to optimize space.
