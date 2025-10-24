@@ -22,7 +22,11 @@ namespace detail
 #if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
+  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(push)
+  #pragma warning(disable : 4996)
+#endif  
 
 template <typename T, size_t N>
 class InlinedVector
@@ -160,8 +164,9 @@ private:
 };
 
 #if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
-  // Re-enable the array bounds warning
   #pragma GCC diagnostic pop
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(pop)
 #endif
 
 /**
