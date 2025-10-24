@@ -19,10 +19,13 @@ QUILL_BEGIN_NAMESPACE
 namespace detail
 {
 
-#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+#if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Warray-bounds"
   #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#elif defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
 #elif defined(_WIN32) && defined(_MSC_VER)
   #pragma warning(push)
   #pragma warning(disable : 4996)
