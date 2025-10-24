@@ -28,7 +28,7 @@ namespace detail
   #pragma GCC diagnostic ignored "-Warray-bounds"
 #elif defined(_WIN32) && defined(_MSC_VER)
   #pragma warning(push)
-  #pragma warning(disable : 4996)
+  #pragma warning(disable : 4789)
 #endif  
 
 template <typename T, size_t N>
