@@ -19,18 +19,6 @@ QUILL_BEGIN_NAMESPACE
 namespace detail
 {
 
-#if defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Warray-bounds"
-  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#elif defined(__clang__) || defined(__MINGW32__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Warray-bounds"
-#elif defined(_WIN32) && defined(_MSC_VER)
-  #pragma warning(push)
-  #pragma warning(disable : 4789)
-#endif  
-
 template <typename T, size_t N>
 class InlinedVector
 {
@@ -53,12 +41,25 @@ public:
       delete[] _storage.heap_buffer;
     }
   }
-
+  
   /**
    * Deleted
    */
-  InlinedVector(InlinedVector const& other) = delete;
+   InlinedVector(InlinedVector const& other) = delete;
   InlinedVector& operator=(InlinedVector const& other) = delete;
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+  #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#elif defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(push)
+  #pragma warning(disable : 4789)
+#endif
 
   /**
    * Push back a new element
@@ -151,6 +152,14 @@ public:
     }
   }
 
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#elif defined(__clang__)
+  #pragma GCC diagnostic pop
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(pop)
+#endif
+
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t size() const noexcept { return _size; }
   QUILL_NODISCARD size_t capacity() const noexcept { return _capacity; }
   QUILL_ATTRIBUTE_HOT void clear() noexcept { _size = 0; }
@@ -165,12 +174,6 @@ private:
   size_t _size{0};
   size_t _capacity{N};
 };
-
-#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
-  #pragma GCC diagnostic pop
-#elif defined(_WIN32) && defined(_MSC_VER)
-  #pragma warning(pop)
-#endif
 
 /**
  * A vector that stores sizes for specific operations using `uint32_t` to optimize space.
