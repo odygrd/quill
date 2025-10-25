@@ -107,7 +107,7 @@ TEST_CASE("binary_file_writer")
     if (message_type == 0)
     {
       // Small message (6 bytes)
-      SmallData data;
+      SmallData data {};
       data.id = 100 + i;
       data.value = static_cast<uint16_t>(i);
 
@@ -118,7 +118,7 @@ TEST_CASE("binary_file_writer")
     else if (message_type == 1)
     {
       // Medium message (9 bytes)
-      MediumData data;
+      MediumData data {};
       data.id = 200 + i;
       data.value = i * 10;
       data.flag = (i % 2 == 0);
@@ -130,7 +130,7 @@ TEST_CASE("binary_file_writer")
     else // message_type == 2
     {
       // Large message (32 bytes)
-      LargeData data;
+      LargeData data {};
       data.id = 300 + i;
       data.timestamp = static_cast<uint64_t>(i) * 1000;
       data.value = i * 100;
@@ -222,7 +222,7 @@ TEST_CASE("binary_file_writer")
     if (message_type == 0)
     {
       // Small message verification
-      SmallData read_data;
+      SmallData read_data {};
       std::memcpy(&read_data, read_buffer.data(), sizeof(SmallData));
 
       REQUIRE_EQ(read_data.id, 100 + count);
@@ -231,7 +231,7 @@ TEST_CASE("binary_file_writer")
     else if (message_type == 1)
     {
       // Medium message verification
-      MediumData read_data;
+      MediumData read_data {};
       std::memcpy(&read_data, read_buffer.data(), sizeof(MediumData));
 
       REQUIRE_EQ(read_data.id, 200 + count);
@@ -241,7 +241,7 @@ TEST_CASE("binary_file_writer")
     else // message_type == 2
     {
       // Large message verification
-      LargeData read_data;
+      LargeData read_data {};
       std::memcpy(&read_data, read_buffer.data(), sizeof(LargeData));
 
       REQUIRE_EQ(read_data.id, 300 + count);
