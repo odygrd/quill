@@ -5,6 +5,11 @@
 
 #include <vector>
 
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 TEST_SUITE_BEGIN("InlinedVector");
 
 using namespace quill;
@@ -934,3 +939,7 @@ TEST_CASE("assign_after_multiple_reallocations")
 }
 
 TEST_SUITE_END();
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#endif

@@ -14,6 +14,18 @@
 #include "quill/core/Common.h"
 #include "quill/core/QuillError.h"
 
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+  #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#elif defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(push)
+  #pragma warning(disable : 4789)
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
@@ -47,19 +59,6 @@ public:
    */
   InlinedVector(InlinedVector const& other) = delete;
   InlinedVector& operator=(InlinedVector const& other) = delete;
-
-#if defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Warray-bounds"
-  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-  #pragma GCC diagnostic ignored "-Wstringop-overflow"
-#elif defined(__clang__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Warray-bounds"
-#elif defined(_WIN32) && defined(_MSC_VER)
-  #pragma warning(push)
-  #pragma warning(disable : 4789)
-#endif
 
   /**
    * Push back a new element
@@ -152,14 +151,6 @@ public:
     }
   }
 
-#if defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC diagnostic pop
-#elif defined(__clang__)
-  #pragma GCC diagnostic pop
-#elif defined(_WIN32) && defined(_MSC_VER)
-  #pragma warning(pop)
-#endif
-
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t size() const noexcept { return _size; }
   QUILL_NODISCARD size_t capacity() const noexcept { return _capacity; }
   QUILL_ATTRIBUTE_HOT void clear() noexcept { _size = 0; }
@@ -185,3 +176,11 @@ static_assert(sizeof(SizeCacheVector) <= QUILL_CACHE_LINE_SIZE,
 } // namespace detail
 
 QUILL_END_NAMESPACE
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#elif defined(__clang__)
+  #pragma GCC diagnostic pop
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(pop)
+#endif
