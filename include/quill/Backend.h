@@ -89,7 +89,10 @@ public:
                      // Run the backend worker thread, we wait here until the thread enters the main loop
                      detail::BackendManager::instance().start_backend_thread(backend_options);
 
-                     detail::SignalHandlerContext::instance().logger_name = signal_handler_options.logger;
+                     detail::SignalHandlerContext::instance().logger_name = signal_handler_options.logger_name;
+
+                     detail::SignalHandlerContext::instance().excluded_logger_substrings =
+                       signal_handler_options.excluded_logger_substrings;
 
                      detail::SignalHandlerContext::instance().signal_handler_timeout_seconds.store(
                        signal_handler_options.timeout_seconds);

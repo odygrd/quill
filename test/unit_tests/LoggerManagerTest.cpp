@@ -126,6 +126,160 @@ TEST_CASE("create_get_remove_logger")
   REQUIRE_EQ(lm.get_valid_logger(), nullptr);
 }
 
+/***/
+TEST_CASE("get_valid_logger_with_exclusions")
+{
+  std::shared_ptr<ConsoleSink> sink = std::make_unique<ConsoleSink>();
+
+  LoggerManager& lm = LoggerManager::instance();
+
+  std::vector<std::shared_ptr<Sink>> sinks;
+  sinks.push_back(sink);
+
+  // Create various loggers with different naming patterns
+  // Note: Loggers are stored in alphabetical order
+  LoggerBase* logger_normal = lm.create_or_get_logger<Logger>(
+    "logger_normal", std::move(sinks),
+    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
+                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr);
+
+  sinks.clear();
+  sinks.push_back(sink);
+  LoggerBase* logger_csv = lm.create_or_get_logger<Logger>(
+    "logger__csv__output", std::move(sinks),
+    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
+                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr);
+
+  sinks.clear();
+  sinks.push_back(sink);
+  LoggerBase* logger_binary = lm.create_or_get_logger<Logger>(
+    "logger__binary__data", std::move(sinks),
+    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
+                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr);
+
+  sinks.clear();
+  sinks.push_back(sink);
+  LoggerBase* logger_debug = lm.create_or_get_logger<Logger>(
+    "logger__debug__trace", std::move(sinks),
+    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
+                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr);
+
+  REQUIRE_EQ(lm.get_all_loggers().size(), 4);
+
+  // Alphabetically sorted order: logger__binary__data, logger__csv__output, logger__debug__trace, logger_normal
+
+  {
+    LoggerBase* valid_logger = lm.get_valid_logger();
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__binary__data");
+  }
+
+  {
+    LoggerBase* valid_logger = lm.get_valid_logger("__binary__");
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__csv__output");
+  }
+
+  {
+    LoggerBase* valid_logger = lm.get_valid_logger("__csv__");
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__binary__data");
+  }
+
+  {
+    std::vector<std::string> exclusions{"__csv__", "__binary__"};
+    LoggerBase* valid_logger = lm.get_valid_logger(exclusions);
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__debug__trace");
+  }
+
+  {
+    std::vector<std::string> exclusions{"normal", "__debug__"};
+    LoggerBase* valid_logger = lm.get_valid_logger(exclusions);
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__binary__data");
+  }
+
+  {
+    std::vector<std::string> exclusions{"__csv__", "__binary__", "__debug__"};
+    LoggerBase* valid_logger = lm.get_valid_logger(exclusions);
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger_normal");
+  }
+
+  {
+    std::vector<std::string> exclusions{"logger"};
+    LoggerBase* valid_logger = lm.get_valid_logger(exclusions);
+    REQUIRE_EQ(valid_logger, nullptr);
+  }
+
+  {
+    std::vector<std::string> exclusions;
+    LoggerBase* valid_logger = lm.get_valid_logger(exclusions);
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__binary__data");
+  }
+
+  {
+    lm.remove_logger(logger_binary);
+    std::vector<std::string> removed_loggers;
+    lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
+
+    REQUIRE_EQ(removed_loggers.size(), 1);
+    REQUIRE_EQ(removed_loggers[0], "logger__binary__data");
+    REQUIRE_EQ(lm.get_all_loggers().size(), 3);
+
+    LoggerBase* valid_logger = lm.get_valid_logger();
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__csv__output");
+
+    valid_logger = lm.get_valid_logger("__csv__");
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__debug__trace");
+
+    std::vector<std::string> exclusions{"__csv__", "__debug__"};
+    valid_logger = lm.get_valid_logger(exclusions);
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger_normal");
+  }
+
+  {
+    std::vector<std::string> exclusions{"", "__csv__", "__debug__"};
+    LoggerBase* valid_logger = lm.get_valid_logger(exclusions);
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger_normal");
+  }
+
+  {
+    LoggerBase* valid_logger = lm.get_valid_logger("__debug__");
+    REQUIRE_NE(valid_logger, nullptr);
+    REQUIRE_EQ(valid_logger->get_logger_name(), "logger__csv__output");
+  }
+
+  lm.remove_logger(logger_csv);
+  lm.remove_logger(logger_normal);
+  lm.remove_logger(logger_debug);
+
+  std::vector<std::string> removed_loggers;
+  lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
+
+  REQUIRE_EQ(removed_loggers.size(), 3);
+  REQUIRE_EQ(lm.get_all_loggers().size(), 0);
+  REQUIRE_EQ(lm.get_number_of_loggers(), 0);
+  REQUIRE_EQ(lm.get_valid_logger(), nullptr);
+
+  std::vector<std::string> exclusions{"__csv__"};
+  REQUIRE_EQ(lm.get_valid_logger(exclusions), nullptr);
+}
+
 void set_env(char const* name, char const* value)
 {
 #if defined(_WIN32)
