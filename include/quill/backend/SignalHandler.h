@@ -62,13 +62,26 @@ struct SignalHandlerOptions
   uint32_t timeout_seconds = 20u;
 
   /**
-   * The logger instance that the signal handler will use to log errors when the application crashes.
-   * The logger is accessed by the signal handler and must be created by your application using
-   * Frontend::create_or_get_logger(...).
-   * If the specified logger is not found, or if this parameter is left empty, the signal handler
-   * will default to using the first valid logger it finds.
+   * The name of the logger instance that the signal handler will use to log errors when
+   * the application crashes. The logger is accessed by the signal handler and must be
+   * created by your application using Frontend::create_or_get_logger(...).
+   * If this parameter is left empty, the signal handler will automatically select the first
+   * valid logger it finds, excluding any loggers whose names contain substrings specified
+   * in excluded_logger_substrings.
+   * If a logger name is specified but not found, the signal handler will fall back to the
+   * automatic selection behavior described above.
    */
-  std::string logger;
+  std::string logger_name;
+
+  /**
+   * List of substrings used to exclude loggers during automatic logger selection.
+   * This option is only used when logger_name is empty or when the specified logger is not found.
+   * The signal handler will skip any logger whose name contains any of these substrings.
+   * This is useful to avoid selecting specialized loggers that write to CSV files, binary files,
+   * or other non-standard formats that may not be suitable for crash reporting.
+   * Default: {"__csv__"} to exclude CSV loggers.
+   */
+  std::vector<std::string> excluded_logger_substrings{"__csv__"};
 };
 
 namespace detail
@@ -100,15 +113,14 @@ public:
     // This also checks if the logger was found above
     if (!logger_base || !logger_base->is_valid_logger())
     {
-      logger_base = LoggerManager::instance().get_valid_logger(excluded_logger_name_substr);
+      logger_base = LoggerManager::instance().get_valid_logger(instance().excluded_logger_substrings);
     }
 
     return logger_base;
   }
 
-  static constexpr std::string_view excluded_logger_name_substr = {"__csv__"};
-
-  std::string logger_name;
+  std::vector<std::string> excluded_logger_substrings{};
+  std::string logger_name{};
   std::atomic<int32_t> signal_number{0};
   std::atomic<uint32_t> lock{0};
   std::atomic<uint32_t> backend_thread_id{0};
