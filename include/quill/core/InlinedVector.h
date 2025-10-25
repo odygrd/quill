@@ -41,11 +41,11 @@ public:
       delete[] _storage.heap_buffer;
     }
   }
-  
+
   /**
    * Deleted
    */
-   InlinedVector(InlinedVector const& other) = delete;
+  InlinedVector(InlinedVector const& other) = delete;
   InlinedVector& operator=(InlinedVector const& other) = delete;
 
 #if defined(__GNUC__) && !defined(__clang__)
