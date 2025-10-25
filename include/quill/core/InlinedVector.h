@@ -14,10 +14,23 @@
 #include "quill/core/Common.h"
 #include "quill/core/QuillError.h"
 
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+  #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#elif defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Warray-bounds"
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(push)
+  #pragma warning(disable : 4789)
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+
 template <typename T, size_t N>
 class InlinedVector
 {
@@ -101,13 +114,8 @@ public:
   /**
    * Access element
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
+  QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
   {
-#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
-
     if (QUILL_UNLIKELY(index >= _size))
     {
       QUILL_THROW(QuillError{"index out of bounds"});
@@ -121,11 +129,6 @@ public:
     {
       return _storage.heap_buffer[index];
     }
-
-#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
-  // Re-enable the array bounds warning
-  #pragma GCC diagnostic pop
-#endif
   }
 
   /**
@@ -173,3 +176,11 @@ static_assert(sizeof(SizeCacheVector) <= QUILL_CACHE_LINE_SIZE,
 } // namespace detail
 
 QUILL_END_NAMESPACE
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#elif defined(__clang__)
+  #pragma GCC diagnostic pop
+#elif defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(pop)
+#endif
