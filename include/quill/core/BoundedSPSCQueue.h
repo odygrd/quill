@@ -202,10 +202,18 @@ private:
     integer_type last_diff = last - (last & QUILL_CACHE_LINE_MASK);
     integer_type const cur_diff = offset - (offset & QUILL_CACHE_LINE_MASK);
 
-    while (cur_diff > last_diff)
+    if (cur_diff > last_diff)
     {
-      _mm_clflushopt(_storage + (last_diff & _mask));
-      last_diff += QUILL_CACHE_LINE_SIZE;
+      // Compute masked base pointer once before loop to avoid repeated mask operations
+      std::byte* ptr = _storage + (last_diff & _mask);
+
+      do
+      {
+        _mm_clflushopt(ptr);
+        ptr += QUILL_CACHE_LINE_SIZE;
+        last_diff += QUILL_CACHE_LINE_SIZE;
+      } while (cur_diff > last_diff);
+
       last = last_diff;
     }
   }
