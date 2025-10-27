@@ -65,7 +65,7 @@ jobs:
           cmake --build . --config Release --parallel $threads
 
       - name: Run fuzzer ${{ matrix.fuzzer }}
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{runner.workspace}}
         run: |
           python3 fuzz/run_fuzzers.py \
             --duration 900 \
