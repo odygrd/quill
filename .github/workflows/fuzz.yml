@@ -67,7 +67,7 @@ jobs:
       - name: Run fuzzer ${{ matrix.fuzzer }}
         working-directory: ${{runner.workspace}}
         run: |
-          python3 fuzz/run_fuzzers.py \
+          python3 quill/fuzz/run_fuzzers.py \
             --duration 900 \
             --fuzzer ${{ matrix.fuzzer }} \
             --fuzzer-dir build/build/test
