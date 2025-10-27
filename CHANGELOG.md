@@ -94,14 +94,17 @@
 
 ## v10.2.0
 
+- Added fuzzing tests to CI to catch memory and undefined behavior issues
 - Fixed `PatternFormatter` automatic newline appending by making the suffix ('\n') configurable or optionally disabled
   via `PatternFormatterOptions`
 - Fixed segmentation fault when `DirectFormatCodec` was used with enums
   types ([#848](https://github.com/odygrd/quill/issues/848))
+- Fixed segmentation fault when `DirectFormatCodec` was used with STL containers of enums
 - Fixed a compiler error when `LOG_DYNAMIC` is used with
   `QUILL_DISABLE_FILE_INFO` ([#847](https://github.com/odygrd/quill/issues/847))
 - Fixed process ID capture in `BackendWorker` to support `fork()`
   correctly ([#860](https://github.com/odygrd/quill/issues/860))
+- Fixed undefined behavior caused by passing `nullptr` to `memcpy` when encoding empty `std::vector`
 - Updated `BackendOptions::check_printable_char` to allow tab (`\t`) and carriage return (`\r`) characters by
   default ([#856](https://github.com/odygrd/quill/issues/856))
 - Increased `RdtscClock` resync lag thresholds to improve cross-system compatibility
