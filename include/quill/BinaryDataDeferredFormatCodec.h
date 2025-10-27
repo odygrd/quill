@@ -131,10 +131,18 @@ struct BinaryDataDeferredFormatCodec
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t, T const& arg)
   {
-    std::memcpy(buffer, &arg._size, sizeof(uint32_t));
-    buffer += sizeof(uint32_t);
-    std::memcpy(buffer, arg._data, arg._size);
-    buffer += arg._size;
+    std::byte* buf_ptr = buffer;
+
+    std::memcpy(buf_ptr, &arg._size, sizeof(uint32_t));
+    buf_ptr += sizeof(uint32_t);
+
+    if (QUILL_LIKELY((arg._data && arg._size > 0)))
+    {
+      std::memcpy(buf_ptr, arg._data, arg._size);
+      buf_ptr += arg._size;
+    }
+
+    buffer = buf_ptr;
   }
 
   static T decode_arg(std::byte*& buffer)

@@ -89,7 +89,7 @@ performance-critical applications where every microsecond counts.
 
 - **Performance-Focused**: Quill consistently outperforms many popular logging libraries.
 - **Feature-Rich**: Packed with advanced features to meet diverse logging needs.
-- **Battle-Tested**: Proven in demanding production environments.
+- **Battle-Tested**: Proven in demanding production environments. Extensively tested with sanitizers (ASan, UBSan, LSan) and fuzzed across a wide range of inputs.
 - **Extensive Documentation**: Comprehensive guides and examples available.
 - **Community-Driven**: Open to contributions, feedback, and feature requests.
 

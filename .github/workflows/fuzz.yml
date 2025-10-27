@@ -33,6 +33,8 @@ jobs:
           - FUZZ_StlContainers
           - FUZZ_UserDefinedDeferredFormat
           - FUZZ_UserDefinedDirectFormat
+          - FUZZ_QueueStress
+          - FUZZ_BinaryData
 
     steps:
       - uses: actions/checkout@v4

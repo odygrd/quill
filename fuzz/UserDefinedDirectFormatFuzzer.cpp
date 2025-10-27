@@ -12,13 +12,16 @@
 #include "quill/std/Map.h"
 #include "quill/std/Set.h"
 #include "quill/std/UnorderedMap.h"
+#include "quill/std/UnorderedSet.h"
 #include "quill/std/Vector.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <ostream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 // Trivially copyable custom type for DirectFormat
@@ -163,6 +166,110 @@ std::ostream& operator<<(std::ostream& os, Status const& status)
 
 QUILL_LOGGABLE_DIRECT_FORMAT(Status)
 
+// Large DirectFormat type (1KB)
+struct LargeDirectType
+{
+  LargeDirectType() = default;
+  LargeDirectType(int id, uint32_t fill_val) : id(id)
+  {
+    std::fill(std::begin(large_buffer), std::end(large_buffer), static_cast<uint8_t>(fill_val));
+  }
+
+  int id{};
+  uint8_t large_buffer[1020]{};
+};
+
+template <>
+struct fmtquill::formatter<LargeDirectType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::LargeDirectType const& obj, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "LargeDirect{{id:{}, size:{}}}", obj.id, sizeof(obj.large_buffer));
+  }
+};
+
+template <>
+struct quill::Codec<LargeDirectType> : quill::DirectFormatCodec<LargeDirectType>
+{
+};
+
+// Empty DirectFormat type
+struct EmptyDirectType
+{
+  EmptyDirectType() = default;
+};
+
+template <>
+struct fmtquill::formatter<EmptyDirectType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::EmptyDirectType const&, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "EmptyDirect{{}}");
+  }
+};
+
+template <>
+struct quill::Codec<EmptyDirectType> : quill::DirectFormatCodec<EmptyDirectType>
+{
+};
+
+// Unaligned DirectFormat type
+struct UnalignedDirectType
+{
+  UnalignedDirectType() = default;
+  UnalignedDirectType(uint8_t a, uint64_t b, uint8_t c) : a(a), b(b), c(c) {}
+
+  uint8_t a{};
+  uint64_t b{};
+  uint8_t c{};
+};
+
+template <>
+struct fmtquill::formatter<UnalignedDirectType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::UnalignedDirectType const& obj, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "UnalignedDirect{{a:{}, b:{}, c:{}}}", obj.a, obj.b, obj.c);
+  }
+};
+
+template <>
+struct quill::Codec<UnalignedDirectType> : quill::DirectFormatCodec<UnalignedDirectType>
+{
+};
+
+// DirectFormat type with very large string
+struct VeryLargeStringDirectType
+{
+  VeryLargeStringDirectType() = default;
+  VeryLargeStringDirectType(std::string huge_str, int id) : huge_str(std::move(huge_str)), id(id) {}
+
+  std::string huge_str;
+  int id{};
+};
+
+template <>
+struct fmtquill::formatter<VeryLargeStringDirectType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::VeryLargeStringDirectType const& obj, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "VeryLargeDirect{{id:{}, len:{}}}", obj.id, obj.huge_str.size());
+  }
+};
+
+template <>
+struct quill::Codec<VeryLargeStringDirectType> : quill::DirectFormatCodec<VeryLargeStringDirectType>
+{
+};
+
 class FuzzDataExtractor
 {
 public:
@@ -254,7 +361,7 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
     break;
   }
 
-  switch (selector % 18)
+  switch (selector % 27)
   {
   case 0:
   {
@@ -433,6 +540,105 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
                             DirectFormatType{extractor.get_int32(), extractor.get_double()});
     }
     LOG_INFO(g_logger, "Vector of Pairs: {}", vec_pair);
+    break;
+  }
+  case 18:
+  {
+    // Test large DirectFormat type (1KB)
+    LargeDirectType large{extractor.get_int32(), extractor.get_uint32()};
+    LOG_INFO(g_logger, "LargeDirect: {}", large);
+    break;
+  }
+  case 19:
+  {
+    // Test empty DirectFormat type
+    EmptyDirectType empty;
+    LOG_INFO(g_logger, "EmptyDirect: {}", empty);
+    break;
+  }
+  case 20:
+  {
+    // Test unaligned DirectFormat type
+    UnalignedDirectType unaligned{extractor.get_byte(), extractor.get_uint32(), extractor.get_byte()};
+    LOG_INFO(g_logger, "UnalignedDirect: {}", unaligned);
+    break;
+  }
+  case 21:
+  {
+    // Test very large string in DirectFormat type (up to 64KB)
+    size_t str_size = extractor.get_uint32() % 65536;
+    std::string huge_str;
+    huge_str.reserve(str_size);
+    while (huge_str.size() < str_size && extractor.has_data())
+    {
+      huge_str.push_back(static_cast<char>(extractor.get_byte()));
+    }
+    VeryLargeStringDirectType very_large{std::move(huge_str), extractor.get_int32()};
+    LOG_INFO(g_logger, "VeryLargeDirect: {}", very_large);
+    break;
+  }
+  case 22:
+  {
+    // Test unordered_set with enums
+    std::unordered_set<int> uset;
+    size_t uset_size = extractor.get_byte() % 5;
+    for (size_t i = 0; i < uset_size; ++i)
+    {
+      uset.insert(extractor.get_int32());
+    }
+    LOG_INFO(g_logger, "UnorderedSetInt: {}", uset);
+    break;
+  }
+  case 23:
+  {
+    // Test deeply nested: map<Priority, vector<DirectFormatType>>
+    std::map<int, std::vector<DirectFormatType>> deep_nested;
+    size_t map_size = extractor.get_byte() % 2;
+    for (size_t i = 0; i < map_size; ++i)
+    {
+      int key = extractor.get_int32();
+      std::vector<DirectFormatType> vec;
+      size_t vec_size = extractor.get_byte() % 2;
+      for (size_t j = 0; j < vec_size; ++j)
+      {
+        vec.emplace_back(extractor.get_int32(), extractor.get_double());
+      }
+      deep_nested[key] = std::move(vec);
+    }
+    LOG_INFO(g_logger, "DeepNestedDirect: {}", deep_nested);
+    break;
+  }
+  case 24:
+  {
+    // Test multiple (6) DirectFormat types in one log
+    DirectFormatType df1{extractor.get_int32(), extractor.get_double()};
+    DirectFormatType df2{extractor.get_int32(), extractor.get_double()};
+    Priority p = static_cast<Priority>(extractor.get_byte() % 5);
+    Status s = static_cast<Status>(extractor.get_byte() % 3);
+    UnalignedDirectType ua{extractor.get_byte(), extractor.get_uint32(), extractor.get_byte()};
+    EmptyDirectType empty;
+    LOG_INFO(g_logger, "Multi6: {} {} {} {} {} {}", df1, df2, p, s, ua, empty);
+    break;
+  }
+  case 25:
+  {
+    // Test DirectComplexType with empty containers
+    DirectComplexType empty_complex;
+    empty_complex.name = "";
+    empty_complex.labels.clear();
+    LOG_INFO(g_logger, "EmptyDirectComplex: {}", empty_complex);
+    break;
+  }
+  case 26:
+  {
+    // Test vector of large DirectFormat types
+    std::vector<LargeDirectType> vec_large;
+    size_t vec_size = extractor.get_byte() % 2; // Limited to 2 due to size
+    for (size_t i = 0; i < vec_size; ++i)
+    {
+      vec_large.emplace_back(extractor.get_int32(), extractor.get_uint32());
+    }
+    LOG_INFO(g_logger, "VectorLargeDirect: {}", vec_large);
     break;
   }
   }
