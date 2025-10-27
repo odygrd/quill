@@ -31,7 +31,6 @@ extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/)
     // low the limits for additional testing
     quill::BackendOptions backend_options;
     backend_options.transit_event_buffer_initial_capacity = 2;
-    backend_options.transit_events_soft_limit = 32;
     quill::Backend::start(backend_options);
 
     auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
@@ -52,3 +51,4 @@ extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/)
   }
   return 0;
 }
+
