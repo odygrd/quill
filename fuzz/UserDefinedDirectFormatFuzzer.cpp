@@ -1,11 +1,10 @@
-#include "quill/Backend.h"
+#define FUZZER_LOG_FILENAME "user_defined_direct_fuzz.log"
+#include "FuzzerHelper.h"
+
 #include "quill/DirectFormatCodec.h"
-#include "quill/Frontend.h"
 #include "quill/HelperMacros.h"
 #include "quill/LogMacros.h"
-#include "quill/Logger.h"
 #include "quill/core/Codec.h"
-#include "quill/sinks/FileSink.h"
 
 #include "quill/std/Array.h"
 #include "quill/std/Deque.h"
@@ -163,36 +162,6 @@ std::ostream& operator<<(std::ostream& os, Status const& status)
 }
 
 QUILL_LOGGABLE_DIRECT_FORMAT(Status)
-
-static quill::Logger* g_logger = nullptr;
-static bool g_initialized = false;
-
-extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/)
-{
-  if (!g_initialized)
-  {
-    quill::BackendOptions backend_options;
-    backend_options.error_notifier = [](std::string const&) {};
-    quill::Backend::start(backend_options);
-
-    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
-      "user_defined_direct_fuzz.log",
-      []()
-      {
-        quill::FileSinkConfig cfg;
-        cfg.set_open_mode('w');
-        cfg.set_filename_append_option(quill::FilenameAppendOption::None);
-        return cfg;
-      }(),
-      quill::FileEventNotifier{});
-
-    g_logger = quill::Frontend::create_or_get_logger("direct_format_fuzzer", std::move(file_sink));
-    g_logger->set_log_level(quill::LogLevel::TraceL3);
-    g_logger->set_immediate_flush(250);
-    g_initialized = true;
-  }
-  return 0;
-}
 
 class FuzzDataExtractor
 {

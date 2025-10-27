@@ -1,8 +1,7 @@
-#include "quill/Backend.h"
-#include "quill/Frontend.h"
+#define FUZZER_LOG_FILENAME "basic_types_fuzz.log"
+#include "FuzzerHelper.h"
+
 #include "quill/LogMacros.h"
-#include "quill/Logger.h"
-#include "quill/sinks/FileSink.h"
 
 #include <array>
 #include <cstddef>
@@ -10,37 +9,6 @@
 #include <cstring>
 #include <string>
 #include <string_view>
-
-// Global logger instance
-static quill::Logger* g_logger = nullptr;
-static bool g_initialized = false;
-
-extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/)
-{
-  if (!g_initialized)
-  {
-    quill::BackendOptions backend_options;
-    backend_options.error_notifier = [](std::string const&) {};
-    quill::Backend::start(backend_options);
-
-    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
-      "basic_types_fuzz.log",
-      []()
-      {
-        quill::FileSinkConfig cfg;
-        cfg.set_open_mode('w');
-        cfg.set_filename_append_option(quill::FilenameAppendOption::None);
-        return cfg;
-      }(),
-      quill::FileEventNotifier{});
-
-    g_logger = quill::Frontend::create_or_get_logger("basic_types_fuzzer", std::move(file_sink));
-    g_logger->set_log_level(quill::LogLevel::TraceL3);
-    g_logger->set_immediate_flush(250);
-    g_initialized = true;
-  }
-  return 0;
-}
 
 // Helper to extract data from fuzzer input
 class FuzzDataExtractor
