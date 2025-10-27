@@ -194,6 +194,19 @@ std::ostream& operator<<(std::ostream& os, CustomEnum const& e)
   return os;
 }
 
+/***/
+namespace std
+{
+template <>
+struct hash<CustomEnum>
+{
+  std::size_t operator()(CustomEnum const& e) const
+  {
+    return std::hash<int>()(static_cast<int>(e));
+  }
+};
+} // namespace std
+
 QUILL_LOGGABLE_DIRECT_FORMAT(CustomEnum)
 
 /***/
@@ -356,6 +369,54 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
     LOG_INFO(logger, "CustomEnum_3 [{}]", e);
   }
 
+  {
+    std::vector<CustomEnum> custom_enum_vec;
+    custom_enum_vec.push_back(CustomEnum::A);
+    custom_enum_vec.push_back(CustomEnum::BB);
+    custom_enum_vec.push_back(CustomEnum::CCC);
+    LOG_INFO(logger, "CustomEnum Vec {}", custom_enum_vec);
+  }
+
+  {
+    std::array<CustomEnum, 3> custom_enum_arr;
+    custom_enum_arr[0] = CustomEnum::A;
+    custom_enum_arr[1] = CustomEnum::BB;
+    custom_enum_arr[2] = CustomEnum::CCC;
+    LOG_INFO(logger, "CustomEnum Array {}", custom_enum_arr);
+  }
+
+  {
+    std::deque<CustomEnum> custom_enum_deq;
+    custom_enum_deq.push_back(CustomEnum::A);
+    custom_enum_deq.push_back(CustomEnum::BB);
+    custom_enum_deq.push_back(CustomEnum::CCC);
+    LOG_INFO(logger, "CustomEnum Deq {}", custom_enum_deq);
+  }
+
+  {
+    std::list<CustomEnum> custom_enum_list;
+    custom_enum_list.push_back(CustomEnum::A);
+    custom_enum_list.push_back(CustomEnum::BB);
+    custom_enum_list.push_back(CustomEnum::CCC);
+    LOG_INFO(logger, "CustomEnum List {}", custom_enum_list);
+  }
+
+  {
+    std::set<CustomEnum> custom_enum_set;
+    custom_enum_set.insert(CustomEnum::A);
+    custom_enum_set.insert(CustomEnum::BB);
+    custom_enum_set.insert(CustomEnum::CCC);
+    LOG_INFO(logger, "CustomEnum Set {}", custom_enum_set);
+  }
+
+  {
+    std::unordered_set<CustomEnum> custom_enum_unset;
+    custom_enum_unset.insert(CustomEnum::A);
+    custom_enum_unset.insert(CustomEnum::BB);
+    custom_enum_unset.insert(CustomEnum::CCC);
+    LOG_INFO(logger, "CustomEnum UnSet {}", custom_enum_unset);
+  }
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -364,7 +425,7 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 19);
+  REQUIRE_EQ(file_contents.size(), 25);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
@@ -422,6 +483,24 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum_3 [CCC]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum Vec [\"A\", \"BB\", \"CCC\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum Array [\"A\", \"BB\", \"CCC\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum Deq [\"A\", \"BB\", \"CCC\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum List [\"A\", \"BB\", \"CCC\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum Set {\"A\", \"BB\", \"CCC\"}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum UnSet {"}));
 
   testing::remove_file(filename);
 }

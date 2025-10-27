@@ -212,6 +212,15 @@ TEST_CASE("std_vector_logging")
     std::vector<int> empt;
     LOG_INFO(logger, "empt {}", empt);
 
+    std::vector<std::string> empt_str;
+    LOG_INFO(logger, "empt_str {}", empt_str);
+
+    std::vector<double> empt_double;
+    LOG_INFO(logger, "empt_double {}", empt_double);
+
+    std::vector<CustomTypeTC> empt_custom;
+    LOG_INFO(logger, "empt_custom {}", empt_custom);
+
     std::vector<CustomTypeTC> custom_type_tc = {CustomTypeTC{1, 2, 3}, CustomTypeTC{4, 5, 6},
                                                 CustomTypeTC{7, 8, 9}, CustomTypeTC{10, 11, 12}};
     LOG_INFO(logger, "custom_type_tc {}", custom_type_tc);
@@ -315,6 +324,15 @@ TEST_CASE("std_vector_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empt []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       empt_str []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       empt_double []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       empt_custom []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       custom_type_tc [Name: 1, Surname: 2, Age: 3, Name: 4, Surname: 5, Age: 6, Name: 7, Surname: 8, Age: 9, Name: 10, Surname: 11, Age: 12]"}));

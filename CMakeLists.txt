@@ -33,6 +33,8 @@ option(QUILL_SANITIZE_ADDRESS "Enable AddressSanitizer (ASan) for memory error d
 
 option(QUILL_SANITIZE_THREAD "Enable ThreadSanitizer (TSan) for detecting thread-related issues in tests. Note: Using this option with non-Clang compilers may produce false positives." OFF)
 
+option(QUILL_BUILD_FUZZING "Enable fuzzing with libFuzzer, AddressSanitizer, and UndefinedBehaviorSanitizer. Requires Clang compiler." OFF)
+
 option(QUILL_CODE_COVERAGE "Enable code coverage analysis during the build." OFF)
 
 option(QUILL_USE_VALGRIND "Use Valgrind as the default memory checking tool in CTest. Valgrind must be installed." OFF)
@@ -147,6 +149,14 @@ if (QUILL_SANITIZE_THREAD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer -g")
 endif ()
 
+# fuzzing flags
+if (QUILL_BUILD_FUZZING)
+    if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "QUILL_BUILD_FUZZING requires Clang compiler")
+    endif ()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -g")
+endif ()
+
 # Append extra options for coverage
 if (QUILL_CODE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-omit-frame-pointer -g -fprofile-arcs -ftest-coverage")
@@ -164,6 +174,10 @@ endif ()
 
 if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
     add_subdirectory(test)
+endif ()
+
+if (QUILL_BUILD_FUZZING)
+    add_subdirectory(fuzz)
 endif ()
 
 # library name
