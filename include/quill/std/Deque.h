@@ -36,9 +36,10 @@ struct Codec<std::deque<T, Allocator>>
     // We add sizeof(size_t) bytes to accommodate the size information.
     size_t total_size{sizeof(size_t)};
 
-    if constexpr (std::disjunction_v<std::is_arithmetic<T>, std::is_enum<T>>)
+    if constexpr (std::is_arithmetic_v<T>)
     {
-      // For built-in types, such as arithmetic or enum types, iteration is unnecessary
+      // Built-in arithmetic types don't require iteration.
+      // Note: Enums are excluded as they may have custom Codecs (e.g., DirectFormatCodec)
       total_size += sizeof(T) * arg.size();
     }
     else
