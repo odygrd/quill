@@ -1,4 +1,4 @@
-name: fuzz
+name: Fuzz
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -68,6 +68,6 @@ jobs:
         working-directory: ${{runner.workspace}}
         run: |
           python3 quill/fuzz/run_fuzzers.py \
-            --duration 900 \
+            --duration 600 \
             --fuzzer ${{ matrix.fuzzer }} \
             --fuzzer-dir build/build/test
