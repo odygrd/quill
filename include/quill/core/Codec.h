@@ -227,7 +227,7 @@ struct Codec
       // Local copy improves generated code (avoids aliasing penalties)
       std::byte* buf_ptr = buffer;
 
-      if (QUILL_LIKELY(arg))
+      if (QUILL_LIKELY(arg != nullptr))
       {
         // avoid gcc warning, even when size == 0
         std::memcpy(buf_ptr, arg, len - 1);
