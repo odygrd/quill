@@ -149,14 +149,6 @@ if (QUILL_SANITIZE_THREAD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread -fno-omit-frame-pointer -g")
 endif ()
 
-# fuzzing flags
-if (QUILL_BUILD_FUZZING)
-    if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        message(FATAL_ERROR "QUILL_BUILD_FUZZING requires Clang compiler")
-    endif ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -g")
-endif ()
-
 # Append extra options for coverage
 if (QUILL_CODE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-omit-frame-pointer -g -fprofile-arcs -ftest-coverage")
@@ -177,6 +169,10 @@ if (QUILL_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/test)
 endif ()
 
 if (QUILL_BUILD_FUZZING)
+    if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "QUILL_BUILD_FUZZING requires Clang compiler")
+    endif ()
+    
     add_subdirectory(fuzz)
 endif ()
 

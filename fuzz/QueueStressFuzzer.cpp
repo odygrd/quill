@@ -333,27 +333,6 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 
   FuzzDataExtractor extractor(data, size);
 
-  // First byte: choose log level
-  uint8_t log_level_selector = extractor.get_byte();
-  switch (log_level_selector % 5)
-  {
-  case 0:
-    g_logger->set_log_level(quill::LogLevel::Debug);
-    break;
-  case 1:
-    g_logger->set_log_level(quill::LogLevel::Info);
-    break;
-  case 2:
-    g_logger->set_log_level(quill::LogLevel::Warning);
-    break;
-  case 3:
-    g_logger->set_log_level(quill::LogLevel::Error);
-    break;
-  default:
-    g_logger->set_log_level(quill::LogLevel::Critical);
-    break;
-  }
-
   // Second byte: choose strategy
   uint8_t strategy = extractor.get_byte();
 
