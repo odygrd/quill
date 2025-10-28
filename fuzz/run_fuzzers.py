@@ -105,6 +105,8 @@ class FuzzerRunner:
         "FUZZ_StlContainers",
         "FUZZ_UserDefinedDeferredFormat",
         "FUZZ_UserDefinedDirectFormat",
+        "FUZZ_QueueStress",
+        "FUZZ_BinaryData",
     ]
 
     ERROR_PATTERNS = [
@@ -375,7 +377,8 @@ def main():
         type=str,
         default="*",
         help="Fuzzer to run (default: * = all). Options: FUZZ_BasicTypes, FUZZ_StlContainers, "
-             "FUZZ_UserDefinedDeferredFormat, FUZZ_UserDefinedDirectFormat, or * for all"
+             "FUZZ_UserDefinedDeferredFormat, FUZZ_UserDefinedDirectFormat, FUZZ_QueueStress, "
+             "FUZZ_BinaryData, or * for all"
     )
 
     parser.add_argument(

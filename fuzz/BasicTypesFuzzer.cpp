@@ -171,39 +171,6 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 
   FuzzDataExtractor extractor(data, size);
   uint8_t selector = extractor.get_byte();
-  uint8_t log_level_selector = extractor.get_byte();
-
-  // Select log level
-  switch (log_level_selector % 9)
-  {
-  case 0:
-    g_logger->set_log_level(quill::LogLevel::TraceL3);
-    break;
-  case 1:
-    g_logger->set_log_level(quill::LogLevel::TraceL2);
-    break;
-  case 2:
-    g_logger->set_log_level(quill::LogLevel::TraceL1);
-    break;
-  case 3:
-    g_logger->set_log_level(quill::LogLevel::Debug);
-    break;
-  case 4:
-    g_logger->set_log_level(quill::LogLevel::Info);
-    break;
-  case 5:
-    g_logger->set_log_level(quill::LogLevel::Notice);
-    break;
-  case 6:
-    g_logger->set_log_level(quill::LogLevel::Warning);
-    break;
-  case 7:
-    g_logger->set_log_level(quill::LogLevel::Error);
-    break;
-  default:
-    g_logger->set_log_level(quill::LogLevel::Critical);
-    break;
-  }
 
   // Test different basic types based on selector
   switch (selector % 25)
