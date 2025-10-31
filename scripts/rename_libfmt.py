@@ -7,12 +7,11 @@
 #       #define FMTQUILL_HEADER_ONLY
 #     #endif
 # 3) in base.h remove format.h always included for FMTQUILL_HEADER_ONLY at the end of file
-# 4) Change private to protected in fmt::buffer class
-# 5) Change append to use memcpy,       if constexpr (std::is_same<T, U>::value) {
+# 4) Change append to use memcpy,       if constexpr (std::is_same<T, U>::value) {
 #         memcpy(ptr_ + size_, begin, count * sizeof(T));
 #       } else
-# 6) in chrono.h   if (std::is_same<Period, std::micro>::value) return "us";
-# 7) Add GCC diagnostic ignored "-Wfloat-equal" CC diagnostic ignored "-Wstringop-overflow" to format.h
+# 5) in chrono.h   if (std::is_same<Period, std::micro>::value) return "us";
+# 6) Add GCC diagnostic ignored "-Wfloat-equal" CC diagnostic ignored "-Wstringop-overflow" to format.h
 import sys
 import os
 import re

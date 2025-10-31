@@ -25,7 +25,7 @@
 #endif
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMTQUILL_VERSION 110200
+#define FMTQUILL_VERSION 120100
 
 // Detect compiler versions.
 #if defined(__clang__) && !defined(__ibmxl__)
@@ -118,7 +118,9 @@
 #endif
 
 // Detect consteval, C++20 constexpr extensions and std::is_constant_evaluated.
-#if !defined(__cpp_lib_is_constant_evaluated)
+#ifdef FMTQUILL_USE_CONSTEVAL
+// Use the provided definition.
+#elif !defined(__cpp_lib_is_constant_evaluated)
 #  define FMTQUILL_USE_CONSTEVAL 0
 #elif FMTQUILL_CPLUSPLUS < 201709L
 #  define FMTQUILL_USE_CONSTEVAL 0
@@ -205,14 +207,6 @@
 #  define FMTQUILL_NODISCARD
 #endif
 
-#ifdef FMTQUILL_DEPRECATED
-// Use the provided definition.
-#elif FMTQUILL_HAS_CPP14_ATTRIBUTE(deprecated)
-#  define FMTQUILL_DEPRECATED [[deprecated]]
-#else
-#  define FMTQUILL_DEPRECATED /* deprecated */
-#endif
-
 #if FMTQUILL_GCC_VERSION || FMTQUILL_CLANG_VERSION
 #  define FMTQUILL_VISIBILITY(value) __attribute__((visibility(value)))
 #else
@@ -246,6 +240,7 @@ FMTQUILL_PRAGMA_GCC(optimize("Og"))
 #  define FMTQUILL_GCC_OPTIMIZED
 #endif
 FMTQUILL_PRAGMA_CLANG(diagnostic push)
+FMTQUILL_PRAGMA_GCC(diagnostic push)
 
 #ifdef FMTQUILL_ALWAYS_INLINE
 // Use the provided definition.
@@ -264,7 +259,7 @@ FMTQUILL_PRAGMA_CLANG(diagnostic push)
 #ifndef FMTQUILL_BEGIN_NAMESPACE
 #  define FMTQUILL_BEGIN_NAMESPACE \
     namespace fmtquill {           \
-    inline namespace v11 {
+    inline namespace v12 {
 #  define FMTQUILL_END_NAMESPACE \
     }                       \
     }
@@ -360,6 +355,9 @@ template <typename T> constexpr auto max_of(T a, T b) -> T {
   return a > b ? a : b;
 }
 
+FMTQUILL_NORETURN FMTQUILL_API void assert_fail(const char* file, int line,
+                                      const char* message);
+
 namespace detail {
 // Suppresses "unused variable" warnings with the method described in
 // https://herbsutter.com/2009/10/18/mailbag-shutting-up-compiler-warnings/.
@@ -400,7 +398,7 @@ FMTQUILL_NORETURN FMTQUILL_API void assert_fail(const char* file, int line,
 #  define FMTQUILL_ASSERT(condition, message)                                    \
     ((condition) /* void() fails with -Winvalid-constexpr on clang 4.0.1 */ \
          ? (void)0                                                          \
-         : fmtquill::detail::assert_fail(__FILE__, __LINE__, (message)))
+         : ::fmtquill::assert_fail(__FILE__, __LINE__, (message)))
 #endif
 
 #ifdef FMTQUILL_USE_INT128
@@ -423,8 +421,12 @@ inline auto map(int128_opt) -> monostate { return {}; }
 inline auto map(uint128_opt) -> monostate { return {}; }
 #endif
 
-#ifndef FMTQUILL_USE_BITINT
-#  define FMTQUILL_USE_BITINT (FMTQUILL_CLANG_VERSION >= 1500)
+#ifdef FMTQUILL_USE_BITINT
+// Use the provided definition.
+#elif FMTQUILL_CLANG_VERSION >= 1500 && !defined(__CUDACC__)
+#  define FMTQUILL_USE_BITINT 1
+#else
+#  define FMTQUILL_USE_BITINT 0
 #endif
 
 #if FMTQUILL_USE_BITINT
@@ -467,12 +469,13 @@ enum { use_utf8 = !FMTQUILL_WIN32 || is_utf8_enabled };
 static_assert(!FMTQUILL_UNICODE || use_utf8,
               "Unicode support requires compiling with /utf-8");
 
-template <typename T> constexpr const char* narrow(const T*) { return nullptr; }
-constexpr FMTQUILL_ALWAYS_INLINE const char* narrow(const char* s) { return s; }
+template <typename T> constexpr auto narrow(T*) -> char* { return nullptr; }
+constexpr FMTQUILL_ALWAYS_INLINE auto narrow(const char* s) -> const char* {
+  return s;
+}
 
 template <typename Char>
-FMTQUILL_CONSTEXPR auto compare(const Char* s1, const Char* s2, std::size_t n)
-    -> int {
+FMTQUILL_CONSTEXPR auto compare(const Char* s1, const Char* s2, size_t n) -> int {
   if (!is_constant_evaluated() && sizeof(Char) == 1) return memcmp(s1, s2, n);
   for (; n != 0; ++s1, ++s2, --n) {
     if (*s1 < *s2) return -1;
@@ -544,7 +547,7 @@ template <typename Char> class basic_string_view {
   FMTQUILL_CONSTEXPR20 basic_string_view(const Char* s) : data_(s) {
 #if FMTQUILL_HAS_BUILTIN(__builtin_strlen) || FMTQUILL_GCC_VERSION || FMTQUILL_CLANG_VERSION
     if (std::is_same<Char, char>::value && !detail::is_constant_evaluated()) {
-      size_ = __builtin_strlen(detail::narrow(s));  // strlen is not costexpr.
+      size_ = __builtin_strlen(detail::narrow(s));  // strlen is not constexpr.
       return;
     }
 #endif
@@ -619,19 +622,6 @@ template <typename Char> class basic_string_view {
 };
 
 using string_view = basic_string_view<char>;
-
-// DEPRECATED! Will be merged with is_char and moved to detail.
-template <typename T> struct is_xchar : std::false_type {};
-template <> struct is_xchar<wchar_t> : std::true_type {};
-template <> struct is_xchar<char16_t> : std::true_type {};
-template <> struct is_xchar<char32_t> : std::true_type {};
-#ifdef __cpp_char8_t
-template <> struct is_xchar<char8_t> : std::true_type {};
-#endif
-
-// Specifies if `T` is a character (code unit) type.
-template <typename T> struct is_char : is_xchar<T> {};
-template <> struct is_char<char> : std::true_type {};
 
 template <typename T> class basic_appender;
 using appender = basic_appender<char>;
@@ -785,7 +775,7 @@ class basic_specs {
             (static_cast<unsigned>(p) << precision_shift);
   }
 
-  constexpr bool dynamic() const {
+  constexpr auto dynamic() const -> bool {
     return (data_ & (width_mask | precision_mask)) != 0;
   }
 
@@ -925,14 +915,50 @@ template <typename Char = char> class parse_context {
   FMTQUILL_CONSTEXPR void check_dynamic_spec(int arg_id);
 };
 
+#ifndef FMTQUILL_USE_LOCALE
+#  define FMTQUILL_USE_LOCALE (FMTQUILL_OPTIMIZE_SIZE <= 1)
+#endif
+
+// A type-erased reference to std::locale to avoid the heavy <locale> include.
+class locale_ref {
+#if FMTQUILL_USE_LOCALE
+ private:
+  const void* locale_;  // A type-erased pointer to std::locale.
+
+ public:
+  constexpr locale_ref() : locale_(nullptr) {}
+
+  template <typename Locale, FMTQUILL_ENABLE_IF(sizeof(Locale::collate) != 0)>
+  locale_ref(const Locale& loc) : locale_(&loc) {
+    // Check if std::isalpha is found via ADL to reduce the chance of misuse.
+    isalpha('x', loc);
+  }
+
+  inline explicit operator bool() const noexcept { return locale_ != nullptr; }
+#endif  // FMTQUILL_USE_LOCALE
+
+ public:
+  template <typename Locale> auto get() const -> Locale;
+};
+
 FMTQUILL_END_EXPORT
 
 namespace detail {
 
+// Specifies if `T` is a code unit type.
+template <typename T> struct is_code_unit : std::false_type {};
+template <> struct is_code_unit<char> : std::true_type {};
+template <> struct is_code_unit<wchar_t> : std::true_type {};
+template <> struct is_code_unit<char16_t> : std::true_type {};
+template <> struct is_code_unit<char32_t> : std::true_type {};
+#ifdef __cpp_char8_t
+template <> struct is_code_unit<char8_t> : bool_constant<is_utf8_enabled> {};
+#endif
+
 // Constructs fmtquill::basic_string_view<Char> from types implicitly convertible
 // to it, deducing Char. Explicitly convertible types such as the ones returned
 // from FMTQUILL_STRING are intentionally excluded.
-template <typename Char, FMTQUILL_ENABLE_IF(is_char<Char>::value)>
+template <typename Char, FMTQUILL_ENABLE_IF(is_code_unit<Char>::value)>
 constexpr auto to_string_view(const Char* s) -> basic_string_view<Char> {
   return s;
 }
@@ -1061,11 +1087,11 @@ template <bool B1, bool B2, bool... Tail> constexpr auto count() -> int {
   return (B1 ? 1 : 0) + count<B2, Tail...>();
 }
 
-template <typename... Args> constexpr auto count_named_args() -> int {
-  return count<is_named_arg<Args>::value...>();
+template <typename... T> constexpr auto count_named_args() -> int {
+  return count<is_named_arg<T>::value...>();
 }
-template <typename... Args> constexpr auto count_static_named_args() -> int {
-  return count<is_static_named_arg<Args>::value...>();
+template <typename... T> constexpr auto count_static_named_args() -> int {
+  return count<is_static_named_arg<T>::value...>();
 }
 
 template <typename Char> struct named_arg_info {
@@ -1073,7 +1099,7 @@ template <typename Char> struct named_arg_info {
   int id;
 };
 
-// named_args is non-const to suppress a bogus -Wmaybe-uninitalized in gcc 13.
+// named_args is non-const to suppress a bogus -Wmaybe-uninitialized in gcc 13.
 template <typename Char>
 FMTQUILL_CONSTEXPR void check_for_duplicate(named_arg_info<Char>* named_args,
                                        int named_arg_index,
@@ -1177,7 +1203,7 @@ template <typename Char> struct type_mapper {
   static auto map(ubitint<N>)
       -> conditional_t<N <= 64, unsigned long long, void>;
 
-  template <typename T, FMTQUILL_ENABLE_IF(is_char<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(is_code_unit<T>::value)>
   static auto map(T) -> conditional_t<
       std::is_same<T, char>::value || std::is_same<T, Char>::value, Char, void>;
 
@@ -1683,12 +1709,12 @@ template <typename... T> struct arg_pack {};
 template <typename Char, int NUM_ARGS, int NUM_NAMED_ARGS, bool DYNAMIC_NAMES>
 class format_string_checker {
  private:
-  type types_[max_of(1, NUM_ARGS)];
-  named_arg_info<Char> named_args_[max_of(1, NUM_NAMED_ARGS)];
+  type types_[max_of<size_t>(1, NUM_ARGS)];
+  named_arg_info<Char> named_args_[max_of<size_t>(1, NUM_NAMED_ARGS)];
   compile_parse_context<Char> context_;
 
   using parse_func = auto (*)(parse_context<Char>&) -> const Char*;
-  parse_func parse_funcs_[max_of(1, NUM_ARGS)];
+  parse_func parse_funcs_[max_of<size_t>(1, NUM_ARGS)];
 
  public:
   template <typename... T>
@@ -1749,7 +1775,7 @@ class format_string_checker {
 /// A contiguous memory buffer with an optional growing ability. It is an
 /// internal class and shouldn't be used directly, only via `memory_buffer`.
 template <typename T> class buffer {
-protected:
+ private:
   T* ptr_;
   size_t size_;
   size_t capacity_;
@@ -1832,16 +1858,24 @@ protected:
       void
       append(const U* begin, const U* end) {
     while (begin != end) {
+      auto size = size_;
+      auto free_cap = capacity_ - size;
       auto count = to_unsigned(end - begin);
-      try_reserve(size_ + count);
-      auto free_cap = capacity_ - size_;
-      if (free_cap < count) count = free_cap;
+
+      if (free_cap < count) {
+        grow_(*this, size + count);
+        size = size_;
+        free_cap = capacity_ - size;
+        count = count < free_cap ? count : free_cap;
+      }
+
       if constexpr (std::is_same<T, U>::value) {
         memcpy(ptr_ + size_, begin, count * sizeof(T));
       } else {
         T* out = ptr_ + size_;
         for (size_t i = 0; i < count; ++i) out[i] = begin[i];
       }
+
       size_ += count;
       begin += count;
     }
@@ -2040,6 +2074,17 @@ struct has_back_insert_iterator_container_append<
                         .append(std::declval<InputIt>(),
                                 std::declval<InputIt>()))>> : std::true_type {};
 
+template <typename OutputIt, typename InputIt, typename = void>
+struct has_back_insert_iterator_container_insert_at_end : std::false_type {};
+
+template <typename OutputIt, typename InputIt>
+struct has_back_insert_iterator_container_insert_at_end<
+    OutputIt, InputIt,
+    void_t<decltype(get_container(std::declval<OutputIt>())
+                        .insert(get_container(std::declval<OutputIt>()).end(),
+                                std::declval<InputIt>(),
+                                std::declval<InputIt>()))>> : std::true_type {};
+
 // An optimized version of std::copy with the output value type (T).
 template <typename T, typename InputIt, typename OutputIt,
           FMTQUILL_ENABLE_IF(is_back_insert_iterator<OutputIt>::value&&
@@ -2054,6 +2099,8 @@ FMTQUILL_CONSTEXPR20 auto copy(InputIt begin, InputIt end, OutputIt out)
 template <typename T, typename InputIt, typename OutputIt,
           FMTQUILL_ENABLE_IF(is_back_insert_iterator<OutputIt>::value &&
                         !has_back_insert_iterator_container_append<
+                            OutputIt, InputIt>::value &&
+                        has_back_insert_iterator_container_insert_at_end<
                             OutputIt, InputIt>::value)>
 FMTQUILL_CONSTEXPR20 auto copy(InputIt begin, InputIt end, OutputIt out)
     -> OutputIt {
@@ -2063,7 +2110,11 @@ FMTQUILL_CONSTEXPR20 auto copy(InputIt begin, InputIt end, OutputIt out)
 }
 
 template <typename T, typename InputIt, typename OutputIt,
-          FMTQUILL_ENABLE_IF(!is_back_insert_iterator<OutputIt>::value)>
+          FMTQUILL_ENABLE_IF(!(is_back_insert_iterator<OutputIt>::value &&
+                          (has_back_insert_iterator_container_append<
+                               OutputIt, InputIt>::value ||
+                           has_back_insert_iterator_container_insert_at_end<
+                               OutputIt, InputIt>::value)))>
 FMTQUILL_CONSTEXPR auto copy(InputIt begin, InputIt end, OutputIt out) -> OutputIt {
 #if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC diagnostic push
@@ -2193,7 +2244,7 @@ template <typename Context> class value {
     static_assert(N <= 64, "unsupported _BitInt");
   }
 
-  template <typename T, FMTQUILL_ENABLE_IF(is_char<T>::value)>
+  template <typename T, FMTQUILL_ENABLE_IF(is_code_unit<T>::value)>
   constexpr FMTQUILL_INLINE value(T x FMTQUILL_BUILTIN) : char_value(x) {
     static_assert(
         std::is_same<T, char>::value || std::is_same<T, char_type>::value,
@@ -2269,7 +2320,7 @@ template <typename Context> class value {
         custom.value = const_cast<value_type*>(&x);
 #endif
     }
-    custom.format = format_custom<value_type, formatter<value_type, char_type>>;
+    custom.format = format_custom<value_type>;
   }
 
   template <typename T, FMTQUILL_ENABLE_IF(!has_formatter<T, char_type>())>
@@ -2280,10 +2331,10 @@ template <typename Context> class value {
   }
 
   // Formats an argument of a custom type, such as a user-defined class.
-  template <typename T, typename Formatter>
+  template <typename T>
   static void format_custom(void* arg, parse_context<char_type>& parse_ctx,
                             Context& ctx) {
-    auto f = Formatter();
+    auto f = formatter<T, char_type>();
     parse_ctx.advance_to(f.parse(parse_ctx));
     using qualified_type =
         conditional_t<has_formatter<const T, char_type>(), const T, T>;
@@ -2310,35 +2361,14 @@ struct is_output_iterator<
     enable_if_t<std::is_assignable<decltype(*std::declval<decay_t<It>&>()++),
                                    T>::value>> : std::true_type {};
 
-#ifndef FMTQUILL_USE_LOCALE
-#  define FMTQUILL_USE_LOCALE (FMTQUILL_OPTIMIZE_SIZE <= 1)
-#endif
-
-// A type-erased reference to an std::locale to avoid a heavy <locale> include.
-class locale_ref {
-#if FMTQUILL_USE_LOCALE
- private:
-  const void* locale_;  // A type-erased pointer to std::locale.
-
- public:
-  constexpr locale_ref() : locale_(nullptr) {}
-  template <typename Locale> locale_ref(const Locale& loc);
-
-  inline explicit operator bool() const noexcept { return locale_ != nullptr; }
-#endif  // FMTQUILL_USE_LOCALE
-
- public:
-  template <typename Locale> auto get() const -> Locale;
-};
-
 template <typename> constexpr auto encode_types() -> unsigned long long {
   return 0;
 }
 
-template <typename Context, typename Arg, typename... Args>
+template <typename Context, typename First, typename... T>
 constexpr auto encode_types() -> unsigned long long {
-  return static_cast<unsigned>(stored_type_constant<Arg, Context>::value) |
-         (encode_types<Context, Args...>() << packed_arg_bits);
+  return static_cast<unsigned>(stored_type_constant<First, Context>::value) |
+         (encode_types<Context, T...>() << packed_arg_bits);
 }
 
 template <typename Context, typename... T, size_t NUM_ARGS = sizeof...(T)>
@@ -2355,8 +2385,9 @@ template <typename Context, int NUM_ARGS, int NUM_NAMED_ARGS,
           unsigned long long DESC>
 struct named_arg_store {
   // args_[0].named_args points to named_args to avoid bloating format_args.
-  arg_t<Context, NUM_ARGS> args[1 + NUM_ARGS];
-  named_arg_info<typename Context::char_type> named_args[NUM_NAMED_ARGS];
+  arg_t<Context, NUM_ARGS> args[1u + NUM_ARGS];
+  named_arg_info<typename Context::char_type>
+      named_args[static_cast<size_t>(NUM_NAMED_ARGS)];
 
   template <typename... T>
   FMTQUILL_CONSTEXPR FMTQUILL_ALWAYS_INLINE named_arg_store(T&... values)
@@ -2375,8 +2406,8 @@ struct named_arg_store {
   }
 
   named_arg_store(const named_arg_store& rhs) = delete;
-  named_arg_store& operator=(const named_arg_store& rhs) = delete;
-  named_arg_store& operator=(named_arg_store&& rhs) = delete;
+  auto operator=(const named_arg_store& rhs) -> named_arg_store& = delete;
+  auto operator=(named_arg_store&& rhs) -> named_arg_store& = delete;
   operator const arg_t<Context, NUM_ARGS>*() const { return args + 1; }
 };
 
@@ -2389,7 +2420,7 @@ struct format_arg_store {
   // +1 to workaround a bug in gcc 7.5 that causes duplicated-branches warning.
   using type =
       conditional_t<NUM_NAMED_ARGS == 0,
-                    arg_t<Context, NUM_ARGS>[max_of(1, NUM_ARGS)],
+                    arg_t<Context, NUM_ARGS>[max_of<size_t>(1, NUM_ARGS)],
                     named_arg_store<Context, NUM_ARGS, NUM_NAMED_ARGS, DESC>>;
   type args;
 };
@@ -2673,22 +2704,17 @@ class context {
  private:
   appender out_;
   format_args args_;
-  FMTQUILL_NO_UNIQUE_ADDRESS detail::locale_ref loc_;
+  FMTQUILL_NO_UNIQUE_ADDRESS locale_ref loc_;
 
  public:
-  /// The character type for the output.
-  using char_type = char;
-
+  using char_type = char;  ///< The character type for the output.
   using iterator = appender;
   using format_arg = basic_format_arg<context>;
-  using parse_context_type FMTQUILL_DEPRECATED = parse_context<>;
-  template <typename T> using formatter_type FMTQUILL_DEPRECATED = formatter<T>;
   enum { builtin_types = FMTQUILL_BUILTIN_TYPES };
 
   /// Constructs a `context` object. References to the arguments are stored
   /// in the object so make sure they have appropriate lifetimes.
-  FMTQUILL_CONSTEXPR context(iterator out, format_args args,
-                        detail::locale_ref loc = {})
+  FMTQUILL_CONSTEXPR context(iterator out, format_args args, locale_ref loc = {})
       : out_(out), args_(args), loc_(loc) {}
   context(context&&) = default;
   context(const context&) = delete;
@@ -2709,7 +2735,7 @@ class context {
   // Advances the begin iterator to `it`.
   FMTQUILL_CONSTEXPR void advance_to(iterator) {}
 
-  FMTQUILL_CONSTEXPR auto locale() const -> detail::locale_ref { return loc_; }
+  FMTQUILL_CONSTEXPR auto locale() const -> locale_ref { return loc_; }
 };
 
 template <typename Char = char> struct runtime_format_string {
@@ -2795,9 +2821,6 @@ using is_formattable = bool_constant<!std::is_same<
 template <typename T, typename Char = char>
 concept formattable = is_formattable<remove_reference_t<T>, Char>::value;
 #endif
-
-template <typename T, typename Char>
-using has_formatter FMTQUILL_DEPRECATED = std::is_constructible<formatter<T, Char>>;
 
 // A formatter specialization for natively supported types.
 template <typename T, typename Char>
@@ -2995,9 +3018,10 @@ FMTQUILL_INLINE void println(format_string<T...> fmt, T&&... args) {
   return fmtquill::println(stdout, fmt, static_cast<T&&>(args)...);
 }
 
-FMTQUILL_END_EXPORT
+FMTQUILL_PRAGMA_GCC(diagnostic pop)
 FMTQUILL_PRAGMA_CLANG(diagnostic pop)
 FMTQUILL_PRAGMA_GCC(pop_options)
+FMTQUILL_END_EXPORT
 FMTQUILL_END_NAMESPACE
 
 

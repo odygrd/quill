@@ -29,7 +29,8 @@
 #  if (FMTQUILL_HAS_INCLUDE(<fcntl.h>) || defined(__APPLE__) || \
        defined(__linux__)) &&                              \
       (!defined(WINAPI_FAMILY) ||                          \
-       (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP))
+       (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP)) &&    \
+      !defined(__wasm__)
 #    include <fcntl.h>  // for O_RDONLY
 #    define FMTQUILL_USE_FCNTL 1
 #  else
@@ -135,10 +136,9 @@ FMTQUILL_API std::system_error vwindows_error(int error_code, string_view fmt,
  * **Example**:
  *
  *     // This throws a system_error with the description
- *     //   cannot open file 'madeup': The system cannot find the file
- * specified.
- *     // or similar (system message may vary).
- *     const char *filename = "madeup";
+ *     //   cannot open file 'foo': The system cannot find the file specified.
+ *     // or similar (system message may vary) if the file doesn't exist.
+ *     const char *filename = "foo";
  *     LPOFSTRUCT of = LPOFSTRUCT();
  *     HFILE file = OpenFile(filename, &of, OF_READ);
  *     if (file == HFILE_ERROR) {
@@ -364,17 +364,17 @@ FMTQUILL_INLINE_VARIABLE constexpr auto buffer_size = detail::buffer_size();
 
 /// A fast buffered output stream for writing from a single thread. Writing from
 /// multiple threads without external synchronization may result in a data race.
-class FMTQUILL_API ostream : private detail::buffer<char> {
+class ostream : private detail::buffer<char> {
  private:
   file file_;
 
-  ostream(cstring_view path, const detail::ostream_params& params);
+  FMTQUILL_API ostream(cstring_view path, const detail::ostream_params& params);
 
-  static void grow(buffer<char>& buf, size_t);
+  FMTQUILL_API static void grow(buffer<char>& buf, size_t);
 
  public:
-  ostream(ostream&& other) noexcept;
-  ~ostream();
+  FMTQUILL_API ostream(ostream&& other) noexcept;
+  FMTQUILL_API ~ostream();
 
   operator writer() {
     detail::buffer<char>& buf = *this;
