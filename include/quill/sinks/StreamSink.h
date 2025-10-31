@@ -25,6 +25,15 @@
 #include <vector>
 
 #if defined(_WIN32)
+  #if !defined(WIN32_LEAN_AND_MEAN)
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+
+  #if !defined(NOMINMAX)
+    // Mingw already defines this, so no need to redefine
+    #define NOMINMAX
+  #endif
+  
   #include <io.h>
   #include <windows.h>
 #endif
