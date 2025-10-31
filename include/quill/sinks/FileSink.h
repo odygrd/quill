@@ -23,6 +23,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <thread>
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
@@ -35,16 +36,18 @@
   #endif
 
   #include <io.h>
+  #include <share.h>
   #include <windows.h>
 #else
+  #include <fcntl.h>
   #include <unistd.h>
 #endif
 
 QUILL_BEGIN_NAMESPACE
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4996)
+  #pragma warning(push)
+  #pragma warning(disable : 4996)
 #endif
 
 enum class FilenameAppendOption : uint8_t
@@ -363,11 +366,59 @@ protected:
       _file_event_notifier.before_open(filename);
     }
 
-    _file = fopen(filename.string().data(), mode.data());
+    // Retry file open to handle transient failures (e.g., antivirus locking on Windows)
+    constexpr int max_retries = 3;
+    constexpr int retry_delay_ms = 200;
+
+    for (int attempt = 0; attempt < max_retries; ++attempt)
+    {
+#if defined(_WIN32)
+      // Use _fsopen with _SH_DENYNO to allow other processes to read the file
+      // while we're writing (e.g., tail, monitoring tools)
+      _file = ::_fsopen(filename.string().data(), mode.data(), _SH_DENYNO);
+
+      if (_file)
+      {
+        // Prevent child processes from inheriting this file handle
+        auto file_handle = reinterpret_cast<HANDLE>(::_get_osfhandle(::_fileno(_file)));
+        if (!::SetHandleInformation(file_handle, HANDLE_FLAG_INHERIT, 0))
+        {
+          ::fclose(_file);
+          _file = nullptr;
+        }
+      }
+#else
+      // Unix: use open() with O_CLOEXEC to prevent child processes from inheriting the FD
+      int flags = O_CREAT | O_WRONLY | O_CLOEXEC;
+      flags |= (mode == "w") ? O_TRUNC : O_APPEND;
+
+      int fd = ::open(filename.string().data(), flags, 0644);
+      if (fd != -1)
+      {
+        _file = ::fdopen(fd, mode.data());
+        if (!_file)
+        {
+          ::close(fd);
+        }
+      }
+#endif
+
+      if (_file)
+      {
+        break; // Success
+      }
+
+      // Retry after delay if not the last attempt
+      if (attempt < max_retries - 1)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds{retry_delay_ms});
+      }
+    }
 
     if (!_file)
     {
-      QUILL_THROW(QuillError{std::string{"fopen failed failed path: "} + filename.string() + " mode: " + mode +
+      QUILL_THROW(QuillError{std::string{"fopen failed after "} + std::to_string(max_retries) +
+                             " attempts, path: " + filename.string() + " mode: " + mode +
                              " errno: " + std::to_string(errno) + " error: " + strerror(errno)});
     }
 

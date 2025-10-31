@@ -24,6 +24,11 @@
 #include <utility>
 #include <vector>
 
+#if defined(_WIN32)
+  #include <io.h>
+  #include <windows.h>
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
@@ -199,6 +204,31 @@ public:
    */
   QUILL_ATTRIBUTE_HOT static void safe_fwrite(void const* ptr, size_t size, size_t count, FILE* stream)
   {
+#if defined(_WIN32)
+    // On Windows, using fwrite to non-binary stream (stdout/stderr) results in \r\r\n
+    // Instead, use WriteFile for console streams
+    if ((stream == stdout) || (stream == stderr))
+    {
+      HANDLE const handle = reinterpret_cast<HANDLE>(::_get_osfhandle(::_fileno(stream)));
+
+      if (QUILL_LIKELY(handle != INVALID_HANDLE_VALUE))
+      {
+        auto const total_bytes = static_cast<DWORD>(size * count);
+        DWORD bytes_written = 0;
+
+        if ((::WriteFile(handle, ptr, total_bytes, &bytes_written, nullptr) == 0) || (bytes_written != total_bytes))
+        {
+          QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
+                                 std::to_string(::GetLastError())});
+        }
+
+        return;
+      }
+
+      // Fall through to fwrite if the handle is invalid (e.g., no console attached)
+    }
+#endif
+
     size_t const written = std::fwrite(ptr, size, count, stream);
 
     if (QUILL_UNLIKELY(written < count))
@@ -214,8 +244,10 @@ protected:
    */
   QUILL_ATTRIBUTE_HOT void flush()
   {
-    _write_occurred = false;
-    fflush(_file);
+    if (fflush(_file) == 0)
+    {
+      _write_occurred = false;
+    }
   }
 
 protected:

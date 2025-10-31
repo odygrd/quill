@@ -243,6 +243,13 @@ public:
    */
   void notify()
   {
+#ifdef __MINGW32__
+    // MinGW can deadlock if the mutex is released before cv.notify_one(),
+    // so keep notify_one() inside the lock for MinGW
+    std::lock_guard<std::mutex> lock{_wake_up_mutex};
+    _wake_up_flag = true;
+    _wake_up_cv.notify_one();
+#else
     // Set the flag to indicate that the data is ready
     {
       std::lock_guard<std::mutex> lock{_wake_up_mutex};
@@ -251,6 +258,7 @@ public:
 
     // Signal the condition variable to wake up the worker thread
     _wake_up_cv.notify_one();
+#endif
   }
 
 private:
@@ -707,7 +715,7 @@ private:
     // commit this transit event
     thread_context->_transit_event_buffer->push_back();
     _format_args_store.clear();
-    
+
     return true;
   }
 
@@ -1272,13 +1280,15 @@ private:
       });
 
     bool should_flush_sinks{false};
+    std::chrono::steady_clock::time_point now;
+
     if (sink_min_flush_interval.count())
     {
       // conditional flush sinks
-      if (auto const now = std::chrono::steady_clock::now(); (now - _last_sink_flush_time) > sink_min_flush_interval)
+      now = std::chrono::steady_clock::now();
+      if ((now - _last_sink_flush_time) > sink_min_flush_interval)
       {
         should_flush_sinks = true;
-        _last_sink_flush_time = now;
       }
     }
     else
@@ -1308,6 +1318,12 @@ private:
       {
         sink->run_periodic_tasks();
       }
+    }
+
+    // Only update the timestamp after we actually attempted to flush
+    if (should_flush_sinks && sink_min_flush_interval.count() && !_active_sinks_cache.empty())
+    {
+      _last_sink_flush_time = now;
     }
 
     _active_sinks_cache.clear();
