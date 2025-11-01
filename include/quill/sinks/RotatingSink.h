@@ -24,6 +24,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -680,7 +681,17 @@ private:
 
     if (ec)
     {
-      return false;
+      // Retry once after a delay - workaround for Windows antivirus locking files
+      // This is a common issue where antivirus software temporarily locks files during scanning
+      std::this_thread::sleep_for(std::chrono::milliseconds{250});
+
+      ec.clear();
+      fs::rename(previous_file, new_file, ec);
+
+      if (ec)
+      {
+        return false;
+      }
     }
 
     return true;

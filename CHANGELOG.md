@@ -96,6 +96,10 @@
 ## v10.3.0
 
 - Update bundled `libfmt` to `v12.1.0`
+- Minor correction to `_last_sink_flush_time update` when `fflush()` fails
+- Added retry logic and shared access handling for file open and rotation on Windows
+- Use `::WriteFile` instead of `fwrite` to prevent `\r\r\n` line endings on Windows
+- Avoid file descriptor leaks by setting `O_CLOEXEC` on Unix and `HANDLE_FLAG_INHERIT` on Windows
 
 ## v10.2.0
 
