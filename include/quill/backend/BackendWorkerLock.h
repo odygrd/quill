@@ -26,6 +26,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
 
+#include <cstring>
 #include <string>
 
 QUILL_BEGIN_NAMESPACE
@@ -80,7 +81,7 @@ public:
     if (_sem == SEM_FAILED)
     {
       QUILL_THROW(QuillError{"Failed to create semaphore - errno: " + std::to_string(errno) +
-                             " error: " + strerror(errno)});
+                             " error: " + std::strerror(errno)});
     }
 
     // Immediately unlink it so that it leaves no traces.

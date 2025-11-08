@@ -43,7 +43,7 @@ inline tm* gmtime_rs(time_t const* timer, tm* buf)
   if (QUILL_UNLIKELY(!res))
   {
     QUILL_THROW(QuillError{std::string{"failed to call gmtime_rs, with error message errno: " +
-                                       std::to_string(errno) + " error: " + strerror(errno)}});
+                                       std::to_string(errno) + " error: " + std::strerror(errno)}});
   }
   return res;
 #endif
@@ -71,7 +71,7 @@ inline tm* localtime_rs(time_t const* timer, tm* buf)
   if (QUILL_UNLIKELY(!res))
   {
     QUILL_THROW(QuillError{std::string{"failed to call localtime_rs, with error message errno: " +
-                                       std::to_string(errno) + " error: " + strerror(errno)}});
+                                       std::to_string(errno) + " error: " + std::strerror(errno)}});
   }
   return res;
 #endif

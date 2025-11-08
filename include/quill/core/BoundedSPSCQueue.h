@@ -285,7 +285,7 @@ private:
     if (mem == MAP_FAILED)
     {
       QUILL_THROW(QuillError{std::string{"mmap failed. errno: "} + std::to_string(errno) +
-                             " error: " + strerror(errno)});
+                             " error: " + std::strerror(errno)});
     }
 
     // Calculate the aligned address after the metadata

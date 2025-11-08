@@ -419,7 +419,7 @@ protected:
     {
       QUILL_THROW(QuillError{std::string{"fopen failed after "} + std::to_string(max_retries) +
                              " attempts, path: " + filename.string() + " mode: " + mode +
-                             " errno: " + std::to_string(errno) + " error: " + strerror(errno)});
+                             " errno: " + std::to_string(errno) + " error: " + std::strerror(errno)});
     }
 
     if (_config.write_buffer_size() != 0)
@@ -428,7 +428,7 @@ protected:
 
       if (setvbuf(_file, _write_buffer.get(), _IOFBF, _config.write_buffer_size()) != 0)
       {
-        QUILL_THROW(QuillError{std::string{"setvbuf failed error: "} + strerror(errno)});
+        QUILL_THROW(QuillError{std::string{"setvbuf failed error: "} + std::strerror(errno)});
       }
     }
 
