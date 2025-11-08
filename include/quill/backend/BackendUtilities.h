@@ -109,7 +109,7 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   if (QUILL_UNLIKELY(err == -1))
   {
     QUILL_THROW(QuillError{std::string{"Failed to set cpu affinity - errno: " + std::to_string(errno) +
-                                       " error: " + strerror(errno)}});
+                                       " error: " + std::strerror(errno)}});
   }
 #endif
 }
@@ -138,7 +138,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   if (res != 0)
   {
     QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
-                                       " error: " + strerror(res)}});
+                                       " error: " + std::strerror(res)}});
   }
 #else
   // Linux
@@ -154,7 +154,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   if (res != 0)
   {
     QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
-                                       " error: " + strerror(res)}});
+                                       " error: " + std::strerror(res)}});
   }
   #else
   auto const res = pthread_setname_np(pthread_self(), truncated_name);
@@ -162,7 +162,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
   if (res != 0)
   {
     QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
-                                       " error: " + strerror(res)}});
+                                       " error: " + std::strerror(res)}});
   }
   #endif
 #endif
