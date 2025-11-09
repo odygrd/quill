@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <type_traits>
 
 #include "quill/core/Attributes.h"
@@ -79,17 +80,13 @@ public:
       if (_capacity == N)
       {
         // Entering here for the first time, then we copy the inline storage
-        for (size_t i = 0; i < _size; ++i)
-        {
-          new_data[i] = _storage.inline_buffer[i];
-        }
+        // Use memcpy for trivially copyable types to avoid false positive warnings with LTO
+        std::memcpy(new_data, _storage.inline_buffer, _size * sizeof(value_type));
       }
       else
       {
-        for (size_t i = 0; i < _size; ++i)
-        {
-          new_data[i] = _storage.heap_buffer[i];
-        }
+        // Use memcpy for trivially copyable types to avoid false positive warnings with LTO
+        std::memcpy(new_data, _storage.heap_buffer, _size * sizeof(value_type));
         delete[] _storage.heap_buffer;
       }
 

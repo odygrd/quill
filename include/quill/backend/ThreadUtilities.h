@@ -124,7 +124,7 @@ ReturnT callRunTimeDynamicLinkedFunction(std::string const& dll_name,
 
   // Use memcpy to avoid the strict cast warning in Clang
   Signature callable;
-  memcpy(&callable, &proc_address, sizeof(proc_address));
+  std::memcpy(&callable, &proc_address, sizeof(proc_address));
 
   ReturnT const hr = callable(static_cast<Args&&>(args)...);
   BOOL const fFreeResult = FreeLibrary(hinstLibrary);
