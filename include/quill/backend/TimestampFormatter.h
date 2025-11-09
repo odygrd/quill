@@ -187,8 +187,8 @@ private:
     fmtquill::format_int const extracted_ms_string{extracted_fractional_seconds};
 
     // _formatted_date.size() - extracted_ms_string.size() is where we want to begin placing the fractional seconds
-    memcpy(&_formatted_date[_formatted_date.size() - extracted_ms_string.size()],
-           extracted_ms_string.data(), extracted_ms_string.size());
+    std::memcpy(&_formatted_date[_formatted_date.size() - extracted_ms_string.size()],
+                extracted_ms_string.data(), extracted_ms_string.size());
   }
 
 private:

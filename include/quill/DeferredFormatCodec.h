@@ -29,7 +29,7 @@ QUILL_BEGIN_NAMESPACE
 /**
  * @brief Provides serialization (codec) functionality for complex user-defined types.
  *
- * This codec minimizes overhead on the hot-path by directly using memcpy or
+ * This codec minimizes overhead on the hot-path by directly using std::memcpy or
  * placement new to serialize objects into the SPSC buffer,
  *
  * This approach avoids expensive string formatting on the hot path.
@@ -139,7 +139,7 @@ struct DeferredFormatCodec
     else
     {
       static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>,
-              "T must be move or copy constructible");
+                    "T must be move or copy constructible");
 
       auto aligned_ptr = align_pointer(buffer, alignof(T));
       auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
