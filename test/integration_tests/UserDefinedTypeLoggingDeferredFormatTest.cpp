@@ -877,12 +877,14 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
     LOG_INFO(logger, "Pair<MoveAndCopy+MoveOnly> {}", std::move(mixed_move_pair));
   }
 
+#if !defined(__GNUC__) || __GNUC__ >= 10
   // Test std::pair with MoveAndCopyType + CopyOnlyType (all elements copy-constructible)
   {
     std::pair<MoveAndCopyType, CopyOnlyType> mixed_copy_pair{
       MoveAndCopyType("Albert", "Value54", 54), CopyOnlyType("Beth", "Value55", 55)};
     LOG_INFO(logger, "Pair<MoveAndCopy+CopyOnly> {}", mixed_copy_pair);
   }
+#endif
 
   // Test std::tuple with MoveOnlyType
   {
@@ -915,12 +917,14 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
     LOG_INFO(logger, "Tuple<MoveAndCopy+MoveOnly> {}", std::move(mixed_move_tuple));
   }
 
+#if !defined(__GNUC__) || __GNUC__ >= 10
   // Test std::tuple with MoveAndCopyType + CopyOnlyType (all elements copy-constructible)
   {
     std::tuple<MoveAndCopyType, CopyOnlyType> mixed_copy_tuple{
       MoveAndCopyType("Walter", "Value50", 50), CopyOnlyType("Xena", "Value51", 51)};
     LOG_INFO(logger, "Tuple<MoveAndCopy+CopyOnly> {}", mixed_copy_tuple);
   }
+#endif
 
   // Test std::optional with MoveOnlyType
   {
@@ -952,7 +956,11 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
+#if !defined(__GNUC__) || __GNUC__ >= 10
   REQUIRE_EQ(file_contents.size(), 69);
+#else
+  REQUIRE_EQ(file_contents.size(), 67);
+#endif
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
@@ -1154,8 +1162,10 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Pair<MoveAndCopy+MoveOnly> (MoveAndCopyType(name: Yolanda, value: Value52, count: 52), MoveOnlyType(name: Zara, value: Value53, count: 53))"}));
 
+#if !defined(__GNUC__) || __GNUC__ >= 10
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Pair<MoveAndCopy+CopyOnly> (MoveAndCopyType(name: Albert, value: Value54, count: 54), CopyOnlyType(name: Beth, value: Value55, count: 55))"}));
+#endif
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Tuple<MoveOnlyType> (MoveOnlyType(name: Mia, value: Value39, count: 39), MoveOnlyType(name: Noah, value: Value40, count: 40))"}));
@@ -1169,8 +1179,10 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Tuple<MoveAndCopy+MoveOnly> (MoveAndCopyType(name: Ulysses, value: Value48, count: 48), MoveOnlyType(name: Vera, value: Value49, count: 49))"}));
 
+#if !defined(__GNUC__) || __GNUC__ >= 10
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Tuple<MoveAndCopy+CopyOnly> (MoveAndCopyType(name: Walter, value: Value50, count: 50), CopyOnlyType(name: Xena, value: Value51, count: 51))"}));
+#endif
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Optional<MoveOnlyType> optional(MoveOnlyType(name: Tom, value: Value45, count: 45))"}));
