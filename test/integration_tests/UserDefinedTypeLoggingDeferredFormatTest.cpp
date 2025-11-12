@@ -229,6 +229,11 @@ public:
   MoveOnlyType(MoveOnlyType const&) = delete;
   MoveOnlyType& operator=(MoveOnlyType const&) = delete;
 
+  bool operator==(MoveOnlyType const& other) const
+  {
+    return name == other.name && value == other.value && count == other.count;
+  }
+
   std::string name;
   std::string value;
   uint32_t count{};
@@ -271,6 +276,11 @@ public:
   CopyOnlyType(CopyOnlyType&&) = delete;
   CopyOnlyType& operator=(CopyOnlyType&&) = delete;
 
+  bool operator==(CopyOnlyType const& other) const
+  {
+    return name == other.name && value == other.value && count == other.count;
+  }
+
   std::string name;
   std::string value;
   uint32_t count{};
@@ -312,6 +322,11 @@ public:
   MoveAndCopyType(MoveAndCopyType const&) = default;
   MoveAndCopyType& operator=(MoveAndCopyType const&) = default;
 
+  bool operator==(MoveAndCopyType const& other) const
+  {
+    return name == other.name && value == other.value && count == other.count;
+  }
+
   std::string name;
   std::string value;
   uint32_t count{};
@@ -335,6 +350,40 @@ template <>
 struct quill::Codec<MoveAndCopyType> : quill::DeferredFormatCodec<MoveAndCopyType>
 {
 };
+
+// Hash specializations for unordered containers
+namespace std
+{
+template <>
+struct hash<MoveOnlyType>
+{
+  size_t operator()(MoveOnlyType const& obj) const noexcept
+  {
+    return hash<std::string>{}(obj.name) ^ (hash<std::string>{}(obj.value) << 1) ^
+      (hash<uint32_t>{}(obj.count) << 2);
+  }
+};
+
+template <>
+struct hash<CopyOnlyType>
+{
+  size_t operator()(CopyOnlyType const& obj) const noexcept
+  {
+    return hash<std::string>{}(obj.name) ^ (hash<std::string>{}(obj.value) << 1) ^
+      (hash<uint32_t>{}(obj.count) << 2);
+  }
+};
+
+template <>
+struct hash<MoveAndCopyType>
+{
+  size_t operator()(MoveAndCopyType const& obj) const noexcept
+  {
+    return hash<std::string>{}(obj.name) ^ (hash<std::string>{}(obj.value) << 1) ^
+      (hash<uint32_t>{}(obj.count) << 2);
+  }
+};
+} // namespace std
 
 /***/
 TEST_CASE("custom_type_defined_type_deferred_format_logging")
@@ -582,6 +631,329 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
                 MoveAndCopyType{"Nancy", "TempValue6", 666});
   }
 
+  // Test STL containers with MoveOnlyType
+  {
+    std::vector<MoveOnlyType> move_only_vec;
+    move_only_vec.emplace_back("Alice", "Value1", 1);
+    move_only_vec.emplace_back("Bob", "Value2", 2);
+    LOG_INFO(logger, "Vector<MoveOnlyType> {}", std::move(move_only_vec));
+  }
+
+  {
+    std::list<MoveOnlyType> move_only_list;
+    move_only_list.emplace_back("Charlie", "Value3", 3);
+    move_only_list.emplace_back("Diana", "Value4", 4);
+    LOG_INFO(logger, "List<MoveOnlyType> {}", std::move(move_only_list));
+  }
+
+  // Test STL containers with CopyOnlyType
+  {
+    std::vector<CopyOnlyType> copy_only_vec;
+    copy_only_vec.emplace_back("Eve", "Value5", 5);
+    copy_only_vec.emplace_back("Frank", "Value6", 6);
+    LOG_INFO(logger, "Vector<CopyOnlyType> {}", copy_only_vec);
+  }
+
+  {
+    std::list<CopyOnlyType> copy_only_list;
+    copy_only_list.emplace_back("Grace", "Value7", 7);
+    copy_only_list.emplace_back("Helen", "Value8", 8);
+    LOG_INFO(logger, "List<CopyOnlyType> {}", copy_only_list);
+  }
+
+  // Test STL containers with MoveAndCopyType
+  {
+    std::vector<MoveAndCopyType> move_copy_vec;
+    move_copy_vec.emplace_back("Ian", "Value9", 9);
+    move_copy_vec.emplace_back("Jane", "Value10", 10);
+    LOG_INFO(logger, "Vector<MoveAndCopyType> lvalue {}", move_copy_vec);
+    // Verify vector still usable (was copied)
+    REQUIRE_EQ(move_copy_vec.size(), 2);
+  }
+
+  {
+    std::vector<MoveAndCopyType> move_copy_vec_moved;
+    move_copy_vec_moved.emplace_back("Karl", "Value11", 11);
+    move_copy_vec_moved.emplace_back("Laura", "Value12", 12);
+    LOG_INFO(logger, "Vector<MoveAndCopyType> std::move {}", move_copy_vec_moved);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_vec_moved.size(), 2);
+    REQUIRE_EQ(move_copy_vec_moved[0].name, "Karl");
+    REQUIRE_EQ(move_copy_vec_moved[0].value, "Value11");
+    REQUIRE_EQ(move_copy_vec_moved[0].count, 11);
+  }
+
+  {
+    std::list<MoveAndCopyType> move_copy_list;
+    move_copy_list.emplace_back("Mike", "Value13", 13);
+    move_copy_list.emplace_back("Nancy", "Value14", 14);
+    LOG_INFO(logger, "List<MoveAndCopyType> {}", move_copy_list);
+  }
+
+  // Test std::deque with MoveOnlyType
+  {
+    std::deque<MoveOnlyType> move_only_deque;
+    move_only_deque.emplace_back("Oscar", "Value15", 15);
+    move_only_deque.emplace_back("Paul", "Value16", 16);
+    LOG_INFO(logger, "Deque<MoveOnlyType> {}", std::move(move_only_deque));
+  }
+
+  // Test std::deque with CopyOnlyType
+  {
+    std::deque<CopyOnlyType> copy_only_deque;
+    copy_only_deque.emplace_back("Quinn", "Value17", 17);
+    copy_only_deque.emplace_back("Rachel", "Value18", 18);
+    LOG_INFO(logger, "Deque<CopyOnlyType> {}", copy_only_deque);
+  }
+
+  // Test std::deque with MoveAndCopyType
+  {
+    std::deque<MoveAndCopyType> move_copy_deque;
+    move_copy_deque.emplace_back("Sam", "Value19", 19);
+    move_copy_deque.emplace_back("Tina", "Value20", 20);
+    LOG_INFO(logger, "Deque<MoveAndCopyType> {}", move_copy_deque);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_deque.size(), 2);
+    REQUIRE_EQ(move_copy_deque[0].name, "Sam");
+    REQUIRE_EQ(move_copy_deque[0].value, "Value19");
+  }
+
+  // Test std::set with MoveOnlyType
+  {
+    std::set<int> move_only_set_keys;
+    move_only_set_keys.insert(1);
+    move_only_set_keys.insert(2);
+    LOG_INFO(logger, "Set<int> {}", std::move(move_only_set_keys));
+  }
+
+  // Test std::map with MoveOnlyType values
+  {
+    std::map<int, MoveOnlyType> move_only_map;
+    move_only_map.emplace(1, MoveOnlyType("Uma", "Value21", 21));
+    move_only_map.emplace(2, MoveOnlyType("Victor", "Value22", 22));
+    LOG_INFO(logger, "Map<int,MoveOnlyType> {}", std::move(move_only_map));
+  }
+
+  // Test std::map with CopyOnlyType values
+  {
+    std::map<int, CopyOnlyType> copy_only_map;
+    copy_only_map.emplace(1, CopyOnlyType("Wendy", "Value23", 23));
+    copy_only_map.emplace(2, CopyOnlyType("Xavier", "Value24", 24));
+    LOG_INFO(logger, "Map<int,CopyOnlyType> {}", copy_only_map);
+  }
+
+  // Test std::map with MoveAndCopyType values
+  {
+    std::map<int, MoveAndCopyType> move_copy_map;
+    move_copy_map.emplace(1, MoveAndCopyType("Yara", "Value25", 25));
+    move_copy_map.emplace(2, MoveAndCopyType("Zack", "Value26", 26));
+    LOG_INFO(logger, "Map<int,MoveAndCopyType> {}", move_copy_map);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_map.size(), 2);
+    REQUIRE_EQ(move_copy_map[1].name, "Yara");
+    REQUIRE_EQ(move_copy_map[1].value, "Value25");
+  }
+
+  // Test std::unordered_map with MoveOnlyType values
+  {
+    std::unordered_map<int, MoveOnlyType> move_only_unordered_map;
+    move_only_unordered_map.emplace(1, MoveOnlyType("Alice", "Value101", 101));
+    move_only_unordered_map.emplace(2, MoveOnlyType("Bob", "Value102", 102));
+    LOG_INFO(logger, "UnorderedMap<int,MoveOnlyType> {}", std::move(move_only_unordered_map));
+  }
+
+  // Test std::unordered_map with CopyOnlyType values
+  {
+    std::unordered_map<int, CopyOnlyType> copy_only_unordered_map;
+    copy_only_unordered_map.emplace(std::piecewise_construct, std::forward_as_tuple(1),
+                                    std::forward_as_tuple("Charlie", "Value103", 103));
+    copy_only_unordered_map.emplace(std::piecewise_construct, std::forward_as_tuple(2),
+                                    std::forward_as_tuple("Diana", "Value104", 104));
+    LOG_INFO(logger, "UnorderedMap<int,CopyOnlyType> {}", copy_only_unordered_map);
+  }
+
+  // Test std::unordered_map with MoveAndCopyType values
+  {
+    std::unordered_map<int, MoveAndCopyType> move_copy_unordered_map;
+    move_copy_unordered_map.emplace(1, MoveAndCopyType("Eve", "Value105", 105));
+    move_copy_unordered_map.emplace(2, MoveAndCopyType("Frank", "Value106", 106));
+    LOG_INFO(logger, "UnorderedMap<int,MoveAndCopyType> {}", move_copy_unordered_map);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_unordered_map.size(), 2);
+    REQUIRE_EQ(move_copy_unordered_map[1].name, "Eve");
+    REQUIRE_EQ(move_copy_unordered_map[1].value, "Value105");
+  }
+
+  // Test std::unordered_set with CopyOnlyType
+  {
+    std::unordered_set<CopyOnlyType> copy_only_uset;
+    copy_only_uset.emplace("Nancy", "Value115", 115);
+    copy_only_uset.emplace("Oscar", "Value116", 116);
+    LOG_INFO(logger, "UnorderedSet<CopyOnlyType> {}", copy_only_uset);
+  }
+
+  // Test std::unordered_set with MoveAndCopyType
+  {
+    std::unordered_set<MoveAndCopyType> move_copy_uset;
+    move_copy_uset.emplace(MoveAndCopyType("Paula", "Value117", 117));
+    move_copy_uset.emplace(MoveAndCopyType("Quinn", "Value118", 118));
+    LOG_INFO(logger, "UnorderedSet<MoveAndCopyType> {}", move_copy_uset);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_uset.size(), 2);
+    auto it = move_copy_uset.begin();
+    REQUIRE_FALSE(it->name.empty());
+  }
+
+  // Test std::forward_list with MoveOnlyType
+  {
+    std::forward_list<MoveOnlyType> move_only_flist;
+    move_only_flist.emplace_front(MoveOnlyType("Grace", "Value107", 107));
+    move_only_flist.emplace_front(MoveOnlyType("Henry", "Value108", 108));
+    LOG_INFO(logger, "ForwardList<MoveOnlyType> {}", std::move(move_only_flist));
+  }
+
+  // Test std::forward_list with CopyOnlyType
+  {
+    std::forward_list<CopyOnlyType> copy_only_flist;
+    copy_only_flist.emplace_front("Iris", "Value109", 109);
+    copy_only_flist.emplace_front("Jack", "Value110", 110);
+    LOG_INFO(logger, "ForwardList<CopyOnlyType> {}", copy_only_flist);
+  }
+
+  // Test std::forward_list with MoveAndCopyType
+  {
+    std::forward_list<MoveAndCopyType> move_copy_flist;
+    move_copy_flist.emplace_front(MoveAndCopyType("Kate", "Value111", 111));
+    move_copy_flist.emplace_front(MoveAndCopyType("Leo", "Value112", 112));
+    LOG_INFO(logger, "ForwardList<MoveAndCopyType> {}", move_copy_flist);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_flist.front().name, "Leo");
+    REQUIRE_EQ(move_copy_flist.front().value, "Value112");
+  }
+
+  // Test std::array with MoveOnlyType
+  {
+    std::array<MoveOnlyType, 2> move_only_array;
+    move_only_array[0] = MoveOnlyType("Amy", "Value27", 27);
+    move_only_array[1] = MoveOnlyType("Ben", "Value28", 28);
+    LOG_INFO(logger, "Array<MoveOnlyType> {}", std::move(move_only_array));
+  }
+
+  // Test std::array with CopyOnlyType
+  {
+    std::array<CopyOnlyType, 2> copy_only_array{CopyOnlyType("Carol", "Value29", 29),
+                                                CopyOnlyType("Dan", "Value30", 30)};
+    LOG_INFO(logger, "Array<CopyOnlyType> {}", copy_only_array);
+  }
+
+  // Test std::array with MoveAndCopyType
+  {
+    std::array<MoveAndCopyType, 2> move_copy_array;
+    move_copy_array[0] = MoveAndCopyType("Emma", "Value31", 31);
+    move_copy_array[1] = MoveAndCopyType("Frank", "Value32", 32);
+    LOG_INFO(logger, "Array<MoveAndCopyType> {}", move_copy_array);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_array[0].name, "Emma");
+    REQUIRE_EQ(move_copy_array[0].value, "Value31");
+  }
+
+  // Test std::pair with MoveOnlyType
+  {
+    std::pair<MoveOnlyType, MoveOnlyType> move_only_pair{MoveOnlyType("George", "Value33", 33),
+                                                         MoveOnlyType("Hannah", "Value34", 34)};
+    LOG_INFO(logger, "Pair<MoveOnlyType> {}", std::move(move_only_pair));
+  }
+
+  // Test std::pair with CopyOnlyType
+  {
+    std::pair<CopyOnlyType, CopyOnlyType> copy_only_pair{CopyOnlyType("Iris", "Value35", 35),
+                                                         CopyOnlyType("Jack", "Value36", 36)};
+    LOG_INFO(logger, "Pair<CopyOnlyType> {}", copy_only_pair);
+  }
+
+  // Test std::pair with MoveAndCopyType
+  {
+    std::pair<MoveAndCopyType, MoveAndCopyType> move_copy_pair{
+      MoveAndCopyType("Kate", "Value37", 37), MoveAndCopyType("Leo", "Value38", 38)};
+    LOG_INFO(logger, "Pair<MoveAndCopyType> {}", move_copy_pair);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_pair.first.name, "Kate");
+    REQUIRE_EQ(move_copy_pair.first.value, "Value37");
+  }
+
+  // Test std::pair with MoveAndCopyType + MoveOnlyType (all elements move-constructible)
+  {
+    std::pair<MoveAndCopyType, MoveOnlyType> mixed_move_pair{
+      MoveAndCopyType("Yolanda", "Value52", 52), MoveOnlyType("Zara", "Value53", 53)};
+    LOG_INFO(logger, "Pair<MoveAndCopy+MoveOnly> {}", std::move(mixed_move_pair));
+  }
+
+  // Test std::pair with MoveAndCopyType + CopyOnlyType (all elements copy-constructible)
+  {
+    std::pair<MoveAndCopyType, CopyOnlyType> mixed_copy_pair{
+      MoveAndCopyType("Albert", "Value54", 54), CopyOnlyType("Beth", "Value55", 55)};
+    LOG_INFO(logger, "Pair<MoveAndCopy+CopyOnly> {}", mixed_copy_pair);
+  }
+
+  // Test std::tuple with MoveOnlyType
+  {
+    std::tuple<MoveOnlyType, MoveOnlyType> move_only_tuple{MoveOnlyType("Mia", "Value39", 39),
+                                                           MoveOnlyType("Noah", "Value40", 40)};
+    LOG_INFO(logger, "Tuple<MoveOnlyType> {}", std::move(move_only_tuple));
+  }
+
+  // Test std::tuple with CopyOnlyType
+  {
+    std::tuple<CopyOnlyType, CopyOnlyType> copy_only_tuple{CopyOnlyType("Olivia", "Value41", 41),
+                                                           CopyOnlyType("Peter", "Value42", 42)};
+    LOG_INFO(logger, "Tuple<CopyOnlyType> {}", copy_only_tuple);
+  }
+
+  // Test std::tuple with MoveAndCopyType
+  {
+    std::tuple<MoveAndCopyType, MoveAndCopyType> move_copy_tuple{
+      MoveAndCopyType("Rose", "Value43", 43), MoveAndCopyType("Steve", "Value44", 44)};
+    LOG_INFO(logger, "Tuple<MoveAndCopyType> {}", move_copy_tuple);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(std::get<0>(move_copy_tuple).name, "Rose");
+    REQUIRE_EQ(std::get<0>(move_copy_tuple).value, "Value43");
+  }
+
+  // Test std::tuple with MoveAndCopyType + MoveOnlyType (all elements move-constructible)
+  {
+    std::tuple<MoveAndCopyType, MoveOnlyType> mixed_move_tuple{
+      MoveAndCopyType("Ulysses", "Value48", 48), MoveOnlyType("Vera", "Value49", 49)};
+    LOG_INFO(logger, "Tuple<MoveAndCopy+MoveOnly> {}", std::move(mixed_move_tuple));
+  }
+
+  // Test std::tuple with MoveAndCopyType + CopyOnlyType (all elements copy-constructible)
+  {
+    std::tuple<MoveAndCopyType, CopyOnlyType> mixed_copy_tuple{
+      MoveAndCopyType("Walter", "Value50", 50), CopyOnlyType("Xena", "Value51", 51)};
+    LOG_INFO(logger, "Tuple<MoveAndCopy+CopyOnly> {}", mixed_copy_tuple);
+  }
+
+  // Test std::optional with MoveOnlyType
+  {
+    std::optional<MoveOnlyType> move_only_opt{MoveOnlyType("Tom", "Value45", 45)};
+    LOG_INFO(logger, "Optional<MoveOnlyType> {}", std::move(move_only_opt));
+  }
+
+  // Test std::optional with CopyOnlyType
+  {
+    std::optional<CopyOnlyType> copy_only_opt{std::in_place, "Uma2", "Value46", 46};
+    LOG_INFO(logger, "Optional<CopyOnlyType> {}", copy_only_opt);
+  }
+
+  // Test std::optional with MoveAndCopyType
+  {
+    std::optional<MoveAndCopyType> move_copy_opt{MoveAndCopyType("Vince", "Value47", 47)};
+    LOG_INFO(logger, "Optional<MoveAndCopyType> {}", move_copy_opt);
+    // Verify object is still valid after logging without std::move
+    REQUIRE_EQ(move_copy_opt.value().name, "Vince");
+    REQUIRE_EQ(move_copy_opt.value().value, "Value47");
+  }
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -590,7 +962,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 32);
+  REQUIRE_EQ(file_contents.size(), 70);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
@@ -687,6 +1059,140 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveAndCopy temporary with function MoveAndCopyType(name: Nancy, value: TempValue6, count: 666)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Vector<MoveOnlyType> [MoveOnlyType(name: Alice, value: Value1, count: 1), MoveOnlyType(name: Bob, value: Value2, count: 2)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       List<MoveOnlyType> [MoveOnlyType(name: Charlie, value: Value3, count: 3), MoveOnlyType(name: Diana, value: Value4, count: 4)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Vector<CopyOnlyType> [CopyOnlyType(name: Eve, value: Value5, count: 5), CopyOnlyType(name: Frank, value: Value6, count: 6)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       List<CopyOnlyType> [CopyOnlyType(name: Grace, value: Value7, count: 7), CopyOnlyType(name: Helen, value: Value8, count: 8)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Vector<MoveAndCopyType> lvalue [MoveAndCopyType(name: Ian, value: Value9, count: 9), MoveAndCopyType(name: Jane, value: Value10, count: 10)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Vector<MoveAndCopyType> std::move [MoveAndCopyType(name: Karl, value: Value11, count: 11), MoveAndCopyType(name: Laura, value: Value12, count: 12)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       List<MoveAndCopyType> [MoveAndCopyType(name: Mike, value: Value13, count: 13), MoveAndCopyType(name: Nancy, value: Value14, count: 14)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Deque<MoveOnlyType> [MoveOnlyType(name: Oscar, value: Value15, count: 15), MoveOnlyType(name: Paul, value: Value16, count: 16)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Deque<CopyOnlyType> [CopyOnlyType(name: Quinn, value: Value17, count: 17), CopyOnlyType(name: Rachel, value: Value18, count: 18)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Deque<MoveAndCopyType> [MoveAndCopyType(name: Sam, value: Value19, count: 19), MoveAndCopyType(name: Tina, value: Value20, count: 20)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Set<int> {1, 2}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Map<int,MoveOnlyType> {1: MoveOnlyType(name: Uma, value: Value21, count: 21), 2: MoveOnlyType(name: Victor, value: Value22, count: 22)}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Map<int,CopyOnlyType> {1: CopyOnlyType(name: Wendy, value: Value23, count: 23), 2: CopyOnlyType(name: Xavier, value: Value24, count: 24)}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Map<int,MoveAndCopyType> {1: MoveAndCopyType(name: Yara, value: Value25, count: 25), 2: MoveAndCopyType(name: Zack, value: Value26, count: 26)}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       UnorderedMap<int,MoveOnlyType> {"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MoveOnlyType(name: Alice, value: Value101, count: 101)"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MoveOnlyType(name: Bob, value: Value102, count: 102)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       UnorderedMap<int,CopyOnlyType> {"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"CopyOnlyType(name: Charlie, value: Value103, count: 103)"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"CopyOnlyType(name: Diana, value: Value104, count: 104)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       UnorderedMap<int,MoveAndCopyType> {"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MoveAndCopyType(name: Eve, value: Value105, count: 105)"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MoveAndCopyType(name: Frank, value: Value106, count: 106)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       UnorderedSet<CopyOnlyType> {"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"CopyOnlyType(name: Nancy, value: Value115, count: 115)"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"CopyOnlyType(name: Oscar, value: Value116, count: 116)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       UnorderedSet<MoveAndCopyType> {"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MoveAndCopyType(name: Paula, value: Value117, count: 117)"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"MoveAndCopyType(name: Quinn, value: Value118, count: 118)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       ForwardList<MoveOnlyType> [MoveOnlyType(name: Henry, value: Value108, count: 108), MoveOnlyType(name: Grace, value: Value107, count: 107)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       ForwardList<CopyOnlyType> [CopyOnlyType(name: Jack, value: Value110, count: 110), CopyOnlyType(name: Iris, value: Value109, count: 109)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       ForwardList<MoveAndCopyType> [MoveAndCopyType(name: Leo, value: Value112, count: 112), MoveAndCopyType(name: Kate, value: Value111, count: 111)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Array<MoveOnlyType> [MoveOnlyType(name: Amy, value: Value27, count: 27), MoveOnlyType(name: Ben, value: Value28, count: 28)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Array<CopyOnlyType> [CopyOnlyType(name: Carol, value: Value29, count: 29), CopyOnlyType(name: Dan, value: Value30, count: 30)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Array<MoveAndCopyType> [MoveAndCopyType(name: Emma, value: Value31, count: 31), MoveAndCopyType(name: Frank, value: Value32, count: 32)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Pair<MoveOnlyType> (MoveOnlyType(name: George, value: Value33, count: 33), MoveOnlyType(name: Hannah, value: Value34, count: 34))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Pair<CopyOnlyType> (CopyOnlyType(name: Iris, value: Value35, count: 35), CopyOnlyType(name: Jack, value: Value36, count: 36))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Pair<MoveAndCopyType> (MoveAndCopyType(name: Kate, value: Value37, count: 37), MoveAndCopyType(name: Leo, value: Value38, count: 38))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Pair<MoveAndCopy+MoveOnly> (MoveAndCopyType(name: Yolanda, value: Value52, count: 52), MoveOnlyType(name: Zara, value: Value53, count: 53))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Pair<MoveAndCopy+CopyOnly> (MoveAndCopyType(name: Albert, value: Value54, count: 54), CopyOnlyType(name: Beth, value: Value55, count: 55))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Tuple<MoveOnlyType> (MoveOnlyType(name: Mia, value: Value39, count: 39), MoveOnlyType(name: Noah, value: Value40, count: 40))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Tuple<CopyOnlyType> (CopyOnlyType(name: Olivia, value: Value41, count: 41), CopyOnlyType(name: Peter, value: Value42, count: 42))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Tuple<MoveAndCopyType> (MoveAndCopyType(name: Rose, value: Value43, count: 43), MoveAndCopyType(name: Steve, value: Value44, count: 44))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Tuple<MoveAndCopy+MoveOnly> (MoveAndCopyType(name: Ulysses, value: Value48, count: 48), MoveOnlyType(name: Vera, value: Value49, count: 49))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Tuple<MoveAndCopy+CopyOnly> (MoveAndCopyType(name: Walter, value: Value50, count: 50), CopyOnlyType(name: Xena, value: Value51, count: 51))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Optional<MoveOnlyType> optional(MoveOnlyType(name: Tom, value: Value45, count: 45))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Optional<CopyOnlyType> optional(CopyOnlyType(name: Uma2, value: Value46, count: 46))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Optional<MoveAndCopyType> optional(MoveAndCopyType(name: Vince, value: Value47, count: 47))"}));
 
   testing::remove_file(filename);
 }

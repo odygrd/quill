@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 #include <utility>
 
 QUILL_BEGIN_NAMESPACE
@@ -33,11 +34,22 @@ struct Codec<std::pair<T1, T2>>
     return total_size;
   }
 
+  template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, std::pair<T1, T2> const& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
   {
-    Codec<T1>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.first);
-    Codec<T2>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.second);
+    if constexpr (std::is_rvalue_reference_v<Arg&&>)
+    {
+      Codec<T1>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                        std::move(arg.first));
+      Codec<T2>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                        std::move(arg.second));
+    }
+    else
+    {
+      Codec<T1>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.first);
+      Codec<T2>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.second);
+    }
   }
 
   static auto decode_arg(std::byte*& buffer)
@@ -95,8 +107,26 @@ struct Codec<std::pair<T1, T2>>
       using ReturnType2 = decltype(Codec<T2>::decode_arg(buffer));
       std::pair<ReturnType1, ReturnType2> arg;
 
-      arg.first = Codec<T1>::decode_arg(buffer);
-      arg.second = Codec<T2>::decode_arg(buffer);
+      auto elem1 = Codec<T1>::decode_arg(buffer);
+      if constexpr (std::is_move_constructible_v<ReturnType1>)
+      {
+        arg.first = std::move(elem1);
+      }
+      else
+      {
+        arg.first = elem1;
+      }
+
+      auto elem2 = Codec<T2>::decode_arg(buffer);
+      if constexpr (std::is_move_constructible_v<ReturnType2>)
+      {
+        arg.second = std::move(elem2);
+      }
+      else
+      {
+        arg.second = elem2;
+      }
+
       return arg;
 
 #if defined(_WIN32)

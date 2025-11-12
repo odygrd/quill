@@ -17,6 +17,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <type_traits>
+#include <utility>
 
 #if defined(_WIN32)
   #include <string>
@@ -40,14 +42,23 @@ struct Codec<std::optional<T>>
     return total_size;
   }
 
+  template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, std::optional<T> const& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
   {
     Codec<bool>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.has_value());
 
     if (arg.has_value())
     {
-      Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, *arg);
+      if constexpr (std::is_rvalue_reference_v<Arg&&>)
+      {
+        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                         std::move(*arg));
+      }
+      else
+      {
+        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, *arg);
+      }
     }
   }
 
@@ -79,7 +90,15 @@ struct Codec<std::optional<T>>
       bool const has_value = Codec<bool>::decode_arg(buffer);
       if (has_value)
       {
-        arg = Codec<T>::decode_arg(buffer);
+        auto elem = Codec<T>::decode_arg(buffer);
+        if constexpr (std::is_move_constructible_v<ReturnType>)
+        {
+          arg = std::move(elem);
+        }
+        else
+        {
+          arg = elem;
+        }
       }
 
       return arg;

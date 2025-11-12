@@ -71,10 +71,10 @@ TEST_CASE("std_filesystem_path_logging")
     file_contents, std::string{"LOG_INFO      " + logger_name + "       sp_2 /usr/local/bin /usr/local/bin /usr/local/bin"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_path \"/test/rvalue/path\""}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_path /test/rvalue/path"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_path \"/test/temp/path\""}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_path /test/temp/path"}));
 
   testing::remove_file(filename);
 }

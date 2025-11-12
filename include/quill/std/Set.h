@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <set>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
@@ -54,15 +55,26 @@ struct Codec<SetType<Key, Compare, Allocator>,
     return total_size;
   }
 
+  template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index,
-                     SetType<Key, Compare, Allocator> const& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 
-    for (auto const& elem : arg)
+    if constexpr (std::is_rvalue_reference_v<Arg&&>)
     {
-      Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
+      for (auto&& elem : arg)
+      {
+        Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                           std::move(elem));
+      }
+    }
+    else
+    {
+      for (auto const& elem : arg)
+      {
+        Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
+      }
     }
   }
 
@@ -103,7 +115,15 @@ struct Codec<SetType<Key, Compare, Allocator>,
 
       for (size_t i = 0; i < number_of_elements; ++i)
       {
-        arg.emplace(Codec<Key>::decode_arg(buffer));
+        auto elem = Codec<Key>::decode_arg(buffer);
+        if constexpr (std::is_move_constructible_v<ReturnType>)
+        {
+          arg.emplace(std::move(elem));
+        }
+        else
+        {
+          arg.emplace(elem);
+        }
       }
 
       return arg;

@@ -225,9 +225,11 @@ TEST_CASE("std_vector_logging")
                                                 CustomTypeTC{7, 8, 9}, CustomTypeTC{10, 11, 12}};
     LOG_INFO(logger, "custom_type_tc {}", custom_type_tc);
 
-    // Test rvalue references with vectors
     std::vector<int> rvalue_vec = {100, 200, 300};
     LOG_INFO(logger, "rvalue_vec {}", std::move(rvalue_vec));
+
+    std::vector<std::string> rvalue_vec_large = {std::string(60, 'A'), std::string(50, 'B')};
+    LOG_INFO(logger, "rvalue_vec_large {}", std::move(rvalue_vec_large));
 
     // Test with temporary vector
     LOG_INFO(logger, "temp_vec {}", std::vector<std::string>{"temp1", "temp2", "temp3"});
@@ -346,6 +348,11 @@ TEST_CASE("std_vector_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_vec [100, 200, 300]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents,
+    std::string{"LOG_INFO      " + logger_name + "       rvalue_vec_large [\"" +
+                std::string(60, 'A') + "\", \"" + std::string(50, 'B') + "\"]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_vec [\"temp1\", \"temp2\", \"temp3\"]"}));
