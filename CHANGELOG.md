@@ -100,6 +100,7 @@
 - Added retry logic and shared access handling for file open and rotation on Windows
 - Use `::WriteFile` instead of `fwrite` to prevent `\r\r\n` line endings on Windows
 - Avoid file descriptor leaks by setting `O_CLOEXEC` on Unix and `HANDLE_FLAG_INHERIT` on Windows
+- Fixed argument forwarding when encoding user-defined types with `DeferredFormatCodec` or STL containers to properly handle rvalue references. 
 
 ## v10.2.0
 

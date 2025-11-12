@@ -59,6 +59,13 @@ TEST_CASE("std_pair_logging")
 
     std::pair<int, double> empt;
     LOG_INFO(logger, "empt {}", empt);
+
+    // Test rvalue references with pairs
+    std::pair<int, std::string> rvalue_pair = {100, "hundred"};
+    LOG_INFO(logger, "rvalue_pair {}", std::move(rvalue_pair));
+
+    // Test with temporary pair
+    LOG_INFO(logger, "temp_pair {}", std::pair<int, std::string>{200, "twohundred"});
   }
 
   logger->flush_log();
@@ -87,6 +94,12 @@ TEST_CASE("std_pair_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empt (0, 0)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_pair (100, \"hundred\")"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_pair (200, \"twohundred\")"}));
 
   testing::remove_file(filename);
 }

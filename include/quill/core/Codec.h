@@ -201,7 +201,7 @@ struct Codec
     {
       size_t constexpr N = std::extent_v<Arg>;
       uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      
+
       // Local copy improves generated code (avoids aliasing penalties)
       std::byte* buf_ptr = buffer;
 
@@ -223,7 +223,7 @@ struct Codec
     {
       // null terminator is included in the len for c style strings
       uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-      
+
       // Local copy improves generated code (avoids aliasing penalties)
       std::byte* buf_ptr = buffer;
 
@@ -369,11 +369,12 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string
  * @param args The arguments to be encoded.
  */
 template <typename... Args>
-QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
-                                Args const&... args)
+QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer,
+                                SizeCacheVector const& conditional_arg_size_cache, Args&&... args)
 {
   QUILL_MAYBE_UNUSED uint32_t conditional_arg_size_cache_index{0};
-  (Codec<remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, args),
+  (Codec<remove_cvref_t<Args>>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                                       static_cast<decltype(args)&&>(args)),
    ...);
 }
 

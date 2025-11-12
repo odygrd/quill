@@ -158,6 +158,13 @@ TEST_CASE("std_deque_logging")
 
     std::deque<int> empt;
     LOG_INFO(logger, "empt {}", empt);
+
+    // Test rvalue references with deque
+    std::deque<int> rvalue_deque = {100, 200, 300};
+    LOG_INFO(logger, "rvalue_deque {}", std::move(rvalue_deque));
+
+    // Test with temporary deque
+    LOG_INFO(logger, "temp_deque {}", std::deque<std::string>{"temp1", "temp2", "temp3"});
   }
 
   logger->flush_log();
@@ -258,6 +265,12 @@ TEST_CASE("std_deque_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empt []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_deque [100, 200, 300]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_deque [\"temp1\", \"temp2\", \"temp3\"]"}));
 
   testing::remove_file(filename);
 }

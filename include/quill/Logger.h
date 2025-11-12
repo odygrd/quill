@@ -118,7 +118,8 @@ public:
                                   detail::decode_and_store_args<detail::remove_cvref_t<Args>...>);
 
     // encode remaining arguments
-    detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(),
+                   static_cast<decltype(fmt_args)&&>(fmt_args)...);
 
     QUILL_ASSERT_WITH_FMT(
       write_buffer > write_begin,
@@ -227,21 +228,21 @@ public:
     if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy)
     {
       // encode runtime metadata and remaining arguments
-      detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(), fmt,
-                     file_path, function_name, tags, line_number, log_level, fmt_args...);
+      detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(), fmt, file_path, function_name,
+                     tags, line_number, log_level, static_cast<decltype(fmt_args)&&>(fmt_args)...);
     }
     else if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy)
     {
       detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(),
                      static_cast<void const*>(fmt), static_cast<void const*>(file_path),
                      static_cast<void const*>(function_name), static_cast<void const*>(tags),
-                     line_number, log_level, fmt_args...);
+                     line_number, log_level, static_cast<decltype(fmt_args)&&>(fmt_args)...);
     }
     else if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy)
     {
       detail::encode(write_buffer, _thread_context->get_conditional_arg_size_cache(), fmt,
                      static_cast<void const*>(file_path), static_cast<void const*>(function_name),
-                     tags, line_number, log_level, fmt_args...);
+                     tags, line_number, log_level, static_cast<decltype(fmt_args)&&>(fmt_args)...);
     }
 
     QUILL_ASSERT_WITH_FMT(write_buffer > write_begin,

@@ -3,6 +3,7 @@
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
+#include "quill/LogFunctions.h"
 #include "quill/LogMacros.h"
 #include "quill/Utility.h"
 #include "quill/sinks/FileSink.h"
@@ -211,6 +212,131 @@ struct quill::Codec<CustomTypeCCThrows> : quill::DeferredFormatCodec<CustomTypeC
 };
 
 /***/
+class MoveOnlyType
+{
+public:
+  MoveOnlyType() = default;
+
+  explicit MoveOnlyType(std::string name, std::string value, uint32_t count)
+    : name(static_cast<std::string&&>(name)), value(static_cast<std::string&&>(value)), count(count)
+  {
+  }
+
+  MoveOnlyType(MoveOnlyType&&) = default;
+  MoveOnlyType& operator=(MoveOnlyType&&) = default;
+
+  // Delete copy operations to make it move-only
+  MoveOnlyType(MoveOnlyType const&) = delete;
+  MoveOnlyType& operator=(MoveOnlyType const&) = delete;
+
+  std::string name;
+  std::string value;
+  uint32_t count{};
+};
+
+/***/
+template <>
+struct fmtquill::formatter<MoveOnlyType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::MoveOnlyType const& obj, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "MoveOnlyType(name: {}, value: {}, count: {})", obj.name,
+                               obj.value, obj.count);
+  }
+};
+
+/***/
+template <>
+struct quill::Codec<MoveOnlyType> : quill::DeferredFormatCodec<MoveOnlyType>
+{
+};
+
+/***/
+class CopyOnlyType
+{
+public:
+  CopyOnlyType() = default;
+
+  explicit CopyOnlyType(std::string name, std::string value, uint32_t count)
+    : name(name), value(value), count(count)
+  {
+  }
+
+  CopyOnlyType(CopyOnlyType const&) = default;
+  CopyOnlyType& operator=(CopyOnlyType const&) = default;
+
+  // Delete move operations to make it copy-only
+  CopyOnlyType(CopyOnlyType&&) = delete;
+  CopyOnlyType& operator=(CopyOnlyType&&) = delete;
+
+  std::string name;
+  std::string value;
+  uint32_t count{};
+};
+
+/***/
+template <>
+struct fmtquill::formatter<CopyOnlyType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::CopyOnlyType const& obj, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "CopyOnlyType(name: {}, value: {}, count: {})", obj.name,
+                               obj.value, obj.count);
+  }
+};
+
+/***/
+template <>
+struct quill::Codec<CopyOnlyType> : quill::DeferredFormatCodec<CopyOnlyType>
+{
+};
+
+/***/
+class MoveAndCopyType
+{
+public:
+  MoveAndCopyType() = default;
+
+  explicit MoveAndCopyType(std::string name, std::string value, uint32_t count)
+    : name(static_cast<std::string&&>(name)), value(static_cast<std::string&&>(value)), count(count)
+  {
+  }
+
+  MoveAndCopyType(MoveAndCopyType&&) = default;
+  MoveAndCopyType& operator=(MoveAndCopyType&&) = default;
+
+  MoveAndCopyType(MoveAndCopyType const&) = default;
+  MoveAndCopyType& operator=(MoveAndCopyType const&) = default;
+
+  std::string name;
+  std::string value;
+  uint32_t count{};
+};
+
+/***/
+template <>
+struct fmtquill::formatter<MoveAndCopyType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::MoveAndCopyType const& obj, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "MoveAndCopyType(name: {}, value: {}, count: {})",
+                               obj.name, obj.value, obj.count);
+  }
+};
+
+/***/
+template <>
+struct quill::Codec<MoveAndCopyType> : quill::DeferredFormatCodec<MoveAndCopyType>
+{
+};
+
+/***/
 TEST_CASE("custom_type_defined_type_deferred_format_logging")
 {
   static constexpr char const* filename = "custom_type_defined_type_deferred_format_logging.log";
@@ -372,6 +498,90 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
     LOG_INFO(logger, "CustomTypeCC UnSet {}", custom_type_cc_unset);
   }
 
+  // Test move-only type with std::move() using LOG_INFO macro
+  {
+    MoveOnlyType move_obj{"Alice", "MovedValue1", 42};
+    LOG_INFO(logger, "MoveOnly std::move with macro {}", static_cast<MoveOnlyType&&>(move_obj));
+  }
+
+  // Test move-only type with temporary using LOG_INFO macro
+  {
+    LOG_INFO(logger, "MoveOnly temporary with macro {}", MoveOnlyType{"Bob", "TempValue", 99});
+  }
+
+  // Test move-only type with std::move() using quill::info function
+  {
+    MoveOnlyType move_obj_fn{"Charlie", "MovedValue2", 123};
+    quill::info(logger, "MoveOnly std::move with function {}", static_cast<MoveOnlyType&&>(move_obj_fn));
+  }
+
+  // Test move-only type with temporary using quill::info function
+  {
+    quill::info(logger, "MoveOnly temporary with function {}", MoveOnlyType{"Diana", "TempValue2", 456});
+  }
+
+  // Test copy-only type with LOG_INFO macro
+  {
+    CopyOnlyType copy_obj{"Eve", "CopiedValue1", 50};
+    LOG_INFO(logger, "CopyOnly with macro {}", copy_obj);
+  }
+
+  // Test copy-only type with temporary using LOG_INFO macro
+  {
+    LOG_INFO(logger, "CopyOnly temporary with macro {}", CopyOnlyType{"Frank", "TempValue3", 77});
+  }
+
+  // Test copy-only type using quill::info function
+  {
+    CopyOnlyType copy_obj_fn{"Grace", "CopiedValue2", 88};
+    quill::info(logger, "CopyOnly with function {}", copy_obj_fn);
+  }
+
+  // Test copy-only type with temporary using quill::info function
+  {
+    quill::info(logger, "CopyOnly temporary with function {}", CopyOnlyType{"Helen", "TempValue4", 200});
+  }
+
+  // Test type with both move and copy - lvalue should use copy to preserve object
+  {
+    MoveAndCopyType both_obj{"Ian", "BothValue1", 111};
+    LOG_INFO(logger, "MoveAndCopy lvalue with macro {}", both_obj);
+    // Verify object is still usable after logging (it was copied, not moved)
+    REQUIRE_EQ(both_obj.name, "Ian");
+  }
+
+  // Test type with both move and copy - explicit move
+  {
+    MoveAndCopyType both_obj_moved{"Jane", "BothValue2", 222};
+    LOG_INFO(logger, "MoveAndCopy std::move with macro {}", static_cast<MoveAndCopyType&&>(both_obj_moved));
+  }
+
+  // Test type with both move and copy - temporary (should move)
+  {
+    LOG_INFO(logger, "MoveAndCopy temporary with macro {}", MoveAndCopyType{"Karl", "TempValue3", 333});
+  }
+
+  // Test type with both move and copy - lvalue with function should use copy
+  {
+    MoveAndCopyType both_obj_fn{"Laura", "BothValue4", 444};
+    quill::info(logger, "MoveAndCopy lvalue with function {}", both_obj_fn);
+    // Verify object is still usable after logging (it was copied, not moved)
+    REQUIRE_EQ(both_obj_fn.name, "Laura");
+  }
+
+  // Test type with both move and copy - explicit move with function
+  {
+    MoveAndCopyType both_obj_fn_moved{"Mike", "BothValue5", 555};
+    quill::info(logger, "MoveAndCopy std::move with function {}",
+                static_cast<MoveAndCopyType&&>(both_obj_fn_moved));
+  }
+
+  // Test type with both move and copy - temporary with function (should move)
+  {
+    quill::info(logger, "MoveAndCopy temporary with function {}",
+                MoveAndCopyType{"Nancy", "TempValue6", 666});
+  }
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -380,7 +590,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 18);
+  REQUIRE_EQ(file_contents.size(), 32);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
@@ -435,6 +645,48 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeCC UnSet {Name: Another, Surname: Name, Age: 13, Favorite Colors: [\"red\", \"blue\", \"green\"]}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveOnly std::move with macro MoveOnlyType(name: Alice, value: MovedValue1, count: 42)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveOnly temporary with macro MoveOnlyType(name: Bob, value: TempValue, count: 99)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveOnly std::move with function MoveOnlyType(name: Charlie, value: MovedValue2, count: 123)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveOnly temporary with function MoveOnlyType(name: Diana, value: TempValue2, count: 456)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CopyOnly with macro CopyOnlyType(name: Eve, value: CopiedValue1, count: 50)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CopyOnly temporary with macro CopyOnlyType(name: Frank, value: TempValue3, count: 77)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CopyOnly with function CopyOnlyType(name: Grace, value: CopiedValue2, count: 88)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CopyOnly temporary with function CopyOnlyType(name: Helen, value: TempValue4, count: 200)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveAndCopy lvalue with macro MoveAndCopyType(name: Ian, value: BothValue1, count: 111)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveAndCopy std::move with macro MoveAndCopyType(name: Jane, value: BothValue2, count: 222)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveAndCopy temporary with macro MoveAndCopyType(name: Karl, value: TempValue3, count: 333)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveAndCopy lvalue with function MoveAndCopyType(name: Laura, value: BothValue4, count: 444)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveAndCopy std::move with function MoveAndCopyType(name: Mike, value: BothValue5, count: 555)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       MoveAndCopy temporary with function MoveAndCopyType(name: Nancy, value: TempValue6, count: 666)"}));
 
   testing::remove_file(filename);
 }

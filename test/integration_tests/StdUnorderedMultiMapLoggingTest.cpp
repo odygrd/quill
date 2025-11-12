@@ -63,6 +63,16 @@ TEST_CASE("std_unordered_multimap_logging")
 
     std::unordered_multimap<char const*, int> cim = {{"4", 4}};
     LOG_INFO(logger, "cim {}", cim);
+
+    // Test rvalue references with unordered_multimap
+    std::unordered_multimap<int, std::string> rvalue_unordered_multimap = {
+      {1, "one"}, {2, "two"}, {3, "three"}};
+    LOG_INFO(logger, "rvalue_unordered_multimap {}",
+             std::move(rvalue_unordered_multimap));
+
+    // Test with temporary unordered_multimap
+    LOG_INFO(logger, "temp_unordered_multimap {}",
+             std::unordered_multimap<int, std::string>{{10, "ten"}, {20, "twenty"}, {30, "thirty"}});
   }
 
   logger->flush_log();
@@ -88,6 +98,12 @@ TEST_CASE("std_unordered_multimap_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       cim {\"4\": 4}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_unordered_multimap {"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_unordered_multimap {"}));
 
   testing::remove_file(filename);
 }

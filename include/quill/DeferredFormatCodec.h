@@ -124,6 +124,30 @@ struct DeferredFormatCodec
     }
   }
 
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T&& arg)
+  {
+    if constexpr (use_memcpy)
+    {
+      std::memcpy(buffer, &arg, sizeof(arg));
+      buffer += sizeof(arg);
+    }
+    else
+    {
+      auto aligned_ptr = align_pointer(buffer, alignof(T));
+
+      if constexpr (is_move_constructible<T>::value)
+      {
+        new (static_cast<void*>(aligned_ptr)) T(std::move(arg));
+      }
+      else
+      {
+        new (static_cast<void*>(aligned_ptr)) T(arg);
+      }
+
+      buffer += sizeof(T) + alignof(T) - 1;
+    }
+  }
+
   static T decode_arg(std::byte*& buffer)
   {
     if constexpr (use_memcpy)
@@ -168,7 +192,7 @@ struct DeferredFormatCodec
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    args_store->push_back(decode_arg(buffer));
+    args_store->push_back(std::move(decode_arg(buffer)));
   }
 
 private:

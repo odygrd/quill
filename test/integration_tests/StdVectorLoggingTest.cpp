@@ -224,6 +224,13 @@ TEST_CASE("std_vector_logging")
     std::vector<CustomTypeTC> custom_type_tc = {CustomTypeTC{1, 2, 3}, CustomTypeTC{4, 5, 6},
                                                 CustomTypeTC{7, 8, 9}, CustomTypeTC{10, 11, 12}};
     LOG_INFO(logger, "custom_type_tc {}", custom_type_tc);
+
+    // Test rvalue references with vectors
+    std::vector<int> rvalue_vec = {100, 200, 300};
+    LOG_INFO(logger, "rvalue_vec {}", std::move(rvalue_vec));
+
+    // Test with temporary vector
+    LOG_INFO(logger, "temp_vec {}", std::vector<std::string>{"temp1", "temp2", "temp3"});
   }
 
   logger->flush_log();
@@ -336,6 +343,12 @@ TEST_CASE("std_vector_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       custom_type_tc [Name: 1, Surname: 2, Age: 3, Name: 4, Surname: 5, Age: 6, Name: 7, Surname: 8, Age: 9, Name: 10, Surname: 11, Age: 12]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_vec [100, 200, 300]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_vec [\"temp1\", \"temp2\", \"temp3\"]"}));
 
   testing::remove_file(filename);
 }

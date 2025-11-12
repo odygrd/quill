@@ -57,6 +57,10 @@ TEST_CASE("std_chrono_logging")
   std::chrono::nanoseconds ns{10};
   LOG_INFO(logger, "nanoseconds [{}]", ns);
 
+  // Test rvalue with chrono duration
+  auto rvalue_duration = std::chrono::seconds(100);
+  LOG_INFO(logger, "rvalue_duration [{}]", std::move(rvalue_duration));
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -98,6 +102,13 @@ TEST_CASE("std_chrono_logging")
   {
     std::string expected_string = "LOG_INFO      " + logger_name + "       nanoseconds [";
     expected_string += fmtquill::format("{}", ns);
+    expected_string += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+
+  {
+    std::string expected_string = "LOG_INFO      " + logger_name + "       rvalue_duration [";
+    expected_string += fmtquill::format("{}", std::chrono::seconds(100));
     expected_string += "]";
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
   }
