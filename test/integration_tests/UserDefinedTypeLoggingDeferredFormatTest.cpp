@@ -966,7 +966,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 #ifdef __APPLE__
-  REQUIRE_EQ(file_contents.size(), 69);  // macOS: one less line (no Vector<CopyOnlyType>)
+  REQUIRE_EQ(file_contents.size(), 69); // macOS: one less line (no Vector<CopyOnlyType>)
 #else
   REQUIRE_EQ(file_contents.size(), 70);
 #endif

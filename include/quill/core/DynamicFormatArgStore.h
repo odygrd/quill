@@ -118,10 +118,10 @@ public:
     using char_type = typename fmtquill::format_context::char_type;
     using bare_type = std::remove_cv_t<std::remove_reference_t<T>>;
     constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<bare_type, char_type>::value;
-    using stored_type = std::conditional_t<std::is_convertible_v<bare_type, std::string>, std::string, bare_type>;
+    using stored_type =
+      std::conditional_t<std::is_convertible_v<bare_type, std::string>, std::string, bare_type>;
 
-    if constexpr (!(std::is_same_v<bare_type, std::string_view> ||
-                    std::is_same_v<bare_type, fmtquill::string_view> ||
+    if constexpr (!(std::is_same_v<bare_type, std::string_view> || std::is_same_v<bare_type, fmtquill::string_view> ||
                     (mapped_type != fmtquill::detail::type::cstring_type &&
                      mapped_type != fmtquill::detail::type::string_type &&
                      mapped_type != fmtquill::detail::type::custom_type)))
@@ -133,8 +133,7 @@ public:
       emplace_arg(static_cast<T&&>(arg));
     }
 
-    if constexpr (std::is_same_v<bare_type, std::string_view> ||
-                  std::is_same_v<bare_type, fmtquill::string_view> ||
+    if constexpr (std::is_same_v<bare_type, std::string_view> || std::is_same_v<bare_type, fmtquill::string_view> ||
                   (mapped_type == fmtquill::detail::type::cstring_type) ||
                   (mapped_type == fmtquill::detail::type::string_type) ||
                   (mapped_type == fmtquill::detail::type::custom_type) ||
