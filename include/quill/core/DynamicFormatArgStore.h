@@ -86,6 +86,12 @@ private:
   bool _has_string_related_type{false};
 
   template <typename T>
+  void emplace_arg(T const& arg)
+  {
+    _data.emplace_back(arg);
+  }
+
+  template <typename T>
   void emplace_arg(T&& arg)
   {
     _data.emplace_back(static_cast<T&&>(arg));

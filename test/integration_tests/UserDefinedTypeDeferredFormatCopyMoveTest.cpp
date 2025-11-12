@@ -25,10 +25,9 @@ public:
   MoveOnlyTypeWithCounter() = default;
   ~MoveOnlyTypeWithCounter() { ++dtor_count; }
 
-  explicit MoveOnlyTypeWithCounter(std::string value) : value(static_cast<std::string&&>(value)) {}
+  explicit MoveOnlyTypeWithCounter(std::string value) : value(std::move(value)) {}
 
-  MoveOnlyTypeWithCounter(MoveOnlyTypeWithCounter&& other) noexcept
-    : value(static_cast<std::string&&>(other.value))
+  MoveOnlyTypeWithCounter(MoveOnlyTypeWithCounter&& other) noexcept : value(std::move(other.value))
   {
     ++move_ctor_count;
   }
@@ -115,12 +114,10 @@ public:
   MoveAndCopyTypeWithCounter() = default;
   ~MoveAndCopyTypeWithCounter() { ++dtor_count; }
 
-  explicit MoveAndCopyTypeWithCounter(std::string value) : value(static_cast<std::string&&>(value))
-  {
-  }
+  explicit MoveAndCopyTypeWithCounter(std::string value) : value(std::move(value)) {}
 
   MoveAndCopyTypeWithCounter(MoveAndCopyTypeWithCounter&& other) noexcept
-    : value(static_cast<std::string&&>(other.value))
+    : value(std::move(other.value))
   {
     ++move_ctor_count;
   }

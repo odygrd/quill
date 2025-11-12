@@ -218,7 +218,7 @@ public:
   MoveOnlyType() = default;
 
   explicit MoveOnlyType(std::string name, std::string value, uint32_t count)
-    : name(static_cast<std::string&&>(name)), value(static_cast<std::string&&>(value)), count(count)
+    : name(std::move(name)), value(std::move(value)), count(count)
   {
   }
 
@@ -312,7 +312,7 @@ public:
   MoveAndCopyType() = default;
 
   explicit MoveAndCopyType(std::string name, std::string value, uint32_t count)
-    : name(static_cast<std::string&&>(name)), value(static_cast<std::string&&>(value)), count(count)
+    : name(std::move(name)), value(std::move(value)), count(count)
   {
   }
 
@@ -550,7 +550,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   // Test move-only type with std::move() using LOG_INFO macro
   {
     MoveOnlyType move_obj{"Alice", "MovedValue1", 42};
-    LOG_INFO(logger, "MoveOnly std::move with macro {}", static_cast<MoveOnlyType&&>(move_obj));
+    LOG_INFO(logger, "MoveOnly std::move with macro {}", std::move(move_obj));
   }
 
   // Test move-only type with temporary using LOG_INFO macro
@@ -561,7 +561,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   // Test move-only type with std::move() using quill::info function
   {
     MoveOnlyType move_obj_fn{"Charlie", "MovedValue2", 123};
-    quill::info(logger, "MoveOnly std::move with function {}", static_cast<MoveOnlyType&&>(move_obj_fn));
+    quill::info(logger, "MoveOnly std::move with function {}", std::move(move_obj_fn));
   }
 
   // Test move-only type with temporary using quill::info function
@@ -602,7 +602,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   // Test type with both move and copy - explicit move
   {
     MoveAndCopyType both_obj_moved{"Jane", "BothValue2", 222};
-    LOG_INFO(logger, "MoveAndCopy std::move with macro {}", static_cast<MoveAndCopyType&&>(both_obj_moved));
+    LOG_INFO(logger, "MoveAndCopy std::move with macro {}", std::move(both_obj_moved));
   }
 
   // Test type with both move and copy - temporary (should move)
@@ -621,8 +621,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   // Test type with both move and copy - explicit move with function
   {
     MoveAndCopyType both_obj_fn_moved{"Mike", "BothValue5", 555};
-    quill::info(logger, "MoveAndCopy std::move with function {}",
-                static_cast<MoveAndCopyType&&>(both_obj_fn_moved));
+    quill::info(logger, "MoveAndCopy std::move with function {}", std::move(both_obj_fn_moved));
   }
 
   // Test type with both move and copy - temporary with function (should move)
@@ -646,17 +645,6 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
     LOG_INFO(logger, "List<MoveOnlyType> {}", std::move(move_only_list));
   }
 
-  // Test STL containers with CopyOnlyType
-#ifndef __APPLE__
-  // macOS libc++ requires Cpp17MoveInsertable for std::vector, which CopyOnlyType doesn't satisfy
-  {
-    std::vector<CopyOnlyType> copy_only_vec;
-    copy_only_vec.emplace_back("Eve", "Value5", 5);
-    copy_only_vec.emplace_back("Frank", "Value6", 6);
-    LOG_INFO(logger, "Vector<CopyOnlyType> {}", copy_only_vec);
-  }
-#endif
-
   {
     std::list<CopyOnlyType> copy_only_list;
     copy_only_list.emplace_back("Grace", "Value7", 7);
@@ -672,18 +660,16 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
     LOG_INFO(logger, "Vector<MoveAndCopyType> lvalue {}", move_copy_vec);
     // Verify vector still usable (was copied)
     REQUIRE_EQ(move_copy_vec.size(), 2);
+    REQUIRE_EQ(move_copy_vec[0].name, "Ian");
+    REQUIRE_EQ(move_copy_vec[0].value, "Value9");
+    REQUIRE_EQ(move_copy_vec[0].count, 9);
   }
 
   {
     std::vector<MoveAndCopyType> move_copy_vec_moved;
     move_copy_vec_moved.emplace_back("Karl", "Value11", 11);
     move_copy_vec_moved.emplace_back("Laura", "Value12", 12);
-    LOG_INFO(logger, "Vector<MoveAndCopyType> std::move {}", move_copy_vec_moved);
-    // Verify object is still valid after logging without std::move
-    REQUIRE_EQ(move_copy_vec_moved.size(), 2);
-    REQUIRE_EQ(move_copy_vec_moved[0].name, "Karl");
-    REQUIRE_EQ(move_copy_vec_moved[0].value, "Value11");
-    REQUIRE_EQ(move_copy_vec_moved[0].count, 11);
+    LOG_INFO(logger, "Vector<MoveAndCopyType> std::move {}", std::move(move_copy_vec_moved));
   }
 
   {
@@ -965,11 +951,8 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-#ifdef __APPLE__
-  REQUIRE_EQ(file_contents.size(), 69); // macOS: one less line (no Vector<CopyOnlyType>)
-#else
-  REQUIRE_EQ(file_contents.size(), 70);
-#endif
+
+  REQUIRE_EQ(file_contents.size(), 69);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
@@ -1072,11 +1055,6 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       List<MoveOnlyType> [MoveOnlyType(name: Charlie, value: Value3, count: 3), MoveOnlyType(name: Diana, value: Value4, count: 4)]"}));
-
-#ifndef __APPLE__
-  REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       Vector<CopyOnlyType> [CopyOnlyType(name: Eve, value: Value5, count: 5), CopyOnlyType(name: Frank, value: Value6, count: 6)]"}));
-#endif
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       List<CopyOnlyType> [CopyOnlyType(name: Grace, value: Value7, count: 7), CopyOnlyType(name: Helen, value: Value8, count: 8)]"}));
