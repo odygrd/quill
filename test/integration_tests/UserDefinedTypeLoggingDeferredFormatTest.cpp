@@ -647,12 +647,15 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   }
 
   // Test STL containers with CopyOnlyType
+#ifndef __APPLE__
+  // macOS libc++ requires Cpp17MoveInsertable for std::vector, which CopyOnlyType doesn't satisfy
   {
     std::vector<CopyOnlyType> copy_only_vec;
     copy_only_vec.emplace_back("Eve", "Value5", 5);
     copy_only_vec.emplace_back("Frank", "Value6", 6);
     LOG_INFO(logger, "Vector<CopyOnlyType> {}", copy_only_vec);
   }
+#endif
 
   {
     std::list<CopyOnlyType> copy_only_list;
@@ -962,7 +965,11 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+#ifdef __APPLE__
+  REQUIRE_EQ(file_contents.size(), 69);  // macOS: one less line (no Vector<CopyOnlyType>)
+#else
   REQUIRE_EQ(file_contents.size(), 70);
+#endif
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
@@ -1066,8 +1073,10 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       List<MoveOnlyType> [MoveOnlyType(name: Charlie, value: Value3, count: 3), MoveOnlyType(name: Diana, value: Value4, count: 4)]"}));
 
+#ifndef __APPLE__
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Vector<CopyOnlyType> [CopyOnlyType(name: Eve, value: Value5, count: 5), CopyOnlyType(name: Frank, value: Value6, count: 6)]"}));
+#endif
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       List<CopyOnlyType> [CopyOnlyType(name: Grace, value: Value7, count: 7), CopyOnlyType(name: Helen, value: Value8, count: 8)]"}));

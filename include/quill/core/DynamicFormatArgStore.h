@@ -31,11 +31,6 @@ class DynamicArgList
   struct TypedNode : Node
   {
     template <typename Arg>
-    explicit TypedNode(Arg const& arg) : value(arg)
-    {
-    }
-
-    template <typename Arg>
     explicit TypedNode(Arg&& arg) : value(_construct(static_cast<Arg&&>(arg)))
     {
     }
@@ -64,16 +59,6 @@ class DynamicArgList
 
 public:
   template <typename T, typename Arg>
-  T const& push(Arg const& arg)
-  {
-    auto new_node = std::unique_ptr<TypedNode<T>>(new TypedNode<T>(arg));
-    T& value = new_node->value;
-    new_node->next = static_cast<std::unique_ptr<Node>&&>(_head);
-    _head = static_cast<std::unique_ptr<TypedNode<T>>&&>(new_node);
-    return value;
-  }
-
-  template <typename T, typename Arg>
   T const& push(Arg&& arg)
   {
     auto new_node = std::unique_ptr<TypedNode<T>>(new TypedNode<T>(static_cast<Arg&&>(arg)));
@@ -99,12 +84,6 @@ private:
   // without relocation because items in data_ refer to it.
   detail::DynamicArgList _dynamic_arg_list;
   bool _has_string_related_type{false};
-
-  template <typename T>
-  void emplace_arg(T const& arg)
-  {
-    _data.emplace_back(arg);
-  }
 
   template <typename T>
   void emplace_arg(T&& arg)
@@ -134,45 +113,15 @@ public:
       std::string result = fmtquill::vformat("{} and {} and {}", store);
   */
   template <typename T>
-  void push_back(T const& arg)
-  {
-    using char_type = typename fmtquill::format_context::char_type;
-    constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<T, char_type>::value;
-    using stored_type = std::conditional_t<std::is_convertible_v<T, std::string>, std::string, T>;
-
-    if constexpr (!(std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
-                    std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, fmtquill::string_view> ||
-                    (mapped_type != fmtquill::detail::type::cstring_type &&
-                     mapped_type != fmtquill::detail::type::string_type &&
-                     mapped_type != fmtquill::detail::type::custom_type)))
-    {
-      emplace_arg(_dynamic_arg_list.push<stored_type>(arg));
-    }
-    else
-    {
-      emplace_arg(arg);
-    }
-
-    if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
-                  std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, fmtquill::string_view> ||
-                  (mapped_type == fmtquill::detail::type::cstring_type) ||
-                  (mapped_type == fmtquill::detail::type::string_type) ||
-                  (mapped_type == fmtquill::detail::type::custom_type) ||
-                  (mapped_type == fmtquill::detail::type::char_type))
-    {
-      _has_string_related_type = true;
-    }
-  }
-
-  template <typename T>
   void push_back(T&& arg)
   {
     using char_type = typename fmtquill::format_context::char_type;
-    constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<T, char_type>::value;
-    using stored_type = std::conditional_t<std::is_convertible_v<T, std::string>, std::string, T>;
+    using bare_type = std::remove_cv_t<std::remove_reference_t<T>>;
+    constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<bare_type, char_type>::value;
+    using stored_type = std::conditional_t<std::is_convertible_v<bare_type, std::string>, std::string, bare_type>;
 
-    if constexpr (!(std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
-                    std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, fmtquill::string_view> ||
+    if constexpr (!(std::is_same_v<bare_type, std::string_view> ||
+                    std::is_same_v<bare_type, fmtquill::string_view> ||
                     (mapped_type != fmtquill::detail::type::cstring_type &&
                      mapped_type != fmtquill::detail::type::string_type &&
                      mapped_type != fmtquill::detail::type::custom_type)))
@@ -184,8 +133,8 @@ public:
       emplace_arg(static_cast<T&&>(arg));
     }
 
-    if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
-                  std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, fmtquill::string_view> ||
+    if constexpr (std::is_same_v<bare_type, std::string_view> ||
+                  std::is_same_v<bare_type, fmtquill::string_view> ||
                   (mapped_type == fmtquill::detail::type::cstring_type) ||
                   (mapped_type == fmtquill::detail::type::string_type) ||
                   (mapped_type == fmtquill::detail::type::custom_type) ||
