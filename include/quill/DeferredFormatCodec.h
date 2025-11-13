@@ -106,7 +106,8 @@ struct DeferredFormatCodec
     }
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T const& arg)
+  template <typename Arg>
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, Arg&& arg)
   {
     if constexpr (use_memcpy)
     {
@@ -117,30 +118,13 @@ struct DeferredFormatCodec
     {
       auto aligned_ptr = align_pointer(buffer, alignof(T));
 
-      static_assert(is_copy_constructible<T>::value, "T is not copy-constructible!");
-      new (static_cast<void*>(aligned_ptr)) T(arg);
-
-      buffer += sizeof(T) + alignof(T) - 1;
-    }
-  }
-
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T&& arg)
-  {
-    if constexpr (use_memcpy)
-    {
-      std::memcpy(buffer, &arg, sizeof(arg));
-      buffer += sizeof(arg);
-    }
-    else
-    {
-      auto aligned_ptr = align_pointer(buffer, alignof(T));
-
-      if constexpr (is_move_constructible<T>::value)
+      if constexpr (std::is_rvalue_reference_v<Arg&&> && is_move_constructible<T>::value)
       {
         new (static_cast<void*>(aligned_ptr)) T(std::move(arg));
       }
       else
       {
+        static_assert(is_copy_constructible<T>::value, "T is not copy-constructible!");
         new (static_cast<void*>(aligned_ptr)) T(arg);
       }
 
