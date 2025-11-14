@@ -3176,7 +3176,7 @@ FMTQUILL_CONSTEXPR20 auto format_float(Float value, int precision,
   int exp = 0;
   bool use_dragon = true;
   unsigned dragon_flags = 0;
-  if (!is_fast_float<Float>() || is_constant_evaluated()) {
+  if (!is_fast_float<Float>::value || is_constant_evaluated()) {
     const auto inv_log2_10 = 0.3010299956639812;  // 1 / log2(10)
     using info = dragonbox::float_info<decltype(converted_value)>;
     const auto f = basic_fp<typename info::carrier_uint>(converted_value);
