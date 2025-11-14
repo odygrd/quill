@@ -1,4 +1,4 @@
-- [v10.3.0](#v1030)
+- [v11.0.0](#v1100)
 - [v10.2.0](#v1020)
 - [v10.1.0](#v1010)
 - [v10.0.1](#v1001)
@@ -93,7 +93,7 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## v10.3.0
+## v11.0.0
 
 - Update bundled `libfmt` to `v12.1.0`
 - Minor correction to `_last_sink_flush_time update` when `fflush()` fails
