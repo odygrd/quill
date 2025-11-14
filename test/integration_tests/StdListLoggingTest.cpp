@@ -92,6 +92,13 @@ TEST_CASE("std_list_logging")
 
     std::list<int> empt;
     LOG_INFO(logger, "empt {}", empt);
+
+    // Test rvalue references with lists
+    std::list<int> rvalue_list = {100, 200, 300};
+    LOG_INFO(logger, "rvalue_list {}", std::move(rvalue_list));
+
+    // Test with temporary list
+    LOG_INFO(logger, "temp_list {}", std::list<std::string>{"temp1", "temp2", "temp3"});
   }
 
   logger->flush_log();
@@ -156,6 +163,12 @@ TEST_CASE("std_list_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empt []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_list [100, 200, 300]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_list [\"temp1\", \"temp2\", \"temp3\"]"}));
 
   testing::remove_file(filename);
 }

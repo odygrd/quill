@@ -46,6 +46,13 @@ TEST_CASE("std_filesystem_path_logging")
     fs::path sp{"/usr/local/bin"};
     LOG_INFO(logger, "sp {} {} {}", sp, sp, sp);
     LOG_INFO(logger, "sp_2 {} {} {}", sp, sp, sp);
+
+    // Test rvalue references with filesystem::path
+    std::filesystem::path rvalue_path = "/test/rvalue/path";
+    LOG_INFO(logger, "rvalue_path {}", std::move(rvalue_path));
+
+    // Test with temporary path
+    LOG_INFO(logger, "temp_path {}", std::filesystem::path{"/test/temp/path"});
   }
 
   logger->flush_log();
@@ -62,6 +69,12 @@ TEST_CASE("std_filesystem_path_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       sp_2 /usr/local/bin /usr/local/bin /usr/local/bin"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_path /test/rvalue/path"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_path /test/temp/path"}));
 
   testing::remove_file(filename);
 }

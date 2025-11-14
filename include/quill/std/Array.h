@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #if defined(_WIN32)
@@ -54,8 +55,9 @@ struct Codec<T[N], std::enable_if_t<std::negation_v<std::is_same<T, char>>>>
     }
   }
 
+  template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, T const (&arg)[N]) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
   {
     if constexpr (std::is_arithmetic_v<T>)
     {
@@ -66,9 +68,20 @@ struct Codec<T[N], std::enable_if_t<std::negation_v<std::is_same<T, char>>>>
     }
     else
     {
-      for (size_t i = 0; i < N; ++i)
+      if constexpr (std::is_rvalue_reference_v<Arg&&>)
       {
-        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg[i]);
+        for (size_t i = 0; i < N; ++i)
+        {
+          Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                           std::move(arg[i]));
+        }
+      }
+      else
+      {
+        for (size_t i = 0; i < N; ++i)
+        {
+          Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg[i]);
+        }
       }
     }
   }
@@ -82,7 +95,15 @@ struct Codec<T[N], std::enable_if_t<std::negation_v<std::is_same<T, char>>>>
 
     for (size_t i = 0; i < N; ++i)
     {
-      arg[i] = Codec<T>::decode_arg(buffer);
+      auto elem = Codec<T>::decode_arg(buffer);
+      if constexpr (std::is_move_constructible_v<ReturnType>)
+      {
+        arg[i] = std::move(elem);
+      }
+      else
+      {
+        arg[i] = elem;
+      }
     }
 
     return arg;
@@ -123,8 +144,9 @@ struct Codec<std::array<T, N>>
     }
   }
 
+  template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, std::array<T, N> const& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
   {
     if constexpr (std::is_arithmetic_v<T>)
     {
@@ -135,9 +157,20 @@ struct Codec<std::array<T, N>>
     }
     else
     {
-      for (auto const& elem : arg)
+      if constexpr (std::is_rvalue_reference_v<Arg&&>)
       {
-        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
+        for (auto&& elem : arg)
+        {
+          Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                           std::move(elem));
+        }
+      }
+      else
+      {
+        for (auto const& elem : arg)
+        {
+          Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
+        }
       }
     }
   }
@@ -170,7 +203,15 @@ struct Codec<std::array<T, N>>
 
       for (size_t i = 0; i < N; ++i)
       {
-        arg[i] = Codec<T>::decode_arg(buffer);
+        auto elem = Codec<T>::decode_arg(buffer);
+        if constexpr (std::is_move_constructible_v<ReturnType>)
+        {
+          arg[i] = std::move(elem);
+        }
+        else
+        {
+          arg[i] = elem;
+        }
       }
 
       return arg;

@@ -31,10 +31,27 @@ class DynamicArgList
   struct TypedNode : Node
   {
     template <typename Arg>
-    explicit TypedNode(Arg const& arg) : value(arg)
+    explicit TypedNode(Arg&& arg) : value(_construct(static_cast<Arg&&>(arg)))
     {
     }
 
+  private:
+    template <typename Arg>
+    static T _construct(Arg&& arg)
+    {
+      if constexpr (std::is_move_constructible<T>::value)
+      {
+        return T(static_cast<Arg&&>(arg));
+      }
+      else
+      {
+        // For copy-only types: arg is a named rvalue reference, which is an lvalue expression.
+        // This lvalue can bind to const T& (the copy constructor parameter), resulting in a copy.
+        return T(arg);
+      }
+    }
+
+  public:
     T value;
   };
 
@@ -42,12 +59,12 @@ class DynamicArgList
 
 public:
   template <typename T, typename Arg>
-  T const& push(Arg const& arg)
+  T const& push(Arg&& arg)
   {
-    auto new_node = std::unique_ptr<TypedNode<T>>(new TypedNode<T>(arg));
+    auto new_node = std::unique_ptr<TypedNode<T>>(new TypedNode<T>(static_cast<Arg&&>(arg)));
     T& value = new_node->value;
-    new_node->next = std::move(_head);
-    _head = std::move(new_node);
+    new_node->next = static_cast<std::unique_ptr<Node>&&>(_head);
+    _head = static_cast<std::unique_ptr<TypedNode<T>>&&>(new_node);
     return value;
   }
 };
@@ -69,9 +86,9 @@ private:
   bool _has_string_related_type{false};
 
   template <typename T>
-  void emplace_arg(T const& arg)
+  void emplace_arg(T&& arg)
   {
-    _data.emplace_back(arg);
+    _data.emplace_back(static_cast<T&&>(arg));
   }
 
 public:
@@ -96,27 +113,27 @@ public:
       std::string result = fmtquill::vformat("{} and {} and {}", store);
   */
   template <typename T>
-  void push_back(T const& arg)
+  void push_back(T&& arg)
   {
     using char_type = typename fmtquill::format_context::char_type;
-    constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<T, char_type>::value;
-    using stored_type = std::conditional_t<std::is_convertible_v<T, std::string>, std::string, T>;
+    using bare_type = std::remove_cv_t<std::remove_reference_t<T>>;
+    constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<bare_type, char_type>::value;
+    using stored_type =
+      std::conditional_t<std::is_convertible_v<bare_type, std::string>, std::string, bare_type>;
 
-    if constexpr (!(std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
-                    std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, fmtquill::string_view> ||
+    if constexpr (!(std::is_same_v<bare_type, std::string_view> || std::is_same_v<bare_type, fmtquill::string_view> ||
                     (mapped_type != fmtquill::detail::type::cstring_type &&
                      mapped_type != fmtquill::detail::type::string_type &&
                      mapped_type != fmtquill::detail::type::custom_type)))
     {
-      emplace_arg(_dynamic_arg_list.push<stored_type>(arg));
+      emplace_arg(_dynamic_arg_list.push<stored_type>(static_cast<T&&>(arg)));
     }
     else
     {
-      emplace_arg(arg);
+      emplace_arg(static_cast<T&&>(arg));
     }
 
-    if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string_view> ||
-                  std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, fmtquill::string_view> ||
+    if constexpr (std::is_same_v<bare_type, std::string_view> || std::is_same_v<bare_type, fmtquill::string_view> ||
                   (mapped_type == fmtquill::detail::type::cstring_type) ||
                   (mapped_type == fmtquill::detail::type::string_type) ||
                   (mapped_type == fmtquill::detail::type::custom_type) ||

@@ -178,6 +178,13 @@ TEST_CASE("std_array_logging")
     std::array<CustomTypeTC, 4> custom_type_tc = {CustomTypeTC{1, 2, 3}, CustomTypeTC{4, 5, 6},
                                                   CustomTypeTC{7, 8, 9}, CustomTypeTC{10, 11, 12}};
     LOG_INFO(logger, "custom_type_tc {}", custom_type_tc);
+
+    // Test rvalue references with arrays
+    std::array<int, 3> rvalue_arr = {100, 200, 300};
+    LOG_INFO(logger, "rvalue_arr {}", std::move(rvalue_arr));
+
+    // Test with temporary array
+    LOG_INFO(logger, "temp_arr {}", std::array<std::string, 2>{"temp1", "temp2"});
   }
 
   logger->flush_log();
@@ -271,6 +278,12 @@ TEST_CASE("std_array_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       custom_type_tc [Name: 1, Surname: 2, Age: 3, Name: 4, Surname: 5, Age: 6, Name: 7, Surname: 8, Age: 9, Name: 10, Surname: 11, Age: 12]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_arr [100, 200, 300]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_arr [\"temp1\", \"temp2\"]"}));
 
   testing::remove_file(filename);
 }

@@ -69,6 +69,14 @@ TEST_CASE("std_multimap_logging")
 
     std::multimap<char const*, int, CStringComparator> cim = {{"4", 4}, {"3", 3}, {"1", 1}, {"2", 2}};
     LOG_INFO(logger, "cim {}", cim);
+
+    // Test rvalue references with multimap
+    std::multimap<int, std::string> rvalue_multimap = {{1, "one"}, {2, "two"}, {3, "three"}};
+    LOG_INFO(logger, "rvalue_multimap {}", std::move(rvalue_multimap));
+
+    // Test with temporary multimap
+    LOG_INFO(logger, "temp_multimap {}",
+             std::multimap<int, std::string>{{10, "ten"}, {20, "twenty"}, {30, "thirty"}});
   }
 
   logger->flush_log();
@@ -96,6 +104,12 @@ TEST_CASE("std_multimap_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       cim {\"1\": 1, \"2\": 2, \"3\": 3, \"4\": 4}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_multimap {1: \"one\", 2: \"two\", 3: \"three\"}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_multimap {10: \"ten\", 20: \"twenty\", 30: \"thirty\"}"}));
 
   testing::remove_file(filename);
 }

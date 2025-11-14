@@ -95,6 +95,15 @@ TEST_CASE("arithmetic_types_logging")
   LOG_INFO(logger, "void pointer [{}]", void_ptr);
   LOG_INFO(logger, "void const pointer [{}]", void_const_ptr);
 
+  // Test rvalue references to ensure forwarding works correctly
+  int rvalue_int = 999;
+  LOG_INFO(logger, "rvalue int [{}]", std::move(rvalue_int));
+
+  LOG_INFO(logger, "rvalue int [{}]", 1234);
+
+  std::string rvalue_str = "rvalue_test";
+  LOG_INFO(logger, "rvalue string [{}]", std::move(rvalue_str));
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -165,6 +174,15 @@ TEST_CASE("arithmetic_types_logging")
     expected_ptr_value_str += "]";
     REQUIRE(quill::testing::file_contains(file_contents, expected_ptr_value_str));
   }
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue int [999]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue int [1234]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue string [rvalue_test]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents,

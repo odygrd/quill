@@ -70,9 +70,15 @@ TEST_CASE("std_optional_logging")
     LOG_INFO(logger, "d [{}]", d);
     LOG_INFO(logger, "zzzz [{}] [{}] [{}] [{}] [{}]", d, "test", *svp, *sp, ccp);
 #if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic pop
+  #pragma GCC diagnostic pop
 #endif
 
+    // Test rvalue references with optional
+    std::optional<int> rvalue_opt = 100;
+    LOG_INFO(logger, "rvalue_opt {}", std::move(rvalue_opt));
+
+    // Test with temporary optional
+    LOG_INFO(logger, "temp_opt {}", std::optional<std::string>{"temporary"});
   }
 
   logger->flush_log();
@@ -110,6 +116,12 @@ TEST_CASE("std_optional_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       zzzz [optional(333.221)] [test] [svp_testing] [sp_testing] [optional(\"testing\")]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_opt optional(100)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_opt optional(\"temporary\")"}));
 
   testing::remove_file(filename);
 }

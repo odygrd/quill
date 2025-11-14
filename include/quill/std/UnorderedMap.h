@@ -50,23 +50,40 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
       // of each string as we will be copying them directly to our queue buffer.
       for (auto const& elem : arg)
       {
-        total_size += Codec<std::pair<Key, T>>::compute_encoded_size(conditional_arg_size_cache, elem);
+        total_size += Codec<Key>::compute_encoded_size(conditional_arg_size_cache, elem.first);
+        total_size += Codec<T>::compute_encoded_size(conditional_arg_size_cache, elem.second);
       }
     }
 
     return total_size;
   }
 
+  template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index,
-                     UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> const& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 
-    for (auto const& elem : arg)
+    // Forward elements based on whether the container was passed as rvalue
+    if constexpr (std::is_rvalue_reference_v<Arg&&>)
     {
-      Codec<std::pair<Key, T>>::encode(buffer, conditional_arg_size_cache,
-                                       conditional_arg_size_cache_index, elem);
+      for (auto&& elem : arg)
+      {
+        // Key is const in map, so we copy it; value can be moved
+        Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                           elem.first);
+        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                         std::move(elem.second));
+      }
+    }
+    else
+    {
+      for (auto const& elem : arg)
+      {
+        Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                           elem.first);
+        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem.second);
+      }
     }
   }
 
@@ -142,11 +159,11 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
     else
     {
 #endif
-      using ReturnPairType = decltype(Codec<std::pair<Key, T>>::decode_arg(buffer));
-      using ReturnType = typename ReturnPairType::second_type;
+      using ReturnKeyType = decltype(Codec<Key>::decode_arg(buffer));
+      using ReturnValueType = decltype(Codec<T>::decode_arg(buffer));
       using ReboundAllocator =
-        typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<Key const, ReturnType>>;
-      UnorderedMapType<Key, ReturnType, Hash, KeyEqual, ReboundAllocator> arg;
+        typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<ReturnKeyType const, ReturnValueType>>;
+      UnorderedMapType<ReturnKeyType, ReturnValueType, Hash, KeyEqual, ReboundAllocator> arg;
 
       // Read the size of the set
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
@@ -154,7 +171,25 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
 
       for (size_t i = 0; i < number_of_elements; ++i)
       {
-        arg.insert(Codec<std::pair<Key, T>>::decode_arg(buffer));
+        auto key = Codec<Key>::decode_arg(buffer);
+        auto value = Codec<T>::decode_arg(buffer);
+
+        if constexpr (std::is_move_constructible_v<ReturnKeyType> && std::is_move_constructible_v<ReturnValueType>)
+        {
+          arg.insert({std::move(key), std::move(value)});
+        }
+        else if constexpr (std::is_move_constructible_v<ReturnKeyType>)
+        {
+          arg.insert({std::move(key), value});
+        }
+        else if constexpr (std::is_move_constructible_v<ReturnValueType>)
+        {
+          arg.insert({key, std::move(value)});
+        }
+        else
+        {
+          arg.insert({key, value});
+        }
       }
 
       return arg;

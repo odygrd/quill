@@ -109,6 +109,15 @@ TEST_CASE("std_unordered_multi_set_logging")
 
     std::unordered_multiset<int> empt;
     LOG_INFO(logger, "empt {}", empt);
+
+    // Test rvalue references with unordered_multiset
+    std::unordered_multiset<int> rvalue_unordered_multiset = {100, 200, 300};
+    LOG_INFO(logger, "rvalue_unordered_multiset {}",
+             std::move(rvalue_unordered_multiset));
+
+    // Test with temporary unordered_multiset
+    LOG_INFO(logger, "temp_unordered_multiset {}",
+             std::unordered_multiset<std::string>{"temp1", "temp2", "temp3"});
   }
 
   logger->flush_log();
@@ -179,6 +188,12 @@ TEST_CASE("std_unordered_multi_set_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empt {}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_unordered_multiset {"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_unordered_multiset {"}));
 
   testing::remove_file(filename);
 }

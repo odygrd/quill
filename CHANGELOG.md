@@ -100,6 +100,35 @@
 - Added retry logic and shared access handling for file open and rotation on Windows
 - Use `::WriteFile` instead of `fwrite` to prevent `\r\r\n` line endings on Windows
 - Avoid file descriptor leaks by setting `O_CLOEXEC` on Unix and `HANDLE_FLAG_INHERIT` on Windows
+- Fixed argument forwarding when encoding user-defined types with `DeferredFormatCodec` or STL containers to properly
+  handle rvalue references. For example, the following move-only type will now work correctly:
+    ```c++
+    class MoveOnlyType {
+    public:
+      MoveOnlyType(std::string name, std::string value, uint32_t count)
+        : name(std::move(name)), value(std::move(value)), count(count) {}
+      MoveOnlyType(MoveOnlyType&&) = default;
+      MoveOnlyType(MoveOnlyType const&) = delete;
+      std::string name;
+      std::string value;
+      uint32_t count;
+    };
+
+    template <>
+    struct fmtquill::formatter<MoveOnlyType> {
+      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+      auto format(MoveOnlyType const& obj, format_context& ctx) const {
+        return fmtquill::format_to(ctx.out(), "MoveOnlyType(name: {}, value: {}, count: {})",
+                                   obj.name, obj.value, obj.count);
+      }
+    };
+
+    template <>
+    struct quill::Codec<MoveOnlyType> : quill::DeferredFormatCodec<MoveOnlyType> {};
+
+    MoveOnlyType obj{"Test", "Value1", 42};
+    LOG_INFO(logger, "obj: {}", std::move(obj));  // Properly forwards and moves
+    ```
 
 ## v10.2.0
 

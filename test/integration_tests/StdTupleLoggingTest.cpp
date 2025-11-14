@@ -53,6 +53,13 @@ TEST_CASE("std_tuple_logging")
     LOG_INFO(logger, "ct {}", ct);
 
     LOG_INFO(logger, "ct {} et {} st {}", ct, et, st);
+
+    // Test rvalue references with tuples
+    std::tuple<int, std::string, double> rvalue_tuple = {100, "hundred", 1.5};
+    LOG_INFO(logger, "rvalue_tuple {}", std::move(rvalue_tuple));
+
+    // Test with temporary tuple
+    LOG_INFO(logger, "temp_tuple {}", std::tuple<int, std::string>{200, "temp"});
   }
 
   logger->flush_log();
@@ -75,6 +82,12 @@ TEST_CASE("std_tuple_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       ct (\"string\", \"string_view\", 213, 33.12, \"c_style\", \"another_string\", 123) et (\"\", 0) st (\"123456789\")"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_tuple (100, \"hundred\", 1.5)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_tuple (200, \"temp\")"}));
 
   testing::remove_file(filename);
 }
