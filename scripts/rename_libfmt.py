@@ -12,6 +12,7 @@
 #       } else
 # 5) in chrono.h   if (std::is_same<Period, std::micro>::value) return "us";
 # 6) Add GCC diagnostic ignored "-Wfloat-equal" CC diagnostic ignored "-Wstringop-overflow" to format.h
+# 7) In format.h change `is_fast_float<>()` to `is_fast_float::value`
 import sys
 import os
 import re
