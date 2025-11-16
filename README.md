@@ -378,15 +378,16 @@ Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
-| [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       62.12        |    64 ms     |
-| [BqLog (binary log)](https://github.com/Tencent/BqLog)            |       15.24        |    262 ms    |
-| [XTR](https://github.com/choll/xtr)                               |        8.25        |    484 ms    |
-| [Quill](http://github.com/odygrd/quill)                           |        5.15        |    776 ms    |
+| [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       62.93        |    62 ms     |
+| [BqLog (binary log)](https://github.com/Tencent/BqLog)            |       14.71        |    271 ms    |
+| [XTR](https://github.com/choll/xtr)                               |        8.16        |    490 ms    |
+| [Quill](http://github.com/odygrd/quill)                           |        5.24        |    763 ms    |
 | [spdlog](http://github.com/gabime/spdlog)                         |        4.32        |    925 ms    |
-| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.77        |   1443 ms    |
+| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.82        |   1417 ms    |
 | [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |
 | [Quill - Macro Free Mode](https://github.com/choll/xtr)           |        2.65        |   1510 ms    |
-| [BqLog](https://github.com/Tencent/BqLog)                         |        2.53        |   1580 ms    |
+| [BqLog](https://github.com/Tencent/BqLog)                         |        2.60        |   1537 ms    |
+| [Boost.Log](https://www.boost.org)                                |        0.39        |   10102 ms   |
 
 ![throughput.webp](docs%2Fcharts%2Fthroughput.webp)
 
