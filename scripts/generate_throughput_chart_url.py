@@ -54,14 +54,16 @@ def generate_chart_url(markdown_table, title):
             },
             'scales': {
                 'yAxes': [{
+                    'type': 'logarithmic',
                     'scaleLabel': {
                         'display': True,
-                        'labelString': 'Million Messages per Second'
+                        'labelString': 'Latency (ns)'
                     },
                     'ticks': {
-                        'beginAtZero': True
+                        'min': 1,
+                        'maxTicksLimit': 10,
                     }
-                }]
+                }],
             },
             'plugins': {
                 'datalabels': {
