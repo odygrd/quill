@@ -64,7 +64,7 @@ Enables the use of compiler-specific detailed function signatures (such as ``__P
     add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=0)
 
 Immediate flushing blocks the calling thread until a log message has been written to its destination, effectively simulating synchronous logging.
-This feature can be enabled at runtime on a ``Logger`` instance by calling ``logger->set_immediate_flush(true)``.
+This feature can be enabled at runtime on a ``Logger`` instance by calling ``logger->set_immediate_flush(1)``.
 Setting ``QUILL_ENABLE_IMMEDIATE_FLUSH=0`` in the preprocessor disables this feature completely, eliminating the conditional branch from the hot path and improving performance.
 When disabled at compile time, ``logger->set_immediate_flush(flush_every_n_messages)`` will have no effect.
 
