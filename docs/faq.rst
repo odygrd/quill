@@ -3,10 +3,6 @@
 Frequently Asked Questions (FAQ)
 ================================
 
-.. contents:: Quick Navigation
-   :local:
-   :depth: 2
-
 Getting Started
 ---------------
 
@@ -190,3 +186,4 @@ Can I use Quill with fork()?
 
 Quill may not work well with ``fork()`` because it spawns a background thread, and ``fork()`` doesn't work well with multithreading.
 See the Caveats section in the `README` for more information.
+
