@@ -12,7 +12,8 @@ def generate_chart_url(markdown_table, title):
         'Reckless': 'rgba(255,99,71,0.6)',  # Tomato Red
         'XTR': 'rgba(255,206,86,0.6)',  # Yellow
         'BqLog': 'rgba(75,0,130,0.6)',  # Indigo
-        'Quill - Macro Free Mode': 'rgba(0,206,209,0.6)'  # Dark Turquoise
+        'Quill - Macro Free Mode': 'rgba(0,206,209,0.6)',  # Dark Turquoise
+        'Boost.Log': 'rgba(106,90,205,0.6)'  # Slate Blue
     }
 
     # Parse the markdown table
@@ -53,14 +54,16 @@ def generate_chart_url(markdown_table, title):
             },
             'scales': {
                 'yAxes': [{
+                    'type': 'logarithmic',
                     'scaleLabel': {
                         'display': True,
-                        'labelString': 'Million Messages per Second'
+                        'labelString': 'Latency (ns)'
                     },
                     'ticks': {
-                        'beginAtZero': True
+                        'min': 1,
+                        'maxTicksLimit': 10,
                     }
-                }]
+                }],
             },
             'plugins': {
                 'datalabels': {
@@ -82,15 +85,16 @@ def generate_chart_url(markdown_table, title):
 markdown_table = """
 | Library                                                           | million msg/second | elapsed time |
 |-------------------------------------------------------------------|:------------------:|:------------:|
-| [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       62.12        |    64 ms     |
-| [BqLog (binary log)](https://github.com/Tencent/BqLog)            |       15.24        |    262 ms    |
-| [XTR](https://github.com/choll/xtr)                               |        8.25        |    484 ms    |
-| [Quill](http://github.com/odygrd/quill)                           |        5.30        |    754 ms    |
+| [MS BinLog (binary log)](http://github.com/Morgan-Stanley/binlog) |       62.93        |    62 ms     |
+| [BqLog (binary log)](https://github.com/Tencent/BqLog)            |       14.71        |    271 ms    |
+| [XTR](https://github.com/choll/xtr)                               |        8.16        |    490 ms    |
+| [Quill](http://github.com/odygrd/quill)                           |        5.24        |    763 ms    |
 | [spdlog](http://github.com/gabime/spdlog)                         |        4.32        |    925 ms    |
-| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.77        |   1443 ms    |
+| [fmtlog](http://github.com/MengRao/fmtlog)                        |        2.82        |   1417 ms    |
 | [Reckless](http://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |
 | [Quill - Macro Free Mode](https://github.com/choll/xtr)           |        2.65        |   1510 ms    |
-| [BqLog](https://github.com/Tencent/BqLog)                         |        2.53        |   1580 ms    |
+| [BqLog](https://github.com/Tencent/BqLog)                         |        2.60        |   1537 ms    |
+| [Boost.Log](https://www.boost.org)                                |        0.39        |   10102 ms   |
 """
 
 # Generate the chart URL without MS BinLog
@@ -98,4 +102,4 @@ title = "Logging Library Throughput Comparison"
 url = generate_chart_url(markdown_table, title)
 
 # Print the generated chart URL
-print(f"Chart URL: {url}")
+print(f"{url}")
