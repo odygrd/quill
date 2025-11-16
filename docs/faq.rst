@@ -68,8 +68,6 @@ The **macro-free mode** offers cleaner syntax but comes with performance trade-o
 
 For performance-critical code paths, use the macro-based interface. For less critical paths where code clarity is preferred, macro-free mode is acceptable.
 
-See :ref:`macro_free_mode` for detailed performance comparisons.
-
 Logging Different Types
 ------------------------
 
@@ -129,8 +127,6 @@ If you still need logs in some tests, you can reduce the backend thread initiali
 Internally, Quill calibrates ``rdtsc`` lazily on the first ``rdtsc`` timestamp the backend thread sees, which takes a few milliseconds.
 Switching all your loggers to use the system clock eliminates that calibration overhead.
 
-See `backend_tsc_clock.cpp <https://github.com/odygrd/quill/blob/master/examples/backend_tsc_clock.cpp>`_ for an example of configuring the TSC clock.
-
 The backend thread consumes too much CPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -143,8 +139,6 @@ You can increase the backend sleep duration via :cpp:class:`BackendOptions`. The
 **Solution 2: Manual notification**
 
 For applications with infrequent logging, use a very high sleep duration and manually wake up the backend thread when you have messages to process by calling ``quill::Backend::notify()``.
-
-See :ref:`backend_options` for more details on configuring the backend thread behavior.
 
 Advanced Configuration
 -----------------------
@@ -179,11 +173,8 @@ You can switch your build to use ``CustomFrontendOptions`` to configure differen
 
 A simpler approach is to compile with a dropping queue and control the behavior at runtime. In simulation/debug mode, enable ``logger->set_immediate_flush(1000)``. This will make the caller thread block and wait every 1000 log messages, effectively preventing drops even with a dropping queue. In production, simply don't call ``set_immediate_flush()`` and the queue will drop messages if the backend can't keep up.
 
-Example code: `bounded_dropping_queue_frontend.cpp <https://github.com/odygrd/quill/blob/master/examples/bounded_dropping_queue_frontend.cpp>`_
-
 Can I use Quill with fork()?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Quill may not work well with ``fork()`` because it spawns a background thread, and ``fork()`` doesn't work well with multithreading.
 See the Caveats section in the `README` for more information.
-

@@ -1,5 +1,7 @@
 .. title:: Cheat Sheet
 
+.. _cheat_sheet:
+
 Cheat Sheet
 ===========
 

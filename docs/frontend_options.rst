@@ -1,5 +1,7 @@
 .. title:: Frontend Options
 
+.. _frontend_options:
+
 Frontend Options
 ================
 
