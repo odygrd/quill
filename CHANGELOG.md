@@ -100,6 +100,20 @@
 - Added retry logic and shared access handling for file open and rotation on Windows
 - Use `::WriteFile` instead of `fwrite` to prevent `\r\r\n` line endings on Windows
 - Avoid file descriptor leaks by setting `O_CLOEXEC` on Unix and `HANDLE_FLAG_INHERIT` on Windows
+- Added `SimpleSetup.h` convenience header for trivial program cases to easily setup a logger. For example
+   ```c++
+    #include "quill/SimpleSetup.h"
+    #include "quill/LogMacros.h"
+  
+    int main()
+    {
+      auto* logger = quill::simple_logger();
+      LOG_INFO(logger, "Hello from {}!", "Quill");
+  
+      auto* logger2 = quill::simple_logger("test.log");
+      LOG_INFO(logger2, "This message goes to a file");
+    }
+  ```
 - Fixed argument forwarding when encoding user-defined types with `DeferredFormatCodec` or STL containers to properly
   handle rvalue references. For example, the following move-only type will now work correctly:
     ```c++

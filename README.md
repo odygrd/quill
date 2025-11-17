@@ -121,8 +121,29 @@ You can install Quill using the package manager of your choice:
 
 ### Setup
 
-Once installed, you can start using Quill with the macro-based logging interface, which is the recommended approach for
-optimal performance.
+#### Quickest Setup
+
+For the quickest and simplest setup use `simple_logger()`:
+
+```c++
+#include "quill/SimpleSetup.h"
+#include "quill/LogMacros.h"
+
+int main()
+{
+  // log to the console
+  auto* logger = quill::simple_logger();
+  LOG_INFO(logger, "Hello from {}!", "Quill");
+
+  // log to a file
+  auto* logger2 = quill::simple_logger("test.log");
+  LOG_INFO(logger2, "This message goes to a file");
+}
+```
+
+#### Detailed Setup
+
+For more detailed control and configuration options, use the `Backend` and `Frontend` APIs:
 
 ```c++
 #include "quill/Backend.h"
