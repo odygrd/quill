@@ -127,17 +127,17 @@ For the quickest and simplest setup use `simple_logger()`:
 
 ```c++
 #include "quill/SimpleSetup.h"
-#include "quill/LogMacros.h"
+#include "quill/LogFunctions.h"
 
 int main()
 {
   // log to the console
   auto* logger = quill::simple_logger();
-  LOG_INFO(logger, "Hello from {}!", "Quill");
+  quill::info(logger, "Hello from {}!", "Quill");
 
   // log to a file
   auto* logger2 = quill::simple_logger("test.log");
-  LOG_INFO(logger2, "This message goes to a file");
+  quill::warning(logger2, "This message goes to a file");
 }
 ```
 
