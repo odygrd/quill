@@ -15,6 +15,7 @@ set(EXAMPLE_TARGETS
         quill_docs_example_multiple_sinks
         quill_docs_example_multiple_sinks_tags
         quill_docs_example_tags_with_custom_sink
+        quill_docs_quick_start
         quill_docs_timestamp_types_1
 )
 
