@@ -91,12 +91,11 @@ TEST_CASE("backtrace_multithreaded_stress")
 
   std::vector<std::string> const file_contents = testing::file_contents(filename);
 
-  REQUIRE_GE(static_cast<unsigned int>(file_contents.size()),
-             static_cast<unsigned int>((((messages_per_thread - 1) / 30 + 1) * num_threads * 1))); // min lines: 1 ERROR per flush
-  REQUIRE_LE(static_cast<unsigned int>(file_contents.size()),
-             static_cast<unsigned int>((((messages_per_thread - 1) / 30 + 1) * num_threads * (1 + 10)) // max per flush: 1 ERROR + 10 backtrace
-                                       + (num_threads + 2) * (1 + 10)) // practical allowance: extra flushes for startup/shutdown
-  );
-         
+  REQUIRE_GE(file_contents.size(),
+             ((messages_per_thread - 1) / 30 + 1) * num_threads * 1); // min lines: 1 ERROR per flush
+  REQUIRE_LE(file_contents.size(),
+             (((messages_per_thread - 1) / 30 + 1) * num_threads * (1 + 10)) // max per flush: 1 ERROR + 10 backtrace
+               + (num_threads + 2) * (1 + 10));
+
   testing::remove_file(filename);
 }
