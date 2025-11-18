@@ -81,8 +81,9 @@ public:
       }
     }
 
-    // finally clean all messages
+    // finally, clean all messages
     _stored_events.clear();
+    _index = 0;
   }
 
   /***/

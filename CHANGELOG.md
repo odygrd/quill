@@ -1,3 +1,4 @@
+- [v11.0.1](#v1101)
 - [v11.0.0](#v1100)
 - [v10.2.0](#v1020)
 - [v10.1.0](#v1010)
@@ -92,6 +93,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v11.0.1
+
+- Fix `BacktraceStorage` `index` reset to prevent `SIGSEGV` when using `LOG_BACKTRACE`
 
 ## v11.0.0
 
