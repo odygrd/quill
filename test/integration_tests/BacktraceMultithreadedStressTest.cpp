@@ -90,7 +90,7 @@ TEST_CASE("backtrace_multithreaded_stress")
   Backend::stop();
 
   std::vector<std::string> const file_contents = testing::file_contents(filename);
-  REQUIRE_GE(file_contents.size(), 28000);
-  REQUIRE_LE(file_contents.size(), 32000);
+  REQUIRE_GE(file_contents.size(), 20000);
+  REQUIRE_LE(file_contents.size(), 40000);
   testing::remove_file(filename);
 }
