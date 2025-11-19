@@ -50,7 +50,7 @@ TEST_CASE("backtrace_multithreaded_stress")
 
   auto thread_func = [&](size_t thread_id)
   {
-    std::mt19937 rng(thread_id * 99999);
+    std::mt19937 rng{static_cast<uint32_t>(thread_id * 99999)};
     std::uniform_int_distribution<size_t> size_dist(10, 500);
 
     for (size_t i = 0; i < messages_per_thread; ++i)
@@ -92,10 +92,10 @@ TEST_CASE("backtrace_multithreaded_stress")
   std::vector<std::string> const file_contents = testing::file_contents(filename);
 
   REQUIRE_GE(file_contents.size(),
-             ((messages_per_thread - 1) / 30 + 1) * num_threads * 1); // min lines: 1 ERROR per flush
+             static_cast<size_t>(((messages_per_thread - 1) / 30 + 1) * num_threads * 1)); // min: 1 ERROR per flush
   REQUIRE_LE(file_contents.size(),
-             (((messages_per_thread - 1) / 30 + 1) * num_threads * (1 + 10)) // max per flush: 1 ERROR + 10 backtrace
-               + (num_threads + 2) * (1 + 10));
+             static_cast<size_t>((((messages_per_thread - 1) / 30 + 1) * num_threads * (1 + 10)) // max per flush
+                                 + (num_threads + 2) * (1 + 10)));
 
   testing::remove_file(filename);
 }
