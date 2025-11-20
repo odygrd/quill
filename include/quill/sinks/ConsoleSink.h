@@ -335,8 +335,11 @@ public:
    * @brief Constructor with custom ConsoleColours
    * config
    */
-  explicit ConsoleSink(ConsoleSinkConfig const& config = ConsoleSinkConfig{})
-    : StreamSink{config.stream(), nullptr, config.override_pattern_formatter_options()}, _config(config)
+  explicit ConsoleSink(ConsoleSinkConfig const& config = ConsoleSinkConfig{},
+                       FileEventNotifier file_event_notifier = FileEventNotifier{})
+    : StreamSink{config.stream(), nullptr, config.override_pattern_formatter_options(),
+                 std::move(file_event_notifier)},
+      _config(config)
   {
     QUILL_ASSERT(_config.stream() == "stdout" || config.stream() == "stderr",
                  "Invalid stream name in ConsoleSink constructor, must be 'stdout' or 'stderr'");

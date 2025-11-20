@@ -44,7 +44,13 @@ function(quill_add_test TEST_NAME SOURCES)
     set_target_properties(${TEST_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/test)
 
     # Add this target to the post build unit tests
-    doctest_discover_tests(${TEST_NAME})
+    # Set sanitizer environment variables for test execution if sanitizers are enabled
+    if (QUILL_SANITIZE_ADDRESS)
+        doctest_discover_tests(${TEST_NAME} PROPERTIES
+            ENVIRONMENT "ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:halt_on_error=1;UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1")
+    else()
+        doctest_discover_tests(${TEST_NAME})
+    endif()
 endfunction()
 
 include(Doctest)

@@ -1,3 +1,4 @@
+- [v11.0.2](#v1102)
 - [v11.0.1](#v1101)
 - [v11.0.0](#v1100)
 - [v10.2.0](#v1020)
@@ -93,6 +94,12 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v11.0.2
+
+- Fixed UBSAN warning when logging empty `std::string_view` ([#885](https://github.com/odygrd/quill/issues/885))
+- Updated `ConsoleSink` constructor to accept an optional `FileEventNotifier` parameter for consistency with other
+  sinks ([#886](https://github.com/odygrd/quill/issues/886))
 
 ## v11.0.1
 
