@@ -91,7 +91,7 @@ TEST_CASE("string_logging")
 #endif
     std::string_view begin_s{"begin_s"};
 #if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic pop
+  #pragma GCC diagnostic pop
 #endif
     std::string_view const end_s{"end_s"};
     std::string_view empty_sv{};
@@ -120,9 +120,11 @@ TEST_CASE("string_logging")
     LOG_INFO(logger, "scr [{}]", scr);
     LOG_INFO(logger, "sr [{}]", sr);
     LOG_INFO(logger, "empty_s [{}]", empty_s);
+    LOG_INFO(logger, "empty_rs [{}]", std::string{});
     LOG_INFO(logger, "begin_s [{}]", begin_s);
     LOG_INFO(logger, "end_s [{}]", end_s);
     LOG_INFO(logger, "empty_sv [{}]", empty_sv);
+    LOG_INFO(logger, "empty_rsv [{}]", std::string_view{});
     LOG_INFO(logger, "c_style_string_empty [{}]", c_style_string_empty);
     LOG_INFO(logger, "c_style_string [{}]", c_style_string);
     LOG_INFO(logger, "c_style_char_array_empty [{}]", c_style_char_array_empty);
@@ -169,7 +171,7 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 20);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 22);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       csn []"}));
@@ -202,6 +204,9 @@ TEST_CASE("string_logging")
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empty_s []"}));
 
   REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       empty_rs []"}));
+
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       begin_s [begin_s]"}));
 
   REQUIRE(quill::testing::file_contains(
@@ -209,6 +214,9 @@ TEST_CASE("string_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       empty_sv []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       empty_rsv []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       c_style_string_empty []"}));

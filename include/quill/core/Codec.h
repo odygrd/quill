@@ -246,7 +246,13 @@ struct Codec
       std::byte* buf_ptr = buffer;
       std::memcpy(buf_ptr, &len, sizeof(len));
       buf_ptr += sizeof(len);
-      std::memcpy(buf_ptr, arg.data(), len);
+
+      // Only copy if length > 0 to avoid UBSAN with nullptr in memcpy
+      if (QUILL_LIKELY(len != 0))
+      {
+        std::memcpy(buf_ptr, arg.data(), len);
+      }
+
       buffer = buf_ptr + len;
     }
     else

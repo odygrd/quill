@@ -108,18 +108,19 @@ jobs:
             with_tests: ON
             cmake_options: -DQUILL_SANITIZE_THREAD=ON
 
-            # Build with modern clang version
-          - cxx: clang++-19
+            # Build with clang-21 and ASAN/UBSAN (Release)
+          - cxx: clang++-21
             build_type: Release
-            std: 17
+            std: 23
             os: ubuntu-22.04
             with_tests: ON
+            cmake_options: -DQUILL_SANITIZE_ADDRESS=ON
             install: |
-              wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-              sudo add-apt-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-19 main"
+              wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+              sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main"
               sudo apt-get update
               for i in {1..3}; do
-                sudo apt-get -o Acquire::Retries=3 install -y clang-19 libc++-19-dev libc++abi-19-dev && break || sleep 15
+                sudo apt-get -o Acquire::Retries=3 install -y clang-21 libc++-21-dev libc++abi-21-dev && break || sleep 15
               done
 
     steps:
@@ -134,9 +135,9 @@ jobs:
         run: |
           sudo apt-get update
           ${{matrix.install}}
-          if [[ "${{matrix.cxx}}" == "clang++-19" ]]; then
-            sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-19 100
-            sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-19 100
+          if [[ "${{matrix.cxx}}" == "clang++-21" ]]; then
+            sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
+            sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
           fi
           cmake -E make_directory ${{runner.workspace}}/build
 
