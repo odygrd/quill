@@ -1,8 +1,10 @@
 add_subdirectory(quill_shared_lib)
+add_subdirectory(foo)
+add_subdirectory(bar)
 
 add_executable(quill_example_shared_lib example_shared.cpp)
 set_common_compile_options(quill_example_shared_lib)
-target_link_libraries(quill_example_shared_lib quill_shared_lib)
+target_link_libraries(quill_example_shared_lib quill_shared_lib foo_shared_lib bar_shared_lib)
 
 # Optional - apply visibility flag except for clang-cl
 if ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR

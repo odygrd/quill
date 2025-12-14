@@ -23,6 +23,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <iostream>
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
@@ -361,6 +363,7 @@ public:
 #endif
 
     ThreadContextManager::instance().register_thread_context(_thread_context);
+    std::cout << "Thread context created" << std::endl;
   }
 
   /***/

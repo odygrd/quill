@@ -1,3 +1,6 @@
+#include "bar.h"
+#include "bar/bar.h"
+#include "foo.h"
 #include "quill_shared.h"
 
 #include "quill/Frontend.h"
@@ -54,16 +57,10 @@ int main()
   global_logger_a->set_log_level(quill::LogLevel::TraceL3);
 
   std::string s{"string"};
-  std::string_view sv{"string_view"};
 
-  LOG_TRACE_L3(global_logger_a, "This is a log trace l3 example {}", 1);
-  LOG_TRACE_L2(global_logger_a, "This is a log trace l2 example {} {}", 2, 2.3);
-  LOG_TRACE_L1(global_logger_a, "This is a log trace l1 {} example", "s");
-  LOG_DEBUG(global_logger_a, "This is a log debug example {}", 4);
-  LOG_INFO(global_logger_a, "This is a log info example {}", s);
-  LOG_WARNING(global_logger_a, "This is a log warning example {}", sv);
-  LOG_ERROR(global_logger_a, "This is a log error example {}", 7);
-  LOG_CRITICAL(global_logger_a, "This is a log critical example {}", 118);
+  LOG_INFO(global_logger_a, "This is a log info example {} from main", s);
+  foo_log();
+  bar_log();
 
   global_logger_a->flush_log();
 }
