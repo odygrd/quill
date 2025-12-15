@@ -1,3 +1,4 @@
+- [v11.1.0](#v1110)
 - [v11.0.2](#v1102)
 - [v11.0.1](#v1101)
 - [v11.0.0](#v1100)
@@ -94,6 +95,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v11.1.0
+
+- Fixed thread-local context duplication across shared libraries ([#890](https://github.com/odygrd/quill/issues/890))
 
 ## v11.0.2
 
