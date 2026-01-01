@@ -101,6 +101,7 @@
 - Fixed thread-local context duplication across shared libraries ([#890](https://github.com/odygrd/quill/issues/890))
 - Added a `nullptr` check in macro-free log functions (`LogFunctions.h`) to allow calls with an uninitialized logger.
   Macro-based logging remains deliberately unchanged ([#894](https://github.com/odygrd/quill/issues/894))
+- Suppress GCC false-positive warnings during LTO builds.
 
 ## v11.0.2
 
