@@ -177,6 +177,18 @@ public:
         // All okay, set the backend worker thread running flag
         _is_worker_running.store(true);
 
+        if (_options.backend_worker_on_start)
+        {
+          QUILL_TRY { _options.backend_worker_on_start(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+          QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+          QUILL_CATCH_ALL()
+          {
+            _options.error_notifier(std::string{"Caught unhandled exception."});
+          }
+#endif
+        }
+
         // Running
         while (QUILL_LIKELY(_is_worker_running.load(std::memory_order_relaxed)))
         {
@@ -187,7 +199,19 @@ public:
           QUILL_CATCH_ALL()
           {
             _options.error_notifier(std::string{"Caught unhandled exception."});
-          } // clang-format on
+          }
+#endif
+        }
+
+        if (_options.backend_worker_on_stop)
+        {
+          QUILL_TRY { _options.backend_worker_on_stop(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+          QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+          QUILL_CATCH_ALL()
+          {
+            _options.error_notifier(std::string{"Caught unhandled exception."});
+          }
 #endif
         }
 
@@ -198,7 +222,7 @@ public:
         QUILL_CATCH_ALL()
         {
           _options.error_notifier(std::string{"Caught unhandled exception."});
-        } // clang-format on
+        }
 #endif
       });
 
@@ -798,7 +822,7 @@ private:
     QUILL_CATCH_ALL()
     {
       _options.error_notifier(std::string{"Caught unhandled exception."});
-    } // clang-format on
+    }
 #endif
 
     // Finally, clean up any remaining fields in the transit event

@@ -102,6 +102,8 @@
 - Added a `nullptr` check in macro-free log functions (`LogFunctions.h`) to allow calls with an uninitialized logger.
   Macro-based logging remains deliberately unchanged ([#894](https://github.com/odygrd/quill/issues/894))
 - Suppress GCC false-positive warnings during LTO builds.
+- Added backend worker lifecycle hooks `backend_worker_on_start`/
+  `backend_worker_on_stop` ([#897](https://github.com/odygrd/quill/issues/897))
 
 ## v11.0.2
 

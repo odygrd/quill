@@ -178,6 +178,20 @@ struct BackendOptions
   };
 
   /**
+   * Optional hook executed once by the backend worker thread right before entering the main loop.
+   * Any exceptions thrown are forwarded to error_notifier. Useful for thread instrumentation
+   * (e.g., Tracy).
+   */
+  std::function<void()> backend_worker_on_start = {};
+
+  /**
+   * Optional hook executed once by the backend worker thread right after exiting the main loop.
+   * Any exceptions thrown are forwarded to error_notifier. Useful for thread instrumentation
+   * (e.g., Tracy).
+   */
+  std::function<void()> backend_worker_on_stop = {};
+
+  /**
    * This option is only applicable if at least one frontend is using a Logger with
    * ClockSourceType::Tsc
    *
