@@ -180,36 +180,12 @@ public:
         // Running
         while (QUILL_LIKELY(_is_worker_running.load(std::memory_order_relaxed)))
         {
-          if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_begin)))
-          {
-            QUILL_TRY { _options.backend_worker_on_poll_begin(); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-            QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-            QUILL_CATCH_ALL()
-            {
-              _options.error_notifier(std::string{"Caught unhandled exception."});
-            }
-#endif
-          }
-
           // main loop
           QUILL_TRY { _poll(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
           QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
           QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
-
-          if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_end)))
-          {
-            QUILL_TRY { _options.backend_worker_on_poll_end(); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-            QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-            QUILL_CATCH_ALL()
-            {
-              _options.error_notifier(std::string{"Caught unhandled exception."});
-            }
-#endif
-          }
         }
 
         // exit
@@ -280,6 +256,28 @@ public:
   }
 
 private:
+  /***/
+  QUILL_ATTRIBUTE_HOT void _invoke_poll_hook(std::function<void()> const& hook) const
+  {
+    QUILL_TRY { hook(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+    QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
+#endif
+  }
+
+  /***/
+  QUILL_ATTRIBUTE_HOT void _invoke_poll_end_once(bool& poll_end_called) const
+  {
+    if (poll_end_called)
+    {
+      return;
+    }
+
+    poll_end_called = true;
+    _invoke_poll_hook(_options.backend_worker_on_poll_end);
+  }
+
   /**
    * Calls some functions that we forward declare on the backend and tries to ensure the linker
    * includes the necessary symbols
@@ -306,6 +304,13 @@ private:
    */
   QUILL_ATTRIBUTE_HOT void _poll()
   {
+    // poll hook
+    bool poll_end_called = false;
+    if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_begin)))
+    {
+      _invoke_poll_hook(_options.backend_worker_on_poll_begin);
+    }
+
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
@@ -354,6 +359,12 @@ private:
         _cleanup_invalidated_loggers();
         _try_shrink_empty_transit_event_buffers();
 
+        // poll hook
+        if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_end)))
+        {
+          _invoke_poll_end_once(poll_end_called);
+        }
+
         // There is nothing left to do, and we can let this thread sleep for a while
         // buffer events are 0 here and also all the producer queues are empty
         if (_options.sleep_duration.count() != 0)
@@ -374,6 +385,12 @@ private:
           std::this_thread::yield();
         }
       }
+    }
+
+    // poll hook
+    if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_end)))
+    {
+      _invoke_poll_end_once(poll_end_called);
     }
   }
 
