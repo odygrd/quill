@@ -70,8 +70,8 @@ namespace detail
 {
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4324)
+  #pragma warning(push)
+  #pragma warning(disable : 4324)
 #endif
 
 class BackendWorker
@@ -177,52 +177,46 @@ public:
         // All okay, set the backend worker thread running flag
         _is_worker_running.store(true);
 
-        if (_options.backend_worker_on_start)
-        {
-          QUILL_TRY { _options.backend_worker_on_start(); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-          QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-          QUILL_CATCH_ALL()
-          {
-            _options.error_notifier(std::string{"Caught unhandled exception."});
-          }
-#endif
-        }
-
         // Running
         while (QUILL_LIKELY(_is_worker_running.load(std::memory_order_relaxed)))
         {
+          if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_begin)))
+          {
+            QUILL_TRY { _options.backend_worker_on_poll_begin(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+            QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+            QUILL_CATCH_ALL()
+            {
+              _options.error_notifier(std::string{"Caught unhandled exception."});
+            }
+#endif
+          }
+
           // main loop
           QUILL_TRY { _poll(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
           QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-          QUILL_CATCH_ALL()
-          {
-            _options.error_notifier(std::string{"Caught unhandled exception."});
-          }
+          QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
-        }
 
-        if (_options.backend_worker_on_stop)
-        {
-          QUILL_TRY { _options.backend_worker_on_stop(); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-          QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-          QUILL_CATCH_ALL()
+          if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_end)))
           {
-            _options.error_notifier(std::string{"Caught unhandled exception."});
-          }
+            QUILL_TRY { _options.backend_worker_on_poll_end(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+            QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+            QUILL_CATCH_ALL()
+            {
+              _options.error_notifier(std::string{"Caught unhandled exception."});
+            }
 #endif
+          }
         }
 
         // exit
         QUILL_TRY { _exit(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
         QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-        QUILL_CATCH_ALL()
-        {
-          _options.error_notifier(std::string{"Caught unhandled exception."});
-        }
+        QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
       });
 
@@ -819,10 +813,7 @@ private:
     QUILL_TRY { _process_transit_event(*thread_context, *transit_event, flush_flag); }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
-    QUILL_CATCH_ALL()
-    {
-      _options.error_notifier(std::string{"Caught unhandled exception."});
-    }
+    QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
 #endif
 
     // Finally, clean up any remaining fields in the transit event
@@ -1457,7 +1448,8 @@ private:
         // check the queues are empty each time before removing a logger to avoid
         // potential race condition of the logger* still being in the queue
         return _check_frontend_queues_and_cached_transit_events_empty();
-      }, _removed_loggers);
+      },
+      _removed_loggers);
 
     if (!_removed_loggers.empty())
     {
@@ -1748,7 +1740,7 @@ private:
 };
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif
 
 } // namespace detail

@@ -178,18 +178,18 @@ struct BackendOptions
   };
 
   /**
-   * Optional hook executed once by the backend worker thread right before entering the main loop.
+   * Optional hook executed by the backend worker thread at the start of each poll iteration.
    * Any exceptions thrown are forwarded to error_notifier. Useful for thread instrumentation
-   * (e.g., Tracy).
+   * (e.g., Tracy). Use a guard if you need a one-time action.
    */
-  std::function<void()> backend_worker_on_start = {};
+  std::function<void()> backend_worker_on_poll_begin = {};
 
   /**
-   * Optional hook executed once by the backend worker thread right after exiting the main loop.
+   * Optional hook executed by the backend worker thread at the end of each poll iteration.
    * Any exceptions thrown are forwarded to error_notifier. Useful for thread instrumentation
-   * (e.g., Tracy).
+   * (e.g., Tracy). Use a guard if you need a one-time action.
    */
-  std::function<void()> backend_worker_on_stop = {};
+  std::function<void()> backend_worker_on_poll_end = {};
 
   /**
    * This option is only applicable if at least one frontend is using a Logger with
