@@ -6,7 +6,9 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#include <atomic>
 #include <cstdio>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -49,6 +51,25 @@ TEST_CASE("backend_exception_notifier")
     "Lorem_ipsum_dolor_sit_amet_consectetur_adipiscing_elit_sed_do_eiusmod_tempor_incididunt_ut_"
     "labore_et_dolore_magna_aliqua";
 
+  std::atomic<bool> on_poll_begin_thrown{false};
+  std::atomic<bool> on_poll_end_thrown{false};
+
+  backend_options.backend_worker_on_poll_begin = [&on_poll_begin_thrown]()
+  {
+    if (!on_poll_begin_thrown.exchange(true))
+    {
+      throw std::runtime_error{"backend_worker_on_poll_begin"};
+    }
+  };
+
+  backend_options.backend_worker_on_poll_end = [&on_poll_end_thrown]()
+  {
+    if (!on_poll_end_thrown.exchange(true))
+    {
+      throw std::runtime_error{"backend_worker_on_poll_end"};
+    }
+  };
+
   backend_options.error_notifier = [logger, &error_notifier_invoked](std::string const& error_message)
   {
     // Log inside the function from the backend thread, for testing
@@ -69,14 +90,15 @@ TEST_CASE("backend_exception_notifier")
   logger->flush_log();
 
   #if (defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
-  // No checks on BSD
+  // On BSD only the poll begin/end errors are guaranteed
+  REQUIRE_GE(error_notifier_invoked.load(), 2);
   #elif defined(__linux__)
-  // On linux we truncate the thread name so only one error is expected
-  // Check our handler was invoked since set_backend_thread_cpu_affinity should have failed
-  REQUIRE_EQ(error_notifier_invoked.load(), 1);
+  // On linux we truncate the thread name so one error is expected, plus poll begin/end
+  REQUIRE_GE(error_notifier_invoked.load(), 3);
   #else
-  // Check our handler was invoked since either set_backend_thread_name or set_backend_thread_cpu_affinity should have failed
-  REQUIRE_GE(error_notifier_invoked.load(), 1);
+  // Check our handler was invoked since either set_backend_thread_name or
+  // set_backend_thread_cpu_affinity should have failed, plus poll begin/end
+  REQUIRE_GE(error_notifier_invoked.load(), 3);
   #endif
 
   // Now we can try to get another exception by calling LOG_BACKTRACE without calling init first
@@ -100,6 +122,9 @@ TEST_CASE("backend_exception_notifier")
   // Wait until the backend thread stops for test stability
   Backend::stop();
 
+  REQUIRE(on_poll_begin_thrown.load());
+  REQUIRE(on_poll_end_thrown.load());
+
   // After the backend has stopped, all messages include the async ones from the notifier will
   // be in the log file. At this point we can safely check it
 
@@ -121,6 +146,12 @@ TEST_CASE("backend_exception_notifier")
 
   std::string const expected_string_4 = "error handler invoked [Could not format log statement.";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string_4));
+
+  std::string const expected_string_5 = "error handler invoked backend_worker_on_poll_begin";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string_5));
+
+  std::string const expected_string_6 = "error handler invoked backend_worker_on_poll_end";
+  REQUIRE(quill::testing::file_contains(file_contents, expected_string_6));
 
   testing::remove_file(filename);
 }
