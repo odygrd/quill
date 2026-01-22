@@ -33,6 +33,19 @@ Disables features that require thread name retrieval. This is useful for compati
 
 .. code:: cmake
 
+    add_compile_definitions(-DQUILL_USE_SEQUENTIAL_THREAD_ID)
+
+Uses a sequential counter for thread IDs instead of OS-assigned thread IDs. Thread IDs are assigned on first use of the logging API on a thread; determinism depends on threads reaching their first log in a consistent order.
+When enabled, you must define the counter in exactly one translation unit so there is a single counter for the whole process (avoids per-translation-unit or per-shared-library counters). Place the definition in a ``.cpp`` file, not a header.
+
+.. code:: c++
+
+    #include "quill/Utility.h"
+
+    QUILL_DEFINE_SEQUENTIAL_THREAD_ID
+
+.. code:: cmake
+
     add_compile_definitions(-DQUILL_ENABLE_ASSERTIONS)
 
 Enables internal assertions in release builds. By default, assertions are active only in debug builds ``(!defined(NDEBUG))``. Defining this flag forces them on even in release mode, which can help catch issues at runtime.

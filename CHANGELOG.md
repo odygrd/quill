@@ -104,6 +104,7 @@
 - Suppress GCC false-positive warnings during LTO builds.
 - Added backend worker poll loop hooks `backend_worker_on_poll_begin`/
   `backend_worker_on_poll_end` ([#897](https://github.com/odygrd/quill/issues/897))
+- Added opt-in sequential thread IDs via `QUILL_USE_SEQUENTIAL_THREAD_ID` with `QUILL_DEFINE_SEQUENTIAL_THREAD_ID` ([#898](https://github.com/odygrd/quill/issues/898))
 
 ## v11.0.2
 
