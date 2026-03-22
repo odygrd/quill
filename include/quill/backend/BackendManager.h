@@ -23,6 +23,12 @@ class BackendTscClock;
 
 namespace detail
 {
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+  #pragma warning(push)
+  #pragma warning(disable : 4324)
+#endif
+
 /**
  * Provides access to common collection class that are used by both the frontend and the backend
  * components of the logging system
@@ -120,6 +126,11 @@ private:
   std::atomic<std::once_flag*> _start_once_flag{new std::once_flag};
   std::atomic<bool> _atexit_registered{false};
 };
+
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+  #pragma warning(pop)
+#endif
+
 } // namespace detail
 
 QUILL_END_NAMESPACE
