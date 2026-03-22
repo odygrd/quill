@@ -130,7 +130,7 @@ public:
   std::atomic<uint32_t> signal_handler_timeout_seconds{20};
   std::atomic<bool> should_reraise_signal{true};
   std::mutex signal_handlers_mutex;
-  std::vector<int32_t> registered_signal_handlers{};
+  std::vector<int> registered_signal_handlers{};
 
 private:
   SignalHandlerContext() = default;
