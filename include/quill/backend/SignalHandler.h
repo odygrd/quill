@@ -392,7 +392,7 @@ template <typename TFrontendOptions>
 void init_signal_handler(std::vector<int> const& catchable_signals = std::vector<int>{
                            SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
-  auto& ctx = SignalHandlerContext::instance();
+  auto& ctx = detail::SignalHandlerContext::instance();
   std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
 
   ctx.registered_signal_handlers = catchable_signals;
