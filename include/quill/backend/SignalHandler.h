@@ -21,7 +21,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <string>
+#include <vector>
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
@@ -49,6 +51,7 @@ struct SignalHandlerOptions
 {
   /**
    * List of signals that the backend should catch if with_signal_handler is enabled.
+   * Enabling the built-in signal handler overrides the process handlers for these signals.
    */
   std::vector<int> catchable_signals{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV};
 
@@ -126,6 +129,8 @@ public:
   std::atomic<uint32_t> backend_thread_id{0};
   std::atomic<uint32_t> signal_handler_timeout_seconds{20};
   std::atomic<bool> should_reraise_signal{true};
+  std::mutex signal_handlers_mutex;
+  std::vector<int> registered_signal_handlers{};
 
 private:
   SignalHandlerContext() = default;
@@ -380,13 +385,18 @@ void init_exception_handler()
 } // namespace detail
 
 /**
- * On windows it has to be called on each thread
+ * On windows, it has to be called on each thread
  * @param catchable_signals the signals we are catching
  */
 template <typename TFrontendOptions>
 void init_signal_handler(std::vector<int> const& catchable_signals = std::vector<int>{
                            SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
+  auto& ctx = detail::SignalHandlerContext::instance();
+  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
+
+  ctx.registered_signal_handlers = catchable_signals;
+
   for (auto const& catchable_signal : catchable_signals)
   {
     // setup a signal handler per signal in the array
@@ -396,6 +406,22 @@ void init_signal_handler(std::vector<int> const& catchable_signals = std::vector
     }
   }
 }
+
+namespace detail
+{
+inline void deinit_signal_handler()
+{
+  auto& ctx = SignalHandlerContext::instance();
+  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
+
+  for (auto const& signal_number : ctx.registered_signal_handlers)
+  {
+    std::signal(signal_number, SIG_DFL);
+  }
+
+  ctx.registered_signal_handlers.clear();
+}
+} // namespace detail
 #else
 namespace detail
 {
@@ -416,6 +442,11 @@ inline void on_alarm(int32_t signal_number)
 template <typename TFrontendOptions>
 void init_signal_handler(std::vector<int> const& catchable_signals)
 {
+  auto& ctx = SignalHandlerContext::instance();
+  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
+
+  ctx.registered_signal_handlers = catchable_signals;
+
   for (auto const& catchable_signal : catchable_signals)
   {
     if (catchable_signal == SIGALRM)
@@ -435,6 +466,21 @@ void init_signal_handler(std::vector<int> const& catchable_signals)
   {
     QUILL_THROW(QuillError{"Failed to setup signal handler for signal: SIGALRM"});
   }
+
+  ctx.registered_signal_handlers.push_back(SIGALRM);
+}
+
+inline void deinit_signal_handler()
+{
+  auto& ctx = SignalHandlerContext::instance();
+  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
+
+  for (auto const& signal_number : ctx.registered_signal_handlers)
+  {
+    std::signal(signal_number, SIG_DFL);
+  }
+
+  ctx.registered_signal_handlers.clear();
 }
 } // namespace detail
 #endif

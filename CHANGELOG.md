@@ -96,6 +96,11 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+## TBD
+
+- Fixed a signal handler shutdown issue where crashes after `Backend::stop()` could hang while trying to `flush()` through a stopped backend worker. ([#906](https://github.com/odygrd/quill/issues/906))
+- Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles.
+
 ## v11.1.0
 
 - Fixed thread-local context duplication across shared libraries ([#890](https://github.com/odygrd/quill/issues/890))
