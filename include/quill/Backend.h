@@ -44,7 +44,7 @@ public:
                      // Set up an exit handler to call stop when the main application exits.
                      // always call stop on destruction to log everything. std::atexit seems to be
                      // working better with dll on windows compared to using ~LogManagerSingleton().
-                     std::atexit([]() { Backend::stop(); });
+                     std::atexit([]() { detail::BackendManager::instance().stop_backend_thread(); });
                    });
   }
   /**
@@ -112,7 +112,7 @@ public:
                      // Set up an exit handler to call stop when the main application exits.
                      // always call stop on destruction to log everything. std::atexit seems to be
                      // working better with dll on windows compared to using ~LogManagerSingleton().
-                     std::atexit([]() { Backend::stop(); });
+                     std::atexit([]() { detail::BackendManager::instance().stop_backend_thread(); });
                    });
   }
 
