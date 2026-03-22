@@ -111,7 +111,7 @@ private:
   /***/
   void set_atexit_registered() noexcept
   {
-    _atexit_registered.store();
+    _atexit_registered.store(true);
   }
 
 private:
