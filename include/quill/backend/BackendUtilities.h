@@ -36,6 +36,7 @@
   #include <sched.h>
   #include <unistd.h>
 #elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
+  #include <pthread.h>
   #include <pthread_np.h>
   #include <sched.h>
   #include <unistd.h>
