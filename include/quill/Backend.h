@@ -29,7 +29,7 @@ constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPa
 class Backend
 {
 public:
-  /**
+/**
    * Starts the backend thread.
    * @param options Backend options to configure the backend behavior.
    */
@@ -38,15 +38,24 @@ public:
     std::call_once(detail::BackendManager::instance().get_start_once_flag(),
                    [options]()
                    {
+                     // Ensure SignalHandlerContext singleton is constructed before atexit
+                     // registration so it is alive when the atexit handler runs during shutdown.
+                     (void)detail::SignalHandlerContext::instance();
+
                      // Run the backend worker thread, we wait here until the thread enters the main loop
                      detail::BackendManager::instance().start_backend_thread(options);
 
                      // Set up an exit handler to call stop when the main application exits.
                      // always call stop on destruction to log everything. std::atexit seems to be
                      // working better with dll on windows compared to using ~LogManagerSingleton().
-                     std::atexit([]() { detail::BackendManager::instance().stop_backend_thread(); });
+                     if (!detail::BackendManager::instance().is_atexit_registered())
+                     {
+                       detail::BackendManager::instance().set_atexit_registered();
+                       std::atexit([]() { Backend::stop(); });
+                     }
                    });
   }
+  
   /**
    * Starts the backend thread and initialises a signal handler.
    *
@@ -112,7 +121,11 @@ public:
                      // Set up an exit handler to call stop when the main application exits.
                      // always call stop on destruction to log everything. std::atexit seems to be
                      // working better with dll on windows compared to using ~LogManagerSingleton().
-                     std::atexit([]() { detail::BackendManager::instance().stop_backend_thread(); });
+                     if (!detail::BackendManager::instance().is_atexit_registered())
+                     {
+                       detail::BackendManager::instance().set_atexit_registered();
+                       std::atexit([]() { Backend::stop(); });
+                     }
                    });
   }
 
@@ -123,7 +136,7 @@ public:
    * their default dispositions. It does not restore any previously installed user handlers.
    * @note thread-safe
    */
-  QUILL_ATTRIBUTE_COLD static void stop() noexcept
+  QUILL_ATTRIBUTE_COLD static void stop()
   {
     detail::SignalHandlerContext::instance().backend_thread_id.store(0);
     detail::BackendManager::instance().stop_backend_thread();

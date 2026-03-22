@@ -102,9 +102,23 @@ private:
   }
 
 private:
+  /***/
+  QUILL_NODISCARD bool is_atexit_registered() const noexcept
+  {
+    return _atexit_registered.load();
+  }
+
+  /***/
+  void set_atexit_registered() noexcept
+  {
+    _atexit_registered.store();
+  }
+
+private:
   BackendWorker _backend_worker;
   ManualBackendWorker _manual_backend_worker{&_backend_worker};
   std::atomic<std::once_flag*> _start_once_flag{new std::once_flag};
+  std::atomic<bool> _atexit_registered{false};
 };
 } // namespace detail
 
