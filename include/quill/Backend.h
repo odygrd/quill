@@ -29,7 +29,7 @@ constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPa
 class Backend
 {
 public:
-/**
+  /**
    * Starts the backend thread.
    * @param options Backend options to configure the backend behavior.
    */
