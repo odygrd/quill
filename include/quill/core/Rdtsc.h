@@ -95,7 +95,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
   __asm__ volatile("stck %0" : "=Q"(tsc) : : "cc");
   return tsc;
 }
-#elif (defined(_M_ARM) || defined(_M_ARM64) || defined(__PPC64__))
+#elif (defined(_M_ARM) || defined(_M_ARM64) || defined(__PPC64__) || defined(__PPC__))
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 {
   // soft failover
