@@ -467,6 +467,11 @@ protected:
    */
   void fsync_file(bool force_fsync = false) noexcept
   {
+    if (!_file)
+    {
+      return;
+    }
+
     if (!force_fsync)
     {
       auto const now = std::chrono::steady_clock::now();

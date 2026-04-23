@@ -402,6 +402,14 @@ private:
       return;
     }
 
+    if (!this->_file)
+    {
+      this->open_file(this->_filename, _config.open_mode());
+      _open_file_timestamp = record_timestamp_ns;
+      this->_file_size = _get_file_size(this->_filename);
+      return;
+    }
+
     // We need to flush and also fsync before actually getting the size of the file
     base_type::flush_sink();
     base_type::fsync_file(true);
