@@ -9,6 +9,12 @@ TEST_SUITE_BEGIN("RotatingFileSink");
 using namespace quill;
 using namespace quill::detail;
 
+void write_log_statement(RotatingFileSink& sink, std::string_view log_statement)
+{
+  sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                 std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", log_statement);
+}
+
 /***/
 TEST_CASE("rotating_file_sink_index_no_backup_limit")
 {
@@ -1929,6 +1935,63 @@ TEST_CASE("rotating_file_sink_index_dont_remove_unrelated_files")
   testing::remove_file(filename_3);
   testing::remove_file(filename_yaml);
   testing::remove_file(filename_other);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
+{
+  fs::path const log_dir = "rotating_file_sink_reopen_failure";
+  fs::path const filename = log_dir / "rotating_file_sink_reopen_failure.log";
+
+  std::error_code ec;
+  fs::remove_all(log_dir, ec);
+  fs::create_directories(log_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  size_t before_open_calls{0};
+  FileEventNotifier file_event_notifier;
+  // Fail the reopen that happens during rotation by removing the parent directory just
+  // before the second open attempt.
+  file_event_notifier.before_open = [&before_open_calls, &log_dir](fs::path const&)
+  {
+    ++before_open_calls;
+    if (before_open_calls == 2)
+    {
+      fs::remove_all(log_dir);
+    }
+  };
+
+  RotatingFileSinkConfig cfg;
+  cfg.set_rotation_max_file_size(512);
+  cfg.set_open_mode('w');
+
+  RotatingFileSink sink{filename, cfg, file_event_notifier};
+  write_log_statement(sink, "Record [0]\n");
+
+  std::string oversized_record = "Record [1]\n";
+  oversized_record.append(600, 'x');
+
+  // The first oversized write triggers rotation and leaves the sink without an open file
+  // when reopen fails.
+  try
+  {
+    write_log_statement(sink, oversized_record);
+  }
+  catch (std::exception const&)
+  {
+  }
+
+  // A second oversized write re-enters the rotation path with a null FILE*.
+  // The current bug dereferences it in fsync_file() and crashes with SIGSEGV.
+  try
+  {
+    write_log_statement(sink, oversized_record);
+  }
+  catch (std::exception const&)
+  {
+  }
+
+  fs::remove_all(log_dir, ec);
 }
 
 /***/
