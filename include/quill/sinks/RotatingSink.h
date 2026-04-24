@@ -404,7 +404,7 @@ private:
 
     if (!this->_file)
     {
-      this->open_file(this->_filename, _config.open_mode());
+      this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
       _open_file_timestamp = record_timestamp_ns;
       this->_file_size = _get_file_size(this->_filename);
       return;
@@ -659,6 +659,20 @@ private:
       std::sort(_created_files.begin(), _created_files.end(),
                 [](FileInfo const& a, FileInfo const& b) { return a.index < b.index; });
     }
+  }
+
+  /***/
+  QUILL_NODISCARD static std::string _reopen_mode_after_failed_rotation(
+    std::string const& open_mode)
+  {
+    if (!open_mode.empty() && (open_mode.front() == 'w'))
+    {
+      std::string reopen_mode = open_mode;
+      reopen_mode.front() = 'a';
+      return reopen_mode;
+    }
+
+    return open_mode;
   }
 
   /***/

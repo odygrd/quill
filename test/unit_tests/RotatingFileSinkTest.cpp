@@ -1938,7 +1938,7 @@ TEST_CASE("rotating_file_sink_index_dont_remove_unrelated_files")
 }
 
 /***/
-TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
+TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash_and_recovers_in_append_mode")
 {
   fs::path const log_dir = "rotating_file_sink_reopen_failure";
   fs::path const filename = log_dir / "rotating_file_sink_reopen_failure.log";
@@ -1950,8 +1950,9 @@ TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
 
   size_t before_open_calls{0};
   FileEventNotifier file_event_notifier;
-  // Fail the reopen that happens during rotation by removing the parent directory just
-  // before the second open attempt.
+  // Simulate a disk-full style reopen failure during rotation: once the current file
+  // has been renamed away, remove the parent directory just before the reopen attempt
+  // so creating the new active file fails as if no space were available for it.
   file_event_notifier.before_open = [&before_open_calls, &log_dir](fs::path const&)
   {
     ++before_open_calls;
@@ -1965,31 +1966,44 @@ TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
   cfg.set_rotation_max_file_size(512);
   cfg.set_open_mode('w');
 
-  RotatingFileSink sink{filename, cfg, file_event_notifier};
-  write_log_statement(sink, "Record [0]\n");
+  {
+    RotatingFileSink sink{filename, cfg, file_event_notifier};
+    write_log_statement(sink, "Record [0]\n");
 
-  std::string oversized_record = "Record [1]\n";
-  oversized_record.append(600, 'x');
+    std::string oversized_record = "Record [1]\n";
+    oversized_record.append(600, 'x');
 
-  // The first oversized write triggers rotation and leaves the sink without an open file
-  // when reopen fails.
-  try
-  {
-    write_log_statement(sink, oversized_record);
-  }
-  catch (std::exception const&)
-  {
+    try
+    {
+      write_log_statement(sink, oversized_record);
+    }
+    catch (std::exception const&)
+    {
+    }
+
+    // A second oversized write re-enters the rotation path with a null FILE*.
+    // The current bug dereferences it in fsync_file() and crashes with SIGSEGV.
+    try
+    {
+      write_log_statement(sink, oversized_record);
+    }
+    catch (std::exception const&)
+    {
+    }
+
+    // Simulate disk cleanup freeing some space while the original active file content
+    // is still on disk. Recovery must reopen in append mode and add new data to this
+    // file instead of truncating and overwriting it.
+    fs::create_directories(log_dir, ec);
+    REQUIRE_FALSE(ec);
+    testing::create_file(filename, "Recovered record\n");
+
+    REQUIRE_NOTHROW(write_log_statement(sink, oversized_record));
   }
 
-  // A second oversized write re-enters the rotation path with a null FILE*.
-  // The current bug dereferences it in fsync_file() and crashes with SIGSEGV.
-  try
-  {
-    write_log_statement(sink, oversized_record);
-  }
-  catch (std::exception const&)
-  {
-  }
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Recovered record"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
 
   fs::remove_all(log_dir, ec);
 }
