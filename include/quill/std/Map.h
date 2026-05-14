@@ -161,9 +161,11 @@ struct Codec<MapType<Key, T, Compare, Allocator>,
 #endif
       using ReturnKeyType = decltype(Codec<Key>::decode_arg(buffer));
       using ReturnValueType = decltype(Codec<T>::decode_arg(buffer));
+      using ReboundCompare =
+        typename std::conditional<std::is_same<Compare, std::less<Key>>::value, std::less<ReturnKeyType>, Compare>::type;
       using ReboundAllocator =
         typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<ReturnKeyType const, ReturnValueType>>;
-      MapType<ReturnKeyType, ReturnValueType, Compare, ReboundAllocator> arg;
+      MapType<ReturnKeyType, ReturnValueType, ReboundCompare, ReboundAllocator> arg;
 
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
 
