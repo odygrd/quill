@@ -162,9 +162,9 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
       using ReturnKeyType = decltype(Codec<Key>::decode_arg(buffer));
       using ReturnValueType = decltype(Codec<T>::decode_arg(buffer));
       using ReboundHash =
-        typename std::conditional<std::is_same<Hash, std::hash<Key>>::value, std::hash<ReturnType>, Hash>::type;
+        typename std::conditional<std::is_same<Hash, std::hash<Key>>::value, std::hash<ReturnKeyType>, Hash>::type;
       using ReboundKeyEqual =
-        typename std::conditional<std::is_same<KeyEqual, std::equal_to<Key>>::value, std::equal_to<ReturnType>, KeyEqual>::type;
+        typename std::conditional<std::is_same<KeyEqual, std::equal_to<Key>>::value, std::equal_to<ReturnKeyType>, KeyEqual>::type;
       using ReboundAllocator =
         typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<ReturnKeyType const, ReturnValueType>>;
       UnorderedMapType<ReturnKeyType, ReturnValueType, ReboundHash, ReboundKeyEqual, ReboundAllocator> arg;
