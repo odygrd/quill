@@ -56,7 +56,7 @@ TEST_CASE("std_unordered_map_logging")
     {
       loopsv.emplace(std::to_string(iter), std::to_string(iter * 2));
     }
-    LOG_INFO(logger, "loopsv {}", loopv);
+    LOG_INFO(logger, "loopsv {}", loopsv);
 
     std::unordered_map<char const*, char const*> ccm = {{"4", "400"}};
     LOG_INFO(logger, "ccm {}", ccm);
