@@ -161,9 +161,13 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
 #endif
       using ReturnKeyType = decltype(Codec<Key>::decode_arg(buffer));
       using ReturnValueType = decltype(Codec<T>::decode_arg(buffer));
+      using ReboundHash =
+        typename std::conditional<std::is_same<Hash, std::hash<Key>>::value, std::hash<ReturnType>, Hash>::type;
+      using ReboundKeyEqual =
+        typename std::conditional<std::is_same<KeyEqual, std::equal_to<Key>>::value, std::equal_to<ReturnType>, KeyEqual>::type;
       using ReboundAllocator =
         typename std::allocator_traits<Allocator>::template rebind_alloc<std::pair<ReturnKeyType const, ReturnValueType>>;
-      UnorderedMapType<ReturnKeyType, ReturnValueType, Hash, KeyEqual, ReboundAllocator> arg;
+      UnorderedMapType<ReturnKeyType, ReturnValueType, ReboundHash, ReboundKeyEqual, ReboundAllocator> arg;
 
       // Read the size of the set
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
