@@ -149,7 +149,20 @@ public:
     std::thread worker(
       [this, options]()
       {
-        _init(options);
+        QUILL_TRY { _init(options); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+        QUILL_CATCH(std::exception const& e)
+        {
+          _options.error_notifier(e.what());
+          std::terminate();
+        }
+        QUILL_CATCH_ALL()
+        {
+          _options.error_notifier(
+            std::string{"Caught unhandled exception during backend initialization."});
+          std::terminate();
+        }
+#endif
 
         QUILL_TRY
         {
@@ -1073,27 +1086,43 @@ private:
    */
   QUILL_ATTRIBUTE_HOT void _check_failure_counter(std::function<void(std::string const&)> const& error_notifier) noexcept
   {
-    // UnboundedNoMaxLimit does not block or drop messages
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
-      if (thread_context->has_bounded_queue_type())
+      size_t const failed_messages_cnt = thread_context->get_and_reset_failure_counter();
+
+      if (QUILL_UNLIKELY(failed_messages_cnt > 0))
       {
-        size_t const failed_messages_cnt = thread_context->get_and_reset_failure_counter();
+        char timestamp[24];
+        time_t now = time(nullptr);
+        tm local_time;
+        localtime_rs(&now, &local_time);
+        strftime(timestamp, sizeof(timestamp), "%X", &local_time);
 
-        if (QUILL_UNLIKELY(failed_messages_cnt > 0))
+        if (thread_context->has_dropping_queue())
         {
-          char timestamp[24];
-          time_t now = time(nullptr);
-          tm local_time;
-          localtime_rs(&now, &local_time);
-          strftime(timestamp, sizeof(timestamp), "%X", &local_time);
-
-          if (thread_context->has_dropping_queue())
+          if (thread_context->has_unbounded_queue_type())
+          {
+            error_notifier(fmtquill::format(
+              "{} Quill INFO: Reached the maximum configured unbounded queue capacity and dropped "
+              "{} log messages from thread {}",
+              timestamp, failed_messages_cnt, thread_context->thread_id()));
+          }
+          else
           {
             error_notifier(fmtquill::format("{} Quill INFO: Dropped {} log messages from thread {}",
                                             timestamp, failed_messages_cnt, thread_context->thread_id()));
           }
-          else if (thread_context->has_blocking_queue())
+        }
+        else if (thread_context->has_blocking_queue())
+        {
+          if (thread_context->has_unbounded_queue_type())
+          {
+            error_notifier(fmtquill::format(
+              "{} Quill INFO: Reached the maximum configured unbounded queue capacity and "
+              "experienced {} blocking occurrences on thread {}",
+              timestamp, failed_messages_cnt, thread_context->thread_id()));
+          }
+          else
           {
             error_notifier(
               fmtquill::format("{} Quill INFO: Experienced {} blocking occurrences on thread {}",

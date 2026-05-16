@@ -41,6 +41,9 @@ Logger Removal
 
 Loggers can be removed using :cpp:func:`FrontendImpl::remove_logger` or :cpp:func:`FrontendImpl::remove_logger_blocking`. These functions remove the logger asynchronously. Once a logger is removed, it becomes invalid and must no longer be used by any other thread. The backend ensures that all pending log statements from the logger are processed before final removal. After removal, a logger with the same `logger_name` can be recreated with different parameters.
 
+``FrontendImpl::remove_logger_blocking`` should only be used while the backend worker is running
+after ``Backend::start()``.
+
 If you plan to use logger removal functions, ensure that no other threads continue using the logger after calling :cpp:func:`remove_logger` or :cpp:func:`FrontendImpl::remove_logger_blocking`. To avoid potential issues, it is recommended to create a separate logger for each application thread, giving each logger a unique `logger_name`. This ensures that when one thread removes its logger, it does not affect other threads.
 
 When all loggers associated with a particular ``Sink`` are removed, the corresponding ``Sink`` instances are destroyed, and any associated files are closed automatically.

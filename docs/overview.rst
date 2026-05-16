@@ -68,6 +68,9 @@ Number of Backend Threads
 
 Quill prioritizes low latency over high throughput, hence it utilizes only one backend thread to process all logs efficiently. Multiple backend threads are not supported.
 
+Starting and stopping the backend from different threads at the same time is also unsupported. Call
+``Backend::start()`` and ``Backend::stop()`` in a coordinated way rather than concurrently.
+
 Latency of the First Log Message
 --------------------------------
 

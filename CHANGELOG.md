@@ -1,4 +1,5 @@
 - [v11.1.0](#v1110)
+- [TBD](#tbd)
 - [v11.0.2](#v1102)
 - [v11.0.1](#v1101)
 - [v11.0.0](#v1100)
@@ -100,6 +101,14 @@
 
 - Fixed a signal handler shutdown issue where crashes after `Backend::stop()` could hang while trying to `flush()` through a stopped backend worker. ([#906](https://github.com/odygrd/quill/issues/906))
 - Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles.
+- Fixed `ManualBackendWorker` shutdown to be idempotent, added an explicit `shutdown()` API, and
+  enforced same-thread shutdown for manual backend mode.
+- Fixed `ThreadContextManager::register_thread_context()` exception safety and widened the invalid
+  thread-context counter.
+- Fixed backend notifier reporting for unbounded queues when they reach
+  `FrontendOptions::unbounded_queue_max_capacity` and start blocking or dropping
+- Made backend initialization failures explicitly notify and terminate during backend thread startup
+- Fixed `RdtscClock` resync interval conversion from nanoseconds to TSC ticks
 
 ## v11.1.0
 

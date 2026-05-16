@@ -113,4 +113,61 @@ TEST_CASE("add_and_remove_thread_contexts")
   }
 }
 
+TEST_CASE("invalid_thread_context_counter_handles_large_batches")
+{
+  constexpr size_t num_threads{300};
+  std::array<std::thread, num_threads> threads;
+  std::array<std::atomic<bool>, num_threads> terminate_flag{};
+  std::fill(terminate_flag.begin(), terminate_flag.end(), false);
+
+  std::atomic<uint32_t> threads_started{0};
+
+  for (size_t i = 0; i < threads.size(); ++i)
+  {
+    auto& thread_terminate_flag = terminate_flag[i];
+    threads[i] = std::thread(
+      [&thread_terminate_flag, &threads_started]()
+      {
+        ThreadContext* tc = get_local_thread_context<FrontendOptions>();
+        REQUIRE(tc->has_unbounded_queue_type());
+        threads_started.fetch_add(1);
+
+        while (!thread_terminate_flag.load())
+        {
+          std::this_thread::sleep_for(std::chrono::milliseconds{1});
+        }
+      });
+  }
+
+  while (threads_started.load() < num_threads)
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds{1});
+  }
+
+  for (size_t i = 0; i < threads.size(); ++i)
+  {
+    terminate_flag[i].store(true);
+    threads[i].join();
+  }
+
+  REQUIRE(ThreadContextManager::instance().has_invalid_thread_context());
+
+  std::vector<ThreadContext const*> tc_cache;
+  ThreadContextManager::instance().for_each_thread_context(
+    [&tc_cache](ThreadContext const* tc)
+    {
+      REQUIRE_FALSE(tc->is_valid());
+      tc_cache.push_back(tc);
+    });
+
+  REQUIRE_EQ(tc_cache.size(), num_threads);
+
+  for (ThreadContext const* tc : tc_cache)
+  {
+    ThreadContextManager::instance().remove_shared_invalidated_thread_context(tc);
+  }
+
+  REQUIRE_FALSE(ThreadContextManager::instance().has_invalid_thread_context());
+}
+
 TEST_SUITE_END();

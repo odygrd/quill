@@ -32,6 +32,7 @@ public:
   /**
    * Starts the backend thread.
    * @param options Backend options to configure the backend behavior.
+   * @note Concurrent calls to start() and stop() from different threads are not supported.
    */
   QUILL_ATTRIBUTE_COLD static void start(BackendOptions const& options = BackendOptions{})
   {
@@ -55,7 +56,7 @@ public:
                      }
                    });
   }
-  
+
   /**
    * Starts the backend thread and initialises a signal handler.
    *
@@ -63,6 +64,7 @@ public:
    * @param signal_handler_options SignalHandler options to configure the signal handler behavior.
    *
    * @note Enabling the built-in signal handler overrides the listed process signal handlers.
+   * @note Concurrent calls to start() and stop() from different threads are not supported.
    *
    * @note When using the SignalHandler on Linux/MacOS, ensure that each spawned thread in your
    * application has performed one of the following actions:
@@ -134,6 +136,7 @@ public:
    *
    * @note When the built-in signal handler is enabled, this restores the Quill-managed signals to
    * their default dispositions. It does not restore any previously installed user handlers.
+   * @note Concurrent calls to start() and stop() from different threads are not supported.
    * @note thread-safe
    */
   QUILL_ATTRIBUTE_COLD static void stop()

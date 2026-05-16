@@ -24,7 +24,8 @@ int main()
 
   // Remove the logger
   // Note:: remove_logger(g_logger) is not enough for this example. We must wait until the logger
-  // is removed in order to re-create one with the same name (logger_name)
+  // is removed in order to re-create one with the same name (logger_name). The blocking removal
+  // API should only be used while the backend worker is still running.
   quill::Frontend::remove_logger_blocking(g_logger);
 
   // Recreate a logger with the same name (logger_name)

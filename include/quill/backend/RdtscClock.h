@@ -26,8 +26,8 @@ namespace detail
 {
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4324)
+  #pragma warning(push)
+  #pragma warning(disable : 4324)
 #endif
 
 /**
@@ -119,7 +119,7 @@ public:
   explicit RdtscClock(std::chrono::nanoseconds resync_interval)
     : _ns_per_tick(RdtscTicks::instance().ns_per_tick())
   {
-    double const calc_value = static_cast<double>(resync_interval.count()) * _ns_per_tick;
+    double const calc_value = static_cast<double>(resync_interval.count()) / _ns_per_tick;
 
     // Check for overflow and negative values
     if (calc_value >= static_cast<double>(std::numeric_limits<int64_t>::max()) || calc_value < 0)
@@ -247,7 +247,7 @@ private:
   }
 
 private:
-  static constexpr uint32_t resync_lag_cycles {50'000};
+  static constexpr uint32_t resync_lag_cycles{50'000};
   mutable int64_t _resync_interval_ticks{0};
   int64_t _resync_interval_original{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
   double _ns_per_tick{0};
@@ -257,7 +257,7 @@ private:
 };
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif
 
 } // namespace detail

@@ -29,8 +29,8 @@ namespace detail
 {
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4324)
+  #pragma warning(push)
+  #pragma warning(disable : 4324)
 #endif
 
 /** Forward Declarations **/
@@ -242,9 +242,8 @@ public:
   /***/
   void register_thread_context(std::shared_ptr<ThreadContext> const& thread_context)
   {
-    _spinlock.lock();
+    LockGuard const lock{_spinlock};
     _thread_contexts.push_back(thread_context);
-    _spinlock.unlock();
     _new_thread_context_flag.store(true, std::memory_order_release);
   }
 
@@ -334,7 +333,7 @@ private:
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
   Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
   std::atomic<bool> _new_thread_context_flag{false};
-  std::atomic<uint8_t> _invalid_thread_context_count{0};
+  std::atomic<uint32_t> _invalid_thread_context_count{0};
 };
 
 class ScopedThreadContext
@@ -408,7 +407,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT QUILL_EXPORT inline ThreadContext* get_scope
 {
   thread_local ScopedThreadContext scoped_thread_context{
     queue_type, initial_queue_capacity, unbounded_queue_max_capacity, huge_pages_policy};
-  
+
   return scoped_thread_context.get_thread_context();
 }
 
@@ -422,7 +421,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context() no
 }
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif
 
 } // namespace detail

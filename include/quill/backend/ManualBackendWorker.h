@@ -24,13 +24,12 @@ public:
   {
   }
 
-  ~ManualBackendWorker()
-  {
-    if (_started)
-    {
-      _backend_worker->_exit();
-    }
-  }
+  ManualBackendWorker(ManualBackendWorker const&) = delete;
+  ManualBackendWorker& operator=(ManualBackendWorker const&) = delete;
+  ManualBackendWorker(ManualBackendWorker&&) = delete;
+  ManualBackendWorker& operator=(ManualBackendWorker&&) = delete;
+
+  ~ManualBackendWorker() { shutdown(); }
 
   /**
    * @brief Initializes the ManualBackendWorker with the specified backend options.
@@ -42,10 +41,34 @@ public:
    */
   void init(BackendOptions options)
   {
+    QUILL_ASSERT(!_started, "ManualBackendWorker::init() must not be called more than once");
+
     options.sleep_duration = std::chrono::nanoseconds{0};
     options.enable_yield_when_idle = false;
     _backend_worker->_init(options);
     _started = true;
+  }
+
+  /**
+   * Flushes remaining frontend queues and marks the manual backend worker as stopped.
+   *
+   * This function must be called from the same thread that called init() and performs the same
+   * shutdown work that the automatic backend thread executes during stop().
+   */
+  void shutdown()
+  {
+    if (!_started)
+    {
+      return;
+    }
+
+    QUILL_ASSERT(_backend_worker->_worker_thread_id.load() == detail::get_thread_id(),
+                 "ManualBackendWorker::shutdown() must be called from the same thread that "
+                 "called init()");
+
+    _backend_worker->_exit();
+    _backend_worker->_worker_thread_id.store(0);
+    _started = false;
   }
 
   /**

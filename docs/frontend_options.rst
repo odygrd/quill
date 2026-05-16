@@ -25,7 +25,7 @@ Error Notifications
 
 The library provides error notifications through the :cpp:member:`BackendOptions::error_notifier` callback:
 
-- **Unbounded queues**: Notify when queue reallocations occur
+- **Unbounded queues**: Notify when queue reallocations occur, and when the configured maximum capacity is reached causing blocking or dropped messages
 - **Bounded queues**: Notify when messages are dropped due to full queues, including a count of dropped messages
 
 These notifications are processed by the backend thread and can help monitor queue behavior in production.
