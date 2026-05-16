@@ -49,6 +49,12 @@ SyslogSink
 
 The :cpp:class:`SyslogSink` leverages the syslog API to send messages.
 
+.. note::
+
+   Syslog uses process-global state. Multiple :cpp:class:`SyslogSink` instances are therefore not
+   independent if they use different identifiers, options, or facilities. Use a single
+   :cpp:class:`SyslogSink` configuration per process.
+
 SystemdSink
 ~~~~~~~~~~~
 

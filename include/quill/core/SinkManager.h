@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/Filesystem.h"
 #include "quill/core/QuillError.h"
 #include "quill/core/Spinlock.h"
 
@@ -52,10 +53,27 @@ public:
   /***/
   QUILL_NODISCARD std::shared_ptr<Sink> get_sink(std::string const& sink_name) const
   {
+    // Normalize before taking the lock to avoid blocking filesystem calls under the spinlock
+    std::string normalized_sink_name;
+    try
+    {
+      normalized_sink_name =
+        detail::normalize_file_sink_path(fs::path{sink_name}, false).string();
+    }
+    catch (QuillError const&)
+    {
+      // Fallback normalization is best-effort for file-path lookups only.
+    }
+
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
     LockGuard const lock{_spinlock};
 
     std::shared_ptr<Sink> sink = _find_sink(sink_name);
+
+    if (!sink && !normalized_sink_name.empty() && normalized_sink_name != sink_name)
+    {
+      sink = _find_sink(normalized_sink_name);
+    }
 
     if (QUILL_UNLIKELY(!sink))
     {
@@ -71,23 +89,25 @@ public:
   {
     static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
 
+    std::string const sink_id = _normalized_sink_name<TSink>(sink_name);
+
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
     LockGuard const lock{_spinlock};
 
-    std::shared_ptr<Sink> sink = _find_sink(sink_name);
+    std::shared_ptr<Sink> sink = _find_sink(sink_id);
 
     if (!sink)
     {
       if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
       {
-        sink = std::make_shared<TSink>(sink_name, static_cast<Args&&>(args)...);
+        sink = std::make_shared<TSink>(sink_id, static_cast<Args&&>(args)...);
       }
       else
       {
         sink = std::make_shared<TSink>(static_cast<Args&&>(args)...);
       }
 
-      _insert_sink(sink_name, sink);
+      _insert_sink(sink_id, sink);
     }
 
     return sink;
@@ -118,6 +138,19 @@ public:
   }
 
 private:
+  template <typename TSink>
+  static std::string _normalized_sink_name(std::string const& sink_name)
+  {
+    if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
+    {
+      return detail::normalize_file_sink_path(fs::path{sink_name}).string();
+    }
+    else
+    {
+      return sink_name;
+    }
+  }
+
   SinkManager() = default;
   ~SinkManager() = default;
 

@@ -1,5 +1,5 @@
-- [v11.1.0](#v1110)
 - [TBD](#tbd)
+- [v11.1.0](#v1110)
 - [v11.0.2](#v1102)
 - [v11.0.1](#v1101)
 - [v11.0.0](#v1100)
@@ -109,6 +109,20 @@
   `FrontendOptions::unbounded_queue_max_capacity` and start blocking or dropping
 - Made backend initialization failures explicitly notify and terminate during backend thread startup
 - Fixed `RdtscClock` resync interval conversion from nanoseconds to TSC ticks
+- Fixed JSON sinks to escape quotes, backslashes, control characters, and low ASCII control bytes
+- Fixed rotating sink rename handling to update in-memory rotation state only after successful
+  renames and to preserve the active file on rotation failure
+- Fixed `RotatingJsonFileSink` size-based rotation to account for the actual generated JSON payload
+  size instead of `log_statement.size()`
+- Fixed `CsvWriter` to use a unique logger per instance so multiple writers targeting the same file
+  do not share logger lifetime
+- Added `CsvWriter::close()` for deterministic logger removal and file closure, and changed
+  `CsvWriter` destruction to use best-effort asynchronous cleanup
+- Fixed `CsvWriter` header handling for append mode with timestamp-appended filenames and removed
+  a dangling `this` capture from the rotating-file header notifier
+- Fixed file sink deduplication to normalize file paths before sink lookup so equivalent paths
+  reuse the same sink instance
+- Fixed `SystemdSink` to avoid calling the unrelated process-global `closelog()` syslog cleanup
 
 ## v11.1.0
 

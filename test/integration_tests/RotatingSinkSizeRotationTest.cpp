@@ -81,15 +81,18 @@ TEST_CASE("rotating_sink_size_rotation")
   REQUIRE_EQ(file_contents_2.size(), 8);
 
   std::vector<std::string> const file_contents_3 = testing::file_contents(json_filename);
-  REQUIRE_EQ(file_contents_3.size(), 2);
+  REQUIRE_EQ(file_contents_3.size(), 4);
 
   std::vector<std::string> const file_contents_4 = testing::file_contents(json_filename_1);
-  REQUIRE_EQ(file_contents_4.size(), 5);
+  REQUIRE_EQ(file_contents_4.size(), 4);
 
   std::vector<std::string> const file_contents_5 = testing::file_contents(json_filename_2);
-  REQUIRE_EQ(file_contents_5.size(), 5);
+  REQUIRE_EQ(file_contents_5.size(), 4);
 
   testing::remove_file(base_filename);
   testing::remove_file(base_filename_1);
   testing::remove_file(base_filename_2);
+  testing::remove_file(json_filename);
+  testing::remove_file(json_filename_1);
+  testing::remove_file(json_filename_2);
 }

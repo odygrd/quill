@@ -1,5 +1,6 @@
 #include "doctest/doctest.h"
 
+#include "quill/core/Filesystem.h"
 #include "quill/core/SinkManager.h"
 #include "quill/sinks/FileSink.h"
 #include <cstdio>
@@ -63,6 +64,50 @@ TEST_CASE("subscribe_get_active_different_sinks")
 
   std::remove(file_1.data());
   std::remove(file_2.data());
+}
+
+TEST_CASE("file_sink_equivalent_paths_return_same_sink")
+{
+  fs::path const base_dir = fs::path{"sink_manager_test_dir"};
+  fs::path const canonical_path = base_dir / "equivalent.log";
+  fs::path const equivalent_path = fs::path{"."} / base_dir / ".." / base_dir / "equivalent.log";
+
+  std::error_code ec;
+  fs::create_directories(base_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  {
+    std::shared_ptr<Sink> file_sink_a = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      canonical_path.string(),
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{});
+
+    std::shared_ptr<Sink> file_sink_b = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      equivalent_path.string(),
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{});
+
+    // These two paths resolve to the same file, so SinkManager should return the same sink.
+    REQUIRE_EQ(file_sink_a.get(), file_sink_b.get());
+    REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 0);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
+
+  fs::remove(canonical_path, ec);
+  REQUIRE_FALSE(ec);
+  fs::remove(base_dir, ec);
+  REQUIRE_FALSE(ec);
 }
 
 TEST_SUITE_END();

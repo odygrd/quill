@@ -174,7 +174,7 @@ TEST_CASE("macro_free_json_file_logging")
     REQUIRE(quill::testing::file_contains(file_contents, expected_no_args_json));
     REQUIRE(quill::testing::file_contains(file_contents_s, expected_no_args_fmt));
 
-    std::string expected_non_printable_json = R"("npcs":"Example\x03String\x04")";
+    std::string expected_non_printable_json = R"("npcs":"Example\\x03String\\x04")";
     std::string expected_non_printable_fmt = "contains non-printable Example\\x03String\\x04";
     REQUIRE(quill::testing::file_contains(file_contents, expected_non_printable_json));
     REQUIRE(quill::testing::file_contains(file_contents_s, expected_non_printable_fmt));

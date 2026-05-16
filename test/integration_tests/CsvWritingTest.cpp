@@ -13,6 +13,23 @@ struct OrderCsvSchema
   static constexpr char const* format = "{},{},{},{:.2f},{}";
 };
 
+struct DeviceCsvSchema
+{
+  static constexpr char const* header = "device_id,location,status,temperature_c";
+  static constexpr char const* format = "{},{},{},{}";
+};
+
+struct FileSinkPathHelper : quill::FileSink
+{
+  using FileSink::FileSink;
+
+  static fs::path appended_filename(fs::path const& filename, std::string const& pattern,
+                                    Timezone timezone, std::chrono::system_clock::time_point timestamp)
+  {
+    return append_datetime_to_filename(filename, pattern, timezone, timestamp);
+  }
+};
+
 /***/
 TEST_CASE("csv_writing")
 {
@@ -25,6 +42,8 @@ TEST_CASE("csv_writing")
   static constexpr char const* filename_4 = "orders_4.csv";
   static constexpr char const* filename_5 = "orders_5.csv";
   static constexpr char const* filename_6 = "orders_6.csv";
+  static constexpr char const* filename_7 = "orders_shared_writer.csv";
+  static constexpr char const* filename_8 = "orders_appended_date.csv";
 
   // Start the backend thread
   quill::BackendOptions backend_options;
@@ -35,6 +54,7 @@ TEST_CASE("csv_writing")
     csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
     csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
     csv_writter.append_row(14212123, "AAPL", 120, 210.42321, "BUY");
+    csv_writter.close();
   }
 
   {
@@ -46,6 +66,7 @@ TEST_CASE("csv_writing")
     csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
     csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
     csv_writter.append_row(14212123, "AAPL", 120, 210.42321, "BUY");
+    csv_writter.close();
   }
 
   {
@@ -60,6 +81,7 @@ TEST_CASE("csv_writing")
     {
       csv_writter.append_row(132121122 + i, "AAPL", i, 100.1, "BUY");
     }
+    csv_writter.close();
   }
 
   {
@@ -77,6 +99,7 @@ TEST_CASE("csv_writing")
     csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
     csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
     csv_writter.append_row(14212123, "AAPL", 120, 210.42321, "BUY");
+    csv_writter.close();
   }
 
   {
@@ -86,6 +109,7 @@ TEST_CASE("csv_writing")
       csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
       csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
       csv_writter.append_row(14212123, "AAPL", 120, 210.42321, "BUY");
+      csv_writter.close();
     }
 
     {
@@ -93,6 +117,7 @@ TEST_CASE("csv_writing")
       csv_writter.append_row(13212123, "AAPL", 200, 210.32321, "BUY");
       csv_writter.append_row(132121123, "META", 400, 478.32321, "SELL");
       csv_writter.append_row(14212123, "AAPL", 220, 210.42321, "BUY");
+      csv_writter.close();
     }
   }
 
@@ -125,6 +150,40 @@ TEST_CASE("csv_writing")
     csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
     csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
     csv_writter.append_row(14212123, "AAPL", 120, 210.42321, "BUY");
+    csv_writter.close();
+  }
+
+  {
+    quill::FileSinkConfig file_sink_config;
+    file_sink_config.set_open_mode('w');
+    file_sink_config.set_filename_append_option(FilenameAppendOption::None);
+
+    auto csv_writer_a = std::make_unique<quill::CsvWriter<DeviceCsvSchema, quill::FrontendOptions>>(
+      filename_7, file_sink_config, true);
+    auto csv_writer_b = std::make_unique<quill::CsvWriter<DeviceCsvSchema, quill::FrontendOptions>>(
+      filename_7, file_sink_config, false);
+
+    csv_writer_a->append_row("dev-001", "ward-a", "online", 21.5);
+    csv_writer_a->close();
+    csv_writer_a.reset();
+
+    csv_writer_b->append_row("dev-002", "ward-b", "offline", 19.0);
+    csv_writer_b->close();
+    csv_writer_b.reset();
+  }
+
+  {
+    quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writter{
+      filename_8, 'w', FilenameAppendOption::StartDate};
+    csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
+    csv_writter.close();
+  }
+
+  {
+    quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writter{
+      filename_8, 'a', FilenameAppendOption::StartDate};
+    csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
+    csv_writter.close();
   }
 
   // Wait until the backend thread stops for test stability
@@ -214,6 +273,32 @@ TEST_CASE("csv_writing")
     REQUIRE(quill::testing::file_contains(file_contents, "14212123,AAPL,120,210.42,BUY"));
   }
 
+  {
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_7);
+    REQUIRE_EQ(file_contents.size(), 3);
+
+    REQUIRE(quill::testing::file_contains(file_contents, "device_id,location,status,temperature_c"));
+    REQUIRE(quill::testing::file_contains(file_contents, "dev-001,ward-a,online,21.5"));
+    REQUIRE(quill::testing::file_contains(file_contents, "dev-002,ward-b,offline,19"));
+  }
+
+  {
+    FileSinkConfig cfg;
+    cfg.set_filename_append_option(FilenameAppendOption::StartDate);
+
+    auto const appended_filename = FileSinkPathHelper::appended_filename(
+      filename_8, cfg.append_filename_format_pattern(), cfg.timezone(), std::chrono::system_clock::now());
+
+    std::vector<std::string> const file_contents = quill::testing::file_contents(appended_filename);
+    REQUIRE_EQ(file_contents.size(), 3);
+
+    REQUIRE(quill::testing::file_contains(file_contents, "order_id,symbol,quantity,price,side"));
+    REQUIRE(quill::testing::file_contains(file_contents, "13212123,AAPL,100,210.32,BUY"));
+    REQUIRE(quill::testing::file_contains(file_contents, "132121123,META,300,478.32,SELL"));
+
+    testing::remove_file(appended_filename);
+  }
+
   testing::remove_file(filename);
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);
@@ -223,4 +308,5 @@ TEST_CASE("csv_writing")
   testing::remove_file(filename_4);
   testing::remove_file(filename_5);
   testing::remove_file(filename_6);
+  testing::remove_file(filename_7);
 }

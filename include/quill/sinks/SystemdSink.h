@@ -121,7 +121,7 @@ class SystemdSink : public quill::Sink
 public:
   /**
    * @brief Constructs a SystemdSink with the given configuration.
-   * This constructor initializes the systemd connection using openlog().
+   * This constructor stores the configuration used when sending log messages to systemd.
    * @param config The configuration options for the SystemdSink. Defaults to a default-configured SystemdSinkConfig.
    */
   explicit SystemdSink(SystemdSinkConfig config = SystemdSinkConfig{}) : _config(std::move(config))
@@ -129,7 +129,7 @@ public:
   }
 
   /***/
-  ~SystemdSink() override { ::closelog(); }
+  ~SystemdSink() override = default;
 
   /**
    * @brief Writes a formatted log message to the stream

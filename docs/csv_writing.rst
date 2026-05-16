@@ -7,6 +7,10 @@ The library provides functionality for asynchronously writing CSV files. Formatt
 
 The :cpp:class:`CsvWriter` class is a utility designed to facilitate asynchronous CSV file writing.
 
+Call :cpp:func:`CsvWriter::close` before stopping the backend worker if you need deterministic
+logger removal and file closure. The destructor performs best-effort asynchronous cleanup and
+does not block.
+
 CSV Writing To File
 -------------------
 

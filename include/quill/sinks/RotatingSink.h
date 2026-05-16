@@ -359,13 +359,22 @@ public:
     if (!time_rotation && _config.rotation_max_file_size() != 0)
     {
       // Check if we need to rotate based on size
-      _size_rotation(log_statement.size(), log_timestamp);
+      _size_rotation(this->estimate_write_size(log_metadata, log_timestamp, thread_id, thread_name,
+                                               process_id, logger_name, log_level, log_level_description,
+                                               log_level_short_code, named_args, log_message, log_statement),
+                     log_timestamp);
     }
 
     // write to file
     base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
                          logger_name, log_level, log_level_description, log_level_short_code,
                          named_args, log_message, log_statement);
+  }
+
+protected:
+  QUILL_NODISCARD virtual bool rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
+  {
+    return _rename_file(previous_file, new_file);
   }
 
 private:
@@ -421,6 +430,7 @@ private:
     }
 
     this->close_file();
+    bool rotation_succeeded = true;
 
     // datetime_suffix will be empty if we are using the default naming scheme
     std::string datetime_suffix;
@@ -435,7 +445,10 @@ private:
         this->format_datetime_string(_open_file_timestamp, _config.timezone(), "%Y%m%d_%H%M%S");
     }
 
-    // We need to rotate the files and rename them with an index
+    // We need to rotate the files and rename them with an index.
+    // Track completed renames so we can undo them if a later rename fails.
+    std::vector<RenameRecord> completed_renames;
+
     for (auto it = _created_files.rbegin(); it != _created_files.rend(); ++it)
     {
       // Create each existing filename on disk with the existing index.
@@ -452,27 +465,55 @@ private:
           it->date_time == datetime_suffix)
       {
         // we are rotating and incrementing the index, or we have another file with the same date_time suffix
-        index_to_use += 1;
+        uint32_t const new_index = index_to_use + 1;
 
-        renamed_file = _get_filename(it->base_filename, index_to_use, datetime_suffix);
+        renamed_file = _get_filename(it->base_filename, new_index, datetime_suffix);
 
-        it->index = index_to_use;
-        it->date_time = datetime_suffix;
+        if (!rename_file(existing_file, renamed_file))
+        {
+          rotation_succeeded = false;
+          break;
+        }
 
-        _rename_file(existing_file, renamed_file);
+        size_t const idx = static_cast<size_t>(std::distance(_created_files.begin(), it.base()) - 1);
+        completed_renames.push_back({existing_file, renamed_file, idx, new_index, datetime_suffix});
       }
       else if (it->date_time.empty())
       {
         // we are renaming the latest file
-        index_to_use = it->index;
+        uint32_t const new_index = index_to_use;
 
-        renamed_file = _get_filename(it->base_filename, index_to_use, datetime_suffix);
+        renamed_file = _get_filename(it->base_filename, new_index, datetime_suffix);
 
-        it->index = index_to_use;
-        it->date_time = datetime_suffix;
+        if (!rename_file(existing_file, renamed_file))
+        {
+          rotation_succeeded = false;
+          break;
+        }
 
-        _rename_file(existing_file, renamed_file);
+        size_t const idx = static_cast<size_t>(std::distance(_created_files.begin(), it.base()) - 1);
+        completed_renames.push_back({existing_file, renamed_file, idx, new_index, datetime_suffix});
       }
+    }
+
+    if (!rotation_succeeded)
+    {
+      // Undo completed renames in reverse order to restore on-disk state
+      for (auto rit = completed_renames.rbegin(); rit != completed_renames.rend(); ++rit)
+      {
+        rename_file(rit->renamed, rit->original);
+      }
+
+      this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
+      this->_file_size = _get_file_size(this->_filename);
+      return;
+    }
+
+    // All renames succeeded — apply metadata updates
+    for (auto const& rec : completed_renames)
+    {
+      _created_files[rec.created_files_idx].index = rec.new_index;
+      _created_files[rec.created_files_idx].date_time = rec.new_date_time;
     }
 
     // Check if we have too many files in the queue remove_file the oldest one
@@ -698,6 +739,19 @@ private:
   }
 
   /***/
+  QUILL_NODISCARD static std::string _reopen_mode_after_failed_rotation(std::string const& open_mode)
+  {
+    std::string reopen_mode = open_mode;
+
+    if (!reopen_mode.empty() && reopen_mode[0] == 'w')
+    {
+      reopen_mode[0] = 'a';
+    }
+
+    return reopen_mode;
+  }
+
+  /***/
   bool static _rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
   {
     std::error_code ec;
@@ -855,6 +909,15 @@ protected:
     fs::path base_filename;
     std::string date_time;
     uint32_t index;
+  };
+
+  struct RenameRecord
+  {
+    fs::path original;
+    fs::path renamed;
+    size_t created_files_idx;
+    uint32_t new_index;
+    std::string new_date_time;
   };
 
   FileEventNotifier _file_event_notifier;

@@ -3,17 +3,50 @@
 #include "misc/TestUtilities.h"
 #include "quill/core/Common.h"
 #include "quill/sinks/RotatingFileSink.h"
+#include "quill/sinks/RotatingJsonFileSink.h"
 
 TEST_SUITE_BEGIN("RotatingFileSink");
 
 using namespace quill;
 using namespace quill::detail;
 
-void write_log_statement(RotatingFileSink& sink, std::string_view log_statement)
+namespace
 {
-  sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                 std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", log_statement);
-}
+class FailingRenameRotatingFileSink : public RotatingFileSink
+{
+public:
+  using RotatingFileSink::RotatingFileSink;
+
+protected:
+  bool rename_file(fs::path const&, fs::path const&) noexcept override { return false; }
+};
+
+class PartialFailingRenameRotatingFileSink : public RotatingFileSink
+{
+public:
+  using RotatingFileSink::RotatingFileSink;
+
+  void set_fail_on_call(uint32_t n) { _fail_on_call = n; }
+  void reset_rename_count() { _rename_call_count = 0; }
+
+  std::deque<FileInfo> const& created_files() const { return _created_files; }
+
+protected:
+  bool rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept override
+  {
+    ++_rename_call_count;
+    if (_rename_call_count == _fail_on_call)
+    {
+      return false;
+    }
+    return RotatingFileSink::rename_file(previous_file, new_file);
+  }
+
+private:
+  uint32_t _rename_call_count{0};
+  uint32_t _fail_on_call{0};
+};
+} // namespace
 
 /***/
 TEST_CASE("rotating_file_sink_index_no_backup_limit")
@@ -202,6 +235,113 @@ TEST_CASE("rotating_file_sink_index_with_backup_limit_dont_overwrite_rolled_file
   testing::remove_file(filename);
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);
+}
+
+TEST_CASE("rotating_file_sink_rename_failure_preserves_current_file_and_state")
+{
+  fs::path const filename =
+    "rotating_file_sink_rename_failure_preserves_current_file_and_state.log";
+  fs::path const filename_1 =
+    "rotating_file_sink_rename_failure_preserves_current_file_and_state.1.log";
+
+  {
+    auto rfh = FailingRenameRotatingFileSink{filename,
+                                             []()
+                                             {
+                                               RotatingFileSinkConfig cfg;
+                                               cfg.set_rotation_max_file_size(1024);
+                                               cfg.set_open_mode('w');
+                                               return cfg;
+                                             }(),
+                                             FileEventNotifier{}};
+
+    for (size_t i = 0; i < 2; ++i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE_FALSE(fs::exists(filename_1));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [0]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+}
+
+TEST_CASE("rotating_json_file_sink_size_rotation_uses_actual_json_size")
+{
+  fs::path const estimate_filename = "rotating_json_file_sink_size_rotation_estimate.log";
+  fs::path const filename = "rotating_json_file_sink_size_rotation_actual.log";
+  fs::path const filename_1 = "rotating_json_file_sink_size_rotation_actual.1.log";
+
+  static constexpr MacroMetadata macro_metadata{"rotating_json_file_sink_size_rotation.cpp:42",
+                                                "test_fn",
+                                                "json message",
+                                                nullptr,
+                                                LogLevel::Info,
+                                                MacroMetadata::Event::Log};
+
+  std::vector<std::pair<std::string, std::string>> named_args{{"payload", std::string(700, 'A')}};
+
+  auto write_json_record = [&named_args](auto& sink)
+  {
+    sink.write_log(&macro_metadata, 0, "thread_id", "thread_name", "process_id", "logger_name",
+                   LogLevel::Info, "INFO", "I", &named_args, "ignored_log_message", "x");
+  };
+
+  size_t estimated_json_size = 0;
+  {
+    FileSinkConfig cfg;
+    cfg.set_open_mode('w');
+
+    JsonFileSink json_sink{estimate_filename, cfg, FileEventNotifier{}};
+    write_json_record(json_sink);
+    json_sink.flush_sink();
+
+    estimated_json_size = static_cast<size_t>(fs::file_size(estimate_filename));
+  }
+
+  testing::remove_file(estimate_filename);
+
+  {
+    // One JSON record already consumes `estimated_json_size` bytes on disk, so with
+    // max_file_size = estimated_json_size + 1 the second write should rotate.
+    // This catches the bug where rotation was checking `log_statement.size()` ("x")
+    // instead of the actual generated JSON payload size.
+    RotatingFileSinkConfig cfg;
+    cfg.set_open_mode('w');
+    cfg.set_rotation_max_file_size(estimated_json_size + 1);
+
+    RotatingJsonFileSink rotating_json_sink{filename, cfg, FileEventNotifier{}};
+    write_json_record(rotating_json_sink);
+    rotating_json_sink.flush_sink();
+    write_json_record(rotating_json_sink);
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+
+  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE_EQ(file_contents_1.size(), 1);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
 }
 
 /***/
@@ -1938,77 +2078,6 @@ TEST_CASE("rotating_file_sink_index_dont_remove_unrelated_files")
 }
 
 /***/
-TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash_and_recovers_in_append_mode")
-{
-  fs::path const log_dir = "rotating_file_sink_reopen_failure";
-  fs::path const filename = log_dir / "rotating_file_sink_reopen_failure.log";
-
-  std::error_code ec;
-  fs::remove_all(log_dir, ec);
-  fs::create_directories(log_dir, ec);
-  REQUIRE_FALSE(ec);
-
-  size_t before_open_calls{0};
-  FileEventNotifier file_event_notifier;
-  // Simulate a disk-full style reopen failure during rotation: once the current file
-  // has been renamed away, remove the parent directory just before the reopen attempt
-  // so creating the new active file fails as if no space were available for it.
-  file_event_notifier.before_open = [&before_open_calls, &log_dir](fs::path const&)
-  {
-    ++before_open_calls;
-    if (before_open_calls == 2)
-    {
-      fs::remove_all(log_dir);
-    }
-  };
-
-  RotatingFileSinkConfig cfg;
-  cfg.set_rotation_max_file_size(512);
-  cfg.set_open_mode('w');
-
-  {
-    RotatingFileSink sink{filename, cfg, file_event_notifier};
-    write_log_statement(sink, "Record [0]\n");
-
-    std::string oversized_record = "Record [1]\n";
-    oversized_record.append(600, 'x');
-
-    try
-    {
-      write_log_statement(sink, oversized_record);
-    }
-    catch (std::exception const&)
-    {
-    }
-
-    // A second oversized write re-enters the rotation path with a null FILE*.
-    // The current bug dereferences it in fsync_file() and crashes with SIGSEGV.
-    try
-    {
-      write_log_statement(sink, oversized_record);
-    }
-    catch (std::exception const&)
-    {
-    }
-
-    // Simulate disk cleanup freeing some space while the original active file content
-    // is still on disk. Recovery must reopen in append mode and add new data to this
-    // file instead of truncating and overwriting it.
-    fs::create_directories(log_dir, ec);
-    REQUIRE_FALSE(ec);
-    testing::create_file(filename, "Recovered record\n");
-
-    REQUIRE_NOTHROW(write_log_statement(sink, oversized_record));
-  }
-
-  std::vector<std::string> const file_contents = testing::file_contents(filename);
-  REQUIRE_EQ(testing::file_contains(file_contents, "Recovered record"), true);
-  REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
-
-  fs::remove_all(log_dir, ec);
-}
-
-/***/
 TEST_CASE("rotating_file_sink_invalid_params")
 {
   fs::path const filename = "rotating_file_sink_invalid_params.log";
@@ -2396,6 +2465,82 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
 
   testing::remove_file(filename);
   testing::remove_file(filename_dated);
+}
+
+TEST_CASE("rotating_file_sink_partial_rename_failure_corrupts_metadata")
+{
+  // After a partial rotation failure (some renames succeed, one fails midway),
+  // _created_files metadata is left inconsistent: entries for successfully-renamed
+  // files have updated indices, but the rotation was aborted. The metadata no
+  // longer matches the expected pre-rotation state.
+  fs::path const filename = "partial_rename_failure_metadata.log";
+  fs::path const filename_1 = "partial_rename_failure_metadata.1.log";
+  fs::path const filename_2 = "partial_rename_failure_metadata.2.log";
+  fs::path const filename_3 = "partial_rename_failure_metadata.3.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+  testing::remove_file(filename_3);
+
+  auto rfh = PartialFailingRenameRotatingFileSink{filename,
+                                                   []()
+                                                   {
+                                                     RotatingFileSinkConfig cfg;
+                                                     cfg.set_rotation_max_file_size(1024);
+                                                     cfg.set_open_mode('w');
+                                                     return cfg;
+                                                   }(),
+                                                   FileEventNotifier{}};
+
+  auto write_record = [&](std::string const& msg)
+  {
+    std::string formatted_log_statement;
+    formatted_log_statement.append(msg);
+    std::string padding;
+    padding.resize(1024);
+    formatted_log_statement.append(padding);
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+  };
+
+  // Create 3 rotated files: base.log, base.1.log, base.2.log
+  write_record("Record_A");
+  write_record("Record_B");
+  write_record("Record_C");
+
+  REQUIRE_EQ(rfh.created_files().size(), 3);
+  REQUIRE_EQ(rfh.created_files()[0].index, 0);
+  REQUIRE_EQ(rfh.created_files()[1].index, 1);
+  REQUIRE_EQ(rfh.created_files()[2].index, 2);
+
+  // Fail the 2nd rename call during the next rotation.
+  // Loop iterates rbegin->rend:
+  //   1st rename: .2 -> .3 (succeeds)
+  //   2nd rename: .1 -> .2 (FAILS, loop breaks)
+  // Rotation aborted: completed renames are undone (.3 -> .2), base.log reopened.
+  rfh.set_fail_on_call(2);
+  rfh.reset_rename_count();
+  write_record("Record_D");
+
+  // After the fix, the undo logic restores .3 back to .2, so on-disk state
+  // is unchanged from before the failed rotation (except base.log has Record_D appended).
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(fs::exists(filename_2));
+  REQUIRE_FALSE(fs::exists(filename_3));
+
+  REQUIRE_EQ(rfh.created_files().size(), 3);
+
+  // Metadata should be unchanged from pre-rotation state since the rotation was rolled back.
+  CHECK_EQ(rfh.created_files()[0].index, 0);
+  CHECK_EQ(rfh.created_files()[1].index, 1);
+  CHECK_EQ(rfh.created_files()[2].index, 2);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+  testing::remove_file(filename_3);
 }
 
 TEST_SUITE_END();

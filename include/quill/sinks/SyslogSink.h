@@ -133,6 +133,10 @@ private:
  *
  * This sink leverages the syslog API to send log messages. It uses the configuration
  * provided via SyslogSinkConfig to determine how the messages are formatted and mapped.
+ *
+ * @note Syslog uses process-global state. Multiple SyslogSink instances are therefore not
+ *       independent if they use different identifiers, options, or facilities. Use a single
+ *       SyslogSink configuration per process.
  */
 class SyslogSink : public quill::Sink
 {

@@ -11,7 +11,8 @@ Each sink handles outputting logs to a single target, such as a file, console, o
 
 Upon creation, a sink object is registered and owned by a central manager object, the `SinkManager`.
 
-For files, one sink is created per filename, and the file is opened once. If a sink is requested that refers to an already opened file, the existing Sink object is returned.
+For files, one sink is created per normalized file path, and the file is opened once. If a sink is
+requested that refers to an already opened file, the existing Sink object is returned.
 
 When creating a logger, one or more sinks for that logger can be specified. Sinks can only be registered during the logger creation.
 

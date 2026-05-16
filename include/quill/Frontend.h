@@ -127,7 +127,8 @@ public:
    * @brief Retrieves an existing sink with the specified name.
    *
    * @param sink_name The name of the sink.
-   * @return std::shared_ptr<Sink> A shared pointer to the retrieved sink, or nullptr if not found.
+   * @return std::shared_ptr<Sink> A shared pointer to the retrieved sink.
+   * @throws QuillError if the sink does not exist.
    */
   QUILL_NODISCARD static std::shared_ptr<Sink> get_sink(std::string const& sink_name)
   {
