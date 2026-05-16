@@ -197,4 +197,18 @@ TEST_CASE("construct")
   }
 }
 
+TEST_CASE("empty_source_location_is_handled")
+{
+  constexpr MacroMetadata macro_metadata{"",               // source_location
+                                         "NoFileInfoFunc", // caller_function
+                                         "Test fmt {}",    // message_format
+                                         nullptr,          // tags
+                                         quill::LogLevel::Info,
+                                         MacroMetadata::Event::Log};
+
+  REQUIRE_EQ(macro_metadata.full_path(), std::string_view{});
+  REQUIRE_EQ(macro_metadata.file_name(), std::string_view{});
+  REQUIRE_STREQ(macro_metadata.short_source_location(), "");
+}
+
 TEST_SUITE_END();

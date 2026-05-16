@@ -84,8 +84,9 @@ public:
                              " error: " + std::strerror(errno)});
     }
 
-    // Immediately unlink it so that it leaves no traces.
-    // The semaphore will still exist until all descriptors are closed.
+    // Immediately unlink it so that it leaves no traces behind after shutdown or hard termination.
+    // This behavior is intentional for now and should be revisited in the future if stronger
+    // duplicate-backend detection semantics are needed on POSIX.
     sem_unlink(name.data());
 
     // Try to lock the semaphore.
@@ -93,6 +94,9 @@ public:
     // sem_trywait will return -1 and set errno.
     if (sem_trywait(_sem) != 0)
     {
+      sem_close(_sem);
+      _sem = SEM_FAILED;
+
       QUILL_THROW(QuillError{
         "Duplicate backend worker thread detected. This indicates that the logging library has "
         "been compiled into multiple binary modules (for instance, one module using a static build "

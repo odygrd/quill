@@ -32,12 +32,11 @@ struct Codec<MapType<Key, T, Compare, Allocator>,
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      MapType<Key, T, Compare, Allocator> const& arg) noexcept
   {
-    // We need to store the size of the set in the buffer, so we reserve space for it.
+    // We need to store the size of the map in the buffer, so we reserve space for it.
     // We add sizeof(size_t) bytes to accommodate the size information.
     size_t total_size{sizeof(size_t)};
 
-    if constexpr (std::conjunction_v<std::disjunction<std::is_arithmetic<Key>, std::is_enum<Key>>,
-                                     std::disjunction<std::is_arithmetic<T>, std::is_enum<T>>>)
+    if constexpr (std::conjunction_v<std::is_arithmetic<Key>, std::is_arithmetic<T>>)
     {
       // For built-in types, such as arithmetic or enum types, iteration is unnecessary
       total_size += (sizeof(Key) + sizeof(T)) * arg.size();
@@ -97,7 +96,7 @@ struct Codec<MapType<Key, T, Compare, Allocator>,
                                      std::is_same<Key, std::wstring_view>, std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                      std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>)
     {
-      // Read the size of the vector
+      // Read the size of the map
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
 
       constexpr bool wide_key_t = std::is_same_v<Key, wchar_t*> || std::is_same_v<Key, wchar_t const*> ||

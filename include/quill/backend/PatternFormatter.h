@@ -270,6 +270,7 @@ private:
   template <size_t I, typename T>
   void _set_arg_val(T const& arg)
   {
+    // This relies on the internal layout used by the bundled fmtquill copy
     fmtquill::detail::value<fmtquill::format_context>& value_ =
       *(reinterpret_cast<fmtquill::detail::value<fmtquill::format_context>*>(
         std::addressof(_args[_order_index[I]])));
@@ -280,34 +281,75 @@ private:
   /***/
   PatternFormatter::Attribute static _attribute_from_string(std::string const& attribute_name)
   {
-    // don't make this static as it breaks on windows with atexit when backend worker stops
-    std::unordered_map<std::string, PatternFormatter::Attribute> const attr_map = {
-      {"time", PatternFormatter::Attribute::Time},
-      {"file_name", PatternFormatter::Attribute::FileName},
-      {"caller_function", PatternFormatter::Attribute::CallerFunction},
-      {"log_level", PatternFormatter::Attribute::LogLevel},
-      {"log_level_short_code", PatternFormatter::Attribute::LogLevelShortCode},
-      {"line_number", PatternFormatter::Attribute::LineNumber},
-      {"logger", PatternFormatter::Attribute::Logger},
-      {"full_path", PatternFormatter::Attribute::FullPath},
-      {"thread_id", PatternFormatter::Attribute::ThreadId},
-      {"thread_name", PatternFormatter::Attribute::ThreadName},
-      {"process_id", PatternFormatter::Attribute::ProcessId},
-      {"source_location", PatternFormatter::Attribute::SourceLocation},
-      {"short_source_location", PatternFormatter::Attribute::ShortSourceLocation},
-      {"message", PatternFormatter::Attribute::Message},
-      {"tags", PatternFormatter::Attribute::Tags},
-      {"named_args", PatternFormatter::Attribute::NamedArgs}};
-
-    auto const search = attr_map.find(attribute_name);
-
-    if (QUILL_UNLIKELY(search == attr_map.cend()))
+    if (attribute_name == "time")
     {
-      QUILL_THROW(QuillError{
-        std::string{"Attribute enum value does not exist for attribute with name " + attribute_name}});
+      return PatternFormatter::Attribute::Time;
+    }
+    if (attribute_name == "file_name")
+    {
+      return PatternFormatter::Attribute::FileName;
+    }
+    if (attribute_name == "caller_function")
+    {
+      return PatternFormatter::Attribute::CallerFunction;
+    }
+    if (attribute_name == "log_level")
+    {
+      return PatternFormatter::Attribute::LogLevel;
+    }
+    if (attribute_name == "log_level_short_code")
+    {
+      return PatternFormatter::Attribute::LogLevelShortCode;
+    }
+    if (attribute_name == "line_number")
+    {
+      return PatternFormatter::Attribute::LineNumber;
+    }
+    if (attribute_name == "logger")
+    {
+      return PatternFormatter::Attribute::Logger;
+    }
+    if (attribute_name == "full_path")
+    {
+      return PatternFormatter::Attribute::FullPath;
+    }
+    if (attribute_name == "thread_id")
+    {
+      return PatternFormatter::Attribute::ThreadId;
+    }
+    if (attribute_name == "thread_name")
+    {
+      return PatternFormatter::Attribute::ThreadName;
+    }
+    if (attribute_name == "process_id")
+    {
+      return PatternFormatter::Attribute::ProcessId;
+    }
+    if (attribute_name == "source_location")
+    {
+      return PatternFormatter::Attribute::SourceLocation;
+    }
+    if (attribute_name == "short_source_location")
+    {
+      return PatternFormatter::Attribute::ShortSourceLocation;
+    }
+    if (attribute_name == "message")
+    {
+      return PatternFormatter::Attribute::Message;
+    }
+    if (attribute_name == "tags")
+    {
+      return PatternFormatter::Attribute::Tags;
+    }
+    if (attribute_name == "named_args")
+    {
+      return PatternFormatter::Attribute::NamedArgs;
     }
 
-    return search->second;
+    QUILL_THROW(QuillError{
+      std::string{"Attribute enum value does not exist for attribute with name " + attribute_name}});
+
+    return PatternFormatter::Attribute::Message; // unreachable, silences any warning
   }
 
   /***/

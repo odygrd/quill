@@ -8,11 +8,20 @@ The backend options allow you to customize the behavior of the backend thread an
 Example Usage
 -------------
 
-For example, to pin the backend worker thread to a specific CPU, you can use the following code:
+For example, to pin the backend worker thread to specific CPUs, you can use the following code:
 
 .. literalinclude:: examples/quill_docs_example_backend_options.cpp
    :language: cpp
    :linenos:
+
+.. note::
+
+   On macOS, only the first CPU entry is used because the platform does not provide a per-core affinity API equivalent to Linux and Windows CPU masks.
+
+.. note::
+
+   When ``wait_for_queues_to_empty_before_exit`` is enabled, ``Backend::stop()`` assumes frontend threads have stopped logging.
+   Logging concurrently with backend shutdown is unsupported and can prevent shutdown from completing because the frontend queues may never become empty.
 
 Character Sanitization
 -----------------------

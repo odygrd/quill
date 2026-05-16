@@ -90,6 +90,32 @@ struct SignalHandlerOptions
 namespace detail
 {
 /***/
+QUILL_NODISCARD inline char const* get_signal_description(int32_t signal_number) noexcept
+{
+  switch (signal_number)
+  {
+  case SIGABRT:
+    return "SIGABRT";
+  case SIGFPE:
+    return "SIGFPE";
+  case SIGILL:
+    return "SIGILL";
+  case SIGINT:
+    return "SIGINT";
+  case SIGSEGV:
+    return "SIGSEGV";
+  case SIGTERM:
+    return "SIGTERM";
+#if defined(SIGBUS)
+  case SIGBUS:
+    return "SIGBUS";
+#endif
+  default:
+    return "UNKNOWN";
+  }
+}
+
+/***/
 class SignalHandlerContext
 {
 public:
@@ -191,7 +217,7 @@ void on_signal(int32_t signal_number)
     // backend worker thread is not running or the signal handler is called in the backend worker thread
     if (signal_number == SIGINT || signal_number == SIGTERM)
     {
-      std::exit(EXIT_SUCCESS);
+      std::_Exit(EXIT_SUCCESS);
     }
 
     if (should_reraise_signal)
@@ -211,7 +237,7 @@ void on_signal(int32_t signal_number)
 #if defined(_WIN32)
       int32_t const signal_desc = signal_number;
 #else
-      char const* const signal_desc = ::strsignal(signal_number);
+      char const* const signal_desc = get_signal_description(signal_number);
 #endif
 
       auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
@@ -223,7 +249,7 @@ void on_signal(int32_t signal_number)
         // For SIGINT and SIGTERM, we are shutting down gracefully
         // Pass `0` to avoid calling std::this_thread::sleep_for()
         logger->flush_log(0);
-        std::exit(EXIT_SUCCESS);
+        std::_Exit(EXIT_SUCCESS);
       }
 
       if (should_reraise_signal)
@@ -326,7 +352,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
 
       // Pass `0` to avoid calling std::this_thread::sleep_for()
       logger->flush_log(0);
-      std::exit(EXIT_SUCCESS);
+      std::_Exit(EXIT_SUCCESS);
     }
   }
 

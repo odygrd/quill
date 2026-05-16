@@ -66,7 +66,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
                               std::function<void()> on_thread_exit, size_t current_thread_num)
 {
   // running thread affinity
-  quill::detail::set_cpu_affinity(get_cpu_to_pin_thread(current_thread_num));
+  quill::detail::set_cpu_affinity({get_cpu_to_pin_thread(current_thread_num)});
 
   on_thread_start();
 
@@ -95,7 +95,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
                               std::vector<uint64_t>& latencies, double rdtsc_ns_per_tick)
 {
   // running thread affinity
-  quill::detail::set_cpu_affinity(get_cpu_to_pin_thread(current_thread_num));
+  quill::detail::set_cpu_affinity({get_cpu_to_pin_thread(current_thread_num)});
 
   on_thread_start();
 
@@ -132,7 +132,7 @@ inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t 
                           std::function<void()> const& on_thread_exit)
 {
   // main thread affinity
-  quill::detail::set_cpu_affinity(0);
+  quill::detail::set_cpu_affinity({0});
 
 #ifndef PERF_ENABLED
   std::cout << "running for " << thread_count << " thread(s)" << std::endl;

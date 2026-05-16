@@ -16,8 +16,8 @@
 #include <vector>
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4996)
+  #pragma warning(push)
+  #pragma warning(disable : 4996)
 #endif
 
 using namespace quill;
@@ -147,7 +147,7 @@ TEST_CASE("binary_data_logging")
                                                   PatternFormatterOptions{"%(message)"});
 
   std::array<std::byte, 64> buffer{};
-  uint32_t encoded_size{0};
+  uint32_t encoded_size{8};
 
   std::byte* data_null = nullptr;
   LOG_INFO(logger, "null data [{}]", BinaryTypeData{data_null, encoded_size});
@@ -232,5 +232,5 @@ TEST_CASE("binary_data_logging")
 }
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif

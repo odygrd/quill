@@ -144,3 +144,43 @@ TEST_CASE("json_varied_params_logging")
 
   testing::remove_file(filename);
 }
+
+/***/
+TEST_CASE("json_malformed_named_arg_keeps_literal_message")
+{
+  static constexpr char const* filename = "json_malformed_named_arg_keeps_literal_message.json";
+
+  BackendOptions bo;
+  bo.error_notifier = [](std::string const&) {};
+  Backend::start(bo);
+
+  auto json_file_sink = Frontend::create_or_get_sink<CustomJsonFileSink>(
+    filename,
+    []()
+    {
+      FileSinkConfig cfg;
+      cfg.set_open_mode('w');
+      return cfg;
+    }(),
+    FileEventNotifier{});
+
+  Logger* logger = Frontend::create_or_get_logger(
+    "root_malformed_named_arg", std::move(json_file_sink),
+    quill::PatternFormatterOptions{"LOG_%(log_level:<9) %(logger:<12) %(message) [%(named_args)]"});
+
+  LOG_WARNING(logger, "Malformed named arg {param_1", 42);
+
+  logger->flush_log();
+  Frontend::remove_logger(logger);
+  Backend::stop();
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 1);
+
+  std::string const expected_json_statement =
+    R"({"logger":"root_malformed_named_arg","log_level":"WARNING","message":"Malformed named arg {param_1"})";
+
+  REQUIRE_EQ(file_contents[0], expected_json_statement);
+
+  testing::remove_file(filename);
+}

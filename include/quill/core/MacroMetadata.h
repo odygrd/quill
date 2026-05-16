@@ -58,6 +58,11 @@ public:
 
   QUILL_NODISCARD char const* line() const noexcept
   {
+    if (QUILL_UNLIKELY(_source_location[_colon_separator_pos] == '\0'))
+    {
+      return _source_location + _colon_separator_pos;
+    }
+
     return _source_location + _colon_separator_pos + 1;
   }
 
@@ -83,13 +88,13 @@ public:
 
   QUILL_NODISCARD constexpr bool has_named_args() const noexcept
   {
-    return _contains_named_args(_message_format);
+    return contains_named_args(_message_format);
   }
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
 
   /***/
-  QUILL_NODISCARD static constexpr bool _contains_named_args(std::string_view fmt) noexcept
+  QUILL_NODISCARD static constexpr bool contains_named_args(std::string_view fmt) noexcept
   {
     uint32_t pos{0};
     bool found_named_arg{false};
@@ -175,6 +180,11 @@ private:
   {
     std::string_view const source_loc{_source_location};
     auto const separator_index = source_loc.rfind(':');
+    if (separator_index == std::string_view::npos)
+    {
+      return static_cast<uint16_t>(source_loc.size());
+    }
+
     return static_cast<uint16_t>(separator_index);
   }
 

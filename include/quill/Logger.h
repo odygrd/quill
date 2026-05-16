@@ -268,6 +268,8 @@ public:
    */
   void init_backtrace(uint32_t max_capacity, LogLevel flush_level = LogLevel::None)
   {
+    QUILL_ASSERT(max_capacity > 0, "logger->init_backtrace(...) requires max_capacity > 0");
+
     // we do not care about the other fields, except MacroMetadata::Event::InitBacktrace
     static constexpr MacroMetadata macro_metadata{
       "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace};

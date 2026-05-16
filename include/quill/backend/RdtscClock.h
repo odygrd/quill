@@ -148,7 +148,7 @@ public:
   {
     // should only get called by the backend thread
 
-    // get the current index, this is only sef called my the thread that is doing the resync
+    // get the current index, this is only safe to call from the thread that is doing the resync
     auto const index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
 
     // get rdtsc current value and compare the diff then add it to base wall time
@@ -158,7 +158,10 @@ public:
     if (diff > _resync_interval_ticks)
     {
       resync(resync_lag_cycles);
-      diff = static_cast<int64_t>(rdtsc_value - _base[index].base_tsc);
+      auto const resynced_index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
+      diff = static_cast<int64_t>(rdtsc_value - _base[resynced_index].base_tsc);
+      return static_cast<uint64_t>(_base[resynced_index].base_time +
+                                   static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
     }
 
     return static_cast<uint64_t>(_base[index].base_time +

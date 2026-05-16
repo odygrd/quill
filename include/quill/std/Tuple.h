@@ -75,14 +75,13 @@ struct Codec<std::tuple<Types...>>
     // Note: Function argument evaluation order is unspecified, so we must ensure ordered evaluation
     std::tuple<decltype(Codec<Types>::decode_arg(buffer))...> arg;
 
-    size_t index = 0;
     std::apply(
-      [&buffer, &index](auto&... elems)
+      [&buffer](auto&... elems)
       {
         // Use fold expression with comma operator to ensure left-to-right evaluation
         (...,
          (
-           [&buffer, &index, &elems]()
+           [&buffer, &elems]()
            {
              using ElemType = std::decay_t<decltype(elems)>;
              auto decoded = Codec<ElemType>::decode_arg(buffer);
@@ -95,7 +94,6 @@ struct Codec<std::tuple<Types...>>
              {
                elems = decoded;
              }
-             ++index;
            }()));
       },
       arg);

@@ -113,15 +113,8 @@ TEST_CASE("signal_handler")
       }
     }
 
-#if defined(_WIN32)
-    REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: 22 (signum: 22)"}));
-#elif defined(__apple_build_version__)
-    REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: Abort trap: 6 (signum: 6)"}));
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
-    REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: Abort trap (signum: 6)"}));
-#else
-    REQUIRE(quill::testing::file_contains(file_contents, std::string{"Received signal: Aborted (signum: 6)"}));
-#endif
+    REQUIRE(
+      quill::testing::file_contains(file_contents, std::string{"Received signal: SIGABRT (signum: 6)"}));
   }
 
   csv_writer.reset();

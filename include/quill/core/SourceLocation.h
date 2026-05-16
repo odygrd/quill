@@ -1,5 +1,3 @@
-#pragma once
-
 /**
  * @page copyright
  * Copyright(c) 2020-present, Odysseas Georgoudis & quill contributors.
@@ -51,8 +49,8 @@ struct SourceLocation
   {
   }
 
-  QUILL_NODISCARD constexpr const char* file_name() const noexcept { return _file; }
-  QUILL_NODISCARD constexpr const char* function_name() const noexcept { return _function; }
+  QUILL_NODISCARD constexpr char const* file_name() const noexcept { return _file; }
+  QUILL_NODISCARD constexpr char const* function_name() const noexcept { return _function; }
   QUILL_NODISCARD constexpr std::uint_least32_t line() const noexcept { return _line; }
 
 private:

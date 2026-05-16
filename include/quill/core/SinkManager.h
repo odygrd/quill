@@ -55,12 +55,11 @@ public:
   {
     // Normalize before taking the lock to avoid blocking filesystem calls under the spinlock
     std::string normalized_sink_name;
-    try
+    QUILL_TRY
     {
-      normalized_sink_name =
-        detail::normalize_file_sink_path(fs::path{sink_name}, false).string();
+      normalized_sink_name = detail::normalize_file_sink_path(fs::path{sink_name}, false).string();
     }
-    catch (QuillError const&)
+    QUILL_CATCH(QuillError const&)
     {
       // Fallback normalization is best-effort for file-path lookups only.
     }
@@ -160,6 +159,12 @@ private:
     auto search_it =
       std::lower_bound(_sinks.begin(), _sinks.end(), sink_name,
                        [](SinkInfo const& elem, std::string const& b) { return elem.sink_id < b; });
+
+    if (search_it != _sinks.end() && search_it->sink_id == sink_name && search_it->sink_ptr.expired())
+    {
+      search_it->sink_ptr = sink;
+      return;
+    }
 
     _sinks.insert(search_it, SinkInfo{sink_name, sink});
   }

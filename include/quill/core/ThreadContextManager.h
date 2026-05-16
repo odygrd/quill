@@ -322,6 +322,9 @@ public:
     _thread_contexts.erase(thread_context_it);
 
     // Decrement the counter since we found something to
+    QUILL_ASSERT(_invalid_thread_context_count.load(std::memory_order_relaxed) != 0,
+                 "_invalid_thread_context_count underflow in "
+                 "ThreadContextManager::unregister_thread_context()");
     _invalid_thread_context_count.fetch_sub(1, std::memory_order_relaxed);
   }
 
@@ -403,7 +406,7 @@ private:
  */
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT QUILL_EXPORT inline ThreadContext* get_scoped_thread_context_impl(
   QueueType queue_type, size_t initial_queue_capacity, size_t unbounded_queue_max_capacity,
-  HugePagesPolicy huge_pages_policy) noexcept
+  HugePagesPolicy huge_pages_policy)
 {
   thread_local ScopedThreadContext scoped_thread_context{
     queue_type, initial_queue_capacity, unbounded_queue_max_capacity, huge_pages_policy};
@@ -413,7 +416,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT QUILL_EXPORT inline ThreadContext* get_scope
 
 /***/
 template <typename TFrontendOptions>
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context() noexcept
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context()
 {
   return get_scoped_thread_context_impl(
     TFrontendOptions::queue_type, TFrontendOptions::initial_queue_capacity,

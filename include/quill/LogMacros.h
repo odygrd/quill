@@ -328,7 +328,7 @@
         break;                                                                                     \
       }                                                                                            \
                                                                                                    \
-      if constexpr (quill::MacroMetadata::_contains_named_args(fmt))                               \
+      if constexpr (quill::MacroMetadata::contains_named_args(fmt))                                \
       {                                                                                            \
         QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt " ({occurred}x)",               \
                           ##__VA_ARGS__, __suppressed_log_count__ + 1);                            \
@@ -424,11 +424,11 @@
   #define QUILL_LOGV_TRACE_L3(logger, fmt, ...) (void)0
   #define QUILL_LOGV_TRACE_L3_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOGV_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...) (void)0
-  #define QUILL_LOGV_TRACE_L3_TAGS (void)0
+  #define QUILL_LOGV_TRACE_L3_TAGS(logger, tags, fmt, ...) (void)0
   #define QUILL_LOGJ_TRACE_L3(logger, fmt, ...) (void)0
   #define QUILL_LOGJ_TRACE_L3_LIMIT(min_interval, logger, fmt, ...) (void)0
   #define QUILL_LOGJ_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...) (void)0
-  #define QUILL_LOGJ_TRACE_L3_TAGS (void)0
+  #define QUILL_LOGJ_TRACE_L3_TAGS(logger, tags, fmt, ...) (void)0
 #endif
 
 #if QUILL_COMPILE_ACTIVE_LOG_LEVEL <= QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L2

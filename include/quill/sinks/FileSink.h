@@ -516,7 +516,7 @@ private:
       return append_datetime_to_filename(filename, append_filename_format_pattern, time_zone, timestamp);
     }
 
-    return fs::path{};
+    QUILL_THROW(QuillError{"Unexpected FilenameAppendOption value"});
   }
 
 protected:

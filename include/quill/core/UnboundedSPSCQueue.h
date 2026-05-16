@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <limits>
 #include <string>
 
 QUILL_BEGIN_NAMESPACE
@@ -244,10 +245,19 @@ private:
   QUILL_NODISCARD std::byte* _handle_full_queue(size_t nbytes)
   {
     // Then it means the queue doesn't have enough size
-    size_t capacity = _producer->bounded_queue.capacity() * 2ull;
+    size_t capacity = _producer->bounded_queue.capacity();
+
+    capacity = (capacity > (std::numeric_limits<size_t>::max() / 2ull)) ? _max_capacity : capacity * 2ull;
+
     while (capacity < nbytes)
     {
-      capacity = capacity * 2ull;
+      if (QUILL_UNLIKELY(capacity > (std::numeric_limits<size_t>::max() / 2ull)))
+      {
+        capacity = _max_capacity;
+        break;
+      }
+
+      capacity *= 2ull;
     }
 
     if (QUILL_UNLIKELY(capacity > _max_capacity))

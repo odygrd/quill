@@ -13,8 +13,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <functional>
-#include <limits>
 #include <string>
+#include <vector>
 
 #if defined(__MINGW32__)
   #include <iostream>
@@ -53,7 +53,7 @@ struct BackendOptions
    * local ring buffer queue as transit events. The transit_event_buffer is unbounded, starting with
    * a customizable initial capacity (in items, not bytes) and will reallocate up to
    * transit_events_hard_limit The backend will use a separate transit_event_buffer for each
-   * frontend thread. The capacity must be a power of two.
+   * frontend thread. The capacity is rounded up to the next power of two.
    */
   uint32_t transit_event_buffer_initial_capacity = 256;
 
@@ -135,8 +135,9 @@ struct BackendOptions
    * When this option is enabled and the application is terminating, the backend worker thread
    * will not exit until all the frontend queues are empty.
    *
-   * However, if there is a thread during application destruction that keeps trying to log
-   * indefinitely, the backend will be unable to exit because it keeps popping log messages.
+   * This assumes frontend threads stop logging before backend shutdown begins. Continuing to log
+   * while `Backend::stop()` is draining the frontend queues is unsupported and can prevent the
+   * backend from exiting because the queues may never become empty.
    *
    * When this option is disabled, the backend will try to read the queues once
    * and then exit. Reading the queues only once means that some log messages can be dropped,
@@ -145,13 +146,15 @@ struct BackendOptions
   bool wait_for_queues_to_empty_before_exit = true;
 
   /**
-   * Pins the backend to the specified CPU.
+   * Pins the backend to the specified CPUs.
    *
-   * By default, the backend is not pinned to any CPU unless a value is specified.
-   * It is recommended to pin the backend to a shared non-critical CPU.
-   * Use `std::numeric_limits<uint16_t>::max()` as an undefined value to avoid setting CPU affinity.
+   * By default, the backend is not pinned to any CPU unless values are specified.
+   * It is recommended to pin the backend to shared non-critical CPUs.
+   *
+   * @note On macOS, only the first entry is used because the platform does not expose a per-core
+   *       affinity API equivalent to Linux/Windows CPU masks.
    */
-  uint16_t cpu_affinity = (std::numeric_limits<uint16_t>::max)();
+  std::vector<uint16_t> cpu_affinity;
 
   /**
    * The backend may encounter exceptions that cannot be caught within user threads.

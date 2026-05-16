@@ -463,4 +463,25 @@ TEST_CASE("safe_strftime_empty")
   REQUIRE_STREQ(expected_result, safe_strftime_result.data());
 }
 
+TEST_CASE("string_from_time_large_forward_jump_matches_strftime")
+{
+  std::string fmt = "%H:%M:%S";
+  StringFromTime string_from_time;
+  string_from_time.init(fmt, Timezone::GmtTime);
+
+  time_t base_ts = 1;
+  auto const& initial = string_from_time.format_timestamp(base_ts);
+  (void)initial;
+
+  time_t const jumped_ts = base_ts + static_cast<time_t>(std::numeric_limits<uint32_t>::max()) + 3601;
+  auto const& actual = string_from_time.format_timestamp(jumped_ts);
+
+  std::tm time_info{};
+  quill::detail::gmtime_rs(&jumped_ts, &time_info);
+  char expected[256];
+  std::strftime(expected, sizeof(expected), fmt.data(), &time_info);
+
+  REQUIRE_STREQ(actual.data(), expected);
+}
+
 TEST_SUITE_END();

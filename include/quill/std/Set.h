@@ -87,7 +87,7 @@ struct Codec<SetType<Key, Compare, Allocator>,
                     std::disjunction<std::is_same<Key, wchar_t*>, std::is_same<Key, wchar_t const*>,
                                      std::is_same<Key, std::wstring>, std::is_same<Key, std::wstring_view>>>)
     {
-      // Read the size of the vector
+      // Read the size of the set
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
 
       std::vector<std::string> encoded_values;

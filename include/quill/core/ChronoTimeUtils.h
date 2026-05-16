@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/Common.h"
 
 #include <chrono>
 #include <cstdint>
@@ -24,7 +25,9 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::chrono::nanoseconds get_timestamp() noe
 template <typename TClock>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT uint64_t get_timestamp_ns() noexcept
 {
-  return static_cast<uint64_t>(get_timestamp<TClock>().count());
+  auto const count = get_timestamp<TClock>().count();
+  QUILL_ASSERT(count >= 0, "Negative clock timestamp in get_timestamp_ns()");
+  return (count >= 0) ? static_cast<uint64_t>(count) : 0u;
 }
 } // namespace detail
 

@@ -44,7 +44,7 @@ TEST_CASE("backend_exception_notifier")
   #if !(defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
   // On FreeBSD CPU_SET(cpu_id, &cpuset); with a big number crashes.
   // Setting to an invalid CPU. When we call quill::start() our error handler will be invoked and an error will be logged
-  backend_options.cpu_affinity = static_cast<uint16_t>(std::numeric_limits<uint16_t>::max() - 1);
+  backend_options.cpu_affinity = {static_cast<uint16_t>(std::numeric_limits<uint16_t>::max() - 1)};
   #endif
 
   backend_options.thread_name =
@@ -97,7 +97,7 @@ TEST_CASE("backend_exception_notifier")
   REQUIRE_GE(error_notifier_invoked.load(), 3);
   #else
   // Check our handler was invoked since either set_backend_thread_name or
-  // set_backend_thread_cpu_affinity should have failed, plus poll begin/end
+  // set_cpu_affinity should have failed, plus poll begin/end
   REQUIRE_GE(error_notifier_invoked.load(), 3);
   #endif
 

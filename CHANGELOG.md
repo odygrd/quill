@@ -101,6 +101,35 @@
 
 - Added a `CLAUDE.md` guide for LLMs. Quill was written back when humans still wrote the code, but we have done the
   modern thing and added instructions for the robots.
+- Fixed lowercase `utility::to_hex()` output for byte `0x7D`, which was incorrectly rendered as `7c`
+- Replaced `BackendOptions::cpu_affinity` with `std::vector<uint16_t>` to allow multi-CPU pinning.
+- Fixed `RdtscClock::time_since_epoch()` to use the resynced calibration slot immediately after a
+  resync instead of reading stale calibration data
+- Hardened the built-in signal handler by replacing `strsignal()` with internal signal-name
+  literals and using `std::_Exit()` instead of `std::exit()` in signal-handler termination paths
+- Aligned `ConsoleSink`'s internal colour table size with the full `LogLevel` enum
+- Fixed `BinaryDataDeferredFormatCodec` composition so subsequent encoded members are decoded
+  correctly when it is used inside compound user-defined types
+- Fixed `MacroMetadata` accessors for empty source locations so builds with disabled file info do
+  not read past the end of the stored source-location string
+- Hardened backtrace storage against invalid zero-capacity state
+- Fixed the compiled-out `TRACE_L3` variable and named-argument tag macros to remain valid no-op macros
+- Hardened `InlinedVector` growth against capacity overflow before allocation
+- Hardened `StringFromTime::_safe_strftime()` against unbounded buffer growth on repeated zero-length results
+- Reduced temporary string churn when sanitizing non-printable characters in formatted messages
+- Removed incorrect `noexcept` from Windows thread-name UTF conversion helpers
+- Hardened unbounded queue growth against capacity overflow when expanding full queues
+- Fixed `SinkManager` to reuse expired entries when recreating a sink with the same ID
+- Hardened `LoggerManager` invalidated-logger cleanup against lost concurrent notifications
+- Cleaned up several small core contracts and helpers, including safer `QuillError::what()`, optional env log-level storage,
+  thread-context lifetime assertions, and non-throwing timestamp conversion guards
+- Aligned `std::string` and `std::string_view` codec length clamping with the existing C-string paths
+- Aligned `std::map` and `std::unordered_map` enum codec handling with the rest of the STL container codecs
+- Reduced `PatternFormatter` attribute-lookup overhead and hardened backend periodic sink task handling
+- Added an explicit compile-time fallback for unsupported `std::filesystem::path::string_type` encodings
+- Normalized `BinaryData` null pointers to zero-length payloads to keep deferred binary encoding consistent
+- Hardened malformed named-argument formats to remain literal instead of emitting fallback `_N` named-argument fields
+- Hardened a few sink and codec edges, including oversized Windows console writes and invalid filename-append enum handling
 - Fixed a signal handler shutdown issue where crashes after `Backend::stop()` could hang while trying to `flush()`
   through a stopped backend worker. ([#906](https://github.com/odygrd/quill/issues/906))
 - Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles.

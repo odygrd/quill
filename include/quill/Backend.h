@@ -198,8 +198,9 @@ public:
    * Important notes:
    *   - Do not use this to run the library in a single threaded application. This will lead to inefficiencies.
    *     The design of this logging library assumes that the backend worker operates in a separate thread from the frontend threads that issue log statements.
-   *   - The thread running the `ManualBackendWorker` can log but it must not call `logger->flush_log()`, as this can
-   *     lead to a deadlock situation.
+   *   - The thread running the `ManualBackendWorker` can log, but it must not use backend-waiting
+   *     flush paths from that same thread. See `ManualBackendWorker` for the manual-backend
+   *     threading contract.
    *   - The `ManualBackendWorker` should only be used by a single thread. It is not designed to handle
    *     multiple threads calling `poll()` simultaneously.
    *   - The built-in signal handler is not set up with `ManualBackendWorker`. If signal handling is

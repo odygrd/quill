@@ -65,7 +65,7 @@ namespace detail
  * @param str input string
  * @return the value of input string as wide string
  */
-QUILL_NODISCARD inline std::wstring s2ws(std::string const& str) noexcept
+QUILL_NODISCARD inline std::wstring s2ws(std::string const& str)
 {
   #pragma warning(push)
   #pragma warning(disable : 4996)
@@ -82,7 +82,7 @@ QUILL_NODISCARD inline std::wstring s2ws(std::string const& str) noexcept
  * @param wstr input wide string
  * @return the value of input wide string as string
  */
-QUILL_NODISCARD inline std::string ws2s(std::wstring const& wstr) noexcept
+QUILL_NODISCARD inline std::string ws2s(std::wstring const& wstr)
 {
   #pragma warning(push)
   #pragma warning(disable : 4996)

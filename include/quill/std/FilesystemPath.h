@@ -41,6 +41,11 @@ struct Codec<fs::path>
       return Codec<std::wstring>::compute_encoded_size(conditional_arg_size_cache, arg.wstring());
     }
 #endif
+    else
+    {
+      detail::codec_not_found_for_type<fs::path::string_type>();
+      return 0;
+    }
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
@@ -58,6 +63,10 @@ struct Codec<fs::path>
                                   conditional_arg_size_cache_index, arg.wstring());
     }
 #endif
+    else
+    {
+      detail::codec_not_found_for_type<fs::path::string_type>();
+    }
   }
 
   static fs::path decode_arg(std::byte*& buffer)
@@ -72,6 +81,11 @@ struct Codec<fs::path>
       return fs::path{Codec<std::wstring_view>::decode_arg(buffer)};
     }
 #endif
+    else
+    {
+      detail::codec_not_found_for_type<fs::path::string_type>();
+      return fs::path{};
+    }
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)

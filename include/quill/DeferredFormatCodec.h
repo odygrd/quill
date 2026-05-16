@@ -169,6 +169,8 @@ struct DeferredFormatCodec
         {
           tmp->~T();
         }
+        // Keep the return as an explicit copy. `return arg;` can still prefer a deleted move
+        // constructor for copy-only types.
         return T{arg};
       }
     }

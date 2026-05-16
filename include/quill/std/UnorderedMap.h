@@ -37,8 +37,7 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
     // We add sizeof(size_t) bytes to accommodate the size information.
     size_t total_size{sizeof(size_t)};
 
-    if constexpr (std::conjunction_v<std::disjunction<std::is_arithmetic<Key>, std::is_enum<Key>>,
-                                     std::disjunction<std::is_arithmetic<T>, std::is_enum<T>>>)
+    if constexpr (std::conjunction_v<std::is_arithmetic<Key>, std::is_arithmetic<T>>)
     {
       // For built-in types, such as arithmetic or enum types, iteration is unnecessary
       total_size += (sizeof(Key) + sizeof(T)) * arg.size();

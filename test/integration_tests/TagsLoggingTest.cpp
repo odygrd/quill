@@ -84,7 +84,14 @@ TEST_CASE("tags_logging")
   LOG_ERROR_TAGS(logger, TAGS(TAG_1, TAG_2, "TAG3", "TAG4", "TAG5", "TAG6"),
                  "Nulla tempus, libero at dignissim viverra, lectus libero finibus ante {} {}", 2, true);
 
-  logger->flush_log();
+  Tags const null_and_valid_tags{static_cast<char const*>(nullptr), TAG_2, static_cast<char const*>(nullptr)};
+  Tags const single_null_tag{static_cast<char const*>(nullptr)};
+
+  debug(logger, Tags{"SOLO"}, "Single explicit tag");
+  info(logger, null_and_valid_tags, "Null tag handling");
+  tracel1(logger, single_null_tag, "Single null tag");
+
+  logger->flush_log(0);
   Frontend::remove_logger(logger);
 
   // Wait until the backend thread stops for test stability
@@ -92,7 +99,7 @@ TEST_CASE("tags_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 15);
+  REQUIRE_EQ(file_contents.size(), 18);
 
   REQUIRE(quill::testing::file_contains(
     file_contents,
@@ -138,6 +145,12 @@ TEST_CASE("tags_logging")
                 "       [ #TAG_A #TAG_B ] Lorem ipsum dolor sit amet, consectetur elit 1 3.14"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_ERROR     " + logger_name + "       [ #TAG_A #TAG_B ] Nulla tempus, libero at dignissim viverra, lectus libero finibus ante 2 true"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_DEBUG     " + logger_name + "       [ #SOLO ] Single explicit tag"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       [ #TAG_B ] Null tag handling"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_TRACE_L1  " + logger_name + "       [ #] Single null tag"}));
 
   testing::remove_file(filename);
 }

@@ -33,6 +33,11 @@ public:
   /***/
   void store(TransitEvent transit_event, std::string_view const& thread_id, std::string_view const& thread_name)
   {
+    if (_capacity == 0)
+    {
+      return;
+    }
+
     if (_stored_events.size() < _capacity)
     {
       // We are still growing the vector to max capacity
@@ -61,10 +66,10 @@ public:
   void process(std::function<void(TransitEvent const&, std::string_view thread_id, std::string_view thread_name)> const& callback)
   {
     // we found stored messages for this logger
-    uint32_t index = _index;
+    size_t index = _index;
 
     // Iterate retrieved records in order from first message using index
-    for (uint32_t i = 0; i < _stored_events.size(); ++i)
+    for (size_t i = 0; i < _stored_events.size(); ++i)
     {
       // Give to the user callback the thread id and the RecordBase pointer
       callback(_stored_events[index].transit_event, _stored_events[index].thread_id,
@@ -109,7 +114,7 @@ private:
     }
 
     /**
-     * We use this to take o copy of some objects that are out of space when a thread finishes but
+     * We use this to take a copy of some objects that are out of scope when a thread finishes but
      * the transit events are still in the buffer
      */
     std::string thread_id;

@@ -127,6 +127,13 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str) noexcept
 
   return safe_strnlen(str, max_len);
 }
+
+/***/
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t clamp_encoded_string_length(size_t len) noexcept
+{
+  return (len > std::numeric_limits<uint32_t>::max()) ? std::numeric_limits<uint32_t>::max()
+                                                      : static_cast<uint32_t>(len);
+}
 /** std string detection, ignoring the Allocator type **/
 template <typename T>
 struct is_std_string : std::false_type
@@ -155,23 +162,15 @@ struct Codec
     else if constexpr (std::conjunction_v<std::is_array<Arg>, std::is_same<detail::remove_cvref_t<std::remove_extent_t<Arg>>, char>>)
     {
       size_t constexpr N = std::extent_v<Arg>;
-      size_t len = detail::safe_strnlen(arg, N) + 1u;
-      if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
-      {
-        len = std::numeric_limits<uint32_t>::max();
-      }
-      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
+      uint32_t const len = detail::clamp_encoded_string_length(detail::safe_strnlen(arg, N) + 1u);
+      return conditional_arg_size_cache.push_back(len);
     }
     else if constexpr (std::disjunction_v<std::is_same<Arg, char*>, std::is_same<Arg, char const*>>)
     {
       // for c strings we do an additional check for nullptr
       // include one extra for the zero termination
-      size_t len = detail::safe_strnlen(arg) + 1u;
-      if (QUILL_UNLIKELY(len > std::numeric_limits<uint32_t>::max()))
-      {
-        len = std::numeric_limits<uint32_t>::max();
-      }
-      return conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
+      uint32_t const len = detail::clamp_encoded_string_length(detail::safe_strnlen(arg) + 1u);
+      return conditional_arg_size_cache.push_back(len);
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
@@ -179,7 +178,7 @@ struct Codec
       // the reason for this is that if we create e.g:
       // std::string msg = fmtquill::format("{} {} {} {} {}", (char)0, (char)0, (char)0, (char)0,
       // "sssssssssssssssssssssss"); then strlen(msg.data()) = 0 but msg.size() = 31
-      return sizeof(uint32_t) + static_cast<uint32_t>(arg.length());
+      return sizeof(uint32_t) + detail::clamp_encoded_string_length(arg.length());
     }
     else
     {
@@ -243,7 +242,7 @@ struct Codec
     {
       // for std::string we store the size first, in order to correctly retrieve it
       // Copy the length first and then the actual string
-      auto const len = static_cast<uint32_t>(arg.length());
+      uint32_t const len = detail::clamp_encoded_string_length(arg.length());
 
       // Local copy improves generated code (avoids aliasing penalties)
       std::byte* buf_ptr = buffer;

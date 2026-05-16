@@ -110,4 +110,40 @@ TEST_CASE("file_sink_equivalent_paths_return_same_sink")
   REQUIRE_FALSE(ec);
 }
 
+TEST_CASE("recreating_expired_sink_with_same_name_keeps_single_registry_entry")
+{
+  std::string const file_name = "sink_manager_recreate_same_name.log";
+
+  {
+    std::shared_ptr<Sink> sink_a = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      file_name,
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{});
+  }
+
+  {
+    std::shared_ptr<Sink> sink_b = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      file_name,
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{});
+
+    std::shared_ptr<Sink> sink_c = SinkManager::instance().get_sink(file_name);
+    REQUIRE_EQ(sink_b.get(), sink_c.get());
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
+
+  std::remove(file_name.data());
+}
+
 TEST_SUITE_END();

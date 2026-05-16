@@ -11,6 +11,9 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/MathUtilities.h"
 
+#include <cstddef>
+#include <memory>
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail

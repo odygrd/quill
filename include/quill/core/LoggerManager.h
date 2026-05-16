@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -217,10 +218,8 @@ public:
   template <typename TCheckQueuesEmpty>
   void cleanup_invalidated_loggers(TCheckQueuesEmpty check_queues_empty, std::vector<std::string>& removed_loggers)
   {
-    if (_has_invalidated_loggers.load(std::memory_order_acquire))
+    if (_has_invalidated_loggers.exchange(false, std::memory_order_acq_rel))
     {
-      _has_invalidated_loggers.store(false, std::memory_order_release);
-
       LockGuard const lock{_spinlock};
       for (auto it = _loggers.begin(); it != _loggers.end();)
       {
@@ -277,7 +276,7 @@ public:
 
     if (!log_level.empty())
     {
-      _env_log_level = std::make_unique<LogLevel>(loglevel_from_string(log_level));
+      _env_log_level = loglevel_from_string(log_level);
     }
   }
 
@@ -310,7 +309,7 @@ private:
 
 private:
   std::vector<std::unique_ptr<LoggerBase>> _loggers;
-  std::unique_ptr<LogLevel> _env_log_level;
+  std::optional<LogLevel> _env_log_level;
   mutable Spinlock _spinlock;
   std::atomic<bool> _has_invalidated_loggers{false};
 };

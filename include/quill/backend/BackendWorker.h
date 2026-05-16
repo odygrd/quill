@@ -153,12 +153,12 @@ public:
 #if !defined(QUILL_NO_EXCEPTIONS)
         QUILL_CATCH(std::exception const& e)
         {
-          _options.error_notifier(e.what());
+          options.error_notifier(e.what());
           std::terminate();
         }
         QUILL_CATCH_ALL()
         {
-          _options.error_notifier(
+          options.error_notifier(
             std::string{"Caught unhandled exception during backend initialization."});
           std::terminate();
         }
@@ -166,9 +166,9 @@ public:
 
         QUILL_TRY
         {
-          if (_options.cpu_affinity != (std::numeric_limits<uint16_t>::max)())
+          if (!_options.cpu_affinity.empty())
           {
-            // Set cpu affinity if requested to cpu _backend_thread_cpu_affinity
+            // Set cpu affinity if requested
             set_cpu_affinity(_options.cpu_affinity);
           }
         }
@@ -496,7 +496,7 @@ private:
                                 .count())
       : std::numeric_limits<uint64_t>::max();
 
-    size_t cached_transit_events_count{0};
+    size_t total_cached_transit_events_count{0};
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
@@ -505,17 +505,17 @@ private:
 
       if (thread_context->has_unbounded_queue_type())
       {
-        cached_transit_events_count += _read_and_decode_frontend_queue(
+        total_cached_transit_events_count += _read_and_decode_frontend_queue(
           thread_context->get_spsc_queue_union().unbounded_spsc_queue, thread_context, ts_now);
       }
       else if (thread_context->has_bounded_queue_type())
       {
-        cached_transit_events_count += _read_and_decode_frontend_queue(
+        total_cached_transit_events_count += _read_and_decode_frontend_queue(
           thread_context->get_spsc_queue_union().bounded_spsc_queue, thread_context, ts_now);
       }
     }
 
-    return cached_transit_events_count;
+    return total_cached_transit_events_count;
   }
 
   /**
@@ -962,14 +962,21 @@ private:
 
       // We defer notifying the caller until after this function completes.
     }
+    else
+    {
+      QUILL_ASSERT(transit_event.macro_metadata->event() == MacroMetadata::Event::LoggerRemovalRequest,
+                   "Unexpected transit event type in BackendWorker::_process_transit_event()");
+      // LoggerRemovalRequest is handled when the removal flag map is populated. It has no sink
+      // dispatch work of its own.
+    }
   }
 
   /**
    * Dispatches a transit event
    */
   QUILL_ATTRIBUTE_HOT void _dispatch_transit_event_to_sinks(TransitEvent const& transit_event,
-                                                            std::string_view const& thread_id,
-                                                            std::string_view const& thread_name)
+                                                            std::string_view thread_id,
+                                                            std::string_view thread_name)
   {
     // First check to see if we should init the pattern formatter on a new Logger
     // Look up to see if we have the formatter and if not create it
@@ -1377,7 +1384,11 @@ private:
 
       if (run_periodic_tasks)
       {
-        sink->run_periodic_tasks();
+        QUILL_TRY { sink->run_periodic_tasks(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+        QUILL_CATCH(std::exception const& e) { _options.error_notifier(e.what()); }
+        QUILL_CATCH_ALL() { _options.error_notifier(std::string{"Caught unhandled exception."}); }
+#endif
       }
     }
 
@@ -1612,6 +1623,12 @@ private:
     transit_event->ensure_extra_data();
 
     auto* named_args = &transit_event->extra_data->named_args;
+    named_args->clear();
+
+    if (arg_names.empty())
+    {
+      return;
+    }
 
     named_args->resize(arg_names.size());
 
@@ -1740,16 +1757,16 @@ private:
       {
         if (options.check_printable_char(c))
         {
-          formatted_msg.append(std::string{c});
+          formatted_msg.push_back(c);
         }
         else
         {
           // convert non-printable character to hex
           constexpr char hex[] = "0123456789ABCDEF";
-          formatted_msg.append(std::string{'\\'});
-          formatted_msg.append(std::string{'x'});
-          formatted_msg.append(std::string{hex[(c >> 4) & 0xF]});
-          formatted_msg.append(std::string{hex[c & 0xF]});
+          formatted_msg.push_back('\\');
+          formatted_msg.push_back('x');
+          formatted_msg.push_back(hex[(c >> 4) & 0xF]);
+          formatted_msg.push_back(hex[c & 0xF]);
         }
       }
     }

@@ -153,7 +153,7 @@ public:
   static constexpr char NO_SUFFIX = static_cast<char>(-1);
 
   /***/
-  bool operator==(PatternFormatterOptions const& other) const noexcept
+  bool operator==(PatternFormatterOptions const& other) const
   {
     return format_pattern == other.format_pattern && timestamp_pattern == other.timestamp_pattern &&
       source_location_path_strip_prefix == other.source_location_path_strip_prefix &&
@@ -164,7 +164,7 @@ public:
   }
 
   /***/
-  bool operator!=(PatternFormatterOptions const& other) const noexcept { return !(*this == other); }
+  bool operator!=(PatternFormatterOptions const& other) const { return !(*this == other); }
 };
 
 QUILL_END_NAMESPACE

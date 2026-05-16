@@ -8,8 +8,8 @@
 #include <vector>
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4996)
+  #pragma warning(push)
+  #pragma warning(disable : 4996)
 #endif
 
 TEST_SUITE_BEGIN("BoundedQueue");
@@ -139,8 +139,30 @@ TEST_CASE("bounded_queue_read_write_multithreaded_plain_ints")
   consumer_thread.join();
 }
 
+TEST_CASE("bounded_queue_prepare_write_larger_than_capacity_fails")
+{
+  BoundedSPSCQueue buffer{64u};
+
+  REQUIRE_EQ(buffer.capacity(), 64u);
+  REQUIRE_EQ(buffer.prepare_write(65u), nullptr);
+  REQUIRE_EQ(buffer.prepare_write(128u), nullptr);
+
+  std::byte* write_buf = buffer.prepare_write(32u);
+  REQUIRE_NE(write_buf, nullptr);
+  buffer.finish_write(32u);
+  buffer.commit_write();
+
+  std::byte* read_buf = buffer.prepare_read();
+  REQUIRE_NE(read_buf, nullptr);
+  buffer.finish_read(32u);
+  buffer.commit_read();
+
+  REQUIRE_EQ(buffer.prepare_write(65u), nullptr);
+  REQUIRE_EQ(buffer.prepare_write(128u), nullptr);
+}
+
 TEST_SUITE_END();
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif

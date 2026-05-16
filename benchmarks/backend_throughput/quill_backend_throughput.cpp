@@ -14,13 +14,13 @@ static constexpr size_t total_iterations = 4'000'000;
 int main()
 {
   // main thread affinity
-  quill::detail::set_cpu_affinity(1);
+  quill::detail::set_cpu_affinity({1});
 
   quill::BackendOptions backend_options;
-  backend_options.cpu_affinity = 5;
+  backend_options.cpu_affinity = {5};
   backend_options.sleep_duration = std::chrono::nanoseconds{0};
   backend_options.log_timestamp_ordering_grace_period = std::chrono::microseconds{1};
-  
+
   // Start the logging backend thread and give it some tiem to init
   quill::Backend::start(backend_options);
 

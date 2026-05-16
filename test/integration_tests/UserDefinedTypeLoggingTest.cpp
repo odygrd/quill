@@ -4,7 +4,6 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
-#include "quill/Utility.h"
 #include "quill/sinks/FileSink.h"
 
 #include "quill/core/Codec.h"

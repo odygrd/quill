@@ -48,7 +48,7 @@ public:
   explicit QuillError(std::string s) : _error(static_cast<std::string&&>(s)) {}
   explicit QuillError(char const* s) : _error(s) {}
 
-  QUILL_NODISCARD char const* what() const noexcept override { return _error.data(); }
+  QUILL_NODISCARD char const* what() const noexcept override { return _error.c_str(); }
 
 private:
   std::string _error;

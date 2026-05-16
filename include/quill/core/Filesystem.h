@@ -76,8 +76,7 @@ namespace detail
 {
 QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path filename, bool create_directories = true)
 {
-  if ((filename == std::string{"stdout"}) || (filename == std::string{"stderr"}) ||
-      (filename == std::string{"/dev/null"}))
+  if ((filename == "stdout") || (filename == "stderr") || (filename == "/dev/null"))
   {
     return filename;
   }

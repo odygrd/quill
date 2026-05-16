@@ -188,7 +188,8 @@ public:
 
         if (QUILL_LIKELY(handle != INVALID_HANDLE_VALUE))
         {
-          auto const total_bytes_remaining = static_cast<DWORD>(remaining);
+          auto const total_bytes_remaining =
+            static_cast<DWORD>(std::min<size_t>(remaining, std::numeric_limits<DWORD>::max()));
           DWORD bytes_written_this_call = 0;
 
           if (QUILL_UNLIKELY((::WriteFile(handle, current_ptr, total_bytes_remaining,

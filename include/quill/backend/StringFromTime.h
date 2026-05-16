@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
+#include <limits>
 #include <map>
 #include <string>
 #include <utility>
@@ -392,6 +393,13 @@ protected:
 
     while (res == 0)
     {
+      if (QUILL_UNLIKELY(buffer.size() > (std::numeric_limits<size_t>::max() / 2)))
+      {
+        std::vector<char> empty_result;
+        empty_result.push_back('\0');
+        return empty_result;
+      }
+
       // if strftime fails we will reserve more space
       buffer.resize(buffer.size() * 2);
       res = strftime(&buffer[0], buffer.size(), format_string, std::addressof(time_info));

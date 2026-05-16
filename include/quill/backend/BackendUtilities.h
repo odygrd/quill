@@ -13,6 +13,7 @@
 #include <cstring>
 #include <string>
 #include <system_error>
+#include <vector>
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
@@ -51,14 +52,33 @@ QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+// These helpers are used during backend worker setup and run on the backend worker thread.
+// They are not part of the normal multi-threaded frontend logging hot path.
 /***/
-QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
+QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(QUILL_MAYBE_UNUSED std::vector<uint16_t> const& cpu_ids)
 {
+  if (cpu_ids.empty())
+  {
+    return;
+  }
+
 #if defined(__CYGWIN__)
   // setting cpu affinity on cygwin is not supported
 #elif defined(_WIN32)
   // core number starts from 0
-  auto const mask = (static_cast<DWORD_PTR>(1) << cpu_id);
+  DWORD_PTR mask = 0;
+  constexpr uint32_t max_bits = sizeof(DWORD_PTR) * 8;
+
+  for (uint16_t const cpu_id : cpu_ids)
+  {
+    if (cpu_id >= max_bits)
+    {
+      QUILL_THROW(QuillError{std::string{"Failed to set cpu affinity - invalid cpu id: "} + std::to_string(cpu_id)});
+    }
+
+    mask |= (static_cast<DWORD_PTR>(1) << cpu_id);
+  }
+
   auto ret = SetThreadAffinityMask(GetCurrentThread(), mask);
   if (ret == 0)
   {
@@ -72,7 +92,8 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
   // I don't think that's possible to link a thread with a specific core with Mac OS X
   // This may be used to express affinity relationships  between threads in the task.
   // Threads with the same affinity tag will be scheduled to share an L2 cache if possible.
-  thread_affinity_policy_data_t policy = {cpu_id};
+  // Only the first cpu_id is used because macOS does not provide a per-core affinity API.
+  thread_affinity_policy_data_t policy = {cpu_ids.front()};
 
   // Get the mach thread bound to this thread
   thread_port_t mach_thread = pthread_mach_thread_np(pthread_self());
@@ -88,22 +109,47 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(uint16_t cpu_id)
     QUILL_THROW(QuillError{"Failed to create cpuset"});
   }
   cpuset_zero(cpuset);
-  cpuset_set(cpu_id, cpuset);
+  size_t const max_cpus = cpuset_size(cpuset) * 8u;
+  for (uint16_t const cpu_id : cpu_ids)
+  {
+    if (cpu_id >= max_cpus)
+    {
+      cpuset_destroy(cpuset);
+      QUILL_THROW(QuillError{std::string{"Failed to set cpu affinity - invalid cpu id: "} + std::to_string(cpu_id)});
+    }
+
+    cpuset_set(cpu_id, cpuset);
+  }
   auto const err = pthread_setaffinity_np(pthread_self(), cpuset_size(cpuset), cpuset);
   cpuset_destroy(cpuset);
   #elif defined(__FreeBSD__)
   cpuset_t cpuset;
   CPU_ZERO(&cpuset);
-  CPU_SET(cpu_id, &cpuset);
+  for (uint16_t const cpu_id : cpu_ids)
+  {
+    if (cpu_id >= CPU_SETSIZE)
+    {
+      QUILL_THROW(QuillError{std::string{"Failed to set cpu affinity - invalid cpu id: "} + std::to_string(cpu_id)});
+    }
+
+    CPU_SET(cpu_id, &cpuset);
+  }
   auto const err = pthread_setaffinity_np(pthread_self(), sizeof(cpuset_t), &cpuset);
   #elif defined(__OpenBSD__)
   // OpenBSD doesn't support CPU affinity, so we'll use a placeholder
-  (void)cpu_id;
   auto const err = 0; // Assume success
   #else
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
-  CPU_SET(cpu_id, &cpuset);
+  for (uint16_t const cpu_id : cpu_ids)
+  {
+    if (cpu_id >= CPU_SETSIZE)
+    {
+      QUILL_THROW(QuillError{std::string{"Failed to set cpu affinity - invalid cpu id: "} + std::to_string(cpu_id)});
+    }
+
+    CPU_SET(cpu_id, &cpuset);
+  }
   auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
   #endif
 

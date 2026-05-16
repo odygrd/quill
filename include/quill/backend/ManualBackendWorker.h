@@ -15,6 +15,12 @@ QUILL_BEGIN_NAMESPACE
 
 /**
  * This class can be used when you want to run the backend worker on your own thread.
+ *
+ * Threading contract:
+ * - The thread running `ManualBackendWorker` may log.
+ * - That same thread must not use any path that waits for the backend to flush its own queue.
+ *   In particular, it must not call `logger->flush_log()`, and it must not use immediate-flush
+ *   settings that can trigger `flush_log()` implicitly.
  */
 class ManualBackendWorker
 {

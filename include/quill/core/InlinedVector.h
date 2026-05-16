@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <type_traits>
 
 #include "quill/core/Attributes.h"
@@ -68,14 +69,13 @@ public:
   {
     if (_size == _capacity)
     {
+      if (QUILL_UNLIKELY(_capacity > (std::numeric_limits<size_t>::max() / 2)))
+      {
+        QUILL_THROW(QuillError{"InlinedVector capacity overflow"});
+      }
+
       size_t const new_capacity = _capacity * 2;
       auto* new_data = new value_type[new_capacity];
-
-      if (QUILL_UNLIKELY(new_capacity <= _capacity))
-      {
-        QUILL_THROW(
-          QuillError{"This unreachable code is here only to suppress gcc false positive warnings"});
-      }
 
       if (_capacity == N)
       {

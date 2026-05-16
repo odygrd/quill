@@ -250,7 +250,7 @@ public:
     }
 
   private:
-    std::array<std::string_view, 10> _log_level_colours; /**< Colours per log level */
+    std::array<std::string_view, 11> _log_level_colours; /**< Colours per log level */
     bool _colours_enabled{true};
     bool _colour_output_supported{false};
   };
@@ -310,7 +310,7 @@ public:
   }
 
   /** Getters **/
-  QUILL_NODISCARD Colours const& colours() noexcept { return _colours; }
+  QUILL_NODISCARD Colours const& colours() const noexcept { return _colours; }
   QUILL_NODISCARD ColourMode colour_mode() const noexcept { return _colour_mode; }
   QUILL_NODISCARD std::string const& stream() const noexcept { return _stream; }
   QUILL_NODISCARD std::optional<PatternFormatterOptions> const& override_pattern_formatter_options() const noexcept

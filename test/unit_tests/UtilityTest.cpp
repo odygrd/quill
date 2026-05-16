@@ -308,6 +308,8 @@ TEST_CASE("to_hex_special_values")
     0x00,       // First value in table
     0x0F,       // End of first row
     0x10,       // Start of second row
+    0x7C,       // '|' boundary check
+    0x7D,       // '}' boundary check
     0x7F,       // End of ASCII range
     0x80,       // Start of extended ASCII
     0xFF        // Last value in table
@@ -315,22 +317,22 @@ TEST_CASE("to_hex_special_values")
 
   // With spaces (uppercase)
   std::string const result_upper_space = quill::utility::to_hex(buffer, sizeof(buffer), true, true);
-  std::string const expected_upper_space = "00 0F 10 7F 80 FF";
+  std::string const expected_upper_space = "00 0F 10 7C 7D 7F 80 FF";
   REQUIRE_EQ(result_upper_space, expected_upper_space);
 
   // Without spaces (uppercase)
   std::string const result_upper_no_space = quill::utility::to_hex(buffer, sizeof(buffer), true, false);
-  std::string const expected_upper_no_space = "000F107F80FF";
+  std::string const expected_upper_no_space = "000F107C7D7F80FF";
   REQUIRE_EQ(result_upper_no_space, expected_upper_no_space);
 
   // With spaces (lowercase)
   std::string const result_lower_space = quill::utility::to_hex(buffer, sizeof(buffer), false, true);
-  std::string const expected_lower_space = "00 0f 10 7f 80 ff";
+  std::string const expected_lower_space = "00 0f 10 7c 7d 7f 80 ff";
   REQUIRE_EQ(result_lower_space, expected_lower_space);
 
   // Without spaces (lowercase)
   std::string const result_lower_no_space = quill::utility::to_hex(buffer, sizeof(buffer), false, false);
-  std::string const expected_lower_no_space = "000f107f80ff";
+  std::string const expected_lower_no_space = "000f107c7d7f80ff";
   REQUIRE_EQ(result_lower_no_space, expected_lower_no_space);
 }
 

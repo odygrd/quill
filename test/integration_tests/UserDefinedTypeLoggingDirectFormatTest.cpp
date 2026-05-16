@@ -417,6 +417,22 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
     LOG_INFO(logger, "CustomEnum UnSet {}", custom_enum_unset);
   }
 
+  {
+    std::map<int, CustomEnum> custom_enum_map;
+    custom_enum_map.emplace(1, CustomEnum::A);
+    custom_enum_map.emplace(2, CustomEnum::BB);
+    custom_enum_map.emplace(3, CustomEnum::CCC);
+    LOG_INFO(logger, "CustomEnum Map {}", custom_enum_map);
+  }
+
+  {
+    std::unordered_map<int, CustomEnum> custom_enum_unmap;
+    custom_enum_unmap.emplace(1, CustomEnum::A);
+    custom_enum_unmap.emplace(2, CustomEnum::BB);
+    custom_enum_unmap.emplace(3, CustomEnum::CCC);
+    LOG_INFO(logger, "CustomEnum UnMap {}", custom_enum_unmap);
+  }
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -425,7 +441,7 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 25);
+  REQUIRE_EQ(file_contents.size(), 27);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
@@ -501,6 +517,16 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum UnSet {"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum Map {1: \"A\", 2: \"BB\", 3: \"CCC\"}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomEnum UnMap {"}));
+
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"1: \"A\""}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"2: \"BB\""}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"3: \"CCC\""}));
 
   testing::remove_file(filename);
 }

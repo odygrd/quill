@@ -920,9 +920,8 @@ protected:
     std::string new_date_time;
   };
 
-  FileEventNotifier _file_event_notifier;
   std::deque<FileInfo> _created_files; /**< We store in a queue the filenames we created, first: index, second: date/datetime, third: base_filename */
-  uint64_t _next_rotation_time;        /**< The next rotation time point */
+  uint64_t _next_rotation_time{0};     /**< The next rotation time point */
   uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
   RotatingFileSinkConfig _config;
 };

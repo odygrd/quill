@@ -43,8 +43,10 @@ public:
   template <typename U>
   BinaryData(U const* data, size_t size)
     : _data{reinterpret_cast<std::byte const*>(data)},
-      _size{size > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max()
-                                                        : static_cast<uint32_t>(size)}
+      _size{_data == nullptr
+              ? 0u
+              : (size > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max()
+                                                             : static_cast<uint32_t>(size))}
   {
     static_assert(sizeof(U) == 1, "BinaryData only accepts byte-sized element types");
   }
@@ -129,7 +131,7 @@ struct BinaryDataDeferredFormatCodec
     return sizeof(uint32_t) + arg._size;
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t, T const& arg)
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T const& arg)
   {
     std::byte* buf_ptr = buffer;
 
