@@ -1,5 +1,5 @@
-#include "quill/SimpleSetup.h"
 #include "quill/LogFunctions.h"
+#include "quill/SimpleSetup.h"
 
 int main()
 {
@@ -10,4 +10,7 @@ int main()
   // log to a file
   auto* logger2 = quill::simple_logger("test.log");
   quill::warning(logger2, "This message goes to a file");
+
+  // If you also want Quill's built-in signal handler, use:
+  // auto* logger3 = quill::simple_logger_with_signal_handler();
 }

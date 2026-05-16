@@ -21,8 +21,8 @@
 QUILL_BEGIN_NAMESPACE
 
 /** Version Info - When updating VersionMajor please also update the namespace in Attributes.h **/
-constexpr uint32_t VersionMajor{11};
-constexpr uint32_t VersionMinor{1};
+constexpr uint32_t VersionMajor{12};
+constexpr uint32_t VersionMinor{0};
 constexpr uint32_t VersionPatch{0};
 constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
 
@@ -219,10 +219,12 @@ public:
    *     quill::BackendOptions backend_options;
    *     manual_backend_worker->init(backend_options);
    *
-   *     while (true)
+   *     while (running)
    *     {
    *       manual_backend_worker->poll();
    *     }
+   *
+   *     manual_backend_worker->shutdown();
    *   });
    * @endcode
    */

@@ -143,6 +143,65 @@ TEST_CASE("create_directory")
   testing::remove_file(filename);
 }
 
+/***/
+TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
+{
+  fs::path const filename = "reopen_deleted_file_uses_configured_open_mode.log";
+
+  FileSinkConfig fsc;
+  fsc.set_open_mode('a');
+
+  bool recreate_on_next_close = false;
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_close = [&recreate_on_next_close](fs::path const& file_path)
+  {
+    if (!recreate_on_next_close)
+    {
+      return;
+    }
+
+    recreate_on_next_close = false;
+
+    FILE* recreated_file = std::fopen(file_path.string().c_str(), "w");
+    REQUIRE(recreated_file != nullptr);
+    std::fputs("recreated\n", recreated_file);
+    std::fclose(recreated_file);
+  };
+
+  auto write_record = [](FileSink& file_sink, std::string_view message)
+  {
+    file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                        std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+  };
+
+  {
+    FileSink file_sink{filename, fsc, file_event_notifier};
+
+    write_record(file_sink, "first\n");
+    file_sink.flush_sink();
+
+    testing::remove_file(filename);
+    REQUIRE_FALSE(fs::exists(filename));
+
+    recreate_on_next_close = true;
+
+    // This record is written to the deleted file handle. After close, the notifier recreates the
+    // visible file before Quill reopens it.
+    write_record(file_sink, "second\n");
+    file_sink.flush_sink();
+
+    write_record(file_sink, "third\n");
+    file_sink.flush_sink();
+  }
+
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE_EQ(file_contents[0], "recreated");
+  REQUIRE_EQ(file_contents[1], "third");
+
+  testing::remove_file(filename);
+}
+
 #if !defined(_WIN32)
 // Symlink test, currently for Linux only but can probably also expanded to windows later
 

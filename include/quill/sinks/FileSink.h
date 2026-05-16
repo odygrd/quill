@@ -282,8 +282,8 @@ public:
       // This can happen if a user deletes a file while the application is running
       close_file();
 
-      // now reopen the file for writing again, it will be a new file
-      open_file(_filename, "w");
+      // Reopen using the configured mode so append-mode sinks preserve externally recreated files.
+      open_file(_filename, _config.open_mode());
     }
   }
 

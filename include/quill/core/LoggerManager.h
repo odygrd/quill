@@ -11,6 +11,7 @@
 #include "quill/core/LogLevel.h"
 #include "quill/core/LoggerBase.h"
 #include "quill/core/PatternFormatterOptions.h"
+#include "quill/core/QuillError.h"
 #include "quill/core/Spinlock.h"
 
 #include <algorithm>
@@ -157,6 +158,14 @@ public:
     LockGuard const lock{_spinlock};
 
     LoggerBase* logger_ptr = _find_logger(logger_name);
+
+    if (logger_ptr && !logger_ptr->is_valid_logger())
+    {
+      QUILL_THROW(QuillError{"Logger with name \"" + logger_name +
+                             "\" is pending removal and cannot be recreated until the backend "
+                             "completes logger cleanup. Use remove_logger_blocking() if you need "
+                             "to recreate the logger synchronously."});
+    }
 
     if (!logger_ptr)
     {

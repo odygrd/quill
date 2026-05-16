@@ -1,4 +1,4 @@
-- [TBD](#tbd)
+- [v12.0.0](#v1200)
 - [v11.1.0](#v1110)
 - [v11.0.2](#v1102)
 - [v11.0.1](#v1101)
@@ -97,32 +97,47 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## TBD
+## v12.0.0
 
-- Fixed a signal handler shutdown issue where crashes after `Backend::stop()` could hang while trying to `flush()` through a stopped backend worker. ([#906](https://github.com/odygrd/quill/issues/906))
+- Added a `CLAUDE.md` guide for LLMs. Quill was written back when humans still wrote the code, but we have done the
+  modern thing and added instructions for the robots.
+- Fixed a signal handler shutdown issue where crashes after `Backend::stop()` could hang while trying to `flush()`
+  through a stopped backend worker. ([#906](https://github.com/odygrd/quill/issues/906))
 - Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles.
-- Fixed `ManualBackendWorker` shutdown to be idempotent, added an explicit `shutdown()` API, and
-  enforced same-thread shutdown for manual backend mode.
-- Fixed `ThreadContextManager::register_thread_context()` exception safety and widened the invalid
-  thread-context counter.
-- Fixed backend notifier reporting for unbounded queues when they reach
-  `FrontendOptions::unbounded_queue_max_capacity` and start blocking or dropping
+- Fixed `ManualBackendWorker` shutdown to be idempotent, added an explicit `shutdown()` API, and enforced same-thread
+  shutdown for manual backend mode.
+- Fixed `ThreadContextManager::register_thread_context()` exception safety and widened the invalid thread-context
+  counter.
+- Fixed backend notifier reporting for unbounded queues when they reach `FrontendOptions::unbounded_queue_max_capacity`
+  and start blocking or dropping
 - Made backend initialization failures explicitly notify and terminate during backend thread startup
 - Fixed `RdtscClock` resync interval conversion from nanoseconds to TSC ticks
 - Fixed JSON sinks to escape quotes, backslashes, control characters, and low ASCII control bytes
-- Fixed rotating sink rename handling to update in-memory rotation state only after successful
-  renames and to preserve the active file on rotation failure
-- Fixed `RotatingJsonFileSink` size-based rotation to account for the actual generated JSON payload
-  size instead of `log_statement.size()`
-- Fixed `CsvWriter` to use a unique logger per instance so multiple writers targeting the same file
-  do not share logger lifetime
-- Added `CsvWriter::close()` for deterministic logger removal and file closure, and changed
-  `CsvWriter` destruction to use best-effort asynchronous cleanup
-- Fixed `CsvWriter` header handling for append mode with timestamp-appended filenames and removed
-  a dangling `this` capture from the rotating-file header notifier
-- Fixed file sink deduplication to normalize file paths before sink lookup so equivalent paths
-  reuse the same sink instance
+- Fixed rotating sink rename handling to update in-memory rotation state only after successful renames and to preserve
+  the active file on rotation failure
+- Fixed `RotatingJsonFileSink` size-based rotation to account for the actual generated JSON payload size instead of
+  `log_statement.size()`
+- Fixed `CsvWriter` to use a unique logger per instance so multiple writers targeting the same file do not share logger
+  lifetime
+- Added `CsvWriter::close()` for deterministic logger removal and file closure, and changed `CsvWriter` destruction to
+  use best-effort asynchronous cleanup
+- Fixed `CsvWriter` header handling for append mode with timestamp-appended filenames and removed a dangling `this`
+  capture from the rotating-file header notifier
+- Fixed file sink deduplication to normalize file paths before sink lookup so equivalent paths reuse the same sink
+  instance
 - Fixed `SystemdSink` to avoid calling the unrelated process-global `closelog()` syslog cleanup
+- Fixed `simple_logger()` to ensure the backend is running before returning an existing logger and added
+  `simple_logger_with_signal_handler()` for explicit built-in signal-handler setup. `simple_logger()` no longer installs
+  signal handlers by default; use `simple_logger_with_signal_handler()` if signal handling is needed
+- Fixed `Frontend::remove_logger()` and `remove_logger_blocking()` to treat null logger pointers as no-ops
+- Fixed `FileSink` to reopen externally deleted files using the configured open mode instead of truncating with `"w"`
+- Fixed logger recreation to throw `QuillError` while a same-name logger is still pending asynchronous removal
+- Fixed `CsvWriter` to throw `QuillError` when used after `close()` instead of relying on assertions only
+- Fixed `StringRef` null C-string handling to avoid constructing invalid `std::string_view` instances
+- Fixed sink filter handling to reject null filters and avoid losing newly added filters during local filter-cache
+  refresh
+- Hardened logger and sink creation APIs to throw `QuillError` for null sinks, invalid `ConsoleSink` stream names, and
+  `create_or_get_logger(...)` calls that omit a source logger when creating a new logger
 
 ## v11.1.0
 
@@ -132,7 +147,8 @@
 - Suppress GCC false-positive warnings during LTO builds.
 - Added backend worker poll loop hooks `backend_worker_on_poll_begin`/
   `backend_worker_on_poll_end` ([#897](https://github.com/odygrd/quill/issues/897))
-- Added opt-in sequential thread IDs via `QUILL_USE_SEQUENTIAL_THREAD_ID` with `QUILL_DEFINE_SEQUENTIAL_THREAD_ID` ([#898](https://github.com/odygrd/quill/issues/898))
+- Added opt-in sequential thread IDs via `QUILL_USE_SEQUENTIAL_THREAD_ID` with
+  `QUILL_DEFINE_SEQUENTIAL_THREAD_ID` ([#898](https://github.com/odygrd/quill/issues/898))
 
 ## v11.0.2
 
@@ -227,15 +243,17 @@
 - Minor improvements in `Utility::to_hex` function and `StringFromTime`
 - Fixed an issue where `BackendWorker::_exit` was always executed during destruction, even when the backend thread had
   already stopped ([#815](https://github.com/odygrd/quill/issues/815))
-- Fixed `RotatingFileSink` to correctly handle `FilenameAppendOption::StartDate` configuration ([#822](https://github.com/odygrd/quill/issues/822))
+- Fixed `RotatingFileSink` to correctly handle `FilenameAppendOption::StartDate`
+  configuration ([#822](https://github.com/odygrd/quill/issues/822))
 - Fixed unnecessary allocation caused by empty `std::vector` while `BackendWorker` is idle on
   Windows ([#827](https://github.com/odygrd/quill/issues/827))
 - Fixed `FileSink::open_mode` string comparison for file mode flags
 - Adjusted default `BackendOptions` values for broader system compatibility and typical usage patterns
-  
+
 ## v10.0.1
 
-- Fixed PatternFormatter test to work with any repository name instead of hardcoded `quill` ([#795](https://github.com/odygrd/quill/issues/795))
+- Fixed PatternFormatter test to work with any repository name instead of hardcoded
+  `quill` ([#795](https://github.com/odygrd/quill/issues/795))
 - Fixed Windows compiler warnings when clang-cl >= 19 is used
 
 ## v10.0.0
@@ -265,7 +283,7 @@
 - The immediate flush feature has been enhanced to support interval-based flushing and moved to runtime. This feature
   helps with debugging by ensuring log statements are flushed to the sink, blocking the caller
   thread. ([#660](https://github.com/odygrd/quill/issues/660))
-  
+
 - Added `source_location_path_strip_prefix` option in `PatternFormatterOptions` to customize the display of the
   `%(source_location)` attribute of `PatternFormatter`. When set, any paths that contain this prefix will have
   the prefix and everything before it stripped from the displayed path. For example, with prefix "projects",

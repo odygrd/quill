@@ -10,7 +10,7 @@
   #define QUILL_BEGIN_NAMESPACE                                                                    \
     namespace quill                                                                                \
     {                                                                                              \
-    inline namespace v11                                                                           \
+    inline namespace v12                                                                           \
     {
   #define QUILL_END_NAMESPACE                                                                      \
     }                                                                                              \

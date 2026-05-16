@@ -8,6 +8,7 @@
 
 #include "quill/Frontend.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/QuillError.h"
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/RotatingFileSink.h"
 #include "quill/sinks/Sink.h"
@@ -17,7 +18,6 @@
 #include <cstdio>
 #include <cstring>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 
@@ -197,12 +197,7 @@ public:
    * Backend::stop() when deterministic logger removal and file closure are required.
    */
   ~CsvWriter()
-  {
-    if (_logger)
-    {
-      frontend_t::remove_logger(_logger);
-    }
-  }
+  { frontend_t::remove_logger(_logger); }
 
   /**
    * Appends a row to the CSV file. This function is also thread safe.
@@ -212,7 +207,7 @@ public:
   template <typename... Args>
   void append_row(Args&&... fields)
   {
-    QUILL_ASSERT(_logger, "CsvWriter::append_row() called after close()");
+    _throw_if_closed("append_row()");
     _logger->template log_statement<false>(&_line_metadata, fields...);
   }
 
@@ -221,7 +216,7 @@ public:
    */
   void write_header()
   {
-    QUILL_ASSERT(_logger, "CsvWriter::write_header() called after close()");
+    _throw_if_closed("write_header()");
     _logger->template log_statement<false>(&_header_metadata, TCsvSchema::header);
   }
 
@@ -239,11 +234,8 @@ public:
    */
   void close()
   {
-    if (_logger)
-    {
-      frontend_t::remove_logger_blocking(_logger);
-      _logger = nullptr;
-    }
+    frontend_t::remove_logger_blocking(_logger);
+    _logger = nullptr;
   }
 
   /**
@@ -252,11 +244,19 @@ public:
    */
   void flush()
   {
-    QUILL_ASSERT(_logger, "CsvWriter::flush() called after close()");
+    _throw_if_closed("flush()");
     _logger->flush_log();
   }
 
 private:
+  void _throw_if_closed(char const* api_name) const
+  {
+    if (QUILL_UNLIKELY(!_logger))
+    {
+      QUILL_THROW(QuillError{"CsvWriter::" + std::string{api_name} + " called after close()"});
+    }
+  }
+
   static void _write_header(FILE* file)
   {
     StreamSink::safe_fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);

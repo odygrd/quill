@@ -144,6 +144,10 @@ public:
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
    *
+   * @note Recreating a logger with the same name while a previous logger is still pending
+   *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
+   *       need synchronous removal before recreating a logger.
+   *
    * @return Logger* A pointer to the created or retrieved logger.
    */
   static logger_t* create_or_get_logger(std::string const& logger_name, std::shared_ptr<Sink> sink,
@@ -167,6 +171,9 @@ public:
    * @param pattern_formatter_options Contains the formatting configuration for PatternFormatter
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
+   * @note Recreating a logger with the same name while a previous logger is still pending
+   *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
+   *       need synchronous removal before recreating a logger.
    * @return Logger* A pointer to the created or retrieved logger.
    */
   static logger_t* create_or_get_logger(
@@ -187,6 +194,9 @@ public:
    * @param pattern_formatter_options Contains the formatting configuration for PatternFormatter
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
+   * @note Recreating a logger with the same name while a previous logger is still pending
+   *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
+   *       need synchronous removal before recreating a logger.
    * @return Logger* A pointer to the created or retrieved logger.
    */
   static logger_t* create_or_get_logger(
@@ -207,12 +217,24 @@ public:
    *
    * @param logger_name The name of the logger to create or retrieve.
    * @param source_logger The logger from which to copy the configuration options.
+   * @note Recreating a logger with the same name while a previous logger is still pending
+   *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
+   *       need synchronous removal before recreating a logger.
    * @return A pointer to the logger instance, either newly created or retrieved.
    */
   static logger_t* create_or_get_logger(std::string const& logger_name, detail::LoggerBase* source_logger = nullptr)
   {
-    return _cast_to_logger(
-      detail::LoggerManager::instance().create_or_get_logger<logger_t>(logger_name, source_logger));
+    detail::LoggerBase* logger_base =
+      detail::LoggerManager::instance().create_or_get_logger<logger_t>(logger_name, source_logger);
+
+    if (QUILL_UNLIKELY(!logger_base))
+    {
+      QUILL_THROW(QuillError{
+        "create_or_get_logger(logger_name, source_logger) requires a valid source_logger when "
+        "the logger does not already exist"});
+    }
+
+    return _cast_to_logger(logger_base);
   }
 
   /**
@@ -226,13 +248,18 @@ public:
    * Since the exact removal timing is unknown, you should not attempt to create a new logger
    * with the same name as the one being removed.
    *
-   * @note This function is thread-safe. However, removing the same logger (`logger_t*`) from multiple threads is not allowed. You must ensure that remove_logger_blocking is only called by a single thread for a given logger.
+   * @note This function is thread-safe. However, removing the same logger (`logger_t*`) from multiple threads is not allowed. You must ensure that remove_logger is only called by a single thread for a given logger.
    * @warning After calling this function, no thread should use this logger.
    *
    * @param logger A pointer to the logger to remove.
    */
   static void remove_logger(detail::LoggerBase* logger)
   {
+    if (!logger)
+    {
+      return;
+    }
+
     detail::LoggerManager::instance().remove_logger(logger);
   }
 
@@ -254,6 +281,11 @@ public:
    */
   static void remove_logger_blocking(logger_t* logger, uint32_t sleep_duration_ns = 100)
   {
+    if (!logger)
+    {
+      return;
+    }
+
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::LoggerRemovalRequest};
 

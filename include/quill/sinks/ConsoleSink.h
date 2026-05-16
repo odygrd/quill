@@ -341,8 +341,11 @@ public:
                  std::move(file_event_notifier)},
       _config(config)
   {
-    QUILL_ASSERT(_config.stream() == "stdout" || config.stream() == "stderr",
-                 "Invalid stream name in ConsoleSink constructor, must be 'stdout' or 'stderr'");
+    if (QUILL_UNLIKELY(_config.stream() != "stdout" && _config.stream() != "stderr"))
+    {
+      QUILL_THROW(
+        QuillError{"Invalid stream name in ConsoleSink constructor, must be 'stdout' or 'stderr'"});
+    }
 
     if (_config.colour_mode() == ConsoleSinkConfig::ColourMode::Never)
     {

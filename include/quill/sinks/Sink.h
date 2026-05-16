@@ -84,6 +84,11 @@ public:
    */
   void add_filter(std::unique_ptr<Filter> filter)
   {
+    if (QUILL_UNLIKELY(!filter))
+    {
+      QUILL_THROW(QuillError{"Filter pointer is nullptr"});
+    }
+
     // Lock and add this filter to our global collection
     detail::LockGuard const lock{_global_filters_lock};
 
@@ -164,7 +169,7 @@ protected:
     }
 
     // Update our local collection of the filters
-    if (QUILL_UNLIKELY(_new_filter.load(std::memory_order_relaxed)))
+    if (QUILL_UNLIKELY(_new_filter.exchange(false, std::memory_order_relaxed)))
     {
       // if there is a new filter we have to update
       _local_filters.clear();
@@ -175,9 +180,6 @@ protected:
       {
         _local_filters.push_back(filter.get());
       }
-
-      // all filters loaded so change to false
-      _new_filter.store(false, std::memory_order_relaxed);
     }
 
     if (_local_filters.empty())

@@ -330,4 +330,67 @@ TEST_CASE("parse_log_level_from_env")
              quill::LogLevel::None);
 }
 
+/***/
+TEST_CASE("recreating_pending_removal_logger_throws")
+{
+  std::shared_ptr<ConsoleSink> sink = std::make_unique<ConsoleSink>();
+
+  LoggerManager& lm = LoggerManager::instance();
+
+  std::vector<std::shared_ptr<Sink>> sinks;
+  sinks.push_back(sink);
+
+  LoggerBase* logger = lm.create_or_get_logger<Logger>(
+    "logger_pending_removal", std::move(sinks),
+    PatternFormatterOptions{"%(time) [%(thread_id)] %(short_source_location:<28) "
+                            "LOG_%(log_level:<9) %(logger:<12) %(message)",
+                            "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr);
+
+  lm.remove_logger(logger);
+
+  std::vector<std::shared_ptr<Sink>> recreated_sinks;
+  recreated_sinks.push_back(sink);
+
+  REQUIRE_THROWS_AS(lm.create_or_get_logger<Logger>(
+                      "logger_pending_removal", std::move(recreated_sinks),
+                      PatternFormatterOptions{"%(message)", "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+                      ClockSourceType::Tsc, nullptr),
+                    QuillError);
+
+  std::vector<std::string> removed_loggers;
+  lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
+
+  std::vector<std::shared_ptr<Sink>> sinks_after_cleanup;
+  sinks_after_cleanup.push_back(sink);
+
+  LoggerBase* recreated_logger = lm.create_or_get_logger<Logger>(
+    "logger_pending_removal", std::move(sinks_after_cleanup),
+    PatternFormatterOptions{"%(message)", "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+    ClockSourceType::Tsc, nullptr);
+
+  REQUIRE_NE(recreated_logger, nullptr);
+  REQUIRE_EQ(recreated_logger->get_logger_name(), "logger_pending_removal");
+
+  lm.remove_logger(recreated_logger);
+  removed_loggers.clear();
+  lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
+}
+
+/***/
+TEST_CASE("creating_logger_with_null_sink_throws")
+{
+  LoggerManager& lm = LoggerManager::instance();
+
+  std::vector<std::shared_ptr<Sink>> sinks;
+  sinks.emplace_back();
+
+  REQUIRE_THROWS_AS(
+    lm.create_or_get_logger<Logger>(
+      "logger_with_null_sink", std::move(sinks),
+      PatternFormatterOptions{"%(message)", "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
+      ClockSourceType::Tsc, nullptr),
+    QuillError);
+}
+
 TEST_SUITE_END();

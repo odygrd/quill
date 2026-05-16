@@ -45,6 +45,7 @@ TEST_CASE("string_no_copy_logging")
   std::string s1 = "adipiscing_1";
   char const* s2 = "adipiscing_2";
   char const* s3 = nullptr;
+  char const* s4 = nullptr;
 
   LOG_INFO(logger, "static string [{}]", quill::utility::StringRef{s});
   LOG_INFO(logger, "static string_view [{}]", quill::utility::StringRef{sv});
@@ -53,6 +54,7 @@ TEST_CASE("string_no_copy_logging")
   LOG_INFO(logger, "static npcs [{}]", quill::utility::StringRef{npcs});
   LOG_INFO(logger, "string literal [{}]", quill::utility::StringRef{"test string literal"});
   LOG_INFO(logger, "nullptr [{}]", quill::utility::StringRef{s3});
+  LOG_INFO(logger, "nullptr sized [{}]", quill::utility::StringRef{s4, 0});
   LOG_INFO(logger, "mix strings [{}] [{}] [{}] [{}] [{}]", quill::utility::StringRef{"test string literal"},
            s1, quill::utility::StringRef{s3}, quill::utility::StringRef{s}, s2);
 
@@ -64,7 +66,7 @@ TEST_CASE("string_no_copy_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 8);
+  REQUIRE_EQ(file_contents.size(), 9);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       static string [adipiscing]"}));
@@ -86,6 +88,9 @@ TEST_CASE("string_no_copy_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       nullptr []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       nullptr sized []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       mix strings [test string literal] [adipiscing_1] [] [adipiscing] [adipiscing_2]"}));

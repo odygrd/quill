@@ -44,12 +44,13 @@ public:
       _clock_source(clock_source),
       _pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options))
   {
-#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
     for (auto const& sink : sinks)
     {
-      QUILL_ASSERT(sink, "sink pointer is nullptr in LoggerBase constructor");
+      if (QUILL_UNLIKELY(!sink))
+      {
+        QUILL_THROW(QuillError{"sink pointer is nullptr in LoggerBase constructor"});
+      }
     }
-#endif
 
     this->_sinks = static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks);
   }
