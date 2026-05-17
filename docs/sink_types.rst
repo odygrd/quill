@@ -55,14 +55,6 @@ The :cpp:class:`SyslogSink` leverages the syslog API to send messages.
    independent if they use different identifiers, options, or facilities. Use a single
    :cpp:class:`SyslogSink` configuration per process.
 
-SystemdSink
-~~~~~~~~~~~
-
-The :cpp:class:`SystemdSink` sends log messages to systemd's journal using the systemd journal API, providing structured logging with systemd metadata.
-
-StreamSink
-~~~~~~~~~~
-
 StreamSink
 ~~~~~~~~~~
 

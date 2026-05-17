@@ -50,7 +50,7 @@ TEST_CASE("string_logging_dynamic_log_level")
 #endif
     std::string_view begin_s{"begin_s"};
 #if !defined(__clang__) && defined(__GNUC__)
-#pragma GCC diagnostic pop
+  #pragma GCC diagnostic pop
 #endif
     std::string_view const end_s{"end_s"};
     std::string_view empty_sv{};

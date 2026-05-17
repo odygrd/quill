@@ -11,6 +11,10 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 using RotatingJsonFileSink = RotatingSink<JsonFileSink>;
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

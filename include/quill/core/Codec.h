@@ -148,6 +148,8 @@ struct is_std_string<std::basic_string<char, std::char_traits<char>, Allocator>>
 } // namespace detail
 
 /** typename = void for specializations with enable_if **/
+QUILL_BEGIN_EXPORT
+
 template <typename Arg, typename = void>
 struct Codec
 {
@@ -433,5 +435,7 @@ void decode_members(std::byte*& buffer, T&, TMembers&... members)
   // T& arg is not used but if we remove it, it will crash all users who are passing the extra argument without a compile time error
   ((members = Codec<detail::remove_cvref_t<TMembers>>::decode_arg(buffer)), ...);
 }
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

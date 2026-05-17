@@ -23,6 +23,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 template <template <typename...> class UnorderedSetType, typename Key, typename Hash, typename KeyEqual, typename Allocator>
 struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
              std::enable_if_t<std::disjunction_v<
@@ -142,5 +144,7 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

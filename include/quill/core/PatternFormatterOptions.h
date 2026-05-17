@@ -14,6 +14,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * @brief Configuration options for the PatternFormatter.
  *
@@ -29,8 +31,7 @@ public:
                                      "LOG_%(log_level:<9) %(logger:<12) %(message)",
                                    std::string timestamp_pattern = "%H:%M:%S.%Qns",
                                    Timezone timestamp_timezone = Timezone::LocalTime,
-                                   bool add_metadata_to_multi_line_logs = true,
-                                   char pattern_suffix = '\n')
+                                   bool add_metadata_to_multi_line_logs = true, char pattern_suffix = '\n')
     : format_pattern(static_cast<std::string&&>(format_pattern)),
       timestamp_pattern(static_cast<std::string&&>(timestamp_pattern)),
       timestamp_timezone(timestamp_timezone),
@@ -166,5 +167,7 @@ public:
   /***/
   bool operator!=(PatternFormatterOptions const& other) const { return !(*this == other); }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

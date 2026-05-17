@@ -27,6 +27,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /** Specialization for arrays of arithmetic types and enums, char arrays are handled in Codec.h **/
 template <typename T, std::size_t N>
 struct Codec<T[N], std::enable_if_t<std::negation_v<std::is_same<T, char>>>>
@@ -226,5 +228,7 @@ struct Codec<std::array<T, N>>
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

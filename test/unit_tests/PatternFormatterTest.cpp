@@ -1,5 +1,6 @@
 #include "doctest/doctest.h"
 
+#include "quill/LogMacros.h"
 #include "quill/backend/PatternFormatter.h"
 #include "quill/core/Common.h"
 #include "quill/core/Filesystem.h"
@@ -47,7 +48,7 @@ TEST_CASE("default_pattern_formatter")
 
   // Default pattern formatter is using local time to convert the timestamp to timezone, in this test we ignore the timestamp
   std::string const expected_string =
-    "[31341] PatternFormatterTest.cpp:27  LOG_INFO      test_logger  This the pattern formatter "
+    "[31341] PatternFormatterTest.cpp:28  LOG_INFO      test_logger  This the pattern formatter "
     "1234\n";
   auto const found_expected = formatted_string.find(expected_string);
   REQUIRE_NE(found_expected, std::string::npos);
@@ -120,7 +121,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:101 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:102 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_7]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -158,7 +159,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:139 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.020123 [31341] PatternFormatterTest.cpp:140 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_9]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -196,7 +197,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:177 LOG_DEBUG test_logger This "
+    "01-23-2020 21:42:41.099 [31341] PatternFormatterTest.cpp:178 LOG_DEBUG test_logger This "
     "the 1234 formatter pattern [DOCTEST_ANON_FUNC_11]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -234,7 +235,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:215 LOG_DEBUG test_logger This the "
+    "01-23-2020 21:42:41 [31341] PatternFormatterTest.cpp:216 LOG_DEBUG test_logger This the "
     "1234 formatter pattern [DOCTEST_ANON_FUNC_13]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -275,7 +276,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:254 "
+      "2020-01-23T21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:255 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_15]\n";
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -317,7 +318,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
     std::string const expected_string =
-      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:296 "
+      "2020-01-23T21:42:41.21:42:41.0992202020-01-23T21:42:41 [31341] PatternFormatterTest.cpp:297 "
       "LOG_DEBUG test_logger This the 1234 formatter pattern [DOCTEST_ANON_FUNC_17]\n";
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -376,7 +377,7 @@ TEST_CASE("custom_pattern")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:357 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:358 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -488,7 +489,7 @@ TEST_CASE("pattern_timestamp_move_constructor")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:469 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:470 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_27]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -526,9 +527,9 @@ TEST_CASE("pattern_formatter_source_location_prefix")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:504\n";
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:505\n";
 #else
-    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:504\n";
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:505\n";
 #endif
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -546,9 +547,9 @@ TEST_CASE("pattern_formatter_source_location_prefix")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:504\n";
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:505\n";
 #else
-    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:504\n";
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:505\n";
 #endif
 
     REQUIRE_EQ(formatted_string, expected_string);

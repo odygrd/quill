@@ -22,8 +22,8 @@
 #include <memory>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <thread>
+#include <utility>
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
@@ -49,6 +49,8 @@ QUILL_BEGIN_NAMESPACE
   #pragma warning(push)
   #pragma warning(disable : 4996)
 #endif
+
+QUILL_BEGIN_EXPORT
 
 enum class FilenameAppendOption : uint8_t
 {
@@ -554,8 +556,10 @@ protected:
   std::unique_ptr<char[]> _write_buffer;
 };
 
+QUILL_END_EXPORT
+
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif
 
 QUILL_END_NAMESPACE

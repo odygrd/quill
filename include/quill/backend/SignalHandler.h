@@ -47,6 +47,8 @@ QUILL_BEGIN_NAMESPACE
 /**
  * Struct to hold options for the signal handler.
  */
+QUILL_BEGIN_EXPORT
+
 struct SignalHandlerOptions
 {
   /**
@@ -87,6 +89,8 @@ struct SignalHandlerOptions
   std::vector<std::string> excluded_logger_substrings{"__csv__"};
 };
 
+QUILL_END_EXPORT
+
 namespace detail
 {
 using signal_handler_t = void (*)(int);
@@ -103,6 +107,19 @@ inline void restore_signal_handler_entries(std::vector<SignalHandlerRestoreEntry
   {
     std::signal(it->signal_number, it->previous_handler);
   }
+}
+
+/***/
+QUILL_NODISCARD inline bool is_synchronous_fault_signal(int signal_number) noexcept
+{
+  return signal_number == SIGSEGV || signal_number == SIGFPE || signal_number == SIGILL
+#if defined(SIGBUS)
+    || signal_number == SIGBUS
+#endif
+#if defined(SIGTRAP)
+    || signal_number == SIGTRAP
+#endif
+    ;
 }
 
 /***/
@@ -291,6 +308,13 @@ void on_signal(int32_t signal_number)
       std::signal(signal_number, SIG_DFL);
       std::raise(signal_number);
     }
+
+    // For synchronous fault signals (SIGSEGV, SIGFPE, etc.) we must not return —
+    // returning re-executes the faulting instruction, causing an infinite loop.
+    if (is_synchronous_fault_signal(signal_number))
+    {
+      std::_Exit(EXIT_FAILURE);
+    }
   }
   else
   {
@@ -330,6 +354,13 @@ void on_signal(int32_t signal_number)
       {
         logger->flush_log(0);
       }
+    }
+
+    // If we reach here it means we have no valid logger or should_reraise_signal is false.
+    // For synchronous fault signals we must not return to avoid re-executing the faulting instruction.
+    if (is_synchronous_fault_signal(signal_number))
+    {
+      std::_Exit(EXIT_FAILURE);
     }
   }
 }
@@ -494,6 +525,8 @@ void deinit_exception_handler()
 }
 } // namespace detail
 
+QUILL_BEGIN_EXPORT
+
 /**
  * On windows, it has to be called on each thread
  * @param catchable_signals the signals we are catching
@@ -524,6 +557,8 @@ void init_signal_handler(std::vector<int> const& catchable_signals = std::vector
   ctx.registered_signal_handlers = catchable_signals;
   ctx.previous_signal_handlers = std::move(previous_signal_handlers);
 }
+
+QUILL_END_EXPORT
 
 namespace detail
 {

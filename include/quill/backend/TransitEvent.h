@@ -54,6 +54,8 @@ struct TransitEvent
       extra_data(std::move(other.extra_data)),
       flush_flag(other.flush_flag)
   {
+    other.flush_flag = nullptr;
+
     // Update macro_metadata pointer if it was pointing to runtime_metadata
     if (extra_data && extra_data->runtime_metadata.has_runtime_metadata)
     {
@@ -73,6 +75,7 @@ struct TransitEvent
       formatted_msg = std::move(other.formatted_msg);
       extra_data = std::move(other.extra_data);
       flush_flag = other.flush_flag;
+      other.flush_flag = nullptr;
 
       if (extra_data && extra_data->runtime_metadata.has_runtime_metadata)
       {

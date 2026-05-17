@@ -22,6 +22,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 template <typename... Types>
 struct Codec<std::tuple<Types...>>
 {
@@ -129,5 +131,7 @@ struct Codec<std::tuple<Types...>>
     }
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

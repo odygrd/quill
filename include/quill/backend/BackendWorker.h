@@ -1090,7 +1090,7 @@ private:
    * Check for dropped messages - only when bounded queue is used
    * @param error_notifier error notifier
    */
-  QUILL_ATTRIBUTE_HOT void _check_failure_counter(std::function<void(std::string const&)> const& error_notifier) noexcept
+  QUILL_ATTRIBUTE_HOT void _check_failure_counter(std::function<void(std::string const&)> const& error_notifier)
   {
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {

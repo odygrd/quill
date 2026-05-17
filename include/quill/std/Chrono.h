@@ -18,6 +18,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 template <template <typename...> class ChronoType, typename TimeSpec, typename DurationType>
 struct Codec<ChronoType<TimeSpec, DurationType>,
              std::enable_if_t<std::disjunction_v<std::is_same<ChronoType<TimeSpec, DurationType>, std::chrono::time_point<TimeSpec, DurationType>>,
@@ -25,5 +27,7 @@ struct Codec<ChronoType<TimeSpec, DurationType>,
   : DeferredFormatCodec<ChronoType<TimeSpec, DurationType>>
 {
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

@@ -24,6 +24,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 template <template <typename...> class UnorderedMapType, typename Key, typename T, typename Hash, typename KeyEqual, typename Allocator>
 struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
              std::enable_if_t<std::disjunction_v<
@@ -207,5 +209,7 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

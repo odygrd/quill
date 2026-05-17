@@ -8,8 +8,8 @@
 #include <utility>
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4996)
+  #pragma warning(push)
+  #pragma warning(disable : 4996)
 #endif
 
 /**
@@ -96,5 +96,5 @@ int main()
 }
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif

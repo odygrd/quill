@@ -17,6 +17,30 @@ additional constructor arguments are ignored.
 
 When creating a logger, one or more sinks for that logger can be specified. Sinks can only be registered during the logger creation.
 
+Sinks can be obtained using :cpp:func:`FrontendImpl::get_sink`, :cpp:func:`FrontendImpl::create_or_get_sink`, or :cpp:func:`FrontendImpl::create_sink`.
+
+- ``create_sink`` creates a new sink and throws ``QuillError`` if a sink with the same name already exists.
+- ``create_or_get_sink`` creates a new sink if one does not already exist; otherwise, it returns the existing sink with the specified name. Note that when a sink with the given name already exists, the provided constructor arguments are ignored — the existing sink is returned as-is.
+- ``get_sink`` retrieves an existing sink by name, returning ``nullptr`` if not found.
+
+Configuring Sinks
+-----------------
+
+Some sinks accept a configuration object (e.g. ``FileSinkConfig``, ``SyslogSinkConfig``). These are
+passed as additional constructor arguments to the ``create_or_get_sink`` or ``create_sink`` call.
+A common pattern is to use a lambda to construct the config inline:
+
+.. code:: cpp
+
+     auto sink = quill::Frontend::create_or_get_sink<quill::SyslogSink>(
+       "my_syslog",
+       []()
+       {
+         quill::SyslogSinkConfig cfg;
+         cfg.set_identifier("my_app");
+         return cfg;
+       }());
+
 Sharing Sinks Between Loggers
 -----------------------------
 It is possible to share the same `Sink` object between multiple `Logger` objects. For example, when all logger objects are writing to the same file. The following code is also thread-safe.

@@ -15,6 +15,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * @brief A utility class for accessing the Time Stamp Counter (TSC) clock used by the backend logging thread.
  *
@@ -96,5 +98,7 @@ public:
       detail::BackendManager::instance().convert_rdtsc_to_epoch_time(rdtsc.value())}};
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

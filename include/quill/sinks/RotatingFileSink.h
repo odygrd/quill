@@ -10,6 +10,10 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 using RotatingFileSink = RotatingSink<FileSink>;
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

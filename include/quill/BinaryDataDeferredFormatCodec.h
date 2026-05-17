@@ -19,6 +19,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * @brief A non-owning view over binary data with type tagging support
  *
@@ -71,6 +73,8 @@ private:
   uint32_t _size{0};
 };
 
+QUILL_END_EXPORT
+
 /**
  * @brief Codec for efficient binary data logging with deferred formatting
  *
@@ -120,6 +124,8 @@ private:
  * ```
  */
 
+QUILL_BEGIN_EXPORT
+
 template <typename T>
 struct BinaryDataDeferredFormatCodec
 {
@@ -163,5 +169,7 @@ struct BinaryDataDeferredFormatCodec
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

@@ -6,9 +6,95 @@
 
 #pragma once
 
-#include "quill/core/Common.h"
-#include "quill/core/LogLevel.h"
-#include "quill/core/MacroMetadata.h"
+#ifndef QUILL_USE_MODULE
+  #include "quill/core/Attributes.h"
+  #include "quill/core/Common.h"
+  #include "quill/core/LogLevel.h"
+  #include "quill/core/MacroMetadata.h"
+#else
+  // Modules do not export macros, so provide the required helpers here.
+  #ifndef QUILL_LIKELY
+    #if defined(__GNUC__)
+      #define QUILL_LIKELY(x) (__builtin_expect((x), 1))
+    #else
+      #define QUILL_LIKELY(x) (x)
+    #endif
+  #endif
+
+  #ifndef QUILL_UNLIKELY
+    #if defined(__GNUC__)
+      #define QUILL_UNLIKELY(x) (__builtin_expect((x), 0))
+    #else
+      #define QUILL_UNLIKELY(x) (x)
+    #endif
+  #endif
+#endif
+
+/**
+ * Convert number to string
+ */
+#if !defined(QUILL_AS_STR)
+  #define QUILL_AS_STR(x) #x
+#endif
+#if !defined(QUILL_STRINGIFY)
+  #define QUILL_STRINGIFY(x) QUILL_AS_STR(x)
+#endif
+
+/**
+ * Function name helper
+ */
+#if !defined(QUILL_FUNCTION_NAME)
+  #if defined(QUILL_DISABLE_FUNCTION_NAME) && defined(QUILL_DETAILED_FUNCTION_NAME)
+    #error "QUILL_DISABLE_FUNCTION_NAME and QUILL_DETAILED_FUNCTION_NAME are mutually exclusive"
+  #endif
+
+  #if defined(QUILL_DISABLE_FUNCTION_NAME)
+    #define QUILL_FUNCTION_NAME ""
+  #elif defined(QUILL_DETAILED_FUNCTION_NAME)
+    #if defined(_MSC_VER)
+      #define QUILL_FUNCTION_NAME __FUNCSIG__
+    #elif defined(__clang__) || defined(__GNUC__) || defined(__INTEL_COMPILER)
+      #define QUILL_FUNCTION_NAME __PRETTY_FUNCTION__
+    #else
+      #define QUILL_FUNCTION_NAME __FUNCTION__
+    #endif
+  #else
+    #define QUILL_FUNCTION_NAME __FUNCTION__
+  #endif
+#endif
+
+/**
+ * File name helper
+ */
+#if !defined(QUILL_FILE_NAME)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_FILE_NAME ""
+  #else
+    #define QUILL_FILE_NAME __FILE__
+  #endif
+#endif
+
+/**
+ * Line number helper
+ */
+#if !defined(QUILL_LINE_NO)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_LINE_NO 0
+  #else
+    #define QUILL_LINE_NO __LINE__
+  #endif
+#endif
+
+/**
+ * File info helper
+ */
+#if !defined(QUILL_FILE_INFO)
+  #if defined(QUILL_DISABLE_FILE_INFO)
+    #define QUILL_FILE_INFO ""
+  #else
+    #define QUILL_FILE_INFO QUILL_FILE_NAME ":" QUILL_STRINGIFY(QUILL_LINE_NO)
+  #endif
+#endif
 
 /**
  * Allows compile-time filtering of log messages to completely compile out log levels,

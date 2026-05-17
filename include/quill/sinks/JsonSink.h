@@ -27,6 +27,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 namespace detail
 {
 template <typename TBase>
@@ -227,9 +229,12 @@ protected:
 };
 } // namespace detail
 
+QUILL_END_EXPORT
+
 /**
  * JSON File Sink
  */
+QUILL_BEGIN_EXPORT
 class JsonFileSink : public detail::JsonSink<FileSink>
 {
 public:
@@ -253,5 +258,6 @@ public:
   JsonConsoleSink() : detail::JsonSink<StreamSink>("stdout", nullptr) {}
   ~JsonConsoleSink() override = default;
 };
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

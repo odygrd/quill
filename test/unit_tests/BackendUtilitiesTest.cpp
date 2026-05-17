@@ -143,9 +143,9 @@ TEST_CASE("set_cpu_affinity_accepts_current_cpu_and_rejects_invalid_cpu")
   REQUIRE_NOTHROW(set_cpu_affinity({static_cast<uint16_t>(selected_cpu)}));
   REQUIRE_EQ(::sched_setaffinity(0, sizeof(original_cpuset), &original_cpuset), 0);
 
-#if !defined(QUILL_NO_EXCEPTIONS)
+  #if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(set_cpu_affinity({static_cast<uint16_t>(CPU_SETSIZE)}), QuillError);
-#endif
+  #endif
 }
 
 TEST_CASE("set_thread_name_validates_length")

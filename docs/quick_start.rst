@@ -12,6 +12,12 @@ For the quickest and simplest setup:
    :language: cpp
    :linenos:
 
+.. note::
+
+   ``simple_logger()`` is a convenience wrapper that creates a logger and starts the backend in one
+   call. For full control over sinks, formatters, and backend options, use the ``Backend`` and
+   ``Frontend`` APIs shown in the detailed setup below.
+
 Architecture Overview
 ---------------------
 

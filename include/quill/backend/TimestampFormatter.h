@@ -133,6 +133,7 @@ public:
     _formatted_date.append(_strftime_part_1.format_timestamp(timestamp_secs));
 
     // 2. We add any special ms/us/ns specifier if any
+    // Note: assumes timestamp_ns >= 0 (post-epoch). Pre-epoch timestamps are not supported.
     auto const extracted_ns = static_cast<uint32_t>(timestamp_ns - (timestamp_secs * 1'000'000'000));
 
     if (_additional_format_specifier == AdditionalSpecifier::Qms)

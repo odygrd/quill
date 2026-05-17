@@ -55,7 +55,11 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 namespace fs = std::experimental::filesystem;
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE
 
@@ -65,7 +69,11 @@ QUILL_END_NAMESPACE
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 namespace fs = std::filesystem;
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE
 #endif

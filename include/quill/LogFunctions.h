@@ -18,6 +18,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * # Macro-Free Logging Interface
  *
@@ -341,5 +343,7 @@ QUILL_ATTRIBUTE_HOT void log(TLogger* logger, char const* tags, LogLevel log_lev
       log_level, std::forward<Args>(args)...);
   }
 }
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

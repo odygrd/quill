@@ -67,8 +67,7 @@ TEST_CASE("std_unordered_multimap_logging")
     // Test rvalue references with unordered_multimap
     std::unordered_multimap<int, std::string> rvalue_unordered_multimap = {
       {1, "one"}, {2, "two"}, {3, "three"}};
-    LOG_INFO(logger, "rvalue_unordered_multimap {}",
-             std::move(rvalue_unordered_multimap));
+    LOG_INFO(logger, "rvalue_unordered_multimap {}", std::move(rvalue_unordered_multimap));
 
     // Test with temporary unordered_multimap
     LOG_INFO(logger, "temp_unordered_multimap {}",

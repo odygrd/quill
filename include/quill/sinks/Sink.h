@@ -25,15 +25,20 @@
 
 QUILL_BEGIN_NAMESPACE
 
-/** Forward Declarations **/
-class MacroMetadata;
-class PatternFormatter;
-
 namespace detail
 {
 class BackendWorker;
 }
 
+/** Forward Declarations **/
+QUILL_BEGIN_EXPORT
+
+class MacroMetadata;
+class PatternFormatter;
+
+QUILL_END_EXPORT
+
+QUILL_BEGIN_EXPORT
 /**
  * Base class for sinks
  */
@@ -216,5 +221,7 @@ private:
 
   std::atomic<LogLevel> _log_level{LogLevel::TraceL3};
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

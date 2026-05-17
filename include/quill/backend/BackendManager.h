@@ -17,9 +17,13 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 // Forward declarations
 class Backend;
 class BackendTscClock;
+
+QUILL_END_EXPORT
 
 namespace detail
 {
@@ -109,16 +113,10 @@ private:
 
 private:
   /***/
-  QUILL_NODISCARD bool is_atexit_registered() const noexcept
-  {
-    return _atexit_registered.load();
-  }
+  QUILL_NODISCARD bool is_atexit_registered() const noexcept { return _atexit_registered.load(); }
 
   /***/
-  void set_atexit_registered() noexcept
-  {
-    _atexit_registered.store(true);
-  }
+  void set_atexit_registered() noexcept { _atexit_registered.store(true); }
 
 private:
   BackendWorker _backend_worker;

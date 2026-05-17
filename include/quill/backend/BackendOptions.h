@@ -22,6 +22,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * @brief Configuration options for the backend.
  *
@@ -282,5 +284,7 @@ struct BackendOptions
    */
   bool check_backend_singleton_instance = true;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

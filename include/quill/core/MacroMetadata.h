@@ -16,6 +16,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * Captures and stores information about a logging event in compile time
  */
@@ -151,6 +153,7 @@ public:
         {
           found_named_arg = true;
         }
+        continue;
       }
       ++pos;
     }
@@ -198,6 +201,8 @@ private:
   LogLevel _log_level{LogLevel::None};
   Event _event{Event::None};
 };
+
+QUILL_END_EXPORT
 
 static_assert(sizeof(MacroMetadata) <= detail::QUILL_CACHE_LINE_SIZE,
               "Size of MacroMetadata exceeds the cache line size");

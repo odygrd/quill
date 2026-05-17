@@ -30,8 +30,8 @@ namespace testing
 {
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4996)
+  #pragma warning(push)
+  #pragma warning(disable : 4996)
 #endif
 
 // The ctor redirects the stream to a temporary file.
@@ -198,7 +198,7 @@ std::string GetCapturedStdout() { return GetCapturedStream(&g_captured_stdout); 
 std::string GetCapturedStderr() { return GetCapturedStream(&g_captured_stderr); }
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif
 
 } // namespace testing

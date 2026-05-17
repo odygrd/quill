@@ -83,6 +83,8 @@ QUILL_BEGIN_NAMESPACE
  * \endcode
  */
 
+QUILL_BEGIN_EXPORT
+
 template <typename T>
 struct DirectFormatCodec
 {
@@ -113,5 +115,7 @@ struct DirectFormatCodec
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

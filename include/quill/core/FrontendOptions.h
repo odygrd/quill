@@ -13,6 +13,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 struct FrontendOptions
 {
   /**
@@ -48,5 +50,7 @@ struct FrontendOptions
    */
   static constexpr HugePagesPolicy huge_pages_policy = HugePagesPolicy::Never;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

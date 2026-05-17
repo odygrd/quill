@@ -22,6 +22,8 @@ QUILL_BEGIN_NAMESPACE
  * @note The derived class must be thread-safe if the Logger object is used across multiple threads.
  * If a Logger is used within a single thread only, thread safety is not a concern.
  */
+QUILL_BEGIN_EXPORT
+
 class UserClockSource
 {
 public:
@@ -37,5 +39,7 @@ public:
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT virtual uint64_t now() const = 0;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

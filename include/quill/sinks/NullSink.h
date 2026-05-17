@@ -18,6 +18,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /** Forward Declaration **/
 class MacroMetadata;
 
@@ -36,5 +38,7 @@ public:
 
   QUILL_ATTRIBUTE_HOT void flush_sink() override {}
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

@@ -15,7 +15,7 @@
   #include <chrono>
 
 #elif defined(__riscv) || defined(__s390x__) || defined(__loongarch64)
-  // RISC-V, IBM Z (s390x), or LoongArch — no special intrinsics required
+// RISC-V, IBM Z (s390x), or LoongArch — no special intrinsics required
 
 #else
   // Assume x86 or x86-64 platform

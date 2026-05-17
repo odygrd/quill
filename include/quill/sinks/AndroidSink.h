@@ -21,6 +21,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * @brief Holds the configuration options for the AndroidSink.
  *
@@ -51,9 +53,9 @@ public:
   /**
    * @brief Sets the mapping from quill log levels to syslog levels.
    * This mapping determines which syslog level is used for each quill log level.
-   * @param mapping An array of 12 integers representing syslog levels.
+   * @param mapping An array of 11 integers representing Android log levels, one per LogLevel value.
    */
-  QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, 12> mapping)
+  QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, 11> mapping)
   {
     _log_level_mapping = mapping;
   }
@@ -68,14 +70,14 @@ public:
 
 private:
   std::string _tag{"quill"};
-  std::array<int, 12> _log_level_mapping = {
-    // Mapping from quill log levels to syslog levels:
+  std::array<int, 11> _log_level_mapping = {
+    // Mapping from quill log levels to Android log levels:
     /* "TRACE_L3" */ ANDROID_LOG_VERBOSE, /* "TRACE_L2" */ ANDROID_LOG_VERBOSE,
     /* "TRACE_L1" */ ANDROID_LOG_VERBOSE, /* "DEBUG"    */ ANDROID_LOG_DEBUG,
     /* "INFO"     */ ANDROID_LOG_INFO,    /* "NOTICE"   */ ANDROID_LOG_INFO,
     /* "WARNING"  */ ANDROID_LOG_WARN,    /* "ERROR"    */ ANDROID_LOG_ERROR,
     /* "CRITICAL" */ ANDROID_LOG_FATAL,   /* "BACKTRACE"*/ ANDROID_LOG_INFO,
-    /* "NONE"     */ ANDROID_LOG_INFO,    /* "DYNAMIC"  */ ANDROID_LOG_INFO};
+    /* "NONE"     */ ANDROID_LOG_INFO};
   bool _format_message{false};
 };
 
@@ -123,5 +125,7 @@ public:
 private:
   AndroidSinkConfig _config;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

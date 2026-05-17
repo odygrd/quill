@@ -38,8 +38,7 @@
 
 QUILL_BEGIN_NAMESPACE
 
-/** Forward Declaration **/
-class MacroMetadata;
+QUILL_BEGIN_EXPORT
 
 class ConsoleSinkConfig
 {
@@ -411,5 +410,7 @@ protected:
   // protected in case someone wants to derive from this class and create a custom one, e.g. for json logging to stdout
   ConsoleSinkConfig _config;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

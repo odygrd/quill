@@ -20,6 +20,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /** Version Info - When updating VersionMajor please also update the namespace in Attributes.h **/
 constexpr uint32_t VersionMajor{12};
 constexpr uint32_t VersionMinor{0};
@@ -288,5 +290,7 @@ public:
     return manual_backend_worker;
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

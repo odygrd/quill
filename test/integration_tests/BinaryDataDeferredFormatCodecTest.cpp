@@ -46,9 +46,10 @@ struct fmtquill::formatter<BinaryEnvelope>
   template <typename FormatContext>
   auto format(::BinaryEnvelope const& envelope, FormatContext& ctx) const
   {
-    return fmtquill::format_to(ctx.out(), "payload={}, trailer={}",
-                               quill::utility::to_hex(envelope.payload.data(), envelope.payload.size(), false, false),
-                               envelope.trailer);
+    return fmtquill::format_to(
+      ctx.out(), "payload={}, trailer={}",
+      quill::utility::to_hex(envelope.payload.data(), envelope.payload.size(), false, false),
+      envelope.trailer);
   }
 };
 
@@ -62,8 +63,7 @@ struct quill::Codec<BinaryEnvelope>
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index,
-                     ::BinaryEnvelope const& envelope) noexcept
+                     uint32_t& conditional_arg_size_cache_index, ::BinaryEnvelope const& envelope) noexcept
   {
     encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
                    envelope.payload, envelope.trailer);
@@ -107,8 +107,7 @@ TEST_CASE("binary_data_codec_composes_with_following_members")
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) "
       "%(logger:<22) %(message)"});
 
-  std::array<std::byte, 4> payload{
-    std::byte{0xDE}, std::byte{0xAD}, std::byte{0xBE}, std::byte{0xEF}};
+  std::array<std::byte, 4> payload{std::byte{0xDE}, std::byte{0xAD}, std::byte{0xBE}, std::byte{0xEF}};
 
   LOG_INFO(logger, "{}", BinaryEnvelope{TaggedBinaryData{payload.data(), payload.size()}, "done"});
 

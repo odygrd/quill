@@ -16,6 +16,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * Log level enum
  */
@@ -34,6 +36,8 @@ enum class LogLevel : uint8_t
   None
 };
 
+QUILL_END_EXPORT
+
 namespace detail
 {
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view log_level_to_string(LogLevel log_level,
@@ -51,6 +55,8 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view log_level_to_string(
   return log_levels_strings[log_lvl];
 }
 } // namespace detail
+
+QUILL_BEGIN_EXPORT
 
 /**
  * Converts a string to a LogLevel enum value
@@ -124,5 +130,7 @@ QUILL_NODISCARD LogLevel inline loglevel_from_string(std::string log_level)
   std::string const error_msg = "LogLevel enum value does not exist for \"" + log_level + "\"";
   QUILL_THROW(QuillError{error_msg});
 }
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

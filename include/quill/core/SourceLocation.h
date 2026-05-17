@@ -35,6 +35,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 struct SourceLocation
 {
   static constexpr SourceLocation current(char const* file = QUILL_BUILTIN_FILE_NAME,
@@ -58,5 +60,7 @@ private:
   char const* _function;
   std::uint_least32_t _line;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

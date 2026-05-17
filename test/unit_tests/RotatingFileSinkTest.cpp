@@ -1737,16 +1737,19 @@ TEST_CASE("time_rotation_hours_rotating_file_sink_index")
   REQUIRE(fs::exists(filename_1));
   REQUIRE(fs::exists(filename_2));
 
-  // Read file and check
+  // With interval=2 hours starting at hour 0:
+  //   Initial rotation fires at +2h. Records [0],[1] go to first rotated file.
+  //   Next rotation fires at +4h. Records [2],[3] go to second rotated file.
+  //   Record [4] stays in the current file.
   std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
   REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [0]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [1]"), true);
 
   std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
-  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [1]"), true);
   REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [2]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [3]"), true);
 
   std::vector<std::string> const file_contents = testing::file_contents(filename);
-  REQUIRE_EQ(testing::file_contains(file_contents, "Record [3]"), true);
   REQUIRE_EQ(testing::file_contains(file_contents, "Record [4]"), true);
 
   testing::remove_file(filename);
@@ -2345,8 +2348,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_enabled")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
   }
 
   REQUIRE(fs::exists(filename));
@@ -2373,8 +2376,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_enabled")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
   }
 
   // Verify the rotated file contains the initial record
@@ -2401,26 +2404,25 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
 
   // First, create a file with some content
   {
-    auto rfh = RotatingFileSink{filename,
-                                []()
-                                {
-                                  RotatingFileSinkConfig cfg;
-                                  cfg.set_rotation_max_file_size(1024);
-                                  cfg.set_rotation_naming_scheme(
-                                    RotatingFileSinkConfig::RotationNamingScheme::Date);
-                                  cfg.set_rotation_on_creation(false);
-                                  cfg.set_open_mode('w');
-                                  return cfg;
-                                }(),
-                                FileEventNotifier{},
-                                start_time};
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_rotation_on_creation(false);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{}, start_time};
 
     std::string s{"Initial Record"};
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
   }
 
   REQUIRE(fs::exists(filename));
@@ -2428,19 +2430,18 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
 
   // Now create a new sink with rotation_on_creation enabled
   {
-    auto rfh = RotatingFileSink{filename,
-                                []()
-                                {
-                                  RotatingFileSinkConfig cfg;
-                                  cfg.set_rotation_max_file_size(1024);
-                                  cfg.set_rotation_naming_scheme(
-                                    RotatingFileSinkConfig::RotationNamingScheme::Date);
-                                  cfg.set_rotation_on_creation(true);
-                                  cfg.set_open_mode('a');
-                                  return cfg;
-                                }(),
-                                FileEventNotifier{},
-                                start_time};
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_rotation_on_creation(true);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{}, start_time};
 
     // The existing file should have been rotated with date suffix
     REQUIRE(fs::exists(filename_dated));
@@ -2451,8 +2452,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
   }
 
   // Verify the rotated file contains the initial record
@@ -2484,14 +2485,14 @@ TEST_CASE("rotating_file_sink_partial_rename_failure_corrupts_metadata")
   testing::remove_file(filename_3);
 
   auto rfh = PartialFailingRenameRotatingFileSink{filename,
-                                                   []()
-                                                   {
-                                                     RotatingFileSinkConfig cfg;
-                                                     cfg.set_rotation_max_file_size(1024);
-                                                     cfg.set_open_mode('w');
-                                                     return cfg;
-                                                   }(),
-                                                   FileEventNotifier{}};
+                                                  []()
+                                                  {
+                                                    RotatingFileSinkConfig cfg;
+                                                    cfg.set_rotation_max_file_size(1024);
+                                                    cfg.set_open_mode('w');
+                                                    return cfg;
+                                                  }(),
+                                                  FileEventNotifier{}};
 
   auto write_record = [&](std::string const& msg)
   {
@@ -2500,8 +2501,8 @@ TEST_CASE("rotating_file_sink_partial_rename_failure_corrupts_metadata")
     std::string padding;
     padding.resize(1024);
     formatted_log_statement.append(padding);
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                  std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
   };
 
   // Create 3 rotated files: base.log, base.1.log, base.2.log
@@ -2541,6 +2542,138 @@ TEST_CASE("rotating_file_sink_partial_rename_failure_corrupts_metadata")
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);
   testing::remove_file(filename_3);
+}
+
+/***/
+TEST_CASE("time_rotation_initial_rotation_respects_interval_hours")
+{
+  // Start at 2023-06-12 00:00:00 UTC
+  uint64_t const timestamp_start = 1686528000000000000;
+
+  fs::path const filename = "time_rotation_initial_respects_interval_hours.log";
+  fs::path const filename_rotated = "time_rotation_initial_respects_interval_hours.20230612.log";
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_frequency_and_interval('h', 6);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_start / 1000000000))};
+
+    uint64_t timestamp = timestamp_start;
+
+    // Write logs at +0h, +1h, +2h, +3h, +4h, +5h — all should stay in the same file
+    // because the interval is 6 hours. The first rotation should happen at +6h.
+    for (size_t i = 0; i < 6; ++i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+
+      timestamp += std::chrono::nanoseconds(std::chrono::hours(1)).count();
+    }
+
+    // Now write at +6h — this should trigger the first rotation
+    {
+      std::string s{"Record [6]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  // Records 0-5 should be in the rotated file, Record 6 in the current file
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_rotated));
+
+  std::vector<std::string> const rotated_contents = testing::file_contents(filename_rotated);
+  REQUIRE_EQ(testing::file_contains(rotated_contents, "Record [0]"), true);
+  REQUIRE_EQ(testing::file_contains(rotated_contents, "Record [5]"), true);
+
+  std::vector<std::string> const current_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(current_contents, "Record [6]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+}
+
+/***/
+TEST_CASE("time_rotation_initial_rotation_respects_interval_minutes")
+{
+  // Start at 2023-06-12 00:00:00 UTC
+  uint64_t const timestamp_start = 1686528000000000000;
+
+  fs::path const filename = "time_rotation_initial_respects_interval_minutes.log";
+  fs::path const filename_rotated = "time_rotation_initial_respects_interval_minutes.20230612.log";
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_frequency_and_interval('m', 5);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_start / 1000000000))};
+
+    uint64_t timestamp = timestamp_start;
+
+    // Write logs at +0m, +1m, +2m, +3m, +4m — all should stay in the same file
+    // because the interval is 5 minutes.
+    for (size_t i = 0; i < 5; ++i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+
+      timestamp += std::chrono::nanoseconds(std::chrono::minutes(1)).count();
+    }
+
+    // Now write at +5m — this should trigger the first rotation
+    {
+      std::string s{"Record [5]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  // Records 0-4 should be in the rotated file, Record 5 in the current file
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_rotated));
+
+  std::vector<std::string> const rotated_contents = testing::file_contents(filename_rotated);
+  REQUIRE_EQ(testing::file_contains(rotated_contents, "Record [0]"), true);
+  REQUIRE_EQ(testing::file_contains(rotated_contents, "Record [4]"), true);
+
+  std::vector<std::string> const current_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(current_contents, "Record [5]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
 }
 
 TEST_SUITE_END();

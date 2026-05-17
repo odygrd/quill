@@ -29,6 +29,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 template <typename TFrontendOptions>
 class FrontendImpl
 {
@@ -491,5 +493,7 @@ private:
 };
 
 using Frontend = FrontendImpl<FrontendOptions>;
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

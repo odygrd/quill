@@ -21,9 +21,13 @@
 QUILL_BEGIN_NAMESPACE
 
 /** Forward Declarations **/
+QUILL_BEGIN_EXPORT
+
 class Sink;
 class PatternFormatter;
 class UserClockSource;
+
+QUILL_END_EXPORT
 
 namespace detail
 {

@@ -30,6 +30,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 class PatternFormatter
 {
   /** Public classes **/
@@ -147,7 +149,7 @@ public:
           // When suffix is not '\n', include the newline character in the message
           line_length++;
         }
-        
+
         formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger,
                                     log_level_description, log_level_short_code, log_statement_metadata,
                                     named_args, std::string_view(log_msg.data() + start, line_length));
@@ -646,5 +648,7 @@ private:
   fmtquill::basic_memory_buffer<char, 512> _formatted_log_message_buffer;
   fmtquill::basic_memory_buffer<char, 512> _formatted_named_args_buffer;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

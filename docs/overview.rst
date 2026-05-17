@@ -58,6 +58,19 @@ To prevent message loss during crashes caused by signal interrupts, users should
 
 The library provides a built-in signal handler that ensures crash-safe behavior, which can be enabled via passing :cpp:struct:`SignalHandlerOptions` to :cpp:func:`Backend::start`.
 
+.. code-block:: cpp
+
+   quill::Backend::start(quill::BackendOptions{}, quill::SignalHandlerOptions{});
+
+:cpp:struct:`SignalHandlerOptions` allows you to configure:
+
+- ``catchable_signals`` — the list of signals to handle (defaults to ``SIGTERM``, ``SIGINT``, ``SIGABRT``, ``SIGFPE``, ``SIGILL``, ``SIGSEGV``).
+- ``timeout_seconds`` — alarm timeout to prevent the process from hanging in the signal handler (Linux only, defaults to 20 seconds).
+- ``logger_name`` — the logger to use for crash reporting. If empty, the signal handler automatically selects the first valid logger.
+- ``excluded_logger_substrings`` — logger names containing these substrings are skipped during automatic selection (defaults to ``{"__csv__"}``).
+
+On Windows, the handler uses structured exception handling instead of POSIX signals.
+
 Log Messages Timestamp Order
 ----------------------------
 

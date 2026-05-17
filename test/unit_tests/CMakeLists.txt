@@ -18,9 +18,9 @@ function(quill_add_test TEST_NAME SOURCES)
 
     if (NOT MSVC)
         # disable false warning on armel/armhf
-        set_source_files_properties( PatternFormatterTest.cpp PROPERTIES
-        COMPILE_FLAGS "-Wno-unused-value")
-    endif()
+        set_source_files_properties(PatternFormatterTest.cpp PROPERTIES
+                COMPILE_FLAGS "-Wno-unused-value")
+    endif ()
 
     # Add sources
     target_sources(${TEST_NAME} PRIVATE ${SOURCES} ${HEADER_FILES})
@@ -47,10 +47,10 @@ function(quill_add_test TEST_NAME SOURCES)
     # Set sanitizer environment variables for test execution if sanitizers are enabled
     if (QUILL_SANITIZE_ADDRESS)
         doctest_discover_tests(${TEST_NAME} PROPERTIES
-            ENVIRONMENT "ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:halt_on_error=1;UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1")
-    else()
+                ENVIRONMENT "ASAN_OPTIONS=detect_leaks=1:check_initialization_order=1:halt_on_error=1;UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1")
+    else ()
         doctest_discover_tests(${TEST_NAME})
-    endif()
+    endif ()
 endfunction()
 
 include(Doctest)

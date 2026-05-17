@@ -22,8 +22,8 @@ namespace detail
 {
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4324)
+  #pragma warning(push)
+  #pragma warning(disable : 4324)
 #endif
 
 /**
@@ -347,7 +347,7 @@ private:
 };
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif
 
 } // namespace detail

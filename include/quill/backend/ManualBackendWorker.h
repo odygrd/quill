@@ -13,6 +13,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * This class can be used when you want to run the backend worker on your own thread.
  *
@@ -145,5 +147,7 @@ private:
   detail::BackendWorker* _backend_worker;
   bool _started{false};
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

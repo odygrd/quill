@@ -24,6 +24,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 template <template <typename...> class MapType, typename Key, typename T, typename Compare, typename Allocator>
 struct Codec<MapType<Key, T, Compare, Allocator>,
              std::enable_if_t<std::disjunction_v<std::is_same<MapType<Key, T, Compare, Allocator>, std::map<Key, T, Compare, Allocator>>,
@@ -203,5 +205,7 @@ struct Codec<MapType<Key, T, Compare, Allocator>,
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

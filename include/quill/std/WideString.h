@@ -23,6 +23,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /** Specialization for arrays of arithmetic types and enums **/
 template <typename T>
 struct Codec<T,
@@ -96,6 +98,8 @@ struct Codec<T,
     args_store->push_back(detail::utf8_encode(reinterpret_cast<std::byte const*>(arg.data()), arg.size()));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE
 

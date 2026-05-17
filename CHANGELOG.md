@@ -99,47 +99,37 @@
 
 ## v12.0.0
 
-**Bug fixes**
+This is a maintenance-focused release with multiple edge-case fixes and internal hardening
+improvements. Most fixed issues are unlikely to occur under normal usage.
 
-- Fixed signal handler shutdown hang when crashing after `Backend::stop()`
-  ([#906](https://github.com/odygrd/quill/issues/906))
-- Fixed `RdtscClock::time_since_epoch()` to use the resynced calibration slot immediately after resync
-- Fixed `RdtscClock` resync interval conversion from nanoseconds to TSC ticks
-- Fixed JSON sinks to properly escape quotes, backslashes, and control characters
-- Fixed rotating sink rename handling to update state only after successful renames
-- Fixed `RotatingJsonFileSink` size-based rotation to use actual JSON payload size
-- Fixed `CsvWriter` per-instance logger lifetime, header handling in append mode, and dangling capture
-  in rotating-file notifier
-- Fixed `BinaryDataDeferredFormatCodec` composition for compound user-defined types
-- Fixed file sink deduplication to normalize paths before lookup
-- Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles
+There are no new features — only minor API changes and initial groundwork for C++20 module support.
+
+- Moved macro helper definitions into `LogMacros.h` and added module export scaffolding as initial
+  groundwork for C++20 module support
+- Improved `BackendOptions::cpu_affinity` to accept `std::vector<uint16_t>` for multi-CPU pinning
+- Added `Frontend::create_logger` and `Frontend::create_sink` APIs that throw `QuillError` on
+  duplicate names, complementing the existing `create_or_get_*` variants
+- Improved `CsvWriter` with deterministic `close()` for logger removal and file closure
+- Improved `simple_logger()` to separate signal-handler setup into `simple_logger_with_signal_handler()`
+- Improved `ManualBackendWorker` shutdown to be idempotent and enforce same-thread shutdown
+- Fixed signal handler shutdown hang when crashing after
+  `Backend::stop()` ([#906](https://github.com/odygrd/quill/issues/906))
+- Fixed signal handler fall-through on fatal signals (e.g. `SIGSEGV`) when `should_reraise_signal` is false
 - Fixed `FileSink` fd leak on constructor exception and file reopen mode after external deletion
 - Fixed `SystemdSink` to avoid calling the unrelated process-global `closelog()`
-
-**Hardening & improvements**
-
+- Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles
+- Fixed initial time-based rotation ignoring the configured interval for Minutely/Hourly rotation
+- Fixed `MacroMetadata::contains_named_args` skipping adjacent placeholders (e.g. `"{0}{name}"`)
+- Fixed rotating sink crashes on missing log directory and external file deletion during rotation
+- Fixed JSON sinks to properly escape quotes, backslashes, and control characters
 - Replaced named semaphore with `flock()` in `BackendWorkerLock` for more reliable duplicate-backend
   detection on POSIX
 - Added `QUILL_EXPORT` to `RdtscTicks::instance()` for shared-library consistency
-- Hardened the signal handler with internal signal-name literals and `std::_Exit()` instead of
-  `strsignal()` / `std::exit()`
-- Hardened logger and sink creation APIs with stricter input validation (null sinks, null filters,
-  invalid stream names, pending-removal loggers)
-- Improved `Frontend::create_logger` and `Frontend::create_sink` to also provide strict variants
-  that throw `QuillError` on duplicate names
-- Improved `CsvWriter` with deterministic `close()` for logger removal and file closure
-- Improved `ManualBackendWorker` shutdown to be idempotent and enforce same-thread shutdown
-- Improved `simple_logger()` to separate signal-handler setup into
-  `simple_logger_with_signal_handler()`
-- Improved `BackendOptions::cpu_affinity` to accept `std::vector<uint16_t>` for multi-CPU pinning
-- Hardened overflow and capacity checks across `InlinedVector`, unbounded queues, codec string
-  clamping, and backtrace storage
-- Hardened `TransitEvent` move semantics and `FileSink` edge cases (non-throwing `fs::exists`,
-  strftime return value, write-mode detection)
-- Aligned codec handling for `std::string`, `std::string_view`, `std::map`, and `std::unordered_map`
-  with existing paths
-- Cleaned up core contracts: `QuillError::what()`, thread-context lifetime, backend notifier
-  reporting, `PatternFormatter` attribute lookup, and various minor edges
+- Fixed `RdtscClock` resync interval conversion and calibration slot usage
+- Fixed `CsvWriter` per-instance logger lifetime, header handling in append mode, and dangling capture
+  in rotating-file notifier
+- Hardened logger and sink creation APIs with stricter input validation
+- Numerous additional hardening fixes across queues, codecs, sinks, and backend internals
 
 ## v11.1.0
 

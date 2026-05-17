@@ -21,6 +21,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 template <typename T1, typename T2>
 struct Codec<std::pair<T1, T2>>
 {
@@ -139,5 +141,7 @@ struct Codec<std::pair<T1, T2>>
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

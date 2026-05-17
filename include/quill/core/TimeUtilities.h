@@ -14,9 +14,6 @@
 #include <ctime>
 #include <string>
 
-// Forward declaration
-struct tm;
-
 QUILL_BEGIN_NAMESPACE
 
 namespace detail

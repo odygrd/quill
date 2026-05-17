@@ -23,6 +23,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 template <template <typename...> class SetType, typename Key, typename Compare, typename Allocator>
 struct Codec<SetType<Key, Compare, Allocator>,
              std::enable_if_t<std::disjunction_v<std::is_same<SetType<Key, Compare, Allocator>, std::set<Key, Compare, Allocator>>,
@@ -137,5 +139,7 @@ struct Codec<SetType<Key, Compare, Allocator>,
     args_store->push_back(decode_arg(buffer));
   }
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

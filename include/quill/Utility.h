@@ -15,6 +15,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 namespace utility
 {
 /**
@@ -117,6 +119,8 @@ QUILL_NODISCARD std::string to_hex(T const* buffer, size_t size, bool uppercase 
   return hex_string;
 }
 } // namespace utility
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE
 

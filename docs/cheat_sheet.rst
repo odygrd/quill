@@ -76,7 +76,7 @@ Enables the use of compiler-specific detailed function signatures (such as ``__P
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_IMMEDIATE_FLUSH=0)
+    add_compile_definitions(-DQUILL_ENABLE_IMMEDIATE_FLUSH=0)
 
 Immediate flushing blocks the calling thread until a log message has been written to its destination, effectively simulating synchronous logging.
 This feature can be enabled at runtime on a ``Logger`` instance by calling ``logger->set_immediate_flush(1)``.

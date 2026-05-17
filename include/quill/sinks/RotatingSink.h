@@ -31,6 +31,8 @@
 QUILL_BEGIN_NAMESPACE
 
 /** Forward Declaration **/
+QUILL_BEGIN_EXPORT
+
 class MacroMetadata;
 
 /**
@@ -546,10 +548,22 @@ private:
       return;
     }
 
+    fs::path const parent_dir = fs::current_path() / filename.parent_path();
+
+    {
+      std::error_code ec;
+      if (!fs::exists(parent_dir, ec) || ec)
+      {
+        // Directory does not exist yet; nothing to clean or recover.
+        // open_file will create it later.
+        return;
+      }
+    }
+
     // if we are starting in "w" mode, then we also should clean all previous log files of the previous run
     if (_config.remove_old_files() && (open_mode.find('w') != std::string::npos))
     {
-      for (auto const& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
+      for (auto const& entry : fs::directory_iterator(parent_dir))
       {
         if (entry.path().extension().string() != filename.extension().string())
         {
@@ -583,10 +597,7 @@ private:
                 (index_or_date.length() >= 8) && (index_or_date == today_date))
             {
               // assume it is a date, no need to find the index
-              if (index_or_date == today_date)
-              {
-                fs::remove(entry);
-              }
+              fs::remove(entry);
             }
             else
             {
@@ -611,7 +622,7 @@ private:
     else if (open_mode.find('a') != std::string::npos)
     {
       // we need to recover the index from the existing files
-      for (auto const& entry : fs::directory_iterator(fs::current_path() / filename.parent_path()))
+      for (auto const& entry : fs::directory_iterator(parent_dir))
       {
         // is_directory() does not exist in std::experimental::filesystem
         if (entry.path().extension().string() != filename.extension().string())
@@ -719,7 +730,13 @@ private:
   /***/
   QUILL_NODISCARD static size_t _get_file_size(fs::path const& filename)
   {
-    return static_cast<size_t>(fs::file_size(filename));
+    std::error_code ec;
+    auto const size = fs::file_size(filename, ec);
+    if (ec)
+    {
+      return 0;
+    }
+    return static_cast<size_t>(size);
   }
 
   /***/
@@ -825,12 +842,12 @@ private:
     // update to the desired date
     if (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Minutely)
     {
-      date.tm_min += 1;
+      date.tm_min += static_cast<decltype(date.tm_min)>(config.rotation_interval());
       date.tm_sec = 0;
     }
     else if (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Hourly)
     {
-      date.tm_hour += 1;
+      date.tm_hour += static_cast<decltype(date.tm_hour)>(config.rotation_interval());
       date.tm_min = 0;
       date.tm_sec = 0;
     }
@@ -925,5 +942,7 @@ protected:
   uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
   RotatingFileSinkConfig _config;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

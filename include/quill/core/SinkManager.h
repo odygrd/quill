@@ -20,9 +20,13 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /** Forward declarations **/
 class FileSink;
 class Sink;
+
+QUILL_END_EXPORT
 
 namespace detail
 {

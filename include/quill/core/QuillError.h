@@ -39,6 +39,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * custom exception
  */
@@ -53,5 +55,7 @@ public:
 private:
   std::string _error;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

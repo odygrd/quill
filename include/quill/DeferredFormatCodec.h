@@ -87,6 +87,8 @@ QUILL_BEGIN_NAMESPACE
  * \endcode
  */
 
+QUILL_BEGIN_EXPORT
+
 template <typename T>
 struct DeferredFormatCodec
 {
@@ -223,6 +225,8 @@ private:
                                         ~(alignment - 1ul));
   }
 };
+
+QUILL_END_EXPORT
 
 #if defined(_WIN32) && defined(_MSC_VER)
   #pragma warning(pop)

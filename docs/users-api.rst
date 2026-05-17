@@ -134,6 +134,12 @@ SystemdSinkConfig Class
 .. doxygenclass:: SystemdSinkConfig
    :members:
 
+ManualBackendWorker Class
+-------------------------
+
+.. doxygenclass:: ManualBackendWorker
+   :members:
+
 CsvWriter Class
 ---------------
 

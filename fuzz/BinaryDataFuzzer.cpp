@@ -11,7 +11,7 @@
 // This is critical for users logging binary protocols (PCAP, trading, IoT, etc.)
 
 #define FUZZER_LOG_FILENAME "binary_data_fuzz.bin"
-#define FUZZER_USE_BINARY_MODE 1           // Enable binary file mode
+#define FUZZER_USE_BINARY_MODE 1 // Enable binary file mode
 
 #include "FuzzerHelper.h"
 
@@ -544,4 +544,3 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 
   return 0;
 }
-

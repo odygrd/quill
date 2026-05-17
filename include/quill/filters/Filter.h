@@ -16,6 +16,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /** Forward Declaration **/
 class MacroMetadata;
 
@@ -68,5 +70,7 @@ public:
 private:
   std::string _filter_name;
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

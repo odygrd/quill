@@ -168,6 +168,19 @@
 #endif
 
 /**
+ * Module export helpers
+ */
+#ifndef QUILL_BEGIN_EXPORT
+  #if defined(QUILL_MODULE)
+    #define QUILL_BEGIN_EXPORT export {
+    #define QUILL_END_EXPORT }
+  #else
+    #define QUILL_BEGIN_EXPORT
+    #define QUILL_END_EXPORT
+  #endif
+#endif
+
+/**
  * Check RTTI is available
  */
 #ifndef QUILL_USE_RTTI
@@ -178,4 +191,22 @@
   #else
     #define QUILL_USE_RTTI 0
   #endif
+#endif
+
+/**
+ * Thread-local storage specifier
+ */
+#if !defined(QUILL_THREAD_LOCAL)
+  #if defined(__GNUC__) && defined(__linux__)
+    #define QUILL_THREAD_LOCAL __thread
+  #else
+    #define QUILL_THREAD_LOCAL thread_local
+  #endif
+#endif
+
+/**
+ * Separator used by quill internals
+ */
+#if !defined(QUILL_MAGIC_SEPARATOR)
+  #define QUILL_MAGIC_SEPARATOR "\x01\x02\x03"
 #endif

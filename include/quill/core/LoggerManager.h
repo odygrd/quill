@@ -27,8 +27,12 @@
 QUILL_BEGIN_NAMESPACE
 
 /** Forward Declarations **/
+QUILL_BEGIN_EXPORT
+
 class Sink;
 class UserClockSource;
+
+QUILL_END_EXPORT
 
 namespace detail
 {
@@ -313,9 +317,9 @@ public:
 
 #if defined(_MSC_VER)
     size_t len = 0;
-    char buf[128];
+    char buf[128]{};
     bool const ok = ::getenv_s(&len, buf, sizeof(buf), field) == 0;
-    if (ok)
+    if (ok && len > 0)
     {
       log_level = buf;
     }

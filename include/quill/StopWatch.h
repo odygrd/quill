@@ -21,6 +21,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 namespace detail
 {
 /**
@@ -123,7 +125,11 @@ using StopWatchTsc = detail::StopWatch<ClockSourceType::Tsc>;
  */
 using StopWatchChrono = detail::StopWatch<ClockSourceType::System>;
 
+QUILL_END_EXPORT
+
 QUILL_END_NAMESPACE
+
+QUILL_BEGIN_EXPORT
 
 template <quill::ClockSourceType ClockType>
 struct quill::Codec<quill::detail::StopWatch<ClockType>>
@@ -141,3 +147,5 @@ struct fmtquill::formatter<quill::detail::StopWatch<ClockType>> : fmtquill::form
     return fmtquill::formatter<double>::format(sw.elapsed().count(), ctx);
   }
 };
+
+QUILL_END_EXPORT

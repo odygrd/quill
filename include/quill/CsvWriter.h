@@ -23,6 +23,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 /**
  * @brief A CSV writer class for asynchronous logging of CSV files.
  *
@@ -297,5 +299,7 @@ private:
 
   LoggerImpl<TFrontendOptions>* _logger{nullptr};
 };
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

@@ -8,7 +8,7 @@
 #include <string>
 
 #ifndef FUZZER_LOG_FILENAME
-#error "FUZZER_LOG_FILENAME must be defined before including FuzzerHelper.h"
+  #error "FUZZER_LOG_FILENAME must be defined before including FuzzerHelper.h"
 #endif
 
 struct CustomFrontendOptions
@@ -82,4 +82,3 @@ extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/)
   }
   return 0;
 }
-

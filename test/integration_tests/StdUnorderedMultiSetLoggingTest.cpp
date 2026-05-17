@@ -112,8 +112,7 @@ TEST_CASE("std_unordered_multi_set_logging")
 
     // Test rvalue references with unordered_multiset
     std::unordered_multiset<int> rvalue_unordered_multiset = {100, 200, 300};
-    LOG_INFO(logger, "rvalue_unordered_multiset {}",
-             std::move(rvalue_unordered_multiset));
+    LOG_INFO(logger, "rvalue_unordered_multiset {}", std::move(rvalue_unordered_multiset));
 
     // Test with temporary unordered_multiset
     LOG_INFO(logger, "temp_unordered_multiset {}",

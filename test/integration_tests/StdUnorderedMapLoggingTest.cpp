@@ -67,8 +67,7 @@ TEST_CASE("std_unordered_map_logging")
     // Test rvalue references with unordered_map
     std::unordered_map<int, std::string> rvalue_unordered_map = {
       {1, "one"}, {2, "two"}, {3, "three"}};
-    LOG_INFO(logger, "rvalue_unordered_map {}",
-             std::move(rvalue_unordered_map));
+    LOG_INFO(logger, "rvalue_unordered_map {}", std::move(rvalue_unordered_map));
 
     // Test with temporary unordered_map
     LOG_INFO(logger, "temp_unordered_map {}",

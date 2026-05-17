@@ -135,6 +135,17 @@ public:
     // adding the difference.
     _cached_seconds += static_cast<uint32_t>(timestamp_diff);
 
+    if (QUILL_UNLIKELY(_cached_seconds >= 86400))
+    {
+      // This is purely defensive
+      // - GMT mode: recalc boundaries align exactly with midnight/noon, so _cached_seconds can never exceed 86399 in the incremental path
+      // - LocalTime mode: triggerable on machines in non-UTC-aligned timezones, or during DST transitions
+
+      // Force a full recalculation
+      _next_recalculation_timestamp = 0;
+      return format_timestamp(timestamp);
+    }
+
     uint32_t total_seconds = _cached_seconds;
     uint32_t const hours = total_seconds / 3600;
     total_seconds -= hours * 3600;

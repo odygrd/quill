@@ -173,8 +173,39 @@ You can switch your build to use ``CustomFrontendOptions`` to configure differen
 
 A simpler approach is to compile with a dropping queue and control the behavior at runtime. In simulation/debug mode, enable ``logger->set_immediate_flush(1000)``. This will make the caller thread block and wait every 1000 log messages, effectively preventing drops even with a dropping queue. In production, simply don't call ``set_immediate_flush()`` and the queue will drop messages if the backend can't keep up.
 
+Can I log from destructors of static/global objects?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**No. Avoid logging from the destructor of any global or static-storage-duration object.**
+
+Quill's internal managers (``LoggerManager``, ``SinkManager``, ``ThreadContextManager``) are function-local statics (Meyers singletons). C++ destroys statics in reverse construction order. If your static object's constructor triggers the first log call, the library singletons are constructed *after* your object — and therefore destroyed *before* it. When your object's destructor later attempts to log, it accesses already-destroyed singletons, resulting in undefined behaviour.
+
+Logging from constructors of static objects and calling ``Backend::start()`` before ``main()`` is safe — the singletons will be constructed and remain alive for the lifetime of the program. The problem only arises during shutdown when destruction order is reversed.
+
 Can I use Quill with fork()?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Quill may not work well with ``fork()`` because it spawns a background thread, and ``fork()`` doesn't work well with multithreading.
-See the Caveats section in the `README` for more information.
+
+If your application uses ``fork()`` and you want to log in the child processes as well, call ``Backend::start()`` **after** the ``fork()`` call. Additionally, write to different files in the parent and child processes to avoid conflicts.
+
+.. code-block:: cpp
+
+   int main()
+   {
+     // DO NOT call Backend::start() before fork
+     if (fork() == 0)
+     {
+       quill::Backend::start();
+       auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("child.log");
+       quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
+       QUILL_LOG_INFO(logger, "Hello from Child {}", 123);
+     }
+     else
+     {
+       quill::Backend::start();
+       auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("parent.log");
+       quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
+       QUILL_LOG_INFO(logger, "Hello from Parent {}", 123);
+     }
+   }

@@ -30,7 +30,11 @@
 QUILL_BEGIN_NAMESPACE
 
 /** Forward Declarations **/
+QUILL_BEGIN_EXPORT
+
 class Sink;
+
+QUILL_END_EXPORT
 
 namespace detail
 {
@@ -38,6 +42,8 @@ class LoggerManager;
 
 class BackendWorker;
 } // namespace detail
+
+QUILL_BEGIN_EXPORT
 
 /**
  * @brief Thread safe logger.
@@ -498,6 +504,8 @@ private:
     std::memcpy(write_buffer, &logger_ctx, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
+    static_assert(sizeof(detail::FormatArgsDecoder) == sizeof(uintptr_t),
+                  "FormatArgsDecoder must be pointer-sized");
     std::memcpy(write_buffer, &decoder, sizeof(uintptr_t));
     write_buffer += sizeof(uintptr_t);
 
@@ -506,5 +514,7 @@ private:
 };
 
 using Logger = LoggerImpl<FrontendOptions>;
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

@@ -19,6 +19,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 namespace detail
 {
 inline Logger* simple_logger_impl(std::string const& output)
@@ -109,5 +111,7 @@ inline Logger* simple_logger_with_signal_handler(std::string const& output = "st
 
   return logger;
 }
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

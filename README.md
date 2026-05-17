@@ -412,7 +412,7 @@ Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 | [spdlog](https://github.com/gabime/spdlog)                         |        4.32        |    925 ms    |
 | [fmtlog](https://github.com/MengRao/fmtlog)                        |        2.82        |   1417 ms    |
 | [Reckless](https://github.com/mattiasflodin/reckless)              |        2.72        |   1471 ms    |
-| [Quill - Macro Free Mode](https://github.com/choll/xtr)            |        2.65        |   1510 ms    |
+| [Quill - Macro Free Mode](https://github.com/odygrd/quill)         |        2.65        |   1510 ms    |
 | [BqLog](https://github.com/Tencent/BqLog)                          |        2.60        |   1537 ms    |
 | [Boost.Log](https://www.boost.org)                                 |        0.39        |   10102 ms   |
 
@@ -598,7 +598,7 @@ my_project/
 Use this `CMakeLists.txt` to include Quill directly:
 
 ```cmake
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.8)
 project(my_project)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -664,7 +664,7 @@ my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], ins
 
 #### Using Blzmod
 
-Quill is available on `BLZMOD` for easy integration.
+Quill is available on `Bzlmod` for easy integration.
 
 #### Manual Integration
 
@@ -684,7 +684,7 @@ When invoking a `LOG_` macro:
 
 1. Creates a static constexpr metadata object to store `Metadata` such as the format string and source location.
 
-2. Pushes the data SPSC lock-free queue. For each log message, the following variables are pushed
+2. Pushes the data to the SPSC lock-free queue. For each log message, the following variables are pushed
 
 | Variable   |                                                  Description                                                   |
 |------------|:--------------------------------------------------------------------------------------------------------------:|
@@ -705,12 +705,15 @@ Subsequently, forwards the log message to all Sinks associated with the Logger.
 
 ## 🚨 Caveats
 
-Quill may not work well with `fork()` since it spawns a background thread and `fork()` doesn't work well with
-multithreading.
+**Do not log from destructors of static objects.** Quill's internal singletons are function-local statics destroyed in
+reverse construction order. If a static object's constructor triggers the first log call, the library singletons are
+constructed *after* that object — and destroyed *before* it. Logging from that object's destructor will access
+already-destroyed singletons, causing undefined behaviour.
 
-If your application uses `fork()` and you want to log in the child processes as well, you should call `quill::start()`
-after the `fork()` call. Additionally, you should ensure that you write to different files in the parent and child
-processes to avoid conflicts.
+**Quill may not work well with `fork()`** since it spawns a background thread and `fork()` doesn't work well with
+multithreading. If your application uses `fork()` and you want to log in the child processes as well, you should call
+`quill::Backend::start()` after the `fork()` call. Additionally, you should ensure that you write to different files in
+the parent and child processes to avoid conflicts.
 
 For example :
 

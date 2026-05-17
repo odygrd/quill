@@ -151,7 +151,8 @@ public:
     // get the current index, this is only safe to call from the thread that is doing the resync
     auto const index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
 
-    // get rdtsc current value and compare the diff then add it to base wall time
+    // Unsigned subtraction + int64_t cast: a stale rdtsc_value yields a small negative
+    // diff, producing a wall time slightly in the past. This is intentional.
     auto diff = static_cast<int64_t>(rdtsc_value - _base[index].base_tsc);
 
     // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value

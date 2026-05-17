@@ -135,12 +135,12 @@ TEST_CASE("single_byte_to_hex")
 {
   // Test with a single byte
   unsigned char buffer[1] = {0xAB};
-  
+
   // Uppercase
   std::string const result_upper = quill::utility::to_hex(buffer, 1, true);
   std::string const expected_upper = "AB";
   REQUIRE_EQ(result_upper, expected_upper);
-  
+
   // Lowercase
   std::string const result_lower = quill::utility::to_hex(buffer, 1, false);
   std::string const expected_lower = "ab";
@@ -152,12 +152,12 @@ TEST_CASE("binary_data_to_hex")
 {
   // Test with binary data containing zeros and special values
   unsigned char buffer[] = {0x00, 0xFF, 0x7F, 0x80};
-  
+
   // Uppercase
   std::string const result_upper = quill::utility::to_hex(buffer, sizeof(buffer), true);
   std::string const expected_upper = "00 FF 7F 80";
   REQUIRE_EQ(result_upper, expected_upper);
-  
+
   // Lowercase
   std::string const result_lower = quill::utility::to_hex(buffer, sizeof(buffer), false);
   std::string const expected_lower = "00 ff 7f 80";
@@ -169,7 +169,7 @@ TEST_CASE("char_array_to_hex")
 {
   // Test with C-style char array
   char buffer[] = {'A', 'B', 'C', '\0', '\n'};
-  
+
   std::string const result = quill::utility::to_hex(buffer, sizeof(buffer), true);
   std::string const expected = "41 42 43 00 0A";
   REQUIRE_EQ(result, expected);
@@ -178,10 +178,10 @@ TEST_CASE("char_array_to_hex")
 /***/
 TEST_CASE("size_greater_than_buffer")
 {
-  // This tests how the function handles the case where size is 
+  // This tests how the function handles the case where size is
   // explicitly passed and might be longer than the actual buffer
   // (Note: This test might cause undefined behavior, use with caution)
-  
+
   std::string buffer = "ABC";
   // Only convert the first 2 bytes of the 3-byte string
   std::string const result = quill::utility::to_hex(buffer.data(), 2);
@@ -198,9 +198,9 @@ TEST_CASE("different_byte_types")
   char char_buffer[] = {0x01, 0x02, 0x03};
   signed char schar_buffer[] = {0x01, 0x02, 0x03};
   unsigned char uchar_buffer[] = {0x01, 0x02, 0x03};
-  
+
   std::string const expected = "01 02 03";
-  
+
   // Test each type
   REQUIRE_EQ(quill::utility::to_hex(uint8_buffer, 3), expected);
   REQUIRE_EQ(quill::utility::to_hex(int8_buffer, 3), expected);
@@ -212,8 +212,9 @@ TEST_CASE("different_byte_types")
 /***/
 TEST_CASE("non_ascii_string_to_hex")
 {
-  unsigned char utf8_buffer[] = {0xD0, 0x9F, 0xD1, 0x80, 0xD0, 0xB8, 0xD0, 0xB2, 0xD0, 0xB5, 0xD1, 0x82};
-  
+  unsigned char utf8_buffer[] = {0xD0, 0x9F, 0xD1, 0x80, 0xD0, 0xB8,
+                                 0xD0, 0xB2, 0xD0, 0xB5, 0xD1, 0x82};
+
   std::string const result = quill::utility::to_hex(utf8_buffer, sizeof(utf8_buffer));
   std::string const expected = "D0 9F D1 80 D0 B8 D0 B2 D0 B5 D1 82";
   REQUIRE_EQ(result, expected);
@@ -305,14 +306,14 @@ TEST_CASE("to_hex_special_values")
 {
   // Test with special byte values to ensure lookup table works correctly
   unsigned char buffer[] = {
-    0x00,       // First value in table
-    0x0F,       // End of first row
-    0x10,       // Start of second row
-    0x7C,       // '|' boundary check
-    0x7D,       // '}' boundary check
-    0x7F,       // End of ASCII range
-    0x80,       // Start of extended ASCII
-    0xFF        // Last value in table
+    0x00, // First value in table
+    0x0F, // End of first row
+    0x10, // Start of second row
+    0x7C, // '|' boundary check
+    0x7D, // '}' boundary check
+    0x7F, // End of ASCII range
+    0x80, // Start of extended ASCII
+    0xFF  // Last value in table
   };
 
   // With spaces (uppercase)
@@ -359,15 +360,15 @@ TEST_CASE("to_hex_large_buffer_with_unrolling")
   REQUIRE(result_space.substr(0, 8) == "00 01 02");
 
   // Verify first 4 bytes (first unroll block)
-  std::string first_block = result_space.substr(0, 11);  // 00 01 02 03
+  std::string first_block = result_space.substr(0, 11); // 00 01 02 03
   REQUIRE(first_block == "00 01 02 03");
 
   // Verify second 4 bytes (second unroll block)
-  std::string second_block = result_space.substr(12, 11);  // 04 05 06 07
+  std::string second_block = result_space.substr(12, 11); // 04 05 06 07
   REQUIRE(second_block == "04 05 06 07");
 
   // Verify third 4 bytes (third unroll block)
-  std::string third_block = result_space.substr(24, 11);  // 08 09 0A 0B
+  std::string third_block = result_space.substr(24, 11); // 08 09 0A 0B
   REQUIRE(third_block == "08 09 0A 0B");
 
   // Verify last few bytes - the buffer has 0-127 (0x00-0x7F), so check the last three bytes
@@ -384,15 +385,15 @@ TEST_CASE("to_hex_large_buffer_with_unrolling")
   REQUIRE(result_no_space.substr(0, 6) == "000102");
 
   // Verify first 4 bytes (first unroll block)
-  std::string first_block_ns = result_no_space.substr(0, 8);  // 00010203
+  std::string first_block_ns = result_no_space.substr(0, 8); // 00010203
   REQUIRE(first_block_ns == "00010203");
 
   // Verify second 4 bytes (second unroll block)
-  std::string second_block_ns = result_no_space.substr(8, 8);  // 04050607
+  std::string second_block_ns = result_no_space.substr(8, 8); // 04050607
   REQUIRE(second_block_ns == "04050607");
 
   // Verify third 4 bytes (third unroll block)
-  std::string third_block_ns = result_no_space.substr(16, 8);  // 08090A0B
+  std::string third_block_ns = result_no_space.substr(16, 8); // 08090A0B
   REQUIRE(third_block_ns == "08090A0B");
 
   // Verify last few bytes (the last 3 bytes: 0x7D, 0x7E, 0x7F)
