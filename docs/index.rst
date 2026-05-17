@@ -3,7 +3,7 @@
 
 .. _index:
 
-Fast asynchronous logging for low-latency C++ applications.
+Fast asynchronous logging and metrics for low-latency C++ applications.
 
 Quick Example
 -------------
@@ -22,15 +22,15 @@ Quick Example
 A macro-free interface (``quill::info()``, ``quill::warning()``, ...) is also available — see :doc:`Macro-Free Mode <macro_free_mode>`.
 
 Use :doc:`Quick Start <quick_start>` for the smallest setup, or move to the full
-``Backend`` / ``Frontend`` APIs when you need custom sinks, multiple loggers, or more
-explicit lifecycle control.
+``Backend`` / ``Frontend`` APIs when you need custom sinks, multiple loggers, metrics,
+or more explicit lifecycle control.
 
 Start Here
 ----------
 
 - :doc:`Get Started <quick_start>` for the shortest path to working logs
 - :doc:`Installing <installing>` for package manager and source setup
-- :doc:`Guides <guides>` for sinks, formatters, JSON, filters, and more
+- :doc:`Guides <guides>` for sinks, metrics, formatters, JSON, filters, and more
 - :doc:`Recipes <recipes>` for common tasks and examples
 - :doc:`FAQ <faq>` for integration guidance and common pitfalls
 

@@ -9,6 +9,7 @@
 #include "quill/std/Chrono.h"
 
 #include <cstdio>
+#include <ctime>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -61,6 +62,35 @@ TEST_CASE("std_chrono_logging")
   auto rvalue_duration = std::chrono::seconds(100);
   LOG_INFO(logger, "rvalue_duration [{}]", std::move(rvalue_duration));
 
+  std::tm tm_value{};
+  tm_value.tm_sec = 45;
+  tm_value.tm_min = 30;
+  tm_value.tm_hour = 12;
+  tm_value.tm_mday = 9;
+  tm_value.tm_mon = 7;    // August (0-based)
+  tm_value.tm_year = 124; // 2024
+  tm_value.tm_wday = 5;   // Friday
+  tm_value.tm_yday = 221;
+  tm_value.tm_isdst = 0;
+  LOG_INFO(logger, "tm [{:%F %T}]", tm_value);
+
+#if QUILL_HAS_CXX20_CHRONO
+  std::chrono::year const year{2024};
+  LOG_INFO(logger, "year [{}]", year);
+
+  std::chrono::month const month{8};
+  LOG_INFO(logger, "month [{}]", month);
+
+  std::chrono::day const day{9};
+  LOG_INFO(logger, "day [{}]", day);
+
+  std::chrono::weekday const weekday{5};
+  LOG_INFO(logger, "weekday [{}]", weekday);
+
+  std::chrono::year_month_day const year_month_day{year, month, day};
+  LOG_INFO(logger, "year_month_day [{}]", year_month_day);
+#endif
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -112,6 +142,51 @@ TEST_CASE("std_chrono_logging")
     expected_string += "]";
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
   }
+
+  {
+    std::string expected_string = "LOG_INFO      " + logger_name + "       tm [";
+    expected_string += fmtquill::format("{:%F %T}", tm_value);
+    expected_string += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+
+#if QUILL_HAS_CXX20_CHRONO
+  {
+    std::string expected_string = "LOG_INFO      " + logger_name + "       year [";
+    expected_string += fmtquill::format("{}", std::chrono::year{2024});
+    expected_string += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+
+  {
+    std::string expected_string = "LOG_INFO      " + logger_name + "       month [";
+    expected_string += fmtquill::format("{}", std::chrono::month{8});
+    expected_string += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+
+  {
+    std::string expected_string = "LOG_INFO      " + logger_name + "       day [";
+    expected_string += fmtquill::format("{}", std::chrono::day{9});
+    expected_string += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+
+  {
+    std::string expected_string = "LOG_INFO      " + logger_name + "       weekday [";
+    expected_string += fmtquill::format("{}", std::chrono::weekday{5});
+    expected_string += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+
+  {
+    std::string expected_string = "LOG_INFO      " + logger_name + "       year_month_day [";
+    expected_string += fmtquill::format(
+      "{}", std::chrono::year_month_day{std::chrono::year{2024}, std::chrono::month{8}, std::chrono::day{9}});
+    expected_string += "]";
+    REQUIRE(quill::testing::file_contains(file_contents, expected_string));
+  }
+#endif
 
   testing::remove_file(filename);
 }

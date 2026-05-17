@@ -19,6 +19,11 @@
 #include <type_traits>
 #include <utility>
 
+#if defined(_WIN32)
+  #include <string>
+  #include <string_view>
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
@@ -26,6 +31,17 @@ QUILL_BEGIN_EXPORT
 template <typename T1, typename T2>
 struct Codec<std::pair<T1, T2>>
 {
+private:
+  static auto decode_non_wide_arg(std::byte*& buffer)
+  {
+    using ReturnType1 = decltype(Codec<T1>::decode_arg(buffer));
+    using ReturnType2 = decltype(Codec<T2>::decode_arg(buffer));
+
+    // Brace initialization preserves left-to-right evaluation of the decode calls.
+    return std::pair<ReturnType1, ReturnType2>{Codec<T1>::decode_arg(buffer), Codec<T2>::decode_arg(buffer)};
+  }
+
+public:
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::pair<T1, T2> const& arg) noexcept
   {
@@ -70,66 +86,26 @@ struct Codec<std::pair<T1, T2>>
 
       if constexpr (wide_t1 && !wide_t2)
       {
-        std::pair<std::string, T2> arg;
-
-        std::wstring_view v = Codec<T1>::decode_arg(buffer);
-        arg.first = detail::utf8_encode(v);
-
-        arg.second = Codec<T2>::decode_arg(buffer);
-
-        return arg;
+        using ReturnType2 = decltype(Codec<T2>::decode_arg(buffer));
+        return std::pair<std::string, ReturnType2>{
+          detail::utf8_encode(Codec<T1>::decode_arg(buffer)), Codec<T2>::decode_arg(buffer)};
       }
       else if constexpr (!wide_t1 && wide_t2)
       {
-        std::pair<T1, std::string> arg;
-
-        arg.first = Codec<T1>::decode_arg(buffer);
-
-        std::wstring_view v = Codec<T2>::decode_arg(buffer);
-        arg.second = detail::utf8_encode(v);
-
-        return arg;
+        using ReturnType1 = decltype(Codec<T1>::decode_arg(buffer));
+        return std::pair<ReturnType1, std::string>{
+          Codec<T1>::decode_arg(buffer), detail::utf8_encode(Codec<T2>::decode_arg(buffer))};
       }
       else
       {
-        std::pair<std::string, std::string> arg;
-        std::wstring_view v1 = Codec<T1>::decode_arg(buffer);
-        arg.first = detail::utf8_encode(v1);
-
-        std::wstring_view v2 = Codec<T2>::decode_arg(buffer);
-        arg.second = detail::utf8_encode(v2);
-
-        return arg;
+        return std::pair<std::string, std::string>{detail::utf8_encode(Codec<T1>::decode_arg(buffer)),
+                                                   detail::utf8_encode(Codec<T2>::decode_arg(buffer))};
       }
     }
     else
     {
 #endif
-      using ReturnType1 = decltype(Codec<T1>::decode_arg(buffer));
-      using ReturnType2 = decltype(Codec<T2>::decode_arg(buffer));
-      std::pair<ReturnType1, ReturnType2> arg;
-
-      auto elem1 = Codec<T1>::decode_arg(buffer);
-      if constexpr (std::is_move_constructible_v<ReturnType1>)
-      {
-        arg.first = std::move(elem1);
-      }
-      else
-      {
-        arg.first = elem1;
-      }
-
-      auto elem2 = Codec<T2>::decode_arg(buffer);
-      if constexpr (std::is_move_constructible_v<ReturnType2>)
-      {
-        arg.second = std::move(elem2);
-      }
-      else
-      {
-        arg.second = elem2;
-      }
-
-      return arg;
+      return decode_non_wide_arg(buffer);
 
 #if defined(_WIN32)
     }

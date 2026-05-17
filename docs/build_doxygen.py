@@ -18,6 +18,7 @@ TOOLS_DIR = DOCS_DIR / ".tools"
 CONFIG_TEMPLATE = DOCS_DIR / "Doxyfile.in"
 CONFIG_PATH = DOCS_DIR / "Doxyfile.rtd"
 OUTPUT_DIR = DOCS_DIR / "build"
+TAGFILE_PATH = OUTPUT_DIR / "quill.tag"
 INPUT_DIR = REPO_ROOT / "include"
 
 
@@ -61,6 +62,7 @@ def _resolve_doxygen() -> Path:
 def _write_config() -> None:
     config = CONFIG_TEMPLATE.read_text(encoding="utf-8")
     config = config.replace("@DOXYGEN_OUTPUT_DIR@", str(OUTPUT_DIR.resolve()))
+    config = config.replace("@DOXYGEN_TAG_FILE@", str(TAGFILE_PATH.resolve()))
     config = config.replace("@DOXYGEN_INPUT_DIR@", str(INPUT_DIR.resolve()))
     CONFIG_PATH.write_text(config, encoding="utf-8")
 

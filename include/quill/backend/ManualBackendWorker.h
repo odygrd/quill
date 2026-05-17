@@ -110,10 +110,14 @@ public:
 
     QUILL_TRY { _backend_worker->_poll(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH(std::exception const& e) { _backend_worker->_options.error_notifier(e.what()); }
+    QUILL_CATCH(std::exception const& e)
+    {
+      detail::BackendWorker::_notify_error(_backend_worker->_options.error_notifier, e.what());
+    }
     QUILL_CATCH_ALL()
     {
-      _backend_worker->_options.error_notifier(std::string{"Caught unhandled exception."});
+      detail::BackendWorker::_notify_error(_backend_worker->_options.error_notifier,
+                                           std::string{"Caught unhandled exception."});
     }
 #endif
   }

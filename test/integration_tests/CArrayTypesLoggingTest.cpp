@@ -2,6 +2,7 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/bundled/fmt/ostream.h"
@@ -79,6 +80,44 @@ struct fmtquill::formatter<TestEnumClass> : fmtquill::ostream_formatter
 {
 };
 
+class CArrayNoDefaultType
+{
+public:
+  explicit CArrayNoDefaultType(std::string label, int value) : label(std::move(label)), value(value)
+  {
+  }
+
+  CArrayNoDefaultType(CArrayNoDefaultType const&) = default;
+  CArrayNoDefaultType& operator=(CArrayNoDefaultType const&) = default;
+  CArrayNoDefaultType(CArrayNoDefaultType&&) = default;
+  CArrayNoDefaultType& operator=(CArrayNoDefaultType&&) = default;
+
+  std::string label;
+  int value;
+};
+
+template <>
+struct fmtquill::formatter<CArrayNoDefaultType>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::CArrayNoDefaultType const& c_array_no_default_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "CArrayNoDefault(label: {}, value: {})",
+                               c_array_no_default_type.label, c_array_no_default_type.value);
+  }
+};
+
+template <>
+struct quill::Codec<CArrayNoDefaultType> : quill::DeferredFormatCodec<CArrayNoDefaultType>
+{
+};
+
 /***/
 TEST_CASE("c_array_types_logging")
 {
@@ -137,6 +176,9 @@ TEST_CASE("c_array_types_logging")
     TestEnumClass tca[2]{TestEnumClass::Test5, TestEnumClass::Test4};
     LOG_INFO(logger, "tca {}", tca);
 
+    CArrayNoDefaultType no_default_arr[2] = {CArrayNoDefaultType{"first", 1}, CArrayNoDefaultType{"second", 2}};
+    LOG_INFO(logger, "no_default_arr {}", no_default_arr);
+
     std::string y{"test"};
     int x = 111;
     LOG_INFO(logger, "a b c y d e x t ta tc tca {} {} {} {} {} {} {} {} {} {} {}", a, b, c, y, d, e,
@@ -184,6 +226,9 @@ TEST_CASE("c_array_types_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       tca [Test5, Test4]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       no_default_arr [CArrayNoDefault(label: first, value: 1), CArrayNoDefault(label: second, value: 2)]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       a b c y d e x t ta tc tca [true, false] [123, 456, 789, 321, 654, 987] [123.321, 0] test [123, 456, 789, 321, 654, 987] [123.321, 0] 111 Test2 [Test2, Test1] Test5 [Test5, Test4]"}));

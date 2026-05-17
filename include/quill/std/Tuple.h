@@ -27,6 +27,17 @@ QUILL_BEGIN_EXPORT
 template <typename... Types>
 struct Codec<std::tuple<Types...>>
 {
+private:
+  template <size_t... Indices>
+  static auto decode_arg_impl(std::byte*& buffer, std::index_sequence<Indices...>)
+  {
+    using TupleType = std::tuple<decltype(Codec<Types>::decode_arg(buffer))...>;
+
+    // Brace initialization preserves left-to-right evaluation of the decode calls.
+    return TupleType{((void)Indices, Codec<Types>::decode_arg(buffer))...};
+  }
+
+public:
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::tuple<Types...> const& arg) noexcept
   {
@@ -73,59 +84,18 @@ struct Codec<std::tuple<Types...>>
 
   static auto decode_arg(std::byte*& buffer)
   {
-    // Decode elements in order and construct tuple
-    // Note: Function argument evaluation order is unspecified, so we must ensure ordered evaluation
-    std::tuple<decltype(Codec<Types>::decode_arg(buffer))...> arg;
-
-    std::apply(
-      [&buffer](auto&... elems)
-      {
-        // Use fold expression with comma operator to ensure left-to-right evaluation
-        (...,
-         (
-           [&buffer, &elems]()
-           {
-             using ElemType = std::decay_t<decltype(elems)>;
-             auto decoded = Codec<ElemType>::decode_arg(buffer);
-
-             if constexpr (std::is_move_assignable_v<ElemType> && std::is_move_constructible_v<decltype(decoded)>)
-             {
-               elems = std::move(decoded);
-             }
-             else
-             {
-               elems = decoded;
-             }
-           }()));
-      },
-      arg);
-
-    // Use static_cast to explicitly select copy or move based on move constructibility
-    if constexpr (std::conjunction_v<std::is_move_constructible<decltype(Codec<Types>::decode_arg(buffer))>...>)
-    {
-      return arg; // Eligible for move
-    }
-    else
-    {
-      // Force copy construction for tuples with copy-only elements
-      using TupleType = std::tuple<decltype(Codec<Types>::decode_arg(buffer))...>;
-      return static_cast<TupleType const&>(arg);
-    }
+    return decode_arg_impl(buffer, std::index_sequence_for<Types...>{});
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    // Check if all tuple elements are move constructible
     if constexpr (std::conjunction_v<std::is_move_constructible<decltype(Codec<Types>::decode_arg(buffer))>...>)
     {
-      // All elements are move constructible, decode and move
       auto arg = decode_arg(buffer);
       args_store->push_back(std::move(arg));
     }
     else
     {
-      // Some elements are copy-only, decode and copy
-      // Use const auto& to ensure copy construction is used
       auto const arg = decode_arg(buffer);
       args_store->push_back(arg);
     }

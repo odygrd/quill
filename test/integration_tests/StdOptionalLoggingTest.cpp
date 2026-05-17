@@ -2,6 +2,7 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
@@ -16,6 +17,45 @@
 #include <vector>
 
 using namespace quill;
+
+class OptionalCopyOnlyType
+{
+public:
+  explicit OptionalCopyOnlyType(std::string label, int value)
+    : label(std::move(label)), value(value)
+  {
+  }
+
+  OptionalCopyOnlyType(OptionalCopyOnlyType const&) = default;
+  OptionalCopyOnlyType& operator=(OptionalCopyOnlyType const&) = default;
+  OptionalCopyOnlyType(OptionalCopyOnlyType&&) = delete;
+  OptionalCopyOnlyType& operator=(OptionalCopyOnlyType&&) = delete;
+
+  std::string label;
+  int value;
+};
+
+template <>
+struct fmtquill::formatter<OptionalCopyOnlyType>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::OptionalCopyOnlyType const& optional_copy_only_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "OptionalCopyOnly(label: {}, value: {})",
+                               optional_copy_only_type.label, optional_copy_only_type.value);
+  }
+};
+
+template <>
+struct quill::Codec<OptionalCopyOnlyType> : quill::DeferredFormatCodec<OptionalCopyOnlyType>
+{
+};
 
 /***/
 TEST_CASE("std_optional_logging")
@@ -79,6 +119,12 @@ TEST_CASE("std_optional_logging")
 
     // Test with temporary optional
     LOG_INFO(logger, "temp_opt {}", std::optional<std::string>{"temporary"});
+
+    std::optional<OptionalCopyOnlyType> copy_only_opt{std::in_place, "copy_only", 42};
+    LOG_INFO(logger, "copy_only_opt {}", copy_only_opt);
+
+    LOG_INFO(logger, "temp_copy_only_opt {}",
+             std::optional<OptionalCopyOnlyType>{std::in_place, "temp_copy_only", 84});
   }
 
   logger->flush_log();
@@ -122,6 +168,14 @@ TEST_CASE("std_optional_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_opt optional(\"temporary\")"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents,
+    std::string{"LOG_INFO      " + logger_name +
+                "       copy_only_opt optional(OptionalCopyOnly(label: copy_only, value: 42))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_copy_only_opt optional(OptionalCopyOnly(label: temp_copy_only, value: 84))"}));
 
   testing::remove_file(filename);
 }

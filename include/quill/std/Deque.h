@@ -17,12 +17,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <memory>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #if defined(_WIN32)
   #include <string>
+  #include <string_view>
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -111,18 +113,20 @@ struct Codec<std::deque<T, Allocator>>
       using ReturnType = decltype(Codec<T>::decode_arg(buffer));
       using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
       std::deque<ReturnType, ReboundAllocator> arg;
-      arg.resize(number_of_elements);
 
       for (size_t i = 0; i < number_of_elements; ++i)
       {
+        // Do not collapse this to emplace_back(Codec<T>::decode_arg(buffer)).
+        // That forwards a prvalue directly and can select a deleted move ctor
+        // for copy-only decoded types
         auto elem = Codec<T>::decode_arg(buffer);
         if constexpr (std::is_move_constructible_v<ReturnType>)
         {
-          arg[i] = std::move(elem);
+          arg.emplace_back(std::move(elem));
         }
         else
         {
-          arg[i] = elem;
+          arg.emplace_back(elem);
         }
       }
 

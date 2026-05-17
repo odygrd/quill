@@ -63,6 +63,44 @@ struct quill::Codec<CustomTypeTC> : quill::DeferredFormatCodec<CustomTypeTC>
 {
 };
 
+class ArrayNoDefaultType
+{
+public:
+  explicit ArrayNoDefaultType(std::string label, int value) : label(std::move(label)), value(value)
+  {
+  }
+
+  ArrayNoDefaultType(ArrayNoDefaultType const&) = default;
+  ArrayNoDefaultType& operator=(ArrayNoDefaultType const&) = default;
+  ArrayNoDefaultType(ArrayNoDefaultType&&) = default;
+  ArrayNoDefaultType& operator=(ArrayNoDefaultType&&) = default;
+
+  std::string label;
+  int value;
+};
+
+template <>
+struct fmtquill::formatter<ArrayNoDefaultType>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::ArrayNoDefaultType const& array_no_default_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "ArrayNoDefault(label: {}, value: {})",
+                               array_no_default_type.label, array_no_default_type.value);
+  }
+};
+
+template <>
+struct quill::Codec<ArrayNoDefaultType> : quill::DeferredFormatCodec<ArrayNoDefaultType>
+{
+};
+
 /***/
 TEST_CASE("std_array_logging")
 {
@@ -185,6 +223,14 @@ TEST_CASE("std_array_logging")
 
     // Test with temporary array
     LOG_INFO(logger, "temp_arr {}", std::array<std::string, 2>{"temp1", "temp2"});
+
+    std::array<ArrayNoDefaultType, 2> no_default_arr = {ArrayNoDefaultType{"left", 1},
+                                                        ArrayNoDefaultType{"right", 2}};
+    LOG_INFO(logger, "no_default_arr {}", no_default_arr);
+
+    LOG_INFO(logger, "temp_no_default_arr {}",
+             std::array<ArrayNoDefaultType, 2>{ArrayNoDefaultType{"temp_left", 3},
+                                               ArrayNoDefaultType{"temp_right", 4}});
   }
 
   logger->flush_log();
@@ -284,6 +330,12 @@ TEST_CASE("std_array_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_arr [\"temp1\", \"temp2\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       no_default_arr [ArrayNoDefault(label: left, value: 1), ArrayNoDefault(label: right, value: 2)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_no_default_arr [ArrayNoDefault(label: temp_left, value: 3), ArrayNoDefault(label: temp_right, value: 4)]"}));
 
   testing::remove_file(filename);
 }

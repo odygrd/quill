@@ -94,5 +94,6 @@ Next Steps
 ----------
 
 - :doc:`Overview <overview>` for the full architecture and design rationale.
-- :doc:`Guides <guides>` for sinks, formatters, JSON output, filters, and more.
+- :doc:`Metrics <metrics>` for sending compact metric samples through the backend worker.
+- :doc:`Guides <guides>` for sinks, metrics, formatters, JSON output, filters, and more.
 - :doc:`Recipes <recipes>` for common tasks and code examples.

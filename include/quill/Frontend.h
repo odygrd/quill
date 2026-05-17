@@ -12,6 +12,7 @@
 #include "quill/core/Common.h"
 #include "quill/core/FrontendOptions.h"
 #include "quill/core/LoggerManager.h"
+#include "quill/core/MetricManager.h"
 #include "quill/core/PatternFormatterOptions.h"
 #include "quill/core/QuillError.h"
 #include "quill/core/SinkManager.h"
@@ -151,6 +152,52 @@ public:
   QUILL_NODISCARD static std::shared_ptr<Sink> get_sink(std::string const& sink_name)
   {
     return detail::SinkManager::instance().get_sink(sink_name);
+  }
+
+  /**
+   * @brief Registers a new runtime metric and returns owned metadata for it.
+   *
+   * The MetricManager owns the returned MetricMetadata for the process lifetime, so the returned
+   * pointer is stable and can be passed directly to QUILL_METRIC / logger->publish_metric().
+   * `metric_key` is Quill's unique registration and lookup key for the metric metadata.
+   * `metric_name` must be non-empty but does not need to be unique, so multiple metric keys may
+   * reuse the same name when that fits the sink's export model.
+   *
+   * @throws QuillError if `metric_key` has already been registered.
+   */
+  QUILL_NODISCARD static MetricMetadata const* create_metric(std::string const& metric_key,
+                                                             std::string const& metric_name,
+                                                             std::vector<MetricLabel> const& labels = {})
+  {
+    return detail::MetricManager::instance().create_metric(metric_key, metric_name, labels);
+  }
+
+  /**
+   * @brief Registers a runtime metric or returns the existing MetricMetadata pointer.
+   *
+   * `metric_key` is the unique identifier. `metric_name` must be non-empty but is not required to
+   * be unique.
+   *
+   * If a metric with the same `metric_key` already exists, the existing pointer is returned
+   * unchanged and `metric_name` and `labels` are ignored. Use create_metric() if you need strict
+   * registration by unique key.
+   */
+  QUILL_NODISCARD static MetricMetadata const* create_or_get_metric(std::string const& metric_key,
+                                                                    std::string const& metric_name,
+                                                                    std::vector<MetricLabel> const& labels = {})
+  {
+    return detail::MetricManager::instance().create_or_get_metric(metric_key, metric_name, labels);
+  }
+
+  /**
+   * Looks up an existing metric.
+   * @param metric_key metric key used during creation
+   * @return the stored metric
+   * @throws QuillError if no metric with the given key has been registered.
+   */
+  QUILL_NODISCARD static MetricMetadata const* get_metric(std::string const& metric_key)
+  {
+    return detail::MetricManager::instance().get_metric(metric_key);
   }
 
   /**
@@ -418,6 +465,11 @@ public:
    *
    * @param logger_name The name of the logger.
    * @return Logger* A pointer to the retrieved logger, or nullptr if not found.
+   *
+   * @note Returns nullptr on miss on purpose so callers can check for a removed logger
+   *       without catching an exception (e.g., after the async remove_logger() path).
+   *       get_sink() and get_metric() are stricter and throw — they have no comparable
+   *       use case for an expected miss.
    */
   QUILL_NODISCARD static logger_t* get_logger(std::string const& logger_name)
   {

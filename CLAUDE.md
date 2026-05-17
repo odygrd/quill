@@ -76,6 +76,19 @@ Respect the library layering:
   very careful with every include reachable from those headers, including standard library headers. Any extra `#include`
   there propagates into user translation units and increases compile-time cost and header pollution.
 
+## Documentation
+
+- The Sphinx docs live under `docs/`.
+- Any standalone runnable sample in a `.rst` file (anything with `main()`, a class definition, or that the reader could
+  copy-paste and compile as-is) MUST live in its own compilable `.cpp` file under `docs/snippets/`, added to
+  `docs/snippets/CMakeLists.txt`, and referenced from the `.rst` via `.. literalinclude:: snippets/<file>.cpp`. Never
+  write full examples as inline `.. code-block:: cpp` blocks — CI must be able to compile them so they cannot silently
+  drift from the real API.
+- When adding a new docs page with a runnable sample, create the snippet file first, confirm it builds under
+  `QUILL_BUILD_EXAMPLES=ON`, and only then wire it into the `.rst` with a `literalinclude` directive.
+- Short illustrative fragments (a macro call, a function signature, a few lines showing an API shape) can stay as inline
+  `.. code-block:: cpp` since they are not standalone programs.
+
 ## Testing
 
 - Each new feature or fix should have a corresponding test, either a unit test or a regression/integration test.
@@ -92,6 +105,9 @@ Respect the library layering:
 - If the behavior is user-visible or easy to regress, prefer an end-to-end test in addition to a narrow unit test.
 - New features and tests should compile and run across supported platforms and toolchains, including Linux, macOS, and
   Windows, and major compilers such as GCC, Clang, and Intel LLVM.
+- Never attempt a full build of all targets unless the user explicitly asks for one. Full builds are slow on this
+  project, so only build the specific target(s) touched by the change (e.g. a single snippet, unit test, or integration
+  test) and let the user drive any broader build.
 
 ## Code Style
 

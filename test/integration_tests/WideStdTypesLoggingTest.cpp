@@ -18,6 +18,7 @@
 #include "quill/std/Set.h"
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
+#include "quill/std/Variant.h"
 #include "quill/std/Vector.h"
 #include "quill/std/WideString.h"
 
@@ -34,6 +35,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 using namespace quill;
@@ -83,6 +85,9 @@ TEST_CASE("wide_std_types_logging")
 
     std::array<wchar_t const*, 4> wscva = {L"c style", L"string test", L"test", L"log"};
     LOG_INFO(logger, "wscva {}", wscva);
+
+    wchar_t const* wcarr[3] = {L"alpha", L"beta", L"gamma"};
+    LOG_INFO(logger, "wcarr {}", wcarr);
 
     std::deque<std::wstring> wds = {L"test", L"string"};
     LOG_INFO(logger, "wds {}", wds);
@@ -147,6 +152,9 @@ TEST_CASE("wide_std_types_logging")
     std::optional<wchar_t const*> woc{L"test"};
     LOG_INFO(logger, "woc {}", woc);
 
+    std::array<std::optional<std::wstring>, 2> waow = {std::optional<std::wstring>{L"nested"}, std::nullopt};
+    LOG_INFO(logger, "waow {}", waow);
+
     std::set<std::wstring> sa = {L"test", L"string"};
     LOG_INFO(logger, "sa {}", sa);
 
@@ -190,6 +198,7 @@ TEST_CASE("wide_std_types_logging")
 
     std::unordered_map<int, std::wstring> uccmi = {{7, L"700"}};
     LOG_INFO(logger, "uccmi {}", uccmi);
+
   }
 
   logger->flush_log();
@@ -218,6 +227,9 @@ TEST_CASE("wide_std_types_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       wscva [\"c style\", \"string test\", \"test\", \"log\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       wcarr [\"alpha\", \"beta\", \"gamma\"]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       wds [\"test\", \"string\"]"}));
@@ -281,6 +293,9 @@ TEST_CASE("wide_std_types_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       woc optional(\"test\")"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       waow [optional(\"nested\"), none]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       sa [\"string\", \"test\"]"}));

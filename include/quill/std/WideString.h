@@ -16,6 +16,7 @@
 
   #include <cstddef>
   #include <cstdint>
+  #include <cwchar>
   #include <limits>
   #include <string>
   #include <string_view>

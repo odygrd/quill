@@ -196,6 +196,20 @@ TEST_CASE("construct")
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::InitBacktrace);
     REQUIRE_EQ(macro_metadata.has_named_args(), false);
   }
+
+  {
+    constexpr MacroMetadata macro_metadata{
+      "metrics/Emitter.cpp:12",    "emit_metric", "", nullptr, quill::LogLevel::None,
+      MacroMetadata::Event::Metric};
+
+    REQUIRE_STREQ(macro_metadata.message_format(), "");
+    REQUIRE_EQ(macro_metadata.log_level(), quill::LogLevel::None);
+    REQUIRE_STREQ(macro_metadata.line(), "12");
+    REQUIRE_EQ(macro_metadata.file_name(), std::string_view{"Emitter.cpp"});
+    REQUIRE_STREQ(macro_metadata.short_source_location(), "Emitter.cpp:12");
+    REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Metric);
+    REQUIRE_EQ(macro_metadata.has_named_args(), false);
+  }
 }
 
 TEST_CASE("empty_source_location_is_handled")

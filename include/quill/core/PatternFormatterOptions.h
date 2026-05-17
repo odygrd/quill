@@ -27,7 +27,7 @@ class PatternFormatterOptions
 private:
   static constexpr char const* default_format_pattern{
     "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
-    "%(message)"};
+    "%(message)%(mdc)"};
 
 public:
   /***/
@@ -65,6 +65,7 @@ public:
    * %(source_location)         - Full source file path and line number as a single string.
    * %(short_source_location)   - Shortened source file name and line number as a single string.
    * %(tags)                    - Additional custom tags appended to the message when _TAGS macros are used.
+   * %(mdc)                     - The backend-formatted MDC block for the calling thread. Empty when no MDC is set.
    * %(named_args)              - Key-value pairs appended to the message. Only applicable when the message has named args; remains empty otherwise.
    *
    * @warning The same attribute cannot be used twice in the same format pattern.

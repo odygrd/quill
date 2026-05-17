@@ -34,6 +34,7 @@ class BackendWorker;
 QUILL_BEGIN_EXPORT
 
 class MacroMetadata;
+class MetricMetadata;
 class PatternFormatter;
 
 QUILL_END_EXPORT
@@ -136,6 +137,21 @@ protected:
     LogLevel log_level, std::string_view log_level_description, std::string_view log_level_short_code,
     std::vector<std::pair<std::string, std::string>> const* named_args,
     std::string_view log_message, std::string_view log_statement) = 0;
+
+  /**
+   * @brief Publishes a metric sample to the sink.
+   * @note Accessor for backend processing.
+   *
+   * The default implementation ignores metric events so existing log-only sinks do not need to
+   * implement metrics support.
+   */
+  QUILL_ATTRIBUTE_HOT virtual void write_metric(MetricMetadata const* /* metric_metadata */,
+                                                uint64_t /* log_timestamp */, std::string_view /* thread_id */,
+                                                std::string_view /* thread_name */,
+                                                std::string const& /* process_id */,
+                                                std::string_view /* logger_name */, double /* value */)
+  {
+  }
 
   /**
    * @brief Flushes the sink, synchronizing the associated sink with its controlled output sequence.

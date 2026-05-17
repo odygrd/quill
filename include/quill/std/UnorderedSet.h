@@ -16,10 +16,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <type_traits>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#if defined(_WIN32)
+  #include <string>
+  #include <string_view>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 
@@ -49,6 +55,8 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
       // For other complex types it's essential to determine the exact size of each element.
       // For instance, in the case of a collection of std::string, we need to know the exact size
       // of each string as we will be copying them directly to our queue buffer.
+      // Any nested codec sizes pushed into conditional_arg_size_cache are consumed in encode()
+      // by iterating this same container instance again without mutation.
       for (auto const& elem : arg)
       {
         total_size += Codec<Key>::compute_encoded_size(conditional_arg_size_cache, elem);
@@ -64,6 +72,8 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 
+    // This traversal must mirror compute_encoded_size(). For unordered containers that relies on
+    // iterating the same container instance without mutation or rehashing between the two passes.
     // Forward elements based on whether the container was passed as rvalue
     if constexpr (std::is_rvalue_reference_v<Arg&&>)
     {

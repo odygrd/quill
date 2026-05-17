@@ -99,14 +99,36 @@
 
 ## v12.0.0
 
-This is a maintenance-focused release with internal hardening and targeted reliability fixes.
-Most changes address uncommon scenarios rather than normal usage.
+This release introduces asynchronous metrics, broadens codec coverage, and adds API and
+reliability improvements across backend lifecycle handling, sinks, and platform-specific paths.
 
-- C++20 module support groundwork, including export markers and macro cleanup.
-- Improved backend configuration and lifecycle handling, including more robust startup and shutdown behavior.
-- Improved logger and sink creation APIs with stricter validation and clearer duplicate handling.
-- Improved file, rotating, and JSON sink reliability, including native Windows file handles.
-- Fixed multiple regressions and reliability issues.
+Quill can now offload both logs and metric samples through the same backend worker, with metric
+metadata registered up front and each publish call enqueueing only a compact, fixed-size sample
+record on the hot path.
+
+- Added asynchronous metrics support, including metric registration APIs, `Logger::publish_metric()`,
+  the `METRIC(...)` macro, and backend sink delivery through `Sink::write_metric()`.
+- Added an optional `PrometheusSink` and examples for both a custom metric sink and Prometheus-backed
+  export:
+  [custom metric sink example](https://github.com/odygrd/quill/blob/master/docs/snippets/quill_docs_example_metric_publishing.cpp),
+  [Prometheus sink example](https://github.com/odygrd/quill/blob/master/examples/metric_publishing_prometheus.cpp)
+- Added per-thread mapped diagnostic context (MDC) support with `Logger::set_mdc()`, `Logger::erase_mdc()`,
+  `Logger::clear_mdc()`, the `%(mdc)` pattern attribute, and `BackendOptions::mdc_format_pattern` for global MDC
+  rendering.
+- Added std codec support for `std::variant`, `std::bitset`, `std::complex`, and `std::error_code`.
+- Extended `quill/std/Chrono.h` codec support to match bundled fmt's C++20 calendar formatters,
+  including `std::chrono::year`, `month`, `day`, `weekday`, and `year_month_day` when available.
+- Added C++20 module support groundwork, including export markers and macro cleanup.
+- Added strict `Frontend::create_sink()` and `Frontend::create_logger()` APIs for callers that want
+  duplicate names to fail instead of reusing existing objects.
+- Added `CsvWriter::close()` for deterministic logger removal and file closure before backend shutdown.
+- `BackendOptions::cpu_affinity` now supports pinning the backend to multiple CPUs.
+- Improved Windows sink and file handling, including native file handles and a fallback to `fs::absolute` when
+  `fs::canonical` fails on RAM disks. ([#910](https://github.com/odygrd/quill/issues/910))
+- Hardened backend, signal-handler, manual-backend, and teardown paths with more robust startup and shutdown behavior.
+- Fixed multiple codec, sink rotation, named-argument, queue, and platform-specific edge cases.
+- Generated a Doxygen tag file for downstream documentation
+  linking. ([#914](https://github.com/odygrd/quill/issues/914))
 
 ## v11.1.0
 

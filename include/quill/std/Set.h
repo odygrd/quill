@@ -16,10 +16,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <set>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#if defined(_WIN32)
+  #include <string>
+  #include <string_view>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

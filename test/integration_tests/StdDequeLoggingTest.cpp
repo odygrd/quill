@@ -2,6 +2,7 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
@@ -13,6 +14,44 @@
 #include <string_view>
 
 using namespace quill;
+
+class DequeNoDefaultType
+{
+public:
+  explicit DequeNoDefaultType(std::string label, int value) : label(std::move(label)), value(value)
+  {
+  }
+
+  DequeNoDefaultType(DequeNoDefaultType const&) = default;
+  DequeNoDefaultType& operator=(DequeNoDefaultType const&) = default;
+  DequeNoDefaultType(DequeNoDefaultType&&) = default;
+  DequeNoDefaultType& operator=(DequeNoDefaultType&&) = default;
+
+  std::string label;
+  int value;
+};
+
+template <>
+struct fmtquill::formatter<DequeNoDefaultType>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::DequeNoDefaultType const& deque_no_default_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "DequeNoDefault(label: {}, value: {})",
+                               deque_no_default_type.label, deque_no_default_type.value);
+  }
+};
+
+template <>
+struct quill::Codec<DequeNoDefaultType> : quill::DeferredFormatCodec<DequeNoDefaultType>
+{
+};
 
 /***/
 TEST_CASE("std_deque_logging")
@@ -165,6 +204,15 @@ TEST_CASE("std_deque_logging")
 
     // Test with temporary deque
     LOG_INFO(logger, "temp_deque {}", std::deque<std::string>{"temp1", "temp2", "temp3"});
+
+    std::deque<DequeNoDefaultType> no_default_deque;
+    no_default_deque.emplace_back("left", 1);
+    no_default_deque.emplace_back("right", 2);
+    LOG_INFO(logger, "no_default_deque {}", no_default_deque);
+
+    LOG_INFO(logger, "temp_no_default_deque {}",
+             std::deque<DequeNoDefaultType>{DequeNoDefaultType{"temp_left", 3},
+                                            DequeNoDefaultType{"temp_right", 4}});
   }
 
   logger->flush_log();
@@ -271,6 +319,12 @@ TEST_CASE("std_deque_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_deque [\"temp1\", \"temp2\", \"temp3\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       no_default_deque [DequeNoDefault(label: left, value: 1), DequeNoDefault(label: right, value: 2)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_no_default_deque [DequeNoDefault(label: temp_left, value: 3), DequeNoDefault(label: temp_right, value: 4)]"}));
 
   testing::remove_file(filename);
 }

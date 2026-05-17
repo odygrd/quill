@@ -278,6 +278,24 @@ public:
                                                        "W",  "E",  "C",  "BT", "_"};
 
   /**
+   * Format string used when rendering PatternFormatter's `%(mdc)`.
+   *
+   * The string must contain exactly two "{}" placeholders. The text is split into four parts:
+   * - prefix: everything before the first "{}"
+   * - key-value separator: between the first and second "{}"
+   * - field separator: between the second "{}" and the last character
+   * - suffix: the last character
+   *
+   * For example, the default " [{}: {}, ]" renders:
+   *   " [request_id: 42, user: alice]"
+   *
+   * When no MDC is set, %(mdc) expands to an empty string.
+   *
+   * Invalid patterns are rejected with QuillError during backend initialization.
+   */
+  std::string mdc_format_pattern = " [{}: {}, ]";
+
+  /**
    * Enables a runtime check to detect multiple instances of the backend singleton.
    *
    * When mixing shared and static libraries, linkage issues can lead to multiple instances

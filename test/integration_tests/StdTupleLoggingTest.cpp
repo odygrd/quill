@@ -2,6 +2,7 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
@@ -16,6 +17,39 @@
 #include <vector>
 
 using namespace quill;
+
+struct TupleNoDefaultType
+{
+  explicit TupleNoDefaultType(std::string value) : value(std::move(value)) {}
+
+  TupleNoDefaultType(TupleNoDefaultType const&) = default;
+  TupleNoDefaultType& operator=(TupleNoDefaultType const&) = default;
+  TupleNoDefaultType(TupleNoDefaultType&&) = delete;
+  TupleNoDefaultType& operator=(TupleNoDefaultType&&) = delete;
+
+  std::string value;
+};
+
+template <>
+struct fmtquill::formatter<TupleNoDefaultType>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::TupleNoDefaultType const& tuple_no_default_type, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "TupleNoDefault(value: {})", tuple_no_default_type.value);
+  }
+};
+
+template <>
+struct quill::Codec<TupleNoDefaultType> : quill::DeferredFormatCodec<TupleNoDefaultType>
+{
+};
 
 /***/
 TEST_CASE("std_tuple_logging")
@@ -42,6 +76,9 @@ TEST_CASE("std_tuple_logging")
   Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink));
 
   {
+    std::tuple<> empty_tuple;
+    LOG_INFO(logger, "empty_tuple {}", empty_tuple);
+
     std::tuple<std::string> st{"123456789"};
     LOG_INFO(logger, "st {}", st);
 
@@ -60,6 +97,12 @@ TEST_CASE("std_tuple_logging")
 
     // Test with temporary tuple
     LOG_INFO(logger, "temp_tuple {}", std::tuple<int, std::string>{200, "temp"});
+
+    std::tuple<TupleNoDefaultType, int> no_default_tuple{TupleNoDefaultType{"no_default"}, 7};
+    LOG_INFO(logger, "no_default_tuple {}", no_default_tuple);
+
+    LOG_INFO(logger, "temp_no_default_tuple {}",
+             std::tuple<TupleNoDefaultType, int>{TupleNoDefaultType{"temp_no_default"}, 8});
   }
 
   logger->flush_log();
@@ -70,6 +113,9 @@ TEST_CASE("std_tuple_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       empty_tuple ()"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       st (\"123456789\")"}));
@@ -88,6 +134,14 @@ TEST_CASE("std_tuple_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_tuple (200, \"temp\")"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       no_default_tuple (TupleNoDefault(value: no_default), 7)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents,
+    std::string{"LOG_INFO      " + logger_name +
+                "       temp_no_default_tuple (TupleNoDefault(value: temp_no_default), 8)"}));
 
   testing::remove_file(filename);
 }

@@ -106,11 +106,17 @@ class FuzzerRunner:
         "FUZZ_UserDefinedDeferredFormat",
         "FUZZ_UserDefinedDirectFormat",
         "FUZZ_QueueStress",
+        "FUZZ_QueueConfiguration",
+        "FUZZ_MegaEventCodec",
+        "FUZZ_JsonStructuredLogging",
         "FUZZ_BinaryData",
         "FUZZ_Multithread",
         "FUZZ_DynamicLogLevel",
         "FUZZ_LoggerLifecycle",
         "FUZZ_RotatingSink",
+        "FUZZ_BacktraceStateMachine",
+        "FUZZ_MultiSinkFilter",
+        "FUZZ_MdcState",
     ]
 
     ERROR_PATTERNS = [
@@ -383,8 +389,10 @@ def main():
         default="*",
         help="Fuzzer to run (default: * = all). Options: FUZZ_BasicTypes, FUZZ_StlContainers, "
              "FUZZ_UserDefinedDeferredFormat, FUZZ_UserDefinedDirectFormat, FUZZ_QueueStress, "
+             "FUZZ_QueueConfiguration, FUZZ_MegaEventCodec, FUZZ_JsonStructuredLogging, "
              "FUZZ_BinaryData, FUZZ_Multithread, FUZZ_DynamicLogLevel, FUZZ_LoggerLifecycle, "
-             "FUZZ_RotatingSink, or * for all"
+             "FUZZ_RotatingSink, FUZZ_BacktraceStateMachine, FUZZ_MultiSinkFilter, "
+             "FUZZ_MdcState, or * for all"
     )
 
     parser.add_argument(
@@ -396,6 +404,8 @@ def main():
     )
 
     args = parser.parse_args()
+
+    expected_fuzzer = "FUZZ_BasicTypes" if args.fuzzer == "*" else args.fuzzer
 
     # Auto-detect or find fuzzer directory
     if args.fuzzer_dir is None:
@@ -413,7 +423,7 @@ def main():
         ]
 
         for candidate in candidates:
-            if candidate.exists() and (candidate / "FUZZ_BasicTypes").exists():
+            if candidate.exists() and (candidate / expected_fuzzer).exists():
                 args.fuzzer_dir = candidate
                 break
 
@@ -426,7 +436,7 @@ def main():
         fuzzer_dir = Path(args.fuzzer_dir).resolve()
 
         # If user passed a build directory, search for fuzzers in common subdirs
-        if not (fuzzer_dir / "FUZZ_BasicTypes").exists():
+        if not (fuzzer_dir / expected_fuzzer).exists():
             # Try common subdirectories within the build dir
             search_paths = [
                 fuzzer_dir / "build/test",
@@ -436,7 +446,7 @@ def main():
 
             found = False
             for search_path in search_paths:
-                if search_path.exists() and (search_path / "FUZZ_BasicTypes").exists():
+                if search_path.exists() and (search_path / expected_fuzzer).exists():
                     args.fuzzer_dir = search_path
                     found = True
                     break

@@ -34,7 +34,11 @@ public:
     LogWithRuntimeMetadataDeepCopy,
     LogWithRuntimeMetadataHybridCopy,
     LogWithRuntimeMetadataShallowCopy,
-    LoggerRemovalRequest
+    LoggerRemovalRequest,
+    Metric,
+    MdcSet,
+    MdcErase,
+    MdcClear
   };
 
   constexpr MacroMetadata() = default;

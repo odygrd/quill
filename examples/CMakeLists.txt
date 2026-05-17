@@ -1,6 +1,8 @@
 add_subdirectory(recommended_usage)
 add_subdirectory(shared_library)
 
+find_package(prometheus-cpp QUIET CONFIG)
+
 # Define a variable with all example targets
 set(EXAMPLE_TARGETS
         quill_example_backend_thread_notify
@@ -39,6 +41,10 @@ set(EXAMPLE_TARGETS
         quill_example_user_defined_types_logging_helper_macros
 )
 
+if (TARGET prometheus-cpp::core AND TARGET prometheus-cpp::pull)
+    list(APPEND EXAMPLE_TARGETS quill_example_metric_publishing_prometheus)
+endif ()
+
 # Add additional examples that are using exceptions in the example code
 if (NOT QUILL_NO_EXCEPTIONS)
     add_subdirectory(sbe_binary_data)
@@ -54,7 +60,12 @@ foreach (example_target ${EXAMPLE_TARGETS})
 
     add_executable(${example_target} ${source_file})
     set_common_compile_options(${example_target})
-    target_link_libraries(${example_target} quill)
+
+    if (example_target STREQUAL "quill_example_metric_publishing_prometheus")
+        target_link_libraries(${example_target} quill prometheus-cpp::core prometheus-cpp::pull)
+    else ()
+        target_link_libraries(${example_target} quill)
+    endif ()
 endforeach ()
 
 install(TARGETS ${EXAMPLE_TARGETS}

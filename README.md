@@ -89,21 +89,27 @@
 
 ## ✨ Introduction
 
-**Quill** is a **high-performance asynchronous logging library** written in **C++**. It is designed for low-latency,
-performance-critical applications where every microsecond counts.
+**Quill** is a **high-performance asynchronous logging library for C++** built for systems where
+hot-path cost matters. It keeps formatting and I/O off the caller thread, preserves timestamp
+order across active queues, and can also carry pre-registered metric samples through the same
+backend worker.
 
-- **Performance-Focused**: Quill consistently outperforms many popular logging libraries.
-- **Feature-Rich**: Packed with advanced features to meet diverse logging needs.
-- **Battle-Tested**: Proven in demanding production environments. Extensively tested with sanitizers (ASan, UBSan, LSan)
-  and fuzzed across a wide range of inputs.
-- **Extensive Documentation**: Comprehensive guides and examples available.
-- **Community-Driven**: Open to contributions, feedback, and feature requests.
+- **Performance-Focused**: Built for low-latency, performance-sensitive applications.
+- **Logs and Metrics on One Pipeline**: Use one backend worker for logs and optional metrics, with
+  no dedicated metrics thread required.
+- **Feature-Rich**: Console and file sinks, rotation, JSON logging, filtering, backtrace logging,
+  custom clocks, and more.
+- **Production-Tested**: Exercised with sanitizers and fuzzing and used in demanding environments.
+- **Well-Documented**: Guides, recipes, examples, and API reference are ready when you need more
+  than the README.
 
 ### When to Use Quill
 
 Quill is a good fit when you need **low frontend latency** (trading, gamedev, real-time systems),
 **timestamp-ordered logs across threads**, or **deferred log formatting** that keeps string
-conversion and I/O off your hot path.
+conversion and I/O off your hot path. It is also a good fit when you want **logs and metrics to
+share one asynchronous backend pipeline** without pushing formatting or export work onto hot
+threads.
 
 ---
 
@@ -131,7 +137,7 @@ You can install Quill using the package manager of your choice:
 
 #### Quickest Setup
 
-For the quickest and simplest setup use `simple_logger()`:
+For the shortest path from zero to working logs, use `simple_logger()`:
 
 ```c++
 #include "quill/SimpleSetup.h"
@@ -157,7 +163,8 @@ int main()
 
 #### Detailed Setup
 
-For more detailed control and configuration options, use the `Backend` and `Frontend` APIs:
+If you want explicit control over backend options, logger names, sinks, or formatters, use the
+`Backend` and `Frontend` APIs directly:
 
 ```c++
 #include "quill/Backend.h"
@@ -184,11 +191,9 @@ int main()
 20:07:18.423476231 [48917] main.cpp:15                   LOG_INFO      root         Hello from Quill!
 ```
 
-Alternatively, you can use the macro-free mode. The macro-based interface (`LOG_INFO`) is recommended for
-lowest latency since arguments are only evaluated when the log level is active. The macro-free interface
-(`quill::info`) is slightly slower but offers cleaner syntax.
-See [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details on performance
-trade-offs.
+You can also use the macro-free mode. The macro API (`LOG_INFO`) is the lowest-latency path.
+The function API (`quill::info`) reads more like ordinary code but is slightly slower.
+See [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for the trade-offs.
 
 ```c++
 #include "quill/Backend.h"
@@ -209,28 +214,53 @@ int main()
 }
 ```
 
+### Metrics on the Same Pipeline
+
+Quill can also publish metric samples through the same asynchronous backend used for logs, so you
+do not need a second pipeline or a dedicated metrics thread. Register metric metadata once, keep
+the returned pointer, and publish samples from hot threads.
+
+The snippet below shows the core publish path:
+
+```c++
+quill::MetricMetadata const* requests_total = quill::Frontend::create_metric(
+  "requests_total_post_200", "requests_total", {{"method", "POST"}, {"status", "200"}});
+
+logger->publish_metric(requests_total, 1.0);
+```
+
+See the [Metrics guide](https://quillcpp.readthedocs.io/en/latest/metrics.html) for sink setup,
+custom sinks, and Prometheus integration.
+
 ---
 
 ## 🎯 Features
 
-- **High-Performance**: Ultra-low latency performance. View [Benchmarks](#-performance).
-- **Asynchronous Processing**: Background thread handles formatting and I/O, keeping your main thread responsive.
-- **Minimal Header Includes**: Only `Logger.h` and `LogMacros.h` needed on the frontend. No backend code leaks into other translation units.
-- **Compile-Time Optimization**: Eliminate specific log levels at compile time.
-- **Custom Formatters**: Define your own log output patterns. See [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
-- **Timestamp-Ordered Logs**: Simplify debugging of multithreaded applications with chronologically ordered logs.
-- **Flexible Timestamps**: Support for `rdtsc`, `chrono`, or custom clocks — ideal for simulations and more.
-- **Backtrace Logging**: Store messages in a ring buffer for on-demand display. See [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html).
-- **Multiple Output Sinks**: Console (with color), files (with rotation), JSON, and custom sinks.
-- **Log Filtering**: Process only relevant messages. See [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
-- **JSON Logging**: Structured log output. See [JSON Logging](https://quillcpp.readthedocs.io/en/latest/json_logging.html).
-- **Configurable Queue Modes**: Bounded/unbounded and blocking/dropping options with monitoring on dropped messages, queue reallocations, and blocked hot threads.
-- **Crash/Signal Handling**: Built-in signal and exception handling to help preserve logs during crashes.
-- **Huge Pages Support (Linux)**: Leverage huge pages on the hot path for optimized performance.
-- **Wide Character Support (Windows)**: Compatible with ASCII-encoded wide strings and STL containers.
-- **Exception-Free Option**: Configurable builds with or without exception handling.
-- **Clean Codebase**: Maintained to high standards, warning-free even at strict levels.
-- **Type-Safe API**: Built on [{fmt}](https://github.com/fmtlib/fmt).
+- **Low Hot-Path Latency**: Designed for performance-critical code. View [Benchmarks](#-performance).
+- **Asynchronous Processing**: A background worker handles formatting and I/O.
+- **Metrics Support**: Offload metric samples to the same background worker thread used for logs.
+- **Lean Frontend Includes**: Only `Logger.h` and `LogMacros.h` are needed on the frontend.
+- **Compile-Time Log-Level Elision**: Remove specific log levels entirely at compile time.
+- **Custom Formatting**: Define your own output patterns. See
+  [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
+- **Cross-Thread Timestamp Ordering**: Keep logs chronologically ordered across active queues.
+- **Flexible Clocks**: Use `rdtsc`, `chrono`, or custom clocks depending on your environment.
+- **Backtrace Logging**: Keep a ring buffer of recent messages for on-demand dumps. See
+  [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html).
+- **Rich Sink Support**: Console, files, rotation, JSON, and custom log or metric sinks.
+- **Filtering**: Route or suppress messages cleanly. See
+  [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
+- **Structured JSON Output**: Write machine-friendly logs when you need them. See
+  [JSON Logging](https://quillcpp.readthedocs.io/en/latest/json_logging.html).
+- **Configurable Queues**: Choose bounded or unbounded, blocking or dropping, with visibility into
+  drops, reallocations, and blocked hot threads.
+- **Crash/Signal Handling**: Built-in signal and exception handling can help preserve logs during
+  failures.
+- **Huge Pages Support (Linux)**: Reduce hot-path overhead further on tuned systems.
+- **Wide Character Support (Windows)**: Works with ASCII-encoded wide strings and STL containers.
+- **Exception-Free Builds**: Configure Quill with or without exceptions.
+- **Warning-Clean Codebase**: Maintained to strict compiler-warning standards.
+- **Type-Safe Formatting**: Built on [{fmt}](https://github.com/fmtlib/fmt).
 
 ---
 
@@ -500,9 +530,8 @@ quill_backend_total_time.log (human-readable log): 448 MB
 quill_backend_total_time.zip (zipped human-readable log): 47 MB
 ```
 
-If Quill were not available, MS BinLog would be a strong alternative. It delivers great latency on the hot path and
-generates smaller binary log files. However, the binary logs necessitate offline processing with additional tools, which
-can be less convenient.
+If you prefer a binary-log workflow, MS BinLog is a strong alternative. It delivers excellent hot-path latency and
+smaller raw files, but it trades away immediate readability and requires offline processing tools.
 
 ---
 
@@ -613,7 +642,7 @@ my_project/
 
 #### Sample CMakeLists.txt
 
-Here’s a sample `CMakeLists.txt` to get you started:
+Here is a minimal `CMakeLists.txt`:
 
 ```cmake
 # If Quill is in a non-standard directory, specify its path.
@@ -627,7 +656,7 @@ target_link_libraries(example PUBLIC quill::quill)
 
 ### Embedded CMake
 
-For a more integrated approach, embed Quill directly into your project:
+If you prefer to vendor Quill directly, add it as a subdirectory:
 
 #### Sample Directory Structure
 
@@ -656,14 +685,14 @@ target_link_libraries(my_project PUBLIC quill::quill)
 
 ### Android NDK
 
-When building Quill for Android, you might need to add this flag during configuration, but in most cases, it works
-without it:
+Android usually works without special handling. If your toolchain does not support thread names,
+configure with:
 
 ```bash
 -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
 ```
 
-For timestamps, use `quill::ClockSourceType::System`. Quill also includes an `AndroidSink`, which integrates with
+For timestamps, use `quill::ClockSourceType::System`. Quill also includes an `AndroidSink` for
 Android's logging system.
 
 #### Minimal Example to Start Logging on Android
@@ -689,7 +718,7 @@ LOG_INFO(logger, "Test {}", 123);
 
 #### Using WrapDB
 
-Easily integrate Quill with Meson’s `wrapdb`:
+Install Quill from Meson's `wrapdb` with:
 
 ```bash
 meson wrap install quill
@@ -697,7 +726,7 @@ meson wrap install quill
 
 #### Manual Integration
 
-Copy the repository contents to your `subprojects` directory and add the following to your `meson.build`:
+Or copy the repository into `subprojects` and add the following to `meson.build`:
 
 ```meson
 quill = subproject('quill')
@@ -709,7 +738,7 @@ my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], ins
 
 #### Using Bzlmod
 
-Quill is available on `Bzlmod` for easy integration.
+Quill is available on `Bzlmod`.
 
 #### Manual Integration
 
@@ -723,13 +752,15 @@ cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
 
 ## 📐 Design
 
+At a high level, frontend threads enqueue compact events and a single backend worker formats, orders, and writes them.
+
 ### Frontend (caller-thread)
 
 When invoking a `LOG_` macro:
 
-1. Creates a static constexpr metadata object to store `Metadata` such as the format string and source location.
+1. Creates a static constexpr metadata object containing the format string and source location.
 
-2. Pushes the data to the SPSC lock-free queue. For each log message, the following variables are pushed
+2. Pushes the event into the SPSC lock-free queue. For each log message, Quill enqueues:
 
 | Variable   |                                                  Description                                                   |
 |------------|:--------------------------------------------------------------------------------------------------------------:|
@@ -739,10 +770,23 @@ When invoking a `LOG_` macro:
 | DecodeFunc | A pointer to a templated function containing all the log message argument types, used for decoding the message |
 | Args...    |           A serialized binary copy of each log message argument that was passed to the `LOG_` macro            |
 
+When invoking `METRIC(...)` or `logger->publish_metric()`:
+
+1. Reuses pre-registered `MetricMetadata`, so metric names and labels are not serialized again on the hot path.
+
+2. Pushes a compact fixed-size sample record to the same SPSC queue.
+
+| Variable        |                              Description                              |
+|-----------------|:---------------------------------------------------------------------:|
+| timestamp       |                           Current timestamp                           |
+| MetricMetadata* |         Pointer to the pre-registered metric name and labels          |
+| Logger*         |                    Pointer to the logger instance                     |
+| value           | The actual sample value as a `double` (counter delta, latency, gauge) |
+
 ### Backend
 
-Consumes each message from the SPSC queue, retrieves all the necessary information and then formats the message.
-Subsequently, forwards the log message to all Sinks associated with the Logger.
+The backend thread drains the SPSC queue, reconstructs log events, forwards metric samples to
+`Sink::write_metric()`, and fans each log or metric event out to the sinks attached to the logger.
 
 ### Architecture Overview
 
@@ -754,17 +798,17 @@ The diagram below shows the end-to-end flow from hot frontend threads to the bac
 
 ## 🚨 Caveats
 
-**Do not log from destructors of static objects.** Quill's internal singletons are function-local statics destroyed in
-reverse construction order. If a static object's constructor triggers the first log call, the library singletons are
-constructed *after* that object — and destroyed *before* it. Logging from that object's destructor will access
-already-destroyed singletons, causing undefined behaviour.
+**Do not log from destructors of static or global objects.** Quill's internal singletons are
+function-local statics destroyed in reverse construction order. If a static object's constructor
+triggers the first log call, the library singletons are constructed *after* that object and
+destroyed *before* it. Logging from that destructor will then touch already-destroyed state.
 
-**Quill may not work well with `fork()`** since it spawns a background thread and `fork()` doesn't work well with
-multithreading. If your application uses `fork()` and you want to log in the child processes as well, you should call
-`quill::Backend::start()` after the `fork()` call. Additionally, you should ensure that you write to different files in
-the parent and child processes to avoid conflicts.
+**Use `fork()` with care.** Quill starts a background thread, and `fork()` interacts poorly with
+multithreaded processes. If you need logging in child processes, call `quill::Backend::start()`
+after `fork()` in each process that should log, and write parent and child output to different
+files.
 
-For example :
+Example:
 
 ```c++
 #include "quill/Backend.h"
@@ -781,10 +825,9 @@ int main()
   if (fork() == 0)
   {
     quill::Backend::start();
-        
-    // Get or create a handler to the file - Write to a different file
-    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
-      "child.log");
+
+    // Write child output to its own file.
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("child.log");
     
     quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
 
@@ -794,9 +837,8 @@ int main()
   {
     quill::Backend::start();
 
-    // Get or create a handler to the file - Write to a different file
-    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
-      "parent.log");
+    // Write parent output to its own file.
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("parent.log");
 
     quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
 
@@ -809,7 +851,7 @@ int main()
 
 ## 📝 License
 
-Quill is licensed under the [MIT License](https://opensource.org/licenses/MIT)
+Quill is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
 Quill depends on third party libraries with separate copyright notices and license terms.
 Your use of the source code for these subcomponents is subject to the terms and conditions of the following licenses.

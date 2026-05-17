@@ -90,6 +90,9 @@ TEST_CASE("std_vector_logging")
     std::vector<char> c = {'a', 'c'};
     LOG_INFO(logger, "c {}", c);
 
+    std::vector<bool> vb = {true, false, true};
+    LOG_INFO(logger, "vb {}", vb);
+
     std::vector<short> si = {-12, 10};
     LOG_INFO(logger, "si {}", si);
 
@@ -246,6 +249,9 @@ TEST_CASE("std_vector_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       c ['a', 'c']"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       vb [true, false, true]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       si [-12, 10]"}));

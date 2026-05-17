@@ -9,7 +9,7 @@ Sinks are objects responsible for writing logs to their respective targets.
 
 A :cpp:class:`Sink` object serves as the base class for various sink-derived classes.
 
-Each sink handles outputting logs to a single target, such as a file, console, or database.
+Each sink handles outputting logs, metrics, or both to a single target, such as a file, console, database, or metrics backend.
 
 Upon creation, a sink object is registered and owned by a central manager object, the `SinkManager`.
 
@@ -67,6 +67,12 @@ Customizing the Library with User-Defined Sinks
 You can extend the library by creating and integrating your own ``Sink`` types. The code within the ``Sink`` class is executed by a single backend worker thread.
 
 This can be useful if you want to direct log output to alternative destinations, such as a database, a network service, or even to write ``Parquet`` files.
+
+A custom sink can override ``write_log()``, ``write_metric()``, or both. The default
+``Sink::write_metric()`` implementation is a no-op, so existing log-only sinks do not need to
+change. If you want to export metrics, implement ``write_metric()`` and bind a logger to that
+sink. See :doc:`Metrics <metrics>` for the metric publishing model and the Prometheus/custom-sink
+examples.
 
 .. literalinclude:: ../examples/user_defined_sink.cpp
    :language: cpp

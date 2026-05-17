@@ -41,7 +41,7 @@ TEST_CASE("default_pattern_formatter")
 
   auto const& formatted_buffer = default_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -79,7 +79,7 @@ TEST_CASE("custom_pattern_message_only")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -115,7 +115,7 @@ TEST_CASE("custom_pattern_timestamp_precision_nanoseconds")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -153,7 +153,7 @@ TEST_CASE("custom_pattern_timestamp_precision_microseconds")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -191,7 +191,7 @@ TEST_CASE("custom_pattern_timestamp_precision_milliseconds")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -229,7 +229,7 @@ TEST_CASE("custom_pattern_timestamp_precision_none")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -270,7 +270,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_on_format_string_2")
 
     auto const& formatted_buffer = custom_pattern_formatter.format(
       ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata,
-      &named_args, std::string_view{log_msg.data(), log_msg.size()});
+      &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     // Convert the buffer to a string
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -312,7 +312,7 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
 
     auto const& formatted_buffer = custom_pattern_formatter.format(
       ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata,
-      &named_args, std::string_view{log_msg.data(), log_msg.size()});
+      &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     // Convert the buffer to a string
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -371,7 +371,7 @@ TEST_CASE("custom_pattern")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -410,7 +410,7 @@ TEST_CASE("custom_pattern_part_3_no_format_specifiers")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -442,9 +442,9 @@ TEST_CASE("empty_format_pattern")
 
   std::vector<std::pair<std::string, std::string>> named_args;
 
-  auto const& formatted_buffer =
-    empty_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata,
-                           &named_args, std::string_view{log_msg.data(), log_msg.size()});
+  auto const& formatted_buffer = empty_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -483,7 +483,7 @@ TEST_CASE("pattern_timestamp_move_constructor")
 
   auto const& formatted_buffer = pattern_formatter_move.format(
     ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -522,7 +522,7 @@ TEST_CASE("pattern_formatter_source_location_prefix")
 
     auto const& formatted_buffer =
       pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
-                               macro_metadata, &named_args, std::string_view{});
+                               macro_metadata, &named_args, std::string_view{}, std::string_view{});
 
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
@@ -542,7 +542,7 @@ TEST_CASE("pattern_formatter_source_location_prefix")
 
     auto const& formatted_buffer =
       pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
-                               macro_metadata, &named_args, std::string_view{});
+                               macro_metadata, &named_args, std::string_view{}, std::string_view{});
 
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
@@ -598,7 +598,7 @@ TEST_CASE("pattern_formatter_process_function_name")
 
   auto const& formatted_buffer =
     pattern_formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
-                             macro_metadata, &named_args, std::string_view{});
+                             macro_metadata, &named_args, std::string_view{}, std::string_view{});
 
   // in this test we remove e.g. _31 from the function name with process_function_name
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -869,7 +869,7 @@ TEST_CASE("pattern_suffix_nullopt")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -903,7 +903,7 @@ TEST_CASE("pattern_suffix_custom_char")
 
   auto const& formatted_buffer = custom_pattern_formatter.format(
     ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   // Convert the buffer to a string
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
@@ -942,7 +942,7 @@ TEST_CASE("pattern_suffix_newline_trimming")
   // Test with newline suffix - should trim trailing newline from message
   auto const& formatted_buffer_newline = formatter_newline.format(
     ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-    std::string_view{log_msg.data(), log_msg.size()});
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   std::string const formatted_string_newline = fmtquill::to_string(formatted_buffer_newline);
   std::string const expected_string_newline =
@@ -951,9 +951,9 @@ TEST_CASE("pattern_suffix_newline_trimming")
   REQUIRE_EQ(formatted_string_newline, expected_string_newline);
 
   // Test with custom suffix - should NOT trim trailing newline from message
-  auto const& formatted_buffer_custom =
-    formatter_custom.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata,
-                            &named_args, std::string_view{log_msg.data(), log_msg.size()});
+  auto const& formatted_buffer_custom = formatter_custom.format(
+    ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   std::string const formatted_string_custom = fmtquill::to_string(formatted_buffer_custom);
   std::string const expected_string_custom =
@@ -991,7 +991,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 
     auto const& formatted_buffer_custom = formatter_custom.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-      std::string_view{log_msg.data(), log_msg.size()});
+      std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_custom = fmtquill::to_string(formatted_buffer_custom);
     // Multi-line processing: finds \n in message to split lines, applies custom suffix to each
@@ -1001,7 +1001,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 
     auto const& formatted_buffer_newline = formatter_newline.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-      std::string_view{log_msg.data(), log_msg.size()});
+      std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_newline = fmtquill::to_string(formatted_buffer_newline);
     // With \n suffix: trailing \n in message is automatically skipped in multi-line loop
@@ -1024,7 +1024,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 
     auto const& formatted_buffer_custom = formatter_custom.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata_no_trailing,
-      &named_args, std::string_view{log_msg.data(), log_msg.size()});
+      &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_custom = fmtquill::to_string(formatted_buffer_custom);
     // Should process each line with custom suffix, last line is "Line 3"
@@ -1033,7 +1033,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 
     auto const& formatted_buffer_newline = formatter_newline.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-      std::string_view{log_msg.data(), log_msg.size()});
+      std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_newline = fmtquill::to_string(formatted_buffer_newline);
     // Should process each line with newline suffix, last line is "Line 3"
@@ -1052,7 +1052,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 
     auto const& formatted_buffer_custom = formatter_custom.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata_single,
-      &named_args, std::string_view{log_msg.data(), log_msg.size()});
+      &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_custom = fmtquill::to_string(formatted_buffer_custom);
     // Should process the line and the loop exits before processing the trailing \n
@@ -1061,7 +1061,7 @@ TEST_CASE("pattern_suffix_multiline_with_custom_suffix")
 
     auto const& formatted_buffer_newline = formatter_newline.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-      std::string_view{log_msg.data(), log_msg.size()});
+      std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_newline = fmtquill::to_string(formatted_buffer_newline);
     // Should process each line with newline suffix, last line is "Line 3"
@@ -1099,7 +1099,7 @@ TEST_CASE("pattern_suffix_binary_data_preservation")
   // Test with nullopt suffix - should preserve all 5 bytes
   auto const& formatted_buffer_nullopt = formatter_nullopt.format(
     ts, thread_id, thread_name, process_id, logger_name, "CRITICAL", "C", macro_metadata,
-    &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   std::string const formatted_string_nullopt = fmtquill::to_string(formatted_buffer_nullopt);
   REQUIRE_EQ(formatted_string_nullopt.size(), 5); // All 5 bytes preserved
@@ -1108,7 +1108,7 @@ TEST_CASE("pattern_suffix_binary_data_preservation")
   // Test with newline suffix - should trim trailing \n from message and add pattern \n
   auto const& formatted_buffer_newline = formatter_newline.format(
     ts, thread_id, thread_name, process_id, logger_name, "CRITICAL", "C", macro_metadata,
-    &named_args, std::string_view{log_msg.data(), log_msg.size()});
+    &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
   std::string const formatted_string_newline = fmtquill::to_string(formatted_buffer_newline);
   REQUIRE_EQ(formatted_string_newline.size(), 5); // 4 bytes + 1 pattern newline
@@ -1142,7 +1142,7 @@ TEST_CASE("pattern_suffix_multiline_metadata_with_no_suffix")
 
     auto const& formatted_buffer_no_suffix = formatter_no_suffix.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-      std::string_view{log_msg.data(), log_msg.size()});
+      std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_no_suffix = fmtquill::to_string(formatted_buffer_no_suffix);
 
@@ -1160,7 +1160,7 @@ TEST_CASE("pattern_suffix_multiline_metadata_with_no_suffix")
 
     auto const& formatted_buffer_no_suffix = formatter_no_suffix.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-      std::string_view{log_msg.data(), log_msg.size()});
+      std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_no_suffix = fmtquill::to_string(formatted_buffer_no_suffix);
 
@@ -1178,7 +1178,7 @@ TEST_CASE("pattern_suffix_multiline_metadata_with_no_suffix")
 
     auto const& formatted_buffer_no_suffix = formatter_no_suffix.format(
       ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata, &named_args,
-      std::string_view{log_msg.data(), log_msg.size()});
+      std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
 
     std::string const formatted_string_no_suffix = fmtquill::to_string(formatted_buffer_no_suffix);
 

@@ -10,6 +10,7 @@
 #include "quill/backend/BackendOptions.h"
 #include "quill/backend/SignalHandler.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/MetricManager.h"
 #include "quill/core/QuillError.h"
 
 #include <atomic>
@@ -41,9 +42,18 @@ public:
     std::call_once(detail::BackendManager::instance().get_start_once_flag(),
                    [options]()
                    {
-                     // Ensure SignalHandlerContext singleton is constructed before atexit
-                     // registration so it is alive when the atexit handler runs during shutdown.
+                     // Static-destruction ordering matters here because Backend::stop() runs via
+                     // std::atexit. Any singleton the backend may touch during shutdown must be
+                     // constructed before we register the atexit handler, otherwise it could be
+                     // destroyed first and the backend could dereference freed state while draining
+                     // queues.
+                     //
+                     // BackendManager construction already pins ThreadContextManager,
+                     // SinkManager, and LoggerManager because BackendWorker stores references to
+                     // them as members. SignalHandlerContext and MetricManager are not pinned that
+                     // way, so construct them explicitly before atexit registration.
                      (void)detail::SignalHandlerContext::instance();
+                     (void)detail::MetricManager::instance();
 
                      // Run the backend worker thread, we wait here until the thread enters the main loop
                      detail::BackendManager::instance().start_backend_thread(options);
@@ -84,92 +94,95 @@ public:
   QUILL_ATTRIBUTE_COLD static void start(BackendOptions const& backend_options,
                                          SignalHandlerOptions const& signal_handler_options)
   {
-    std::call_once(detail::BackendManager::instance().get_start_once_flag(),
-                   [backend_options, signal_handler_options]()
-                   {
-                     bool signal_handler_initialized{false};
+    std::call_once(
+      detail::BackendManager::instance().get_start_once_flag(),
+      [backend_options, signal_handler_options]()
+      {
+        bool signal_handler_initialized{false};
 #if defined(_WIN32)
-                     bool exception_handler_initialized{false};
+        bool exception_handler_initialized{false};
 #else
-                     sigset_t set, oldset;
-                     bool signal_mask_modified{false};
+        sigset_t set, oldset;
+        bool signal_mask_modified{false};
 #endif
-                     QUILL_TRY
-                     {
+        QUILL_TRY
+        {
+          // See Backend::start(BackendOptions) for the shutdown-order rationale.
+          // BackendManager construction already pins ThreadContextManager,
+          // SinkManager, and LoggerManager through BackendWorker member references.
+          (void)detail::MetricManager::instance();
+
 #if defined(_WIN32)
-                       detail::init_exception_handler<TFrontendOptions>();
-                       exception_handler_initialized = true;
+          detail::init_exception_handler<TFrontendOptions>();
+          exception_handler_initialized = true;
 #else
-                       // We do not want the signal handler to run in the backend worker thread.
-                       // Block signals in the caller thread so the backend worker inherits that mask.
-                       sigfillset(&set);
-                       if (sigprocmask(SIG_SETMASK, &set, &oldset) != 0)
-                       {
-                         QUILL_THROW(QuillError{
-                           "Failed to block signals before starting the backend thread"});
-                       }
-                       signal_mask_modified = true;
-                       detail::init_signal_handler<TFrontendOptions>(signal_handler_options.catchable_signals);
-                       signal_handler_initialized = true;
+          // We do not want the signal handler to run in the backend worker thread.
+          // Block signals in the caller thread so the backend worker inherits that mask.
+          sigfillset(&set);
+          if (sigprocmask(SIG_SETMASK, &set, &oldset) != 0)
+          {
+            QUILL_THROW(QuillError{"Failed to block signals before starting the backend thread"});
+          }
+          signal_mask_modified = true;
+          detail::init_signal_handler<TFrontendOptions>(signal_handler_options.catchable_signals);
+          signal_handler_initialized = true;
 #endif
 
-                       auto& signal_handler_context = detail::SignalHandlerContext::instance();
-                       signal_handler_context.logger_name = signal_handler_options.logger_name;
-                       signal_handler_context.excluded_logger_substrings =
-                         signal_handler_options.excluded_logger_substrings;
-                       signal_handler_context.signal_handler_timeout_seconds.store(
-                         signal_handler_options.timeout_seconds);
+          auto& signal_handler_context = detail::SignalHandlerContext::instance();
+          signal_handler_context.logger_name = signal_handler_options.logger_name;
+          signal_handler_context.excluded_logger_substrings = signal_handler_options.excluded_logger_substrings;
+          signal_handler_context.signal_handler_timeout_seconds.store(signal_handler_options.timeout_seconds);
 
-                       // Run the backend worker thread, we wait here until the thread enters the main loop
-                       detail::BackendManager::instance().start_backend_thread(backend_options);
+          // Run the backend worker thread, we wait here until the thread enters the main loop
+          detail::BackendManager::instance().start_backend_thread(backend_options);
 
-                       // We need to update the signal handler with some backend thread details
-                       signal_handler_context.backend_thread_id.store(
-                         detail::BackendManager::instance().get_backend_thread_id());
+          // We need to update the signal handler with some backend thread details
+          signal_handler_context.backend_thread_id.store(
+            detail::BackendManager::instance().get_backend_thread_id());
 
 #if defined(_WIN32)
         // nothing to do
 #else
-                       // Unblock signals in the caller thread so subsequent threads do not inherit the blocked mask
-                       if (sigprocmask(SIG_SETMASK, &oldset, nullptr) != 0)
-                       {
-                         QUILL_THROW(QuillError{
-                           "Failed to restore the caller signal mask after backend startup"});
-                       }
-                       signal_mask_modified = false;
+          // Unblock signals in the caller thread so subsequent threads do not inherit the blocked mask
+          if (sigprocmask(SIG_SETMASK, &oldset, nullptr) != 0)
+          {
+            QUILL_THROW(
+              QuillError{"Failed to restore the caller signal mask after backend startup"});
+          }
+          signal_mask_modified = false;
 #endif
 
-                       // Set up an exit handler to call stop when the main application exits.
-                       // always call stop on destruction to log everything. std::atexit seems to be
-                       // working better with dll on windows compared to using ~LogManagerSingleton().
-                       if (!detail::BackendManager::instance().is_atexit_registered())
-                       {
-                         detail::BackendManager::instance().set_atexit_registered();
-                         std::atexit([]() { Backend::stop(); });
-                       }
-                     }
+          // Set up an exit handler to call stop when the main application exits.
+          // always call stop on destruction to log everything. std::atexit seems to be
+          // working better with dll on windows compared to using ~LogManagerSingleton().
+          if (!detail::BackendManager::instance().is_atexit_registered())
+          {
+            detail::BackendManager::instance().set_atexit_registered();
+            std::atexit([]() { Backend::stop(); });
+          }
+        }
 #if !defined(QUILL_NO_EXCEPTIONS)
-                     QUILL_CATCH(...)
-                     {
-                       if (signal_handler_initialized)
-                       {
-                         detail::restore_signal_handlers();
-                       }
+        QUILL_CATCH(...)
+        {
+          if (signal_handler_initialized)
+          {
+            detail::restore_signal_handlers();
+          }
   #if defined(_WIN32)
-                       if (exception_handler_initialized)
-                       {
-                         detail::deinit_exception_handler<TFrontendOptions>();
-                       }
+          if (exception_handler_initialized)
+          {
+            detail::deinit_exception_handler<TFrontendOptions>();
+          }
   #else
-                       if (signal_mask_modified)
-                       {
-                         sigprocmask(SIG_SETMASK, &oldset, nullptr);
-                       }
+          if (signal_mask_modified)
+          {
+            sigprocmask(SIG_SETMASK, &oldset, nullptr);
+          }
   #endif
-                       throw;
-                     }
+          throw;
+        }
 #endif
-                   });
+      });
   }
 
   /**
@@ -284,6 +297,12 @@ public:
   QUILL_ATTRIBUTE_COLD static ManualBackendWorker* acquire_manual_backend_worker()
   {
     ManualBackendWorker* manual_backend_worker{nullptr};
+
+    // If a caller forgets to perform explicit ManualBackendWorker::shutdown(), the
+    // ManualBackendWorker destructor can still drain queued metric events during static
+    // destruction. Construct MetricManager before BackendManager so MetricMetadata stays alive
+    // for that fallback drain path.
+    (void)detail::MetricManager::instance();
 
     std::call_once(
       detail::BackendManager::instance().get_start_once_flag(), [&manual_backend_worker]() mutable

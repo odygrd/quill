@@ -128,8 +128,20 @@ QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path filename, bool
 
   if (ec)
   {
-    QUILL_THROW(QuillError{std::string{"cannot create canonical path for path "} +
-                           parent_path.string() + std::string{" - error: "} + ec.message()});
+    // fs::canonical can fail on certain filesystems (e.g. Windows RAM disks) where
+    // GetFinalPathNameByHandleW is not supported. Fall back to fs::absolute with
+    // lexically_normal to resolve . and .. portably (fs::absolute alone does not
+    // normalize on POSIX).
+    ec.clear();
+    fs::path const absolute_path = fs::absolute(parent_path, ec);
+
+    if (ec)
+    {
+      QUILL_THROW(QuillError{std::string{"cannot resolve path "} + parent_path.string() +
+                             std::string{" - error: "} + ec.message()});
+    }
+
+    return absolute_path.lexically_normal() / filename.filename();
   }
 
   return canonical_path / filename.filename();

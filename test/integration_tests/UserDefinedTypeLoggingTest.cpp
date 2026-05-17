@@ -10,11 +10,13 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
 #include "quill/std/Array.h"
+#include "quill/std/Pair.h"
 #include "quill/std/Vector.h"
 
 #include <cstdio>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace quill;
@@ -32,6 +34,8 @@ struct CustomType
   std::string surname;
   uint32_t age;
   std::array<std::string, 3> favorite_colors;
+  std::pair<std::string, int> nickname_and_score{};
+  std::pair<int, std::string> rank_and_title{};
   Gender gender{Gender::Male}; // This should not require a fmtquill::formatter
 };
 
@@ -48,9 +52,10 @@ struct fmtquill::formatter<CustomType>
   template <typename FormatContext>
   auto format(::CustomType const& custom_type, FormatContext& ctx) const
   {
-    return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}",
-                               custom_type.name, custom_type.surname, custom_type.age,
-                               custom_type.favorite_colors);
+    return fmtquill::format_to(
+      ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}, Nickname: {}, Rank: {}",
+      custom_type.name, custom_type.surname, custom_type.age, custom_type.favorite_colors,
+      custom_type.nickname_and_score, custom_type.rank_and_title);
   }
 };
 
@@ -63,15 +68,17 @@ struct quill::Codec<CustomType>
   {
     // pass as arguments the class members you want to serialize
     return compute_total_encoded_size(conditional_arg_size_cache, custom_type.name, custom_type.surname,
-                                      custom_type.age, custom_type.favorite_colors, custom_type.gender);
+                                      custom_type.age, custom_type.favorite_colors, custom_type.nickname_and_score,
+                                      custom_type.rank_and_title, custom_type.gender);
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::CustomType const& custom_type) noexcept
   {
     // You must encode the same members and in the same order as in compute_total_encoded_size
-    encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, custom_type.name,
-                   custom_type.surname, custom_type.age, custom_type.favorite_colors, custom_type.gender);
+    encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                   custom_type.name, custom_type.surname, custom_type.age, custom_type.favorite_colors,
+                   custom_type.nickname_and_score, custom_type.rank_and_title, custom_type.gender);
   }
 
   static ::CustomType decode_arg(std::byte*& buffer)
@@ -79,7 +86,8 @@ struct quill::Codec<CustomType>
     // You must decode the same members and in the same order as in encode
     ::CustomType custom_type;
     decode_members(buffer, custom_type, custom_type.name, custom_type.surname, custom_type.age,
-                   custom_type.favorite_colors, custom_type.gender);
+                   custom_type.favorite_colors, custom_type.nickname_and_score,
+                   custom_type.rank_and_title, custom_type.gender);
     return custom_type;
   }
 
@@ -124,12 +132,15 @@ TEST_CASE("custom_type_defined_type_logging")
   custom_type.favorite_colors[0] = "red";
   custom_type.favorite_colors[1] = "green";
   custom_type.favorite_colors[2] = "blue";
+  custom_type.nickname_and_score = {"Q", 42};
+  custom_type.rank_and_title = {1, "Captain"};
   LOG_INFO(logger, "The answer is {}", custom_type);
 
-  std::vector<CustomType> const custom_types = {{"Alice", "Doe", 25, {"red", "green"}},
-                                                {"Bob", "Smith", 30, {"blue", "yellow"}},
-                                                {"Charlie", "Johnson", 35, {"green", "orange"}},
-                                                {"David", "Brown", 40, {"red", "blue", "yellow"}}};
+  std::vector<CustomType> const custom_types = {
+    {"Alice", "Doe", 25, {"red", "green"}, {"Al", 10}, {2, "Lieutenant"}},
+    {"Bob", "Smith", 30, {"blue", "yellow"}, {"Bo", 20}, {3, "Sergeant"}},
+    {"Charlie", "Johnson", 35, {"green", "orange"}, {"Chuck", 30}, {4, "Corporal"}},
+    {"David", "Brown", 40, {"red", "blue", "yellow"}, {"Dave", 40}, {5, "Private"}}};
   LOG_INFO(logger, "The answers are {}", custom_types);
 
   logger->flush_log();
@@ -143,10 +154,10 @@ TEST_CASE("custom_type_defined_type_logging")
   REQUIRE_EQ(file_contents.size(), 2);
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       The answer is Name: Quill, Surname: Library, Age: 4, Favorite Colors: [\"red\", \"green\", \"blue\"]"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       The answer is Name: Quill, Surname: Library, Age: 4, Favorite Colors: [\"red\", \"green\", \"blue\"], Nickname: (\"Q\", 42), Rank: (1, \"Captain\")"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       The answers are [Name: Alice, Surname: Doe, Age: 25, Favorite Colors: [\"red\", \"green\", \"\"], Name: Bob, Surname: Smith, Age: 30, Favorite Colors: [\"blue\", \"yellow\", \"\"], Name: Charlie, Surname: Johnson, Age: 35, Favorite Colors: [\"green\", \"orange\", \"\"], Name: David, Surname: Brown, Age: 40, Favorite Colors: [\"red\", \"blue\", \"yellow\"]]"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       The answers are [Name: Alice, Surname: Doe, Age: 25, Favorite Colors: [\"red\", \"green\", \"\"], Nickname: (\"Al\", 10), Rank: (2, \"Lieutenant\"), Name: Bob, Surname: Smith, Age: 30, Favorite Colors: [\"blue\", \"yellow\", \"\"], Nickname: (\"Bo\", 20), Rank: (3, \"Sergeant\"), Name: Charlie, Surname: Johnson, Age: 35, Favorite Colors: [\"green\", \"orange\", \"\"], Nickname: (\"Chuck\", 30), Rank: (4, \"Corporal\"), Name: David, Surname: Brown, Age: 40, Favorite Colors: [\"red\", \"blue\", \"yellow\"], Nickname: (\"Dave\", 40), Rank: (5, \"Private\")]"}));
 
   testing::remove_file(filename);
 }

@@ -22,6 +22,7 @@
 
 #if defined(_WIN32)
   #include <string>
+  #include <string_view>
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -70,40 +71,37 @@ struct Codec<std::optional<T>>
     if constexpr (std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                      std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>)
     {
-      std::string encoded_value{"none"};
+      std::optional<std::string> arg{std::nullopt};
 
       bool const has_value = Codec<bool>::decode_arg(buffer);
       if (has_value)
       {
-        std::wstring_view arg = Codec<T>::decode_arg(buffer);
-        encoded_value = "optional(\"";
-        encoded_value += detail::utf8_encode(arg);
-        encoded_value += "\")";
+        std::wstring_view const value = Codec<T>::decode_arg(buffer);
+        arg.emplace(detail::utf8_encode(value));
       }
 
-      return encoded_value;
+      return arg;
     }
     else
     {
 #endif
       using ReturnType = decltype(Codec<T>::decode_arg(buffer));
-      std::optional<ReturnType> arg{std::nullopt};
-
       bool const has_value = Codec<bool>::decode_arg(buffer);
       if (has_value)
       {
         auto elem = Codec<T>::decode_arg(buffer);
+
         if constexpr (std::is_move_constructible_v<ReturnType>)
         {
-          arg = std::move(elem);
+          return std::optional<ReturnType>{std::move(elem)};
         }
         else
         {
-          arg = elem;
+          return std::optional<ReturnType>{elem};
         }
       }
 
-      return arg;
+      return std::optional<ReturnType>{std::nullopt};
 
 #if defined(_WIN32)
     }

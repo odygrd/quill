@@ -1057,7 +1057,14 @@
   QUILL_LOG_RUNTIME_METADATA_CALL(quill::MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy, logger,  \
                                   log_level, file, line_number, function, tags, fmt, ##__VA_ARGS__)
 
+#define QUILL_METRIC(logger, metric_metadata, value)                                               \
+  do                                                                                               \
+  {                                                                                                \
+    logger->publish_metric((metric_metadata), value);                                              \
+  } while (0)
+
 #if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS)
+  #define METRIC(logger, metric_metadata, value) QUILL_METRIC(logger, metric_metadata, value)
   #define TAGS(...) QUILL_TAGS(__VA_ARGS__)
   #define LOG_TRACE_L3(logger, fmt, ...) QUILL_LOG_TRACE_L3(logger, fmt, ##__VA_ARGS__)
   #define LOG_TRACE_L2(logger, fmt, ...) QUILL_LOG_TRACE_L2(logger, fmt, ##__VA_ARGS__)

@@ -16,9 +16,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#if defined(_WIN32)
+  #include <string>
+  #include <string_view>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 
@@ -27,6 +33,10 @@ QUILL_BEGIN_EXPORT
 template <typename T, typename Allocator>
 struct Codec<std::vector<T, Allocator>>
 {
+private:
+  static constexpr bool use_memcpy_fast_path = std::is_arithmetic_v<T> && !std::is_same_v<T, bool>;
+
+public:
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
                                      std::vector<T, Allocator> const& arg) noexcept
   {
@@ -34,10 +44,11 @@ struct Codec<std::vector<T, Allocator>>
     // We add sizeof(size_t) bytes to accommodate the size information.
     size_t total_size{sizeof(size_t)};
 
-    if constexpr (std::is_arithmetic_v<T>)
+    if constexpr (use_memcpy_fast_path)
     {
       // Built-in arithmetic types don't require iteration.
-      // Note: Enums are excluded as they may have custom Codecs (e.g., DirectFormatCodec)
+      // Note: Enums are excluded as they may have custom Codecs (e.g., DirectFormatCodec).
+      // std::vector<bool> is also excluded because it stores bits via proxy references.
       total_size += sizeof(T) * arg.size();
     }
     else
@@ -60,10 +71,11 @@ struct Codec<std::vector<T, Allocator>>
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 
-    if constexpr (std::is_arithmetic_v<T>)
+    if constexpr (use_memcpy_fast_path)
     {
       // Built-in arithmetic types don't require iteration.
-      // Note: Enums are excluded as they may have custom Codecs (e.g., DirectFormatCodec)
+      // Note: Enums are excluded as they may have custom Codecs (e.g., DirectFormatCodec).
+      // std::vector<bool> is also excluded because it is not backed by a contiguous bool array.
       if (!arg.empty())
       {
         std::memcpy(buffer, arg.data(), sizeof(T) * arg.size());

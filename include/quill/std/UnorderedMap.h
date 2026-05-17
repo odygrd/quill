@@ -17,10 +17,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#if defined(_WIN32)
+  #include <string>
+  #include <string_view>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 
@@ -49,6 +55,8 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
       // For other complex types it's essential to determine the exact size of each element.
       // For instance, in the case of a collection of std::string, we need to know the exact size
       // of each string as we will be copying them directly to our queue buffer.
+      // Any nested codec sizes pushed into conditional_arg_size_cache are consumed in encode()
+      // by iterating this same container instance again without mutation.
       for (auto const& elem : arg)
       {
         total_size += Codec<Key>::compute_encoded_size(conditional_arg_size_cache, elem.first);
@@ -65,6 +73,8 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 
+    // This traversal must mirror compute_encoded_size(). For unordered containers that relies on
+    // iterating the same container instance without mutation or rehashing between the two passes.
     // Forward elements based on whether the container was passed as rvalue
     if constexpr (std::is_rvalue_reference_v<Arg&&>)
     {
@@ -109,32 +119,28 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
 
       if constexpr (wide_key_t && !wide_value_t)
       {
-        std::vector<std::pair<std::string, T>> encoded_values;
+        using ReturnValueType = decltype(Codec<T>::decode_arg(buffer));
+        std::vector<std::pair<std::string, ReturnValueType>> encoded_values;
         encoded_values.reserve(number_of_elements);
 
         for (size_t i = 0; i < number_of_elements; ++i)
         {
-          std::pair<std::string, T> elem;
-          std::wstring_view v = Codec<Key>::decode_arg(buffer);
-          elem.first = detail::utf8_encode(v);
-          elem.second = Codec<T>::decode_arg(buffer);
-          encoded_values.emplace_back(elem);
+          encoded_values.emplace_back(std::pair<std::string, ReturnValueType>{
+            detail::utf8_encode(Codec<Key>::decode_arg(buffer)), Codec<T>::decode_arg(buffer)});
         }
 
         return encoded_values;
       }
       else if constexpr (!wide_key_t && wide_value_t)
       {
-        std::vector<std::pair<Key, std::string>> encoded_values;
+        using ReturnKeyType = decltype(Codec<Key>::decode_arg(buffer));
+        std::vector<std::pair<ReturnKeyType, std::string>> encoded_values;
         encoded_values.reserve(number_of_elements);
 
         for (size_t i = 0; i < number_of_elements; ++i)
         {
-          std::pair<Key, std::string> elem;
-          elem.first = Codec<Key>::decode_arg(buffer);
-          std::wstring_view v = Codec<T>::decode_arg(buffer);
-          elem.second = detail::utf8_encode(v);
-          encoded_values.emplace_back(elem);
+          encoded_values.emplace_back(std::pair<ReturnKeyType, std::string>{
+            Codec<Key>::decode_arg(buffer), detail::utf8_encode(Codec<T>::decode_arg(buffer))});
         }
 
         return encoded_values;
@@ -146,12 +152,9 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
 
         for (size_t i = 0; i < number_of_elements; ++i)
         {
-          std::pair<std::string, std::string> elem;
-          std::wstring_view v1 = Codec<Key>::decode_arg(buffer);
-          elem.first = detail::utf8_encode(v1);
-          std::wstring_view v2 = Codec<T>::decode_arg(buffer);
-          elem.second = detail::utf8_encode(v2);
-          encoded_values.emplace_back(elem);
+          encoded_values.emplace_back(
+            std::pair<std::string, std::string>{detail::utf8_encode(Codec<Key>::decode_arg(buffer)),
+                                                detail::utf8_encode(Codec<T>::decode_arg(buffer))});
         }
 
         return encoded_values;

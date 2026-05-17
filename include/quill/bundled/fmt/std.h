@@ -645,6 +645,11 @@ struct formatter<std::atomic_flag, Char> : formatter<bool, Char> {
 };
 #endif  // __cpp_lib_atomic_flag_test
 
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wfloat-equal"
+#endif
+
 template <typename T, typename Char> struct formatter<std::complex<T>, Char> {
  private:
   detail::dynamic_format_specs<Char> specs_;
@@ -706,6 +711,10 @@ template <typename T, typename Char> struct formatter<std::complex<T>, Char> {
                                outer_specs);
   }
 };
+
+#if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
+  #pragma GCC diagnostic pop
+#endif
 
 template <typename T, typename Char>
 struct formatter<std::reference_wrapper<T>, Char,

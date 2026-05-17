@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 
 # Configuration for Sphinx
 breathe_projects = {
     'Quill': os.path.join(os.path.abspath('.'), 'build', 'xml')
 }
+tagfile_path = Path(__file__).resolve().parent / "build" / "quill.tag"
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -28,6 +30,7 @@ autosectionlabel_prefix_document = True
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+html_extra_path = ['build/quill.tag'] if tagfile_path.exists() else []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

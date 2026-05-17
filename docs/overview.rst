@@ -5,14 +5,17 @@
 Overview
 ========
 
-The library adopts asynchronous logging to optimise performance, particularly well-suited for low-latency applications where minimizing hot path latency is crucial, such as trading systems.
+The library adopts asynchronous logging and metric publishing to optimise performance, particularly
+well-suited for low-latency applications where minimizing hot path latency is crucial, such as
+trading systems.
 
-A dedicated backend thread manages log formatting and I/O operations, ensuring that even occasional log statements incur minimal overhead.
+A dedicated backend thread manages log formatting, metric forwarding, and I/O operations, ensuring
+that even occasional log statements or metric updates incur minimal overhead.
 
 At a glance:
 
-- **Frontend:** captures metadata and a binary copy of the log arguments on the calling thread.
-- **Backend:** formats and writes log messages on a dedicated worker thread.
+- **Frontend:** captures metadata and a binary copy of log arguments, or a compact metric sample, on the calling thread.
+- **Backend:** formats log messages and forwards metric samples on a dedicated worker thread.
 - **Ordering:** a single worker can preserve timestamp order across active queues.
 
 .. image:: design.drawio.svg
@@ -34,14 +37,25 @@ For user-defined types you can provide a ``Codec`` specialization to serialize t
 
 See :doc:`Recipes <recipes>` for examples of logging STL types and user-defined types.
 
+Metrics
+-------
+
+Quill can publish pre-registered metric samples through the same backend worker used for logs.
+Metric metadata is registered once and then reused by pointer on each publish call, so hot threads
+only enqueue a compact fixed-size sample record.
+
+Metric-capable sinks receive samples through :cpp:func:`Sink::write_metric`. The bundled
+``PrometheusSink`` is one option, but the metric API itself is backend-agnostic, so custom sinks
+can push metrics to any service or in-process collector you want.
+
 Reliable Logging Mechanism
 --------------------------
 
-Quill utilizes a thread-local single-producer-single-consumer queue to relay logs to the backend thread.
+Quill utilizes a thread-local single-producer-single-consumer queue to relay log and metric events to the backend thread.
 By default, it uses an unbounded blocking queue with a small initial size to optimise performance.
 However, if the queue reaches its capacity, a new queue will be allocated, which may cause a slight performance penalty for the frontend.
 
-The default unbounded queue can expand up to a size of `FrontendOptions::unbounded_queue_max_capacity`. If this limit is reached, the caller thread will block instead of intentionally dropping messages.
+The default unbounded queue can expand up to a size of `FrontendOptions::unbounded_queue_max_capacity`. If this limit is reached, the caller thread will block instead of intentionally dropping events.
 It's possible to change the queue type within the :cpp:class:`FrontendOptions`.
 
 The queue size and type are configurable by providing a custom :cpp:class:`FrontendOptions` class.
@@ -149,16 +163,34 @@ When invoking a ``LOG_`` macro:
 | Args...    | A serialized binary copy of each log message argument that was passed to the ``LOG_`` macro                   |
 +------------+---------------------------------------------------------------------------------------------------------------+
 
+When invoking ``METRIC(...)`` or :cpp:func:`LoggerImpl::publish_metric`:
+
+1. Reuses previously registered ``MetricMetadata`` instead of serializing metric names or labels on the hot path.
+
+2. Pushes a compact fixed-size sample record to the same SPSC queue.
+
++-----------------+------------------------------------------------------+
+| Variable        | Description                                          |
++=================+======================================================+
+| timestamp       | Current timestamp                                    |
++-----------------+------------------------------------------------------+
+| MetricMetadata* | Pointer to the registered metric metadata            |
++-----------------+------------------------------------------------------+
+| Logger*         | Pointer to the logger instance                       |
++-----------------+------------------------------------------------------+
+| value           | The ``double`` metric sample                         |
++-----------------+------------------------------------------------------+
+
 Backend
 -------
 
-The backend consists of a single backend thread which takes care of formatting the log statements and the IO writing to files.
-Consumes each message from the SPSC queue, retrieves all the necessary information, and then formats the message.
-Subsequently, forwards the log message to all ``Sinks`` associated with the Logger.
+The backend consists of a single backend thread which takes care of formatting log statements, forwarding metric samples, and performing the IO writing to files.
+Consumes each event from the SPSC queue, retrieves all the necessary information, and then formats log messages or forwards metric samples to ``Sink::write_metric``.
+Subsequently, forwards the log or metric event to all ``Sinks`` associated with the Logger.
 
 See Also
 --------
 
 - :doc:`Quick Start <quick_start>` for the shortest path to working logs.
-- :doc:`Guides <guides>` for sinks, formatters, JSON, filters, and more.
+- :doc:`Guides <guides>` for sinks, metrics, formatters, JSON, filters, and more.
 - :doc:`Recipes <recipes>` for common tasks and code examples.

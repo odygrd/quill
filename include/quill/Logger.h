@@ -15,6 +15,7 @@
 #include "quill/core/LogLevel.h"
 #include "quill/core/LoggerBase.h"
 #include "quill/core/MacroMetadata.h"
+#include "quill/core/Metric.h"
 #include "quill/core/Rdtsc.h"
 
 #include <atomic>
@@ -126,7 +127,6 @@ public:
 
 #if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
     std::byte const* const write_begin = write_buffer;
-    QUILL_ASSERT(write_begin, "Reserved queue space returned nullptr in log_statement()");
 #endif
 
     write_buffer = _encode_header(
@@ -148,6 +148,142 @@ public:
 
     _commit_log_statement_reservation<enable_immediate_flush>(queue, reservation.writer_pos + total_size);
     return true;
+  }
+
+  /**
+   * Push a compact metric sample to the spsc queue to be processed by the backend thread.
+   * The queue stores only the value. Static metric identity and labels are carried by
+   * MetricMetadata via the existing MacroMetadata pointer in the event header.
+   *
+   * Metrics never participate in logger immediate-flush behavior; sinks decide their own flush
+   * or batching strategy on the backend thread.
+   *
+   * @note This function is thread-safe.
+   * @param metric_metadata metadata of the metric event
+   * @param value metric value
+   *
+   * @return true if the metric sample is written to the queue, false if it is dropped
+   */
+  QUILL_ATTRIBUTE_HOT bool publish_metric(MetricMetadata const* metric_metadata, double value)
+  {
+    QUILL_ASSERT(metric_metadata->event() == MacroMetadata::Event::Metric,
+                 "publish_metric() should only be called with MacroMetadata::Event::Metric");
+
+    QUILL_ASSERT(_valid.load(std::memory_order_acquire),
+                 "Attempting to log with an invalidated logger");
+
+    if (_clock_source != ClockSourceType::Tsc)
+    {
+      return _publish_metric_noinline(metric_metadata, 0, value);
+    }
+
+    uint64_t const current_timestamp = detail::rdtsc();
+    detail::ThreadContext* const thread_context = _thread_context;
+
+    if (QUILL_UNLIKELY(thread_context == nullptr))
+    {
+      return _publish_metric_noinline(metric_metadata, current_timestamp, value);
+    }
+
+    queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
+
+    size_t total_size = s_packed_header_size;
+
+    auto const reservation = queue.prepare_write_reserve_cached(total_size);
+
+    if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
+    {
+      return _publish_metric_noinline(metric_metadata, current_timestamp, value);
+    }
+
+    std::byte* write_buffer = reservation.write_buffer;
+
+#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
+    std::byte const* const write_begin = write_buffer;
+#endif
+
+    // Since the decoder ptr is unused in the header we can use it to store the value
+    PackedQword pq;
+    pq.lo = reinterpret_cast<uintptr_t>(this);
+    std::memcpy(&pq.hi, &value, sizeof(pq.hi));
+
+    write_buffer = _encode_header(
+      write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(metric_metadata)}, pq);
+
+    QUILL_ASSERT_WITH_FMT(
+      write_buffer > write_begin,
+      "write_buffer must be greater than write_begin after encoding in publish_metric(): "
+      "metric_source=\"%s\"",
+      metric_metadata->source_location());
+    QUILL_ASSERT_WITH_FMT(
+      total_size == static_cast<size_t>(write_buffer - write_begin),
+      "Encoded bytes mismatch in publish_metric(): total_size=%zu, actual_encoded=%zu, "
+      "metric_source=\"%s\"",
+      total_size, static_cast<size_t>(write_buffer - write_begin), metric_metadata->source_location());
+
+    queue.finish_and_commit_write_reservation(reservation.writer_pos + total_size);
+    return true;
+  }
+
+  /**
+   * Sets or replaces one or more MDC fields for the calling thread.
+   *
+   * The supplied fields are propagated asynchronously to the backend thread and then appended to
+   * subsequent log messages from the same frontend thread until erased or cleared.
+   *
+   * This operation is not on the hot path. If a dropping queue is configured and is temporarily
+   * full, this function retries until the control event is queued.
+   */
+  template <typename... Args>
+  void set_mdc(Args&&... args)
+  {
+    static_assert(sizeof...(Args) > 0, "logger->set_mdc(...) expects key, value pairs");
+    static_assert((sizeof...(Args) % 2u) == 0u,
+                  "logger->set_mdc(...) expects an even number of arguments: key, value, key, value...");
+
+    static constexpr MacroMetadata macro_metadata{
+      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcSet};
+
+    while (!this->template log_statement<false>(&macro_metadata, static_cast<Args&&>(args)...))
+    {
+      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+    }
+  }
+
+  /**
+   * Erases one or more MDC fields for the calling thread.
+   *
+   * Missing keys are ignored. The operation retries until queued when a dropping queue is
+   * temporarily full.
+   */
+  template <typename... Keys>
+  void erase_mdc(Keys&&... keys)
+  {
+    static_assert(sizeof...(Keys) > 0, "logger->erase_mdc(...) expects one or more keys");
+
+    static constexpr MacroMetadata macro_metadata{
+      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcErase};
+
+    while (!this->template log_statement<false>(&macro_metadata, static_cast<Keys&&>(keys)...))
+    {
+      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+    }
+  }
+
+  /**
+   * Clears all MDC fields for the calling thread.
+   *
+   * The operation retries until queued when a dropping queue is temporarily full.
+   */
+  void clear_mdc()
+  {
+    static constexpr MacroMetadata macro_metadata{
+      "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcClear};
+
+    while (!this->template log_statement<false>(&macro_metadata))
+    {
+      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+    }
   }
 
   /**
@@ -229,8 +365,6 @@ public:
 
 #if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
     std::byte const* const write_begin = write_buffer;
-    QUILL_ASSERT(write_begin,
-                 "Reserved queue space returned nullptr in log_statement_runtime_metadata()");
 #endif
 
     write_buffer = _encode_header(
@@ -380,6 +514,9 @@ private:
                 "FormatArgsDecoder must fit in uintptr_t for packed header encoding");
   static_assert(sizeof(uintptr_t) <= sizeof(uint64_t),
                 "Packed header encoding requires pointers to fit in 64 bits");
+  static_assert(
+    sizeof(double) == sizeof(uint64_t),
+    "publish_metric packs a double into the uint64_t decoder slot of the packed header");
 
   static constexpr size_t s_packed_header_size = 2 * sizeof(PackedQword);
 
@@ -396,6 +533,61 @@ private:
       // if a user clock is provided then set the ClockSourceType to User
       this->_clock_source = ClockSourceType::User;
     }
+  }
+
+  /**
+   * Slow path for publish_metric. Mirrors _log_statement_noinline but uses a decoder that simply
+   * consumes the queued metric value without involving the fmt argument store.
+   */
+  QUILL_NODISCARD QUILL_NOINLINE bool _publish_metric_noinline(MetricMetadata const* metric_metadata,
+                                                               uint64_t current_timestamp, double value)
+  {
+    if (current_timestamp == 0)
+    {
+      current_timestamp = _get_non_tsc_timestamp();
+    }
+
+    if (QUILL_UNLIKELY(_thread_context == nullptr))
+    {
+      _thread_context = detail::get_local_thread_context<frontend_options_t>();
+    }
+
+    detail::ThreadContext* const thread_context = _thread_context;
+    queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
+
+    size_t total_size = s_packed_header_size;
+
+    std::byte* write_buffer = _reserve_queue_space(queue, total_size, metric_metadata, thread_context);
+
+    if (QUILL_UNLIKELY(write_buffer == nullptr))
+    {
+      return false;
+    }
+
+#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
+    std::byte const* const write_begin = write_buffer;
+#endif
+
+    PackedQword pq;
+    pq.lo = reinterpret_cast<uintptr_t>(this);
+    std::memcpy(&pq.hi, &value, sizeof(pq.hi));
+
+    write_buffer = _encode_header(
+      write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(metric_metadata)}, pq);
+
+    QUILL_ASSERT_WITH_FMT(write_buffer > write_begin,
+                          "write_buffer must be greater than write_begin after encoding in "
+                          "_publish_metric_noinline(): metric_source=\"%s\"",
+                          metric_metadata->source_location());
+    QUILL_ASSERT_WITH_FMT(total_size == static_cast<size_t>(write_buffer - write_begin),
+                          "Encoded bytes mismatch in _publish_metric_noinline(): total_size=%zu, "
+                          "actual_encoded=%zu, metric_source=\"%s\"",
+                          total_size, static_cast<size_t>(write_buffer - write_begin),
+                          metric_metadata->source_location());
+
+    queue.finish_and_commit_write(total_size);
+
+    return true;
   }
 
   /**
@@ -434,7 +626,6 @@ private:
 
 #if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
     std::byte const* const write_begin = write_buffer;
-    QUILL_ASSERT(write_begin, "Reserved queue space returned nullptr in _log_statement_noinline()");
 #endif
 
     write_buffer = _encode_header(
@@ -500,11 +691,11 @@ private:
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
-        // not enough space to push to queue message is dropped
-        if (macro_metadata->event() == MacroMetadata::Event::Log)
-        {
-          thread_context->increment_failure_counter();
-        }
+        // Not enough space to push: bump the shared failure counter for both log and metric
+        // drops so that neither silently disappears. Metrics reuse the existing counter rather
+        // than adding a parallel one; the error-notifier message reflects the combined count.
+        (void)macro_metadata;
+        thread_context->increment_failure_counter();
       }
     }
     else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedBlocking) ||
@@ -512,10 +703,9 @@ private:
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
-        if (macro_metadata->event() == MacroMetadata::Event::Log)
-        {
-          thread_context->increment_failure_counter();
-        }
+        // See the dropping-queue branch above for why both log and metric events bump the counter.
+        (void)macro_metadata;
+        thread_context->increment_failure_counter();
 
         do
         {

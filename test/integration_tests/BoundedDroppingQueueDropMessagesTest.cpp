@@ -67,7 +67,8 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
   } while (testing::file_contents(filename).empty());
 
   // Log another message using the conditional arg size cache after LOG_INFO failed dropping
-  // messages// This is important to log as it could catch triggering an assertion
+  // messages
+  // This is important to log as it could catch triggering an assertion
   char const* t = "test";
   LOG_INFO(logger, "Log something else {}", t);
 
@@ -97,7 +98,7 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
   }
 
   std::string search_start = "Dropped ";
-  std::string search_end = " log";
+  std::string search_end = " events";
   uint64_t dropped_messages_num{0};
 
   // Find the starting and ending positions

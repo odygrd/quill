@@ -239,6 +239,8 @@ set(HEADER_FILES
         include/quill/core/LogLevel.h
         include/quill/core/MacroMetadata.h
         include/quill/core/MathUtilities.h
+        include/quill/core/Metric.h
+        include/quill/core/MetricManager.h
         include/quill/core/PatternFormatterOptions.h
         include/quill/core/QuillError.h
         include/quill/core/Rdtsc.h
@@ -257,6 +259,7 @@ set(HEADER_FILES
         include/quill/sinks/FileSink.h
         include/quill/sinks/JsonSink.h
         include/quill/sinks/NullSink.h
+        include/quill/sinks/metrics/PrometheusSink.h
         include/quill/sinks/RotatingFileSink.h
         include/quill/sinks/RotatingJsonFileSink.h
         include/quill/sinks/RotatingSink.h
@@ -266,7 +269,9 @@ set(HEADER_FILES
         include/quill/sinks/SystemdSink.h
 
         include/quill/std/Array.h
+        include/quill/std/Bitset.h
         include/quill/std/Chrono.h
+        include/quill/std/Complex.h
         include/quill/std/Deque.h
         include/quill/std/FilesystemPath.h
         include/quill/std/ForwardList.h
@@ -275,9 +280,11 @@ set(HEADER_FILES
         include/quill/std/Optional.h
         include/quill/std/Pair.h
         include/quill/std/Set.h
+        include/quill/std/SystemError.h
         include/quill/std/Tuple.h
         include/quill/std/UnorderedMap.h
         include/quill/std/UnorderedSet.h
+        include/quill/std/Variant.h
         include/quill/std/Vector.h
         include/quill/std/WideString.h
 
