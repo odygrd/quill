@@ -42,6 +42,9 @@ The following logging functions are available in the macro-free mode:
 
 Each function also accepts a ``quill::Tags`` object as an optional parameter after the logger.
 
+Named placeholders (e.g., ``{name}`` instead of ``{}``) work the same way as with ``LOG_`` macros.
+See :ref:`Named Placeholders <logging_macros:Named Placeholders>` for details.
+
 Usage
 -----
 

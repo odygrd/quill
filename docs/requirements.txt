@@ -1,2 +1,3 @@
-breathe
-furo
+Sphinx==9.1.0
+breathe==4.36.0
+sphinx-immaterial==0.12.5

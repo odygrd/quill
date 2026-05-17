@@ -179,10 +179,15 @@ public:
   QUILL_NODISCARD std::string_view thread_name() const noexcept { return _thread_name; }
 
   /***/
-  void mark_invalid() noexcept { _valid.store(false, std::memory_order_relaxed); }
+  void mark_invalid() noexcept
+  {
+    // Publish thread teardown after any final queue updates so the backend can safely
+    // treat `!is_valid()` as the start of the final drain-and-remove sequence.
+    _valid.store(false, std::memory_order_release);
+  }
 
   /***/
-  QUILL_NODISCARD bool is_valid() const noexcept { return _valid.load(std::memory_order_relaxed); }
+  QUILL_NODISCARD bool is_valid() const noexcept { return _valid.load(std::memory_order_acquire); }
 
   /***/
   void increment_failure_counter() noexcept
@@ -256,9 +261,9 @@ public:
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool has_invalid_thread_context() const noexcept
   {
-    // Here we do relaxed because if the value is not zero we will look inside ThreadContext invalid
-    // flag that is also a relaxed atomic, and then we will look into the SPSC queue size that is
-    // also atomic Even if we don't read everything in order we will check again in the next circle
+    // Relaxed is sufficient here: a non-zero count just tells the backend to check
+    // individual ThreadContext validity flags (which use acquire ordering) and drain
+    // their queues. If we miss an update we will recheck on the next iteration
     return _invalid_thread_context_count.load(std::memory_order_relaxed) != 0;
   }
 

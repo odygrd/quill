@@ -153,19 +153,36 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
   return std::string{"ThreadNameDisabled"};
 #elif defined(_WIN32)
   PWSTR data = nullptr;
-
   typedef HRESULT(WINAPI * GetThreadDescriptionSignature)(HANDLE, PWSTR*);
-  HRESULT hr = callRunTimeDynamicLinkedFunction<HRESULT, GetThreadDescriptionSignature>(
-    "KernelBase.dll", "GetThreadDescription", GetCurrentThread(), &data);
 
-  if (FAILED(hr))
+  #ifdef UNICODE
+  HINSTANCE const hinstLibrary = LoadLibraryW(s2ws("KernelBase.dll").c_str());
+  #else
+  HINSTANCE const hinstLibrary = LoadLibraryA("KernelBase.dll");
+  #endif
+
+  if (!hinstLibrary)
   {
-    QUILL_THROW(QuillError{"Failed to get thread name"});
+    return std::string{"ThreadNameDisabled"};
   }
 
-  if (QUILL_UNLIKELY(data == nullptr))
+  FARPROC const proc_address = GetProcAddress(hinstLibrary, "GetThreadDescription");
+
+  if (!proc_address)
   {
-    QUILL_THROW(QuillError{"Failed to get thread name. Invalid data."});
+    FreeLibrary(hinstLibrary);
+    return std::string{"ThreadNameDisabled"};
+  }
+
+  GetThreadDescriptionSignature callable;
+  std::memcpy(&callable, &proc_address, sizeof(proc_address));
+
+  HRESULT const hr = callable(GetCurrentThread(), &data);
+  FreeLibrary(hinstLibrary);
+
+  if (FAILED(hr) || QUILL_UNLIKELY(data == nullptr))
+  {
+    return std::string{"ThreadNameDisabled"};
   }
 
   std::wstring const wide_name{data, wcsnlen_s(data, 256)};
@@ -189,6 +206,7 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
 
 #if defined(QUILL_USE_SEQUENTIAL_THREAD_ID)
 extern std::atomic<uint32_t> g_next_thread_id;
+extern QUILL_THREAD_LOCAL uint32_t g_cached_thread_id;
 #endif
 
 /**
@@ -198,7 +216,13 @@ extern std::atomic<uint32_t> g_next_thread_id;
 QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline uint32_t get_thread_id() noexcept
 {
 #if defined(QUILL_USE_SEQUENTIAL_THREAD_ID)
-  return g_next_thread_id.fetch_add(1u) + 1u;
+  if (QUILL_LIKELY(g_cached_thread_id != 0u))
+  {
+    return g_cached_thread_id;
+  }
+
+  g_cached_thread_id = g_next_thread_id.fetch_add(1u, std::memory_order_relaxed) + 1u;
+  return g_cached_thread_id;
 #elif defined(__CYGWIN__)
   // get thread id on cygwin not supported
   return 0;

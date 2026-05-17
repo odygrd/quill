@@ -3,6 +3,8 @@
 Sink Types
 ==========
 
+Reference for all built-in sink implementations. See :doc:`Sinks <sinks>` for how to create, share, and extend sinks.
+
 ConsoleSink
 ~~~~~~~~~~~
 
@@ -15,14 +17,26 @@ The :cpp:class:`FileSink` is a straightforward sink that outputs to a file. The 
 
 Each file can only have a single instance of `FileSink`.
 
-.. literalinclude:: examples/quill_docs_example_file.cpp
+.. note::
+
+   When using :cpp:class:`FileEventNotifier` with :cpp:class:`FileSink`, the callback handle type is
+   platform-dependent and is exposed as ``quill::FileEventNotifierHandle``. On Windows it is a native
+   ``HANDLE``. On other platforms it is a ``FILE*``.
+
+   ``before_write`` runs as part of normal log writing. ``before_open``, ``after_open``,
+   ``before_close``, and ``after_close`` run on whichever thread performs the file open/close
+   operation. Different callbacks, and different invocations of the same callback, may therefore
+   run on different threads over the sink lifetime. Callbacks must be thread-safe and must not
+   assume a single calling thread.
+
+.. literalinclude:: snippets/quill_docs_example_file.cpp
    :language: cpp
    :linenos:
 
 RotatingFileSink
 ~~~~~~~~~~~~~~~~
 
-The :cpp:class:`RotatingFileSink` is built on top of the `FileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
+The :cpp:type:`RotatingFileSink` is built on top of the `FileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
 
 .. literalinclude:: ../examples/rotating_file_logging.cpp
    :language: cpp
@@ -31,14 +45,14 @@ The :cpp:class:`RotatingFileSink` is built on top of the `FileSink` and provides
 JsonFileSink/JsonConsoleSink
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: examples/quill_docs_example_json_logging.cpp
+.. literalinclude:: snippets/quill_docs_example_json_logging.cpp
    :language: cpp
    :linenos:
 
 RotatingJsonFileSink
 ~~~~~~~~~~~~~~~~~~~~
 
-The :cpp:class:`RotatingJsonFileSink` is built on top of the `JsonFileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
+The :cpp:type:`RotatingJsonFileSink` is built on top of the `JsonFileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
 
 .. literalinclude:: ../examples/rotating_json_file_logging.cpp
    :language: cpp
@@ -60,7 +74,7 @@ StreamSink
 
 The :cpp:class:`StreamSink` is a base sink class used to write log messages to C-style ``FILE*`` streams, such as 
 ``stdout``, ``stderr``, or files opened with ``fopen``.
-It is typically used as a foundation for higher-level sinks like :cpp:class:`FileSink` and :cpp:class:`ConsoleSink`.
+It is typically used as a foundation for higher-level sinks like :cpp:class:`ConsoleSink`.
 
 AndroidSink
 ~~~~~~~~~~~
@@ -186,5 +200,5 @@ The :cpp:class:`SystemdSink` integrates with the systemd journal, allowing messa
       quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(sink));
 
       QUILL_LOG_INFO(logger, "A {} message with number {}", "log", 1);
-      QUILL_LOG_WARNING(logger, "test lol {}", 123);
+      QUILL_LOG_WARNING(logger, "test message {}", 123);
     }

@@ -24,6 +24,7 @@
 #include <string_view>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
@@ -118,6 +119,10 @@ public:
   /**
    * @brief Sets whether fsync should be performed when flushing.
    * The default value is false.
+   *
+   * @note On macOS, fsync() flushes data to the disk controller's write cache but does not
+   * guarantee write-through to persistent storage.
+   *
    * @param value True to perform fsync, false otherwise.
    */
   QUILL_ATTRIBUTE_COLD void set_fsync_enabled(bool value) { _fsync_enabled = value; }
@@ -222,21 +227,339 @@ private:
 };
 
 /**
+ * Keep the Windows-specific FileSink split isolated under _WIN32.
+ * A previous attempt to share a FileSinkBase across all platforms introduced a measurable Linux
+ * throughput regression in BENCHMARK_quill_backend_throughput despite equivalent logic.
+ * If this is revisited, revalidate Linux performance.
+ */
+
+/**
  * FileSink
  * Writes the log messages to a file
  */
+#if defined(_WIN32)
+class FileSinkBase : public StreamSink
+{
+public:
+  explicit FileSinkBase(fs::path const& filename, FileSinkConfig const& config, FileEventNotifier file_event_notifier,
+                        bool /* do_fopen */, std::chrono::system_clock::time_point start_time)
+    : StreamSink(_get_updated_filename_with_appended_datetime(filename, config.filename_append_option(),
+                                                              config.append_filename_format_pattern(),
+                                                              config.timezone(), start_time),
+                 nullptr, config.override_pattern_formatter_options(), std::move(file_event_notifier)),
+      _config(config)
+  {
+    if (!_config.fsync_enabled() && (_config.minimum_fsync_interval().count() != 0))
+    {
+      QUILL_THROW(
+        QuillError{"Cannot set a non-zero minimum fsync interval when fsync is disabled."});
+    }
+  }
+
+  ~FileSinkBase() override = default;
+
+protected:
+  QUILL_NODISCARD static std::string format_datetime_string(uint64_t timestamp_ns, Timezone time_zone,
+                                                            std::string const& append_format_pattern)
+  {
+    auto const time_now = static_cast<time_t>(timestamp_ns / 1000000000);
+    tm now_tm;
+
+    if (time_zone == Timezone::GmtTime)
+    {
+      detail::gmtime_rs(&time_now, &now_tm);
+    }
+    else
+    {
+      detail::localtime_rs(&time_now, &now_tm);
+    }
+
+    static constexpr size_t buffer_size{128};
+    char buffer[buffer_size];
+    size_t const len = std::strftime(buffer, buffer_size, append_format_pattern.data(), &now_tm);
+
+    return std::string{buffer, len};
+  }
+
+  QUILL_NODISCARD static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename) noexcept
+  {
+    return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
+  }
+
+  QUILL_NODISCARD static fs::path append_datetime_to_filename(fs::path const& filename,
+                                                              std::string const& append_filename_format_pattern,
+                                                              Timezone time_zone,
+                                                              std::chrono::system_clock::time_point timestamp) noexcept
+  {
+    auto const [stem, ext] = extract_stem_and_extension(filename);
+
+    uint64_t const timestamp_ns = static_cast<uint64_t>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
+
+    return stem + format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern) + ext;
+  }
+
+private:
+  QUILL_NODISCARD static fs::path _get_updated_filename_with_appended_datetime(
+    fs::path const& filename, FilenameAppendOption append_to_filename_option,
+    std::string const& append_filename_format_pattern, Timezone time_zone,
+    std::chrono::system_clock::time_point timestamp)
+  {
+    if ((append_to_filename_option == FilenameAppendOption::None) || (filename == "/dev/null"))
+    {
+      return filename;
+    }
+
+    if ((append_to_filename_option == FilenameAppendOption::StartCustomTimestampFormat) ||
+        (append_to_filename_option == FilenameAppendOption::StartDate) ||
+        (append_to_filename_option == FilenameAppendOption::StartDateTime))
+    {
+      return append_datetime_to_filename(filename, append_filename_format_pattern, time_zone, timestamp);
+    }
+
+    QUILL_THROW(QuillError{"Unexpected FilenameAppendOption value"});
+  }
+
+protected:
+  FileSinkConfig _config;
+  std::chrono::steady_clock::time_point _last_fsync_timestamp{};
+};
+
+/**
+ * Windows FileSink implementation.
+ * Uses a native HANDLE + WriteFile path because it provides materially better
+ * backend file-write throughput on Windows than the CRT FILE* path.
+ */
+class FileSink : public FileSinkBase
+{
+public:
+  explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
+                    FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
+                    std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
+    : FileSinkBase(filename, config, std::move(file_event_notifier), do_fopen, start_time)
+  {
+    if (do_fopen)
+    {
+      open_file(_filename, _config.open_mode());
+    }
+  }
+
+  ~FileSink() override { close_file(); }
+
+  QUILL_ATTRIBUTE_HOT void flush_sink() override
+  {
+    if (!_write_occurred)
+    {
+      return;
+    }
+
+    _flush_native_write_buffer();
+    _write_occurred = false;
+
+    if (_config.fsync_enabled())
+    {
+      fsync_file();
+    }
+
+    std::error_code ec;
+    if (!fs::exists(_filename, ec))
+    {
+      close_file();
+      open_file(_filename, _config.open_mode());
+    }
+  }
+
+  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* /* log_metadata */,
+                                     uint64_t /* log_timestamp */, std::string_view /* thread_id */,
+                                     std::string_view /* thread_name */, std::string const& /* process_id */,
+                                     std::string_view /* logger_name */, LogLevel /* log_level */,
+                                     std::string_view /* log_level_description */,
+                                     std::string_view /* log_level_short_code */,
+                                     std::vector<std::pair<std::string, std::string>> const* /* named_args */,
+                                     std::string_view /* log_message */, std::string_view log_statement) override
+  {
+    if (QUILL_UNLIKELY(_native_file_handle == INVALID_HANDLE_VALUE))
+    {
+      return;
+    }
+
+    std::string_view statement = log_statement;
+    std::string user_log_statement;
+
+    if (_file_event_notifier.before_write)
+    {
+      user_log_statement = _file_event_notifier.before_write(log_statement);
+      statement = user_log_statement;
+    }
+
+    _native_write_buffer.insert(_native_write_buffer.end(), statement.begin(), statement.end());
+    _file_size += statement.size();
+    _write_occurred = true;
+
+    if (_native_write_buffer.size() >= _native_write_buffer_capacity())
+    {
+      _flush_native_write_buffer();
+    }
+  }
+
+protected:
+  void open_file(fs::path const& filename, std::string const& mode)
+  {
+    if (_file_event_notifier.before_open)
+    {
+      _file_event_notifier.before_open(filename);
+    }
+
+    constexpr int max_retries = 3;
+    constexpr int retry_delay_ms = 200;
+    HANDLE native_file_handle = INVALID_HANDLE_VALUE;
+
+    for (int attempt = 0; attempt < max_retries; ++attempt)
+    {
+      DWORD creation_disposition = OPEN_ALWAYS;
+      if (!mode.empty() && mode[0] == 'w')
+      {
+        creation_disposition = CREATE_ALWAYS;
+      }
+
+      native_file_handle = ::CreateFileW(filename.c_str(), GENERIC_WRITE,
+                                         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                         nullptr, creation_disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+      if (native_file_handle != INVALID_HANDLE_VALUE)
+      {
+        if (!::SetHandleInformation(native_file_handle, HANDLE_FLAG_INHERIT, 0))
+        {
+          ::CloseHandle(native_file_handle);
+          native_file_handle = INVALID_HANDLE_VALUE;
+        }
+        else if (!mode.empty() && mode[0] == 'a')
+        {
+          LARGE_INTEGER zero{};
+          if (!::SetFilePointerEx(native_file_handle, zero, nullptr, FILE_END))
+          {
+            ::CloseHandle(native_file_handle);
+            native_file_handle = INVALID_HANDLE_VALUE;
+          }
+        }
+      }
+
+      if (native_file_handle != INVALID_HANDLE_VALUE)
+      {
+        break;
+      }
+
+      if (attempt < max_retries - 1)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds{retry_delay_ms});
+      }
+    }
+
+    if (native_file_handle == INVALID_HANDLE_VALUE)
+    {
+      QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} + std::to_string(max_retries) +
+                             " attempts, path: " + filename.string() + " mode: " + mode +
+                             " GetLastError: " + std::to_string(::GetLastError())});
+    }
+
+    _native_write_buffer.clear();
+    _native_write_buffer.reserve(_native_write_buffer_capacity());
+
+    if (_file_event_notifier.after_open)
+    {
+      QUILL_TRY { _file_event_notifier.after_open(filename, native_file_handle); }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(...)
+      {
+        ::CloseHandle(native_file_handle);
+        throw;
+      }
+  #endif
+    }
+
+    _native_file_handle = native_file_handle;
+  }
+
+  void close_file()
+  {
+    if (_native_file_handle == INVALID_HANDLE_VALUE)
+    {
+      return;
+    }
+
+    if (_file_event_notifier.before_close)
+    {
+      _file_event_notifier.before_close(_filename, _native_file_handle);
+    }
+
+    _flush_native_write_buffer();
+    ::CloseHandle(_native_file_handle);
+    _native_file_handle = INVALID_HANDLE_VALUE;
+    _native_write_buffer.clear();
+
+    if (_file_event_notifier.after_close)
+    {
+      _file_event_notifier.after_close(_filename);
+    }
+  }
+
+  void fsync_file(bool force_fsync = false) noexcept
+  {
+    if (!force_fsync)
+    {
+      auto const now = std::chrono::steady_clock::now();
+      if ((now - _last_fsync_timestamp) < _config.minimum_fsync_interval())
+      {
+        return;
+      }
+      _last_fsync_timestamp = now;
+    }
+
+    FlushFileBuffers(_native_file_handle);
+  }
+
+  void _flush_native_write_buffer()
+  {
+    if ((_native_file_handle == INVALID_HANDLE_VALUE) || _native_write_buffer.empty())
+    {
+      return;
+    }
+
+    char const* data = _native_write_buffer.data();
+    size_t remaining = _native_write_buffer.size();
+
+    while (remaining != 0)
+    {
+      DWORD bytes_written = 0;
+      DWORD const chunk =
+        static_cast<DWORD>(std::min<size_t>(remaining, std::numeric_limits<DWORD>::max()));
+      if (!::WriteFile(_native_file_handle, data, chunk, &bytes_written, nullptr) || (bytes_written == 0))
+      {
+        QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
+                               std::to_string(::GetLastError())});
+      }
+
+      data += bytes_written;
+      remaining -= bytes_written;
+    }
+
+    _native_write_buffer.clear();
+  }
+
+  QUILL_NODISCARD size_t _native_write_buffer_capacity() const noexcept
+  {
+    return _config.write_buffer_size() == 0 ? default_write_buffer_size : _config.write_buffer_size();
+  }
+
+protected:
+  static constexpr size_t default_write_buffer_size{64 * 1024};
+  HANDLE _native_file_handle{INVALID_HANDLE_VALUE};
+  std::vector<char> _native_write_buffer;
+};
+#else
 class FileSink : public StreamSink
 {
 public:
-  /**
-   * Construct a FileSink object.
-   * This constructor will always attempt to open the given file.
-   * @param filename Path to the file to be opened.
-   * @param config Configuration for the FileSink.
-   * @param file_event_notifier Notifies on file events.
-   * @param do_fopen If false, the file will not be opened.
-   * @param start_time start time
-   */
   explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
                     FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
                     std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
@@ -260,14 +583,10 @@ public:
 
   ~FileSink() override { close_file(); }
 
-  /**
-   * Flushes the stream and optionally fsyncs it.
-   */
   QUILL_ATTRIBUTE_HOT void flush_sink() override
   {
     if (!_write_occurred || !_file)
     {
-      // Check here because StreamSink::flush() will set _write_occurred to false
       return;
     }
 
@@ -281,17 +600,12 @@ public:
     std::error_code ec;
     if (!fs::exists(_filename, ec))
     {
-      // after flushing the file we can check if the file still exists. If not we reopen it.
-      // This can happen if a user deletes a file while the application is running
       close_file();
-
-      // Reopen using the configured mode so append-mode sinks preserve externally recreated files.
       open_file(_filename, _config.open_mode());
     }
   }
 
 private:
-  /***/
   struct OpenedFileGuard
   {
     ~OpenedFileGuard()
@@ -313,17 +627,9 @@ private:
   };
 
 protected:
-  /**
-   * Format a datetime string.
-   * @param timestamp_ns Timestamp in nanoseconds.
-   * @param time_zone Timezone to use.
-   * @param append_format_pattern strftime pattern
-   * @return Formatted datetime string.
-   */
   QUILL_NODISCARD static std::string format_datetime_string(uint64_t timestamp_ns, Timezone time_zone,
                                                             std::string const& append_format_pattern)
   {
-    // convert to seconds
     auto const time_now = static_cast<time_t>(timestamp_ns / 1000000000);
     tm now_tm;
 
@@ -336,7 +642,6 @@ protected:
       detail::localtime_rs(&time_now, &now_tm);
     }
 
-    // Construct the string
     static constexpr size_t buffer_size{128};
     char buffer[buffer_size];
     size_t const len = std::strftime(buffer, buffer_size, append_format_pattern.data(), &now_tm);
@@ -344,46 +649,24 @@ protected:
     return std::string{buffer, len};
   }
 
-  /**
-   * Extract stem and extension from a filename.
-   * @param filename Path to the file.
-   * @return Pair containing stem and extension.
-   */
   QUILL_NODISCARD static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename) noexcept
   {
-    // filename and extension
     return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
   }
 
-  /**
-   * Append date and/or time to a filename.
-   * @param filename Path to the file.
-   * @param append_filename_format_pattern strftime pattern
-   * @param time_zone Timezone to use.
-   * @param timestamp Timestamp to use.
-   * @return Updated filename.
-   */
   QUILL_NODISCARD static fs::path append_datetime_to_filename(fs::path const& filename,
                                                               std::string const& append_filename_format_pattern,
                                                               Timezone time_zone,
                                                               std::chrono::system_clock::time_point timestamp) noexcept
   {
-    // Get base file and extension
     auto const [stem, ext] = extract_stem_and_extension(filename);
 
-    // Get the time now as tm from user or default to now
     uint64_t const timestamp_ns = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
 
-    // Construct a filename
     return stem + format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern) + ext;
   }
 
-  /**
-   * Open a file.
-   * @param filename Path to the file.
-   * @param mode File open mode.
-   */
   void open_file(fs::path const& filename, std::string const& mode)
   {
     if (_file_event_notifier.before_open)
@@ -391,30 +674,12 @@ protected:
       _file_event_notifier.before_open(filename);
     }
 
-    // Retry file open to handle transient failures (e.g., antivirus locking on Windows)
     constexpr int max_retries = 3;
     constexpr int retry_delay_ms = 200;
     OpenedFileGuard opened_file_guard;
 
     for (int attempt = 0; attempt < max_retries; ++attempt)
     {
-#if defined(_WIN32)
-      // Use _fsopen with _SH_DENYNO to allow other processes to read the file
-      // while we're writing (e.g., tail, monitoring tools)
-      opened_file_guard.file = ::_fsopen(filename.string().data(), mode.data(), _SH_DENYNO);
-
-      if (opened_file_guard.file)
-      {
-        // Prevent child processes from inheriting this file handle
-        auto file_handle = reinterpret_cast<HANDLE>(::_get_osfhandle(::_fileno(opened_file_guard.file)));
-        if (!::SetHandleInformation(file_handle, HANDLE_FLAG_INHERIT, 0))
-        {
-          ::fclose(opened_file_guard.file);
-          opened_file_guard.file = nullptr;
-        }
-      }
-#else
-      // Unix: use open() with O_CLOEXEC to prevent child processes from inheriting the FD
       int flags = O_CREAT | O_WRONLY | O_CLOEXEC;
       flags |= (!mode.empty() && mode[0] == 'w') ? O_TRUNC : O_APPEND;
 
@@ -427,14 +692,12 @@ protected:
           ::close(fd);
         }
       }
-#endif
 
       if (opened_file_guard.file)
       {
-        break; // Success
+        break;
       }
 
-      // Retry after delay if not the last attempt
       if (attempt < max_retries - 1)
       {
         std::this_thread::sleep_for(std::chrono::milliseconds{retry_delay_ms});
@@ -449,7 +712,6 @@ protected:
     }
 
     std::unique_ptr<char[]> write_buffer;
-
     if (_config.write_buffer_size() != 0)
     {
       write_buffer = std::make_unique<char[]>(_config.write_buffer_size());
@@ -469,9 +731,6 @@ protected:
     _write_buffer = std::move(write_buffer);
   }
 
-  /**
-   * Close the file.
-   */
   void close_file()
   {
     if (!_file)
@@ -493,9 +752,6 @@ protected:
     }
   }
 
-  /**
-   * Fsync the file descriptor.
-   */
   void fsync_file(bool force_fsync = false) noexcept
   {
     if (!_file)
@@ -513,23 +769,10 @@ protected:
       _last_fsync_timestamp = now;
     }
 
-#ifdef _WIN32
-    FlushFileBuffers(reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(_file))));
-#else
     ::fsync(fileno(_file));
-#endif
   }
 
 private:
-  /**
-   * Get the filename with appended date and/or time.
-   * @param filename Path to the file.
-   * @param append_to_filename_option Append option.
-   * @param append_filename_format_pattern Append filename format option.
-   * @param time_zone Timezone to use.
-   * @param timestamp timestamp
-   * @return Updated filename.
-   */
   QUILL_NODISCARD static fs::path _get_updated_filename_with_appended_datetime(
     fs::path const& filename, FilenameAppendOption append_to_filename_option,
     std::string const& append_filename_format_pattern, Timezone time_zone,
@@ -555,6 +798,7 @@ protected:
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
   std::unique_ptr<char[]> _write_buffer;
 };
+#endif
 
 QUILL_END_EXPORT
 

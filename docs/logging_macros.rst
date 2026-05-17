@@ -3,6 +3,38 @@
 Logging Macros
 ==============
 
+Complete reference for all ``LOG_``, ``LOGV_``, ``LOGJ_``, and ``LOG_DYNAMIC`` macros.
+
+Named Placeholders
+------------------
+
+Quill supports named placeholders in format strings (e.g., ``{name}`` instead of ``{}``).
+When named placeholders are used, the library extracts the names from the format string and pairs
+them with the corresponding argument values. This enables features such as structured JSON logging
+(see :doc:`JSON Logging <json_logging>`) and the ``%(named_args)`` attribute in pattern formatters
+(see :doc:`Formatters <formatters>`).
+
+Arguments are always matched to placeholders **by position**, not by name lookup. The name inside
+each ``{...}`` placeholder is used only as a label — it does not influence which argument fills it.
+This means arguments must be passed in the same order as their corresponding placeholders appear
+in the format string.
+
+.. code-block:: cpp
+
+   // Correct - arguments are passed in the same order as placeholders
+   LOG_INFO(logger, "Hello {name}, you are {age}!", name, age);
+
+   // LOGJ_ macros auto-generate the named format string from variable names
+   LOGJ_INFO(logger, "Greeting", name, age);
+
+.. note::
+
+   ``fmtquill::arg()`` / ``fmt::arg()`` style named argument binding is **not supported**.
+   Unlike ``fmtlib``, which resolves ``{name}`` placeholders by matching argument names at runtime,
+   Quill serializes only the argument values (without names) to the queue to minimize frontend
+   latency. Passing ``fmtquill::arg()`` / ``fmt::arg()`` to Quill logging calls will result in a
+   compile error.
+
 Compile-Time Log Level Filtering
 --------------------------------
 
@@ -15,6 +47,8 @@ This is done by defining `QUILL_COMPILE_ACTIVE_LOG_LEVEL` as a compilation flag 
     QUILL_COMPILE_ACTIVE_LOG_LEVEL_{DESIRED_LEVEL}
 
 Where `{DESIRED_LEVEL}` can be one of the following: `TRACE_L3`, `TRACE_L2`, `TRACE_L1`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
+
+In Quill's trace-tier naming, `TRACE_L3` is the most detailed trace level and `TRACE_L1` is the least detailed trace level.
 
 For example, to compile only with warnings and above, you would define:
 
@@ -37,97 +71,97 @@ Standard Logging Macros
 
 **Trace Level 3 (L3)**
 
-- :c:macro:`LOG_TRACE_L3(logger, fmt, ...)`
+- ``LOG_TRACE_L3(logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L3_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_TRACE_L3_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L3_TAGS(logger, tags, fmt, ...)`
+- ``LOG_TRACE_L3_TAGS(logger, tags, fmt, ...)``
 
 **Trace Level 2 (L2)**
 
-- :c:macro:`LOG_TRACE_L2(logger, fmt, ...)`
+- ``LOG_TRACE_L2(logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L2_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_TRACE_L2_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L2_TAGS(logger, tags, fmt, ...)`
+- ``LOG_TRACE_L2_TAGS(logger, tags, fmt, ...)``
 
 **Trace Level 1 (L1)**
 
-- :c:macro:`LOG_TRACE_L1(logger, fmt, ...)`
+- ``LOG_TRACE_L1(logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L1_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_TRACE_L1_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_TRACE_L1_TAGS(logger, tags, fmt, ...)`
+- ``LOG_TRACE_L1_TAGS(logger, tags, fmt, ...)``
 
 **Debug**
 
-- :c:macro:`LOG_DEBUG(logger, fmt, ...)`
+- ``LOG_DEBUG(logger, fmt, ...)``
 
-- :c:macro:`LOG_DEBUG_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_DEBUG_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_DEBUG_TAGS(logger, tags, fmt, ...)`
+- ``LOG_DEBUG_TAGS(logger, tags, fmt, ...)``
 
 **Info**
 
-- :c:macro:`LOG_INFO(logger, fmt, ...)`
+- ``LOG_INFO(logger, fmt, ...)``
 
-- :c:macro:`LOG_INFO_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_INFO_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_INFO_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_INFO_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_INFO_TAGS(logger, tags, fmt, ...)`
+- ``LOG_INFO_TAGS(logger, tags, fmt, ...)``
 
 **Notice**
 
-- :c:macro:`LOG_NOTICE(logger, fmt, ...)`
+- ``LOG_NOTICE(logger, fmt, ...)``
 
-- :c:macro:`LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_NOTICE_TAGS(logger, tags, fmt, ...)`
+- ``LOG_NOTICE_TAGS(logger, tags, fmt, ...)``
 
 **Warning**
 
-- :c:macro:`LOG_WARNING(logger, fmt, ...)`
+- ``LOG_WARNING(logger, fmt, ...)``
 
-- :c:macro:`LOG_WARNING_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_WARNING_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_WARNING_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_WARNING_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_WARNING_TAGS(logger, tags, fmt, ...)`
+- ``LOG_WARNING_TAGS(logger, tags, fmt, ...)``
 
 **Error**
 
-- :c:macro:`LOG_ERROR(logger, fmt, ...)`
+- ``LOG_ERROR(logger, fmt, ...)``
 
-- :c:macro:`LOG_ERROR_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_ERROR_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_ERROR_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_ERROR_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_ERROR_TAGS(logger, tags, fmt, ...)`
+- ``LOG_ERROR_TAGS(logger, tags, fmt, ...)``
 
 **Critical**
 
-- :c:macro:`LOG_CRITICAL(logger, fmt, ...)`
+- ``LOG_CRITICAL(logger, fmt, ...)``
 
-- :c:macro:`LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...)`
+- ``LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...)``
 
-- :c:macro:`LOG_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`
+- ``LOG_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
 
-- :c:macro:`LOG_CRITICAL_TAGS(logger, tags, fmt, ...)`
+- ``LOG_CRITICAL_TAGS(logger, tags, fmt, ...)``
 
 **Backtrace**
 
-- :c:macro:`LOG_BACKTRACE(logger, fmt, ...)`
+- ``LOG_BACKTRACE(logger, fmt, ...)``
 
 Value-based Macros (LOGV)
 -------------------------
@@ -137,97 +171,97 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 **Trace Level 3 (L3)**
 
-- :c:macro:`LOGV_TRACE_L3(logger, message, ...)`
+- ``LOGV_TRACE_L3(logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L3_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_TRACE_L3_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L3_TAGS(logger, tags, message, ...)`
+- ``LOGV_TRACE_L3_TAGS(logger, tags, message, ...)``
 
 **Trace Level 2 (L2)**
 
-- :c:macro:`LOGV_TRACE_L2(logger, message, ...)`
+- ``LOGV_TRACE_L2(logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L2_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_TRACE_L2_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L2_TAGS(logger, tags, message, ...)`
+- ``LOGV_TRACE_L2_TAGS(logger, tags, message, ...)``
 
 **Trace Level 1 (L1)**
 
-- :c:macro:`LOGV_TRACE_L1(logger, message, ...)`
+- ``LOGV_TRACE_L1(logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L1_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_TRACE_L1_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_TRACE_L1_TAGS(logger, tags, message, ...)`
+- ``LOGV_TRACE_L1_TAGS(logger, tags, message, ...)``
 
 **Debug**
 
-- :c:macro:`LOGV_DEBUG(logger, message, ...)`
+- ``LOGV_DEBUG(logger, message, ...)``
 
-- :c:macro:`LOGV_DEBUG_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_DEBUG_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_DEBUG_TAGS(logger, tags, message, ...)`
+- ``LOGV_DEBUG_TAGS(logger, tags, message, ...)``
 
 **Info**
 
-- :c:macro:`LOGV_INFO(logger, message, ...)`
+- ``LOGV_INFO(logger, message, ...)``
 
-- :c:macro:`LOGV_INFO_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_INFO_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_INFO_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_INFO_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_INFO_TAGS(logger, tags, message, ...)`
+- ``LOGV_INFO_TAGS(logger, tags, message, ...)``
 
 **Notice**
 
-- :c:macro:`LOGV_NOTICE(logger, message, ...)`
+- ``LOGV_NOTICE(logger, message, ...)``
 
-- :c:macro:`LOGV_NOTICE_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_NOTICE_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_NOTICE_TAGS(logger, tags, message, ...)`
+- ``LOGV_NOTICE_TAGS(logger, tags, message, ...)``
 
 **Warning**
 
-- :c:macro:`LOGV_WARNING(logger, message, ...)`
+- ``LOGV_WARNING(logger, message, ...)``
 
-- :c:macro:`LOGV_WARNING_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_WARNING_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_WARNING_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_WARNING_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_WARNING_TAGS(logger, tags, message, ...)`
+- ``LOGV_WARNING_TAGS(logger, tags, message, ...)``
 
 **Error**
 
-- :c:macro:`LOGV_ERROR(logger, message, ...)`
+- ``LOGV_ERROR(logger, message, ...)``
 
-- :c:macro:`LOGV_ERROR_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_ERROR_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_ERROR_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_ERROR_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_ERROR_TAGS(logger, tags, message, ...)`
+- ``LOGV_ERROR_TAGS(logger, tags, message, ...)``
 
 **Critical**
 
-- :c:macro:`LOGV_CRITICAL(logger, message, ...)`
+- ``LOGV_CRITICAL(logger, message, ...)``
 
-- :c:macro:`LOGV_CRITICAL_LIMIT(min_interval, logger, message, ...)`
+- ``LOGV_CRITICAL_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGV_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGV_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGV_CRITICAL_TAGS(logger, tags, message, ...)`
+- ``LOGV_CRITICAL_TAGS(logger, tags, message, ...)``
 
 **Backtrace**
 
-- :c:macro:`LOGV_BACKTRACE(logger, message, ...)`
+- ``LOGV_BACKTRACE(logger, message, ...)``
 
 JSON Logging Macros (LOGJ)
 --------------------------
@@ -237,108 +271,108 @@ Each macro can handle up to 26 arguments. The format string is concatenated at c
 
 **Trace Level 3 (L3)**
 
-- :c:macro:`LOGJ_TRACE_L3(logger, message, ...)`
+- ``LOGJ_TRACE_L3(logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L3_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_TRACE_L3_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L3_TAGS(logger, tags, message, ...)`
+- ``LOGJ_TRACE_L3_TAGS(logger, tags, message, ...)``
 
 **Trace Level 2 (L2)**
 
-- :c:macro:`LOGJ_TRACE_L2(logger, message, ...)`
+- ``LOGJ_TRACE_L2(logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L2_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_TRACE_L2_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L2_TAGS(logger, tags, message, ...)`
+- ``LOGJ_TRACE_L2_TAGS(logger, tags, message, ...)``
 
 **Trace Level 1 (L1)**
 
-- :c:macro:`LOGJ_TRACE_L1(logger, message, ...)`
+- ``LOGJ_TRACE_L1(logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L1_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_TRACE_L1_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_TRACE_L1_TAGS(logger, tags, message, ...)`
+- ``LOGJ_TRACE_L1_TAGS(logger, tags, message, ...)``
 
 **Debug**
 
-- :c:macro:`LOGJ_DEBUG(logger, message, ...)`
+- ``LOGJ_DEBUG(logger, message, ...)``
 
-- :c:macro:`LOGJ_DEBUG_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_DEBUG_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_DEBUG_TAGS(logger, tags, message, ...)`
+- ``LOGJ_DEBUG_TAGS(logger, tags, message, ...)``
 
 **Info**
 
-- :c:macro:`LOGJ_INFO(logger, message, ...)`
+- ``LOGJ_INFO(logger, message, ...)``
 
-- :c:macro:`LOGJ_INFO_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_INFO_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_INFO_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_INFO_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_INFO_TAGS(logger, tags, message, ...)`
+- ``LOGJ_INFO_TAGS(logger, tags, message, ...)``
 
 **Notice**
 
-- :c:macro:`LOGJ_NOTICE(logger, message, ...)`
+- ``LOGJ_NOTICE(logger, message, ...)``
 
-- :c:macro:`LOGJ_NOTICE_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_NOTICE_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_NOTICE_TAGS(logger, tags, message, ...)`
+- ``LOGJ_NOTICE_TAGS(logger, tags, message, ...)``
 
 **Warning**
 
-- :c:macro:`LOGJ_WARNING(logger, message, ...)`
+- ``LOGJ_WARNING(logger, message, ...)``
 
-- :c:macro:`LOGJ_WARNING_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_WARNING_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_WARNING_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_WARNING_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_WARNING_TAGS(logger, tags, message, ...)`
+- ``LOGJ_WARNING_TAGS(logger, tags, message, ...)``
 
 **Error**
 
-- :c:macro:`LOGJ_ERROR(logger, message, ...)`
+- ``LOGJ_ERROR(logger, message, ...)``
 
-- :c:macro:`LOGJ_ERROR_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_ERROR_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_ERROR_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_ERROR_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_ERROR_TAGS(logger, tags, message, ...)`
+- ``LOGJ_ERROR_TAGS(logger, tags, message, ...)``
 
 **Critical**
 
-- :c:macro:`LOGJ_CRITICAL(logger, message, ...)`
+- ``LOGJ_CRITICAL(logger, message, ...)``
 
-- :c:macro:`LOGJ_CRITICAL_LIMIT(min_interval, logger, message, ...)`
+- ``LOGJ_CRITICAL_LIMIT(min_interval, logger, message, ...)``
 
-- :c:macro:`LOGJ_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`
+- ``LOGJ_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
 
-- :c:macro:`LOGJ_CRITICAL_TAGS(logger, tags, message, ...)`
+- ``LOGJ_CRITICAL_TAGS(logger, tags, message, ...)``
 
 **Backtrace**
 
-- :c:macro:`LOGJ_BACKTRACE(logger, message, ...)`
+- ``LOGJ_BACKTRACE(logger, message, ...)``
 
 Dynamic Logging Macros
 -----------------------
 
 Dynamic logging macros provide runtime log level flexibility with a small overhead. Prefer using the compile-time log level macros for zero-cost logging.
 
-- :c:macro:`LOG_DYNAMIC(logger, log_level, fmt, ...)`
+- ``LOG_DYNAMIC(logger, log_level, fmt, ...)``
 
-- :c:macro:`LOGV_DYNAMIC(logger, log_level, message, ...)`
+- ``LOGV_DYNAMIC(logger, log_level, message, ...)``
 
-- :c:macro:`LOGJ_DYNAMIC(logger, log_level, message, ...)`
+- ``LOGJ_DYNAMIC(logger, log_level, message, ...)``
 
 Runtime Metadata Logging Macro
 ------------------------------

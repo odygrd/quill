@@ -12,30 +12,29 @@
  * queue used by the frontend.
  *
  * By default, the library uses an UnboundedBlocking queue, which starts small with
- * initial_queue_capacity and reallocates up to 2GB as needed.
+ * `initial_queue_capacity` and grows as needed.
+ *
+ * This example switches to a bounded dropping queue so the frontend never blocks and excess
+ * log messages are dropped once the queue is full.
  */
 
 /**
- * Create a custom frontend config
+ * Create custom frontend options.
  */
-struct CustomFrontendOptions
+struct CustomFrontendOptions : quill::FrontendOptions
 {
   // Set the queue to BoundedDropping
   static constexpr quill::QueueType queue_type = quill::QueueType::BoundedDropping;
 
   // Set small capacity to demonstrate dropping messages in this example
   static constexpr size_t initial_queue_capacity = 256;
-
-  static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
-  static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024u * 1024u * 1024u;
-  static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
 };
 
 /**
- * A new Frontend and Logger should be defined to use the custom frontend options.
+ * Define matching Frontend and Logger types that use the custom frontend options.
  */
 using CustomFrontend = quill::FrontendImpl<CustomFrontendOptions>;
-using CustommLogger = quill::LoggerImpl<CustomFrontendOptions>;
+using CustomLogger = quill::LoggerImpl<CustomFrontendOptions>;
 
 int main()
 {
@@ -45,7 +44,7 @@ int main()
 
   // Frontend
   auto console_sink = CustomFrontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
-  CustommLogger* logger = CustomFrontend::create_or_get_logger("root", std::move(console_sink));
+  CustomLogger* logger = CustomFrontend::create_or_get_logger("root", std::move(console_sink));
 
   for (int i = 0; i < 32; ++i)
   {

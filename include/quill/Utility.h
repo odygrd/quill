@@ -127,7 +127,13 @@ QUILL_END_NAMESPACE
 #ifndef QUILL_DEFINE_SEQUENTIAL_THREAD_ID
   #if defined(QUILL_USE_SEQUENTIAL_THREAD_ID)
     #define QUILL_DEFINE_SEQUENTIAL_THREAD_ID                                                      \
-      std::atomic<uint32_t> quill::detail::g_next_thread_id{0};
+      QUILL_BEGIN_NAMESPACE                                                                        \
+      namespace detail                                                                             \
+      {                                                                                            \
+      std::atomic<uint32_t> g_next_thread_id{0};                                                   \
+      QUILL_THREAD_LOCAL uint32_t g_cached_thread_id{0};                                           \
+      }                                                                                            \
+      QUILL_END_NAMESPACE
   #else
     #define QUILL_DEFINE_SEQUENTIAL_THREAD_ID
   #endif

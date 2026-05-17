@@ -96,6 +96,19 @@
 #endif
 
 /**
+ * Prevents the compiler from inlining a function
+ */
+#ifndef QUILL_NOINLINE
+  #if QUILL_HAS_ATTRIBUTE(noinline)
+    #define QUILL_NOINLINE __attribute__((noinline))
+  #elif defined(_MSC_VER)
+    #define QUILL_NOINLINE __declspec(noinline)
+  #else
+    #define QUILL_NOINLINE
+  #endif
+#endif
+
+/**
  * Gcc hot/cold attributes
  * Tells GCC that a function is hot or cold. GCC can use this information to
  * improve static analysis, i.e. a conditional branch to a cold function
@@ -131,6 +144,27 @@
 /**
  * Likely
  */
+/**
+ * Tells the compiler that a condition is always true, enabling optimisations
+ * that rely on that guarantee.  Behaviour is undefined if the condition is false.
+ */
+#ifndef QUILL_ASSUME
+  #if defined(__clang__)
+    #define QUILL_ASSUME(x) __builtin_assume(x)
+  #elif defined(__GNUC__)
+    #define QUILL_ASSUME(x)                                                                        \
+      do                                                                                           \
+      {                                                                                            \
+        if (!(x))                                                                                  \
+          __builtin_unreachable();                                                                  \
+      } while (0)
+  #elif defined(_MSC_VER)
+    #define QUILL_ASSUME(x) __assume(x)
+  #else
+    #define QUILL_ASSUME(x) ((void)0)
+  #endif
+#endif
+
 #ifndef QUILL_LIKELY
   #if defined(__GNUC__)
     #define QUILL_LIKELY(x) (__builtin_expect((x), 1))
@@ -172,7 +206,9 @@
  */
 #ifndef QUILL_BEGIN_EXPORT
   #if defined(QUILL_MODULE)
-    #define QUILL_BEGIN_EXPORT export {
+    #define QUILL_BEGIN_EXPORT                                                                     \
+      export                                                                                       \
+      {
     #define QUILL_END_EXPORT }
   #else
     #define QUILL_BEGIN_EXPORT

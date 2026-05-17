@@ -20,7 +20,7 @@ namespace testing
 // Convert the given file to a vector
 std::vector<std::string> file_contents(fs::path const& filename)
 {
-  std::ifstream out_file(filename.string());
+  std::ifstream out_file(filename);
 
   std::vector<std::string> lines;
 
@@ -35,7 +35,7 @@ std::vector<std::string> file_contents(fs::path const& filename)
 // Convert the given file to a vector
 std::vector<std::wstring> wfile_contents(fs::path const& filename)
 {
-  std::wifstream out_file(filename.string());
+  std::wifstream out_file(filename);
 
   std::vector<std::wstring> lines;
 

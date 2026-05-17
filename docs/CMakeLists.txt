@@ -44,11 +44,12 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
         ${CMAKE_CURRENT_SOURCE_DIR}/backend_options.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/backtrace_logging.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/basic_example.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/cheat_sheet.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/recipes.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/csv_writing.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/filters.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/formatters.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/frontend_options.rst
+        ${CMAKE_CURRENT_SOURCE_DIR}/guides.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/installing.rst
         ${CMAKE_CURRENT_SOURCE_DIR}/json_logging.rst

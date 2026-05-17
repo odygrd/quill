@@ -4,9 +4,10 @@
   <meta name="keywords" content="C++, logging library, asynchronous logging, high performance, low latency">
   -->
 
-  <br>
-  <img src="docs/logo.png" alt="Quill C++ Logging Library" width="200" height="auto" />
-  <h1>Quill</h1>
+  <h1>
+    <img src="docs/quill_logo.png" alt="Quill C++ Logging Library" width="100" /><br>
+    Quill
+  </h1>
   <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
 
   <div>
@@ -55,9 +56,11 @@
   </div>
 
   <h4>
+    <a href="https://godbolt.org/z/n68asK7bY" title="Try Quill live on Compiler Explorer">🔬 Try It Online</a>
+    <span> · </span>
     <a href="https://quillcpp.readthedocs.io" title="Explore the full documentation">📚 Documentation</a>
     <span> · </span>
-    <a href="https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html" title="Quick reference for common tasks">⚡ Cheat Sheet</a>
+    <a href="https://quillcpp.readthedocs.io/en/latest/recipes.html" title="Quick reference for common tasks">⚡ Recipes</a>
     <span> · </span>
     <a href="https://quillcpp.readthedocs.io/en/latest/faq.html" title="Frequently asked questions">❓ FAQ</a>
     <span> · </span>
@@ -91,11 +94,16 @@ performance-critical applications where every microsecond counts.
 
 - **Performance-Focused**: Quill consistently outperforms many popular logging libraries.
 - **Feature-Rich**: Packed with advanced features to meet diverse logging needs.
-- **Battle-Tested**: Proven in demanding production environments. Extensively tested with sanitizers (ASan, UBSan, LSan) and fuzzed across a wide range of inputs.
+- **Battle-Tested**: Proven in demanding production environments. Extensively tested with sanitizers (ASan, UBSan, LSan)
+  and fuzzed across a wide range of inputs.
 - **Extensive Documentation**: Comprehensive guides and examples available.
 - **Community-Driven**: Open to contributions, feedback, and feature requests.
 
-Try it on [Compiler Explorer](https://godbolt.org/z/n68asK7bY)
+### When to Use Quill
+
+Quill is a good fit when you need **low frontend latency** (trading, gamedev, real-time systems),
+**timestamp-ordered logs across threads**, or **deferred log formatting** that keeps string
+conversion and I/O off your hot path.
 
 ---
 
@@ -127,18 +135,24 @@ For the quickest and simplest setup use `simple_logger()`:
 
 ```c++
 #include "quill/SimpleSetup.h"
-#include "quill/LogFunctions.h"
+#include "quill/LogMacros.h"
 
 int main()
 {
   // log to the console
   auto* logger = quill::simple_logger();
-  quill::info(logger, "Hello from {}!", "Quill");
+  LOG_INFO(logger, "Hello from {}!", "Quill");
 
   // log to a file
   auto* logger2 = quill::simple_logger("test.log");
-  quill::warning(logger2, "This message goes to a file");
+  LOG_WARNING(logger2, "This message goes to a file");
 }
+```
+
+**Console output:**
+
+```
+20:07:18.423476231 [48917] main.cpp:8                    LOG_INFO      Hello from Quill!
 ```
 
 #### Detailed Setup
@@ -164,7 +178,15 @@ int main()
 }
 ```
 
-Alternatively, you can use the macro-free mode.
+**Output:**
+
+```
+20:07:18.423476231 [48917] main.cpp:15                   LOG_INFO      root         Hello from Quill!
+```
+
+Alternatively, you can use the macro-free mode. The macro-based interface (`LOG_INFO`) is recommended for
+lowest latency since arguments are only evaluated when the log level is active. The macro-free interface
+(`quill::info`) is slightly slower but offers cleaner syntax.
 See [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for details on performance
 trade-offs.
 
@@ -191,32 +213,24 @@ int main()
 
 ## 🎯 Features
 
-- **High-Performance**: Ultra-low latency performance. View [Benchmarks](https://github.com/odygrd/quill#performance)
+- **High-Performance**: Ultra-low latency performance. View [Benchmarks](#-performance).
 - **Asynchronous Processing**: Background thread handles formatting and I/O, keeping your main thread responsive.
-- **Minimal Header Includes**:
-    - **Frontend**: Only `Logger.h` and `LogMacros.h` needed for logging. Lightweight with minimal dependencies.
-    - **Backend**: Single `.cpp` file inclusion. No backend code injection into other translation units.
+- **Minimal Header Includes**: Only `Logger.h` and `LogMacros.h` needed on the frontend. No backend code leaks into other translation units.
 - **Compile-Time Optimization**: Eliminate specific log levels at compile time.
-- **Custom Formatters**: Define your own log output patterns.
-  See [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
+- **Custom Formatters**: Define your own log output patterns. See [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
 - **Timestamp-Ordered Logs**: Simplify debugging of multithreaded applications with chronologically ordered logs.
-- **Flexible Timestamps**: Support for `rdtsc`, `chrono`, or `custom clocks` - ideal for simulations and more.
-- **Backtrace Logging**: Store messages in a ring buffer for on-demand display.
-  See [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html)
-- **Multiple Output Sinks**: Console (with color), files (with rotation), JSON, ability to create custom sinks and more.
-- **Log Filtering**: Process only relevant messages.
-  See [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
-- **JSON Logging**: Structured log output.
-  See [JSON Logging](https://quillcpp.readthedocs.io/en/latest/json_logging.html)
-- **Configurable Queue Modes**: `bounded/unbounded` and `blocking/dropping` options with monitoring on dropped messages,
-  queue reallocations, and blocked hot threads.
-- **Crash Handling**: Built-in signal handler for log preservation during crashes.
+- **Flexible Timestamps**: Support for `rdtsc`, `chrono`, or custom clocks — ideal for simulations and more.
+- **Backtrace Logging**: Store messages in a ring buffer for on-demand display. See [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html).
+- **Multiple Output Sinks**: Console (with color), files (with rotation), JSON, and custom sinks.
+- **Log Filtering**: Process only relevant messages. See [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
+- **JSON Logging**: Structured log output. See [JSON Logging](https://quillcpp.readthedocs.io/en/latest/json_logging.html).
+- **Configurable Queue Modes**: Bounded/unbounded and blocking/dropping options with monitoring on dropped messages, queue reallocations, and blocked hot threads.
+- **Crash/Signal Handling**: Built-in signal and exception handling to help preserve logs during crashes.
 - **Huge Pages Support (Linux)**: Leverage huge pages on the hot path for optimized performance.
-- **Wide Character Support (Windows)**: Compatible with ASCII-encoded wide strings and STL containers consisting of wide
-  strings.
+- **Wide Character Support (Windows)**: Compatible with ASCII-encoded wide strings and STL containers.
 - **Exception-Free Option**: Configurable builds with or without exception handling.
 - **Clean Codebase**: Maintained to high standards, warning-free even at strict levels.
-- **Type-Safe API**: Built on [{fmt}](https://github.com/fmtlib/fmt) library.
+- **Type-Safe API**: Built on [{fmt}](https://github.com/fmtlib/fmt).
 
 ---
 
@@ -265,7 +279,7 @@ The tables are sorted by the 95th percentile (lower is better).
 | [g3log](https://github.com/KjellKod/g3log)                               | 775  | 781  | 787  | 791  | 805  |  967   |
 | [Boost.Log](https://www.boost.org)                                       | 838  | 845  | 853  | 859  | 897  |  959   |
 
-![numbers_1_thread_logging.webp](docs%2Fcharts%2Fnumbers_1_thread_logging.webp)
+![Logging numbers 1-thread latency chart](docs/charts/numbers_1_thread_logging.svg)
 
 ##### 4 Threads Logging Simultaneously
 
@@ -285,7 +299,7 @@ The tables are sorted by the 95th percentile (lower is better).
 | [Boost.Log](https://www.boost.org)                                       | 1640 | 2538 | 2793 | 2896 | 4150 |  4962  |
 | [g3log](https://github.com/KjellKod/g3log)                               | 1336 | 4102 | 4501 | 4641 | 6079 |  7363  |
 
-![numbers_4_thread_logging.webp](docs%2Fcharts%2Fnumbers_4_thread_logging.webp)
+![Logging numbers 4-thread latency chart](docs/charts/numbers_4_thread_logging.svg)
 
 #### Logging Large Strings
 
@@ -311,7 +325,7 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 | [g3log](https://github.com/KjellKod/g3log)                               | 565  | 568  | 571  | 573  | 582  |  740   |
 | [Boost.Log](https://www.boost.org)                                       | 638  | 641  | 645  | 647  | 651  |  659   |
 
-![large_strings_1_thread_logging.webp](docs%2Fcharts%2Flarge_strings_1_thread_logging.webp)
+![Logging large strings 1-thread latency chart](docs/charts/large_strings_1_thread_logging.svg)
 
 ##### 4 Threads Logging Simultaneously
 
@@ -331,7 +345,7 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 | [Boost.Log](https://www.boost.org)                                       | 1357 | 2420 | 2607 | 2651 | 3939 |  5682  |
 | [g3log](https://github.com/KjellKod/g3log)                               | 1050 | 3886 | 4271 | 4442 | 5693 |  6831  |
 
-![large_strings_4_thread_logging.webp](docs%2Fcharts%2Flarge_strings_4_thread_logging.webp)
+![Logging large strings 4-thread latency chart](docs/charts/large_strings_4_thread_logging.svg)
 
 #### Logging Complex Types
 
@@ -353,7 +367,7 @@ Note: some of the previous loggers do not support passing a `std::vector` as an 
 | [spdlog](https://github.com/gabime/spdlog)                      | 6301  | 6363  | 6419  | 6455  | 6802  |  7414  |
 | [Boost.Log](https://www.boost.org)                              | 34432 | 34623 | 34797 | 34928 | 35703 | 36233  |
 
-![vector_1_thread_logging.webp](docs%2Fcharts%2Fvector_1_thread_logging.webp)
+![Logging complex types 1-thread latency chart](docs/charts/vector_1_thread_logging.svg)
 
 ##### 4 Threads Logging Simultaneously
 
@@ -367,7 +381,7 @@ Note: some of the previous loggers do not support passing a `std::vector` as an 
 | [spdlog](https://github.com/gabime/spdlog)                      | 6593  | 6671  |  6751  |  6815  |  7610  |  8794  |
 | [Boost.Log](https://www.boost.org)                              | 36322 | 80294 | 151775 | 177681 | 272649 | 362401 |
 
-![vector_4_thread_logging.webp](docs%2Fcharts%2Fvector_4_thread_logging.webp)
+![Logging complex types 4-thread latency chart](docs/charts/vector_4_thread_logging.svg)
 
 The benchmark methodology involves logging 20 messages in a loop, calculating and storing the average latency for those
 20 messages, then waiting around ~2 milliseconds, and repeating this process for a specified number of iterations.
@@ -401,6 +415,10 @@ In the same way, `Platformlab Nanolog` also outputs binary logs and is expected 
 reasons unexplained, the benchmark runs significantly slower (10x longer) than the other libraries, so it is excluded
 from the table.
 
+`XTR` uses ``FMT_COMPILE`` for message formatting in this benchmark. Quill does not currently use that optimisation:
+decoded arguments are formatted through the runtime ``fmt`` APIs, and the final log line then passes through Quill's
+runtime-configurable ``PatternFormatter``.
+
 Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 
 | Library                                                            | million msg/second | elapsed time |
@@ -416,24 +434,51 @@ Logging 4 million times the message `"Iteration: {} int: {} double: {}"`
 | [BqLog](https://github.com/Tencent/BqLog)                          |        2.60        |   1537 ms    |
 | [Boost.Log](https://www.boost.org)                                 |        0.39        |   10102 ms   |
 
-![throughput.webp](docs%2Fcharts%2Fthroughput.webp)
+![Throughput comparison chart](docs/charts/throughput.svg)
 
 ### Compilation Time
 
-Compile times are measured using `clang 17` and for `Release` build.
+Compile times are measured on the system above using clean `Release` builds of [`BENCHMARK_quill_compile_time`](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp),
+which compiles `2000` auto-generated log statements with varied argument types.
 
-Below, you can find the additional headers that the library will include when you need to log, following
+The measurements below were taken with `-march=x86-64-v3` for `Release`, running one clean build
+at a time with `-j4`.
+Clang builds additionally enable `-ftime-trace`.
+
+Quill intentionally keeps call-site metadata such as file, line, format string, and tags out of the
+frontend template identity. In the common macro-based path, that information is stored in a
+`MacroMetadata` object and passed as a regular function argument. As a result, multiple log statements
+with the same argument type pack can reuse the same `log_statement` instantiation; changing only the
+call-site metadata does not create a new frontend template instantiation.
+
+| Compiler       | Clean Build Time | Benchmark Binary | Main TU Object |
+|:---------------|-----------------:|-----------------:|---------------:|
+| `clang 17.0.6` |        `31.32 s` |        `5.61 MB` |      `9.66 MB` |
+| `gcc 13.3.1`   |        `60.18 s` |        `5.20 MB` |      `7.70 MB` |
+
+**Header include profile** — shows the additional headers pulled in when logging, following
 the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
-example
+example:
 
-![quill_v10_0_compiler_profile.speedscope.png](docs%2Fquill_v10_0_compiler_profile.speedscope.png)
+> [**Open in Speedscope
+** ↗](https://www.speedscope.app/#profileURL=https://raw.githubusercontent.com/odygrd/quill/master/docs/traces/recommended_usage.cpp.json)
 
-There is also a compile-time benchmark measuring the compilation time of 2000 auto-generated log statements with
-various arguments. You can find
-it [here](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp). It takes
-approximately 30 seconds to compile.
+**Compile-time benchmark** — measures compilation
+of [2000 auto-generated log statements](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp)
+with various arguments:
 
-![quill_v10_0_compiler_bench.speedscope.png](docs%2Fquill_v10_0_compiler_bench.speedscope.png)
+> [**Open in Speedscope
+** ↗](https://www.speedscope.app/#profileURL=https://raw.githubusercontent.com/odygrd/quill/master/docs/traces/compile_time_bench.cpp.json)
+
+To generate these profiles yourself:
+
+```bash
+cmake -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release \
+  -DQUILL_BUILD_BENCHMARKS=ON -DQUILL_ENABLE_TIME_TRACE=ON \
+  -DCMAKE_CXX_FLAGS='-march=x86-64-v3' ..
+cmake --build . --target BENCHMARK_quill_compile_time -j 4
+# Load the resulting .cpp.json files into https://www.speedscope.app
+```
 
 ### Verdict
 
@@ -529,7 +574,7 @@ int main()
 
 ### Output
 
-![example_output.png](docs%2Fexample_output.png)
+![example output](docs/example_output.svg)
 
 ### External CMake
 
@@ -662,7 +707,7 @@ my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], ins
 
 ### Bazel
 
-#### Using Blzmod
+#### Using Bzlmod
 
 Quill is available on `Bzlmod` for easy integration.
 
@@ -699,7 +744,11 @@ When invoking a `LOG_` macro:
 Consumes each message from the SPSC queue, retrieves all the necessary information and then formats the message.
 Subsequently, forwards the log message to all Sinks associated with the Logger.
 
-![design.jpg](docs%2Fdesign.jpg)
+### Architecture Overview
+
+The diagram below shows the end-to-end flow from hot frontend threads to the backend worker and sinks.
+
+![design diagram](docs/design.drawio.svg)
 
 ---
 
@@ -739,19 +788,19 @@ int main()
     
     quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
 
-    QUILL_LOG_INFO(logger, "Hello from Child {}", 123);
+    LOG_INFO(logger, "Hello from Child {}", 123);
   }
   else
   {
     quill::Backend::start();
-          
+
     // Get or create a handler to the file - Write to a different file
     auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
       "parent.log");
-    
+
     quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-    
-    QUILL_LOG_INFO(logger, "Hello from Parent {}", 123);
+
+    LOG_INFO(logger, "Hello from Parent {}", 123);
   }
 }
 ```

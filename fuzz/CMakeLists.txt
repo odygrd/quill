@@ -22,3 +22,7 @@ quill_add_fuzzer(FUZZ_UserDefinedDeferredFormat UserDefinedDeferredFormatFuzzer.
 quill_add_fuzzer(FUZZ_UserDefinedDirectFormat UserDefinedDirectFormatFuzzer.cpp)
 quill_add_fuzzer(FUZZ_QueueStress QueueStressFuzzer.cpp)
 quill_add_fuzzer(FUZZ_BinaryData BinaryDataFuzzer.cpp)
+quill_add_fuzzer(FUZZ_Multithread MultithreadFuzzer.cpp)
+quill_add_fuzzer(FUZZ_DynamicLogLevel DynamicLogLevelFuzzer.cpp)
+quill_add_fuzzer(FUZZ_LoggerLifecycle LoggerLifecycleFuzzer.cpp)
+quill_add_fuzzer(FUZZ_RotatingSink RotatingSinkFuzzer.cpp)

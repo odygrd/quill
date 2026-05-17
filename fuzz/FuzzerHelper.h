@@ -11,13 +11,9 @@
   #error "FUZZER_LOG_FILENAME must be defined before including FuzzerHelper.h"
 #endif
 
-struct CustomFrontendOptions
+struct CustomFrontendOptions : quill::FrontendOptions
 {
-  static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
   static constexpr size_t initial_queue_capacity = 4096; // start low for extra testing
-  static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
-  static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024u * 1024u * 1024u;
-  static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
 };
 
 // Global logger instance

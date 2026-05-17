@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1618" height="507" viewBox="0 0 1618 507" role="img" aria-labelledby="title desc">
+  <title id="title">Quill example console output</title>
+  <desc id="desc">Terminal-style example output showing Quill log levels, source locations, and formatted messages.</desc>
+
+  <rect width="1618" height="507" fill="#2b2b2b"/>
+
+  <style>
+    .t {
+      font-family: "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+      font-size: 19px;
+      font-weight: 600;
+      dominant-baseline: middle;
+    }
+    .time-info { fill: #5f8f2d; }
+    .time-debug { fill: #00a7bd; }
+    .time-warn { fill: #c29d13; }
+    .time-error { fill: #ef5b52; }
+    .time-trace { fill: #8a8f98; }
+    .thread-info { fill: #5f8f2d; }
+    .thread-debug { fill: #00a7bd; }
+    .thread-warn { fill: #c29d13; }
+    .thread-error { fill: #ef5b52; }
+    .thread-trace { fill: #8a8f98; }
+    .source { fill: #2f7de1; text-decoration: underline; }
+    .level-info { fill: #5f8f2d; }
+    .level-debug { fill: #00a7bd; }
+    .level-warn { fill: #c29d13; }
+    .level-error { fill: #ef5b52; }
+    .level-trace { fill: #8a8f98; }
+    .logger-info { fill: #5f8f2d; }
+    .logger-debug { fill: #00a7bd; }
+    .logger-warn { fill: #c29d13; }
+    .logger-error { fill: #ef5b52; }
+    .logger-trace { fill: #8a8f98; }
+    .msg-info { fill: #5f8f2d; }
+    .msg-debug { fill: #00a7bd; }
+    .msg-warn { fill: #c29d13; }
+    .msg-error { fill: #ef5b52; }
+    .msg-trace { fill: #8a8f98; }
+    .critical-bg { fill: #fa5252; }
+    .critical { fill: #ffd7d7; }
+  </style>
+
+  <rect x="0" y="461" width="1618" height="33" class="critical-bg"/>
+
+  <!-- column anchors -->
+  <!-- time: 14, thread: 246, source: 348, level: 698, logger: 866, message: 1022 -->
+
+  <g class="t">
+    <text x="14" y="22" class="time-info">14:07:57.933570967</text>
+    <text x="246" y="22" class="thread-info">[713756]</text>
+    <text x="348" y="22" class="source">console_logging.cpp:26</text>
+    <text x="698" y="22" class="level-info">LOG_INFO</text>
+    <text x="866" y="22" class="logger-info">root</text>
+    <text x="1022" y="22" class="msg-info">A log message with number 123</text>
+
+    <text x="14" y="55" class="time-info">14:07:57.933655376</text>
+    <text x="246" y="55" class="thread-info">[713756]</text>
+    <text x="348" y="55" class="source">console_logging.cpp:30</text>
+    <text x="698" y="55" class="level-info">LOG_INFO</text>
+    <text x="866" y="55" class="logger-info">root</text>
+    <text x="1022" y="55" class="msg-info">libfmt formatting language is supported 3.14e+00</text>
+
+    <text x="14" y="88" class="time-info">14:07:57.933655579</text>
+    <text x="246" y="88" class="thread-info">[713756]</text>
+    <text x="348" y="88" class="source">console_logging.cpp:34</text>
+    <text x="698" y="88" class="level-info">LOG_INFO</text>
+    <text x="866" y="88" class="logger-info">root</text>
+    <text x="1022" y="88" class="msg-info">Logging STD types is supported [1, 2, 3]</text>
+
+    <text x="14" y="121" class="time-info">14:07:57.933655841</text>
+    <text x="246" y="121" class="thread-info">[713756]</text>
+    <text x="348" y="121" class="source">console_logging.cpp:37</text>
+    <text x="698" y="121" class="level-info">LOG_INFO</text>
+    <text x="866" y="121" class="logger-info">root</text>
+    <text x="1022" y="121" class="msg-info">Logging STD types is supported [arr: [1, 2, 3]]</text>
+
+    <text x="14" y="154" class="time-info">14:07:57.933655982</text>
+    <text x="246" y="154" class="thread-info">[713756]</text>
+    <text x="348" y="154" class="source">console_logging.cpp:41</text>
+    <text x="698" y="154" class="level-info">LOG_INFO</text>
+    <text x="866" y="154" class="logger-info">root</text>
+    <text x="1022" y="154" class="msg-info">A message with two variables [a: 123, b: 3.17]</text>
+
+    <text x="14" y="187" class="time-info">14:07:57.933656657</text>
+    <text x="246" y="187" class="thread-info">[713756]</text>
+    <text x="348" y="187" class="source">console_logging.cpp:46</text>
+    <text x="698" y="187" class="level-info">LOG_INFO</text>
+    <text x="866" y="187" class="logger-info">root</text>
+    <text x="1022" y="187" class="msg-info">A log message with number 123</text>
+
+    <text x="14" y="220" class="time-info">14:07:57.933656886</text>
+    <text x="246" y="220" class="thread-info">[713756]</text>
+    <text x="348" y="220" class="source">console_logging.cpp:47</text>
+    <text x="698" y="220" class="level-info">LOG_INFO</text>
+    <text x="866" y="220" class="logger-info">root</text>
+    <text x="1022" y="220" class="msg-info">A message with two variables [a: 123, b: 3.17]</text>
+
+    <text x="14" y="253" class="time-trace">14:07:57.933657531</text>
+    <text x="246" y="253" class="thread-trace">[713756]</text>
+    <text x="348" y="253" class="source">console_logging.cpp:50</text>
+    <text x="698" y="253" class="level-trace">LOG_TRACE_L3</text>
+    <text x="866" y="253" class="logger-trace">root</text>
+    <text x="1022" y="253" class="msg-trace">Support for floats 1.23</text>
+
+    <text x="14" y="286" class="time-trace">14:07:57.933657710</text>
+    <text x="246" y="286" class="thread-trace">[713756]</text>
+    <text x="348" y="286" class="source">console_logging.cpp:51</text>
+    <text x="698" y="286" class="level-trace">LOG_TRACE_L2</text>
+    <text x="866" y="286" class="logger-trace">root</text>
+    <text x="1022" y="286" class="msg-trace">Positional arguments are supported too</text>
+
+    <text x="14" y="319" class="time-trace">14:07:57.933658588</text>
+    <text x="246" y="319" class="thread-trace">[713756]</text>
+    <text x="348" y="319" class="source">console_logging.cpp:52</text>
+    <text x="698" y="319" class="level-trace">LOG_TRACE_L1</text>
+    <text x="866" y="319" class="logger-trace">root</text>
+    <text x="1340" y="319" class="msg-trace" text-anchor="end">right aligned</text>
+
+    <text x="14" y="352" class="time-debug">14:07:57.933658857</text>
+    <text x="246" y="352" class="thread-debug">[713756]</text>
+    <text x="348" y="352" class="source">console_logging.cpp:53</text>
+    <text x="698" y="352" class="level-debug">LOG_DEBUG</text>
+    <text x="866" y="352" class="logger-debug">root</text>
+    <text x="1022" y="352" class="msg-debug">Debugging foo 1234</text>
+
+    <text x="14" y="385" class="time-info">14:07:57.933659030</text>
+    <text x="246" y="385" class="thread-info">[713756]</text>
+    <text x="348" y="385" class="source">console_logging.cpp:54</text>
+    <text x="698" y="385" class="level-info">LOG_INFO</text>
+    <text x="866" y="385" class="logger-info">root</text>
+    <text x="1022" y="385" class="msg-info">Welcome to Quill!</text>
+
+    <text x="14" y="418" class="time-warn">14:07:57.933659177</text>
+    <text x="246" y="418" class="thread-warn">[713756]</text>
+    <text x="348" y="418" class="source">console_logging.cpp:55</text>
+    <text x="698" y="418" class="level-warn">LOG_WARNING</text>
+    <text x="866" y="418" class="logger-warn">root</text>
+    <text x="1022" y="418" class="msg-warn">A warning message.</text>
+
+    <text x="14" y="451" class="time-error">14:07:57.933659245</text>
+    <text x="246" y="451" class="thread-error">[713756]</text>
+    <text x="348" y="451" class="source">console_logging.cpp:56</text>
+    <text x="698" y="451" class="level-error">LOG_ERROR</text>
+    <text x="866" y="451" class="logger-error">root</text>
+    <text x="1022" y="451" class="msg-error">An error message. error code 123</text>
+
+    <text x="14" y="477" class="critical">14:07:57.933659308</text>
+    <text x="246" y="477" class="critical">[713756]</text>
+    <text x="348" y="477" class="source critical">console_logging.cpp:57</text>
+    <text x="698" y="477" class="critical">LOG_CRITICAL</text>
+    <text x="866" y="477" class="critical">root</text>
+    <text x="1022" y="477" class="critical">A critical error.</text>
+  </g>
+</svg>

@@ -3,6 +3,10 @@
 Installing
 ==========
 
+For most users, a package manager is the simplest path. Build from source when you
+want the latest branch, need local patches, or prefer to embed Quill directly in
+your own project.
+
 Package Managers
 ----------------
 
@@ -24,6 +28,8 @@ CMake-Integration
 Building and Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Use this path when you want a normal install that can later be found with ``find_package()``.
+
 .. code:: bash
 
    git clone https://github.com/odygrd/quill.git
@@ -33,14 +39,15 @@ Building and Installing from Source
    cmake ..
    make install
 
-Note: To install in custom directory invoke cmake with
+.. note::
 
-``-DCMAKE_INSTALL_PREFIX=/quill/install-dir/``
+   To install into a custom directory, configure CMake with
+   ``-DCMAKE_INSTALL_PREFIX=/quill/install-dir/``.
 
 Then use the installed library from a CMake project, you can locate it directly with ``find_package()``
 
-Directory Structure
-^^^^^^^^^^^^^^^^^^^
+Embedded Project Directory Structure
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ::
 
@@ -48,8 +55,8 @@ Directory Structure
    ├── CMakeLists.txt
    ├── main.cpp
 
-CMakeLists.txt
-^^^^^^^^^^^^^^
+Embedded Project CMakeLists.txt
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: cmake
 
@@ -65,8 +72,8 @@ CMakeLists.txt
 Embedding in Your Project
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To embed the library directly, copy its source code into your project directory and include it using
-``add_subdirectory()`` in your ``CMakeLists.txt`` file.
+Use this path when you vendor Quill directly into your source tree and include it with
+``add_subdirectory()``.
 
 Directory Structure
 ^^^^^^^^^^^^^^^^^^^
@@ -86,3 +93,10 @@ CMakeLists.txt
    add_subdirectory(quill)
    add_executable(my_project main.cpp)
    target_link_libraries(my_project PRIVATE quill::quill)
+
+Next Steps
+----------
+
+- :doc:`Quick Start <quick_start>` for a minimal working example.
+- :doc:`Guides <guides>` for sinks, formatters, and advanced configuration.
+- :doc:`Recipes <recipes>` for common tasks and code examples.

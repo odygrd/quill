@@ -124,7 +124,8 @@ public:
 
     // The sink owns this notifier and may invoke it after the CsvWriter is destroyed.
     // Keep it independent from this instance and only use schema-level state.
-    file_notifier.after_open = [should_write_header, is_first_rotation = true](fs::path const&, FILE* file) mutable
+    file_notifier.after_open = [should_write_header, is_first_rotation = true](
+                                 fs::path const&, FileEventNotifierHandle file) mutable
     {
       if (is_first_rotation)
       {
@@ -224,7 +225,7 @@ public:
    * Writes the csv header to the specified file
    * @param file file to write
    */
-  void write_header(FILE* file) { _write_header(file); }
+  void write_header(FileEventNotifierHandle file) { _write_header(file); }
 
   /**
    * @brief Removes the logger synchronously and closes the underlying file sink before returning.
@@ -276,10 +277,25 @@ private:
     }
   }
 
-  static void _write_header(FILE* file)
+  static void _write_header(FileEventNotifierHandle file)
   {
+#if defined(_WIN32)
+    DWORD bytes_written = 0;
+    if (!::WriteFile(file, TCsvSchema::header, static_cast<DWORD>(std::strlen(TCsvSchema::header)),
+                     &bytes_written, nullptr) ||
+        (bytes_written != std::strlen(TCsvSchema::header)))
+    {
+      QUILL_THROW(QuillError{"CsvWriter failed to write header"});
+    }
+
+    if (!::WriteFile(file, "\n", 1, &bytes_written, nullptr) || (bytes_written != 1))
+    {
+      QUILL_THROW(QuillError{"CsvWriter failed to write newline"});
+    }
+#else
     StreamSink::safe_fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
     StreamSink::safe_fwrite("\n", sizeof(char), 1, file);
+#endif
   }
 
   static constexpr MacroMetadata _header_metadata{

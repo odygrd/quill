@@ -82,7 +82,7 @@ void codec_not_found_for_type()
     "      Look for the instantiation of 'codec_not_found_for_type<Arg>' in the error output.\n"
     "      The compiler should indicate what type 'Arg' represents in this instance.\n"
     "\n"
-    "For more information see https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html\n");
+    "For more information see https://quillcpp.readthedocs.io/en/latest/recipes.html\n");
 }
 
 /***/

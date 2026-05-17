@@ -7,7 +7,8 @@
 #include <string>
 
 /**
- * Overrides generate_json_message to use a custom json format
+ * This example shows how to customize the JSON payload emitted by
+ * `JsonConsoleSink`.
  */
 class MyJsonConsoleSink : public quill::JsonConsoleSink
 {

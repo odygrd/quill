@@ -3,6 +3,8 @@
 CSV Writing
 ===========
 
+Use this page to write structured CSV data asynchronously using Quill's backend thread.
+
 The library provides functionality for asynchronously writing CSV files. Formatting and I/O operations are managed by the backend thread, allowing for efficient and minimal-overhead CSV file writing on the hot path. This feature can be used alongside regular logging.
 
 The :cpp:class:`CsvWriter` class is a utility designed to facilitate asynchronous CSV file writing.
@@ -29,8 +31,8 @@ Csv output (orders.csv):
 
 CSV Writing To Existing Sink
 ----------------------------
-It is possible to pass an existing `Sink`, or a custom user-created `Sink`, to the CSV file for output. The following example shows how to use the console sink
+It is possible to pass an existing ``Sink``, or a custom user-created ``Sink``, to the CSV file for output. The following example shows how to use the console sink.
 
-.. literalinclude:: examples/quill_docs_example_csv_writer_1.cpp
+.. literalinclude:: snippets/quill_docs_example_csv_writer.cpp
    :language: cpp
    :linenos:

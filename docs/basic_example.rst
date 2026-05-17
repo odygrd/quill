@@ -3,20 +3,17 @@
 Basic Example
 =============
 
-.. literalinclude:: examples/quill_docs_example_basic.cpp
+A minimal example using the full ``Backend`` / ``Frontend`` API with a console sink.
+
+.. literalinclude:: snippets/quill_docs_example_basic.cpp
    :language: cpp
    :linenos:
 
-In the example above, a console `Sink` is created and passed to a `Logger` with its name set to 'root'.
+**Key points:**
 
-Each `Sink` and `Logger` must be assigned a unique name during creation to facilitate retrieval later.
+- A ``Sink`` and a ``Logger`` are each identified by a unique name so they can be retrieved later.
+- Each ``Logger`` owns a ``PatternFormatter`` (controls layout) and one or more ``Sink`` objects (control output destinations).
+- ``Backend::start()`` must be called before log messages can be processed. The backend thread stops automatically when the application exits normally.
+- A macro-free logging interface is also available (see :doc:`Macro-Free Mode <macro_free_mode>`), but the ``LOG_*`` macros are recommended for lowest latency because static metadata is resolved at compile time and arguments are not evaluated when the level is disabled.
 
-Each :cpp:class:`Logger` contains a :cpp:class:`PatternFormatter` object responsible for formatting the message.
-
-Moreover, each :cpp:class:`Logger` contains single or multiple :cpp:class:`Sink` objects that deliver the log message to their output source.
-
-A single backend thread checks for new log messages periodically.
-
-Starting the backend thread is the user's responsibility. The backend thread will automatically stop at the end of `main`, printing every message, as long as the application terminates gracefully.
-
-The use of macros is unavoidable to achieve better runtime performance. The static information of a log (such as format string, log level, location) is created at compile time and passed along with the type of each argument to a decoding function. A template instantiation per log statement is created.
+See :doc:`Quick Start <quick_start>` for the simple-setup path, or :doc:`Guides <guides>` for sinks, formatters, and advanced configuration.

@@ -19,7 +19,12 @@ QUILL_BEGIN_NAMESPACE
 QUILL_BEGIN_EXPORT
 
 /**
- * Log level enum
+ * Log level enum.
+ *
+ * The TraceL* levels form a trace-only verbosity band:
+ * - TraceL3 is the most detailed trace level
+ * - TraceL2 is the middle trace level
+ * - TraceL1 is the least detailed trace level
  */
 enum class LogLevel : uint8_t
 {
@@ -62,6 +67,7 @@ QUILL_BEGIN_EXPORT
  * Converts a string to a LogLevel enum value
  * @param log_level the log level string to convert
  * "tracel3", "tracel2", "tracel1", "debug", "info", "notice", "warning", "error", "critical", "backtrace", "none"
+ * TraceL3 is the most detailed trace level, while TraceL1 is the least detailed trace level.
  * @return the corresponding LogLevel enum value
  */
 QUILL_NODISCARD LogLevel inline loglevel_from_string(std::string log_level)

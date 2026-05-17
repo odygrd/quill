@@ -95,9 +95,9 @@ public:
 
     _json_message_ready = false;
 
-    StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
-                          log_level_description, log_level_short_code, named_args, std::string_view{},
-                          std::string_view{_json_message.data(), _json_message.size()});
+    base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
+                         log_level_description, log_level_short_code, named_args, std::string_view{},
+                         std::string_view{_json_message.data(), _json_message.size()});
   }
 
   /**

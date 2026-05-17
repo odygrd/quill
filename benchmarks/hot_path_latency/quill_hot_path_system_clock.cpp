@@ -10,13 +10,8 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
-struct FrontendOptions
+struct FrontendOptions : quill::FrontendOptions
 {
-  static constexpr quill::QueueType queue_type = quill::QueueType::UnboundedBlocking;
-  static constexpr size_t initial_queue_capacity = 131'072;
-  static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
-  static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024 * 1024 * 1024; // 2 GiB
-  static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
 };
 
 using Frontend = quill::FrontendImpl<FrontendOptions>;
@@ -43,7 +38,7 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
 
   // Create a file sink to write to a file
   std::shared_ptr<quill::Sink> file_sink = Frontend::create_or_get_sink<quill::FileSink>(
-    "quill_hot_path_rdtsc_clock.log",
+    "quill_hot_path_system_clock.log",
     []()
     {
       quill::FileSinkConfig cfg;
@@ -78,9 +73,9 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
   // on main
   auto log_func = [logger](uint64_t k, uint64_t i, double d)
   {
-    // Main logging function
-    // This will get called MESSAGES_PER_ITERATION * ITERATIONS for each caller thread.
-    // MESSAGES_PER_ITERATION will get averaged to a single number
+    // Main logging function.
+    // Across all logging threads, each iteration emits messages_per_iteration log calls in total.
+    // hot_path_bench.h distributes that work across threads.
 
     LOG_INFO(logger, "Logging iteration: {}, message: {}, double: {}", k, i, d);
   };

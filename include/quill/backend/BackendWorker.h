@@ -605,14 +605,19 @@ private:
       transit_event->formatted_msg,
       "formatted_msg is nullptr in BackendWorker::_populate_transit_event_from_frontend_queue()");
 
-    std::memcpy(&transit_event->timestamp, read_pos, sizeof(transit_event->timestamp));
-    read_pos += sizeof(transit_event->timestamp);
+    static_assert(sizeof(FormatArgsDecoder) == sizeof(uintptr_t),
+                  "FormatArgsDecoder must fit in uintptr_t for packed header decoding");
+    static_assert(sizeof(uintptr_t) <= sizeof(uint64_t),
+                  "Packed header decoding requires pointers to fit in 64 bits");
 
-    std::memcpy(&transit_event->macro_metadata, read_pos, sizeof(transit_event->macro_metadata));
-    read_pos += sizeof(transit_event->macro_metadata);
+    uint64_t header_words[4];
+    std::memcpy(header_words, read_pos, sizeof(header_words));
+    read_pos += sizeof(header_words);
 
-    std::memcpy(&transit_event->logger_base, read_pos, sizeof(transit_event->logger_base));
-    read_pos += sizeof(transit_event->logger_base);
+    transit_event->timestamp = header_words[0];
+    transit_event->macro_metadata =
+      reinterpret_cast<MacroMetadata const*>(static_cast<uintptr_t>(header_words[1]));
+    transit_event->logger_base = reinterpret_cast<LoggerBase*>(static_cast<uintptr_t>(header_words[2]));
 
     QUILL_ASSERT(transit_event->logger_base,
                  "transit_event->logger_base is nullptr after memcpy from queue");
@@ -680,9 +685,9 @@ private:
       }
     }
 
+    uintptr_t const decoder_bits = static_cast<uintptr_t>(header_words[3]);
     FormatArgsDecoder format_args_decoder;
-    std::memcpy(&format_args_decoder, read_pos, sizeof(format_args_decoder));
-    read_pos += sizeof(format_args_decoder);
+    std::memcpy(&format_args_decoder, &decoder_bits, sizeof(format_args_decoder));
 
     if ((transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
         (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||

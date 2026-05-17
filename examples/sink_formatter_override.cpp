@@ -18,7 +18,7 @@ int main()
   // Console sink 1 - uses logger formatter
   auto console_sink_1 = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
 
-  // Console sink 2 - verrides formatter
+  // Console sink 2 - overrides the formatter for this sink only
   auto console_sink_2 = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
     "sink_id_2",
     []()

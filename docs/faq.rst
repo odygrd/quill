@@ -3,20 +3,31 @@
 Frequently Asked Questions (FAQ)
 ================================
 
+Use this page for setup decisions, common behavior questions, and integration pitfalls.
+
 Getting Started
 ---------------
 
 Where to look next?
 ~~~~~~~~~~~~~~~~~~~
 
-The best page to get information quickly is the :ref:`cheat_sheet` which provides a very detailed how-to guide.
+Start with :ref:`recipes` for the fastest path to examples and common tasks.
 
 What is the best way to setup Quill?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For flexibility, the recommended way is to wrap Quill's ``Backend`` code in a static library that you build once, as shown in the `recommended_usage example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
+For non-trivial applications, the recommended setup is to put Quill initialization and setup code in your own small static library that you build once, as shown in the `recommended_usage example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
 
-It is also highly recommended to define your own ``CustomFrontendOptions`` as demonstrated in `custom_frontend_options.cpp <https://github.com/odygrd/quill/blob/master/examples/custom_frontend_options.cpp>`_ and provide the using declarations. This gives you flexibility to later tune the Frontend. You must consistently use the using declarations everywhere else (e.g., ``CustomFrontend``, ``CustomLogger``) instead of the library defaults.
+It is also recommended to define your own ``CustomFrontendOptions`` as demonstrated in `custom_frontend_options.cpp <https://github.com/odygrd/quill/blob/master/examples/custom_frontend_options.cpp>`_ and provide the using declarations. Derive from ``quill::FrontendOptions`` and override only the values you want to change. This gives you flexibility to later tune the frontend without copying every field, and you must then consistently use those declarations everywhere else (for example ``CustomFrontend`` and ``CustomLogger``) instead of the library defaults.
+
+Can I mix multiple ``FrontendOptions`` specializations in one binary?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is not a supported configuration.
+
+In normal usage, choose one ``FrontendOptions`` specialization for the application and use the corresponding ``FrontendImpl<T>`` and ``LoggerImpl<T>`` types consistently.
+
+In particular, Quill maintains a single thread-local frontend context per thread, so mixing different frontend specializations on the same thread is unsupported. The built-in signal-handler path also assumes a single frontend specialization for the process.
 
 Core Concepts & Behavior
 -------------------------
@@ -26,7 +37,7 @@ Does Quill offer synchronous/sync mode?
 
 Quill does not offer a native synchronous logging mode, as it is designed as an asynchronous logging library where formatting and I/O happen on a dedicated backend thread.
 
-However, you can simulate synchronous behavior using the **immediate flush** feature. By calling ``logger->set_immediate_flush(1)``, the calling thread will block until the log message has been processed and written to its destination by the backend thread. This effectively provides synchronous-like behavior.
+However, you can simulate synchronous behavior using the **immediate flush** feature. By calling ``logger->set_immediate_flush(1)``, the calling thread will block until the log message has been processed and written to its destination by the backend thread. Higher values such as ``logger->set_immediate_flush(N)`` provide periodic flushing every ``N`` messages while preserving some batching.
 
 .. note::
 
@@ -37,7 +48,7 @@ See :ref:`overview` for more details.
 Does Quill drop log messages?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-No, Quill does not drop log messages by default. It uses an **unbounded queue** with reliable message delivery guarantees.
+No, Quill does not intentionally drop log messages in the default configuration. It uses an **unbounded blocking queue** by default.
 
 The unbounded queue starts with a small initial size and automatically expands when needed (up to ``FrontendOptions::unbounded_queue_max_capacity``). If the maximum capacity is reached, the caller thread will block instead of dropping messages.
 
@@ -68,17 +79,32 @@ The **macro-free mode** offers cleaner syntax but comes with performance trade-o
 
 For performance-critical code paths, use the macro-based interface. For less critical paths where code clarity is preferred, macro-free mode is acceptable.
 
+What happens if my format string is invalid?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Quill does not perform ``fmt`` format-string validation at compile time on the logging path. This helps keep compile times and template instantiation overhead lower.
+
+Instead, format strings are validated at runtime when the backend formats the log message.
+
+If the format string is malformed:
+
+- Quill does not crash the backend thread or the application
+- Quill writes a fallback ``[Could not format log statement ...]`` entry to the sink output
+- if :cpp:member:`BackendOptions::error_notifier` is configured, it is notified too
+
+If ``BackendOptions::error_notifier`` is set to ``{}``, those callback notifications are disabled, but the fallback log entry is still written to the sink output.
+
 Logging Different Types
 ------------------------
 
 How do I log my custom types?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To log user-defined types, you need to specialize ``fmtquill::formatter<T>`` for formatting and ``quill::Codec<T>`` for serialization.
+To log user-defined types, you need to define their formatting and serialization. For formatting, you can either specialize ``fmtquill::formatter<T>`` or provide a free ``format_as(T)`` function. For serialization, provide ``quill::Codec<T>`` or use one of Quill's helper macros/codecs.
 
 Quill provides helper macros and multiple approaches (DeferredFormatCodec, DirectFormatCodec, or custom codecs) to simplify this.
 
-See :ref:`cheat_sheet` section on "Logging User Defined Types" for comprehensive examples.
+See :ref:`recipes` section on "Logging User Defined Types" for comprehensive examples.
 
 Can I log STL containers with my custom types?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -87,19 +113,18 @@ Yes, you can log STL containers containing user-defined types or any type.
 
 Simply define the formatter and codec for your custom type, then include the relevant STL container header from ``quill/std/``.
 
-See :ref:`cheat_sheet` for examples of logging nested STL types.
+See :ref:`recipes` for examples of logging nested STL types.
 
 Can I use my own libfmt version with Quill?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Quill bundles ``libfmt`` under a **custom namespace** (``fmtquill``) to avoid conflicts with external ``libfmt`` installations. All formatter specializations for user-defined types must be defined under the ``fmtquill`` namespace.
+Quill bundles ``libfmt`` under a **custom namespace** (``fmtquill``) to avoid conflicts with external ``libfmt`` installations.
 
-If you're using an external ``libfmt`` library in your project, you can reuse existing ``fmt::formatter`` specializations by deriving from them. However, you must:
+If you're using standalone ``fmt`` in your project too, the preferred way to share formatting customization is a free ``format_as(T)`` function in the same namespace as ``T``. Both ``fmtquill`` and ``fmt`` can find it via ADL, so you avoid duplicate formatter specializations.
 
-1. **Template both parse() and format()** functions to support different context types
-2. **Ensure ABI compatibility**: The major version of your external ``libfmt`` must match Quill's bundled version to avoid ABI incompatibilities and potential runtime errors
+If you need a real formatter specialization, provide one ``fmtquill::formatter<T>`` and one ``fmt::formatter<T>`` with a shared helper/base body instead of deriving one from the other.
 
-See :ref:`cheat_sheet` section on "Using External fmt Formatter Specializations" for more details.
+See :ref:`recipes` section on sharing formatting with external ``fmt`` and the ``examples/user_defined_types_logging_deferred_format_as.cpp`` example for more details.
 
 Performance & Optimization
 ---------------------------
@@ -107,9 +132,9 @@ Performance & Optimization
 How can I reduce compile time?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For better compilation time, consider following the `recommended_usage example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
+For better compilation time in larger codebases, follow the `recommended_usage example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
 
-Wrap and build the Backend part of the library as a static library. Then for logging, once the backend is initialized, you only need to include two headers: ``Logger.h`` and ``LogMacros.h``.
+Build your Quill setup code into a small static library once. Then, after the backend is initialized, most application code only needs the lightweight ``Logger.h`` and ``LogMacros.h`` headers.
 
 I am using Quill in tests and each test starts and stops the backend making it very slow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -148,15 +173,17 @@ How do I ensure logs aren't lost on application crash?
 
 During normal program termination, Quill automatically flushes all pending log messages. However, when an application crashes (e.g., segmentation fault, abort), some log messages may be lost if they haven't been processed yet.
 
-Quill provides a built-in signal handler that automatically flushes all pending logs when the application receives crash signals (SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV). To enable it, pass ``SignalHandlerOptions`` when starting the backend with ``quill::Backend::start()``.
+Quill provides a built-in signal handler that can preserve pending logs in many common crash and termination scenarios (SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV). To enable it, pass ``SignalHandlerOptions`` when starting the backend with ``quill::Backend::start()``.
+
+On POSIX systems, any thread that may run the built-in handler should either have already logged once, called ``Frontend::preallocate()``, or have the handled signals blocked on that thread.
 
 **Custom Signal Handler**
 
-If you need to use your own custom signal handler, you can manually call ``logger->flush_log()`` within your handler to ensure all messages up to that point are flushed.
+If you need to use your own custom signal handler, keep it minimal and avoid calling the general logging or flush APIs from an arbitrary POSIX signal context unless you have validated that approach for your platform and process state.
 
 .. note::
 
-   The built-in signal handler is the recommended approach for most use cases as it handles all common crash scenarios automatically.
+   The built-in signal handler is the practical default when its constraints fit your application, but it should still be treated as a best-effort crash-preservation facility rather than a universal crash-safe logging API.
 
 See :ref:`overview` section on "Handling Application Crashes" for more details.
 
@@ -172,6 +199,20 @@ You can switch your build to use ``CustomFrontendOptions`` to configure differen
 **Solution 2: Single build with runtime control**
 
 A simpler approach is to compile with a dropping queue and control the behavior at runtime. In simulation/debug mode, enable ``logger->set_immediate_flush(1000)``. This will make the caller thread block and wait every 1000 log messages, effectively preventing drops even with a dropping queue. In production, simply don't call ``set_immediate_flush()`` and the queue will drop messages if the backend can't keep up.
+
+Can I keep logging while ``Backend::stop()`` is running?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No. By default, ``Backend::stop()`` waits for the frontend queues to empty, which assumes frontend threads have already stopped logging.
+
+This behavior is controlled by ``BackendOptions::wait_for_queues_to_empty_before_exit``:
+
+- When it is enabled, a few trailing log statements may still drain successfully, but you should not rely on that behavior. Sustained concurrent logging during shutdown, especially logging in a loop from another thread, can prevent shutdown from completing because the queues may never become empty.
+- When it is disabled, the backend may exit earlier, but log messages can be lost during shutdown.
+
+If you call ``Backend::stop()`` explicitly, prefer to stop or join your logging threads first.
+
+In the normal ``Backend::start()`` path, calling ``Backend::stop()`` explicitly is optional because Quill registers automatic shutdown on normal process exit. An explicit call is still useful when you want deterministic shutdown before process exit.
 
 Can I log from destructors of static/global objects?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -199,13 +240,46 @@ If your application uses ``fork()`` and you want to log in the child processes a
        quill::Backend::start();
        auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("child.log");
        quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-       QUILL_LOG_INFO(logger, "Hello from Child {}", 123);
+       LOG_INFO(logger, "Hello from Child {}", 123);
      }
      else
      {
        quill::Backend::start();
        auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("parent.log");
        quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-       QUILL_LOG_INFO(logger, "Hello from Parent {}", 123);
+       LOG_INFO(logger, "Hello from Parent {}", 123);
      }
    }
+
+Troubleshooting
+----------------
+
+My log messages are not appearing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The most common cause is forgetting to call ``quill::Backend::start()``. Without a running backend thread, log messages remain in the queue and are never processed. Ensure ``Backend::start()`` is called early in ``main()``.
+
+If you are using ``simple_logger()``, the backend is started automatically.
+
+I see ``LOG_INFO`` macro conflicts with syslog.h or systemd headers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Headers like ``<syslog.h>`` and ``<systemd/sd-journal.h>`` define macros named ``LOG_INFO``, ``LOG_WARNING``, etc., which conflict with Quill's ``LOG_`` macros.
+
+**Solution 1**: Include ``SyslogSink.h`` or ``SystemdSink.h`` only in a ``.cpp`` file, not in headers. This confines the collision to a single translation unit.
+
+**Solution 2**: Define ``QUILL_DISABLE_NON_PREFIXED_MACROS`` and use the longer ``QUILL_LOG_INFO`` macros everywhere.
+
+Compile error when logging an STL container
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Quill does not automatically include codec headers for STL types. To log a ``std::vector``, include ``quill/std/Vector.h``. To log a ``std::map``, include ``quill/std/Map.h``, and so on.
+
+For nested types like ``std::vector<std::pair<int, std::string>>``, include headers for both the outer and inner types (``quill/std/Vector.h`` and ``quill/std/Pair.h``).
+
+Application hangs on shutdown
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If ``Frontend::remove_logger_blocking()`` is called while the backend is not running, it will block indefinitely waiting for the backend to process the removal. Only call this function while the backend is running.
+
+Calling ``Backend::stop()`` will flush all pending messages and cleanly shut down the backend thread. Ensure all logging is complete before calling ``Backend::stop()``.

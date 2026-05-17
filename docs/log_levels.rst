@@ -3,6 +3,8 @@
 Log Levels
 ==========
 
+Use this page to understand runtime and compile-time log level filtering and how they interact.
+
 Quill offers two distinct mechanisms for controlling which log statements are processed and displayed: runtime filtering and compile-time filtering. Understanding both approaches is essential for optimizing logging performance in your application.
 
 Runtime Log Level Control
@@ -10,12 +12,14 @@ Runtime Log Level Control
 
 The runtime log level is controlled through the ``Logger::set_log_level()`` function. This determines which log messages are actually processed during program execution.
 
-Even if a log statement is compiled into your binary, it won't be displayed unless the logger's runtime log level is set appropriately. By default, loggers are configured with ``LogLevel::Info``, meaning that only INFO level messages and above (WARNING, ERROR, CRITICAL) will be displayed.
+Even if a log statement is compiled into your binary, it won't be displayed unless the logger's runtime log level is set appropriately. By default, loggers are configured with ``LogLevel::Info``, meaning that only INFO level messages and above (NOTICE, WARNING, ERROR, CRITICAL) will be displayed.
 
 .. code-block:: cpp
 
    // Set the log level to display all log messages
    logger->set_log_level(quill::LogLevel::TraceL3);
+
+``TraceL3`` is the most detailed trace level, ``TraceL2`` is the middle trace level, and ``TraceL1`` is the least detailed trace level. The numbering is specific to Quill's three trace tiers.
 
 The runtime log level can be adjusted dynamically during program execution, making it suitable for configuration via command-line arguments, configuration files, or programmatic adjustments during runtime.
 
@@ -59,9 +63,12 @@ Quill provides the following log levels, from most to least verbose:
 - ``TRACE_L1``
 - ``DEBUG``
 - ``INFO``
+- ``NOTICE``
 - ``WARNING``
 - ``ERROR``
 - ``CRITICAL``
+
+Within the trace band, ``TRACE_L3`` is the most verbose and ``TRACE_L1`` is the least verbose.
 
 Each log level corresponds to a specific macro (e.g., ``LOG_INFO``, ``LOG_DEBUG``, etc.) that encodes the log level directly in the macro name.
 
@@ -72,4 +79,3 @@ In addition to the level-specific macros, Quill also provides the ``LOG_DYNAMIC`
    LOG_DYNAMIC(logger, quill::LogLevel::Info, "This log level is determined at runtime");
 
 This is useful when the appropriate log level can only be determined during program execution, for example when passing the log level as a function argument or calculating it based on runtime conditions. Note that this flexibility comes with a minor performance cost compared to the static level macros.
-

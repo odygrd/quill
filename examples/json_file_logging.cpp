@@ -8,12 +8,12 @@
 #include <utility>
 
 /**
- * This example showcases the usage of the JsonFileSink to generate JSON-formatted logs.
- * Additionally, it demonstrates how to simultaneously log in both the standard logger output
- * format, e.g., to console and the corresponding JSON format to a JSON output sink.
+ * This example shows how to write structured JSON logs to a file with `JsonFileSink`.
+ * It also demonstrates a hybrid logger that writes JSON to a file and a traditional
+ * text format to the console at the same time.
  *
- * For successful JSON logging, it's essential to use named placeholders within the provided
- * format string, such as "{method}" and "{endpoint}".
+ * For JSON logging, use named placeholders in the format string such as
+ * `{method}` and `{endpoint}`.
  */
 
 int main()
@@ -36,7 +36,8 @@ int main()
     }(),
     quill::FileEventNotifier{});
 
-  // When using the JsonFileSink, it is ideal to set the logging pattern to empty to avoid unnecessary message formatting.
+  // `JsonFileSink` produces its own structured output, so the normal text pattern is left empty
+  // to avoid unnecessary formatting work.
   quill::Logger* json_logger = quill::Frontend::create_or_get_logger(
     "json_logger", std::move(json_sink),
     quill::PatternFormatterOptions{"", "%H:%M:%S.%Qns", quill::Timezone::GmtTime});
@@ -46,8 +47,8 @@ int main()
     LOG_INFO(json_logger, "{method} to {endpoint} took {elapsed} ms", "POST", "http://", 10 * i);
   }
 
-  // It is also possible to create a logger than logs to both the json file and stdout
-  // with the appropriate format
+  // You can also create a logger that writes to both the JSON file and stdout, with
+  // each sink using the format that makes sense for it.
   auto json_sink_2 = quill::Frontend::get_sink("example_json.log");
   auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console_sink_id_1");
 

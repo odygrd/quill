@@ -8,7 +8,7 @@
 #include <utility>
 
 /**
- * The example demonstrates how to customise the console colours
+ * This example shows how to customize the colours used by `ConsoleSink`.
  */
 
 int main()

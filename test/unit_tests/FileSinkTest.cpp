@@ -25,7 +25,20 @@ public:
 
   void close_file_for_test() { FileSink::close_file(); }
 
-  FILE* file_handle() const noexcept { return _file; }
+#if defined(_WIN32)
+  FileEventNotifierHandle file_handle() const noexcept { return _native_file_handle; }
+#else
+  FileEventNotifierHandle file_handle() const noexcept { return _file; }
+#endif
+
+  static FileEventNotifierHandle closed_file_handle() noexcept
+  {
+#if defined(_WIN32)
+    return INVALID_HANDLE_VALUE;
+#else
+    return nullptr;
+#endif
+  }
 };
 } // namespace
 
@@ -184,10 +197,40 @@ TEST_CASE("create_directory")
   testing::remove_file(filename);
 }
 
-#if defined(__linux__)
+/***/
+TEST_CASE("open_unicode_filename")
+{
+#if defined(_WIN32)
+  fs::path const filename = L"unicode_quill_file_sink_Gr\u00fc\u00dfe_\u65e5\u672c\u8a9e.log";
+
+  testing::remove_file(filename);
+
+  FileSinkConfig fsc;
+  fsc.set_open_mode('w');
+
+  {
+    FileSink file_sink{filename, fsc};
+    file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                        LogLevel::Info, "INFO", "I", nullptr, "", "unicode filename test\n");
+    file_sink.flush_sink();
+  }
+
+  REQUIRE(fs::exists(filename));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE_EQ(file_contents[0], "unicode filename test");
+
+  testing::remove_file(filename);
+#else
+  return;
+#endif
+}
+
 /***/
 TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
 {
+#if defined(__linux__)
   fs::path const filename = "reopen_deleted_file_uses_configured_open_mode.log";
 
   FileSinkConfig fsc;
@@ -242,19 +285,21 @@ TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
   REQUIRE_EQ(file_contents[1], "third");
 
   testing::remove_file(filename);
-}
+#else
+  return;
 #endif
+}
 
-#if defined(__linux__)
 /***/
 TEST_CASE("after_open_throw_does_not_leak_file_descriptor_during_construction")
 {
+#if defined(__linux__)
   fs::path const filename =
     "after_open_throw_does_not_leak_file_descriptor_during_construction.log";
   testing::remove_file(filename);
 
   FileEventNotifier file_event_notifier;
-  file_event_notifier.after_open = [](fs::path const&, FILE*)
+  file_event_notifier.after_open = [](fs::path const&, FileEventNotifierHandle)
   { QUILL_THROW(QuillError{"after_open failure"}); };
 
   REQUIRE_EQ(count_open_fds_for_path(filename), 0);
@@ -262,8 +307,10 @@ TEST_CASE("after_open_throw_does_not_leak_file_descriptor_during_construction")
   REQUIRE_EQ(count_open_fds_for_path(filename), 0);
 
   testing::remove_file(filename);
-}
+#else
+  return;
 #endif
+}
 
 /***/
 TEST_CASE("after_open_throw_leaves_sink_closed")
@@ -272,13 +319,13 @@ TEST_CASE("after_open_throw_leaves_sink_closed")
   testing::remove_file(filename);
 
   FileEventNotifier file_event_notifier;
-  file_event_notifier.after_open = [](fs::path const&, FILE*)
+  file_event_notifier.after_open = [](fs::path const&, FileEventNotifierHandle)
   { QUILL_THROW(QuillError{"after_open failure"}); };
 
   FileSinkTestHarness file_sink{filename, FileSinkConfig{}, file_event_notifier, false};
-  REQUIRE_EQ(file_sink.file_handle(), nullptr);
+  REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
   REQUIRE_THROWS_AS(file_sink.open_file_for_test(file_sink.get_filename(), "a"), QuillError);
-  REQUIRE_EQ(file_sink.file_handle(), nullptr);
+  REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
   testing::remove_file(filename);
 }
@@ -291,7 +338,7 @@ TEST_CASE("after_open_throw_during_reopen_leaves_sink_closed")
 
   uint32_t after_open_count{0};
   FileEventNotifier file_event_notifier;
-  file_event_notifier.after_open = [&after_open_count](fs::path const&, FILE*)
+  file_event_notifier.after_open = [&after_open_count](fs::path const&, FileEventNotifierHandle)
   {
     ++after_open_count;
     if (after_open_count == 2)
@@ -302,23 +349,22 @@ TEST_CASE("after_open_throw_during_reopen_leaves_sink_closed")
 
   FileSinkTestHarness file_sink{filename, FileSinkConfig{}, file_event_notifier, false};
   REQUIRE_NOTHROW(file_sink.open_file_for_test(file_sink.get_filename(), "a"));
-  REQUIRE_NE(file_sink.file_handle(), nullptr);
+  REQUIRE_NE(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
   file_sink.close_file_for_test();
-  REQUIRE_EQ(file_sink.file_handle(), nullptr);
+  REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
   REQUIRE_THROWS_AS(file_sink.open_file_for_test(file_sink.get_filename(), "a"), QuillError);
-  REQUIRE_EQ(file_sink.file_handle(), nullptr);
+  REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
   testing::remove_file(filename);
 }
 
-#if !defined(_WIN32)
-// Symlink test, currently for Linux only but can probably also expanded to windows later
-
 /***/
 TEST_CASE("use_symlink_directory")
 {
+#if !defined(_WIN32)
+  // Symlink test, currently for Linux only but can probably also expanded to windows later
   fs::path const target_folder = "./use_symlink_directory_actual";
   fs::path const symlink_folder = "./use_symlink_directory_symlink_log";
 
@@ -349,7 +395,9 @@ TEST_CASE("use_symlink_directory")
   testing::remove_file(filename);
   fs::remove(target_folder, ec);
   fs::remove(symlink_folder, ec);
-}
+#else
+  return;
 #endif
+}
 
 TEST_SUITE_END();

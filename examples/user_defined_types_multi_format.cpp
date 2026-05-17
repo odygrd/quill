@@ -10,7 +10,8 @@
 #include <string>
 
 /**
- * The example shows how to define custom formatters to display a `Point` struct in different formats
+ * This example shows how to support multiple presentation formats for the same
+ * user-defined type formatter.
  */
 
 struct Point

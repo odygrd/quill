@@ -1,7 +1,12 @@
 import random
+from pathlib import Path
+
+OUTPUT_FILE = Path(__file__).with_name("compile_time_bench.cpp")
+RNG_SEED = 1337
 
 
 def generate_log_statements(num_statements):
+    rng = random.Random(RNG_SEED)
     argument_types = [
         '1', '2', '3.0', '4.0f', '5L', '6LL', '7UL', '8ULL', 'true', 'false',
         '"example1"', '"example2"', '"example3"', 'std::string("str1")',
@@ -12,11 +17,11 @@ def generate_log_statements(num_statements):
 
     statements = []
     for i in range(num_statements):
-        num_args = random.randint(1, 10)  # Number of arguments for the log statement
-        args = random.sample(argument_types, num_args)
+        num_args = rng.randint(1, 10)  # Number of arguments for the log statement
+        args = rng.sample(argument_types, num_args)
         placeholders = ' '.join(["{}" for _ in args])
-        num_words = random.randint(3, 4)  # Number of random words in the log message
-        words = ' '.join(random.sample(random_words, num_words))
+        num_words = rng.randint(3, 4)  # Number of random words in the log message
+        words = ' '.join(rng.sample(random_words, num_words))
         statement = f'  LOG_INFO(logger, "{words} {placeholders}", {", ".join(args)});'
         statements.append(statement)
 
@@ -54,4 +59,4 @@ def write_to_file(filename, statements):
 if __name__ == '__main__':
     num_statements = 2000
     statements = generate_log_statements(num_statements)
-    write_to_file('log_benchmark.cpp', statements)
+    write_to_file(OUTPUT_FILE, statements)

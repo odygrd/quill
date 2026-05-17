@@ -1,8 +1,14 @@
 # Project exclude paths
 /cmake-build-debug/
+/cmake-build-release/
 /.vs
 /out/build/x64-Debug
 /CMakeSettings.json
 /out/build/x64-Release
 /out/build/Mingw64-Debug
 /out/build/x64-Debug-2
+/docs/.tools/
+/docs/Doxyfile
+/docs/Doxyfile.rtd
+/docs/build/
+/docs/_build*/

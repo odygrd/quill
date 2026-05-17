@@ -64,6 +64,12 @@ private:
   };
 
 public:
+  struct WriteReservation
+  {
+    std::byte* write_buffer{nullptr};
+    size_t writer_pos{0};
+  };
+
   struct ReadResult
   {
     explicit ReadResult(std::byte* read_position) : read_pos(read_position) {}
@@ -126,6 +132,12 @@ public:
     return _handle_full_queue(nbytes);
   }
 
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT WriteReservation prepare_write_reserve_cached(size_t nbytes) noexcept
+  {
+    auto const reservation = _producer->bounded_queue.prepare_write_reserve_cached(nbytes);
+    return WriteReservation{reservation.write_buffer, reservation.writer_pos};
+  }
+
   /**
    * Complement to reserve producer space that makes nbytes starting
    * from the return of reserve producer space visible to the consumer.
@@ -147,6 +159,11 @@ public:
   {
     finish_write(nbytes);
     commit_write();
+  }
+
+  QUILL_ATTRIBUTE_HOT void finish_and_commit_write_reservation(size_t new_writer_pos) noexcept
+  {
+    _producer->bounded_queue.finish_and_commit_write_reservation(new_writer_pos);
   }
 
   /**
@@ -185,7 +202,6 @@ public:
 
   /**
    * Prepare to read from the buffer
-   * @error_notifier a callback used for notifications to the user
    * @return first: pointer to buffer or nullptr, second: a pair of new_capacity, previous_capacity if an allocation
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ReadResult prepare_read()

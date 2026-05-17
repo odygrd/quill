@@ -7,21 +7,22 @@
 #include <utility>
 
 /**
- * Logging to the same file using multiple loggers
+ * This example shows how multiple loggers can share the same `FileSink`, and
+ * how to retrieve existing sinks and loggers by name.
  */
 
 void log_from_new_logger()
 {
-  // Obtain the existing created sink, and create a new logger to log
+  // Reuse the existing sink and create a second logger that writes to the same file
   auto file_sink = quill::Frontend::get_sink("example_file_logging.log");
-  quill::Logger* logger_2 = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
+  quill::Logger* logger_2 = quill::Frontend::create_or_get_logger("root_2", std::move(file_sink));
 
   LOG_INFO(logger_2, "log from new logger {}", 123);
 }
 
 void log_from_existing_logger()
 {
-  // Obtain existing logger to log
+  // Retrieve the original logger by name
   quill::Logger* logger = quill::Frontend::get_logger("root");
   LOG_INFO(logger, "log again {}", 123312);
 }

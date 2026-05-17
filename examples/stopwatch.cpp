@@ -8,7 +8,8 @@
 #include <thread>
 
 /**
- * Stopwatch logging example
+ * This example shows the two stopwatch helpers and how they can be formatted
+ * directly inside log statements.
  */
 
 int main()

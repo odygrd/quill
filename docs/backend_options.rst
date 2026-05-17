@@ -10,7 +10,7 @@ Example Usage
 
 For example, to pin the backend worker thread to specific CPUs, you can use the following code:
 
-.. literalinclude:: examples/quill_docs_example_backend_options.cpp
+.. literalinclude:: snippets/quill_docs_example_backend_options.cpp
    :language: cpp
    :linenos:
 
@@ -21,14 +21,20 @@ For example, to pin the backend worker thread to specific CPUs, you can use the 
 .. note::
 
    When ``wait_for_queues_to_empty_before_exit`` is enabled, ``Backend::stop()`` assumes frontend threads have stopped logging.
-   Logging concurrently with backend shutdown is unsupported and can prevent shutdown from completing because the frontend queues may never become empty.
+   A few trailing log statements may still drain successfully, but you should not rely on that behavior.
+   Sustained concurrent logging during shutdown, especially logging in a loop from another thread, can prevent shutdown from completing because the frontend queues may never become empty.
+
+.. note::
+
+   ``error_notifier``, backend poll hooks, sink periodic tasks, and custom sink ``write_log()`` implementations all run on the backend thread.
+   Avoid long-blocking work in these paths, and do not call ``logger->flush_log()`` from them because that would wait on the backend thread itself.
 
 Character Sanitization
 -----------------------
 
 By default, Quill filters log messages to ensure they contain only printable characters before writing them to sinks. This safety feature converts non-printable characters (including non-ASCII characters like Chinese, Japanese, or other Unicode text) to their hexadecimal representation (e.g., ``\xE4\xB8\xAD`` for Chinese characters).
 
-The default printable character range is limited to ASCII characters from space (``' '``) to tilde (``'~'``), plus newline (``'\n'``).
+The default printable character range is limited to ASCII characters from space (``' '``) to tilde (``'~'``), plus newline (``'\n'``), tab (``'\t'``), and carriage return (``'\r'``).
 
 **Disabling Character Sanitization for UTF-8 Logging**
 

@@ -3,6 +3,8 @@
 Loggers
 =======
 
+Use this page to understand how to create, retrieve, configure, and remove loggers.
+
 ``Logger`` instances are created by users with a specified name, along with designated Sinks and a Formatter. Direct instantiation of logger objects is not possible; instead, they must first be created with the desired configurations.
 
 Upon creation, users specify the Sinks and Formatter for the logger. The logger name serves as an identifier, allowing the same logger configuration to be reused without re-specifying Sinks and Formatter settings.
@@ -59,7 +61,7 @@ For example, if your server creates a logger for each connected TCP session and 
 
    While the logger removal functions (:cpp:func:`FrontendImpl::remove_logger` and :cpp:func:`FrontendImpl::remove_logger_blocking`) are thread-safe, **removing the same logger (`Logger*`) from multiple threads is not allowed**. Ensure that a single thread is responsible for removing a particular logger to avoid undefined behavior.
 
-.. literalinclude:: examples/quill_docs_example_loggers_remove.cpp
+.. literalinclude:: snippets/quill_docs_example_loggers_remove.cpp
    :language: cpp
    :linenos:
 
@@ -67,9 +69,20 @@ For example, if your server creates a logger for each connected TCP session and 
    :language: cpp
    :linenos:
 
+.. note::
+
+   In :cpp:class:`FileEventNotifier` callbacks, use ``quill::FileEventNotifierHandle`` for the file
+   handle parameter. On Windows this is a native ``HANDLE``. On other platforms it is a ``FILE*``.
+
+   ``before_write`` runs as part of normal log writing. ``before_open``, ``after_open``,
+   ``before_close``, and ``after_close`` run on whichever thread performs the file open/close
+   operation. Different callbacks, and different invocations of the same callback, may therefore
+   run on different threads over the sink lifetime. Callbacks must be thread-safe and must not
+   assume a single calling thread.
+
 Simplifying Logger Usage for Single Root Logger Applications
 ------------------------------------------------------------
 
-For some applications the use of the single root logger might be enough. In that case passing the logger everytime
+For some applications the use of the single root logger might be enough. In that case, passing the logger every time
 to the macro becomes inconvenient. The solution is to store the created ``Logger`` as a static variable and create your
-own macros. See `example <https://github.com/odygrd/quill/blob/master/examples/recommended_usage/quill_wrapper/include/quill_wrapper/overwrite_macros.h>`_
+own macros. See `example <https://github.com/odygrd/quill/blob/master/examples/recommended_usage/quill_wrapper/include/quill_wrapper/overwrite_macros.h>`_.

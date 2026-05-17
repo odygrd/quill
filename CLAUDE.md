@@ -80,7 +80,15 @@ Respect the library layering:
 
 - Each new feature or fix should have a corresponding test, either a unit test or a regression/integration test.
 - Sometimes consider extending an existing test with one more assertion or log statement instead of adding a new one.
-- Tests rely on unique logger names and filenames to run in parallel.
+- Unit test files may contain multiple `TEST_CASE`s when the scenarios are closely related.
+- Each integration test file should contain exactly one `TEST_CASE`.
+- Integration/regression test files should be self-contained. Do not add shared helper headers for them; keep any
+  test-only setup local to the `.cpp` file even if that means a small amount of duplication.
+- Integration tests must use unique logger names, test names, and log/output filenames so they can run safely in
+  parallel without colliding through shared files or global state.
+- For platform-specific tests, keep the `TEST_CASE` itself unguarded and put the platform `#if` inside the test body.
+  On unsupported platforms, return early from the test instead of wrapping the whole test declaration in preprocessor
+  guards.
 - If the behavior is user-visible or easy to regress, prefer an end-to-end test in addition to a narrow unit test.
 - New features and tests should compile and run across supported platforms and toolchains, including Linux, macOS, and
   Windows, and major compilers such as GCC, Clang, and Intel LLVM.
@@ -93,6 +101,7 @@ Respect the library layering:
 - Use descriptive names.
 - Prefer const-correctness, `constexpr`, and RAII where appropriate.
 - Use `auto` when it improves readability, not by default everywhere.
+- Prefer brace initialization for variables and objects instead of `=` or `()` where it is valid and readable.
 - Always use braces for control flow.
 - Place member variables at the end of the class definition.
 - Keep comments concise and useful; follow the existing Doxygen style in headers.

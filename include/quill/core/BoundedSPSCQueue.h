@@ -57,6 +57,12 @@ class BoundedSPSCQueueImpl
 public:
   using integer_type = T;
 
+  struct WriteReservation
+  {
+    std::byte* write_buffer{nullptr};
+    integer_type writer_pos{0};
+  };
+
   QUILL_ATTRIBUTE_HOT explicit BoundedSPSCQueueImpl(integer_type capacity,
                                                     HugePagesPolicy huge_pages_policy = HugePagesPolicy::Never,
                                                     integer_type reader_store_percent = 5)
@@ -71,6 +77,9 @@ public:
 
     _atomic_writer_pos.store(0);
     _atomic_reader_pos.store(0);
+
+    // reader_pos starts at 0, so cached value is 0 + capacity
+    _reader_pos_cache_plus_capacity = _capacity;
 
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
@@ -104,18 +113,34 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(integer_type n) noexcept
   {
-    if ((_capacity - static_cast<integer_type>(_writer_pos - _reader_pos_cache)) < n)
+    if (static_cast<integer_type>(_reader_pos_cache_plus_capacity - _writer_pos) < n)
     {
       // not enough space, we need to load reader and re-check
-      _reader_pos_cache = _atomic_reader_pos.load(std::memory_order_acquire);
+      _reader_pos_cache_plus_capacity = _atomic_reader_pos.load(std::memory_order_acquire) + _capacity;
 
-      if ((_capacity - static_cast<integer_type>(_writer_pos - _reader_pos_cache)) < n)
+      if (static_cast<integer_type>(_reader_pos_cache_plus_capacity - _writer_pos) < n)
       {
         return nullptr;
       }
     }
 
     return _storage + (_writer_pos & _mask);
+  }
+
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT WriteReservation prepare_write_reserve_cached(integer_type n) noexcept
+  {
+    integer_type const writer_pos = _writer_pos;
+
+    if (QUILL_UNLIKELY(static_cast<integer_type>(_reader_pos_cache_plus_capacity - writer_pos) < n))
+    {
+      return WriteReservation{nullptr, writer_pos};
+    }
+
+    // _storage is never null after construction; hint lets the compiler
+    // eliminate a redundant null-check on the computed write pointer.
+    QUILL_ASSUME(_storage != nullptr);
+
+    return WriteReservation{_storage + (writer_pos & _mask), writer_pos};
   }
 
   QUILL_ATTRIBUTE_HOT void finish_write(integer_type n) noexcept { _writer_pos += n; }
@@ -131,7 +156,7 @@ public:
 
     // prefetch a future cache line
     _mm_prefetch(
-      reinterpret_cast<char const*>(_storage + (_writer_pos & _mask) + (QUILL_CACHE_LINE_SIZE * 10)), _MM_HINT_T0);
+      reinterpret_cast<char const*>(_storage + ((_writer_pos + QUILL_CACHE_LINE_SIZE * 10) & _mask)), _MM_HINT_T0);
 #endif
   }
 
@@ -140,8 +165,24 @@ public:
    */
   QUILL_ATTRIBUTE_HOT void finish_and_commit_write(integer_type n) noexcept
   {
-    finish_write(n);
-    commit_write();
+    finish_and_commit_write_reservation(_writer_pos + n);
+  }
+
+  QUILL_ATTRIBUTE_HOT void finish_and_commit_write_reservation(integer_type new_writer_pos) noexcept
+  {
+    _writer_pos = new_writer_pos;
+
+    // set the atomic flag so the reader can see write
+    _atomic_writer_pos.store(new_writer_pos, std::memory_order_release);
+
+#if defined(QUILL_X86ARCH)
+    // flush writen cache lines
+    _flush_cachelines(_last_flushed_writer_pos, new_writer_pos);
+
+    // prefetch a future cache line
+    _mm_prefetch(
+      reinterpret_cast<char const*>(_storage + ((new_writer_pos + QUILL_CACHE_LINE_SIZE * 10) & _mask)), _MM_HINT_T0);
+#endif
   }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_read() noexcept
@@ -204,13 +245,9 @@ private:
 
     if (cur_diff > last_diff)
     {
-      // Compute masked base pointer once before loop to avoid repeated mask operations
-      std::byte* ptr = _storage + (last_diff & _mask);
-
       do
       {
-        _mm_clflushopt(ptr);
-        ptr += QUILL_CACHE_LINE_SIZE;
+        _mm_clflushopt(_storage + (last_diff & _mask));
         last_diff += QUILL_CACHE_LINE_SIZE;
       } while (cur_diff > last_diff);
 
@@ -336,7 +373,7 @@ private:
 
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
   alignas(QUILL_CACHE_LINE_ALIGNED) integer_type _writer_pos{0};
-  integer_type _reader_pos_cache{0};
+  integer_type _reader_pos_cache_plus_capacity{0};
   integer_type _last_flushed_writer_pos{0};
 
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_reader_pos{0};

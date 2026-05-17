@@ -15,13 +15,13 @@
 
 #include "FuzzerHelper.h"
 
+#include "FuzzDataExtractor.h"
 #include "quill/BinaryDataDeferredFormatCodec.h"
 #include "quill/LogMacros.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <string>
 #include <vector>
 
@@ -138,57 +138,6 @@ struct quill::Codec<IoTData> : quill::BinaryDataDeferredFormatCodec<IoTData>
 template <>
 struct quill::Codec<GenericBinaryData> : quill::BinaryDataDeferredFormatCodec<GenericBinaryData>
 {
-};
-
-class FuzzDataExtractor
-{
-public:
-  explicit FuzzDataExtractor(uint8_t const* data, size_t size)
-    : _data(data), _size(size), _offset(0)
-  {
-  }
-
-  bool has_data() const { return _offset < _size; }
-
-  uint8_t get_byte()
-  {
-    if (_offset < _size)
-      return _data[_offset++];
-    return 0;
-  }
-
-  uint32_t get_uint32()
-  {
-    uint32_t value = 0;
-    if (_offset + sizeof(uint32_t) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(uint32_t));
-      _offset += sizeof(uint32_t);
-    }
-    return value;
-  }
-
-  // Get raw bytes as std::byte pointer (for BinaryData)
-  std::byte const* get_binary_data(size_t length)
-  {
-    if (_offset >= _size || length == 0)
-      return nullptr;
-
-    // Clamp to remaining data
-    size_t available = _size - _offset;
-    size_t actual_len = (length < available) ? length : available;
-
-    std::byte const* result = reinterpret_cast<std::byte const*>(_data + _offset);
-    _offset += actual_len;
-    return result;
-  }
-
-  size_t remaining() const { return _size - _offset; }
-
-private:
-  uint8_t const* _data;
-  size_t _size;
-  size_t _offset;
 };
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)

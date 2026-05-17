@@ -45,6 +45,8 @@ option(QUILL_ENABLE_INSTALL "Enable the CMake install target when Quill is not t
 
 option(QUILL_DOCS_GEN "Generate documentation during the build process." OFF)
 
+option(QUILL_ENABLE_TIME_TRACE "Enable -ftime-trace to generate compile-time profiling data. Requires Clang." OFF)
+
 # Internal option
 set(QUILL_ENABLE_GCC_HARDENING OFF CACHE INTERNAL "")
 
@@ -158,9 +160,18 @@ if (QUILL_CODE_COVERAGE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage")
 endif ()
 
+# Clang -ftime-trace for compile-time profiling
+if (QUILL_ENABLE_TIME_TRACE)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftime-trace")
+    else ()
+        message(WARNING "QUILL_ENABLE_TIME_TRACE is only supported with Clang. Ignoring.")
+    endif ()
+endif ()
+
 if (QUILL_BUILD_EXAMPLES)
     add_subdirectory(examples)
-    add_subdirectory(docs/examples)
+    add_subdirectory(docs/snippets)
 endif ()
 
 if (QUILL_BUILD_BENCHMARKS)

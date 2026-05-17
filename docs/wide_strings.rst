@@ -3,6 +3,8 @@
 Wide Strings
 ============
 
+Use this page if you need to log ``wchar_t`` strings on Windows. On other platforms, log UTF-8 strings directly after disabling character sanitization (see :doc:`Backend Options <backend_options>`).
+
 The library does not provide native support for writing Unicode characters to log files; only ASCII characters are supported by default. Non-ASCII characters (including UTF-8 encoded text) are automatically converted to their hexadecimal representation (e.g., Chinese characters appear as ``\xE4\xB8\xAD``). To log UTF-8 or other Unicode text properly, you need to disable character sanitization in :cpp:struct:`BackendOptions` (see :doc:`backend_options`).
 
 However, on Windows, wide strings compatible with ASCII encoding are supported.

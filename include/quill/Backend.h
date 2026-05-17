@@ -73,13 +73,12 @@ public:
    * i) Logged at least once.
    * or ii) Called Frontend::preallocate().
    * or iii) Blocked signals on that thread to prevent the signal handler from running on it.
-   * This requirement is because the built-in signal handler utilizes a lock-free queue to issue log
-   * statements and await the log flushing. The queue is constructed on its first use with `new()`.
-   * Failing to meet any of the above criteria means the queue was never used, and it will be
-   * constructed inside the signal handler. The `new` operation is not an async signal-safe function
-   * and may lead to potential issues. However, when the queue is already created, no `new` call is
-   * made, and the remaining functions invoked internally by the built-in signal handler are async
-   * safe.
+   * This requirement is because the built-in signal handler utilizes the frontend queue state to
+   * issue log statements and wait for flushing. The queue is constructed on its first use with
+   * `new()`. Failing to meet any of the above criteria means the queue may be first-constructed
+   * inside the signal handler, which is not signal-safe. Preallocating or logging once on those
+   * threads avoids that first-use allocation, but the built-in handler should still be treated as a
+   * best-effort crash-preservation facility rather than a general async-signal-safe logging API.
    */
   template <typename TFrontendOptions>
   QUILL_ATTRIBUTE_COLD static void start(BackendOptions const& backend_options,
@@ -176,8 +175,9 @@ public:
   /**
    * Stops the backend thread.
    *
-   * @note When the built-in signal handler is enabled, this restores the Quill-managed signals to
-   * their default dispositions. It does not restore any previously installed user handlers.
+   * @note On POSIX systems, when the built-in signal handler is enabled, this restores the
+   * Quill-managed signals to their default dispositions. It does not restore any previously
+   * installed user handlers.
    * @note Concurrent calls to start() and stop() from different threads are not supported.
    * @note thread-safe
    */
@@ -185,6 +185,12 @@ public:
   {
     detail::SignalHandlerContext::instance().backend_thread_id.store(0);
     detail::BackendManager::instance().stop_backend_thread();
+#if defined(_WIN32)
+    if (auto const fn = detail::SignalHandlerContext::instance().exception_handler_deinit_callback)
+    {
+      fn();
+    }
+#endif
     detail::deinit_signal_handler();
   }
 
@@ -224,8 +230,9 @@ public:
    * Alternatively you can use the Clock class from backend/Clock.h
    * @param rdtsc_value The RDTSC value to convert.
    * @return The epoch time corresponding to the RDTSC value.
+   * @throws QuillError if the backend TSC configuration is invalid.
    */
-  QUILL_NODISCARD static uint64_t convert_rdtsc_to_epoch_time(uint64_t rdtsc_value) noexcept
+  QUILL_NODISCARD static uint64_t convert_rdtsc_to_epoch_time(uint64_t rdtsc_value)
   {
     return detail::BackendManager::instance().convert_rdtsc_to_epoch_time(rdtsc_value);
   }
@@ -245,6 +252,9 @@ public:
    *     threading contract.
    *   - The `ManualBackendWorker` should only be used by a single thread. It is not designed to handle
    *     multiple threads calling `poll()` simultaneously.
+   *   - You must call `ManualBackendWorker::shutdown()` explicitly from the same thread that called
+   *     `init()` before that thread exits. Do not rely on the `ManualBackendWorker` destructor for
+   *     shutdown ordering.
    *   - The built-in signal handler is not set up with `ManualBackendWorker`. If signal handling is
    *     required, you must manually set up the signal handler and block signals from reaching the `ManualBackendWorker` thread.
    *     See the `start<FrontendOptions>(BackendOptions, SignalHandlerOptions)` implementation for guidance on how to do this.

@@ -10,14 +10,10 @@
  * FrontendOptions are compile-time options and must be passed as a template argument.
  */
 
-// define your own FrontendOptions, see "core/FrontendOptions.h" for details
-struct CustomFrontendOptions
+// Derive from FrontendOptions and override only the values that differ.
+struct CustomFrontendOptions : quill::FrontendOptions
 {
   static constexpr quill::QueueType queue_type = quill::QueueType::BoundedDropping;
-  static constexpr size_t initial_queue_capacity = 131'072;
-  static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
-  static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024u * 1024u * 1024u;
-  static constexpr quill::HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never;
 };
 
 // To utilize our custom FrontendOptions, we define a Frontend class using CustomFrontendOptions

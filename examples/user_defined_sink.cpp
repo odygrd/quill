@@ -12,7 +12,8 @@
 #include <vector>
 
 /**
- * This example demonstrates how to implement a custom Sink
+ * This example shows how to implement a custom sink by subclassing
+ * `quill::Sink`.
  */
 
 class CustomSink final : public quill::Sink

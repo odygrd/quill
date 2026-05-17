@@ -11,6 +11,7 @@ set(EXAMPLE_TARGETS
         quill_example_console_logging
         quill_example_console_logging_macro_free
         quill_example_custom_console_colours
+        quill_example_simple_setup
         quill_example_rotating_file_logging
         quill_example_rotating_json_file_logging
         quill_example_rotating_json_file_logging_custom_json
@@ -28,12 +29,14 @@ set(EXAMPLE_TARGETS
         quill_example_tags_logging
         quill_example_json_console_logging
         quill_example_json_console_logging_custom_json
+        quill_example_manual_backend_worker
         quill_example_csv_writing
         quill_example_json_file_logging
         quill_example_user_defined_types_logging_custom_codec
         quill_example_user_defined_types_logging_deferred_format
+        quill_example_user_defined_types_logging_deferred_format_as
         quill_example_user_defined_types_logging_direct_format
-        quill_example_user_defined_types_logging_simple
+        quill_example_user_defined_types_logging_helper_macros
 )
 
 # Add additional examples that are using exceptions in the example code

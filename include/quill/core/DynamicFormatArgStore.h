@@ -74,7 +74,7 @@ QUILL_BEGIN_EXPORT
 
 /**
  * Similar to fmt::dynamic_arg_store but better suited to our needs
- * e.g does not include <functional> and requires less space
+ * e.g. does not include ``<functional>`` and requires less space
  */
 class DynamicFormatArgStore
 {

@@ -11,9 +11,9 @@
 #include <utility>
 
 /**
- * This example demonstrates the creation usage of a user defined filter.
- * When a filter is applied, log messages are still enqueued from the frontend to the backend.
- * Subsequently, the backend dynamically filters them based on a given condition.
+ * This example shows how to implement and attach a user-defined filter.
+ * When a filter is applied, log messages are still enqueued from the frontend
+ * to the backend, and the backend decides whether to keep or drop them.
  */
 
 class UserFilter : public quill::Filter
@@ -26,7 +26,7 @@ public:
               std::string_view /** logger_name **/, quill::LogLevel log_level,
               std::string_view log_message, std::string_view /** log_statement **/) noexcept override
   {
-    // for example filter out duplicate log files
+    // Example policy: drop consecutive duplicate messages with the same level.
     bool is_different = true;
 
     if ((last_log_level == log_level) && (log_message == last_message))

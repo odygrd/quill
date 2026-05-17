@@ -99,37 +99,14 @@
 
 ## v12.0.0
 
-This is a maintenance-focused release with multiple edge-case fixes and internal hardening
-improvements. Most fixed issues are unlikely to occur under normal usage.
+This is a maintenance-focused release with internal hardening and targeted reliability fixes.
+Most changes address uncommon scenarios rather than normal usage.
 
-There are no new features — only minor API changes and initial groundwork for C++20 module support.
-
-- Moved macro helper definitions into `LogMacros.h` and added module export scaffolding as initial
-  groundwork for C++20 module support
-- Improved `BackendOptions::cpu_affinity` to accept `std::vector<uint16_t>` for multi-CPU pinning
-- Added `Frontend::create_logger` and `Frontend::create_sink` APIs that throw `QuillError` on
-  duplicate names, complementing the existing `create_or_get_*` variants
-- Improved `CsvWriter` with deterministic `close()` for logger removal and file closure
-- Improved `simple_logger()` to separate signal-handler setup into `simple_logger_with_signal_handler()`
-- Improved `ManualBackendWorker` shutdown to be idempotent and enforce same-thread shutdown
-- Fixed signal handler shutdown hang when crashing after
-  `Backend::stop()` ([#906](https://github.com/odygrd/quill/issues/906))
-- Fixed signal handler fall-through on fatal signals (e.g. `SIGSEGV`) when `should_reraise_signal` is false
-- Fixed `FileSink` fd leak on constructor exception and file reopen mode after external deletion
-- Fixed `SystemdSink` to avoid calling the unrelated process-global `closelog()`
-- Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles
-- Fixed initial time-based rotation ignoring the configured interval for Minutely/Hourly rotation
-- Fixed `MacroMetadata::contains_named_args` skipping adjacent placeholders (e.g. `"{0}{name}"`)
-- Fixed rotating sink crashes on missing log directory and external file deletion during rotation
-- Fixed JSON sinks to properly escape quotes, backslashes, and control characters
-- Replaced named semaphore with `flock()` in `BackendWorkerLock` for more reliable duplicate-backend
-  detection on POSIX
-- Added `QUILL_EXPORT` to `RdtscTicks::instance()` for shared-library consistency
-- Fixed `RdtscClock` resync interval conversion and calibration slot usage
-- Fixed `CsvWriter` per-instance logger lifetime, header handling in append mode, and dangling capture
-  in rotating-file notifier
-- Hardened logger and sink creation APIs with stricter input validation
-- Numerous additional hardening fixes across queues, codecs, sinks, and backend internals
+- C++20 module support groundwork, including export markers and macro cleanup.
+- Improved backend configuration and lifecycle handling, including more robust startup and shutdown behavior.
+- Improved logger and sink creation APIs with stricter validation and clearer duplicate handling.
+- Improved file, rotating, and JSON sink reliability, including native Windows file handles.
+- Fixed multiple regressions and reliability issues.
 
 ## v11.1.0
 

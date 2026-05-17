@@ -64,9 +64,9 @@ TEST_CASE("backend_worker_lock_no_throw")
   REQUIRE_NOTHROW(BackendWorkerLock{pid});
 }
 
-#if !defined(_WIN32) && !defined(__ANDROID__)
 TEST_CASE("lock_file_cleaned_up_destruction")
 {
+#if !defined(_WIN32) && !defined(__ANDROID__)
   std::string const pid = "test_99997";
   std::string const path = "/tmp/QuillBackendLock" + pid;
 
@@ -76,8 +76,10 @@ TEST_CASE("lock_file_cleaned_up_destruction")
   }
 
   REQUIRE_FALSE(fs::exists(path));
-}
+#else
+  return;
 #endif
+}
 
 #if !defined(QUILL_NO_EXCEPTIONS)
 TEST_CASE("backend_worker_run_rejects_duplicate_while_original_is_alive")
@@ -120,9 +122,9 @@ TEST_CASE("get_process_id_matches_current_process")
 #endif
 }
 
-#if defined(__linux__) && !defined(__ANDROID__)
 TEST_CASE("set_cpu_affinity_accepts_current_cpu_and_rejects_invalid_cpu")
 {
+#if defined(__linux__) && !defined(__ANDROID__)
   REQUIRE_NOTHROW(set_cpu_affinity({}));
 
   cpu_set_t original_cpuset;
@@ -146,10 +148,14 @@ TEST_CASE("set_cpu_affinity_accepts_current_cpu_and_rejects_invalid_cpu")
   #if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(set_cpu_affinity({static_cast<uint16_t>(CPU_SETSIZE)}), QuillError);
   #endif
+#else
+  return;
+#endif
 }
 
 TEST_CASE("set_thread_name_validates_length")
 {
+#if defined(__linux__) && !defined(__ANDROID__)
   REQUIRE_NOTHROW(set_thread_name("quill-test"));
 
   char current_name[16]{};
@@ -159,7 +165,9 @@ TEST_CASE("set_thread_name_validates_length")
   REQUIRE_NOTHROW(set_thread_name("quill-thread-name-too-long"));
   REQUIRE_EQ(::pthread_getname_np(::pthread_self(), current_name, sizeof(current_name)), 0);
   REQUIRE_EQ(std::string{current_name}, "quill-thread-na");
-}
+#else
+  return;
 #endif
+}
 
 TEST_SUITE_END();

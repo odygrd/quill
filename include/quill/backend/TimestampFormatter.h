@@ -184,12 +184,28 @@ private:
   /***/
   void _write_fractional_seconds(uint32_t extracted_fractional_seconds)
   {
-    // Format the seconds and add them
-    fmtquill::format_int const extracted_ms_string{extracted_fractional_seconds};
+    uint32_t digits = 0;
+    switch (_additional_format_specifier)
+    {
+    case AdditionalSpecifier::Qms:
+      digits = 3;
+      break;
+    case AdditionalSpecifier::Qus:
+      digits = 6;
+      break;
+    case AdditionalSpecifier::Qns:
+      digits = 9;
+      break;
+    default:
+      return;
+    }
 
-    // _formatted_date.size() - extracted_ms_string.size() is where we want to begin placing the fractional seconds
-    std::memcpy(&_formatted_date[_formatted_date.size() - extracted_ms_string.size()],
-                extracted_ms_string.data(), extracted_ms_string.size());
+    char* write_pos = _formatted_date.data() + _formatted_date.size();
+    for (uint32_t i = 0; i < digits; ++i)
+    {
+      *--write_pos = static_cast<char>('0' + (extracted_fractional_seconds % 10));
+      extracted_fractional_seconds /= 10;
+    }
   }
 
 private:

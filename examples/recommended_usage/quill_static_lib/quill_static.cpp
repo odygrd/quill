@@ -5,8 +5,17 @@
 #include "quill/Logger.h"
 #include "quill/sinks/FileSink.h"
 
-// Define a global variable for a logger to avoid looking up the logger each time.
-// Additional global variables can be defined for additional loggers if needed.
+/**
+ * Compile this file into your application's wrapper static library.
+ * Keep Quill backend/frontend initialization and sink/logger creation here so the rest of
+ * the application can log without pulling in the heavier setup headers everywhere.
+ *
+ * This example exports one global logger only to keep the example compact. In real projects
+ * the wrapper library can expose getter functions or several loggers instead.
+ */
+
+// Optional convenience for the example. Larger applications often keep multiple loggers so
+// different subsystems can use different names, sinks, and runtime log levels.
 quill::Logger* global_logger_a;
 
 void setup_quill(char const* log_file)

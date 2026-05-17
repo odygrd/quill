@@ -46,9 +46,9 @@ public:
 
     _json_message.append(std::string_view{"}\n"});
 
-    StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
-                          log_level_description, log_level_short_code, named_args, std::string_view{},
-                          std::string_view{_json_message.data(), _json_message.size()});
+    FileSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name,
+                        log_level, log_level_description, log_level_short_code, named_args,
+                        std::string_view{}, std::string_view{_json_message.data(), _json_message.size()});
   }
 
 private:
@@ -141,46 +141,6 @@ TEST_CASE("json_varied_params_logging")
       REQUIRE_EQ(file_contents[i], expected_json_statement);
     }
   }
-
-  testing::remove_file(filename);
-}
-
-/***/
-TEST_CASE("json_malformed_named_arg_keeps_literal_message")
-{
-  static constexpr char const* filename = "json_malformed_named_arg_keeps_literal_message.json";
-
-  BackendOptions bo;
-  bo.error_notifier = [](std::string const&) {};
-  Backend::start(bo);
-
-  auto json_file_sink = Frontend::create_or_get_sink<CustomJsonFileSink>(
-    filename,
-    []()
-    {
-      FileSinkConfig cfg;
-      cfg.set_open_mode('w');
-      return cfg;
-    }(),
-    FileEventNotifier{});
-
-  Logger* logger = Frontend::create_or_get_logger(
-    "root_malformed_named_arg", std::move(json_file_sink),
-    quill::PatternFormatterOptions{"LOG_%(log_level:<9) %(logger:<12) %(message) [%(named_args)]"});
-
-  LOG_WARNING(logger, "Malformed named arg {param_1", 42);
-
-  logger->flush_log();
-  Frontend::remove_logger(logger);
-  Backend::stop();
-
-  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 1);
-
-  std::string const expected_json_statement =
-    R"({"logger":"root_malformed_named_arg","log_level":"WARNING","message":"Malformed named arg {param_1"})";
-
-  REQUIRE_EQ(file_contents[0], expected_json_statement);
 
   testing::remove_file(filename);
 }

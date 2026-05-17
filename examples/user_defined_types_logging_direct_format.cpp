@@ -12,8 +12,8 @@
 #include <utility>
 
 /**
- * This example illustrates logging user-defined types by implicitly converting it to a
- * string in the hot path
+ * This example shows direct formatting of a user-defined type on the hot path
+ * using `quill::DirectFormatCodec<T>`.
  */
 
 class User

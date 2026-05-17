@@ -33,7 +33,7 @@ class AndroidSinkConfig
 {
 public:
   /**
-   * @brief Sets the tag that is prepended to every syslog message.
+   * @brief Sets the tag that is prepended to every Android log message.
    * Typically, this is set to the program name.
    * @param tag The tag string.
    */
@@ -42,7 +42,7 @@ public:
   /**
    * @brief Enables or disables message formatting.
    * If enabled, the log message will be formatted using the specified
-   * PatternFormatter before being sent to syslog.
+   * PatternFormatter before being sent to the Android log system.
    * @param format_message Set to true to format the message; false otherwise.
    */
   QUILL_ATTRIBUTE_COLD void set_format_message(bool format_message)
@@ -51,8 +51,8 @@ public:
   }
 
   /**
-   * @brief Sets the mapping from quill log levels to syslog levels.
-   * This mapping determines which syslog level is used for each quill log level.
+   * @brief Sets the mapping from quill log levels to Android log levels.
+   * This mapping determines which Android log level is used for each quill log level.
    * @param mapping An array of 11 integers representing Android log levels, one per LogLevel value.
    */
   QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, 11> mapping)
@@ -102,7 +102,7 @@ public:
   ~AndroidSink() override = default;
 
   /**
-   * @brief Writes a formatted log message to the stream
+   * @brief Writes a formatted log message to the Android logging system.
    */
   void write_log(MacroMetadata const* /* log_metadata */, uint64_t /* log_timestamp */,
                  std::string_view /* thread_id */, std::string_view /* thread_name */,

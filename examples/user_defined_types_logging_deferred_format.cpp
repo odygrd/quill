@@ -11,7 +11,8 @@
 #include <utility>
 
 /**
- * This example illustrates logging user-defined types
+ * This example shows deferred formatting of a whole user-defined object using
+ * `fmtquill::formatter<T>` together with `quill::DeferredFormatCodec<T>`.
  */
 
 class User

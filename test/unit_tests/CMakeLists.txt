@@ -1,4 +1,6 @@
 function(quill_add_test TEST_NAME SOURCES)
+    list(APPEND SOURCES ${ARGN})
+
     set(HEADER_FILES
             ../bundled/doctest/doctest.h
             ../misc/TestUtilities.h
@@ -37,6 +39,10 @@ function(quill_add_test TEST_NAME SOURCES)
     # Link dependencies
     target_link_libraries(${TEST_NAME} quill)
 
+    if (QUILL_ENABLE_EXTENSIVE_TESTS)
+        target_compile_definitions(${TEST_NAME} PRIVATE QUILL_ENABLE_EXTENSIVE_TESTS)
+    endif ()
+
     # Do not decay cxx standard if not specified
     set_property(TARGET ${TEST_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 
@@ -73,6 +79,7 @@ quill_add_test(TEST_PatternFormatter PatternFormatterTest.cpp)
 quill_add_test(TEST_RotatingFileSink RotatingFileSinkTest.cpp)
 quill_add_test(TEST_SinkManager SinkManagerTest.cpp)
 quill_add_test(TEST_StringFromTime StringFromTimeTest.cpp)
+quill_add_test(TEST_SequentialThreadId SequentialThreadIdTest.cpp)
 quill_add_test(TEST_ThreadContextManager ThreadContextManagerTest.cpp)
 quill_add_test(TEST_TimestampFormatter TimestampFormatterTest.cpp)
 quill_add_test(TEST_TransitEventBuffer TransitEventBufferTest.cpp)

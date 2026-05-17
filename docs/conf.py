@@ -1,24 +1,4 @@
-import subprocess, os
-
-
-def configureDoxyfile(input_dir, output_dir):
-    doxyfile_in_path = os.path.join(os.path.abspath('.'), 'Doxyfile.in')
-    with open(doxyfile_in_path, 'r') as file:
-        filedata = file.read()
-
-    filedata = filedata.replace('@DOXYGEN_INPUT_DIR@', input_dir)
-    filedata = filedata.replace('@DOXYGEN_OUTPUT_DIR@', output_dir)
-
-    with open('Doxyfile', 'w') as file:
-        file.write(filedata)
-
-
-# Set paths for local build
-input_dir = '../include/quill'
-output_dir = 'build'
-
-configureDoxyfile(input_dir, output_dir)
-subprocess.call('doxygen', shell=True)
+import os
 
 # Configuration for Sphinx
 breathe_projects = {
@@ -42,7 +22,9 @@ release = 'v12.0.0'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ["breathe", "sphinx.ext.autosectionlabel"]
+extensions.append("sphinx_immaterial")
 breathe_default_project = "Quill"
+autosectionlabel_prefix_document = True
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -50,6 +32,47 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'furo'
+html_theme = "sphinx_immaterial"
+html_theme_options = {
+  "site_url": "https://quill.readthedocs.io/",
+  "repo_url": "https://github.com/odygrd/quill",
+  "repo_name": "quill",
+  "icon": {"repo": "fontawesome/brands/github"},
+  "features": [
+    "navigation.tabs",
+    "navigation.tabs.sticky",
+    "navigation.sections",
+    "navigation.top",
+    "toc.integrate",
+    "toc.follow",
+    "search.highlight",
+    "search.share",
+    "content.code.copy",
+  ],
+  "palette": [
+    {
+      "media": "(prefers-color-scheme: light)",
+      "scheme": "default",
+      "primary": "white",
+      "accent": "blue",
+      "toggle": {
+        "icon": "material/weather-night",
+        "name": "Switch to dark mode",
+      },
+    },
+    {
+      "media": "(prefers-color-scheme: dark)",
+      "scheme": "slate",
+      "primary": "black",
+      "accent": "blue",
+      "toggle": {
+        "icon": "material/weather-sunny",
+        "name": "Switch to light mode",
+      },
+    }
+  ],
+}
+html_logo = "quill_logo.png"
 html_static_path = ['_static']
+html_css_files = ["theme_extra.css"]
 html_title = f"Quill {release} - C++ Logging Library"

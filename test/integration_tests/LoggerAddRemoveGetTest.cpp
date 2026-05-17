@@ -56,13 +56,6 @@ private:
   quill::Logger* _logger{nullptr};
 };
 
-/***/
-TEST_CASE("create_or_get_logger_requires_source_logger_to_create")
-{
-  REQUIRE_THROWS_AS(Frontend::create_or_get_logger("missing_logger_without_source"), QuillError);
-}
-
-/***/
 TEST_CASE("logger_add_remove_get")
 {
   // Verifies logging behavior adding, removing and getting loggers

@@ -8,8 +8,10 @@
 #include <utility>
 
 /**
- * Trivial logging example to console
- * Note: You can also pass STL types by including the relevant header files from quill/std/
+ * Console logging using the macro-free API from `quill/LogFunctions.h`.
+ *
+ * Note: You can also pass STL types by including the relevant header files from
+ * `quill/std/`.
  */
 
 int main()

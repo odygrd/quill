@@ -14,6 +14,11 @@
 #define TAG_2 "bar"
 #define TAG_3 "baz"
 
+/**
+ * This example shows how to attach tags to log statements and include them in
+ * the logger pattern with the `%(tags)` placeholder.
+ */
+
 int main()
 {
   // Start the backend thread

@@ -6,6 +6,11 @@
 
 #include <string>
 
+/**
+ * This example shows structured JSON logging to the console using both the
+ * `LOGJ_*` helpers and named placeholders in regular log statements.
+ */
+
 int main()
 {
   // Start the backend thread

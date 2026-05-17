@@ -3,10 +3,12 @@
 Binary Protocols
 ================
 
+Use this page to log binary protocol data (e.g., SBE messages) with deferred formatting on the backend thread.
+
 Logging Binary Protocols with Deferred Formatting
 -------------------------------------------------
 The library provides efficient logging of binary data in human-readable text format. While the logged data might be in
-binary format initially, The library always produces text-based log files.
+binary format initially, the library always produces text-based log files.
 The ``BinaryDataDeferredFormatCodec`` enables efficient logging of variable-sized binary data by:
 
 1. Copying the raw binary bytes on the hot path (critical performance section)
@@ -17,7 +19,7 @@ custom binary formats without impacting application performance.
 
 Implementation Steps
 --------------------
-To log binary data logging with deferred formatting, follow these steps:
+To log binary data with deferred formatting, follow these steps:
 
 1. Create a Tag Struct
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -140,6 +142,6 @@ To write raw bytes to files, you **must** configure these critical options:
 
 This example demonstrates asynchronously writing raw binary data to a file:
 
-.. literalinclude:: examples/quill_docs_binary_file_writer.cpp
+.. literalinclude:: snippets/quill_docs_binary_file_writer.cpp
    :language: cpp
    :linenos:

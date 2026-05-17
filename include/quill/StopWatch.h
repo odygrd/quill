@@ -131,6 +131,7 @@ QUILL_END_NAMESPACE
 
 QUILL_BEGIN_EXPORT
 
+/** @cond */
 template <quill::ClockSourceType ClockType>
 struct quill::Codec<quill::detail::StopWatch<ClockType>>
   : quill::DeferredFormatCodec<quill::detail::StopWatch<ClockType>>
@@ -147,5 +148,6 @@ struct fmtquill::formatter<quill::detail::StopWatch<ClockType>> : fmtquill::form
     return fmtquill::formatter<double>::format(sw.elapsed().count(), ctx);
   }
 };
+/** @endcond */
 
 QUILL_END_EXPORT

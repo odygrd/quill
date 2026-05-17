@@ -7,8 +7,10 @@
 #include <utility>
 
 /**
- * This example demonstrates how to create a RotatingFileSink with daily rotation and automatic rotation based on maximum file size.
- * For additional configuration options, refer to RotatingFileSinkConfig.
+ * This example demonstrates how to create a `RotatingJsonFileSink` with daily
+ * rotation and automatic rotation based on maximum file size.
+ *
+ * See `RotatingFileSinkConfig` for additional rotation options.
  */
 
 int main()

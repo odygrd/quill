@@ -8,8 +8,8 @@
 #include <utility>
 
 /**
- * Trivial logging example to console using std::chrono::now for timestamps instead of the
- * default rdtsc clock
+ * This example switches the logger to the system clock instead of the default
+ * TSC-based clock source.
  */
 
 int main()

@@ -13,6 +13,7 @@
 
 #include "FuzzerHelper.h"
 
+#include "FuzzDataExtractor.h"
 #include "quill/DeferredFormatCodec.h"
 #include "quill/DirectFormatCodec.h"
 #include "quill/HelperMacros.h"
@@ -25,7 +26,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -150,181 +150,6 @@ std::ostream& operator<<(std::ostream& os, Priority const& p)
 
 QUILL_LOGGABLE_DIRECT_FORMAT(Priority)
 
-// Helper to extract data from fuzzer input
-class FuzzDataExtractor
-{
-public:
-  explicit FuzzDataExtractor(uint8_t const* data, size_t size)
-    : _data(data), _size(size), _offset(0)
-  {
-  }
-
-  bool has_data() const { return _offset < _size; }
-
-  uint8_t get_byte()
-  {
-    if (_offset < _size)
-      return _data[_offset++];
-    return 0;
-  }
-
-  uint32_t get_uint32()
-  {
-    uint32_t value = 0;
-    if (_offset + sizeof(uint32_t) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(uint32_t));
-      _offset += sizeof(uint32_t);
-    }
-    return value;
-  }
-
-  // Extract a string of specified length from fuzzer data
-  std::string get_bytes(size_t length)
-  {
-    if (_offset >= _size || length == 0)
-      return "";
-
-    // Clamp to remaining data
-    size_t available = _size - _offset;
-    size_t actual_len = (length < available) ? length : available;
-
-    std::string result(reinterpret_cast<char const*>(_data + _offset), actual_len);
-    _offset += actual_len;
-    return result;
-  }
-
-  size_t remaining() const { return _size - _offset; }
-
-  int8_t get_int8() { return static_cast<int8_t>(get_byte()); }
-
-  int16_t get_int16()
-  {
-    int16_t value = 0;
-    if (_offset + sizeof(int16_t) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(int16_t));
-      _offset += sizeof(int16_t);
-    }
-    return value;
-  }
-
-  uint16_t get_uint16()
-  {
-    uint16_t value = 0;
-    if (_offset + sizeof(uint16_t) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(uint16_t));
-      _offset += sizeof(uint16_t);
-    }
-    return value;
-  }
-
-  int32_t get_int32() { return static_cast<int32_t>(get_uint32()); }
-
-  int64_t get_int64()
-  {
-    int64_t value = 0;
-    if (_offset + sizeof(int64_t) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(int64_t));
-      _offset += sizeof(int64_t);
-    }
-    return value;
-  }
-
-  uint64_t get_uint64()
-  {
-    uint64_t value = 0;
-    if (_offset + sizeof(uint64_t) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(uint64_t));
-      _offset += sizeof(uint64_t);
-    }
-    return value;
-  }
-
-  float get_float()
-  {
-    float value = 0.0f;
-    if (_offset + sizeof(float) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(float));
-      _offset += sizeof(float);
-    }
-    return value;
-  }
-
-  double get_double()
-  {
-    double value = 0.0;
-    if (_offset + sizeof(double) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(double));
-      _offset += sizeof(double);
-    }
-    return value;
-  }
-
-  long double get_long_double()
-  {
-    long double value = 0.0L;
-    if (_offset + sizeof(long double) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(long double));
-      _offset += sizeof(long double);
-    }
-    return value;
-  }
-
-  bool get_bool() { return get_byte() & 1; }
-
-  char get_char() { return static_cast<char>(get_byte()); }
-
-  // Get null-terminated C string from fuzzer data
-  // NOTE: Returns pointer to internal buffer - valid until next call
-  char const* get_c_string(size_t max_len = 256)
-  {
-    if (_offset >= _size)
-    {
-      _c_string_buffer[0] = '\0';
-      return _c_string_buffer.data();
-    }
-
-    size_t len = get_byte() % (max_len + 1);
-    size_t actual_len = 0;
-
-    for (size_t i = 0; i < len && _offset < _size && actual_len < _c_string_buffer.size() - 1; ++i)
-    {
-      _c_string_buffer[actual_len++] = static_cast<char>(_data[_offset++]);
-    }
-
-    // Ensure null termination - required by quill for char const*
-    _c_string_buffer[actual_len] = '\0';
-    return _c_string_buffer.data();
-  }
-
-  std::string_view get_string_view()
-  {
-    if (_offset >= _size)
-      return "";
-
-    size_t len = get_byte();
-    if (_offset + len > _size)
-      len = _size - _offset;
-
-    std::string_view result(reinterpret_cast<char const*>(_data + _offset), len);
-    _offset += len;
-    return result;
-  }
-
-private:
-  uint8_t const* _data;
-  size_t _size;
-  size_t _offset;
-  std::array<char, 512> _c_string_buffer; // Buffer for null-terminated C strings
-};
-
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
   // Need at least 10 bytes to do anything useful
@@ -421,10 +246,10 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
       if (large)
       {
         // Large message (use up to 8KB or remaining)
-        size_t size = extractor.get_uint32() % 8192;
-        if (size == 0)
-          size = 1;
-        std::string msg = extractor.get_bytes(size);
+        size_t msg_sz = extractor.get_uint32() % 8192;
+        if (msg_sz == 0)
+          msg_sz = 1;
+        std::string msg = extractor.get_bytes(msg_sz);
         LOG_INFO(g_logger, "Big: {}", msg);
       }
       else

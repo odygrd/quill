@@ -3,6 +3,8 @@
 Log Tagging
 ===========
 
+Use this page to embed compile-time tags in log messages for categorization, filtering, and monitoring.
+
 In addition to creating multiple `Logger` instances, each with a unique name, you can add static compile-time tags to your log messages. These tags are embedded directly into the log message format at compile time, providing zero runtime overhead for categorization. This enhances your ability to search, monitor, categorize, and understand events in your software.
 
 These static tags are included as hashtag-style keywords within your log messages, making it easier to filter and categorize logs based on these predefined tags.
@@ -28,6 +30,6 @@ Tag Processing in Sinks
 
 Tags can be accessed at the Sink level and used for additional log processing or filtering. This enables more log handling based on tag content. For example:
 
-.. literalinclude:: examples/quill_docs_example_tags_with_custom_sink.cpp
+.. literalinclude:: snippets/quill_docs_example_tags_with_custom_sink.cpp
    :language: cpp
    :linenos:

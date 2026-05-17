@@ -61,5 +61,7 @@ TEST_CASE("backend_tsc_clock")
   REQUIRE_GE(backend_tsc_time_2, system_now - ten_minutes);
   REQUIRE_LE(backend_tsc_time_2, system_now + ten_minutes);
 
+  Backend::stop();
+
   testing::remove_file(filename);
 }

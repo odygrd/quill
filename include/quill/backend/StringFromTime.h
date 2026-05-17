@@ -130,6 +130,16 @@ public:
     // cache this timestamp
     _cached_timestamp = timestamp;
 
+    if (QUILL_UNLIKELY(_cached_epoch_seconds_width != 0))
+    {
+      size_t const epoch_seconds_width = _decimal_width(_cached_timestamp);
+      if (epoch_seconds_width != _cached_epoch_seconds_width)
+      {
+        _next_recalculation_timestamp = 0;
+        return format_timestamp(timestamp);
+      }
+    }
+
     // Add the timestamp_diff to the cached seconds and calculate the new hours minutes seconds.
     // Note: cached_seconds could be in gmtime or localtime but we don't care as we are just
     // adding the difference.
@@ -207,8 +217,7 @@ public:
         }
         break;
       case format_type::s:
-        // Timestamp in seconds always changes
-        fmtquill::format_to(&_pre_formatted_ts[index.first], "{:10}", _cached_timestamp);
+        fmtquill::format_to(&_pre_formatted_ts[index.first], "{}", _cached_timestamp);
         break;
       default:
         abort();
@@ -294,7 +303,10 @@ protected:
     for (auto const& format_part : _initial_parts)
     {
       // We call strftime on each part of the timestamp to format it.
-      _pre_formatted_ts += _safe_strftime(format_part.data(), _cached_timestamp, _time_zone).data();
+      std::vector<char> const formatted_part = _safe_strftime(format_part.data(), _cached_timestamp, _time_zone);
+      std::string_view const formatted_part_sv{formatted_part.data()};
+      size_t const formatted_part_size = formatted_part_sv.size();
+      _pre_formatted_ts.append(formatted_part_sv);
 
       // If we formatted and appended to the string a time modifier also store the
       // current index in the string
@@ -324,7 +336,8 @@ protected:
       }
       else if (format_part == "%s")
       {
-        _cached_indexes.emplace_back(_pre_formatted_ts.size() - 10, format_type::s);
+        _cached_indexes.emplace_back(_pre_formatted_ts.size() - formatted_part_size, format_type::s);
+        _cached_epoch_seconds_width = formatted_part_size;
       }
     }
   }
@@ -474,6 +487,40 @@ protected:
     return std::chrono::duration_cast<std::chrono::seconds>(next_midnight.time_since_epoch()).count() + 1;
   }
 
+  /***/
+  QUILL_NODISCARD static size_t _decimal_width(time_t timestamp) noexcept
+  {
+    size_t width = 0;
+
+    using unsigned_time_t = std::make_unsigned_t<time_t>;
+    unsigned_time_t magnitude = 0;
+
+    if constexpr (std::is_signed_v<time_t>)
+    {
+      if (timestamp < 0)
+      {
+        width = 1; // '-'
+        magnitude = static_cast<unsigned_time_t>(-(timestamp + 1)) + 1;
+      }
+      else
+      {
+        magnitude = static_cast<unsigned_time_t>(timestamp);
+      }
+    }
+    else
+    {
+      magnitude = timestamp;
+    }
+
+    do
+    {
+      ++width;
+      magnitude /= 10;
+    } while (magnitude != 0);
+
+    return width;
+  }
+
 private:
   /** Contains the timestamp_format broken down into parts. We call use those parts to
    * create a pre-formatted string */
@@ -507,6 +554,7 @@ private:
 
   /** gmtime or localtime */
   Timezone _time_zone{Timezone::GmtTime};
+  size_t _cached_epoch_seconds_width{0};
 };
 } // namespace detail
 

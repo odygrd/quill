@@ -3,11 +3,12 @@
 /**
  * This file is optional and demonstrates how users can replace the library macros with their own.
  *
- * It becomes useful when opting for a single Logger object over several logger objects.
+ * It can be useful when your wrapper library exposes one default logger and you want shorter
+ * call sites without passing that logger explicitly every time.
  *
- * However, using multiple logger objects provides greater flexibility in applications with multiple
- * components. With multiple loggers, it's easier to control the log level of each component
- * individually, whereas using a single logger, as shown in this example, may present limitations.
+ * This is only one optional pattern. Multiple logger objects are often a better fit for
+ * larger applications because they let different components use different names, sinks,
+ * and runtime log levels.
  */
 
 /**
@@ -19,10 +20,11 @@
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
 
-// The logger we defined in quill_wrapper.cpp
+// The logger exposed by the wrapper library example.
 extern quill::Logger* global_logger_a;
 
-// Define custom log macros using global_logger_a. Two examples are provided here for demonstration.
+// Define custom log macros using the wrapper's default logger. Two examples are provided here
+// for demonstration.
 #define LOG_INFO(fmt, ...) QUILL_LOG_INFO(global_logger_a, fmt, ##__VA_ARGS__)
 #define LOG_WARNING(fmt, ...) QUILL_LOG_WARNING(global_logger_a, fmt, ##__VA_ARGS__)
 // etc ..

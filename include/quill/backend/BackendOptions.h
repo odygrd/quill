@@ -31,6 +31,25 @@ QUILL_BEGIN_EXPORT
  */
 struct BackendOptions
 {
+private:
+  // Keep these as named helpers instead of lambda default initializers because
+  // Doxygen/Breathe do not parse the lambda-based declarations reliably.
+  static void default_error_notifier(std::string const& error_message)
+  {
+#if !defined(__MINGW32__)
+    std::fprintf(stderr, "%s\n", error_message.data());
+#else
+    // fprintf crashes on mingw gcc 13 for unknown reason
+    std::cerr << error_message.data() << "\n";
+#endif
+  }
+
+  static bool default_check_printable_char(char c) noexcept
+  {
+    return (c >= ' ' && c <= '~') || (c == '\n') || (c == '\t') || (c == '\r');
+  }
+
+public:
   /**
    * The name assigned to the backend, visible during thread naming queries (e.g.,
    * pthread_getname_np) or in the debugger.
@@ -137,9 +156,11 @@ struct BackendOptions
    * When this option is enabled and the application is terminating, the backend worker thread
    * will not exit until all the frontend queues are empty.
    *
-   * This assumes frontend threads stop logging before backend shutdown begins. Continuing to log
-   * while `Backend::stop()` is draining the frontend queues is unsupported and can prevent the
-   * backend from exiting because the queues may never become empty.
+   * This assumes frontend threads stop logging before backend shutdown begins. A few trailing log
+   * statements may still drain successfully, but you should not rely on that behavior. Sustained
+   * concurrent logging while `Backend::stop()` is draining the frontend queues, especially logging
+   * in a loop from another thread, can prevent the backend from exiting because the queues may
+   * never become empty.
    *
    * When this option is disabled, the backend will try to read the queues once
    * and then exit. Reading the queues only once means that some log messages can be dropped,
@@ -165,22 +186,17 @@ struct BackendOptions
    * This function sets up a user error notifier to handle backend errors and notifications,
    * such as when the unbounded queue reallocates or when the bounded queue becomes full.
    *
-   * To disable notifications, simply leave the function undefined:
+   * To disable callback notifications, simply leave the function undefined:
    *   std::function<void(std::string const&)> backend_error_notifier = {};
+   *
+   * Disabling this callback does not suppress Quill's fallback formatting-error entries written
+   * to sinks. It only disables the callback notifications themselves.
    *
    * It's safe to perform logging operations within this function (e.g., LOG_INFO(...)),
    * but avoid calling logger->flush_log(). The function is invoked on the backend thread,
    * which should not remain in a waiting state as it waits for itself.
    */
-  std::function<void(std::string const&)> error_notifier = [](std::string const& error_message)
-  {
-#if !defined(__MINGW32__)
-    std::fprintf(stderr, "%s\n", error_message.data());
-#else
-    // fprintf crashes on mingw gcc 13 for unknown reason
-    std::cerr << error_message.data() << "\n";
-#endif
-  };
+  std::function<void(std::string const&)> error_notifier{default_error_notifier};
 
   /**
    * Optional hook executed by the backend worker thread at the start of each poll iteration.
@@ -241,8 +257,7 @@ struct BackendOptions
    * To disable this check, you can provide:
    *   std::function<bool(char c)> check_printable_char = {}
    */
-  std::function<bool(char c)> check_printable_char = [](char c)
-  { return (c >= ' ' && c <= '~') || (c == '\n') || (c == '\t') || (c == '\r'); };
+  std::function<bool(char c)> check_printable_char{default_check_printable_char};
 
   /**
    * Holds descriptive names for various log levels used in logging operations.

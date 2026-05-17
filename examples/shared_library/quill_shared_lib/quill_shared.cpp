@@ -5,8 +5,8 @@
 #include "quill/Logger.h"
 #include "quill/sinks/ConsoleSink.h"
 
-// Define a global variable for a logger to avoid looking up the logger each time.
-// Additional global variables can be defined for additional loggers if needed.
+// Optional convenience for the shared-library example. A real wrapper can instead expose
+// logger getter functions or manage several loggers.
 QUILL_EXPORT quill::Logger* global_logger_a;
 
 void setup_quill()

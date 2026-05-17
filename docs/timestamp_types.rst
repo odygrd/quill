@@ -3,6 +3,8 @@
 Timestamp Types
 ===============
 
+Use this page to choose between TSC, system, or custom clock sources and understand their trade-offs.
+
 Timestamp Recording
 -------------------
 
@@ -42,6 +44,6 @@ Getting a Synchronized Timestamp with the Backend Thread TSC Clock
 In some cases, when using TSC for log statements, you might want to obtain a timestamp that is synchronized with the timestamp seen in the log statements.
 To achieve this, you can use the :cpp:class:`BackendTscClock`. See the example below:
 
-.. literalinclude:: examples/quill_docs_timestamp_types_1.cpp
+.. literalinclude:: snippets/quill_docs_timestamp_types.cpp
    :language: cpp
    :linenos:

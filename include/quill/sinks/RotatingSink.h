@@ -295,17 +295,29 @@ public:
         config);
     }
 
-    // Open file for logging
-    this->open_file(this->_filename, _config.open_mode());
     _open_file_timestamp = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
 
     _created_files.emplace_front(this->_filename, 0, std::string{});
 
-    // Check if we need to rotate on creation
-    if (_config.rotation_on_creation() && !this->is_null() && _get_file_size(this->_filename) > 0)
+    // Rotate an existing startup file before the initial open so mode='w' does not truncate it.
+    bool const should_rotate_on_creation =
+      _config.rotation_on_creation() && !this->is_null() && (_get_file_size(this->_filename) > 0);
+    bool const can_rotate_on_creation = should_rotate_on_creation &&
+      ((_created_files.size() <= _config.max_backup_files()) || _config.overwrite_rolled_files());
+
+    if (can_rotate_on_creation)
     {
-      _rotate_files(today_timestamp_ns);
+      _rotate_closed_file(today_timestamp_ns);
+    }
+    else
+    {
+      // If startup rotation was requested but cannot proceed, preserve the existing file and
+      // continue without truncating it.
+      std::string const open_mode = should_rotate_on_creation
+        ? _reopen_mode_after_failed_rotation(_config.open_mode())
+        : _config.open_mode();
+      this->open_file(this->_filename, open_mode);
     }
 
     if (!this->is_null())
@@ -432,6 +444,12 @@ private:
     }
 
     this->close_file();
+    _rotate_closed_file(record_timestamp_ns);
+  }
+
+  /***/
+  void _rotate_closed_file(uint64_t record_timestamp_ns)
+  {
     bool rotation_succeeded = true;
 
     // datetime_suffix will be empty if we are using the default naming scheme
@@ -565,16 +583,9 @@ private:
     {
       for (auto const& entry : fs::directory_iterator(parent_dir))
       {
-        if (entry.path().extension().string() != filename.extension().string())
+        ParsedRotatedFileInfo parsed_file_info;
+        if (!_try_parse_rotated_file(filename, entry.path(), parsed_file_info))
         {
-          // we only check for the files of the same extension to remove
-          continue;
-        }
-
-        // is_directory() does not exist in std::experimental::filesystem
-        if (entry.path().filename().string().find(filename.stem().string() + ".") != 0)
-        {
-          // expect to find filename.stem().string() exactly at the start of the filename
           continue;
         }
 
@@ -584,37 +595,12 @@ private:
         }
         else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
         {
-          // Find the first dot in the filename
-          // stem will be something like `logfile.1`
-          if (size_t const pos = entry.path().stem().string().find_last_of('.'); pos != std::string::npos)
+          std::string const today_date =
+            this->format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
+
+          if (parsed_file_info.date_time == today_date)
           {
-            // Get the today's date, we won't remove the files of the previous dates as they won't collide
-            std::string const today_date =
-              this->format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
-
-            if (std::string const index_or_date =
-                  entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
-                (index_or_date.length() >= 8) && (index_or_date == today_date))
-            {
-              // assume it is a date, no need to find the index
-              fs::remove(entry);
-            }
-            else
-            {
-              // assume it is an index
-              // Find the second last dot to get the date
-              std::string const filename_with_date = entry.path().filename().string().substr(0, pos);
-
-              if (size_t const second_last = filename_with_date.find_last_of('.'); second_last != std::string::npos)
-              {
-                if (std::string const date_part =
-                      filename_with_date.substr(second_last + 1, filename_with_date.length());
-                    date_part == today_date)
-                {
-                  fs::remove(entry);
-                }
-              }
-            }
+            fs::remove(entry);
           }
         }
       }
@@ -624,85 +610,24 @@ private:
       // we need to recover the index from the existing files
       for (auto const& entry : fs::directory_iterator(parent_dir))
       {
-        // is_directory() does not exist in std::experimental::filesystem
-        if (entry.path().extension().string() != filename.extension().string())
+        ParsedRotatedFileInfo parsed_file_info;
+        if (!_try_parse_rotated_file(filename, entry.path(), parsed_file_info))
         {
-          // we only check for the files of the same extension to remove
           continue;
         }
 
-        // is_directory() does not exist in std::experimental::filesystem
-        if (entry.path().filename().string().find(filename.stem().string() + ".") != 0)
+        if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index)
         {
-          // expect to find filename.stem().string() exactly at the start of the filename
-          continue;
+          _created_files.emplace_front(filename, parsed_file_info.index, std::string{});
         }
-
-        std::string const extension = entry.path().extension().string(); // e.g. ".log"
-
-        // stem will be something like `logfile.1`
-        if (size_t const pos = entry.path().stem().string().find_last_of('.'); pos != std::string::npos)
+        else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
         {
-          if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index)
+          std::string const today_date =
+            this->format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
+
+          if (parsed_file_info.date_time == today_date)
           {
-            std::string const index =
-              entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
-
-            std::string const current_filename = entry.path().filename().string().substr(0, pos) + extension;
-            fs::path current_file = entry.path().parent_path();
-            current_file.append(current_filename);
-
-            // Attempt to convert the index to a number
-            QUILL_TRY
-            {
-              _created_files.emplace_front(current_file, static_cast<uint32_t>(std::stoul(index)),
-                                           std::string{});
-            }
-            QUILL_CATCH_ALL() { continue; }
-          }
-          else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
-          {
-            // Get the today's date, we won't remove the files of the previous dates as they won't collide
-            std::string const today_date =
-              this->format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
-
-            if (std::string const index_or_date =
-                  entry.path().stem().string().substr(pos + 1, entry.path().stem().string().length());
-                (index_or_date.length() >= 8) && (index_or_date == today_date))
-            {
-              // assume it is a date, no need to find the index
-              std::string const current_filename = entry.path().filename().string().substr(0, pos) + extension;
-              fs::path current_file = entry.path().parent_path();
-              current_file.append(current_filename);
-
-              _created_files.emplace_front(current_file, 0, index_or_date);
-            }
-            else
-            {
-              // assume it is an index
-              // Find the second last dot to get the date
-              std::string const filename_with_date = entry.path().filename().string().substr(0, pos);
-
-              if (size_t const second_last = filename_with_date.find_last_of('.'); second_last != std::string::npos)
-              {
-                if (std::string const date_part =
-                      filename_with_date.substr(second_last + 1, filename_with_date.length());
-                    date_part == today_date)
-                {
-                  std::string const current_filename = filename_with_date.substr(0, second_last) + extension;
-                  fs::path current_file = entry.path().parent_path();
-                  current_file.append(current_filename);
-
-                  // Attempt to convert the index to a number
-                  QUILL_TRY
-                  {
-                    _created_files.emplace_front(
-                      current_file, static_cast<uint32_t>(std::stoul(index_or_date)), date_part);
-                  }
-                  QUILL_CATCH_ALL() { continue; }
-                }
-              }
-            }
+            _created_files.emplace_front(filename, parsed_file_info.index, parsed_file_info.date_time);
           }
         }
       }
@@ -737,6 +662,96 @@ private:
       return 0;
     }
     return static_cast<size_t>(size);
+  }
+
+  struct ParsedRotatedFileInfo
+  {
+    uint32_t index{0};
+    std::string date_time;
+  };
+
+  QUILL_NODISCARD static bool _parse_uint32(std::string_view value, uint32_t& parsed_value) noexcept
+  {
+    if (value.empty())
+    {
+      return false;
+    }
+
+    uint64_t parsed{0};
+    for (char const c : value)
+    {
+      if ((c < '0') || (c > '9'))
+      {
+        return false;
+      }
+
+      parsed = (parsed * 10u) + static_cast<uint32_t>(c - '0');
+      if (parsed > std::numeric_limits<uint32_t>::max())
+      {
+        return false;
+      }
+    }
+
+    parsed_value = static_cast<uint32_t>(parsed);
+    return true;
+  }
+
+  QUILL_NODISCARD bool _try_parse_rotated_file(fs::path const& base_filename, fs::path const& candidate_filename,
+                                               ParsedRotatedFileInfo& parsed_file_info) const
+  {
+    if (candidate_filename.extension() != base_filename.extension())
+    {
+      return false;
+    }
+
+    std::string const base_stem = base_filename.stem().string();
+    std::string const candidate_stem = candidate_filename.stem().string();
+
+    if ((candidate_stem.size() <= (base_stem.size() + 1)) ||
+        (candidate_stem.compare(0, base_stem.size(), base_stem) != 0) ||
+        (candidate_stem[base_stem.size()] != '.'))
+    {
+      return false;
+    }
+
+    std::string_view const suffix{candidate_stem.data() + base_stem.size() + 1,
+                                  candidate_stem.size() - base_stem.size() - 1};
+
+    if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index)
+    {
+      parsed_file_info.date_time.clear();
+      return _parse_uint32(suffix, parsed_file_info.index);
+    }
+
+    if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
+    {
+      size_t const separator_pos = suffix.find('.');
+      std::string_view const date_part =
+        (separator_pos == std::string_view::npos) ? suffix : suffix.substr(0, separator_pos);
+
+      if ((date_part.size() != 8u) || !_parse_uint32(date_part, parsed_file_info.index))
+      {
+        return false;
+      }
+
+      parsed_file_info.date_time.assign(date_part.data(), date_part.size());
+      parsed_file_info.index = 0;
+
+      if (separator_pos == std::string_view::npos)
+      {
+        return true;
+      }
+
+      if (suffix.find('.', separator_pos + 1) != std::string_view::npos)
+      {
+        return false;
+      }
+
+      std::string_view const index_part = suffix.substr(separator_pos + 1);
+      return _parse_uint32(index_part, parsed_file_info.index);
+    }
+
+    return false;
   }
 
   /***/
@@ -819,14 +834,62 @@ private:
   }
 
   /***/
-  static uint64_t _calculate_initial_rotation_tp(uint64_t start_time_ns, RotatingFileSinkConfig const& config)
+  QUILL_NODISCARD static time_t _timestamp_ns_to_time_t(uint64_t timestamp_ns) noexcept
   {
 // time_t on i386 is 32 bits so casting out of range number results in zero
 #if (defined(__i386))
-    time_t const time_now = static_cast<time_t>(start_time_ns / 1000000000);
+    return static_cast<time_t>(timestamp_ns / 1000000000);
 #else
-    time_t const time_now = static_cast<time_t>(start_time_ns) / 1000000000;
+    return static_cast<time_t>(timestamp_ns) / 1000000000;
 #endif
+  }
+
+  /***/
+  QUILL_NODISCARD static uint64_t _calculate_next_daily_rotation_tp(time_t reference_time,
+                                                                    RotatingFileSinkConfig const& config)
+  {
+    tm date;
+
+    if (config.timezone() == Timezone::GmtTime)
+    {
+      detail::gmtime_rs(&reference_time, &date);
+    }
+    else
+    {
+      detail::localtime_rs(&reference_time, &date);
+    }
+
+    date.tm_hour = static_cast<decltype(date.tm_hour)>(config.daily_rotation_time().first.count());
+    date.tm_min = static_cast<decltype(date.tm_min)>(config.daily_rotation_time().second.count());
+    date.tm_sec = 0;
+
+    auto to_timestamp = [&config](tm& rotation_time_tm)
+    {
+      if (config.timezone() == Timezone::LocalTime)
+      {
+        // Let mktime resolve the correct DST state for the configured wall-clock time.
+        rotation_time_tm.tm_isdst = -1;
+        return std::mktime(&rotation_time_tm);
+      }
+
+      return detail::timegm(&rotation_time_tm);
+    };
+
+    time_t rotation_time = to_timestamp(date);
+
+    if (rotation_time <= reference_time)
+    {
+      date.tm_mday += 1;
+      rotation_time = to_timestamp(date);
+    }
+
+    return static_cast<uint64_t>(std::chrono::nanoseconds{std::chrono::seconds{rotation_time}}.count());
+  }
+
+  /***/
+  static uint64_t _calculate_initial_rotation_tp(uint64_t start_time_ns, RotatingFileSinkConfig const& config)
+  {
+    time_t const time_now = _timestamp_ns_to_time_t(start_time_ns);
     tm date;
 
     // here we do this because of `daily_rotation_time_str` that might have specified the time in UTC
@@ -853,9 +916,7 @@ private:
     }
     else if (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Daily)
     {
-      date.tm_hour = static_cast<decltype(date.tm_hour)>(config.daily_rotation_time().first.count());
-      date.tm_min = static_cast<decltype(date.tm_min)>(config.daily_rotation_time().second.count());
-      date.tm_sec = 0;
+      return _calculate_next_daily_rotation_tp(time_now, config);
     }
     else
     {
@@ -893,7 +954,7 @@ private:
 
     if (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Daily)
     {
-      return rotation_timestamp_ns + std::chrono::nanoseconds{std::chrono::hours{24}}.count();
+      return _calculate_next_daily_rotation_tp(_timestamp_ns_to_time_t(rotation_timestamp_ns), config);
     }
 
     QUILL_THROW(QuillError{"Invalid rotation frequency"});

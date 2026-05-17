@@ -1,6 +1,7 @@
 #define FUZZER_LOG_FILENAME "stl_containers_fuzz.log"
 #include "FuzzerHelper.h"
 
+#include "FuzzDataExtractor.h"
 #include "quill/LogMacros.h"
 
 #include "quill/std/Array.h"
@@ -17,13 +18,14 @@
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
 #include "quill/std/Vector.h"
-#include "quill/std/WideString.h"
+#if defined(_WIN32)
+  #include "quill/std/WideString.h"
+#endif
 
 #include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <deque>
 #include <filesystem>
 #include <forward_list>
@@ -37,92 +39,6 @@
 #include <unordered_set>
 #include <vector>
 
-class FuzzDataExtractor
-{
-public:
-  explicit FuzzDataExtractor(uint8_t const* data, size_t size)
-    : _data(data), _size(size), _offset(0)
-  {
-  }
-
-  bool has_data() const { return _offset < _size; }
-
-  uint8_t get_byte()
-  {
-    if (_offset < _size)
-      return _data[_offset++];
-    return 0;
-  }
-
-  uint32_t get_uint32()
-  {
-    uint32_t value = 0;
-    if (_offset + sizeof(uint32_t) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(uint32_t));
-      _offset += sizeof(uint32_t);
-    }
-    return value;
-  }
-
-  int32_t get_int32() { return static_cast<int32_t>(get_uint32()); }
-
-  uint64_t get_uint64()
-  {
-    uint64_t value = 0;
-    if (_offset + sizeof(uint64_t) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(uint64_t));
-      _offset += sizeof(uint64_t);
-    }
-    return value;
-  }
-
-  double get_double()
-  {
-    double value = 0.0;
-    if (_offset + sizeof(double) <= _size)
-    {
-      std::memcpy(&value, _data + _offset, sizeof(double));
-      _offset += sizeof(double);
-    }
-    return value;
-  }
-
-  std::string get_string(size_t max_len = 256)
-  {
-    if (_offset >= _size)
-      return "";
-
-    size_t len = get_byte() % (max_len + 1);
-    std::string result;
-    for (size_t i = 0; i < len && _offset < _size; ++i)
-    {
-      result.push_back(static_cast<char>(_data[_offset++]));
-    }
-    return result;
-  }
-
-  std::wstring get_wstring(size_t max_len = 64)
-  {
-    if (_offset >= _size)
-      return L"";
-
-    size_t len = get_byte() % (max_len + 1);
-    std::wstring result;
-    for (size_t i = 0; i < len && _offset < _size; ++i)
-    {
-      result.push_back(static_cast<wchar_t>(get_byte()));
-    }
-    return result;
-  }
-
-private:
-  uint8_t const* _data;
-  size_t _size;
-  size_t _offset;
-};
-
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
   if (size < 3 || !g_logger)
@@ -131,7 +47,11 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
   FuzzDataExtractor extractor(data, size);
   uint8_t selector = extractor.get_byte();
 
+#if defined(_WIN32)
+  switch (selector % 21)
+#else
   switch (selector % 20)
+#endif
   {
   case 0:
   {
@@ -349,6 +269,15 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
     LOG_INFO(g_logger, "Vector of strings: {}", vec_str);
     break;
   }
+#if defined(_WIN32)
+  case 20:
+  {
+    // Test std::wstring (Windows only - codec is platform-specific)
+    std::wstring ws = extractor.get_wstring();
+    LOG_INFO(g_logger, "WideString: {}", ws);
+    break;
+  }
+#endif
   }
 
   return 0;

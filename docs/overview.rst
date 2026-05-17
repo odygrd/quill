@@ -1,5 +1,7 @@
 .. title:: Overview
 
+.. _overview:
+
 Overview
 ========
 
@@ -7,10 +9,20 @@ The library adopts asynchronous logging to optimise performance, particularly we
 
 A dedicated backend thread manages log formatting and I/O operations, ensuring that even occasional log statements incur minimal overhead.
 
+At a glance:
+
+- **Frontend:** captures metadata and a binary copy of the log arguments on the calling thread.
+- **Backend:** formats and writes log messages on a dedicated worker thread.
+- **Ordering:** a single worker can preserve timestamp order across active queues.
+
+.. image:: design.drawio.svg
+   :alt: Quill design overview
+   :width: 95%
+
 Thread Safety
 -------------
 
-:cpp:class:`Logger` is thread safe by default. The same instance can be used to log by any thread.
+:cpp:type:`Logger` is thread safe by default. The same instance can be used to log by any thread.
 Any thread can safely modify the active log level of the logger.
 
 Logging types
@@ -20,17 +32,20 @@ For primitive types, ``std::string``, and ``std::string_view``, the library will
 For standard library types you need to include the relevant file under the ``quill/std`` folder.
 For user-defined types you can provide a ``Codec`` specialization to serialize the type or alternatively convert the type to a string on the hot path for non-latency-sensitive code.
 
+See :doc:`Recipes <recipes>` for examples of logging STL types and user-defined types.
+
 Reliable Logging Mechanism
 --------------------------
 
-Quill utilizes a thread-local single-producer-single-consumer queue to relay logs to the backend thread, ensuring that log messages are never dropped.
-Initially, an unbounded queue with a small size is used to optimise performance.
+Quill utilizes a thread-local single-producer-single-consumer queue to relay logs to the backend thread.
+By default, it uses an unbounded blocking queue with a small initial size to optimise performance.
 However, if the queue reaches its capacity, a new queue will be allocated, which may cause a slight performance penalty for the frontend.
 
-The default unbounded queue can expand up to a size of `FrontendOptions::unbounded_queue_max_capacity`. If this limit is reached, the caller thread will block.
+The default unbounded queue can expand up to a size of `FrontendOptions::unbounded_queue_max_capacity`. If this limit is reached, the caller thread will block instead of intentionally dropping messages.
 It's possible to change the queue type within the :cpp:class:`FrontendOptions`.
 
 The queue size and type are configurable by providing a custom :cpp:class:`FrontendOptions` class.
+See :doc:`Frontend Options <frontend_options>` for details.
 
 Manual Log Flushing
 -------------------
@@ -52,15 +67,21 @@ Handling Application Crashes
 
 During normal program termination, the library ensures all messages are logged as it goes through the ``BackendWorker`` destructor.
 
-However, in the event of an application crash, some log messages may be lost.
+However, in the event of an application crash, some log messages may still be lost.
 
-To prevent message loss during crashes caused by signal interrupts, users should set up a signal handler and invoke :cpp:func:`LoggerImpl::flush_log` within it.
-
-The library provides a built-in signal handler that ensures crash-safe behavior, which can be enabled via passing :cpp:struct:`SignalHandlerOptions` to :cpp:func:`Backend::start`.
+The library provides an optional built-in signal handler that can help preserve logs in many common crash and termination scenarios. It can be enabled by passing :cpp:struct:`SignalHandlerOptions` to :cpp:func:`Backend::start`.
 
 .. code-block:: cpp
 
    quill::Backend::start(quill::BackendOptions{}, quill::SignalHandlerOptions{});
+
+On POSIX systems, any thread that may run the built-in handler should either:
+
+- have already logged at least once,
+- have called :cpp:func:`FrontendImpl::preallocate`, or
+- have the handled signals blocked so the handler does not run on that thread.
+
+If you use your own POSIX signal handler, keep it minimal and avoid calling the general logging or flush APIs from an arbitrary signal context unless you have validated that approach for your platform and process state.
 
 :cpp:struct:`SignalHandlerOptions` allows you to configure:
 
@@ -135,7 +156,9 @@ The backend consists of a single backend thread which takes care of formatting t
 Consumes each message from the SPSC queue, retrieves all the necessary information, and then formats the message.
 Subsequently, forwards the log message to all ``Sinks`` associated with the Logger.
 
-Design
-------
+See Also
+--------
 
-.. image:: design.jpg
+- :doc:`Quick Start <quick_start>` for the shortest path to working logs.
+- :doc:`Guides <guides>` for sinks, formatters, JSON, filters, and more.
+- :doc:`Recipes <recipes>` for common tasks and code examples.

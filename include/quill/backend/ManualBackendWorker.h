@@ -23,6 +23,8 @@ QUILL_BEGIN_EXPORT
  * - That same thread must not use any path that waits for the backend to flush its own queue.
  *   In particular, it must not call `logger->flush_log()`, and it must not use immediate-flush
  *   settings that can trigger `flush_log()` implicitly.
+ * - The thread that calls `init()` must also call `shutdown()` explicitly before it exits.
+ *   Do not rely on the destructor to perform shutdown for you.
  */
 class ManualBackendWorker
 {
@@ -37,7 +39,11 @@ public:
   ManualBackendWorker(ManualBackendWorker&&) = delete;
   ManualBackendWorker& operator=(ManualBackendWorker&&) = delete;
 
-  ~ManualBackendWorker() { shutdown(); }
+  ~ManualBackendWorker()
+  {
+    // Preserve legacy behavior for callers that forgot explicit shutdown().
+    shutdown();
+  }
 
   /**
    * @brief Initializes the ManualBackendWorker with the specified backend options.
@@ -62,6 +68,8 @@ public:
    *
    * This function must be called from the same thread that called init() and performs the same
    * shutdown work that the automatic backend thread executes during stop().
+   * Call this explicitly before the manual backend thread exits. Do not rely on the destructor to
+   * do this for you.
    */
   void shutdown()
   {

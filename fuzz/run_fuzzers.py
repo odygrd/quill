@@ -107,6 +107,10 @@ class FuzzerRunner:
         "FUZZ_UserDefinedDirectFormat",
         "FUZZ_QueueStress",
         "FUZZ_BinaryData",
+        "FUZZ_Multithread",
+        "FUZZ_DynamicLogLevel",
+        "FUZZ_LoggerLifecycle",
+        "FUZZ_RotatingSink",
     ]
 
     ERROR_PATTERNS = [
@@ -304,8 +308,9 @@ class FuzzerRunner:
             status = "✓ PASS" if not result.errors_found and result.exit_code == 0 else "✗ FAIL"
 
             print(f"{status} {result.name}")
+            runs_per_sec = f"{result.runs_completed / result.duration:.0f}" if result.duration > 0 else "N/A"
             print(f"  Runs: {result.runs_completed:,} in {result.duration:.1f}s "
-                  f"({result.runs_completed / result.duration:.0f} runs/s)")
+                  f"({runs_per_sec} runs/s)")
             print(f"  Exit code: {result.exit_code}")
 
             if result.errors_found:
@@ -378,7 +383,8 @@ def main():
         default="*",
         help="Fuzzer to run (default: * = all). Options: FUZZ_BasicTypes, FUZZ_StlContainers, "
              "FUZZ_UserDefinedDeferredFormat, FUZZ_UserDefinedDirectFormat, FUZZ_QueueStress, "
-             "FUZZ_BinaryData, or * for all"
+             "FUZZ_BinaryData, FUZZ_Multithread, FUZZ_DynamicLogLevel, FUZZ_LoggerLifecycle, "
+             "FUZZ_RotatingSink, or * for all"
     )
 
     parser.add_argument(

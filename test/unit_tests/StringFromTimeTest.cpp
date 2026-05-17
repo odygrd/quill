@@ -239,12 +239,11 @@ TEST_CASE("string_from_time_localtime_empty_cached_indexes")
   }
 }
 
-#if !defined(_WIN32)
-// The following tests don't run on windows because the format identifiers are not supported.
-
 /***/
 TEST_CASE("string_from_time_localtime_format_l")
 {
+#if !defined(_WIN32)
+  // The following tests don't run on windows because the format identifiers are not supported.
   std::string fmt2 = "%l:%M:%S%p";
   StringFromTime string_from_time;
 
@@ -272,11 +271,15 @@ TEST_CASE("string_from_time_localtime_format_l")
     // Increment the timestamp for the next loop
     raw_ts += 1;
   }
+#else
+  return;
+#endif
 }
 
 /***/
 TEST_CASE("string_from_time_localtime_format_k")
 {
+#if !defined(_WIN32)
   std::string fmt2 = "%k:%M:%S%p";
   StringFromTime string_from_time;
 
@@ -304,11 +307,15 @@ TEST_CASE("string_from_time_localtime_format_k")
     // Increment the timestamp for the next loop
     raw_ts += 1;
   }
+#else
+  return;
+#endif
 }
 
 /***/
 TEST_CASE("string_from_time_localtime_format_s")
 {
+#if !defined(_WIN32)
   std::string fmt2 = "%Y-%m-%d %s";
   StringFromTime string_from_time;
 
@@ -336,8 +343,63 @@ TEST_CASE("string_from_time_localtime_format_s")
     // Increment the timestamp for the next loop
     raw_ts += 1;
   }
-}
+#else
+  return;
 #endif
+}
+
+/***/
+TEST_CASE("string_from_time_gmtime_format_s_crossing_10_digits_preserves_surrounding_literals")
+{
+#if !defined(_WIN32)
+  std::string fmt = "X%sZ";
+  StringFromTime string_from_time;
+  string_from_time.init(fmt, Timezone::GmtTime);
+
+  for (time_t raw_ts = 999999998; raw_ts <= 1000000001; ++raw_ts)
+  {
+    auto const& actual = string_from_time.format_timestamp(raw_ts);
+
+    std::tm time_info{};
+    quill::detail::gmtime_rs(&raw_ts, &time_info);
+    char expected[256];
+    std::strftime(expected, sizeof(expected), fmt.data(), &time_info);
+
+    REQUIRE_STREQ(actual.data(), expected);
+  }
+#else
+  return;
+#endif
+}
+
+/***/
+TEST_CASE("string_from_time_gmtime_format_s_crossing_11_digits_preserves_suffix")
+{
+#if !defined(_WIN32)
+  if (sizeof(time_t) <= 4)
+  {
+    return;
+  }
+
+  std::string fmt = "%sZ";
+  StringFromTime string_from_time;
+  string_from_time.init(fmt, Timezone::GmtTime);
+
+  for (time_t raw_ts = static_cast<time_t>(9999999998LL); raw_ts <= static_cast<time_t>(10000000001LL); ++raw_ts)
+  {
+    auto const& actual = string_from_time.format_timestamp(raw_ts);
+
+    std::tm time_info{};
+    quill::detail::gmtime_rs(&raw_ts, &time_info);
+    char expected[256];
+    std::strftime(expected, sizeof(expected), fmt.data(), &time_info);
+
+    REQUIRE_STREQ(actual.data(), expected);
+  }
+#else
+  return;
+#endif
+}
 
 class StringFromTimeMock : public quill::detail::StringFromTime
 {

@@ -13,8 +13,11 @@
 #include <utility>
 
 /**
- * Trivial logging example to console
- * Note: You can also pass STL types by including the relevant header files from quill/std/
+ * This example shows the basic console logging flow with one logger and one
+ * `ConsoleSink`.
+ *
+ * Note: You can also pass STL types by including the relevant headers from
+ * `quill/std/`.
  */
 
 int main()

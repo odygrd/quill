@@ -13,9 +13,10 @@
 #endif
 
 /**
- * This example demonstrates how to create a RotatingJsonFileSink with daily rotation and automatic
- * rotation based on maximum file size, providing your own custom json formatting
- * For additional configuration options, refer to RotatingFileSinkConfig.
+ * This example shows a custom `RotatingJsonFileSink` that keeps the normal
+ * rotation behaviour but overrides how each JSON record is generated.
+ *
+ * See `RotatingFileSinkConfig` for additional rotation options.
  */
 
 class CustomJsonSink : public quill::RotatingJsonFileSink

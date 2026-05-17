@@ -24,11 +24,14 @@ QUILL_BEGIN_EXPORT
  */
 class PatternFormatterOptions
 {
+private:
+  static constexpr char const* default_format_pattern{
+    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
+    "%(message)"};
+
 public:
   /***/
-  explicit PatternFormatterOptions(std::string format_pattern =
-                                     "%(time) [%(thread_id)] %(short_source_location:<28) "
-                                     "LOG_%(log_level:<9) %(logger:<12) %(message)",
+  explicit PatternFormatterOptions(std::string format_pattern = default_format_pattern,
                                    std::string timestamp_pattern = "%H:%M:%S.%Qns",
                                    Timezone timestamp_timezone = Timezone::LocalTime,
                                    bool add_metadata_to_multi_line_logs = true, char pattern_suffix = '\n')
@@ -66,9 +69,7 @@ public:
    *
    * @warning The same attribute cannot be used twice in the same format pattern.
    */
-  std::string format_pattern{
-    "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
-    "%(message)"};
+  std::string format_pattern{default_format_pattern};
 
   /**
    * @brief The format pattern for timestamps.
@@ -84,9 +85,11 @@ public:
   /**
    * @brief Sets a path prefix to be stripped from source location paths.
    *
-   * When set, any source location paths that start with this prefix will have the prefix removed:
+   * When set, the last occurrence of this prefix in the source location path is removed:
    * - For example, with prefix "/home/user/", a path like "/home/user/project/test.cpp:5"
    *   would be displayed as "project/test.cpp:5"
+   * - The same also works with a shorter marker such as "project", which would also produce
+   *   "test.cpp:5" or "subdir/test.cpp:5" depending on the remaining suffix
    * - If empty (default), the full path is shown
    *
    * This affects only the %(source_location) attribute.

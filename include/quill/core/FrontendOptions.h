@@ -15,6 +15,26 @@ QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
 
+/**
+ * Frontend options are expressed as a traits type.
+ *
+ * To override only a subset of options, derive from FrontendOptions and redeclare only the
+ * members that change. New members added to FrontendOptions will then be inherited automatically
+ * unless the derived type explicitly overrides them.
+ *
+ * @note FrontendOptions are intended to be an application-wide choice. Mixing different
+ *       FrontendImpl<TFrontendOptions> or LoggerImpl<TFrontendOptions> specializations is not a
+ *       supported configuration. Use one frontend specialization consistently throughout the
+ *       application.
+ *
+ * @code
+ * struct CustomFrontendOptions : FrontendOptions
+ * {
+ *   static constexpr QueueType queue_type = QueueType::BoundedDropping;
+ *   static constexpr size_t initial_queue_capacity = 256u * 1024u;
+ * };
+ * @endcode
+ */
 struct FrontendOptions
 {
   /**

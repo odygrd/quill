@@ -2,8 +2,8 @@ add_subdirectory(quill_static_lib)
 
 set(EXAMPLE_TARGETS
         quill_example_recommended_usage
+        quill_example_overwrite_logging_macros
         quill_example_std_types_logging
-        quill_example_use_overwrite_macros
 )
 
 # Add example executables

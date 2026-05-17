@@ -1,21 +1,28 @@
 /**
- * This example demonstrates the recommended setup for the Quill library.
+ * This example demonstrates the recommended Quill integration style for larger projects.
  *
- * It is advisable to encapsulate the header-only library into a static library, which
- * you build once and link to your main  application.
- * This library should include `quill/backend` in the .cpp files.
+ * Build your Quill setup code into your own small static library once, then link that library
+ * into the rest of the application. Keep `Backend`, `Frontend`, sink creation, and logger
+ * creation inside that wrapper library.
  *
- * In your application, include only the following headers for logging:
+ * This example exposes one global logger purely as a simple convenience. That is not a Quill
+ * requirement. Your wrapper can instead expose logger getter functions, return logger pointers
+ * from setup code, store loggers in objects, or manage multiple named loggers.
  *
- * - For logger lookup or creation:
- *   #include "quill/Frontend.h"
+ * Multiple loggers are often a better fit for larger applications because they allow different
+ * subsystems to use different names, sinks, and log levels.
  *
- * - For sink creation:
- *   #include "quill/sinks/.."
+ * In application code that only logs, include only the lightweight headers you need:
  *
  * - For logging:
  *   #include "quill/Logger.h"
  *   #include "quill/LogMacros.h"
+ *
+ * - For logger lookup or creation when needed:
+ *   #include "quill/Frontend.h"
+ *
+ * - For sink creation when needed:
+ *   #include "quill/sinks/.."
  */
 
 // Include our wrapper lib
@@ -27,7 +34,7 @@
 
 // include the relevant header from `std` folder for serialising STL types performing the formatting
 // on the backend logging thread see
-// https://quillcpp.readthedocs.io/en/latest/cheat_sheet.html#logging-stl-library-types for example:
+// https://quillcpp.readthedocs.io/en/latest/recipes.html#logging-stl-library-types for example:
 #include "quill/std/Array.h"
 #include "quill/std/Pair.h"
 
@@ -36,17 +43,17 @@
   #include "quill/std/WideString.h"
 #endif
 
-// We utilize the global_logger_a from the quill_wrapper library.
-// The use of a global logger is optional.
-// Alternatively, we could include "quill/Frontend.h" and use `quill::Frontend::get_logger(..)`
-// to obtain the created logger, or we could store it as a class member.
+// This example uses a global logger exported by the wrapper library only to keep the example
+// small. In real projects you can instead look up loggers with Frontend, expose getter
+// functions from the wrapper library, or store logger pointers as members.
 extern quill::Logger* global_logger_a;
 
 int main()
 {
   setup_quill("std_types_logging.log");
 
-  // Change the LogLevel to print everything
+  // Each logger has its own runtime log level. With multiple loggers you can give different
+  // subsystems different levels while still using the same wrapper-library pattern.
   global_logger_a->set_log_level(quill::LogLevel::TraceL3);
   std::array<std::string, 2> array = {"test", "string"};
   LOG_INFO(global_logger_a, "log an array {}", array);

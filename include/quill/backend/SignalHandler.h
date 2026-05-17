@@ -237,6 +237,7 @@ public:
   std::vector<SignalHandlerRestoreEntry> previous_signal_handlers{};
 #if defined(_WIN32)
   LPTOP_LEVEL_EXCEPTION_FILTER previous_exception_filter{nullptr};
+  void (*exception_handler_deinit_callback)() = nullptr;
   bool console_ctrl_handler_installed{false};
 #endif
 
@@ -496,6 +497,7 @@ void init_exception_handler()
   auto& ctx = detail::SignalHandlerContext::instance();
   std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
 
+  ctx.exception_handler_deinit_callback = nullptr;
   ctx.previous_exception_filter = SetUnhandledExceptionFilter(on_exception<TFrontendOptions>);
 
   if (!SetConsoleCtrlHandler(on_console_signal<TFrontendOptions>, TRUE))
@@ -505,6 +507,7 @@ void init_exception_handler()
     QUILL_THROW(QuillError{"Failed to call SetConsoleCtrlHandler"});
   }
 
+  ctx.exception_handler_deinit_callback = &deinit_exception_handler<TFrontendOptions>;
   ctx.console_ctrl_handler_installed = true;
 }
 
@@ -522,6 +525,7 @@ void deinit_exception_handler()
 
   SetUnhandledExceptionFilter(ctx.previous_exception_filter);
   ctx.previous_exception_filter = nullptr;
+  ctx.exception_handler_deinit_callback = nullptr;
 }
 } // namespace detail
 

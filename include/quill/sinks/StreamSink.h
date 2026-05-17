@@ -50,15 +50,26 @@ QUILL_BEGIN_EXPORT
 /** Forward Declaration **/
 class MacroMetadata;
 
+#if defined(_WIN32)
+using FileEventNotifierHandle = HANDLE;
+#else
+using FileEventNotifierHandle = FILE*;
+#endif
+
 /**
- * @brief Notifies on file events by calling the appropriate callback, the callback is executed on
- * the backend worker thread
+ * @brief Notifies on file events by calling the appropriate callback.
+ *
+ * @note `before_write` executes as part of the normal log write path.
+ *       `before_open`, `after_open`, `before_close`, and `after_close` execute on the thread
+ *       performing the file open/close operation. Different callbacks, and different invocations
+ *       of the same callback, may therefore run on different threads over the sink lifetime.
+ *       Callbacks must be thread-safe and must not assume a single calling thread.
  */
 struct FileEventNotifier
 {
   std::function<void(fs::path const& file_path)> before_open;
-  std::function<void(fs::path const& file_path, FILE* f)> after_open;
-  std::function<void(fs::path const& file_path, FILE* f)> before_close;
+  std::function<void(fs::path const& file_path, FileEventNotifierHandle f)> after_open;
+  std::function<void(fs::path const& file_path, FileEventNotifierHandle f)> before_close;
   std::function<void(fs::path const& file_path)> after_close;
   std::function<std::string(std::string_view message)> before_write;
 };

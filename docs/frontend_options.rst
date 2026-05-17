@@ -16,9 +16,13 @@ Each frontend thread operates with its own queue, which can be configured with o
 
 Even though each thread has its own queue, a single queue type must be defined for the entire application. By default the `UnboundedBlocking` queue type is used.
 
-To modify the queue type, you should define your own :cpp:struct:`FrontendOptions` and use it to create a custom :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl`.
+To modify the queue type, define your own options type by deriving from :cpp:struct:`FrontendOptions` and overriding only the values that differ. Then use that type to create a custom :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl`.
 
 It is important to consistently use your custom types throughout the application, instead of the default ones.
+
+.. warning::
+
+   ``FrontendOptions`` are intended to be an application-wide choice. Mixing different ``FrontendImpl<T>`` or ``LoggerImpl<T>`` specializations is not a supported configuration. Use one frontend specialization consistently throughout the application.
 
 Error Notifications
 -------------------
@@ -69,6 +73,8 @@ To completely disable these notifications, set the error notifier to an empty fu
         .error_notifier = {}  // Disable notifications
     };
 
+This disables callback notifications from :cpp:member:`BackendOptions::error_notifier`. If Quill later encounters a malformed format string, it will still write the fallback ``[Could not format log statement ...]`` entry to the configured sink output.
+
 **Mixed Hot/Cold Path Optimization**
 
 For applications with both hot path (performance-critical) and cold path (less frequent) logging threads, you can optimize memory allocation by using a larger initial queue size globally, then selectively shrinking queues on cold path threads:
@@ -76,10 +82,10 @@ For applications with both hot path (performance-critical) and cold path (less f
 .. code-block:: cpp
 
     // Configure large initial capacity to avoid hot path allocations
-    struct MyFrontendOptions : quill::FrontendOptions 
+    struct MyFrontendOptions : quill::FrontendOptions
     {
         static constexpr size_t initial_queue_capacity = 64 * 1024 * 1024;  // 64MB
-        // ... other options
+        // Other FrontendOptions values are inherited unchanged
     };
     
     // Hot path threads: Use the large queue (no shrinking needed)
@@ -96,7 +102,7 @@ This approach prevents runtime allocations on performance-critical threads while
 Example Usage
 -------------
 
-For example, to use a `BoundedDropping` queue with a fixed capacity of `131'072`, you can follow the steps below:
+For example, to use a `BoundedDropping` queue while inheriting the remaining defaults, you can follow the steps below:
 
 .. literalinclude:: ../examples/custom_frontend_options.cpp
    :language: cpp

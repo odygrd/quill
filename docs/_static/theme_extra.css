@@ -1,0 +1,42 @@
+:root {
+    --md-accent-fg-color: #2563eb;
+    --md-typeset-a-color: #2563eb;
+}
+
+.md-header__button.md-logo img,
+.md-logo img {
+    height: 1.35rem;
+    width: auto;
+}
+
+.md-header__title {
+    margin-left: 0.2rem;
+}
+
+.md-tabs__link {
+    font-weight: 600;
+}
+
+.md-typeset h1 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.md-typeset h2,
+.md-typeset h3 {
+    font-weight: 700;
+}
+
+.md-typeset code {
+    font-size: 0.84em;
+}
+
+.md-typeset table:not([class]) {
+    font-size: 0.9rem;
+}
+
+.md-typeset .admonition,
+.md-typeset details,
+.md-typeset img {
+    border-radius: 0.5rem;
+}

@@ -3,49 +3,72 @@
 
 .. _index:
 
-##############################################################################
-Quill
-##############################################################################
+Fast asynchronous logging for low-latency C++ applications.
 
-Quill is a high-performance asynchronous C++ logging library. It excels in performance-critical applications where every microsecond counts.
+Quick Example
+-------------
 
-  📦 `GitHub Repository <http://github.com/odygrd/quill>`_
+.. code-block:: cpp
+
+   #include "quill/LogMacros.h"
+   #include "quill/SimpleSetup.h"
+
+   int main()
+   {
+     auto* logger = quill::simple_logger();
+     LOG_INFO(logger, "Hello from {}!", "Quill");
+   }
+
+A macro-free interface (``quill::info()``, ``quill::warning()``, ...) is also available — see :doc:`Macro-Free Mode <macro_free_mode>`.
+
+Use :doc:`Quick Start <quick_start>` for the smallest setup, or move to the full
+``Backend`` / ``Frontend`` APIs when you need custom sinks, multiple loggers, or more
+explicit lifecycle control.
+
+Start Here
+----------
+
+- :doc:`Get Started <quick_start>` for the shortest path to working logs
+- :doc:`Installing <installing>` for package manager and source setup
+- :doc:`Guides <guides>` for sinks, formatters, JSON, filters, and more
+- :doc:`Recipes <recipes>` for common tasks and examples
+- :doc:`FAQ <faq>` for integration guidance and common pitfalls
 
 .. toctree::
    :maxdepth: 2
-   :caption: Getting Started
+   :caption: Home
+   :hidden:
 
-   overview
-   installing
+   self
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Get Started
+   :hidden:
+
    quick_start
-   cheat_sheet
+   installing
+   basic_example
+   overview
    faq
 
 .. toctree::
    :maxdepth: 2
-   :caption: Tutorial
+   :caption: Guides
+   :hidden:
 
-   backend_options
-   backtrace_logging
-   basic_example
-   binary_protocols
-   csv_writing
-   filters
-   formatters
-   frontend_options
-   json_logging
-   log_tagging
-   loggers
-   log_levels
-   logging_macros
-   sinks
-   sink_types
-   timestamp_types
-   wide_strings
-   macro_free_mode
+   guides
 
 .. toctree::
    :maxdepth: 2
-   :caption: User API
+   :caption: Recipes
+   :hidden:
+
+   recipes
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API
+   :hidden:
 
    users-api

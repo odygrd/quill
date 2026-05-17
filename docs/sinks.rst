@@ -3,6 +3,8 @@
 Sinks
 =====
 
+Use this page to understand how sinks are created, shared between loggers, and extended with custom implementations.
+
 Sinks are objects responsible for writing logs to their respective targets.
 
 A :cpp:class:`Sink` object serves as the base class for various sink-derived classes.
@@ -21,7 +23,7 @@ Sinks can be obtained using :cpp:func:`FrontendImpl::get_sink`, :cpp:func:`Front
 
 - ``create_sink`` creates a new sink and throws ``QuillError`` if a sink with the same name already exists.
 - ``create_or_get_sink`` creates a new sink if one does not already exist; otherwise, it returns the existing sink with the specified name. Note that when a sink with the given name already exists, the provided constructor arguments are ignored — the existing sink is returned as-is.
-- ``get_sink`` retrieves an existing sink by name, returning ``nullptr`` if not found.
+- ``get_sink`` retrieves an existing sink by name and throws ``QuillError`` if it does not exist.
 
 Configuring Sinks
 -----------------
@@ -79,7 +81,7 @@ The library provides multiple approaches for routing log messages to different s
 
    This approach is straightforward and provides clear separation of log streams.
 
-.. literalinclude:: examples/quill_docs_example_multiple_sinks.cpp
+.. literalinclude:: snippets/quill_docs_example_multiple_sinks.cpp
    :language: cpp
    :linenos:
 
@@ -87,6 +89,6 @@ The library provides multiple approaches for routing log messages to different s
 
    This approach centralizes logging through a single logger while still directing messages to different destinations.
 
-.. literalinclude:: examples/quill_docs_example_multiple_sinks_tags.cpp
+.. literalinclude:: snippets/quill_docs_example_multiple_sinks_tags.cpp
    :language: cpp
    :linenos:

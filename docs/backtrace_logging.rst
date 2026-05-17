@@ -3,6 +3,8 @@
 Backtrace Logging
 =================
 
+Use this page to capture low-level log messages in a ring buffer and flush them on demand or when a high-severity event occurs.
+
 Backtrace logging enables log messages to be stored in a ring buffer and can be:
 
 - Displayed later on demand
@@ -22,13 +24,13 @@ To manually flush backtrace logs, call :cpp:func:`LoggerImpl::flush_backtrace`.
 Store messages in the ring buffer and display them when ``LOG_ERROR`` is logged
 -------------------------------------------------------------------------------
 
-.. literalinclude:: examples/quill_docs_example_backtrace_logging_1.cpp
+.. literalinclude:: snippets/quill_docs_example_backtrace_logging_1.cpp
    :language: cpp
    :linenos:
 
 Store messages in the ring buffer and display them on demand
 ------------------------------------------------------------
 
-.. literalinclude:: examples/quill_docs_example_backtrace_logging_2.cpp
+.. literalinclude:: snippets/quill_docs_example_backtrace_logging_2.cpp
    :language: cpp
    :linenos:
