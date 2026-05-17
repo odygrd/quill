@@ -276,7 +276,8 @@ public:
       fsync_file();
     }
 
-    if (!fs::exists(_filename))
+    std::error_code ec;
+    if (!fs::exists(_filename, ec))
     {
       // after flushing the file we can check if the file still exists. If not we reopen it.
       // This can happen if a user deletes a file while the application is running
@@ -286,6 +287,28 @@ public:
       open_file(_filename, _config.open_mode());
     }
   }
+
+private:
+  /***/
+  struct OpenedFileGuard
+  {
+    ~OpenedFileGuard()
+    {
+      if (file)
+      {
+        std::fclose(file);
+      }
+    }
+
+    QUILL_NODISCARD FILE* release() noexcept
+    {
+      FILE* const released_file = file;
+      file = nullptr;
+      return released_file;
+    }
+
+    FILE* file{nullptr};
+  };
 
 protected:
   /**
@@ -314,9 +337,9 @@ protected:
     // Construct the string
     static constexpr size_t buffer_size{128};
     char buffer[buffer_size];
-    std::strftime(buffer, buffer_size, append_format_pattern.data(), &now_tm);
+    size_t const len = std::strftime(buffer, buffer_size, append_format_pattern.data(), &now_tm);
 
-    return std::string{buffer};
+    return std::string{buffer, len};
   }
 
   /**
@@ -369,41 +392,42 @@ protected:
     // Retry file open to handle transient failures (e.g., antivirus locking on Windows)
     constexpr int max_retries = 3;
     constexpr int retry_delay_ms = 200;
+    OpenedFileGuard opened_file_guard;
 
     for (int attempt = 0; attempt < max_retries; ++attempt)
     {
 #if defined(_WIN32)
       // Use _fsopen with _SH_DENYNO to allow other processes to read the file
       // while we're writing (e.g., tail, monitoring tools)
-      _file = ::_fsopen(filename.string().data(), mode.data(), _SH_DENYNO);
+      opened_file_guard.file = ::_fsopen(filename.string().data(), mode.data(), _SH_DENYNO);
 
-      if (_file)
+      if (opened_file_guard.file)
       {
         // Prevent child processes from inheriting this file handle
-        auto file_handle = reinterpret_cast<HANDLE>(::_get_osfhandle(::_fileno(_file)));
+        auto file_handle = reinterpret_cast<HANDLE>(::_get_osfhandle(::_fileno(opened_file_guard.file)));
         if (!::SetHandleInformation(file_handle, HANDLE_FLAG_INHERIT, 0))
         {
-          ::fclose(_file);
-          _file = nullptr;
+          ::fclose(opened_file_guard.file);
+          opened_file_guard.file = nullptr;
         }
       }
 #else
       // Unix: use open() with O_CLOEXEC to prevent child processes from inheriting the FD
       int flags = O_CREAT | O_WRONLY | O_CLOEXEC;
-      flags |= (mode == "w") ? O_TRUNC : O_APPEND;
+      flags |= (!mode.empty() && mode[0] == 'w') ? O_TRUNC : O_APPEND;
 
       int fd = ::open(filename.string().data(), flags, 0644);
       if (fd != -1)
       {
-        _file = ::fdopen(fd, mode.data());
-        if (!_file)
+        opened_file_guard.file = ::fdopen(fd, mode.data());
+        if (!opened_file_guard.file)
         {
           ::close(fd);
         }
       }
 #endif
 
-      if (_file)
+      if (opened_file_guard.file)
       {
         break; // Success
       }
@@ -415,18 +439,20 @@ protected:
       }
     }
 
-    if (!_file)
+    if (!opened_file_guard.file)
     {
       QUILL_THROW(QuillError{std::string{"fopen failed after "} + std::to_string(max_retries) +
                              " attempts, path: " + filename.string() + " mode: " + mode +
                              " errno: " + std::to_string(errno) + " error: " + std::strerror(errno)});
     }
 
+    std::unique_ptr<char[]> write_buffer;
+
     if (_config.write_buffer_size() != 0)
     {
-      _write_buffer = std::make_unique<char[]>(_config.write_buffer_size());
+      write_buffer = std::make_unique<char[]>(_config.write_buffer_size());
 
-      if (setvbuf(_file, _write_buffer.get(), _IOFBF, _config.write_buffer_size()) != 0)
+      if (setvbuf(opened_file_guard.file, write_buffer.get(), _IOFBF, _config.write_buffer_size()) != 0)
       {
         QUILL_THROW(QuillError{std::string{"setvbuf failed error: "} + std::strerror(errno)});
       }
@@ -434,8 +460,11 @@ protected:
 
     if (_file_event_notifier.after_open)
     {
-      _file_event_notifier.after_open(filename, _file);
+      _file_event_notifier.after_open(filename, opened_file_guard.file);
     }
+
+    _file = opened_file_guard.release();
+    _write_buffer = std::move(write_buffer);
   }
 
   /**

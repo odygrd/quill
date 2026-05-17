@@ -42,7 +42,7 @@ public:
   class RdtscTicks
   {
   public:
-    QUILL_NODISCARD static RdtscTicks& instance()
+    QUILL_NODISCARD QUILL_EXPORT static RdtscTicks& instance()
     {
       static RdtscTicks inst;
       return inst;
@@ -235,7 +235,7 @@ public:
   /***/
   double nanoseconds_per_tick() const noexcept { return _ns_per_tick; }
 
-private:
+protected:
   struct BaseTimeTsc
   {
     BaseTimeTsc() = default;
@@ -249,7 +249,7 @@ private:
     return (x & y) + ((x ^ y) >> 1);
   }
 
-private:
+protected:
   static constexpr uint32_t resync_lag_cycles{50'000};
   mutable int64_t _resync_interval_ticks{0};
   int64_t _resync_interval_original{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */

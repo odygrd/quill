@@ -111,11 +111,27 @@ public:
   }
 
   /**
+   * @brief Creates a new sink with the specified name.
+   *
+   * @param sink_name The name of the sink.
+   * @param args The arguments to pass to the sink constructor.
+   * @return std::shared_ptr<Sink> A shared pointer to the created sink.
+   * @throws QuillError if a sink with the same name already exists.
+   */
+  template <typename TSink, typename... Args>
+  static std::shared_ptr<Sink> create_sink(std::string const& sink_name, Args&&... args)
+  {
+    return detail::SinkManager::instance().create_sink<TSink>(sink_name, static_cast<Args&&>(args)...);
+  }
+
+  /**
    * @brief Creates a new sink or retrieves an existing one with the specified name.
    *
    * @param sink_name The name of the sink.
    * @param args The arguments to pass to the sink constructor.
    * @return std::shared_ptr<Sink> A shared pointer to the created or retrieved sink.
+   * @note If a sink with the specified name already exists, the existing sink is returned
+   * and the provided constructor arguments are ignored.
    */
   template <typename TSink, typename... Args>
   static std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
@@ -136,6 +152,73 @@ public:
   }
 
   /**
+   * @brief Creates a new logger with the specified name.
+   *
+   * @param logger_name The name of the logger.
+   * @param sink A shared pointer to the sink to associate with the logger.
+   * @param pattern_formatter_options Contains the formatting configuration for PatternFormatter
+   * @param clock_source The clock source for log timestamps.
+   * @param user_clock A pointer to a custom user clock.
+   *
+   * @return Logger* A pointer to the created logger.
+   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   */
+  static logger_t* create_logger(std::string const& logger_name, std::shared_ptr<Sink> sink,
+                                 PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
+                                 ClockSourceType clock_source = ClockSourceType::Tsc,
+                                 UserClockSource* user_clock = nullptr)
+  {
+    std::vector<std::shared_ptr<Sink>> sinks;
+    sinks.push_back(static_cast<std::shared_ptr<Sink>&&>(sink));
+
+    return _cast_to_logger(detail::LoggerManager::instance().create_logger<logger_t>(
+      logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+      pattern_formatter_options, clock_source, user_clock));
+  }
+
+  /**
+   * @brief Creates a new logger with the specified name and multiple sinks.
+   *
+   * @param logger_name The name of the logger.
+   * @param sinks A vector of shared pointers to sinks to associate with the logger.
+   * @param pattern_formatter_options Contains the formatting configuration for PatternFormatter
+   * @param clock_source The clock source for log timestamps.
+   * @param user_clock A pointer to a custom user clock.
+   * @return Logger* A pointer to the created logger.
+   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   */
+  static logger_t* create_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
+                                 PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
+                                 ClockSourceType clock_source = ClockSourceType::Tsc,
+                                 UserClockSource* user_clock = nullptr)
+  {
+    return _cast_to_logger(detail::LoggerManager::instance().create_logger<logger_t>(
+      logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+      pattern_formatter_options, clock_source, user_clock));
+  }
+
+  /**
+   * @brief Creates a new logger with the specified name and multiple sinks.
+   *
+   * @param logger_name The name of the logger.
+   * @param sinks An initializer list of shared pointers to sinks to associate with the logger.
+   * @param pattern_formatter_options Contains the formatting configuration for PatternFormatter
+   * @param clock_source The clock source for log timestamps.
+   * @param user_clock A pointer to a custom user clock.
+   * @return Logger* A pointer to the created logger.
+   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   */
+  static logger_t* create_logger(std::string const& logger_name,
+                                 std::initializer_list<std::shared_ptr<Sink>> sinks,
+                                 PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
+                                 ClockSourceType clock_source = ClockSourceType::Tsc,
+                                 UserClockSource* user_clock = nullptr)
+  {
+    return create_logger(logger_name, std::vector<std::shared_ptr<Sink>>{sinks},
+                         pattern_formatter_options, clock_source, user_clock);
+  }
+
+  /**
    * @brief Creates a new logger or retrieves an existing one with the specified name.
    *
    * @param logger_name The name of the logger.
@@ -144,6 +227,8 @@ public:
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
    *
+   * @note If a logger with the specified name already exists, the existing logger is returned
+   *       and the provided sinks, pattern, clock source, and user clock parameters are ignored.
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
@@ -171,6 +256,8 @@ public:
    * @param pattern_formatter_options Contains the formatting configuration for PatternFormatter
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
+   * @note If a logger with the specified name already exists, the existing logger is returned
+   *       and the provided sinks, pattern, clock source, and user clock parameters are ignored.
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
@@ -194,6 +281,8 @@ public:
    * @param pattern_formatter_options Contains the formatting configuration for PatternFormatter
    * @param clock_source The clock source for log timestamps.
    * @param user_clock A pointer to a custom user clock.
+   * @note If a logger with the specified name already exists, the existing logger is returned
+   *       and the provided sinks, pattern, clock source, and user clock parameters are ignored.
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.

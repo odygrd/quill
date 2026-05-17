@@ -975,8 +975,7 @@ private:
    * Dispatches a transit event
    */
   QUILL_ATTRIBUTE_HOT void _dispatch_transit_event_to_sinks(TransitEvent const& transit_event,
-                                                            std::string_view thread_id,
-                                                            std::string_view thread_name)
+                                                            std::string_view thread_id, std::string_view thread_name)
   {
     // First check to see if we should init the pattern formatter on a new Logger
     // Look up to see if we have the formatter and if not create it
@@ -1146,7 +1145,7 @@ private:
    * @return first: fmt string without the named arguments, second: a vector extracted keys
    */
   QUILL_ATTRIBUTE_HOT static std::pair<std::string, std::vector<std::pair<std::string, std::string>>> _process_named_args_format_message(
-    std::string_view fmt_template) noexcept
+    std::string_view fmt_template)
   {
     // It would be nice to do this at compile time and store it in macro metadata, but without
     // constexpr vector and string in c++17 it is not possible

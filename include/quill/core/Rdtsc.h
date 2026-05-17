@@ -9,9 +9,6 @@
 #include "quill/core/Attributes.h"
 #include <cstdint>
 
-#include "quill/core/Attributes.h"
-#include <cstdint>
-
 #if defined(__ARM_ARCH) || defined(_M_ARM) || defined(_M_ARM64) || defined(__PPC64__)
   // ARM or PowerPC — use ChronoTimeUtils for timestamping
   #include "quill/core/ChronoTimeUtils.h"

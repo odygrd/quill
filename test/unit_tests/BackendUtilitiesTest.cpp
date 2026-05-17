@@ -46,40 +46,61 @@ TEST_CASE("sink_manager_get_sink_missing_path_throws")
 }
 #endif
 
-// WIP - Detection is mostly for windows but failing on Linux
+#if !defined(QUILL_NO_EXCEPTIONS)
+TEST_CASE("backend_worker_lock_rejects_duplicate_while_original_is_alive")
+{
+  std::string const pid = std::to_string(get_process_id()) + std::string{"1"};
+  BackendWorkerLock first_lock{pid};
+  REQUIRE_THROWS_AS(BackendWorkerLock{pid}, QuillError);
+}
+#endif
 
-// TEST_CASE("backend_worker_lock_rejects_duplicate_while_original_is_alive")
-// {
-//   std::string const pid = std::to_string(get_process_id());
-//
-//   BackendWorkerLock first_lock{pid};
-//   auto const create_duplicate_lock = [&pid]() { return BackendWorkerLock{pid}; };
-//
-//   REQUIRE_THROWS_AS(create_duplicate_lock(), QuillError);
-// }
+TEST_CASE("backend_worker_lock_no_throw")
+{
+  std::string const pid = std::to_string(get_process_id()) + std::string{"2"};
+  {
+    BackendWorkerLock first_lock{pid};
+  }
+  REQUIRE_NOTHROW(BackendWorkerLock{pid});
+}
 
-// WIP - Detection is mostly for windows but failing on Linux
+#if !defined(_WIN32) && !defined(__ANDROID__)
+TEST_CASE("lock_file_cleaned_up_destruction")
+{
+  std::string const pid = "test_99997";
+  std::string const path = "/tmp/QuillBackendLock" + pid;
 
-// TEST_CASE("backend_worker_run_rejects_duplicate_while_original_is_alive")
-// {
-//   BackendOptions options;
-//   options.error_notifier = [](std::string const&) {};
-//
-//   detail::BackendWorker first_backend_worker;
-//   first_backend_worker.run(options);
-//
-//   detail::BackendWorker second_backend_worker;
-//   auto const start_second_backend_worker = [&]() { second_backend_worker.run(options); };
-//
-//   REQUIRE_THROWS_AS(start_second_backend_worker(), QuillError);
-//
-//   first_backend_worker.stop();
-//   second_backend_worker.stop();
-// }
+  {
+    BackendWorkerLock first_lock{pid};
+    REQUIRE(fs::exists(path));
+  }
+
+  REQUIRE_FALSE(fs::exists(path));
+}
+#endif
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+TEST_CASE("backend_worker_run_rejects_duplicate_while_original_is_alive")
+{
+  BackendOptions options;
+  options.error_notifier = [](std::string const&) {};
+
+  detail::BackendWorker first_backend_worker;
+  first_backend_worker.run(options);
+
+  detail::BackendWorker second_backend_worker;
+  auto const start_second_backend_worker = [&]() { second_backend_worker.run(options); };
+
+  REQUIRE_THROWS_AS(start_second_backend_worker(), QuillError);
+
+  first_backend_worker.stop();
+  second_backend_worker.stop();
+}
+#endif
 
 TEST_CASE("backend_worker_lock_can_be_reacquired_after_release")
 {
-  std::string const pid = std::to_string(get_process_id());
+  std::string const pid = std::to_string(get_process_id()) + std::string{"3"};
 
   {
     BackendWorkerLock first_lock{pid};

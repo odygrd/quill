@@ -82,8 +82,8 @@ TEST_CASE("signal_handler_logger")
     // Except the log and the signal handler in the logger_b
     std::vector<std::string> const file_contents_b = quill::testing::file_contents(filename_b);
 
-    REQUIRE(quill::testing::file_contains(file_contents_b,
-                                          std::string{"Received signal: SIGABRT (signum: 6)"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents_b, "Received signal: SIGABRT (signum: " + std::to_string(SIGABRT) + ")"));
   }
 
   // Wait until the backend thread stops for test stability

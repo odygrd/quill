@@ -318,29 +318,29 @@
   {                                                                                                \
     if (likelyhood(logger->template should_log_statement<log_level>()))                            \
     {                                                                                              \
-      thread_local std::chrono::time_point<std::chrono::steady_clock> __next_log_time__;           \
-      thread_local uint64_t __suppressed_log_count__{0};                                           \
-      auto const __now__ = std::chrono::steady_clock::now();                                       \
+      thread_local std::chrono::time_point<std::chrono::steady_clock> quill_next_log_time_;        \
+      thread_local uint64_t quill_suppressed_log_count_{0};                                        \
+      auto const quill_now_ = std::chrono::steady_clock::now();                                    \
                                                                                                    \
-      if (__now__ < __next_log_time__)                                                             \
+      if (quill_now_ < quill_next_log_time_)                                                       \
       {                                                                                            \
-        ++__suppressed_log_count__;                                                                \
+        ++quill_suppressed_log_count_;                                                             \
         break;                                                                                     \
       }                                                                                            \
                                                                                                    \
       if constexpr (quill::MacroMetadata::contains_named_args(fmt))                                \
       {                                                                                            \
         QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt " ({occurred}x)",               \
-                          ##__VA_ARGS__, __suppressed_log_count__ + 1);                            \
+                          ##__VA_ARGS__, quill_suppressed_log_count_ + 1);                         \
       }                                                                                            \
       else                                                                                         \
       {                                                                                            \
         QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt " ({}x)", ##__VA_ARGS__,        \
-                          __suppressed_log_count__ + 1);                                           \
+                          quill_suppressed_log_count_ + 1);                                        \
       }                                                                                            \
                                                                                                    \
-      __next_log_time__ = __now__ + min_interval;                                                  \
-      __suppressed_log_count__ = 0;                                                                \
+      quill_next_log_time_ = quill_now_ + min_interval;                                            \
+      quill_suppressed_log_count_ = 0;                                                             \
     }                                                                                              \
   } while (0)
 
@@ -349,14 +349,14 @@
   {                                                                                                   \
     if (likelyhood(logger->template should_log_statement<log_level>()))                               \
     {                                                                                                 \
-      thread_local uint64_t __call_count__ = 0;                                                       \
-      thread_local uint64_t __next_log_at__ = 0;                                                      \
-      if (__call_count__ == __next_log_at__)                                                          \
+      thread_local uint64_t quill_call_count_ = 0;                                                    \
+      thread_local uint64_t quill_next_log_at_ = 0;                                                   \
+      if (quill_call_count_ == quill_next_log_at_)                                                    \
       {                                                                                               \
         QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ##__VA_ARGS__);                   \
-        __next_log_at__ += n_occurrences;                                                             \
+        quill_next_log_at_ += n_occurrences;                                                          \
       }                                                                                               \
-      ++__call_count__;                                                                               \
+      ++quill_call_count_;                                                                            \
     }                                                                                                 \
   } while (0)
 

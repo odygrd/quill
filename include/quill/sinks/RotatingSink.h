@@ -163,10 +163,7 @@ public:
    * This allows creating a new log file for every program run. The default value is false.
    * @param value True to force rotation on creation, false otherwise.
    */
-  QUILL_ATTRIBUTE_COLD void set_rotation_on_creation(bool value)
-  {
-    _rotation_on_creation = value;
-  }
+  QUILL_ATTRIBUTE_COLD void set_rotation_on_creation(bool value) { _rotation_on_creation = value; }
 
   /** Getter methods **/
   QUILL_NODISCARD size_t rotation_max_file_size() const noexcept { return _rotation_max_file_size; }
@@ -372,7 +369,10 @@ public:
   }
 
 protected:
-  QUILL_NODISCARD virtual bool rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
+  /**
+   * Used in regression tests
+   */
+  virtual bool rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
   {
     return _rename_file(previous_file, new_file);
   }

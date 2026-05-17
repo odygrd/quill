@@ -113,8 +113,8 @@ TEST_CASE("signal_handler")
       }
     }
 
-    REQUIRE(
-      quill::testing::file_contains(file_contents, std::string{"Received signal: SIGABRT (signum: 6)"}));
+    REQUIRE(quill::testing::file_contains(
+      file_contents, "Received signal: SIGABRT (signum: " + std::to_string(SIGABRT) + ")"));
   }
 
   csv_writer.reset();

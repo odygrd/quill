@@ -73,12 +73,12 @@ struct TransitEvent
       formatted_msg = std::move(other.formatted_msg);
       extra_data = std::move(other.extra_data);
       flush_flag = other.flush_flag;
-    }
 
-    if (extra_data && extra_data->runtime_metadata.has_runtime_metadata)
-    {
-      // Point to our own runtime_metadata instead of the moved-from object's
-      macro_metadata = &extra_data->runtime_metadata.macro_metadata;
+      if (extra_data && extra_data->runtime_metadata.has_runtime_metadata)
+      {
+        // Point to our own runtime_metadata instead of the moved-from object's
+        macro_metadata = &extra_data->runtime_metadata.macro_metadata;
+      }
     }
 
     return *this;
@@ -122,7 +122,7 @@ struct TransitEvent
   }
 
   /***/
-  QUILL_ATTRIBUTE_HOT void ensure_extra_data() noexcept
+  QUILL_ATTRIBUTE_HOT void ensure_extra_data()
   {
     if (extra_data)
     {

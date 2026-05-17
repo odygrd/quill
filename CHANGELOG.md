@@ -99,74 +99,47 @@
 
 ## v12.0.0
 
-- Added a `CLAUDE.md` guide for LLMs. Quill was written back when humans still wrote the code, but we have done the
-  modern thing and added instructions for the robots.
-- Fixed lowercase `utility::to_hex()` output for byte `0x7D`, which was incorrectly rendered as `7c`
-- Replaced `BackendOptions::cpu_affinity` with `std::vector<uint16_t>` to allow multi-CPU pinning.
-- Fixed `RdtscClock::time_since_epoch()` to use the resynced calibration slot immediately after a
-  resync instead of reading stale calibration data
-- Hardened the built-in signal handler by replacing `strsignal()` with internal signal-name
-  literals and using `std::_Exit()` instead of `std::exit()` in signal-handler termination paths
-- Aligned `ConsoleSink`'s internal colour table size with the full `LogLevel` enum
-- Fixed `BinaryDataDeferredFormatCodec` composition so subsequent encoded members are decoded
-  correctly when it is used inside compound user-defined types
-- Fixed `MacroMetadata` accessors for empty source locations so builds with disabled file info do
-  not read past the end of the stored source-location string
-- Hardened backtrace storage against invalid zero-capacity state
-- Fixed the compiled-out `TRACE_L3` variable and named-argument tag macros to remain valid no-op macros
-- Hardened `InlinedVector` growth against capacity overflow before allocation
-- Hardened `StringFromTime::_safe_strftime()` against unbounded buffer growth on repeated zero-length results
-- Reduced temporary string churn when sanitizing non-printable characters in formatted messages
-- Removed incorrect `noexcept` from Windows thread-name UTF conversion helpers
-- Hardened unbounded queue growth against capacity overflow when expanding full queues
-- Fixed `SinkManager` to reuse expired entries when recreating a sink with the same ID
-- Hardened `LoggerManager` invalidated-logger cleanup against lost concurrent notifications
-- Cleaned up several small core contracts and helpers, including safer `QuillError::what()`, optional env log-level storage,
-  thread-context lifetime assertions, and non-throwing timestamp conversion guards
-- Aligned `std::string` and `std::string_view` codec length clamping with the existing C-string paths
-- Aligned `std::map` and `std::unordered_map` enum codec handling with the rest of the STL container codecs
-- Reduced `PatternFormatter` attribute-lookup overhead and hardened backend periodic sink task handling
-- Added an explicit compile-time fallback for unsupported `std::filesystem::path::string_type` encodings
-- Normalized `BinaryData` null pointers to zero-length payloads to keep deferred binary encoding consistent
-- Hardened malformed named-argument formats to remain literal instead of emitting fallback `_N` named-argument fields
-- Hardened a few sink and codec edges, including oversized Windows console writes and invalid filename-append enum handling
-- Fixed a signal handler shutdown issue where crashes after `Backend::stop()` could hang while trying to `flush()`
-  through a stopped backend worker. ([#906](https://github.com/odygrd/quill/issues/906))
-- Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles.
-- Fixed `ManualBackendWorker` shutdown to be idempotent, added an explicit `shutdown()` API, and enforced same-thread
-  shutdown for manual backend mode.
-- Fixed `ThreadContextManager::register_thread_context()` exception safety and widened the invalid thread-context
-  counter.
-- Fixed backend notifier reporting for unbounded queues when they reach `FrontendOptions::unbounded_queue_max_capacity`
-  and start blocking or dropping
-- Made backend initialization failures explicitly notify and terminate during backend thread startup
+**Bug fixes**
+
+- Fixed signal handler shutdown hang when crashing after `Backend::stop()`
+  ([#906](https://github.com/odygrd/quill/issues/906))
+- Fixed `RdtscClock::time_since_epoch()` to use the resynced calibration slot immediately after resync
 - Fixed `RdtscClock` resync interval conversion from nanoseconds to TSC ticks
-- Fixed JSON sinks to escape quotes, backslashes, control characters, and low ASCII control bytes
-- Fixed rotating sink rename handling to update in-memory rotation state only after successful renames and to preserve
-  the active file on rotation failure
-- Fixed `RotatingJsonFileSink` size-based rotation to account for the actual generated JSON payload size instead of
-  `log_statement.size()`
-- Fixed `CsvWriter` to use a unique logger per instance so multiple writers targeting the same file do not share logger
-  lifetime
-- Added `CsvWriter::close()` for deterministic logger removal and file closure, and changed `CsvWriter` destruction to
-  use best-effort asynchronous cleanup
-- Fixed `CsvWriter` header handling for append mode with timestamp-appended filenames and removed a dangling `this`
-  capture from the rotating-file header notifier
-- Fixed file sink deduplication to normalize file paths before sink lookup so equivalent paths reuse the same sink
-  instance
-- Fixed `SystemdSink` to avoid calling the unrelated process-global `closelog()` syslog cleanup
-- Fixed `simple_logger()` to ensure the backend is running before returning an existing logger and added
-  `simple_logger_with_signal_handler()` for explicit built-in signal-handler setup. `simple_logger()` no longer installs
-  signal handlers by default; use `simple_logger_with_signal_handler()` if signal handling is needed
-- Fixed `Frontend::remove_logger()` and `remove_logger_blocking()` to treat null logger pointers as no-ops
-- Fixed `FileSink` to reopen externally deleted files using the configured open mode instead of truncating with `"w"`
-- Fixed logger recreation to throw `QuillError` while a same-name logger is still pending asynchronous removal
-- Fixed `CsvWriter` to throw `QuillError` when used after `close()` instead of relying on assertions only
-- Fixed `StringRef` null C-string handling to avoid constructing invalid `std::string_view` instances
-- Fixed sink filter handling to reject null filters and avoid losing newly added filters during local filter-cache
-  refresh
-- Hardened logger and sink creation APIs to throw `QuillError` for null sinks, invalid `ConsoleSink` stream names, and
-  `create_or_get_logger(...)` calls that omit a source logger when creating a new logger
+- Fixed JSON sinks to properly escape quotes, backslashes, and control characters
+- Fixed rotating sink rename handling to update state only after successful renames
+- Fixed `RotatingJsonFileSink` size-based rotation to use actual JSON payload size
+- Fixed `CsvWriter` per-instance logger lifetime, header handling in append mode, and dangling capture
+  in rotating-file notifier
+- Fixed `BinaryDataDeferredFormatCodec` composition for compound user-defined types
+- Fixed file sink deduplication to normalize paths before lookup
+- Fixed duplicate `atexit` handler registration on repeated `Backend::start()`/`Backend::stop()` cycles
+- Fixed `FileSink` fd leak on constructor exception and file reopen mode after external deletion
+- Fixed `SystemdSink` to avoid calling the unrelated process-global `closelog()`
+
+**Hardening & improvements**
+
+- Replaced named semaphore with `flock()` in `BackendWorkerLock` for more reliable duplicate-backend
+  detection on POSIX
+- Added `QUILL_EXPORT` to `RdtscTicks::instance()` for shared-library consistency
+- Hardened the signal handler with internal signal-name literals and `std::_Exit()` instead of
+  `strsignal()` / `std::exit()`
+- Hardened logger and sink creation APIs with stricter input validation (null sinks, null filters,
+  invalid stream names, pending-removal loggers)
+- Improved `Frontend::create_logger` and `Frontend::create_sink` to also provide strict variants
+  that throw `QuillError` on duplicate names
+- Improved `CsvWriter` with deterministic `close()` for logger removal and file closure
+- Improved `ManualBackendWorker` shutdown to be idempotent and enforce same-thread shutdown
+- Improved `simple_logger()` to separate signal-handler setup into
+  `simple_logger_with_signal_handler()`
+- Improved `BackendOptions::cpu_affinity` to accept `std::vector<uint16_t>` for multi-CPU pinning
+- Hardened overflow and capacity checks across `InlinedVector`, unbounded queues, codec string
+  clamping, and backtrace storage
+- Hardened `TransitEvent` move semantics and `FileSink` edge cases (non-throwing `fs::exists`,
+  strftime return value, write-mode detection)
+- Aligned codec handling for `std::string`, `std::string_view`, `std::map`, and `std::unordered_map`
+  with existing paths
+- Cleaned up core contracts: `QuillError::what()`, thread-context lifetime, backend notifier
+  reporting, `PatternFormatter` attribute lookup, and various minor edges
 
 ## v11.1.0
 

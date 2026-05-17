@@ -146,4 +146,52 @@ TEST_CASE("recreating_expired_sink_with_same_name_keeps_single_registry_entry")
   std::remove(file_name.data());
 }
 
+TEST_CASE("create_sink_succeeds_and_rejects_duplicate")
+{
+  std::string const file_name = "sink_manager_create_sink_test.log";
+
+  {
+    std::shared_ptr<Sink> sink = SinkManager::instance().create_sink<quill::FileSink>(
+      file_name,
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{});
+
+    REQUIRE_NE(sink.get(), nullptr);
+
+    // Attempting to create again with the same name should throw
+    REQUIRE_THROWS_AS(SinkManager::instance().create_sink<quill::FileSink>(
+                        file_name,
+                        []()
+                        {
+                          quill::FileSinkConfig cfg;
+                          cfg.set_open_mode('w');
+                          return cfg;
+                        }(),
+                        FileEventNotifier{}),
+                      QuillError);
+
+    // create_or_get_sink should still return the existing one without throwing
+    std::shared_ptr<Sink> same_sink = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      file_name,
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{});
+
+    REQUIRE_EQ(sink.get(), same_sink.get());
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
+
+  std::remove(file_name.data());
+}
+
 TEST_SUITE_END();

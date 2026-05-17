@@ -52,6 +52,8 @@ TEST_CASE("wide_string_logging")
 
     wchar_t const* c_style_string_empty = L"";
     wchar_t const* c_style_string = L"Lorem ipsum";
+    wchar_t const* null_c_style_string = nullptr;
+    wchar_t* mutable_null_c_style_string = nullptr;
 
     LOG_INFO(logger, "s [{}]", s);
     LOG_INFO(logger, "ws [{}]", ws);
@@ -61,6 +63,8 @@ TEST_CASE("wide_string_logging")
     LOG_INFO(logger, "empty_sv [{}]", empty_sv);
     LOG_INFO(logger, "c_style_string_empty [{}]", c_style_string_empty);
     LOG_INFO(logger, "c_style_string [{}]", c_style_string);
+    LOG_INFO(logger, "null_c_style_string [{}]", null_c_style_string);
+    LOG_INFO(logger, "mutable_null_c_style_string [{}]", mutable_null_c_style_string);
 
     LOG_INFO(logger,
              "Lorem ipsum dolor sit amet, consectetur [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] [{}] "
@@ -95,7 +99,7 @@ TEST_CASE("wide_string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 10);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 12);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       s [adipiscing]"}));
@@ -120,6 +124,12 @@ TEST_CASE("wide_string_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       c_style_string [Lorem ipsum]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       null_c_style_string []"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       mutable_null_c_style_string []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Lorem ipsum dolor sit amet, consectetur [adipiscing] [elit] [1] [3.14] [] [begin_s] [end_s] [] [] [Lorem ipsum] [adipiscing] [elit] [1] [3.14] [] [begin_s] [end_s] [] [] [Lorem ipsum] [adipiscing]"}));

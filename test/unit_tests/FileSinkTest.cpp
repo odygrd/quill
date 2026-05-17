@@ -11,6 +11,47 @@ TEST_SUITE_BEGIN("FileSink");
 using namespace quill;
 using namespace quill::detail;
 
+namespace
+{
+class FileSinkTestHarness : public FileSink
+{
+public:
+  using FileSink::FileSink;
+
+  void open_file_for_test(fs::path const& filename, std::string const& mode)
+  {
+    FileSink::open_file(filename, mode);
+  }
+
+  void close_file_for_test() { FileSink::close_file(); }
+
+  FILE* file_handle() const noexcept { return _file; }
+};
+} // namespace
+
+#if defined(__linux__)
+namespace
+{
+size_t count_open_fds_for_path(fs::path const& filename)
+{
+  size_t count{0};
+  fs::path const normalized_path = detail::normalize_file_sink_path(filename, false);
+
+  for (auto const& fd_entry : fs::directory_iterator{"/proc/self/fd"})
+  {
+    std::error_code ec;
+    fs::path const target = fs::read_symlink(fd_entry.path(), ec);
+    if (!ec && (target == normalized_path))
+    {
+      ++count;
+    }
+  }
+
+  return count;
+}
+} // namespace
+#endif
+
 /***/
 TEST_CASE("file_sink_config")
 {
@@ -143,6 +184,7 @@ TEST_CASE("create_directory")
   testing::remove_file(filename);
 }
 
+#if defined(__linux__)
 /***/
 TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
 {
@@ -198,6 +240,75 @@ TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
   REQUIRE_EQ(file_contents.size(), 2);
   REQUIRE_EQ(file_contents[0], "recreated");
   REQUIRE_EQ(file_contents[1], "third");
+
+  testing::remove_file(filename);
+}
+#endif
+
+#if defined(__linux__)
+/***/
+TEST_CASE("after_open_throw_does_not_leak_file_descriptor_during_construction")
+{
+  fs::path const filename =
+    "after_open_throw_does_not_leak_file_descriptor_during_construction.log";
+  testing::remove_file(filename);
+
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_open = [](fs::path const&, FILE*)
+  { QUILL_THROW(QuillError{"after_open failure"}); };
+
+  REQUIRE_EQ(count_open_fds_for_path(filename), 0);
+  REQUIRE_THROWS_AS((FileSink{filename, FileSinkConfig{}, file_event_notifier}), QuillError);
+  REQUIRE_EQ(count_open_fds_for_path(filename), 0);
+
+  testing::remove_file(filename);
+}
+#endif
+
+/***/
+TEST_CASE("after_open_throw_leaves_sink_closed")
+{
+  fs::path const filename = "after_open_throw_leaves_sink_closed.log";
+  testing::remove_file(filename);
+
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_open = [](fs::path const&, FILE*)
+  { QUILL_THROW(QuillError{"after_open failure"}); };
+
+  FileSinkTestHarness file_sink{filename, FileSinkConfig{}, file_event_notifier, false};
+  REQUIRE_EQ(file_sink.file_handle(), nullptr);
+  REQUIRE_THROWS_AS(file_sink.open_file_for_test(file_sink.get_filename(), "a"), QuillError);
+  REQUIRE_EQ(file_sink.file_handle(), nullptr);
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("after_open_throw_during_reopen_leaves_sink_closed")
+{
+  fs::path const filename = "after_open_throw_during_reopen_leaves_sink_closed.log";
+  testing::remove_file(filename);
+
+  uint32_t after_open_count{0};
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_open = [&after_open_count](fs::path const&, FILE*)
+  {
+    ++after_open_count;
+    if (after_open_count == 2)
+    {
+      QUILL_THROW(QuillError{"after_open failure on reopen"});
+    }
+  };
+
+  FileSinkTestHarness file_sink{filename, FileSinkConfig{}, file_event_notifier, false};
+  REQUIRE_NOTHROW(file_sink.open_file_for_test(file_sink.get_filename(), "a"));
+  REQUIRE_NE(file_sink.file_handle(), nullptr);
+
+  file_sink.close_file_for_test();
+  REQUIRE_EQ(file_sink.file_handle(), nullptr);
+
+  REQUIRE_THROWS_AS(file_sink.open_file_for_test(file_sink.get_filename(), "a"), QuillError);
+  REQUIRE_EQ(file_sink.file_handle(), nullptr);
 
   testing::remove_file(filename);
 }

@@ -150,7 +150,60 @@ public:
     }
   }
 
-  /***/
+  /**
+   * @brief Creates a new logger with the given name.
+   * @throws QuillError if a logger with the same name already exists.
+   */
+  template <typename TLogger>
+  LoggerBase* create_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
+                            PatternFormatterOptions const& pattern_formatter_options,
+                            ClockSourceType clock_source, UserClockSource* user_clock)
+  {
+    LockGuard const lock{_spinlock};
+
+    LoggerBase* logger_ptr = _find_logger(logger_name);
+
+    if (logger_ptr && !logger_ptr->is_valid_logger())
+    {
+      QUILL_THROW(QuillError{"Logger with name \"" + logger_name +
+                             "\" is pending removal and cannot be recreated until the backend "
+                             "completes logger cleanup. Use remove_logger_blocking() if you need "
+                             "to recreate the logger synchronously."});
+    }
+
+    if (logger_ptr)
+    {
+      QUILL_THROW(
+        QuillError{"Logger with name \"" + logger_name +
+                   "\" already exists. "
+                   "Use create_or_get_logger() if you want to retrieve the existing logger, "
+                   "or choose a different name."});
+    }
+
+    std::unique_ptr<LoggerBase> new_logger{
+      new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+                  pattern_formatter_options, clock_source, user_clock}};
+
+    _insert_logger(static_cast<std::unique_ptr<LoggerBase>&&>(new_logger));
+
+    logger_ptr = _find_logger(logger_name);
+
+    if (logger_ptr && _env_log_level)
+    {
+      logger_ptr->set_log_level(*_env_log_level);
+    }
+
+    QUILL_ASSERT(logger_ptr, "logger_ptr is nullptr in LoggerManager::create_logger()");
+    QUILL_ASSERT(logger_ptr->is_valid_logger(),
+                 "logger is not valid in LoggerManager::create_logger()");
+    return logger_ptr;
+  }
+
+  /**
+   * @brief Creates a new logger or returns an existing one with the given name.
+   * @note If a logger with the specified name already exists, the existing logger is returned
+   * and the provided sinks, pattern, clock source, and user clock parameters are ignored.
+   */
   template <typename TLogger>
   LoggerBase* create_or_get_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
                                    PatternFormatterOptions const& pattern_formatter_options,

@@ -75,14 +75,7 @@ public:
                                                                     return cfg;
                                                                   }());
 
-    bool should_write_header = true;
-    if (open_mode == 'a')
-    {
-      auto const file_sink = std::static_pointer_cast<FileSink>(sink);
-      std::error_code ec;
-      auto const size = fs::file_size(file_sink->get_filename(), ec);
-      should_write_header = (ec || size == 0);
-    }
+    bool const should_write_header = _should_write_header_on_initial_file(sink, open_mode == 'a', true);
 
     _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
                                                PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
@@ -102,11 +95,14 @@ public:
    */
   CsvWriter(std::string const& filename, FileSinkConfig sink_config, bool should_write_header = true)
   {
-    _logger = frontend_t::create_or_get_logger(
-      _make_logger_name(filename), frontend_t::template create_or_get_sink<FileSink>(filename, sink_config),
-      PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+    auto sink = frontend_t::template create_or_get_sink<FileSink>(filename, sink_config);
+    bool const should_write_initial_header = _should_write_header_on_initial_file(
+      sink, _is_append_mode(sink_config.open_mode()), should_write_header);
 
-    if (should_write_header)
+    _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
+                                               PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+
+    if (should_write_initial_header)
     {
       write_header();
     }
@@ -122,6 +118,7 @@ public:
   CsvWriter(std::string const& filename, RotatingFileSinkConfig sink_config, bool should_write_header = true)
   {
     FileEventNotifier file_notifier;
+    bool const should_write_initial_header = should_write_header;
 
     // The sink owns this notifier and may invoke it after the CsvWriter is destroyed.
     // Keep it independent from this instance and only use schema-level state.
@@ -141,13 +138,15 @@ public:
       }
     };
 
-    _logger = frontend_t::create_or_get_logger(
-      _make_logger_name(filename),
-      frontend_t::template create_or_get_sink<RotatingFileSink>(filename, sink_config, file_notifier),
-      PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+    auto sink = frontend_t::template create_or_get_sink<RotatingFileSink>(filename, sink_config, file_notifier);
+    bool const should_write_header_for_initial_file = _should_write_header_on_initial_file(
+      sink, _is_append_mode(sink_config.open_mode()), should_write_initial_header);
+
+    _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
+                                               PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
 
     // For the initial file (before any rotations), write the header if required.
-    if (should_write_header)
+    if (should_write_header_for_initial_file)
     {
       write_header();
     }
@@ -196,8 +195,7 @@ public:
    * The destructor performs best-effort asynchronous cleanup. Call close() before
    * Backend::stop() when deterministic logger removal and file closure are required.
    */
-  ~CsvWriter()
-  { frontend_t::remove_logger(_logger); }
+  ~CsvWriter() { frontend_t::remove_logger(_logger); }
 
   /**
    * Appends a row to the CSV file. This function is also thread safe.
@@ -249,6 +247,25 @@ public:
   }
 
 private:
+  static bool _is_append_mode(std::string const& open_mode) noexcept
+  {
+    return !open_mode.empty() && ((open_mode[0] == 'a') || (open_mode[0] == 'A'));
+  }
+
+  static bool _should_write_header_on_initial_file(std::shared_ptr<Sink> const& sink,
+                                                   bool is_append_mode, bool should_write_header)
+  {
+    if (!should_write_header || !is_append_mode)
+    {
+      return should_write_header;
+    }
+
+    auto const stream_sink = std::static_pointer_cast<StreamSink>(sink);
+    std::error_code ec;
+    auto const size = fs::file_size(stream_sink->get_filename(), ec);
+    return ec || (size == 0);
+  }
+
   void _throw_if_closed(char const* api_name) const
   {
     if (QUILL_UNLIKELY(!_logger))

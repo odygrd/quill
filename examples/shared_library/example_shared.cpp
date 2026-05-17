@@ -11,35 +11,83 @@
 /**
  * @brief Example of building Quill as a shared library.
  *
- * To build Quill as a shared library on Windows, follow these steps:
- * - Ensure the `QUILL_DLL_EXPORT` and `QUILL_DLL_IMPORT` flags are set as required
- * - You also need to set the CMake option: `-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE`
+ * Quill is header-only. When multiple shared libraries (DSOs) include Quill headers, each DSO
+ * gets its own copy of all inline code and static data unless the linker deduplicates them.
+ * The recommended pattern is the "single owner" approach demonstrated here: exactly one shared
+ * library includes Quill headers and owns the backend, singletons, and loggers. All other
+ * DSOs interact with Quill only through exported wrapper functions (setup_quill(), get_logger(), etc.).
  *
- * Note:
- * On Windows, when using Quill inside a DLL that is dynamically loaded with `LoadLibrary` and then
- * freed with `FreeLibrary` at runtime, it's important to call `flush_log()` in DllMain during
- * `DLL_PROCESS_DETACH` in each DLL that is being unloaded.
+ * This pattern works correctly on all platforms (Linux, macOS, Windows) without requiring
+ * special linker flags.
  *
- * This ensures that no pending logs remain in the DLL being freed.
+ * === Platform-Specific Notes ===
  *
- * BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
- * {
- *   switch (ul_reason_for_call)
+ * --- Linux ---
+ * - Do NOT use -Bsymbolic or -Bsymbolic-functions linker flags with Quill's shared library.
+ *   These flags prevent the dynamic linker from merging inline symbols across DSOs, causing
+ *   Quill's singletons (LoggerManager, BackendManager, etc.) to be duplicated — which breaks
+ *   the library (invisible loggers, multiple backend threads, lost log messages).
+ * - When using dlopen/dlclose: you MUST flush all loggers and call Backend::stop() before
+ *   calling dlclose() on any DSO that used Quill. Otherwise, the backend thread may
+ *   dereference pointers into unmapped memory (MacroMetadata, decode functions, Sink vtables)
+ *   causing SIGSEGV. See the flush_before_dlclose() example pattern below.
+ *
+ * --- macOS ---
+ * - macOS uses two-level namespaces by default (since macOS 10.2). This means each dylib
+ *   resolves symbols to its own copy, even if they have default visibility. Quill's
+ *   QUILL_EXPORT (visibility("default")) alone is NOT sufficient to deduplicate singletons
+ *   across dylibs.
+ * - The "single owner" pattern shown here is the recommended solution on macOS.
+ * - Alternatively, you can pass -flat_namespace to the linker, but this has global side
+ *   effects and is generally not recommended.
+ * - The same dlclose guidance as Linux applies (use dlclose(handle, RTLD_NODELETE) or
+ *   flush + stop before unloading).
+ *
+ * --- Windows ---
+ * - Set QUILL_DLL_EXPORT when building the shared library and QUILL_DLL_IMPORT when
+ *   consuming it. Also set the CMake option: -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE
+ * - When using LoadLibrary/FreeLibrary: call flush_log() in DllMain during
+ *   DLL_PROCESS_DETACH before the DLL is unloaded:
+ *
+ *   BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
  *   {
- *   case DLL_PROCESS_ATTACH:
- *     // Code to run when the DLL is loaded
- *     break;
- *   case DLL_THREAD_ATTACH:
- *   case DLL_THREAD_DETACH:
- *     // Code to run when a thread is created or destroyed
- *     break;
- *   case DLL_PROCESS_DETACH:
- *     // Ensure any pending logs are flushed before the DLL is unloaded
- *     global_logger_a->flush_log();
- *     break;
+ *     switch (ul_reason_for_call)
+ *     {
+ *     case DLL_PROCESS_ATTACH:
+ *       break;
+ *     case DLL_THREAD_ATTACH:
+ *     case DLL_THREAD_DETACH:
+ *       break;
+ *     case DLL_PROCESS_DETACH:
+ *       global_logger_a->flush_log();
+ *       break;
+ *     }
+ *     return TRUE;
  *   }
- *   return TRUE; // Successfully processed
- * }
+ *
+ * === dlopen/dlclose Usage (Linux/macOS) ===
+ *
+ * If you dynamically load a shared library that uses Quill via dlopen(), you must ensure
+ * all log messages are flushed before calling dlclose():
+ *
+ *   void* handle = dlopen("libmy_plugin.so", RTLD_NOW);
+ *   // ... use the plugin, which logs via Quill ...
+ *
+ *   // Option A: Flush and stop before unloading
+ *   auto flush_fn = (void(*)()) dlsym(handle, "flush_quill_logs");
+ *   if (flush_fn) flush_fn();  // plugin exports a flush wrapper
+ *   dlclose(handle);
+ *
+ *   // Option B: Use RTLD_NODELETE to prevent actual unloading (keeps DSO mapped)
+ *   // dlclose(handle);  // with RTLD_NODELETE flag at dlopen time
+ *
+ * Inside the plugin shared library, you can use __attribute__((destructor)) on Linux/macOS
+ * as a safety net:
+ *
+ *   __attribute__((destructor)) void on_unload()
+ *   {
+ *     if (global_logger) global_logger->flush_log();
+ *   }
  */
 
 QUILL_EXPORT extern quill::Logger* global_logger_a;

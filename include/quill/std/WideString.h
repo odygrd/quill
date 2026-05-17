@@ -35,7 +35,8 @@ struct Codec<T,
 
     if constexpr (std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>>)
     {
-      len = wcslen(arg);
+      // Match the narrow-string codec behavior and treat nullptr as an empty string.
+      len = arg ? wcslen(arg) : 0;
     }
     else
     {

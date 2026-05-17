@@ -86,48 +86,88 @@ public:
     std::call_once(detail::BackendManager::instance().get_start_once_flag(),
                    [backend_options, signal_handler_options]()
                    {
+                     bool signal_handler_initialized{false};
 #if defined(_WIN32)
-                     detail::init_exception_handler<TFrontendOptions>();
+                     bool exception_handler_initialized{false};
 #else
-        // We do not want signal handler to run in the backend worker thread
-        // Block signals in the main thread so when we spawn the backend worker thread it inherits
-        // the master
-        sigset_t set, oldset;
-        sigfillset(&set);
-        sigprocmask(SIG_SETMASK, &set, &oldset);
-        detail::init_signal_handler<TFrontendOptions>(signal_handler_options.catchable_signals);
+                     sigset_t set, oldset;
+                     bool signal_mask_modified{false};
 #endif
-
-                     // Run the backend worker thread, we wait here until the thread enters the main loop
-                     detail::BackendManager::instance().start_backend_thread(backend_options);
-
-                     detail::SignalHandlerContext::instance().logger_name = signal_handler_options.logger_name;
-
-                     detail::SignalHandlerContext::instance().excluded_logger_substrings =
-                       signal_handler_options.excluded_logger_substrings;
-
-                     detail::SignalHandlerContext::instance().signal_handler_timeout_seconds.store(
-                       signal_handler_options.timeout_seconds);
-
-                     // We need to update the signal handler with some backend thread details
-                     detail::SignalHandlerContext::instance().backend_thread_id.store(
-                       detail::BackendManager::instance().get_backend_thread_id());
-
-#if defined(_WIN32)
-      // nothing to do
-#else
-                     // Unblock signals in the main thread so subsequent threads do not inherit the blocked mask
-                     sigprocmask(SIG_SETMASK, &oldset, nullptr);
-#endif
-
-                     // Set up an exit handler to call stop when the main application exits.
-                     // always call stop on destruction to log everything. std::atexit seems to be
-                     // working better with dll on windows compared to using ~LogManagerSingleton().
-                     if (!detail::BackendManager::instance().is_atexit_registered())
+                     QUILL_TRY
                      {
-                       detail::BackendManager::instance().set_atexit_registered();
-                       std::atexit([]() { Backend::stop(); });
+#if defined(_WIN32)
+                       detail::init_exception_handler<TFrontendOptions>();
+                       exception_handler_initialized = true;
+#else
+                       // We do not want the signal handler to run in the backend worker thread.
+                       // Block signals in the caller thread so the backend worker inherits that mask.
+                       sigfillset(&set);
+                       if (sigprocmask(SIG_SETMASK, &set, &oldset) != 0)
+                       {
+                         QUILL_THROW(QuillError{
+                           "Failed to block signals before starting the backend thread"});
+                       }
+                       signal_mask_modified = true;
+                       detail::init_signal_handler<TFrontendOptions>(signal_handler_options.catchable_signals);
+                       signal_handler_initialized = true;
+#endif
+
+                       auto& signal_handler_context = detail::SignalHandlerContext::instance();
+                       signal_handler_context.logger_name = signal_handler_options.logger_name;
+                       signal_handler_context.excluded_logger_substrings =
+                         signal_handler_options.excluded_logger_substrings;
+                       signal_handler_context.signal_handler_timeout_seconds.store(
+                         signal_handler_options.timeout_seconds);
+
+                       // Run the backend worker thread, we wait here until the thread enters the main loop
+                       detail::BackendManager::instance().start_backend_thread(backend_options);
+
+                       // We need to update the signal handler with some backend thread details
+                       signal_handler_context.backend_thread_id.store(
+                         detail::BackendManager::instance().get_backend_thread_id());
+
+#if defined(_WIN32)
+        // nothing to do
+#else
+                       // Unblock signals in the caller thread so subsequent threads do not inherit the blocked mask
+                       if (sigprocmask(SIG_SETMASK, &oldset, nullptr) != 0)
+                       {
+                         QUILL_THROW(QuillError{
+                           "Failed to restore the caller signal mask after backend startup"});
+                       }
+                       signal_mask_modified = false;
+#endif
+
+                       // Set up an exit handler to call stop when the main application exits.
+                       // always call stop on destruction to log everything. std::atexit seems to be
+                       // working better with dll on windows compared to using ~LogManagerSingleton().
+                       if (!detail::BackendManager::instance().is_atexit_registered())
+                       {
+                         detail::BackendManager::instance().set_atexit_registered();
+                         std::atexit([]() { Backend::stop(); });
+                       }
                      }
+#if !defined(QUILL_NO_EXCEPTIONS)
+                     QUILL_CATCH(...)
+                     {
+                       if (signal_handler_initialized)
+                       {
+                         detail::restore_signal_handlers();
+                       }
+  #if defined(_WIN32)
+                       if (exception_handler_initialized)
+                       {
+                         detail::deinit_exception_handler<TFrontendOptions>();
+                       }
+  #else
+                       if (signal_mask_modified)
+                       {
+                         sigprocmask(SIG_SETMASK, &oldset, nullptr);
+                       }
+  #endif
+                       throw;
+                     }
+#endif
                    });
   }
 

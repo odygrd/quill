@@ -29,8 +29,11 @@ Logger Creation
 Logger Retrieval
 ----------------
 
-Loggers can be obtained using either :cpp:func:`FrontendImpl::get_logger` or :cpp:func:`FrontendImpl::create_or_get_logger`.
-The latter will create a new logger if one does not already exist; otherwise, it returns the existing logger with the specified name.
+Loggers can be obtained using :cpp:func:`FrontendImpl::get_logger`, :cpp:func:`FrontendImpl::create_or_get_logger`, or :cpp:func:`FrontendImpl::create_logger`.
+
+- ``create_logger`` creates a new logger and throws ``QuillError`` if the name is already taken.
+- ``create_or_get_logger`` creates a new logger if one does not already exist; otherwise, it returns the existing logger with the specified name. Note that when a logger with the given name already exists, the provided sinks, pattern, clock source, and other configuration parameters are ignored — the existing logger is returned as-is.
+- ``get_logger`` retrieves an existing logger by name.
 
 .. code:: cpp
 

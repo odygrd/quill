@@ -125,7 +125,7 @@ public:
     // uninitialized during LTO analysis
     asm volatile("" : "+r"(self) : : "memory");
 #endif
-    
+
     return self->_log_level.load(std::memory_order_relaxed);
   }
 
@@ -201,6 +201,7 @@ protected:
   std::atomic<bool> _valid{true}; /* Updated by the frontend at any time, accessed by the backend */
   // -- frontend access END --
 
+  // -- backend access BEGIN (immutable after construction, no false sharing concern) --
   PatternFormatterOptions _pattern_formatter_options; /* Set by the frontend once and accessed by the backend to initialise PatternFormatter */
   std::vector<std::shared_ptr<Sink>> _sinks; /* Set by the frontend once and accessed by the backend */
   std::shared_ptr<PatternFormatter> _pattern_formatter; /* The backend thread will set this once, we never access it on the frontend */

@@ -131,8 +131,9 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str) noexcept
 /***/
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t clamp_encoded_string_length(size_t len) noexcept
 {
-  return (len > std::numeric_limits<uint32_t>::max()) ? std::numeric_limits<uint32_t>::max()
-                                                      : static_cast<uint32_t>(len);
+  // Clamp to max() - 1 so that callers adding +1 for a null terminator cannot overflow to 0
+  constexpr uint32_t max_val = std::numeric_limits<uint32_t>::max() - 1u;
+  return (len > max_val) ? max_val : static_cast<uint32_t>(len);
 }
 /** std string detection, ignoring the Allocator type **/
 template <typename T>

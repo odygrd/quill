@@ -82,7 +82,48 @@ public:
     return sink;
   }
 
-  /***/
+  /**
+   * @brief Creates a new sink with the given name.
+   * @throws QuillError if a sink with the same name already exists.
+   */
+  template <typename TSink, typename... Args>
+  std::shared_ptr<Sink> create_sink(std::string const& sink_name, Args&&... args)
+  {
+    static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
+
+    std::string const sink_id = _normalized_sink_name<TSink>(sink_name);
+
+    LockGuard const lock{_spinlock};
+
+    std::shared_ptr<Sink> sink = _find_sink(sink_id);
+
+    if (sink)
+    {
+      QUILL_THROW(QuillError{"Sink with name \"" + sink_name +
+                             "\" already exists. "
+                             "Use create_or_get_sink() if you want to retrieve the existing sink, "
+                             "or choose a different name."});
+    }
+
+    if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
+    {
+      sink = std::make_shared<TSink>(sink_id, static_cast<Args&&>(args)...);
+    }
+    else
+    {
+      sink = std::make_shared<TSink>(static_cast<Args&&>(args)...);
+    }
+
+    _insert_sink(sink_id, sink);
+
+    return sink;
+  }
+
+  /**
+   * @brief Creates a new sink or returns an existing one with the given name.
+   * @note If a sink with the specified name already exists, the existing sink is returned
+   * and the provided constructor arguments are ignored.
+   */
   template <typename TSink, typename... Args>
   std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {

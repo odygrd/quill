@@ -1,8 +1,5 @@
-#include "doctest/doctest.h"
-
-#define private public
 #include "quill/backend/RdtscClock.h"
-#undef private
+#include "doctest/doctest.h"
 
 #include "quill/core/Rdtsc.h"
 
@@ -50,25 +47,37 @@ TEST_CASE("wall_time")
   REQUIRE_LE(failures, 1);
 }
 
+class RdtscClockMock : public quill::detail::RdtscClock
+{
+public:
+  using quill::detail::RdtscClock::RdtscClock;
+
+  int64_t& resync_interval_ticks() { return _resync_interval_ticks; }
+  int64_t& resync_interval_original() { return _resync_interval_original; }
+  double& ns_per_tick() { return _ns_per_tick; }
+  std::atomic<uint32_t>& version() { return _version; }
+  std::array<BaseTimeTsc, 2>& base() { return _base; }
+};
+
 TEST_CASE("time_since_epoch_uses_resynced_slot")
 {
-  quill::detail::RdtscClock tsc_clock{std::chrono::milliseconds{1200}};
+  RdtscClockMock tsc_clock{std::chrono::milliseconds{1200}};
 
   // Force the next call to trigger a resync so we can verify which slot is used afterwards.
-  tsc_clock._resync_interval_ticks = 0;
-  tsc_clock._resync_interval_original = 0;
+  tsc_clock.resync_interval_ticks() = 0;
+  tsc_clock.resync_interval_original() = 0;
 
   bool observed_resync = false;
 
   for (size_t attempt = 0; attempt < 16; ++attempt)
   {
-    uint32_t const version_before = tsc_clock._version.load(std::memory_order_relaxed);
-    size_t const old_index = version_before & (tsc_clock._base.size() - 1);
+    uint32_t const version_before = tsc_clock.version().load(std::memory_order_relaxed);
+    size_t const old_index = version_before & (tsc_clock.base().size() - 1);
 
     uint64_t const rdtsc_value = quill::detail::rdtsc();
     uint64_t const result = tsc_clock.time_since_epoch(rdtsc_value);
 
-    uint32_t const version_after = tsc_clock._version.load(std::memory_order_relaxed);
+    uint32_t const version_after = tsc_clock.version().load(std::memory_order_relaxed);
     if (version_after == version_before)
     {
       continue;
@@ -76,18 +85,18 @@ TEST_CASE("time_since_epoch_uses_resynced_slot")
 
     observed_resync = true;
 
-    size_t const new_index = version_after & (tsc_clock._base.size() - 1);
+    size_t const new_index = version_after & (tsc_clock.base().size() - 1);
     REQUIRE_NE(new_index, old_index);
 
-    auto const diff_new = static_cast<int64_t>(rdtsc_value - tsc_clock._base[new_index].base_tsc);
+    auto const diff_new = static_cast<int64_t>(rdtsc_value - tsc_clock.base()[new_index].base_tsc);
     uint64_t const expected_new =
-      static_cast<uint64_t>(tsc_clock._base[new_index].base_time +
-                            static_cast<int64_t>(static_cast<double>(diff_new) * tsc_clock._ns_per_tick));
+      static_cast<uint64_t>(tsc_clock.base()[new_index].base_time +
+                            static_cast<int64_t>(static_cast<double>(diff_new) * tsc_clock.ns_per_tick()));
 
-    auto const diff_old = static_cast<int64_t>(rdtsc_value - tsc_clock._base[old_index].base_tsc);
+    auto const diff_old = static_cast<int64_t>(rdtsc_value - tsc_clock.base()[old_index].base_tsc);
     uint64_t const expected_old =
-      static_cast<uint64_t>(tsc_clock._base[old_index].base_time +
-                            static_cast<int64_t>(static_cast<double>(diff_old) * tsc_clock._ns_per_tick));
+      static_cast<uint64_t>(tsc_clock.base()[old_index].base_time +
+                            static_cast<int64_t>(static_cast<double>(diff_old) * tsc_clock.ns_per_tick()));
 
     REQUIRE_EQ(result, expected_new);
     REQUIRE_NE(result, expected_old);

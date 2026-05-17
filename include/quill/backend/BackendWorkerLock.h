@@ -17,16 +17,19 @@
   #endif
 
   #include <windows.h>
+#elif defined(__ANDROID__)
+// No lock support on Android (no /tmp)
 #else
+  #include <cerrno>
   #include <cstring>
-  #include <fcntl.h> // For O_CREAT and O_EXCL
-  #include <semaphore.h>
+  #include <fcntl.h>
+  #include <sys/file.h>
+  #include <unistd.h>
 #endif
 
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
 
-#include <cstring>
 #include <string>
 
 QUILL_BEGIN_NAMESPACE
@@ -41,7 +44,11 @@ namespace detail
  * (e.g., mixing static and shared libraries), potentially leading to duplicate backend
  * worker threads and unexpected behavior.
  *
- * On Windows, it utilizes a named mutex, while on POSIX systems, it uses a named semaphore.
+ * On Windows, it utilizes a named mutex. On POSIX systems (Linux, macOS), it uses
+ * flock() on a lock file in /tmp. The kernel automatically releases the lock when the
+ * process exits, even on kill -9, so no stale locks are left behind.
+ *
+ * Disabled on Android, which lacks /tmp.
  */
 class BackendWorkerLock
 {
@@ -50,19 +57,22 @@ public:
   explicit BackendWorkerLock(std::string const& pid)
   {
 #if defined(_WIN32)
-    std::string name = "Local\\QuillLock" + pid;
+    std::string name = "Local\\QuillBackendLock" + pid;
 
     // Create a named mutex. If it already exists in this process, the flag ERROR_ALREADY_EXISTS is set.
     _handle = CreateMutexA(nullptr, TRUE, name.data());
 
     if (_handle == nullptr)
     {
-      QUILL_THROW(QuillError{"Failed to create mutex"});
+      QUILL_THROW(QuillError{"Failed to create mutex '" + name + "'"});
     }
 
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
       // Another instance in the same process already holds the lock.
+      CloseHandle(_handle);
+      _handle = nullptr;
+
       QUILL_THROW(QuillError{
         "Duplicate backend worker thread detected. This indicates that the logging library has "
         "been compiled into multiple binary modules (for instance, one module using a static build "
@@ -73,29 +83,26 @@ public:
 #elif defined(__ANDROID__)
     // disabled
 #else
-    std::string name = "/QuillLock" + pid;
+    std::string path = "/tmp/QuillBackendLock" + pid;
 
-    // Open or create the named semaphore.
-    // O_CREAT will create the semaphore if it doesn't exist, and if it does exist it will simply open the same semaphore.
-    _sem = sem_open(name.data(), O_CREAT, 0644, 1);
-    if (_sem == SEM_FAILED)
+    // Open or create the lock file. The file itself is just a vessel for the kernel lock.
+    _fd = open(path.data(), O_CREAT | O_RDWR, 0644);
+    if (_fd == -1)
     {
-      QUILL_THROW(QuillError{"Failed to create semaphore - errno: " + std::to_string(errno) +
+      QUILL_THROW(QuillError{"Failed to open lock file '" + path + "' - errno: " + std::to_string(errno) +
                              " error: " + std::strerror(errno)});
     }
 
-    // Immediately unlink it so that it leaves no traces behind after shutdown or hard termination.
-    // This behavior is intentional for now and should be revisited in the future if stronger
-    // duplicate-backend detection semantics are needed on POSIX.
-    sem_unlink(name.data());
+    _path = path;
 
-    // Try to lock the semaphore.
-    // If it’s already locked (by another instance within the same process),
-    // sem_trywait will return -1 and set errno.
-    if (sem_trywait(_sem) != 0)
+    // Try to acquire an exclusive lock without blocking.
+    // Each open() creates a separate file description, so two BackendWorkerLock instances
+    // in the same process get independent locks. flock returns -1 with errno EWOULDBLOCK
+    // if the lock is already held.
+    if (flock(_fd, LOCK_EX | LOCK_NB) != 0)
     {
-      sem_close(_sem);
-      _sem = SEM_FAILED;
+      close(_fd);
+      _fd = -1;
 
       QUILL_THROW(QuillError{
         "Duplicate backend worker thread detected. This indicates that the logging library has "
@@ -117,12 +124,19 @@ public:
       CloseHandle(_handle);
       _handle = nullptr;
     }
+#elif defined(__ANDROID__)
+    // disabled
 #else
-    if (_sem != SEM_FAILED)
+    if (_fd != -1)
     {
-      sem_post(_sem);
-      sem_close(_sem);
-      _sem = SEM_FAILED;
+      // Unlink while the lock is still held so the file is removed before anyone else
+      // can acquire the same path. On kill -9 the kernel releases the flock but the
+      // file remains on disk — harmless, /tmp is cleaned on reboot.
+      unlink(_path.data());
+
+      // Closing the fd releases the flock automatically.
+      close(_fd);
+      _fd = -1;
     }
 #endif
   }
@@ -134,8 +148,11 @@ public:
 private:
 #if defined(_WIN32)
   HANDLE _handle{nullptr};
+#elif defined(__ANDROID__)
+  // disabled
 #else
-  sem_t* _sem{SEM_FAILED};
+  int _fd{-1};
+  std::string _path;
 #endif
 };
 } // namespace detail
