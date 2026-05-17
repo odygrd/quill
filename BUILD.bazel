@@ -6,8 +6,8 @@ cc_library(
     name = "quill",
     hdrs = glob(["include/**/*.h"]),
     copts = select({
-        "@rules_cc//cc/compiler:gcc": ["Wno-gnu-zero-variadic-macro-arguments"],
-        "@rules_cc//cc/compiler:clang": ["Wno-gnu-zero-variadic-macro-arguments"],
+        "@rules_cc//cc/compiler:gcc": ["-Wno-gnu-zero-variadic-macro-arguments"],
+        "@rules_cc//cc/compiler:clang": ["-Wno-gnu-zero-variadic-macro-arguments"],
         "//conditions:default": [],
     }),
     includes = ["include"],

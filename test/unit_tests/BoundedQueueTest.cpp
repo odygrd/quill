@@ -2,8 +2,10 @@
 #include "misc/DocTestExtensions.h"
 
 #include "quill/core/BoundedSPSCQueue.h"
+#include "quill/core/QuillError.h"
 
 #include <cstring>
+#include <limits>
 #include <thread>
 #include <vector>
 
@@ -160,6 +162,29 @@ TEST_CASE("bounded_queue_prepare_write_larger_than_capacity_fails")
   REQUIRE_EQ(buffer.prepare_write(65u), nullptr);
   REQUIRE_EQ(buffer.prepare_write(128u), nullptr);
 }
+
+#if defined(QUILL_X86ARCH) && !defined(QUILL_NO_EXCEPTIONS)
+TEST_CASE("below_minimum_capacity_throws_before_allocating")
+{
+  // On x86 the constructor requires at least 1024 bytes so that cache-line warmup via
+  // _mm_prefetch has enough backing memory. The capacity check must run in the member
+  // initialiser list BEFORE mmap/aligned_malloc happens, otherwise the allocation would
+  // leak (the destructor does not run on a partially-constructed object).
+  REQUIRE_THROWS_AS(BoundedSPSCQueue{512u}, quill::QuillError);
+  REQUIRE_THROWS_AS(BoundedSPSCQueue{1023u}, quill::QuillError);
+
+  // Exactly 1024 is the documented minimum and must succeed.
+  REQUIRE_NOTHROW(BoundedSPSCQueue{1024u});
+}
+#endif
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+TEST_CASE("oversized_capacity_throws_before_allocating")
+{
+  size_t constexpr oversized_capacity = (std::numeric_limits<size_t>::max() / 2u) + 1u;
+  REQUIRE_THROWS_AS(BoundedSPSCQueue{oversized_capacity}, quill::QuillError);
+}
+#endif
 
 TEST_SUITE_END();
 

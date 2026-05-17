@@ -12,10 +12,13 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"
+#include "quill/core/MacroMetadata.h"
 #include "quill/core/QuillError.h"
 #include "quill/sinks/Sink.h"
 
+#include <array>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <string>
 #include <string_view>
@@ -84,9 +87,9 @@ public:
   /**
    * @brief Sets the mapping from quill log levels to systemd levels.
    * This mapping determines which systemd level is used for each quill log level.
-   * @param mapping An array of 11 integers representing systemd levels, one per LogLevel value.
+   * @param mapping An array of LogLevelCount integers representing systemd levels, one per LogLevel value.
    */
-  QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, 11> mapping)
+  QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, LogLevelCount> mapping)
   {
     _log_level_mapping = mapping;
   }
@@ -101,7 +104,7 @@ public:
 
 private:
   std::string _identifier;
-  std::array<int, 11> _log_level_mapping = {
+  std::array<int, LogLevelCount> _log_level_mapping = {
     // Mapping from quill log levels to systemd levels:
     /* "TRACE_L3" */ LOG_DEBUG,   /* "TRACE_L2" */ LOG_DEBUG,
     /* "TRACE_L1" */ LOG_DEBUG,   /* "DEBUG"    */ LOG_DEBUG,

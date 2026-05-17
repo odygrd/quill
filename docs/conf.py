@@ -37,43 +37,43 @@ html_extra_path = ['build/quill.tag'] if tagfile_path.exists() else []
 
 html_theme = "sphinx_immaterial"
 html_theme_options = {
-  "site_url": "https://quill.readthedocs.io/",
-  "repo_url": "https://github.com/odygrd/quill",
-  "repo_name": "quill",
-  "icon": {"repo": "fontawesome/brands/github"},
-  "features": [
-    "navigation.tabs",
-    "navigation.tabs.sticky",
-    "navigation.sections",
-    "navigation.top",
-    "toc.integrate",
-    "toc.follow",
-    "search.highlight",
-    "search.share",
-    "content.code.copy",
-  ],
-  "palette": [
-    {
-      "media": "(prefers-color-scheme: light)",
-      "scheme": "default",
-      "primary": "white",
-      "accent": "blue",
-      "toggle": {
-        "icon": "material/weather-night",
-        "name": "Switch to dark mode",
-      },
-    },
-    {
-      "media": "(prefers-color-scheme: dark)",
-      "scheme": "slate",
-      "primary": "black",
-      "accent": "blue",
-      "toggle": {
-        "icon": "material/weather-sunny",
-        "name": "Switch to light mode",
-      },
-    }
-  ],
+    "site_url": "https://quill.readthedocs.io/",
+    "repo_url": "https://github.com/odygrd/quill",
+    "repo_name": "quill",
+    "icon": {"repo": "fontawesome/brands/github"},
+    "features": [
+        "navigation.tabs",
+        "navigation.tabs.sticky",
+        "navigation.sections",
+        "navigation.top",
+        "toc.integrate",
+        "toc.follow",
+        "search.highlight",
+        "search.share",
+        "content.code.copy",
+    ],
+    "palette": [
+        {
+            "media": "(prefers-color-scheme: light)",
+            "scheme": "default",
+            "primary": "white",
+            "accent": "blue",
+            "toggle": {
+                "icon": "material/weather-night",
+                "name": "Switch to dark mode",
+            },
+        },
+        {
+            "media": "(prefers-color-scheme: dark)",
+            "scheme": "slate",
+            "primary": "black",
+            "accent": "blue",
+            "toggle": {
+                "icon": "material/weather-sunny",
+                "name": "Switch to light mode",
+            },
+        }
+    ],
 }
 html_logo = "quill_logo.png"
 html_static_path = ['_static']

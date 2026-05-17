@@ -74,12 +74,12 @@ jobs:
             cmake_options: -DQUILL_ENABLE_GCC_HARDENING=ON
             install: sudo apt -o Acquire::Retries=5 install g++-14
 
-            # Builds the examples with no exceptions
+            # Builds and tests with no exceptions
           - cxx: g++-10
             build_type: Release
             std: 17
             os: ubuntu-22.04
-            with_tests: OFF
+            with_tests: ON
             cmake_options: -DQUILL_NO_EXCEPTIONS=ON
 
             # Build and test with valgrind

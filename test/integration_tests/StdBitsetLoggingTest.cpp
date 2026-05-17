@@ -45,6 +45,26 @@ TEST_CASE("std_bitset_logging")
   std::bitset<64> const wide_bits{
     "1000000000000000000000000000000000000000000000000000000000000001"};
 
+  // N > 64 exercises the fallback bit-by-bit encode/decode path (no to_ullong() fast path).
+  std::bitset<65> huge_bits{};
+  huge_bits.set(0);
+  huge_bits.set(64);
+  huge_bits.set(33);
+
+  std::bitset<128> const huge_all_one_bits{
+    "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    "1111111111111111111111111111111111"};
+
+  std::bitset<200> const huge_all_zero_bits{};
+
+  std::bitset<131> sparse_huge_bits{};
+  sparse_huge_bits.set(1);
+  sparse_huge_bits.set(7);
+  sparse_huge_bits.set(63);
+  sparse_huge_bits.set(64);
+  sparse_huge_bits.set(127);
+  sparse_huge_bits.set(130);
+
   LOG_INFO(logger, "byte_bits {}", byte_bits);
   LOG_INFO(logger, "packed_bits {}", packed_bits);
   LOG_INFO(logger, "single_bit {}", single_bit);
@@ -52,6 +72,10 @@ TEST_CASE("std_bitset_logging")
   LOG_INFO(logger, "all_one_bits {}", all_one_bits);
   LOG_INFO(logger, "wide_bits {}", wide_bits);
   LOG_INFO(logger, "temp_bits {}", std::bitset<10>{"1100110011"});
+  LOG_INFO(logger, "huge_bits {}", huge_bits);
+  LOG_INFO(logger, "huge_all_one_bits {}", huge_all_one_bits);
+  LOG_INFO(logger, "huge_all_zero_bits {}", huge_all_zero_bits);
+  LOG_INFO(logger, "sparse_huge_bits {}", sparse_huge_bits);
 
   logger->flush_log();
   Frontend::remove_logger(logger);
@@ -79,6 +103,18 @@ TEST_CASE("std_bitset_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, logger_name + " temp_bits " + fmtquill::format("{}", std::bitset<10>{"1100110011"})));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, logger_name + " huge_bits " + fmtquill::format("{}", huge_bits)));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, logger_name + " huge_all_one_bits " + fmtquill::format("{}", huge_all_one_bits)));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, logger_name + " huge_all_zero_bits " + fmtquill::format("{}", huge_all_zero_bits)));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, logger_name + " sparse_huge_bits " + fmtquill::format("{}", sparse_huge_bits)));
 
   testing::remove_file(filename);
 }

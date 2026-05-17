@@ -11,6 +11,10 @@ using namespace quill;
 /***/
 TEST_CASE("error_notifier_disabled")
 {
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#endif
+
   static constexpr char const* filename = "error_notifier_disabled.log";
 
   BackendOptions backend_options;

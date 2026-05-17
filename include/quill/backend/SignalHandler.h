@@ -35,8 +35,6 @@
     #define NOMINMAX
   #endif
 
-  #include <chrono>
-  #include <thread>
   #include <windows.h>
 #else
   #include <unistd.h>
@@ -54,6 +52,8 @@ struct SignalHandlerOptions
   /**
    * List of signals that the backend should catch if with_signal_handler is enabled.
    * Enabling the built-in signal handler overrides the process handlers for these signals.
+   * On Windows, Backend::start() does not consume this list; pass the desired signals to
+   * init_signal_handler<TFrontendOptions>() on each thread that needs CRT signal handling.
    */
   std::vector<int> catchable_signals{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV};
 
@@ -273,7 +273,7 @@ void on_signal(int32_t signal_number)
     // invocation of a signal-catching function.
 
 #if defined(_WIN32)
-    std::this_thread::sleep_for(std::chrono::hours{24000});
+    detail::sleep_for_ns(24'000ull * 3'600ull * 1'000'000'000ull); // 24000 hours
 #else
     pause();
 #endif
@@ -326,7 +326,7 @@ void on_signal(int32_t signal_number)
     {
       char const* const signal_desc = get_signal_description(signal_number);
 
-      auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
+      auto logger = static_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
       QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Info, "Received signal: {} (signum: {})",
                                signal_desc, signal_number);
 
@@ -368,7 +368,16 @@ void on_signal(int32_t signal_number)
 } // namespace detail
 
 /**
- * Setups a signal handler to handle fatal signals
+ * Setups a signal handler to handle fatal signals.
+ *
+ * @note The POSIX path calls std::signal/std::raise and takes a timed alarm. The handler itself
+ *       also invokes LoggerManager lookups and frontend log_statement()/flush_log() calls, which
+ *       are not strictly async-signal-safe. This is intentional: the built-in handler is a
+ *       best-effort crash-preservation facility, not a universal async-signal-safe logging API.
+ *       See the FAQ ("Why is the signal handler best-effort?") and overview.rst for the full list
+ *       of caveats, in particular the requirement that any thread which may run the handler has
+ *       either already logged once, called Frontend::preallocate(), or has the handled signals
+ *       blocked on that thread.
  */
 #if defined(_WIN32)
 namespace detail
@@ -439,7 +448,7 @@ BOOL WINAPI on_console_signal(DWORD signal)
 
     if (logger_base)
     {
-      auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
+      auto logger = static_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
       QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Info,
                                "Program interrupted by Ctrl+C or Ctrl+Break signal");
 
@@ -467,7 +476,7 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
 
     if (logger_base)
     {
-      auto logger = reinterpret_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
+      auto logger = static_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
 
       QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Info, "Received exception: {} (Code: {})",
                                get_error_message(exception_p->ExceptionRecord->ExceptionCode),
@@ -492,6 +501,24 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
 
 /***/
 template <typename TFrontendOptions>
+void deinit_exception_handler()
+{
+  auto& ctx = detail::SignalHandlerContext::instance();
+  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
+
+  if (ctx.console_ctrl_handler_installed)
+  {
+    SetConsoleCtrlHandler(on_console_signal<TFrontendOptions>, FALSE);
+    ctx.console_ctrl_handler_installed = false;
+  }
+
+  SetUnhandledExceptionFilter(ctx.previous_exception_filter);
+  ctx.previous_exception_filter = nullptr;
+  ctx.exception_handler_deinit_callback = nullptr;
+}
+
+/***/
+template <typename TFrontendOptions>
 void init_exception_handler()
 {
   auto& ctx = detail::SignalHandlerContext::instance();
@@ -510,29 +537,14 @@ void init_exception_handler()
   ctx.exception_handler_deinit_callback = &deinit_exception_handler<TFrontendOptions>;
   ctx.console_ctrl_handler_installed = true;
 }
-
-template <typename TFrontendOptions>
-void deinit_exception_handler()
-{
-  auto& ctx = detail::SignalHandlerContext::instance();
-  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
-
-  if (ctx.console_ctrl_handler_installed)
-  {
-    SetConsoleCtrlHandler(on_console_signal<TFrontendOptions>, FALSE);
-    ctx.console_ctrl_handler_installed = false;
-  }
-
-  SetUnhandledExceptionFilter(ctx.previous_exception_filter);
-  ctx.previous_exception_filter = nullptr;
-  ctx.exception_handler_deinit_callback = nullptr;
-}
 } // namespace detail
 
 QUILL_BEGIN_EXPORT
 
 /**
  * On windows, it has to be called on each thread
+ * Do not call it from the backend worker thread; signal handling is intended for frontend/user
+ * threads so the handler can safely flush through the backend.
  * @param catchable_signals the signals we are catching
  */
 template <typename TFrontendOptions>

@@ -43,7 +43,7 @@ def generate_chart_url(markdown_table, title):
             'categoryPercentage': 0.9  # Adjust spacing between bars
         }
         datasets.append(dataset)
-        
+
     # Construct the QuickChart URL
     chart_config = {
         'type': 'bar',

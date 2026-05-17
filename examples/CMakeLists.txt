@@ -1,7 +1,17 @@
 add_subdirectory(recommended_usage)
 add_subdirectory(shared_library)
 
-find_package(prometheus-cpp QUIET CONFIG)
+# Opt-in: the prometheus-cpp example is only built when QUILL_BUILD_EXAMPLE_PROMETHEUS=ON.
+# We do not call find_package(prometheus-cpp) unconditionally because a broken or partial
+# install on CMAKE_PREFIX_PATH can raise FATAL_ERROR from its targets file and abort our
+# configure step entirely.
+set(QUILL_PROMETHEUS_AVAILABLE FALSE)
+if (QUILL_BUILD_EXAMPLE_PROMETHEUS)
+    find_package(prometheus-cpp REQUIRED CONFIG)
+    if (TARGET prometheus-cpp::core AND TARGET prometheus-cpp::pull)
+        set(QUILL_PROMETHEUS_AVAILABLE TRUE)
+    endif ()
+endif ()
 
 # Define a variable with all example targets
 set(EXAMPLE_TARGETS
@@ -24,6 +34,7 @@ set(EXAMPLE_TARGETS
         quill_example_custom_frontend_options
         quill_example_file_logging
         quill_example_filter_logging
+        quill_example_mdc_logging
         quill_example_system_clock_logging
         quill_example_user_clock_source
         quill_example_user_defined_filter
@@ -41,7 +52,7 @@ set(EXAMPLE_TARGETS
         quill_example_user_defined_types_logging_helper_macros
 )
 
-if (TARGET prometheus-cpp::core AND TARGET prometheus-cpp::pull)
+if (QUILL_PROMETHEUS_AVAILABLE)
     list(APPEND EXAMPLE_TARGETS quill_example_metric_publishing_prometheus)
 endif ()
 

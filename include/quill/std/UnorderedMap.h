@@ -32,6 +32,15 @@ QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
 
+/**
+ * @note compute_encoded_size() and encode() iterate the container twice in immediate succession
+ *       on the frontend hot path, and their traversals must visit the same elements in the same
+ *       order. For std::unordered_map / std::unordered_multimap the iteration order is determined
+ *       by `Hash(key) % bucket_count`; with the default std::hash this is stable across both
+ *       passes because no insert, erase, or rehash happens between them. Non-deterministic custom
+ *       hashes (e.g. salted or time-seeded) are not supported — they can change iteration order
+ *       between the two passes and silently corrupt the encoded payload.
+ */
 template <template <typename...> class UnorderedMapType, typename Key, typename T, typename Hash, typename KeyEqual, typename Allocator>
 struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
              std::enable_if_t<std::disjunction_v<
@@ -39,7 +48,7 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
                std::is_same<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>, std::unordered_multimap<Key, T, Hash, KeyEqual, Allocator>>>>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> const& arg) noexcept
+                                     UnorderedMapType<Key, T, Hash, KeyEqual, Allocator> const& arg)
   {
     // We need to store the size of the set in the buffer, so we reserve space for it.
     // We add sizeof(size_t) bytes to accommodate the size information.
@@ -69,7 +78,7 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 

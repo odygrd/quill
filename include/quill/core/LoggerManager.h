@@ -277,27 +277,36 @@ public:
   {
     if (_has_invalidated_loggers.exchange(false, std::memory_order_acq_rel))
     {
-      LockGuard const lock{_spinlock};
-      for (auto it = _loggers.begin(); it != _loggers.end();)
+      // Defer logger destruction until after _spinlock is released. Destroying a logger drops
+      // its sink refcounts, and the last owner runs the sink destructor here, which may invoke
+      // user-provided file-event callbacks (e.g. before_close/after_close). Running arbitrary
+      // user code under _spinlock could stall frontend logger lookups or deadlock.
+      std::vector<std::unique_ptr<LoggerBase>> loggers_to_destroy;
+
       {
-        if (!it->get()->is_valid_logger())
+        LockGuard const lock{_spinlock};
+        for (auto it = _loggers.begin(); it != _loggers.end();)
         {
-          // invalid logger, check if the logger has any pending records in the queue
-          if (!check_queues_empty())
+          if (!it->get()->is_valid_logger())
           {
-            // we have pending records in the queue, we can not remove the logger yet
-            ++it;
-            _has_invalidated_loggers.store(true, std::memory_order_release);
+            // invalid logger, check if the logger has any pending records in the queue
+            if (!check_queues_empty())
+            {
+              // we have pending records in the queue, we can not remove the logger yet
+              ++it;
+              _has_invalidated_loggers.store(true, std::memory_order_release);
+            }
+            else
+            {
+              removed_loggers.push_back(it->get()->get_logger_name());
+              loggers_to_destroy.push_back(static_cast<std::unique_ptr<LoggerBase>&&>(*it));
+              it = _loggers.erase(it);
+            }
           }
           else
           {
-            removed_loggers.push_back(it->get()->get_logger_name());
-            it = _loggers.erase(it);
+            ++it;
           }
-        }
-        else
-        {
-          ++it;
         }
       }
     }
@@ -333,7 +342,16 @@ public:
 
     if (!log_level.empty())
     {
-      _env_log_level = loglevel_from_string(log_level);
+      QUILL_TRY { _env_log_level = loglevel_from_string(log_level); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(QuillError const& e)
+      {
+        // Add the environment variable name to the error, otherwise the failure surfaces from
+        // the first logger creation with no hint about where the invalid value came from
+        QUILL_THROW(QuillError{
+          std::string{"invalid \"QUILL_LOG_LEVEL\" environment variable value - "} + e.what()});
+      }
+#endif
     }
   }
 

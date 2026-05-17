@@ -35,6 +35,12 @@ public:
 
   /**
    * Returns time since epoch in nanoseconds
+   *
+   * @note Values returned by successive calls to now() should be monotonically non-decreasing.
+   *       The backend skips strict timestamp-ordering enforcement for logger objects using a
+   *       UserClockSource (the clock is assumed authoritative), so a clock that steps backwards
+   *       will produce log lines that appear out of timestamp order in the output.
+   *
    * @return The current timestamp in nanoseconds
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT virtual uint64_t now() const = 0;

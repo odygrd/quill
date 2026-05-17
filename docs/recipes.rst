@@ -354,6 +354,42 @@ Outputs:
 
     string and vector [w: wide, wv: ["wide", "string"]]
 
+Logging std::variant, std::bitset, std::complex, std::error_code
+----------------------------------------------------------------
+Quill ships codecs for a wide range of standard library types beyond containers.
+Include the matching header from ``quill/std/`` to log each type directly.
+
+.. code:: cpp
+
+    #include "quill/std/Variant.h"
+    #include "quill/std/Bitset.h"
+    #include "quill/std/Complex.h"
+    #include "quill/std/SystemError.h"
+
+    std::variant<int, std::string> v{"active"};
+    std::bitset<8> flags{0b10110010};
+    std::complex<double> z{1.5, -2.0};
+    std::error_code ec = std::make_error_code(std::errc::timed_out);
+
+    LOG_INFO(logger, "variant {} bitset {} complex {} error {}", v, flags, z, ec);
+
+These codecs follow the same rules as the container codecs — they can be freely nested inside
+other ``quill/std`` containers (e.g. ``std::vector<std::variant<...>>``).
+
+Logging std::chrono Types
+-------------------------
+Include ``quill/std/Chrono.h`` to log ``std::chrono::system_clock::time_point``,
+``std::chrono::duration``, ``std::chrono::year_month_day``, weekdays, and the other calendar and
+time-of-day types from ``<chrono>``. Formatting matches ``fmt``'s chrono specifiers, so format specs
+like ``{:%Y-%m-%d %H:%M:%S}`` or ``{:%Q %q}`` work as expected.
+
+.. code:: cpp
+
+    #include "quill/std/Chrono.h"
+
+    auto now = std::chrono::system_clock::now();
+    LOG_INFO(logger, "now is {:%Y-%m-%d %H:%M:%S}", now);
+
 Logging User Defined Types
 --------------------------
 To log user-defined types, you need to define how they should be serialized or converted to a string before passing them to the logger. There are several ways to achieve this:

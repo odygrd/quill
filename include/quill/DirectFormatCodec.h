@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string_view>
+#include <type_traits>
 
 QUILL_BEGIN_NAMESPACE
 
@@ -85,14 +86,35 @@ QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
 
+/**
+ * @note The user-provided `fmtquill::formatter<T>` must be a pure function of `arg`: its output
+ *       must depend only on the argument and produce the same byte count every time it is
+ *       invoked on the same value. This is required because the formatter runs twice on the
+ *       frontend: once in compute_encoded_size() to determine the buffer size, and again in
+ *       encode() to write the bytes. The same property allows the codec to be used with view
+ *       types (e.g. fmtquill::join_view) — for views we additionally construct a temporary
+ *       T{arg} each time, since fmt disallows formatting view types as lvalues.
+ */
 template <typename T>
 struct DirectFormatCodec
 {
   static size_t compute_encoded_size(quill::detail::SizeCacheVector& conditional_arg_size_cache, T const& arg)
   {
-    // The computed size includes the size of the length field
-    return sizeof(uint32_t) +
-      conditional_arg_size_cache.push_back(static_cast<uint32_t>(fmtquill::formatted_size("{}", arg)));
+    // The computed size includes the size of the length field.
+    // Note: this formats the argument once to measure it, and encode() formats it again to
+    // write the bytes — two formatting passes per argument on the frontend hot path.
+    if constexpr (fmtquill::detail::is_view<T>::value)
+    {
+      return sizeof(uint32_t) +
+        conditional_arg_size_cache.push_back(
+          detail::clamp_encoded_string_length(fmtquill::formatted_size("{}", T{arg})));
+    }
+    else
+    {
+      return sizeof(uint32_t) +
+        conditional_arg_size_cache.push_back(
+          detail::clamp_encoded_string_length(fmtquill::formatted_size("{}", arg)));
+    }
   }
 
   static void encode(std::byte*& buffer, quill::detail::SizeCacheVector const& conditional_arg_size_cache,
@@ -101,7 +123,22 @@ struct DirectFormatCodec
     uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
     std::memcpy(buffer, &len, sizeof(len));
     buffer += sizeof(len);
-    fmtquill::format_to_n(reinterpret_cast<char*>(buffer), len, "{}", arg);
+
+    if constexpr (fmtquill::detail::is_view<T>::value)
+    {
+      // fmt disallows formatting view types as lvalues; formatting a temporary copy keeps
+      // DirectFormatCodec usable for cheap fmt views such as fmtquill::join_view.
+      QUILL_MAYBE_UNUSED auto const result =
+        fmtquill::format_to_n(reinterpret_cast<char*>(buffer), len, "{}", T{arg});
+      assert_formatted_size_matches_encoded_size(result.size, len);
+    }
+    else
+    {
+      QUILL_MAYBE_UNUSED auto const result =
+        fmtquill::format_to_n(reinterpret_cast<char*>(buffer), len, "{}", arg);
+      assert_formatted_size_matches_encoded_size(result.size, len);
+    }
+
     buffer += len;
   }
 
@@ -114,6 +151,27 @@ struct DirectFormatCodec
   {
     args_store->push_back(decode_arg(buffer));
   }
+
+private:
+  static void assert_formatted_size_matches_encoded_size(QUILL_MAYBE_UNUSED size_t formatted_size,
+                                                         QUILL_MAYBE_UNUSED uint32_t len) noexcept
+  {
+    // The formatter must be pure: the size probed via formatted_size() in
+    // compute_encoded_size() must match what format_to_n() actually produces. A mismatch
+    // means the user's fmtquill::formatter<T> is non-deterministic, which silently
+    // truncates or leaves garbage bytes in the encoded log message.
+    QUILL_ASSERT(static_cast<uint32_t>(formatted_size) == len,
+                 "DirectFormatCodec: fmtquill::formatter<T> produced a different byte count "
+                 "between formatted_size() and format_to_n(). The formatter must be a pure "
+                 "function of its argument");
+  }
+};
+
+// fmt views, e.g. fmtquill::join_view, are provided by optional fmt headers. Detect them
+// through fmt's view trait instead of naming each view type or including those headers here.
+template <typename T>
+struct Codec<T, std::enable_if_t<fmtquill::detail::is_view<T>::value>> : DirectFormatCodec<T>
+{
 };
 
 QUILL_END_EXPORT

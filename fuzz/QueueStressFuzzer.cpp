@@ -9,7 +9,10 @@
 // - All type encoding paths: basic types, char const*, char arrays, custom codecs, enums
 
 #define FUZZER_LOG_FILENAME "queue_stress_fuzz.log"
-#define FUZZER_IMMEDIATE_FLUSH_LIMIT 65536 // 32x higher than default for queue stress
+// Higher than the 2048 default so the backend lags behind and the queue grows, but bounded:
+// with large messages (up to 1 MiB in strategy 8) a bigger window lets the unflushed backlog
+// grow past the memory of a standard CI runner and the kernel OOM-kills the fuzzer.
+#define FUZZER_IMMEDIATE_FLUSH_LIMIT 4096
 
 #include "FuzzerHelper.h"
 
@@ -338,9 +341,11 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 
   case 8:
   {
-    // Strategy 8: Extremely large single messages (256KB - 4MB range)
+    // Strategy 8: Extremely large single messages (256KB - 1MB range)
     // This stresses: very large allocations, queue capacity expansion
-    size_t large_sizes[] = {262144, 524288, 1048576, 2097152, 4194304}; // 256KB, 512KB, 1MB, 2MB, 4MB
+    // Capped at 1MB: combined with FUZZER_IMMEDIATE_FLUSH_LIMIT the unflushed backlog must
+    // stay well below the memory of a standard CI runner.
+    size_t large_sizes[] = {262144, 524288, 1048576}; // 256KB, 512KB, 1MB
     uint8_t size_idx = extractor.get_byte() % (sizeof(large_sizes) / sizeof(large_sizes[0]));
     size_t target_size = large_sizes[size_idx];
 

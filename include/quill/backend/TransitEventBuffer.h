@@ -83,7 +83,10 @@ public:
 
   QUILL_ATTRIBUTE_HOT void pop_front() noexcept { ++_reader_pos; }
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* back() noexcept
+  /**
+   * Expands the buffer when full, so it can throw on allocation failure
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* back()
   {
     if (_capacity == size())
     {

@@ -150,7 +150,7 @@ TEST_CASE("tags_logging")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       [ #TAG_B ] Null tag handling"}));
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_TRACE_L1  " + logger_name + "       [ #] Single null tag"}));
+    file_contents, std::string{"LOG_TRACE_L1  " + logger_name + "       [ ] Single null tag"}));
 
   testing::remove_file(filename);
 }

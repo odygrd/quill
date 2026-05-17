@@ -43,7 +43,8 @@ void illegal_instruction(quill::Logger* logger)
 int main()
 {
 #if defined(_WIN32)
-  // NOTE: On windows a signal handler must be installed on each new thread
+  // NOTE: On Windows a CRT signal handler must be installed on each frontend/user thread
+  // that needs CRT signal handling. Do not install it on the backend worker thread.
   quill::init_signal_handler<quill::FrontendOptions>();
 #endif
 
@@ -63,7 +64,7 @@ int main()
       [logger]()
       {
 #if defined(_WIN32)
-        // NOTE: On windows the signal handler must be installed on each new thread
+        // NOTE: On Windows the CRT signal handler must be installed on each frontend/user thread.
         quill::init_signal_handler<quill::FrontendOptions>();
 #endif
         // sleep for 1 second so all threads are ready

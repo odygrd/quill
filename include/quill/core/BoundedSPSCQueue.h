@@ -16,7 +16,6 @@
   #include <malloc.h>
 #else
   #include <sys/mman.h>
-  #include <unistd.h>
 #endif
 
 #if defined(QUILL_X86ARCH)
@@ -44,8 +43,8 @@ namespace detail
 {
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(push)
-#pragma warning(disable : 4324)
+  #pragma warning(push)
+  #pragma warning(disable : 4324)
 #endif
 
 /**
@@ -57,23 +56,29 @@ class BoundedSPSCQueueImpl
 public:
   using integer_type = T;
 
+  static_assert(integer_type{0} < static_cast<integer_type>(~integer_type{0}),
+                "BoundedSPSCQueueImpl integer_type must be unsigned");
+
   struct WriteReservation
   {
     std::byte* write_buffer{nullptr};
     integer_type writer_pos{0};
+    BoundedSPSCQueueImpl* bounded_queue{nullptr};
   };
 
   QUILL_ATTRIBUTE_HOT explicit BoundedSPSCQueueImpl(integer_type capacity,
                                                     HugePagesPolicy huge_pages_policy = HugePagesPolicy::Never,
                                                     integer_type reader_store_percent = 5)
-    : _capacity(next_power_of_two(capacity)),
+    : _capacity(_validate_capacity(capacity)),
       _mask(_capacity - 1),
-      _bytes_per_batch(static_cast<integer_type>(static_cast<double>(_capacity * reader_store_percent) / 100.0)),
+      _bytes_per_batch(static_cast<integer_type>(
+        (static_cast<double>(_capacity) * static_cast<double>(reader_store_percent)) / 100.0)),
       _storage(static_cast<std::byte*>(_alloc_aligned(
-        2ull * static_cast<uint64_t>(_capacity), QUILL_CACHE_LINE_ALIGNED, huge_pages_policy))),
+        2u * static_cast<size_t>(_capacity), QUILL_CACHE_LINE_ALIGNED, huge_pages_policy))),
       _huge_pages_policy(huge_pages_policy)
   {
-    std::memset(_storage, 0, 2ull * static_cast<uint64_t>(_capacity));
+    size_t const storage_size = 2u * static_cast<size_t>(_capacity);
+    std::memset(_storage, 0, storage_size);
 
     _atomic_writer_pos.store(0);
     _atomic_reader_pos.store(0);
@@ -83,15 +88,9 @@ public:
 
 #if defined(QUILL_X86ARCH)
     // remove log memory from cache
-    for (uint64_t i = 0; i < (2ull * static_cast<uint64_t>(_capacity)); i += QUILL_CACHE_LINE_SIZE)
+    for (size_t i = 0; i < storage_size; i += QUILL_CACHE_LINE_SIZE)
     {
       _mm_clflush(_storage + i);
-    }
-
-    // load cache lines into memory
-    if (_capacity < 1024)
-    {
-      QUILL_THROW(QuillError{"Capacity must be at least 1024"});
     }
 
     uint64_t const cache_lines = (_capacity >= 2048) ? 32 : 16;
@@ -133,14 +132,14 @@ public:
 
     if (QUILL_UNLIKELY(static_cast<integer_type>(_reader_pos_cache_plus_capacity - writer_pos) < n))
     {
-      return WriteReservation{nullptr, writer_pos};
+      return WriteReservation{nullptr, writer_pos, this};
     }
 
     // _storage is never null after construction; hint lets the compiler
     // eliminate a redundant null-check on the computed write pointer.
     QUILL_ASSUME(_storage != nullptr);
 
-    return WriteReservation{_storage + (writer_pos & _mask), writer_pos};
+    return WriteReservation{_storage + (writer_pos & _mask), writer_pos, this};
   }
 
   QUILL_ATTRIBUTE_HOT void finish_write(integer_type n) noexcept { _writer_pos += n; }
@@ -280,6 +279,67 @@ private:
    * @throws QuillError on failure
    */
 
+  /**
+   * Validate the requested capacity before any allocation happens. Called from the member
+   * initialiser list so that a bad argument throws before mmap/aligned_malloc leaks memory.
+   * The 1024-byte minimum exists on x86 because the constructor warms up cache lines via
+   * _mm_prefetch and assumes the backing region is at least that large.
+   */
+  static integer_type _validate_capacity(QUILL_MAYBE_UNUSED integer_type capacity)
+  {
+#if defined(QUILL_X86ARCH)
+    if (capacity < 1024)
+    {
+      QUILL_THROW(QuillError{"Capacity must be at least 1024"});
+    }
+#endif
+
+    size_t const rounded_capacity = next_power_of_two(static_cast<size_t>(capacity));
+
+    constexpr auto max_integer_capacity = []() constexpr
+    {
+      // avoid including limits
+      if constexpr (sizeof(integer_type) >= sizeof(size_t))
+      {
+        return SIZE_MAX;
+      }
+      else if constexpr (sizeof(integer_type) <= sizeof(uint8_t))
+      {
+        return static_cast<size_t>(UINT8_MAX);
+      }
+      else if constexpr (sizeof(integer_type) <= sizeof(uint16_t))
+      {
+        return static_cast<size_t>(UINT16_MAX);
+      }
+      else if constexpr (sizeof(integer_type) <= sizeof(uint32_t))
+      {
+        return static_cast<size_t>(UINT32_MAX);
+      }
+      else
+      {
+        return static_cast<size_t>(UINT64_MAX);
+      }
+    }();
+
+    if (QUILL_UNLIKELY(rounded_capacity > max_integer_capacity))
+    {
+      QUILL_THROW(QuillError{"BoundedSPSCQueue capacity exceeds the queue position type"});
+    }
+
+    // The logical capacity is tracked as integer_type, but the backing allocation is byte-sized:
+    // two mirrored queue regions plus POSIX alignment metadata. Validate the allocation size in
+    // size_t before multiplying by two, otherwise an extreme capacity can wrap to a tiny mmap.
+    constexpr size_t metadata_size{2u * sizeof(size_t)};
+    constexpr size_t max_rounded_capacity = (SIZE_MAX - metadata_size - QUILL_CACHE_LINE_ALIGNED) / 2u;
+
+    if (QUILL_UNLIKELY(rounded_capacity > max_rounded_capacity))
+    {
+      QUILL_THROW(QuillError{"BoundedSPSCQueue capacity is too large"});
+    }
+
+    return static_cast<integer_type>(rounded_capacity);
+  }
+
   QUILL_NODISCARD static void* _alloc_aligned(size_t size, size_t alignment,
                                               QUILL_MAYBE_UNUSED HugePagesPolicy huge_pages_policy)
   {
@@ -385,7 +445,7 @@ private:
 using BoundedSPSCQueue = BoundedSPSCQueueImpl<size_t>;
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-#pragma warning(pop)
+  #pragma warning(pop)
 #endif
 
 } // namespace detail

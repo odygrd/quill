@@ -54,28 +54,4 @@ TEST_CASE("next_power_of_two_unsigned")
   CHECK(next_power_of_two(std::numeric_limits<std::size_t>::max() / 2 + 1) == max_power_of_2); // Largest possible input
 }
 
-TEST_CASE("next_power_of_two_signed")
-{
-  // Test with positive numbers that are already powers of two
-  CHECK(next_power_of_two(1) == 1);
-  CHECK(next_power_of_two(2) == 2);
-  CHECK(next_power_of_two(4) == 4);
-  CHECK(next_power_of_two(8) == 8);
-  CHECK(next_power_of_two(16) == 16);
-  CHECK(next_power_of_two(1024) == 1024);
-
-  // Test with positive numbers that are not powers of two
-  CHECK(next_power_of_two(0) == 1);
-  CHECK(next_power_of_two(3) == 4);
-  CHECK(next_power_of_two(5) == 8);
-  CHECK(next_power_of_two(6) == 8);
-  CHECK(next_power_of_two(7) == 8);
-  CHECK(next_power_of_two(9) == 16);
-
-  // Test edge cases
-  constexpr int max_power_of_2_signed = (std::numeric_limits<int>::max() >> 1) + 1;
-  CHECK(next_power_of_two(std::numeric_limits<int>::max() - 1) == max_power_of_2_signed); // Handling near overflow case for int
-  CHECK(next_power_of_two(std::numeric_limits<int>::max() / 2 + 1) == max_power_of_2_signed); // Middle large input for int
-}
-
 TEST_SUITE_END();

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/LogLevel.h"
 
 #include <array>
 #include <chrono>
@@ -22,6 +23,24 @@
 
 QUILL_BEGIN_NAMESPACE
 
+namespace detail
+{
+inline void backend_options_default_error_notifier(std::string const& error_message)
+{
+#if !defined(__MINGW32__)
+  std::fprintf(stderr, "%s\n", error_message.data());
+#else
+  // fprintf crashes on mingw gcc 13 for unknown reason
+  std::cerr << error_message.data() << "\n";
+#endif
+}
+
+inline bool backend_options_default_check_printable_char(char c) noexcept
+{
+  return (c >= ' ' && c <= '~') || (c == '\n') || (c == '\t') || (c == '\r');
+}
+} // namespace detail
+
 QUILL_BEGIN_EXPORT
 
 /**
@@ -31,25 +50,8 @@ QUILL_BEGIN_EXPORT
  */
 struct BackendOptions
 {
-private:
-  // Keep these as named helpers instead of lambda default initializers because
-  // Doxygen/Breathe do not parse the lambda-based declarations reliably.
-  static void default_error_notifier(std::string const& error_message)
-  {
-#if !defined(__MINGW32__)
-    std::fprintf(stderr, "%s\n", error_message.data());
-#else
-    // fprintf crashes on mingw gcc 13 for unknown reason
-    std::cerr << error_message.data() << "\n";
-#endif
-  }
+  BackendOptions() = default;
 
-  static bool default_check_printable_char(char c) noexcept
-  {
-    return (c >= ' ' && c <= '~') || (c == '\n') || (c == '\t') || (c == '\r');
-  }
-
-public:
   /**
    * The name assigned to the backend, visible during thread naming queries (e.g.,
    * pthread_getname_np) or in the debugger.
@@ -124,7 +126,7 @@ public:
    * When this option is set to a non-zero value, the backend takes a timestamp (`now()`) before
    * reading the queues. It uses that timestamp to ensure that each log message's timestamp from the
    * frontend queues is less than or equal to the stored `now()` timestamp minus the specified grace
-   * period, guaranteeing ordering by timestamp.
+   * period, reducing the chance of processing events out of timestamp order.
    *
    * Messages that fail the above check remain in the lock-free queue. They are checked again in the
    * next iteration. The timestamp check is performed with microsecond precision.
@@ -137,10 +139,12 @@ public:
    * 3. Frontend thread wakes up and pushes the message with its already-recorded timestamp to the queue.
    * 4. Backend thread reads and writes the delayed timestamp, resulting in an out-of-order log.
    *
-   * Setting this option to a non-zero value causes a minor delay in reading the messages from the
-   * lock-free queues but ensures correct timestamp order.
+   * Setting this option to a non-zero value causes a minor delay in reading messages from the
+   * lock-free queues and protects timestamp ordering within the configured grace window. It does
+   * not guarantee ordering if a frontend thread records a timestamp and is delayed longer than the
+   * grace period before publishing the event to its queue.
    *
-   * Setting `log_timestamp_ordering_grace_period` to zero disables strict timestamp ordering.
+   * Setting `log_timestamp_ordering_grace_period` to zero disables this grace-period delay.
    *
    * - 0μs: Fastest processing, may process messages out of timestamp order
    * - 1-5μs: Good default - minimal delay, occasional reordering possible
@@ -148,9 +152,41 @@ public:
    * - 100μs+: Stricter ordering, but risk of SPSC queue filling up at high throughput logging
    *
    * This compensates for timing differences in when threads push to their queues,
-   * not for timestamp accuracy itself.
+   * not for timestamp accuracy itself. The backend also assumes timestamps within a single
+   * frontend queue are normally non-decreasing; if a wall clock or user-provided clock moves
+   * backwards, `ensure_monotonic_output_timestamps` can correct regular output records.
+   *
+   * `log_timestamp_ordering_grace_period` is the first line of defense: it delays reading newer
+   * queue entries so older timestamped events from other frontend threads have time to arrive.
+   * `ensure_monotonic_output_timestamps` is the optional final correction: if an older timestamped
+   * regular record still reaches the output stage, it can adjust that record's sink-visible
+   * timestamp instead of letting output time move backwards.
    */
   std::chrono::microseconds log_timestamp_ordering_grace_period{5};
+
+  /**
+   * Ensures sink-visible timestamps for regular log and metric records do not move backwards.
+   *
+   * If a regular log or metric record selected for output has a timestamp lower than the last
+   * corrected output timestamp, the backend adjusts it to `last_timestamp + 1` nanosecond before
+   * formatting, filtering, and writing it to sinks. This is useful when a delayed frontend event
+   * escapes the configured grace period or when a clock source moves backwards.
+   *
+   * Backtrace records are excluded because they intentionally preserve the timestamp from when the
+   * backtrace log was captured, even though they are emitted later. Control events such as flush,
+   * logger removal, backtrace setup/flush, and MDC changes are also excluded because they are not
+   * written as output records.
+   *
+   * This option changes the timestamp displayed in the output for corrected records. It does not
+   * affect frontend timestamp capture or the timestamp used to select the next cached event for
+   * processing.
+   *
+   * This option complements `log_timestamp_ordering_grace_period`. The grace period keeps eligible
+   * queue entries back for a bounded amount of time to preserve original timestamps when possible.
+   * This option only applies later, after an event has been selected for output, and only when that
+   * event would otherwise move sink-visible time backwards.
+   */
+  bool ensure_monotonic_output_timestamps = false;
 
   /**
    * When this option is enabled and the application is terminating, the backend worker thread
@@ -162,9 +198,10 @@ public:
    * in a loop from another thread, can prevent the backend from exiting because the queues may
    * never become empty.
    *
-   * When this option is disabled, the backend will try to read the queues once
-   * and then exit. Reading the queues only once means that some log messages can be dropped,
-   * especially when strict_log_timestamp_order is set to true.
+   * When this option is disabled, the backend will try to read the queues once and then exit.
+   * Reading the queues only once means that some log messages can be dropped. This is more likely
+   * when `log_timestamp_ordering_grace_period` is non-zero, because the grace-period cutoff can
+   * intentionally leave newer queue entries unread until a later poll.
    */
   bool wait_for_queues_to_empty_before_exit = true;
 
@@ -176,6 +213,9 @@ public:
    *
    * @note On macOS, only the first entry is used because the platform does not expose a per-core
    *       affinity API equivalent to Linux/Windows CPU masks.
+   * @note On Windows, CPU IDs are relative to the backend thread's current processor group
+   *       because this option uses SetThreadAffinityMask. Leave this empty and use a custom
+   *       backend-thread hook if your application needs group-aware affinity.
    */
   std::vector<uint16_t> cpu_affinity;
 
@@ -192,23 +232,27 @@ public:
    * Disabling this callback does not suppress Quill's fallback formatting-error entries written
    * to sinks. It only disables the callback notifications themselves.
    *
-   * It's safe to perform logging operations within this function (e.g., LOG_INFO(...)),
-   * but avoid calling logger->flush_log(). The function is invoked on the backend thread,
-   * which should not remain in a waiting state as it waits for itself.
+   * It's safe to perform logging operations within this function (e.g., LOG_INFO(...)).
+   * Calling logger->flush_log(), Backend::stop(), or Frontend::remove_logger_blocking() from the
+   * backend thread throws QuillError because the backend cannot wait on itself. If the logger has
+   * immediate flush enabled, the implicit flush is silently skipped for backend-thread log calls so
+   * generic logging code reused on the backend remains safe.
    */
-  std::function<void(std::string const&)> error_notifier{default_error_notifier};
+  std::function<void(std::string const&)> error_notifier{detail::backend_options_default_error_notifier};
 
   /**
    * Optional hook executed by the backend worker thread at the start of each poll iteration.
    * Any exceptions thrown are forwarded to error_notifier. Useful for thread instrumentation
-   * (e.g., Tracy). Use a guard if you need a one-time action.
+   * (e.g., Tracy). Use a guard if you need a one-time action. The same backend-thread
+   * flush behavior as error_notifier applies.
    */
   std::function<void()> backend_worker_on_poll_begin = {};
 
   /**
    * Optional hook executed by the backend worker thread at the end of each poll iteration.
    * Any exceptions thrown are forwarded to error_notifier. Useful for thread instrumentation
-   * (e.g., Tracy). Use a guard if you need a one-time action.
+   * (e.g., Tracy). Use a guard if you need a one-time action. The same backend-thread
+   * flush behavior as error_notifier applies.
    */
   std::function<void()> backend_worker_on_poll_end = {};
 
@@ -257,14 +301,14 @@ public:
    * To disable this check, you can provide:
    *   std::function<bool(char c)> check_printable_char = {}
    */
-  std::function<bool(char c)> check_printable_char{default_check_printable_char};
+  std::function<bool(char c)> check_printable_char{detail::backend_options_default_check_printable_char};
 
   /**
    * Holds descriptive names for various log levels used in logging operations.
    * The indices correspond to LogLevel enum values defined elsewhere in the codebase.
    * These names provide human-readable identifiers for each log level.
    */
-  std::array<std::string, 11> log_level_descriptions = {
+  std::array<std::string, LogLevelCount> log_level_descriptions = {
     "TRACE_L3", "TRACE_L2", "TRACE_L1", "DEBUG",     "INFO", "NOTICE",
     "WARNING",  "ERROR",    "CRITICAL", "BACKTRACE", "NONE"};
 
@@ -274,8 +318,8 @@ public:
    * Provides short codes representing each log level for compact identification and usage.
    * The indices correspond to LogLevel enum values defined elsewhere in the codebase.
    */
-  std::array<std::string, 11> log_level_short_codes = {"T3", "T2", "T1", "D",  "I", "N",
-                                                       "W",  "E",  "C",  "BT", "_"};
+  std::array<std::string, LogLevelCount> log_level_short_codes = {"T3", "T2", "T1", "D",  "I", "N",
+                                                                  "W",  "E",  "C",  "BT", "_"};
 
   /**
    * Format string used when rendering PatternFormatter's `%(mdc)`.

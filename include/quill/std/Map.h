@@ -38,7 +38,7 @@ struct Codec<MapType<Key, T, Compare, Allocator>,
                                                  std::is_same<MapType<Key, T, Compare, Allocator>, std::multimap<Key, T, Compare, Allocator>>>>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     MapType<Key, T, Compare, Allocator> const& arg) noexcept
+                                     MapType<Key, T, Compare, Allocator> const& arg)
   {
     // We need to store the size of the map in the buffer, so we reserve space for it.
     // We add sizeof(size_t) bytes to accommodate the size information.
@@ -68,7 +68,7 @@ struct Codec<MapType<Key, T, Compare, Allocator>,
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 

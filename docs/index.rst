@@ -5,6 +5,8 @@
 
 Fast asynchronous logging and metrics for low-latency C++ applications.
 
+Quill keeps formatting and I/O off your hot threads: ``LOG_*`` macros binary-serialize arguments into a thread-local lock-free queue, and a single backend worker reconstructs, timestamp-orders, formats, and writes them.
+
 Quick Example
 -------------
 
@@ -24,6 +26,16 @@ A macro-free interface (``quill::info()``, ``quill::warning()``, ...) is also av
 Use :doc:`Quick Start <quick_start>` for the smallest setup, or move to the full
 ``Backend`` / ``Frontend`` APIs when you need custom sinks, multiple loggers, metrics,
 or more explicit lifecycle control.
+
+Highlights
+----------
+
+- **Nanosecond hot path** — binary-copy arguments into a per-thread SPSC queue, defer formatting to the backend.
+- **Timestamp-ordered logs** — a single backend worker merges events from all frontend queues chronologically.
+- **Publish metrics on the same pipeline** — send :doc:`pre-registered metric samples <metrics>` to Prometheus, StatsD, OpenTelemetry, or any custom collector through the same backend worker (built-in ``PrometheusSink`` included). Quill is the low-latency transport, not a metrics system itself.
+- **Mapped Diagnostic Context** — attach per-thread key/value context that appears on subsequent log lines automatically. See :doc:`MDC <mdc>`.
+- **Rich STL and user-type support** — codecs for ``std::vector``, ``std::map``, ``std::variant``, ``std::chrono``, ``std::bitset``, ``std::complex``, ``std::error_code``, nested containers, and your own types.
+- **Structured JSON output**, rotating sinks, filters, backtrace logging, custom clocks, and more.
 
 Start Here
 ----------

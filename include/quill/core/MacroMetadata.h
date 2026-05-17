@@ -153,7 +153,7 @@ public:
           ++char_cnt;
         }
 
-        if ((char_cnt != 0) && ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z')))
+        if ((char_cnt != 0) && ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z') || (fc == '_')))
         {
           found_named_arg = true;
         }
@@ -185,14 +185,22 @@ private:
   /***/
   QUILL_NODISCARD constexpr uint16_t _calc_colon_separator_pos() const noexcept
   {
-    std::string_view const source_loc{_source_location};
-    auto const separator_index = source_loc.rfind(':');
-    if (separator_index == std::string_view::npos)
+    // std::string_view::rfind is only constexpr from C++20
+    size_t length = 0;
+    while (_source_location[length] != '\0')
     {
-      return static_cast<uint16_t>(source_loc.size());
+      ++length;
     }
 
-    return static_cast<uint16_t>(separator_index);
+    for (size_t i = length; i > 0; --i)
+    {
+      if (_source_location[i - 1] == ':')
+      {
+        return static_cast<uint16_t>(i - 1);
+      }
+    }
+
+    return static_cast<uint16_t>(length);
   }
 
 private:

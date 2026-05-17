@@ -325,10 +325,10 @@ TEST_CASE("custom_pattern_timestamp_strftime_reallocation_when_adding_fractional
   }
 }
 
-#ifndef QUILL_NO_EXCEPTIONS
 TEST_CASE("invalid_pattern")
 {
   // missing %)
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(PatternFormatter(PatternFormatterOptions{
                       "%(time [%(thread_id)] %(file_name):%(line_number) %(log_level) %(logger) "
                       "%(message) [%(caller_function)]",
@@ -342,8 +342,77 @@ TEST_CASE("invalid_pattern")
       "%(message) [%(caller_function)]",
       "%H:%M:%S.%Qns", Timezone::GmtTime, false}),
     quill::QuillError);
-}
+
+  // duplicate attribute would otherwise bind one placeholder to an unset fmt argument
+  REQUIRE_THROWS_AS(
+    PatternFormatter(PatternFormatterOptions{"%(time) [%(thread_id)] %(message) %(message)",
+                                             "%H:%M:%S.%Qns", Timezone::GmtTime, false}),
+    quill::QuillError);
 #endif
+}
+
+TEST_CASE("pattern_with_percent_not_followed_by_paren_is_literal")
+{
+  // A stray '%' not followed by '(' must be treated as a literal character, not crash the parser
+  // (verifies the short-circuit guard in the pattern-parse loop against an npos underflow when
+  // find_first_of('(', ...) finds no subsequent '(' in the remainder of the pattern).
+  // Quill does not do %% escaping; a bare '%' stays literal.
+  PatternFormatter formatter{
+    PatternFormatterOptions{"progress 50% | %(message)", "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  fmtquill::memory_buffer log_msg;
+  fmtquill::format_to(std::back_inserter(log_msg), fmtquill::runtime(macro_metadata.message_format()));
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+  auto const& formatted_buffer =
+    formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata,
+                     &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
+
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+  REQUIRE_EQ(formatted_string, "progress 50% | hello\n");
+}
+
+TEST_CASE("pattern_trailing_percent_is_literal")
+{
+  // Edge case: '%' at the very end of the pattern, with no following character at all.
+  // If find_first_of('(', pos) returned npos without a short-circuit guard this would underflow.
+  PatternFormatter formatter{
+    PatternFormatterOptions{"%(message) done%", "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  fmtquill::memory_buffer log_msg;
+  fmtquill::format_to(std::back_inserter(log_msg), fmtquill::runtime(macro_metadata.message_format()));
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+  auto const& formatted_buffer =
+    formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata,
+                     &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
+
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+  REQUIRE_EQ(formatted_string, "hello done%\n");
+}
+
+TEST_CASE("pattern_with_empty_paren_attribute_throws")
+{
+  // "%()" -> attr_name becomes empty; should reject cleanly rather than crash
+  // (verifies attr.substr(2, attr.size()) is safe when attr is just "%(").
+#if !defined(QUILL_NO_EXCEPTIONS)
+  REQUIRE_THROWS_AS(
+    PatternFormatter(PatternFormatterOptions{"%() %(message)", "%H:%M:%S.%Qns", Timezone::GmtTime, false}),
+    quill::QuillError);
+#endif
+}
 
 TEST_CASE("custom_pattern")
 {
@@ -377,7 +446,7 @@ TEST_CASE("custom_pattern")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:358 LOG_DEBUG test_logger "
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:427 LOG_DEBUG test_logger "
     "This the 1234 formatter pattern\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
@@ -489,8 +558,8 @@ TEST_CASE("pattern_timestamp_move_constructor")
   std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
   std::string const expected_string =
-    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:470 LOG_DEBUG test_logger "
-    "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_27]\n";
+    "01-23-2020 21:42:41.000023000 [31341] PatternFormatterTest.cpp:539 LOG_DEBUG test_logger "
+    "This the 1234 formatter pattern [DOCTEST_ANON_FUNC_33]\n";
 
   REQUIRE_EQ(formatted_string, expected_string);
 }
@@ -527,9 +596,9 @@ TEST_CASE("pattern_formatter_source_location_prefix")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:505\n";
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:574\n";
 #else
-    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:505\n";
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:574\n";
 #endif
 
     REQUIRE_EQ(formatted_string, expected_string);
@@ -547,9 +616,9 @@ TEST_CASE("pattern_formatter_source_location_prefix")
     std::string const formatted_string = fmtquill::to_string(formatted_buffer);
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:505\n";
+    std::string const expected_string = "test\\unit_tests\\PatternFormatterTest.cpp:574\n";
 #else
-    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:505\n";
+    std::string const expected_string = "test/unit_tests/PatternFormatterTest.cpp:574\n";
 #endif
 
     REQUIRE_EQ(formatted_string, expected_string);

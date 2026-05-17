@@ -15,7 +15,7 @@ using namespace quill;
 // Define custom Frontend Options
 struct CustomFrontendOptions : quill::FrontendOptions
 {
-  static constexpr size_t initial_queue_capacity = 16 * 1024; // 16 KiB
+  static constexpr size_t initial_queue_capacity = 16 * 1024;                       // 16 KiB
   static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024 * 1024 * 1024; // 2 GiB
 };
 

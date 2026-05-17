@@ -10,6 +10,7 @@
 #include "quill/core/Common.h"
 #include "quill/core/Filesystem.h"
 #include "quill/core/QuillError.h"
+#include "quill/core/ThreadPrimitives.h"
 #include "quill/core/TimeUtilities.h"
 #include "quill/sinks/StreamSink.h"
 
@@ -22,7 +23,6 @@
 #include <memory>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -77,9 +77,9 @@ public:
    * application.log -> application_20230101.log  (StartDate)
    * application.log -> application_20230101_121020.log  (StartDateTime)
    *
-   * @param value The append type to set. Valid options are Date and DateAndTime.
+   * @param value The append type to set. Valid options are None, StartDate, StartDateTime, and StartCustomTimestampFormat.
    * @param append_filename_format_pattern Specifies a custom `strftime` format pattern to use for the filename. This parameter is
-   *                                       only applicable when `FilenameAppendOption::CustomDateTimeFormat` is selected
+   *                                       only applicable when `FilenameAppendOption::StartCustomTimestampFormat` is selected
    */
   QUILL_ATTRIBUTE_COLD void set_filename_append_option(
     FilenameAppendOption value, std::string_view append_filename_format_pattern = std::string_view{})
@@ -90,9 +90,10 @@ public:
     {
       if (append_filename_format_pattern.empty())
       {
-        QUILL_THROW(QuillError{
-          "The 'CustomDateTimeFormat' option was specified, but no format pattern was provided. "
-          "Please set a valid strftime format pattern"});
+        QUILL_THROW(
+          QuillError{"The 'StartCustomTimestampFormat' option was specified, but no format pattern "
+                     "was provided. "
+                     "Please set a valid strftime format pattern"});
       }
 
       _append_filename_format_pattern = append_filename_format_pattern;
@@ -275,13 +276,29 @@ protected:
     }
 
     static constexpr size_t buffer_size{128};
-    char buffer[buffer_size];
-    size_t const len = std::strftime(buffer, buffer_size, append_format_pattern.data(), &now_tm);
+    static constexpr size_t max_buffer_size{64 * 1024};
+    std::vector<char> buffer(buffer_size);
 
-    return std::string{buffer, len};
+    while (true)
+    {
+      size_t const len = std::strftime(buffer.data(), buffer.size(), append_format_pattern.data(), &now_tm);
+      if (len != 0)
+      {
+        return std::string{buffer.data(), len};
+      }
+
+      if (buffer.size() >= max_buffer_size)
+      {
+        QUILL_THROW(
+          QuillError{"strftime failed to format filename timestamp. The filename "
+                     "timestamp pattern may contain an unsupported format specifier."});
+      }
+
+      buffer.resize(buffer.size() * 2);
+    }
   }
 
-  QUILL_NODISCARD static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename) noexcept
+  QUILL_NODISCARD static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename)
   {
     return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
   }
@@ -289,7 +306,7 @@ protected:
   QUILL_NODISCARD static fs::path append_datetime_to_filename(fs::path const& filename,
                                                               std::string const& append_filename_format_pattern,
                                                               Timezone time_zone,
-                                                              std::chrono::system_clock::time_point timestamp) noexcept
+                                                              std::chrono::system_clock::time_point timestamp)
   {
     auto const [stem, ext] = extract_stem_and_extension(filename);
 
@@ -338,13 +355,13 @@ public:
                     std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
     : FileSinkBase(filename, config, std::move(file_event_notifier), do_fopen, start_time)
   {
-    if (do_fopen)
+    if (do_fopen && !is_null())
     {
       open_file(_filename, _config.open_mode());
     }
   }
 
-  ~FileSink() override { close_file(); }
+  ~FileSink() override { _close_file_noexcept(); }
 
   QUILL_ATTRIBUTE_HOT void flush_sink() override
   {
@@ -392,14 +409,25 @@ public:
       statement = user_log_statement;
     }
 
-    _native_write_buffer.insert(_native_write_buffer.end(), statement.begin(), statement.end());
-    _file_size += statement.size();
-    _write_occurred = true;
+    auto const stmt_size = statement.size();
 
-    if (_native_write_buffer.size() >= _native_write_buffer_capacity())
+    if (_native_write_pos + stmt_size > _native_write_buffer_cap)
     {
       _flush_native_write_buffer();
     }
+
+    if (QUILL_LIKELY(stmt_size <= _native_write_buffer_cap))
+    {
+      std::memcpy(_native_write_buffer.get() + _native_write_pos, statement.data(), stmt_size);
+      _native_write_pos += stmt_size;
+    }
+    else
+    {
+      _write_to_file(statement.data(), stmt_size);
+    }
+
+    _file_size += stmt_size;
+    _write_occurred = true;
   }
 
 protected:
@@ -413,6 +441,7 @@ protected:
     constexpr int max_retries = 3;
     constexpr int retry_delay_ms = 200;
     HANDLE native_file_handle = INVALID_HANDLE_VALUE;
+    DWORD last_error = 0;
 
     for (int attempt = 0; attempt < max_retries; ++attempt)
     {
@@ -424,23 +453,19 @@ protected:
 
       native_file_handle = ::CreateFileW(filename.c_str(), GENERIC_WRITE,
                                          FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                         nullptr, creation_disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+        nullptr, creation_disposition, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
 
-      if (native_file_handle != INVALID_HANDLE_VALUE)
+      if (native_file_handle == INVALID_HANDLE_VALUE)
+      {
+        last_error = ::GetLastError();
+      }
+      else
       {
         if (!::SetHandleInformation(native_file_handle, HANDLE_FLAG_INHERIT, 0))
         {
+          last_error = ::GetLastError();
           ::CloseHandle(native_file_handle);
           native_file_handle = INVALID_HANDLE_VALUE;
-        }
-        else if (!mode.empty() && mode[0] == 'a')
-        {
-          LARGE_INTEGER zero{};
-          if (!::SetFilePointerEx(native_file_handle, zero, nullptr, FILE_END))
-          {
-            ::CloseHandle(native_file_handle);
-            native_file_handle = INVALID_HANDLE_VALUE;
-          }
         }
       }
 
@@ -451,7 +476,7 @@ protected:
 
       if (attempt < max_retries - 1)
       {
-        std::this_thread::sleep_for(std::chrono::milliseconds{retry_delay_ms});
+        detail::sleep_for_ns(static_cast<uint64_t>(retry_delay_ms) * 1'000'000ull);
       }
     }
 
@@ -459,11 +484,12 @@ protected:
     {
       QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} + std::to_string(max_retries) +
                              " attempts, path: " + filename.string() + " mode: " + mode +
-                             " GetLastError: " + std::to_string(::GetLastError())});
+                             " GetLastError: " + std::to_string(last_error)});
     }
 
-    _native_write_buffer.clear();
-    _native_write_buffer.reserve(_native_write_buffer_capacity());
+    _native_write_buffer_cap = _native_write_buffer_capacity();
+    _native_write_buffer = std::make_unique<char[]>(_native_write_buffer_cap);
+    _native_write_pos = 0;
 
     if (_file_event_notifier.after_open)
     {
@@ -477,6 +503,7 @@ protected:
   #endif
     }
 
+    _append_mode = !mode.empty() && mode[0] == 'a';
     _native_file_handle = native_file_handle;
   }
 
@@ -489,13 +516,27 @@ protected:
 
     if (_file_event_notifier.before_close)
     {
-      _file_event_notifier.before_close(_filename, _native_file_handle);
+      QUILL_TRY { _file_event_notifier.before_close(_filename, _native_file_handle); }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL()
+      {
+        HANDLE native_file_handle = _native_file_handle;
+        QUILL_TRY { _flush_native_write_buffer(); }
+        QUILL_CATCH_ALL() {}
+        _native_file_handle = INVALID_HANDLE_VALUE;
+        _append_mode = false;
+        _native_write_pos = 0;
+        ::CloseHandle(native_file_handle);
+        throw;
+      }
+  #endif
     }
 
     _flush_native_write_buffer();
     ::CloseHandle(_native_file_handle);
     _native_file_handle = INVALID_HANDLE_VALUE;
-    _native_write_buffer.clear();
+    _append_mode = false;
+    _native_write_pos = 0;
 
     if (_file_event_notifier.after_close)
     {
@@ -503,47 +544,88 @@ protected:
     }
   }
 
-  void fsync_file(bool force_fsync = false) noexcept
+  void _close_file_noexcept() noexcept
   {
-    if (!force_fsync)
-    {
-      auto const now = std::chrono::steady_clock::now();
-      if ((now - _last_fsync_timestamp) < _config.minimum_fsync_interval())
-      {
-        return;
-      }
-      _last_fsync_timestamp = now;
-    }
-
-    FlushFileBuffers(_native_file_handle);
+    QUILL_TRY { close_file(); }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
+  #endif
   }
 
-  void _flush_native_write_buffer()
+  void fsync_file(bool force_fsync = false)
   {
-    if ((_native_file_handle == INVALID_HANDLE_VALUE) || _native_write_buffer.empty())
+    if (_native_file_handle == INVALID_HANDLE_VALUE)
     {
       return;
     }
 
-    char const* data = _native_write_buffer.data();
-    size_t remaining = _native_write_buffer.size();
+    std::chrono::steady_clock::time_point fsync_timestamp{};
 
-    while (remaining != 0)
+    if (!force_fsync)
+    {
+      fsync_timestamp = std::chrono::steady_clock::now();
+      if ((fsync_timestamp - _last_fsync_timestamp) < _config.minimum_fsync_interval())
+      {
+        return;
+      }
+    }
+
+    if (!::FlushFileBuffers(_native_file_handle))
+    {
+      _write_occurred = true;
+      QUILL_THROW(QuillError{std::string{"FlushFileBuffers failed. GetLastError: "} +
+                             std::to_string(::GetLastError())});
+    }
+
+    if (!force_fsync)
+    {
+      _last_fsync_timestamp = fsync_timestamp;
+    }
+  }
+
+  QUILL_NODISCARD bool is_open() const noexcept
+  {
+    return _native_file_handle != INVALID_HANDLE_VALUE;
+  }
+
+  void _write_to_file(char const* data, size_t size)
+  {
+    while (size != 0)
     {
       DWORD bytes_written = 0;
-      DWORD const chunk =
-        static_cast<DWORD>(std::min<size_t>(remaining, std::numeric_limits<DWORD>::max()));
-      if (!::WriteFile(_native_file_handle, data, chunk, &bytes_written, nullptr) || (bytes_written == 0))
+      constexpr size_t max_dword = static_cast<size_t>(~DWORD{0});
+      DWORD const chunk = static_cast<DWORD>(std::min<size_t>(size, max_dword));
+      OVERLAPPED overlapped{};
+      OVERLAPPED* overlapped_ptr{nullptr};
+
+      if (_append_mode)
+      {
+        overlapped.Offset = 0xFFFFFFFF;
+        overlapped.OffsetHigh = 0xFFFFFFFF;
+        overlapped_ptr = &overlapped;
+      }
+
+      if (!::WriteFile(_native_file_handle, data, chunk, &bytes_written, overlapped_ptr) ||
+          (bytes_written == 0))
       {
         QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
                                std::to_string(::GetLastError())});
       }
 
       data += bytes_written;
-      remaining -= bytes_written;
+      size -= bytes_written;
+    }
+  }
+
+  void _flush_native_write_buffer()
+  {
+    if ((_native_file_handle == INVALID_HANDLE_VALUE) || (_native_write_pos == 0))
+    {
+      return;
     }
 
-    _native_write_buffer.clear();
+    _write_to_file(_native_write_buffer.get(), _native_write_pos);
+    _native_write_pos = 0;
   }
 
   QUILL_NODISCARD size_t _native_write_buffer_capacity() const noexcept
@@ -554,7 +636,10 @@ protected:
 protected:
   static constexpr size_t default_write_buffer_size{64 * 1024};
   HANDLE _native_file_handle{INVALID_HANDLE_VALUE};
-  std::vector<char> _native_write_buffer;
+  std::unique_ptr<char[]> _native_write_buffer;
+  size_t _native_write_pos{0};
+  size_t _native_write_buffer_cap{0};
+  bool _append_mode{false};
 };
 #else
 class FileSink : public StreamSink
@@ -581,7 +666,7 @@ public:
     }
   }
 
-  ~FileSink() override { close_file(); }
+  ~FileSink() override { _close_file_noexcept(); }
 
   QUILL_ATTRIBUTE_HOT void flush_sink() override
   {
@@ -643,13 +728,29 @@ protected:
     }
 
     static constexpr size_t buffer_size{128};
-    char buffer[buffer_size];
-    size_t const len = std::strftime(buffer, buffer_size, append_format_pattern.data(), &now_tm);
+    static constexpr size_t max_buffer_size{64 * 1024};
+    std::vector<char> buffer(buffer_size);
 
-    return std::string{buffer, len};
+    while (true)
+    {
+      size_t const len = std::strftime(buffer.data(), buffer.size(), append_format_pattern.data(), &now_tm);
+      if (len != 0)
+      {
+        return std::string{buffer.data(), len};
+      }
+
+      if (buffer.size() >= max_buffer_size)
+      {
+        QUILL_THROW(
+          QuillError{"strftime failed to format filename timestamp. The filename "
+                     "timestamp pattern may contain an unsupported format specifier."});
+      }
+
+      buffer.resize(buffer.size() * 2);
+    }
   }
 
-  QUILL_NODISCARD static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename) noexcept
+  QUILL_NODISCARD static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename)
   {
     return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
   }
@@ -657,7 +758,7 @@ protected:
   QUILL_NODISCARD static fs::path append_datetime_to_filename(fs::path const& filename,
                                                               std::string const& append_filename_format_pattern,
                                                               Timezone time_zone,
-                                                              std::chrono::system_clock::time_point timestamp) noexcept
+                                                              std::chrono::system_clock::time_point timestamp)
   {
     auto const [stem, ext] = extract_stem_and_extension(filename);
 
@@ -676,6 +777,7 @@ protected:
 
     constexpr int max_retries = 3;
     constexpr int retry_delay_ms = 200;
+    std::unique_ptr<char[]> write_buffer;
     OpenedFileGuard opened_file_guard;
 
     for (int attempt = 0; attempt < max_retries; ++attempt)
@@ -683,7 +785,13 @@ protected:
       int flags = O_CREAT | O_WRONLY | O_CLOEXEC;
       flags |= (!mode.empty() && mode[0] == 'w') ? O_TRUNC : O_APPEND;
 
-      int fd = ::open(filename.string().data(), flags, 0644);
+      // Retry on EINTR — a signal delivered during open() causes it to fail transiently.
+      int fd{-1};
+      do
+      {
+        fd = ::open(filename.string().data(), flags, 0644);
+      } while (fd == -1 && errno == EINTR);
+
       if (fd != -1)
       {
         opened_file_guard.file = ::fdopen(fd, mode.data());
@@ -700,7 +808,7 @@ protected:
 
       if (attempt < max_retries - 1)
       {
-        std::this_thread::sleep_for(std::chrono::milliseconds{retry_delay_ms});
+        detail::sleep_for_ns(static_cast<uint64_t>(retry_delay_ms) * 1'000'000ull);
       }
     }
 
@@ -711,7 +819,6 @@ protected:
                              " errno: " + std::to_string(errno) + " error: " + std::strerror(errno)});
     }
 
-    std::unique_ptr<char[]> write_buffer;
     if (_config.write_buffer_size() != 0)
     {
       write_buffer = std::make_unique<char[]>(_config.write_buffer_size());
@@ -740,11 +847,27 @@ protected:
 
     if (_file_event_notifier.before_close)
     {
-      _file_event_notifier.before_close(_filename, _file);
+      QUILL_TRY { _file_event_notifier.before_close(_filename, _file); }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL()
+      {
+        FILE* file = _file;
+        _file = nullptr;
+        std::fclose(file);
+        throw;
+      }
+  #endif
     }
 
-    fclose(_file);
+    FILE* file = _file;
     _file = nullptr;
+
+    if (std::fclose(file) != 0)
+    {
+      int const saved_errno = errno;
+      QUILL_THROW(QuillError{std::string{"fclose failed errno: "} + std::to_string(saved_errno) +
+                             " error: " + std::strerror(saved_errno)});
+    }
 
     if (_file_event_notifier.after_close)
     {
@@ -752,25 +875,54 @@ protected:
     }
   }
 
-  void fsync_file(bool force_fsync = false) noexcept
+  void _close_file_noexcept() noexcept
+  {
+    QUILL_TRY { close_file(); }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
+  #endif
+  }
+
+  void fsync_file(bool force_fsync = false)
   {
     if (!_file)
     {
       return;
     }
 
+    std::chrono::steady_clock::time_point fsync_timestamp{};
+
     if (!force_fsync)
     {
-      auto const now = std::chrono::steady_clock::now();
-      if ((now - _last_fsync_timestamp) < _config.minimum_fsync_interval())
+      fsync_timestamp = std::chrono::steady_clock::now();
+      if ((fsync_timestamp - _last_fsync_timestamp) < _config.minimum_fsync_interval())
       {
         return;
       }
-      _last_fsync_timestamp = now;
     }
 
-    ::fsync(fileno(_file));
+    // Retry on EINTR — a signal delivered during fsync() causes it to fail transiently.
+    int ret{0};
+    do
+    {
+      ret = ::fsync(fileno(_file));
+    } while (ret != 0 && errno == EINTR);
+
+    if (QUILL_UNLIKELY(ret != 0))
+    {
+      int const saved_errno = errno;
+      _write_occurred = true;
+      QUILL_THROW(QuillError{std::string{"fsync failed errno: "} + std::to_string(saved_errno) +
+                             " error: " + std::strerror(saved_errno)});
+    }
+
+    if (!force_fsync)
+    {
+      _last_fsync_timestamp = fsync_timestamp;
+    }
   }
+
+  QUILL_NODISCARD bool is_open() const noexcept { return _file != nullptr; }
 
 private:
   QUILL_NODISCARD static fs::path _get_updated_filename_with_appended_datetime(

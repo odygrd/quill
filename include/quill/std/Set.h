@@ -37,7 +37,7 @@ struct Codec<SetType<Key, Compare, Allocator>,
                                                  std::is_same<SetType<Key, Compare, Allocator>, std::multiset<Key, Compare, Allocator>>>>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     SetType<Key, Compare, Allocator> const& arg) noexcept
+                                     SetType<Key, Compare, Allocator> const& arg)
   {
     // We need to store the size of the set in the buffer, so we reserve space for it.
     // We add sizeof(size_t) bytes to accommodate the size information.
@@ -65,24 +65,15 @@ struct Codec<SetType<Key, Compare, Allocator>,
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 
-    if constexpr (std::is_rvalue_reference_v<Arg&&>)
+    // std::set elements are always const (key is the value), so moving is not possible.
+    // We always encode by const reference regardless of the container's value category.
+    for (auto const& elem : arg)
     {
-      for (auto&& elem : arg)
-      {
-        Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
-                           std::move(elem));
-      }
-    }
-    else
-    {
-      for (auto const& elem : arg)
-      {
-        Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
-      }
+      Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
     }
   }
 

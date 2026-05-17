@@ -41,7 +41,9 @@ struct FrontendOptions
    * Each frontend thread has its own queue, which can be configured with various options:
    * - UnboundedBlocking: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then blocks.
    * - UnboundedDropping: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then drops log messages.
-   * - BoundedBlocking: Starts with initial_queue_capacity and never reallocates; blocks when the limit is reached.
+   * - BoundedBlocking: Starts with initial_queue_capacity and never reallocates; blocks when the
+   *   limit is reached. A single message larger than the fixed queue capacity cannot fit and fails
+   *   instead of blocking forever.
    * - BoundedDropping: Starts with initial_queue_capacity and never reallocates; drops log messages when the limit is reached.
    *
    * By default, the library uses an UnboundedBlocking queue, which starts with initial_queue_capacity.

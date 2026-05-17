@@ -82,7 +82,9 @@ TEST_CASE("arithmetic_types_logging")
     int& ci = i;
     LOG_INFO(logger, "ci [{}]", ci);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
     LOG_INFO(logger, "invalid format [{%f}]", 321.1);
+#endif
   }
 
   int v = 111;
@@ -184,10 +186,12 @@ TEST_CASE("arithmetic_types_logging")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue string [rvalue_test]"}));
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE(quill::testing::file_contains(
     file_contents,
     std::string{"LOG_INFO      " + logger_name +
                 "       [Could not format log statement. message: \"invalid format [{%f}]\""}));
+#endif
 
   testing::remove_file(filename);
 }

@@ -177,6 +177,8 @@ Quill provides a built-in signal handler that can preserve pending logs in many 
 
 On POSIX systems, any thread that may run the built-in handler should either have already logged once, called ``Frontend::preallocate()``, or have the handled signals blocked on that thread.
 
+On Windows, ``Backend::start()`` installs structured exception handling and a console control handler. CRT signal handlers are thread-specific; call ``quill::init_signal_handler<FrontendOptions>()`` on each frontend/user thread that needs CRT signal handling. Do not install the CRT signal handler on the backend worker thread.
+
 **Custom Signal Handler**
 
 If you need to use your own custom signal handler, keep it minimal and avoid calling the general logging or flush APIs from an arbitrary POSIX signal context unless you have validated that approach for your platform and process state.
@@ -280,6 +282,6 @@ For nested types like ``std::vector<std::pair<int, std::string>>``, include head
 Application hangs on shutdown
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If ``Frontend::remove_logger_blocking()`` is called while the backend is not running, it will block indefinitely waiting for the backend to process the removal. Only call this function while the backend is running.
+If ``Frontend::remove_logger_blocking()`` is called while the backend is not running, it will block indefinitely waiting for the backend to process the removal. Only call this function while the backend is running, and not from backend-thread callbacks.
 
 Calling ``Backend::stop()`` will flush all pending messages and cleanly shut down the backend thread. Ensure all logging is complete before calling ``Backend::stop()``.

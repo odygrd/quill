@@ -31,6 +31,15 @@ QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
 
+/**
+ * @note compute_encoded_size() and encode() iterate the container twice in immediate succession
+ *       on the frontend hot path, and their traversals must visit the same elements in the same
+ *       order. For std::unordered_set / std::unordered_multiset the iteration order is determined
+ *       by `Hash(key) % bucket_count`; with the default std::hash this is stable across both
+ *       passes because no insert, erase, or rehash happens between them. Non-deterministic custom
+ *       hashes (e.g. salted or time-seeded) are not supported — they can change iteration order
+ *       between the two passes and silently corrupt the encoded payload.
+ */
 template <template <typename...> class UnorderedSetType, typename Key, typename Hash, typename KeyEqual, typename Allocator>
 struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
              std::enable_if_t<std::disjunction_v<
@@ -38,7 +47,7 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
                std::is_same<UnorderedSetType<Key, Hash, KeyEqual, Allocator>, std::unordered_multiset<Key, Hash, KeyEqual, Allocator>>>>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     UnorderedSetType<Key, Hash, KeyEqual, Allocator> const& arg) noexcept
+                                     UnorderedSetType<Key, Hash, KeyEqual, Allocator> const& arg)
   {
     // We need to store the size of the set in the buffer, so we reserve space for it.
     // We add sizeof(size_t) bytes to accommodate the size information.
@@ -68,27 +77,17 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 
     // This traversal must mirror compute_encoded_size(). For unordered containers that relies on
     // iterating the same container instance without mutation or rehashing between the two passes.
-    // Forward elements based on whether the container was passed as rvalue
-    if constexpr (std::is_rvalue_reference_v<Arg&&>)
+    // std::unordered_set elements are always const (key is the value), so moving is not possible.
+    // We always encode by const reference regardless of the container's value category.
+    for (auto const& elem : arg)
     {
-      for (auto&& elem : arg)
-      {
-        Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
-                           std::move(elem));
-      }
-    }
-    else
-    {
-      for (auto const& elem : arg)
-      {
-        Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
-      }
+      Codec<Key>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
     }
   }
 

@@ -5,6 +5,7 @@
 #include "quill/sinks/RotatingFileSink.h"
 #include "quill/sinks/RotatingJsonFileSink.h"
 
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <string>
@@ -51,6 +52,25 @@ private:
   uint32_t _fail_on_call{0};
 };
 } // namespace
+
+/***/
+TEST_CASE("rotating_file_sink_config_rejects_invalid_daily_rotation_time")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  RotatingFileSinkConfig cfg;
+
+  REQUIRE_NOTHROW(cfg.set_rotation_time_daily("08:30"));
+  REQUIRE_EQ(cfg.daily_rotation_time().first, std::chrono::hours{8});
+  REQUIRE_EQ(cfg.daily_rotation_time().second, std::chrono::minutes{30});
+
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("-1:00"), QuillError);
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("ab:cd"), QuillError);
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("24:00"), QuillError);
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("23:60"), QuillError);
+#else
+  return;
+#endif
+}
 
 /***/
 TEST_CASE("rotating_file_sink_index_no_backup_limit")
@@ -2088,6 +2108,7 @@ TEST_CASE("rotating_file_sink_index_dont_remove_unrelated_files")
 TEST_CASE("rotating_file_sink_invalid_params")
 {
   fs::path const filename = "rotating_file_sink_invalid_params.log";
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(RotatingFileSink{filename, []()
                                   {
                                     RotatingFileSinkConfig cfg;
@@ -2095,9 +2116,11 @@ TEST_CASE("rotating_file_sink_invalid_params")
                                     cfg.set_open_mode('w');
                                     return cfg;
                                   }()});
+#endif
 
   REQUIRE_FALSE(fs::exists(filename));
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(RotatingFileSink{filename, []()
                                   {
                                     RotatingFileSinkConfig cfg;
@@ -2105,9 +2128,11 @@ TEST_CASE("rotating_file_sink_invalid_params")
                                     cfg.set_open_mode('w');
                                     return cfg;
                                   }()});
+#endif
 
   REQUIRE_FALSE(fs::exists(filename));
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(RotatingFileSink{filename, []()
                                   {
                                     RotatingFileSinkConfig cfg;
@@ -2115,6 +2140,7 @@ TEST_CASE("rotating_file_sink_invalid_params")
                                     cfg.set_open_mode('w');
                                     return cfg;
                                   }()});
+#endif
 
   REQUIRE_FALSE(fs::exists(filename));
 }
@@ -2487,33 +2513,11 @@ TEST_CASE("rotating_file_sink_cleanup_preserves_unrelated_prefix_files")
   fs::create_directories(dir, ec);
   REQUIRE_FALSE(ec);
 
-  {
-    std::FILE* file = std::fopen(rotated_filename.string().c_str(), "w");
-    REQUIRE(file != nullptr);
-    std::fputs("previous rotated file\n", file);
-    std::fclose(file);
-  }
-
-  {
-    std::FILE* file = std::fopen(unrelated_filename.string().c_str(), "w");
-    REQUIRE(file != nullptr);
-    std::fputs("must survive startup cleanup\n", file);
-    std::fclose(file);
-  }
-
-  {
-    std::FILE* file = std::fopen(unrelated_numeric_prefix_filename.string().c_str(), "w");
-    REQUIRE(file != nullptr);
-    std::fputs("must also survive startup cleanup\n", file);
-    std::fclose(file);
-  }
-
-  {
-    std::FILE* file = std::fopen(unrelated_alt_suffix_filename.string().c_str(), "w");
-    REQUIRE(file != nullptr);
-    std::fputs("must also survive alternate suffix startup cleanup\n", file);
-    std::fclose(file);
-  }
+  testing::create_file(rotated_filename, "previous rotated file\n");
+  testing::create_file(unrelated_filename, "must survive startup cleanup\n");
+  testing::create_file(unrelated_numeric_prefix_filename, "must also survive startup cleanup\n");
+  testing::create_file(unrelated_alt_suffix_filename,
+                       "must also survive alternate suffix startup cleanup\n");
 
   REQUIRE(fs::exists(rotated_filename));
   REQUIRE(fs::exists(unrelated_filename));
@@ -2817,11 +2821,23 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_localtime_dst")
 {
   std::string previous_tz;
   bool had_previous_tz = false;
+
+  #if defined(_WIN32)
+  char* current_tz = nullptr;
+  size_t current_tz_len = 0;
+  if ((_dupenv_s(&current_tz, &current_tz_len, "TZ") == 0) && current_tz)
+  {
+    previous_tz = current_tz;
+    had_previous_tz = true;
+  }
+  std::free(current_tz);
+  #else
   if (char const* current_tz = std::getenv("TZ"))
   {
     previous_tz = current_tz;
     had_previous_tz = true;
   }
+  #endif
 
   #if defined(_WIN32)
   _putenv_s("TZ", "EST5EDT,M3.2.0/2,M11.1.0/2");
@@ -3243,6 +3259,78 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_dateandtime_naming_write
 
   testing::remove_file(filename);
   testing::remove_file(filename_dated);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  // This test deliberately forces open_file() to throw via a before_open callback to
+  // simulate a disk-full reopen failure, so it requires exceptions-enabled builds.
+  return;
+#else
+  fs::path const log_dir = "rotating_file_sink_reopen_failure";
+  fs::path const filename = log_dir / "rotating_file_sink_reopen_failure.log";
+
+  std::error_code ec;
+  fs::remove_all(log_dir, ec);
+  fs::create_directories(log_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  // Fail only the second open_file() — the reopen that happens during the first
+  // rotation — to leave the sink with no open file. Subsequent writes must recover
+  // without crashing.
+  size_t before_open_calls{0};
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.before_open = [&before_open_calls](fs::path const&)
+  {
+    ++before_open_calls;
+    if (before_open_calls == 2)
+    {
+      throw std::runtime_error{"simulated disk full during reopen"};
+    }
+  };
+
+  RotatingFileSinkConfig cfg;
+  cfg.set_rotation_max_file_size(512);
+  cfg.set_open_mode('w');
+
+  RotatingFileSink sink{filename, cfg, file_event_notifier};
+
+  auto write = [&sink](std::string_view log_statement)
+  {
+    sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                   std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", log_statement);
+  };
+
+  write("Record [0]\n");
+
+  std::string oversized_record = "Record [1]\n";
+  oversized_record.append(600, 'x');
+
+  // First oversized write triggers rotation. The reopen throws from before_open and
+  // leaves the sink without an open file.
+  try
+  {
+    write(oversized_record);
+  }
+  catch (std::exception const&)
+  {
+  }
+  REQUIRE_EQ(before_open_calls, 2u);
+
+  // Second oversized write re-enters rotation with a null file. Before the fix this
+  // reached fsync_file() on a null handle and crashed with SIGSEGV. With the fix the
+  // sink detects the missing handle, reopens the file (before_open call #3 now
+  // succeeds), and the write goes through.
+  write(oversized_record);
+  REQUIRE_EQ(before_open_calls, 3u);
+
+  // A third write should work normally — the sink is fully recovered.
+  write("Record [2]\n");
+
+  fs::remove_all(log_dir, ec);
+#endif
 }
 
 TEST_SUITE_END();

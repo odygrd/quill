@@ -37,7 +37,7 @@ The format output can be customised by providing a string of certain attributes.
      - Name of the function containing the logging call.
    * - ``log_level``
      - ``%(log_level)``
-     - Log level description: ``TRACEL3``, ``TRACEL2``, ``TRACEL1``, ``DEBUG``, ``INFO``,
+     - Log level description: ``TRACE_L3``, ``TRACE_L2``, ``TRACE_L1``, ``DEBUG``, ``INFO``,
        ``NOTICE``, ``WARNING``, ``ERROR``, ``CRITICAL``, or ``BACKTRACE``.
    * - ``log_level_short_code``
      - ``%(log_level_short_code)``
@@ -75,6 +75,10 @@ The format output can be customised by providing a string of certain attributes.
    * - ``tags``
      - ``%(tags)``
      - Additional custom tags appended to the message when ``_TAGS`` macros are used.
+   * - ``mdc``
+     - ``%(mdc)``
+     - Mapped Diagnostic Context fields for the current frontend thread. This expands to an
+       empty string when no MDC fields are set.
    * - ``named_args``
      - ``%(named_args)``
      - Key-value pairs appended to the message. This is only applicable to a named-args
@@ -85,7 +89,7 @@ Customising the timestamp
 
 The timestamp is customisable through:
 
-- Format. Same format specifiers as ``strftime(...)`` format without the additional ``.Qms`` ``.Qus`` ``.Qns`` arguments.
+- Format. Same format specifiers as ``strftime(...)`` format with the additional ``%Qms`` ``%Qus`` ``%Qns`` arguments.
 - Local timezone or GMT timezone. Local timezone is used by default.
 - Fractional second precision. Using the additional fractional second specifiers in the timestamp format string.
 
@@ -99,7 +103,14 @@ Specifier Description
 
 By default ``"%H:%M:%S.%Qns"`` is used.
 
-.. note:: MinGW does not support all ``strftime(...)`` format specifiers and you might get a ``bad alloc`` if the format specifier is not supported
+Use ``%%`` to write a literal percent sign in timestamp patterns, including escaped forms such as
+``%%Qms`` or ``%%T``. The escaped text is passed through as a literal instead of being interpreted
+as Quill's fractional-second extension or as a cached time modifier.
+
+.. note:: ``%X`` is not supported by Quill's cached timestamp formatter. Use an explicit equivalent
+   such as ``%H:%M:%S`` if you need locale-independent time output.
+
+.. note:: MinGW does not support all ``strftime(...)`` format specifiers. If the platform ``strftime`` implementation cannot format the configured pattern, Quill reports a formatting error.
 
 Customizing Log Message Formats
 -------------------------------

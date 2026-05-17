@@ -15,7 +15,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <limits>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -120,9 +119,9 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str) noexcept
   // On i386, armel and armhf std::memchr "max number of bytes to examine" set to maximum size of
   // unsigned int which does not compile
   // Currently Debian package is using architecture `any` which includes them
-  static constexpr int32_t max_len = std::numeric_limits<int32_t>::max();
+  static constexpr int32_t max_len = INT32_MAX;
 #else
-  static constexpr uint32_t max_len = std::numeric_limits<uint32_t>::max();
+  static constexpr uint32_t max_len = UINT32_MAX;
 #endif
 
   return safe_strnlen(str, max_len);
@@ -132,7 +131,7 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str) noexcept
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t clamp_encoded_string_length(size_t len) noexcept
 {
   // Clamp to max() - 1 so that callers adding +1 for a null terminator cannot overflow to 0
-  constexpr uint32_t max_val = std::numeric_limits<uint32_t>::max() - 1u;
+  constexpr uint32_t max_val = UINT32_MAX - 1u;
   return (len > max_val) ? max_val : static_cast<uint32_t>(len);
 }
 /** std string detection, ignoring the Allocator type **/
@@ -147,9 +146,24 @@ struct is_std_string<std::basic_string<char, std::char_traits<char>, Allocator>>
 };
 } // namespace detail
 
-/** typename = void for specializations with enable_if **/
 QUILL_BEGIN_EXPORT
 
+/**
+ * Codec contract notes (apply to this primary template and every specialization, including
+ * those in the quill/std headers):
+ *
+ *   compute_encoded_size() and encode() are intentionally NOT declared noexcept when they
+ *   delegate to a nested Codec<T>. User-provided codecs (DirectFormatCodec, hand-written
+ *   formatters, container element codecs that touch fs::path, std::wstring conversions, etc.)
+ *   may throw at the frontend hot path. Marking the wrapper noexcept would turn that into
+ *   std::terminate via the noexcept boundary. The exception propagates back through
+ *   log_statement() and is reported via BackendWorker error_notifier on the backend side.
+ *
+ *   Leaf specializations that only memcpy arithmetic/enum/raw-pointer payloads keep
+ *   noexcept — they cannot throw.
+ */
+
+/** typename = void for specializations with enable_if **/
 template <typename Arg, typename = void>
 struct Codec
 {
@@ -405,6 +419,9 @@ void decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store
 {
   decode_and_store_arg<Args...>(buffer, &args_store);
 }
+
+template <typename... Args>
+static constexpr FormatArgsDecoder decoder_ptr = &decode_and_store_args<remove_cvref_t<Args>...>;
 } // namespace detail
 
 /** Codec helpers for user defined types convenience **/

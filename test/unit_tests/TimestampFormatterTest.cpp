@@ -180,4 +180,24 @@ TEST_CASE("format_string_with_nanosecond_precision")
   }
 }
 
+/***/
+TEST_CASE("escaped_fractional_specifiers_are_literals")
+{
+  std::chrono::nanoseconds constexpr timestamp{1587161887987654321};
+
+  {
+    TimestampFormatter ts_formatter{"%%Qms %%Qus %%Qns %H:%M:%S", quill::Timezone::GmtTime};
+
+    auto const& result = ts_formatter.format_timestamp(timestamp);
+    REQUIRE_EQ(result, std::string_view{"%Qms %Qus %Qns 22:18:07"});
+  }
+
+  {
+    TimestampFormatter ts_formatter{"%%%Qms", quill::Timezone::GmtTime};
+
+    auto const& result = ts_formatter.format_timestamp(timestamp);
+    REQUIRE_EQ(result, std::string_view{"%987"});
+  }
+}
+
 TEST_SUITE_END();

@@ -164,6 +164,7 @@ TEST_CASE("create_sink_succeeds_and_rejects_duplicate")
     REQUIRE_NE(sink.get(), nullptr);
 
     // Attempting to create again with the same name should throw
+#if !defined(QUILL_NO_EXCEPTIONS)
     REQUIRE_THROWS_AS(SinkManager::instance().create_sink<quill::FileSink>(
                         file_name,
                         []()
@@ -174,6 +175,7 @@ TEST_CASE("create_sink_succeeds_and_rejects_duplicate")
                         }(),
                         FileEventNotifier{}),
                       QuillError);
+#endif
 
     // create_or_get_sink should still return the existing one without throwing
     std::shared_ptr<Sink> same_sink = SinkManager::instance().create_or_get_sink<quill::FileSink>(
@@ -192,6 +194,55 @@ TEST_CASE("create_sink_succeeds_and_rejects_duplicate")
   REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
 
   std::remove(file_name.data());
+}
+
+TEST_CASE("file_event_notifier_after_open_can_create_another_sink")
+{
+  std::string const outer_file_name = "sink_manager_reentrant_outer.log";
+  std::string const inner_file_name = "sink_manager_reentrant_inner.log";
+
+  std::shared_ptr<Sink> inner_sink;
+  bool after_open_called{false};
+
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_open = [&](fs::path const&, FileEventNotifierHandle)
+  {
+    after_open_called = true;
+
+    inner_sink = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      inner_file_name,
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{});
+  };
+
+  {
+    std::shared_ptr<Sink> outer_sink = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      outer_file_name,
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      file_event_notifier);
+
+    REQUIRE(after_open_called);
+    REQUIRE_NE(outer_sink.get(), nullptr);
+    REQUIRE_NE(inner_sink.get(), nullptr);
+    REQUIRE_NE(outer_sink.get(), inner_sink.get());
+    REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 0);
+  }
+
+  inner_sink.reset();
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 2);
+
+  std::remove(outer_file_name.data());
+  std::remove(inner_file_name.data());
 }
 
 TEST_SUITE_END();

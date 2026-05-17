@@ -108,7 +108,7 @@ TEST_CASE("loglevel_to_string")
   }
 
   {
-#ifndef QUILL_NO_EXCEPTIONS
+#if !defined(QUILL_NO_EXCEPTIONS)
     LogLevel log_level;
     log_level = static_cast<LogLevel>(100);
     auto func = [log_level, bo]()
@@ -218,7 +218,7 @@ TEST_CASE("loglevel_to_short_code")
   }
 
   {
-#ifndef QUILL_NO_EXCEPTIONS
+#if !defined(QUILL_NO_EXCEPTIONS)
     LogLevel log_level;
     log_level = static_cast<LogLevel>(100);
     auto func = [log_level, bo]()
@@ -308,7 +308,17 @@ TEST_CASE("loglevel_from_string")
   }
 
   {
-#ifndef QUILL_NO_EXCEPTIONS
+    std::string log_level{"Warn"};
+    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Warning);
+  }
+
+  {
+    std::string log_level{"Err"};
+    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Error);
+  }
+
+  {
+#if !defined(QUILL_NO_EXCEPTIONS)
     std::string log_level{"dummy"};
     auto func = [log_level]()
     {

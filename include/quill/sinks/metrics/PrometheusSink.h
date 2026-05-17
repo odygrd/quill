@@ -54,6 +54,67 @@ public:
   using Labels = prometheus::Labels;
   using HistogramBuckets = std::vector<double>;
 
+  /**
+   * Returns `count` linearly-spaced bucket boundaries starting at `start` with step `width`.
+   *
+   * Example: linear_buckets(0.0, 5.0, 5) -> {0, 5, 10, 15, 20}
+   *
+   * `start` may be negative. `width` must be > 0 so the sequence is strictly increasing, as
+   * Prometheus requires.
+   */
+  QUILL_NODISCARD static HistogramBuckets linear_buckets(double start, double width, size_t count)
+  {
+    if (width <= 0.0)
+    {
+      QUILL_THROW(QuillError{"PrometheusSink::linear_buckets() requires width > 0"});
+    }
+
+    HistogramBuckets buckets;
+    buckets.reserve(count);
+
+    for (size_t idx = 0; idx < count; ++idx)
+    {
+      buckets.push_back(start + (static_cast<double>(idx) * width));
+    }
+
+    return buckets;
+  }
+
+  /**
+   * Returns `count` exponentially-spaced bucket boundaries: `start, start*factor, start*factor^2, ...`.
+   *
+   * Example: exponential_buckets(1.0, 2.0, 5) -> {1, 2, 4, 8, 16}
+   * Example: exponential_buckets(0.001, 10.0, 4) -> {0.001, 0.01, 0.1, 1}
+   *
+   * Use this for quantities that span several orders of magnitude (latencies, sizes). `start` must
+   * be > 0 and `factor` must be > 1 so the sequence is strictly increasing, as Prometheus requires.
+   */
+  QUILL_NODISCARD static HistogramBuckets exponential_buckets(double start, double factor, size_t count)
+  {
+    if (start <= 0.0)
+    {
+      QUILL_THROW(QuillError{"PrometheusSink::exponential_buckets() requires start > 0"});
+    }
+
+    if (factor <= 1.0)
+    {
+      QUILL_THROW(QuillError{"PrometheusSink::exponential_buckets() requires factor > 1"});
+    }
+
+    HistogramBuckets buckets;
+    buckets.reserve(count);
+
+    double value = start;
+
+    for (size_t idx = 0; idx < count; ++idx)
+    {
+      buckets.push_back(value);
+      value *= factor;
+    }
+
+    return buckets;
+  }
+
   struct ExposerConfiguration
   {
     std::string bind_address{"127.0.0.1:8080"};
@@ -69,6 +130,17 @@ public:
     std::optional<ExposerConfiguration> exposer;
   };
 
+  /**
+   * A single quantile target for a summary metric.
+   *
+   * `quantile` is the target rank in [0, 1] (e.g. 0.5 for the median, 0.99 for p99).
+   * `error` is the allowed absolute error around that rank used by the CKMS streaming algorithm:
+   * smaller `error` produces more accurate quantiles but uses more memory and CPU.
+   *
+   * Common defaults: `{0.5, 0.05}`, `{0.9, 0.01}`, `{0.99, 0.001}` — these mirror what
+   * prometheus-cpp and the official Prometheus client libraries suggest, and match the typical
+   * cost/accuracy trade-off (looser error at the median, tighter at the tails).
+   */
   struct SummaryQuantile
   {
     double quantile;
@@ -77,10 +149,20 @@ public:
 
   using SummaryQuantiles = std::vector<SummaryQuantile>;
 
+  /**
+   * Controls how a gauge applies the sample value it receives.
+   *
+   * - `Set`: replace the gauge with the sample value (the value is the current reading).
+   * - `Add`: increment the gauge by the sample value (the value is a delta; pass a negative
+   *   sample to subtract).
+   * - `Sub`: decrement the gauge by the sample value (the value is a positive magnitude
+   *   to remove; equivalent to `Add` with a negated sample).
+   */
   enum class GaugeUpdateMode
   {
     Add,
-    Set
+    Set,
+    Sub
   };
 
   explicit PrometheusSink(Registry::InsertBehavior insert_behavior = Registry::InsertBehavior::Merge)
@@ -498,15 +580,23 @@ private:
     _ensure_metric_not_registered(validated_metric.metric_key());
 
     FamilyKey const family_key{metric_type, validated_metric.metric_name(), std::move(constant_labels)};
+
+    // A brand-new family cannot alias an existing time series, so only validate against an
+    // already-registered family. Performing this check before _get_or_create_family() avoids
+    // leaving an empty, freshly-created family behind when the alias check fails.
+    if (auto const existing_family_it = _families.find(family_key); existing_family_it != _families.end())
+    {
+      auto* existing_family = std::get<TFamily*>(existing_family_it->second.family);
+      if (existing_family->Has(metric_labels))
+      {
+        QUILL_THROW(QuillError{"PrometheusSink metric \"" + validated_metric.metric_key() +
+                               "\" aliases an existing time series"});
+      }
+    }
+
     FamilyHandle& family_handle = _get_or_create_family<TFamily>(family_key, std::move(help));
 
     auto* family = std::get<TFamily*>(family_handle.family);
-
-    if (family->Has(metric_labels))
-    {
-      QUILL_THROW(QuillError{"PrometheusSink metric \"" + validated_metric.metric_key() +
-                             "\" aliases an existing time series"});
-    }
 
     _metrics.emplace(metric_metadata, adder(family, metric_labels, family_key));
     _metric_keys.emplace(validated_metric.metric_key(), metric_metadata);
@@ -659,13 +749,17 @@ private:
 
   static void _apply_sample(RegisteredGauge& registered_metric, double value)
   {
-    if (registered_metric.update_mode == GaugeUpdateMode::Add)
+    switch (registered_metric.update_mode)
     {
+    case GaugeUpdateMode::Add:
       registered_metric.metric->Increment(value);
-    }
-    else
-    {
+      break;
+    case GaugeUpdateMode::Sub:
+      registered_metric.metric->Decrement(value);
+      break;
+    case GaugeUpdateMode::Set:
       registered_metric.metric->Set(value);
+      break;
     }
   }
 

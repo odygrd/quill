@@ -122,7 +122,14 @@ struct TransitEvent
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::vector<std::pair<std::string, std::string>>* get_named_args() const noexcept
   {
-    return extra_data ? &extra_data->named_args : nullptr;
+    // TransitEvents are pooled, so `extra_data` may have been allocated by a previous log on
+    // this slot
+    if (!extra_data || !macro_metadata || !macro_metadata->has_named_args())
+    {
+      return nullptr;
+    }
+
+    return &extra_data->named_args;
   }
 
   /***/
@@ -179,10 +186,10 @@ struct TransitEvent
 
     RuntimeMetadata(char const* file, uint32_t line, char const* function, char const* in_tags,
                     char const* in_fmt, LogLevel log_level)
-      : fmt(in_fmt),
+      : fmt(_safe_string(in_fmt)),
         source_location(_format_file_location(file, line)),
-        function_name(function),
-        tags(in_tags),
+        function_name(_safe_string(function)),
+        tags(_safe_string(in_tags)),
         macro_metadata(source_location.data(), function_name.data(), fmt.data(),
                        tags.empty() ? nullptr : tags.data(), log_level, MacroMetadata::Event::Log),
         has_runtime_metadata(true)
@@ -231,6 +238,11 @@ struct TransitEvent
     bool has_runtime_metadata{false};
 
   private:
+    QUILL_NODISCARD static char const* _safe_string(char const* value) noexcept
+    {
+      return value ? value : "";
+    }
+
     QUILL_NODISCARD static std::string _format_file_location(char const* file, uint32_t line)
     {
       if (!file || (file[0] == '\0' && line == 0))

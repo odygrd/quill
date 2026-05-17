@@ -13,7 +13,7 @@
 
 #include <atomic>
 #include <cstddef>
-#include <limits>
+#include <cstdint>
 #include <string>
 
 QUILL_BEGIN_NAMESPACE
@@ -68,6 +68,7 @@ public:
   {
     std::byte* write_buffer{nullptr};
     size_t writer_pos{0};
+    BoundedSPSCQueue* bounded_queue{nullptr};
   };
 
   struct ReadResult
@@ -134,8 +135,9 @@ public:
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT WriteReservation prepare_write_reserve_cached(size_t nbytes) noexcept
   {
-    auto const reservation = _producer->bounded_queue.prepare_write_reserve_cached(nbytes);
-    return WriteReservation{reservation.write_buffer, reservation.writer_pos};
+    BoundedSPSCQueue* const bounded_queue = &_producer->bounded_queue;
+    auto const reservation = bounded_queue->prepare_write_reserve_cached(nbytes);
+    return WriteReservation{reservation.write_buffer, reservation.writer_pos, bounded_queue};
   }
 
   /**
@@ -263,11 +265,11 @@ private:
     // Then it means the queue doesn't have enough size
     size_t capacity = _producer->bounded_queue.capacity();
 
-    capacity = (capacity > (std::numeric_limits<size_t>::max() / 2ull)) ? _max_capacity : capacity * 2ull;
+    capacity = (capacity > ((SIZE_MAX / 2ull))) ? _max_capacity : capacity * 2ull;
 
     while (capacity < nbytes)
     {
-      if (QUILL_UNLIKELY(capacity > (std::numeric_limits<size_t>::max() / 2ull)))
+      if (QUILL_UNLIKELY(capacity > ((SIZE_MAX / 2ull))))
       {
         capacity = _max_capacity;
         break;

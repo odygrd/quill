@@ -24,7 +24,6 @@
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -143,7 +142,7 @@ public:
    * @brief Sets whether previous rotated log files should be removed on process start up.
    * @note This option works only when using the mode="w"
    * This is useful to avoid conflicting file names when the process restarts and
-   * FilenameAppend::DateTime was not set. The default value is true.
+   * FilenameAppendOption::StartDateTime was not set. The default value is true.
    * @param value True to remove old log files, false otherwise.
    */
   QUILL_ATTRIBUTE_COLD void set_remove_old_files(bool value) { _remove_old_files = value; }
@@ -192,7 +191,7 @@ private:
   static std::pair<std::chrono::hours, std::chrono::minutes> _disabled_daily_rotation_time() noexcept
   {
     return std::make_pair(std::chrono::hours{std::numeric_limits<std::chrono::hours::rep>::max()},
-                          std::chrono::minutes{std::numeric_limits<std::chrono::hours::rep>::max()});
+                          std::chrono::minutes{std::numeric_limits<std::chrono::minutes::rep>::max()});
   }
 
   /***/
@@ -229,8 +228,11 @@ private:
       }
     }
 
-    auto const daily_rotation_time_str_tp = std::make_pair(
-      std::chrono::hours{std::stoi(tokens[0])}, std::chrono::minutes{std::stoi(tokens[1])});
+    uint32_t const hours = _parse_two_digit_time_component(tokens[0]);
+    uint32_t const minutes = _parse_two_digit_time_component(tokens[1]);
+
+    auto const daily_rotation_time_str_tp =
+      std::make_pair(std::chrono::hours{hours}, std::chrono::minutes{minutes});
 
     if ((daily_rotation_time_str_tp.first > std::chrono::hours{23}) ||
         (daily_rotation_time_str_tp.second > std::chrono::minutes{59}))
@@ -241,6 +243,19 @@ private:
     }
 
     return daily_rotation_time_str_tp;
+  }
+
+  /***/
+  static uint32_t _parse_two_digit_time_component(std::string const& token)
+  {
+    if ((token.size() != 2) || (token[0] < '0') || (token[0] > '9') || (token[1] < '0') || (token[1] > '9'))
+    {
+      QUILL_THROW(QuillError{
+        "Invalid daily_rotation_time_str value format. Each component of the time (HH and MM) "
+        "should be two digits."});
+    }
+
+    return (static_cast<uint32_t>(token[0] - '0') * 10u) + static_cast<uint32_t>(token[1] - '0');
   }
 
 private:
@@ -425,8 +440,11 @@ private:
       return;
     }
 
-    if (!this->_file)
+    if (!this->is_open())
     {
+      // A previous rotation left the sink without an open file (e.g. the disk was full when
+      // reopen was attempted). Try to recover by reopening before doing anything else, so we
+      // do not flush/fsync a null handle and re-enter this path again on the next write.
       this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
       _open_file_timestamp = record_timestamp_ns;
       this->_file_size = _get_file_size(this->_filename);
@@ -437,7 +455,7 @@ private:
     base_type::flush_sink();
     base_type::fsync_file(true);
 
-    if (_get_file_size(this->_filename) <= 0)
+    if (_get_file_size(this->_filename) == 0)
     {
       // Also check the file size is > 0  to better deal with full disk
       return;
@@ -566,7 +584,21 @@ private:
       return;
     }
 
-    fs::path const parent_dir = fs::current_path() / filename.parent_path();
+    // The normalized filename is absolute in practice, so resolving against the current working
+    // directory only matters for relative paths. fs::current_path() can throw when the working
+    // directory has been deleted, so use the non-throwing overload and skip clean-up on failure.
+    fs::path parent_dir = filename.parent_path();
+
+    if (parent_dir.is_relative())
+    {
+      std::error_code current_path_ec;
+      parent_dir = fs::current_path(current_path_ec) / parent_dir;
+
+      if (current_path_ec)
+      {
+        return;
+      }
+    }
 
     {
       std::error_code ec;
@@ -581,6 +613,10 @@ private:
     // if we are starting in "w" mode, then we also should clean all previous log files of the previous run
     if (_config.remove_old_files() && (open_mode.find('w') != std::string::npos))
     {
+      // Collect paths first, then remove — deleting during directory_iterator
+      // traversal is implementation-defined and can skip entries on some platforms.
+      std::vector<fs::path> files_to_remove;
+
       for (auto const& entry : fs::directory_iterator(parent_dir))
       {
         ParsedRotatedFileInfo parsed_file_info;
@@ -591,7 +627,7 @@ private:
 
         if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index)
         {
-          fs::remove(entry);
+          files_to_remove.push_back(entry.path());
         }
         else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
         {
@@ -600,9 +636,14 @@ private:
 
           if (parsed_file_info.date_time == today_date)
           {
-            fs::remove(entry);
+            files_to_remove.push_back(entry.path());
           }
         }
+      }
+
+      for (auto const& file_path : files_to_remove)
+      {
+        fs::remove(file_path);
       }
     }
     else if (open_mode.find('a') != std::string::npos)
@@ -636,20 +677,6 @@ private:
       std::sort(_created_files.begin(), _created_files.end(),
                 [](FileInfo const& a, FileInfo const& b) { return a.index < b.index; });
     }
-  }
-
-  /***/
-  QUILL_NODISCARD static std::string _reopen_mode_after_failed_rotation(
-    std::string const& open_mode)
-  {
-    if (!open_mode.empty() && (open_mode.front() == 'w'))
-    {
-      std::string reopen_mode = open_mode;
-      reopen_mode.front() = 'a';
-      return reopen_mode;
-    }
-
-    return open_mode;
   }
 
   /***/
@@ -793,7 +820,7 @@ private:
     {
       // Retry once after a delay - workaround for Windows antivirus locking files
       // This is a common issue where antivirus software temporarily locks files during scanning
-      std::this_thread::sleep_for(std::chrono::milliseconds{250});
+      detail::sleep_for_ns(250ull * 1'000'000ull); // 250 ms
 
       ec.clear();
       fs::rename(previous_file, new_file, ec);
@@ -808,7 +835,7 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD static fs::path _append_index_to_filename(fs::path const& filename, uint32_t index) noexcept
+  QUILL_NODISCARD static fs::path _append_index_to_filename(fs::path const& filename, uint32_t index)
   {
     if (index == 0u)
     {
@@ -821,7 +848,7 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD static fs::path _append_string_to_filename(fs::path const& filename, std::string const& text) noexcept
+  QUILL_NODISCARD static fs::path _append_string_to_filename(fs::path const& filename, std::string const& text)
   {
     if (text.empty())
     {
@@ -927,9 +954,16 @@ private:
     time_t const rotation_time =
       (config.timezone() == Timezone::GmtTime) ? detail::timegm(&date) : std::mktime(&date);
 
+    auto const interval_seconds =
+      (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Minutely)
+      ? std::chrono::duration_cast<std::chrono::seconds>(std::chrono::minutes{config.rotation_interval()})
+          .count()
+      : std::chrono::duration_cast<std::chrono::seconds>(std::chrono::hours{config.rotation_interval()})
+          .count();
+
     uint64_t const rotation_time_seconds = (rotation_time > time_now)
       ? static_cast<uint64_t>(rotation_time)
-      : static_cast<uint64_t>(rotation_time + std::chrono::seconds{std::chrono::hours{24}}.count());
+      : static_cast<uint64_t>(rotation_time + interval_seconds);
 
     return static_cast<uint64_t>(
       std::chrono::nanoseconds{std::chrono::seconds{rotation_time_seconds}}.count());

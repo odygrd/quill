@@ -36,6 +36,10 @@ TEST_CASE("backtrace_no_flush")
 
   Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink));
 
+#if !defined(QUILL_NO_EXCEPTIONS)
+  REQUIRE_THROWS_AS(logger->init_backtrace(0), QuillError);
+#endif
+
   // Enable backtrace for 2 messages for warning
   logger->init_backtrace(2, LogLevel::Error);
 

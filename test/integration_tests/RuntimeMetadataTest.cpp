@@ -66,6 +66,11 @@ TEST_CASE("runtime_metadata")
 
   log_runtime_message(logger, quill::LogLevel::Info, "app.cpp", 1234, "test message");
 
+  LOG_RUNTIME_METADATA_SHALLOW(logger, quill::LogLevel::Info, "null_runtime.cpp", 55, nullptr,
+                               nullptr, "null metadata survived");
+
+  LOG_RUNTIME_METADATA_SHALLOW(logger, quill::LogLevel::Info, nullptr, 0, nullptr, nullptr, nullptr);
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -74,7 +79,7 @@ TEST_CASE("runtime_metadata")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 7);
+  REQUIRE_EQ(file_contents.size(), 9);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"RuntimeMetadataTest.cpp:1234 function_1 LOG_INFO      logger       test message"}));
@@ -96,6 +101,9 @@ TEST_CASE("runtime_metadata")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"RuntimeMetadataTest.cpp:98 function_1 LOG_INFO      logger       a=1 and b=2"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"null_runtime.cpp:55  LOG_INFO      logger       null metadata survived"}));
 
   testing::remove_file(filename);
 }

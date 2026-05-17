@@ -21,7 +21,7 @@
     {                                                                                              \
       if (QUILL_UNLIKELY(!(expression)))                                                           \
       {                                                                                            \
-        printf("Quill fatal error: %s (%s:%d)\n", error, QUILL_FILE_NAME, QUILL_LINE_NO);          \
+        printf("Quill fatal error: %s\n", error);                                                  \
         std::abort();                                                                              \
       }                                                                                            \
     } while (0)

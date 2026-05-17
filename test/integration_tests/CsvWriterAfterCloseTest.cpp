@@ -24,9 +24,11 @@ TEST_CASE("csv_writer_operations_throw_after_close")
   csv_writer.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
   csv_writer.close();
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(csv_writer.append_row(13212124, "META", 200, 310.32321, "SELL"), QuillError);
   REQUIRE_THROWS_AS(csv_writer.write_header(), QuillError);
   REQUIRE_THROWS_AS(csv_writer.flush(), QuillError);
+#endif
 
   Backend::stop();
 

@@ -8,6 +8,7 @@
 #if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+  #pragma GCC diagnostic ignored "-Waggressive-loop-optimizations"
 #endif
 
 TEST_SUITE_BEGIN("InlinedVector");
@@ -132,7 +133,9 @@ TEST_CASE("assign_access_index")
   vec.assign(2, 199);
 
   // Assign value to invalid index
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(vec.assign(3, 199));
+#endif
 
   // Verify that the value has been updated
   REQUIRE_EQ(vec[0], 10);
@@ -140,20 +143,10 @@ TEST_CASE("assign_access_index")
   REQUIRE_EQ(vec[2], 199);
 
   {
-    bool throws{false};
-
-    try
-    {
-      // we only pushed_back 3 elements, trying to access the 4th will fail
-      uint32_t const elem = vec[3];
-      (void)elem;
-    }
-    catch (std::exception const&)
-    {
-      throws = true;
-    }
-
-    REQUIRE(throws);
+#if !defined(QUILL_NO_EXCEPTIONS)
+    // we only pushed_back 3 elements, trying to access the 4th will fail
+    REQUIRE_THROWS(vec[3]);
+#endif
   }
 
   // Add one more
@@ -176,20 +169,10 @@ TEST_CASE("assign_access_index")
   REQUIRE_EQ(vec[4], 230);
 
   {
-    bool throws{false};
-
-    try
-    {
-      // we only pushed_back 5 elements, trying to access the 6th will fail
-      uint32_t const elem = vec[5];
-      (void)elem;
-    }
-    catch (std::exception const&)
-    {
-      throws = true;
-    }
-
-    REQUIRE(throws);
+#if !defined(QUILL_NO_EXCEPTIONS)
+    // we only pushed_back 5 elements, trying to access the 6th will fail
+    REQUIRE_THROWS(vec[5]);
+#endif
   }
 }
 
@@ -258,7 +241,9 @@ TEST_CASE("assign_after_heap_allocation")
   REQUIRE_EQ(vec[3], 999);
 
   // Test that assign beyond size still throws
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(vec.assign(4, 500));
+#endif
 }
 
 TEST_CASE("multiple_reallocations")
@@ -367,7 +352,9 @@ TEST_CASE("boundary_access_inline_only")
   REQUIRE_EQ(vec[7], 7);
 
   // Access beyond size should throw
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(vec[8]);
+#endif
 
   // Assign at boundaries
   vec.assign(0, 100);
@@ -422,7 +409,9 @@ TEST_CASE("test_heap_buffer_initialization")
   vec.push_back(2);
   vec.push_back(3);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(vec[3]);
+#endif
 }
 
 TEST_CASE("test_return_value_of_push_back")
@@ -550,7 +539,9 @@ TEST_CASE("constructor_initializes_inline_buffer")
 
   // Size is 0, so we can't access elements
   REQUIRE_EQ(vec.size(), 0);
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(vec[0]);
+#endif
 }
 
 TEST_CASE("large_inline_capacity")
@@ -902,8 +893,10 @@ TEST_CASE("empty_vector_operations")
   InlinedVector<uint32_t, 5> vec;
 
   // Should not be able to access anything
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(vec[0]);
   REQUIRE_THROWS(vec.assign(0, 100));
+#endif
 
   REQUIRE_EQ(vec.size(), 0);
   REQUIRE_EQ(vec.capacity(), 5);

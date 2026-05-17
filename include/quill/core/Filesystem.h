@@ -121,7 +121,16 @@ QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path filename, bool
   }
   else
   {
-    parent_path = fs::current_path();
+    // Use the non-throwing overload: when the working directory has been deleted or is
+    // inaccessible, the throwing overload raises fs::filesystem_error, which callers that treat
+    // normalization as best-effort (e.g. SinkManager::get_sink) only guard against as QuillError.
+    parent_path = fs::current_path(ec);
+
+    if (ec)
+    {
+      QUILL_THROW(QuillError{std::string{"cannot resolve the current working directory for path "} +
+                             filename.string() + std::string{" - error: "} + ec.message()});
+    }
   }
 
   fs::path const canonical_path = fs::canonical(parent_path, ec);

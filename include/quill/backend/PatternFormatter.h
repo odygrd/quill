@@ -358,8 +358,6 @@ private:
 
     QUILL_THROW(QuillError{
       std::string{"Attribute enum value does not exist for attribute with name " + attribute_name}});
-
-    return PatternFormatter::Attribute::Message; // unreachable, silences any warning
   }
 
   /***/
@@ -498,10 +496,15 @@ private:
           QUILL_THROW(QuillError{"Invalid format pattern, attribute with name \"" + attr_name + "\" is invalid"});
         }
 
-        order_index[static_cast<size_t>(id)] = arg_idx++;
-
         // Also set the value as used in the pattern in our bitset for lazy evaluation
         PatternFormatter::Attribute const attr_enum_value = _attribute_from_string(attr_name);
+        if (is_set_in_pattern.test(attr_enum_value))
+        {
+          QUILL_THROW(QuillError{"Invalid format pattern, attribute with name \"" + attr_name +
+                                 "\" is used more than once"});
+        }
+
+        order_index[static_cast<size_t>(id)] = arg_idx++;
         is_set_in_pattern.set(attr_enum_value);
 
         // Look for the next pattern to replace

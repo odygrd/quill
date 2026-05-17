@@ -22,16 +22,17 @@ TEST_CASE("normalize_file_sink_path_preserves_special_paths")
   REQUIRE_EQ(normalize_file_sink_path(fs::path{"/dev/null"}).string(), "/dev/null");
 }
 
-#if !defined(QUILL_NO_EXCEPTIONS)
 TEST_CASE("normalize_file_sink_path_missing_directory_without_creation_throws")
 {
   fs::path const missing_dir = "backend_utilities_missing_dir";
   std::error_code ec;
   fs::remove_all(missing_dir, ec);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   auto const normalize_missing_path = [&]()
   { return normalize_file_sink_path(missing_dir / "missing.log", false); };
   REQUIRE_THROWS_AS(normalize_missing_path(), QuillError);
+#endif
 }
 
 TEST_CASE("sink_manager_get_sink_missing_path_throws")
@@ -40,20 +41,22 @@ TEST_CASE("sink_manager_get_sink_missing_path_throws")
   std::error_code ec;
   fs::remove_all(missing_dir, ec);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   auto const get_missing_sink = [&]()
   { return SinkManager::instance().get_sink((missing_dir / "missing.log").string()); };
   REQUIRE_THROWS_AS(get_missing_sink(), QuillError);
-}
 #endif
+}
 
-#if !defined(QUILL_NO_EXCEPTIONS)
 TEST_CASE("backend_worker_lock_rejects_duplicate_while_original_is_alive")
 {
   std::string const pid = std::to_string(get_process_id()) + std::string{"1"};
   BackendWorkerLock first_lock{pid};
+
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(BackendWorkerLock{pid}, QuillError);
-}
 #endif
+}
 
 TEST_CASE("backend_worker_lock_no_throw")
 {
@@ -81,7 +84,6 @@ TEST_CASE("lock_file_cleaned_up_destruction")
 #endif
 }
 
-#if !defined(QUILL_NO_EXCEPTIONS)
 TEST_CASE("backend_worker_run_rejects_duplicate_while_original_is_alive")
 {
   BackendOptions options;
@@ -91,14 +93,15 @@ TEST_CASE("backend_worker_run_rejects_duplicate_while_original_is_alive")
   first_backend_worker.run(options);
 
   detail::BackendWorker second_backend_worker;
-  auto const start_second_backend_worker = [&]() { second_backend_worker.run(options); };
 
+#if !defined(QUILL_NO_EXCEPTIONS)
+  auto const start_second_backend_worker = [&]() { second_backend_worker.run(options); };
   REQUIRE_THROWS_AS(start_second_backend_worker(), QuillError);
+#endif
 
   first_backend_worker.stop();
   second_backend_worker.stop();
 }
-#endif
 
 TEST_CASE("backend_worker_lock_can_be_reacquired_after_release")
 {
@@ -156,13 +159,13 @@ TEST_CASE("set_cpu_affinity_accepts_current_cpu_and_rejects_invalid_cpu")
 TEST_CASE("set_thread_name_validates_length")
 {
 #if defined(__linux__) && !defined(__ANDROID__)
-  REQUIRE_NOTHROW(set_thread_name("quill-test"));
+  set_thread_name("quill-test");
 
   char current_name[16]{};
   REQUIRE_EQ(::pthread_getname_np(::pthread_self(), current_name, sizeof(current_name)), 0);
   REQUIRE_EQ(std::string{current_name}, "quill-test");
 
-  REQUIRE_NOTHROW(set_thread_name("quill-thread-name-too-long"));
+  set_thread_name("quill-thread-name-too-long");
   REQUIRE_EQ(::pthread_getname_np(::pthread_self(), current_name, sizeof(current_name)), 0);
   REQUIRE_EQ(std::string{current_name}, "quill-thread-na");
 #else

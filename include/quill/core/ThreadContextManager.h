@@ -214,7 +214,7 @@ private:
   std::string _thread_id = std::to_string(get_thread_id());  /**< cached thread pid */
   std::string _thread_name = get_thread_name();              /**< cached thread name */
   std::shared_ptr<TransitEventBuffer> _transit_event_buffer; /**< backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */
-  std::shared_ptr<BackendMdcState> _backend_mdc_state;       /**< backend-owned MDC state. shared_ptr keeps the forward declaration lightweight */
+  std::shared_ptr<BackendMdcState> _backend_mdc_state; /**< backend-owned MDC state. shared_ptr keeps the forward declaration lightweight */
   QueueType _queue_type;
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the frontend, read by the backend thread */
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<size_t> _failure_counter{0};

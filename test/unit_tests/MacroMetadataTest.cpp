@@ -212,6 +212,26 @@ TEST_CASE("construct")
   }
 }
 
+TEST_CASE("contains_named_args_accepts_fmt_identifier_start")
+{
+  static_assert(MacroMetadata::contains_named_args("{name}"),
+                "letter-start name should be detected");
+  static_assert(MacroMetadata::contains_named_args("{_name}"),
+                "underscore-start name should be detected");
+  static_assert(MacroMetadata::contains_named_args("{_name:.2f}"),
+                "underscore-start name with format spec should be detected");
+  static_assert(!MacroMetadata::contains_named_args("{}"), "positional placeholder is not named");
+  static_assert(!MacroMetadata::contains_named_args("{0}"), "indexed placeholder is not named");
+  static_assert(!MacroMetadata::contains_named_args("{{_name}}"),
+                "escaped braces should not be detected as named args");
+
+  constexpr MacroMetadata macro_metadata{
+    "MacroMetadataTest.cpp:250", "NamedArgsFunc",          "{_trace_id}", nullptr,
+    quill::LogLevel::Info,       MacroMetadata::Event::Log};
+
+  REQUIRE_EQ(macro_metadata.has_named_args(), true);
+}
+
 TEST_CASE("empty_source_location_is_handled")
 {
   constexpr MacroMetadata macro_metadata{"",               // source_location

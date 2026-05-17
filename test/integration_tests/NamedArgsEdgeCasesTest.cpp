@@ -94,12 +94,14 @@ TEST_CASE("named_args_edge_cases")
   char const separator_payload_bytes[] = {'A', '\x01', '\x02', '\x03', 'B'};
   std::string const separator_payload{separator_payload_bytes, sizeof(separator_payload_bytes)};
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   // 1. Malformed: unclosed brace — no named arg extracted, format error
   LOG_WARNING(logger, "Malformed named arg {param_1", 42);
-  // 2. Named arg followed by literal } via }}} — should work
-  LOG_INFO(logger, "{name}}} text", "value");
   // 3. Named arg followed by }} — unmatched } in output format string, format error
   LOG_INFO(logger, "{name}} text", "value");
+#endif
+  // 2. Named arg followed by literal } via }}} — should work
+  LOG_INFO(logger, "{name}}} text", "value");
   // 4. Escaped {{ and }} around literal text, then a named arg — should work
   LOG_INFO(logger, "text {{literal}} {name}", "value");
   // 5. Named arg with format specifier — should work
@@ -126,6 +128,10 @@ TEST_CASE("named_args_edge_cases")
   LOG_INFO(logger, "{x}", 99);
   // 16. Named arg with hex format specifier
   LOG_INFO(logger, "{val:#x}", 255);
+  // 17. Named arg beginning with underscore, matching fmt's identifier rules
+  LOG_INFO(logger, "{_trace_id} underscore", "abc123");
+  // 18. Duplicate labels should remain distinct in structured output
+  LOG_INFO(logger, "{dup} {dup}", "first", "second");
 
   logger->flush_log();
   Frontend::remove_logger_blocking(logger);
@@ -134,8 +140,9 @@ TEST_CASE("named_args_edge_cases")
   std::vector<std::string> const json_file_contents = quill::testing::file_contents(json_filename);
   std::vector<std::string> const text_file_contents = quill::testing::file_contents(text_filename);
 
-  REQUIRE_EQ(json_file_contents.size(), 16u);
-  REQUIRE_EQ(text_file_contents.size(), 16u);
+#if !defined(QUILL_NO_EXCEPTIONS)
+  REQUIRE_EQ(json_file_contents.size(), 18u);
+  REQUIRE_EQ(text_file_contents.size(), 18u);
   REQUIRE_EQ(error_messages.size(), 2u);
 
   // Check the malformed case (1)
@@ -151,6 +158,10 @@ TEST_CASE("named_args_edge_cases")
     text_file_contents, R"([Could not format log statement. message: "Malformed named arg {param_1")"));
   REQUIRE(quill::testing::file_contains(
     text_file_contents, R"([Could not format log statement. message: "{name}} text")"));
+#else
+  REQUIRE_EQ(json_file_contents.size(), 16u);
+  REQUIRE_EQ(text_file_contents.size(), 16u);
+#endif
 
   // Successful cases (2, 4, 5, 6, 7, 8, 9)
   REQUIRE(quill::testing::file_contains(text_file_contents, "value} text [name: value]"));
@@ -184,6 +195,15 @@ TEST_CASE("named_args_edge_cases")
 
   // Hex format specifier (16)
   REQUIRE(quill::testing::file_contains(text_file_contents, "0xff [val: 0xff]"));
+
+  // Underscore-start named arg (17)
+  REQUIRE(
+    quill::testing::file_contains(text_file_contents, "abc123 underscore [_trace_id: abc123]"));
+
+  // Duplicate labels get suffixed to keep structured keys unique (18)
+  REQUIRE(
+    quill::testing::file_contains(text_file_contents, "first second [dup: first, dup_1: second]"));
+  REQUIRE(quill::testing::file_contains(json_file_contents, R"("dup":"first","dup_1":"second")"));
 
   testing::remove_file(json_filename);
   testing::remove_file(text_filename);

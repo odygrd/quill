@@ -14,6 +14,11 @@ the logging call site.
 MDC lets you set that context once and have it appear on subsequent log statements from the same frontend thread until
 you replace, erase, or clear it.
 
+Quill's MDC is specifically designed so the steady-state hot path stays cheap: MDC updates are
+sent to the backend as a single control event per change, and later log statements do **not**
+re-serialize or re-enqueue all MDC fields on the frontend hot path. The backend keeps the current
+MDC per frontend thread and reuses it for subsequent log lines from that thread.
+
 Displaying MDC
 --------------
 
@@ -31,6 +36,9 @@ Basic Example
 .. literalinclude:: snippets/quill_docs_example_mdc.cpp
    :language: cpp
    :linenos:
+
+A fuller standalone example with a custom pattern and multiple loggers sharing the same thread-local MDC lives at
+`examples/mdc_logging.cpp <https://github.com/odygrd/quill/blob/master/examples/mdc_logging.cpp>`_.
 
 This produces output similar to:
 

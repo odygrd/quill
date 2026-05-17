@@ -5,18 +5,27 @@
 Overview
 ========
 
-The library adopts asynchronous logging and metric publishing to optimise performance, particularly
-well-suited for low-latency applications where minimizing hot path latency is crucial, such as
-trading systems.
+Quill is an asynchronous logging library built for C++ applications where **every nanosecond on
+the hot path matters** — trading systems, real-time engines, game servers, low-latency network
+stacks, and similar workloads.
 
-A dedicated backend thread manages log formatting, metric forwarding, and I/O operations, ensuring
-that even occasional log statements or metric updates incur minimal overhead.
+Quill also lets you **publish metric samples to an external metrics backend** (Prometheus,
+StatsD, OpenTelemetry, or any in-process collector) through the same asynchronous pipeline used
+for logs, so hot threads never pay for metric formatting or export either. Quill is not a
+metrics collection or exposition system itself — it is the low-latency transport that hands
+samples off to whichever metrics backend your sink targets.
+
+A dedicated backend worker handles log formatting, metric forwarding, and I/O, so even the
+slowest log line never blocks a hot thread on string conversion or disk writes. The frontend
+only captures a binary copy of the arguments (or a compact metric sample) into a thread-local
+lock-free queue; the backend does the rest.
 
 At a glance:
 
 - **Frontend:** captures metadata and a binary copy of log arguments, or a compact metric sample, on the calling thread.
 - **Backend:** formats log messages and forwards metric samples on a dedicated worker thread.
-- **Ordering:** a single worker can preserve timestamp order across active queues.
+- **Ordering:** a single worker processes cached events by timestamp across all active queues and uses a configurable grace period to reduce cross-thread timestamp reordering without per-call locking.
+- **Extensibility:** sinks can handle logs, metrics, or both — the built-in library covers files, consoles, rotation, JSON, Syslog/systemd, Android, and Prometheus, and custom sinks plug in through a narrow virtual interface.
 
 .. image:: design.drawio.svg
    :alt: Quill design overview
@@ -104,12 +113,15 @@ If you use your own POSIX signal handler, keep it minimal and avoid calling the 
 - ``logger_name`` — the logger to use for crash reporting. If empty, the signal handler automatically selects the first valid logger.
 - ``excluded_logger_substrings`` — logger names containing these substrings are skipped during automatic selection (defaults to ``{"__csv__"}``).
 
-On Windows, the handler uses structured exception handling instead of POSIX signals.
+On Windows, ``Backend::start()`` installs structured exception handling and a process-wide
+console control handler. CRT signal handlers are thread-specific; call
+``quill::init_signal_handler<FrontendOptions>()`` on each frontend/user thread that needs CRT
+signal handling. Do not install the CRT signal handler on the backend worker thread.
 
 Log Messages Timestamp Order
 ----------------------------
 
-The library employs a single worker backend thread that orders log messages from all queues by timestamp before printing them to the log file.
+The library employs a single worker backend thread that processes cached log messages from all queues by timestamp before printing them to the log file. A configurable timestamp-ordering grace period gives frontend threads a short window to publish already-timestamped events, reducing cross-thread timestamp reordering.
 
 Number of Backend Threads
 -------------------------

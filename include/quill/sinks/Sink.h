@@ -95,20 +95,23 @@ public:
       QUILL_THROW(QuillError{"Filter pointer is nullptr"});
     }
 
+    // Call the user-overridable name accessor before taking the lock.
+    std::string filter_name = filter->get_filter_name();
+
     // Lock and add this filter to our global collection
     detail::LockGuard const lock{_global_filters_lock};
 
     // Check if the same filter already exists
-    auto const search_filter_it = std::find_if(
-      _global_filters.cbegin(), _global_filters.cend(), [&filter](std::unique_ptr<Filter> const& elem_filter)
-      { return elem_filter->get_filter_name() == filter->get_filter_name(); });
+    auto const search_filter_it = std::find_if(_global_filters.cbegin(), _global_filters.cend(),
+                                               [&filter_name](RegisteredFilter const& elem_filter)
+                                               { return elem_filter.filter_name == filter_name; });
 
     if (QUILL_UNLIKELY(search_filter_it != _global_filters.cend()))
     {
       QUILL_THROW(QuillError{"Filter with the same name already exists"});
     }
 
-    _global_filters.push_back(std::move(filter));
+    _global_filters.emplace_back(std::move(filter_name), std::move(filter));
 
     // Indicate a new filter was added - here relaxed is okay as the spinlock will do acq-rel on destruction
     _new_filter.store(true, std::memory_order_relaxed);
@@ -199,7 +202,7 @@ protected:
 
       for (auto const& filter : _global_filters)
       {
-        _local_filters.push_back(filter.get());
+        _local_filters.push_back(filter.filter.get());
       }
     }
 
@@ -222,6 +225,17 @@ protected:
 private:
   friend class detail::BackendWorker;
 
+  struct RegisteredFilter
+  {
+    RegisteredFilter(std::string filter_name_arg, std::unique_ptr<Filter> filter_arg)
+      : filter_name(std::move(filter_name_arg)), filter(std::move(filter_arg))
+    {
+    }
+
+    std::string filter_name;
+    std::unique_ptr<Filter> filter;
+  };
+
   /** Override PatternFormatter for this sink **/
   std::optional<PatternFormatterOptions> _override_pattern_formatter_options; /* Set by the frontend and accessed by the backend to initialise PatternFormatter */
   std::shared_ptr<PatternFormatter> _override_pattern_formatter; /* The backend thread will set this once */
@@ -230,7 +244,7 @@ private:
   std::vector<Filter*> _local_filters;
 
   /** Global filter for this sink **/
-  std::vector<std::unique_ptr<Filter>> _global_filters;
+  std::vector<RegisteredFilter> _global_filters;
   detail::Spinlock _global_filters_lock;
   /** Indicator that a new filter was added **/
   std::atomic<bool> _new_filter{false};

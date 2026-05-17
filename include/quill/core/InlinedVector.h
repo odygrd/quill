@@ -9,7 +9,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <limits>
 #include <type_traits>
 
 #include "quill/core/Attributes.h"
@@ -69,7 +68,7 @@ public:
   {
     if (_size == _capacity)
     {
-      if (QUILL_UNLIKELY(_capacity > (std::numeric_limits<size_t>::max() / 2)))
+      if (QUILL_UNLIKELY(_capacity > (SIZE_MAX / 2)))
       {
         QUILL_THROW(QuillError{"InlinedVector capacity overflow"});
       }

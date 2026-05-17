@@ -30,6 +30,10 @@ set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
 set(SPHINX_INDEX_FILE ${SPHINX_BUILD}/index.html)
 set(SPHINX_TAG_FILE ${SPHINX_BUILD}/quill.tag)
 
+# Pick up every docs source automatically so adding a new .rst does not silently
+# skip the Sphinx rebuild trigger. CONFIGURE_DEPENDS makes CMake re-glob on build.
+file(GLOB SPHINX_RST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.rst")
+
 # Only regenerate Sphinx when:
 # - Doxygen has rerun
 # - Our doc files have been updated
@@ -43,30 +47,7 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE} ${SPHINX_TAG_FILE}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${DOXYGEN_TAG_FILE} ${SPHINX_TAG_FILE}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS
-        # Other docs files you want to track should go here (or in some variable)
-        ${CMAKE_CURRENT_SOURCE_DIR}/backend_options.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/backtrace_logging.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/basic_example.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/recipes.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/csv_writing.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/filters.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/formatters.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/frontend_options.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/guides.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/installing.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/json_logging.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/log_levels.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/log_tagging.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/loggers.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/logging_macros.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/overview.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/quick_start.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/sink_types.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/sinks.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/timestamp_types.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/users-api.rst
-        ${CMAKE_CURRENT_SOURCE_DIR}/wide_strings.rst
+        ${SPHINX_RST_SOURCES}
         ${DOXYGEN_INDEX_FILE}
         ${DOXYGEN_TAG_FILE}
         MAIN_DEPENDENCY ${SPHINX_SOURCE}/conf.py

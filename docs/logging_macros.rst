@@ -18,6 +18,8 @@ Arguments are always matched to placeholders **by position**, not by name lookup
 each ``{...}`` placeholder is used only as a label — it does not influence which argument fills it.
 This means arguments must be passed in the same order as their corresponding placeholders appear
 in the format string.
+If the same label appears more than once, later occurrences are suffixed (for example, ``id_1``)
+in the structured ``named_args`` output so JSON fields remain distinct.
 
 .. code-block:: cpp
 

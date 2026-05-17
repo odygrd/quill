@@ -94,9 +94,9 @@ public:
   /**
    * @brief Sets the mapping from quill log levels to syslog levels.
    * This mapping determines which syslog level is used for each quill log level.
-   * @param mapping An array of 11 integers representing syslog levels, one per LogLevel value.
+   * @param mapping An array of LogLevelCount integers representing syslog levels, one per LogLevel value.
    */
-  QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, 11> mapping)
+  QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, LogLevelCount> mapping)
   {
     _log_level_mapping = mapping;
   }
@@ -119,7 +119,7 @@ private:
   std::string _identifier;
   int _options{0};
   int _facility{0};
-  std::array<int, 11> _log_level_mapping = {
+  std::array<int, LogLevelCount> _log_level_mapping = {
     // Mapping from quill log levels to syslog levels:
     /* "TRACE_L3" */ LOG_DEBUG,   /* "TRACE_L2" */ LOG_DEBUG,
     /* "TRACE_L1" */ LOG_DEBUG,   /* "DEBUG"    */ LOG_DEBUG,

@@ -89,6 +89,11 @@ public:
    * inside the signal handler, which is not signal-safe. Preallocating or logging once on those
    * threads avoids that first-use allocation, but the built-in handler should still be treated as a
    * best-effort crash-preservation facility rather than a general async-signal-safe logging API.
+   *
+   * @note On Windows, Backend::start() installs structured exception and console control handlers.
+   *       CRT signal handlers are thread-specific and must be installed explicitly with
+   *       init_signal_handler<TFrontendOptions>() on each frontend/user thread that needs them,
+   *       not on the backend worker thread.
    */
   template <typename TFrontendOptions>
   QUILL_ATTRIBUTE_COLD static void start(BackendOptions const& backend_options,
@@ -98,12 +103,13 @@ public:
       detail::BackendManager::instance().get_start_once_flag(),
       [backend_options, signal_handler_options]()
       {
-        bool signal_handler_initialized{false};
+        // These flags are only read in the catch block; unused in no-exception builds.
+        QUILL_MAYBE_UNUSED bool signal_handler_initialized{false};
 #if defined(_WIN32)
-        bool exception_handler_initialized{false};
+        QUILL_MAYBE_UNUSED bool exception_handler_initialized{false};
 #else
         sigset_t set, oldset;
-        bool signal_mask_modified{false};
+        QUILL_MAYBE_UNUSED bool signal_mask_modified{false};
 #endif
         QUILL_TRY
         {
@@ -192,10 +198,18 @@ public:
    * Quill-managed signals to their default dispositions. It does not restore any previously
    * installed user handlers.
    * @note Concurrent calls to start() and stop() from different threads are not supported.
+   * @note This function must not be called from backend-thread callbacks because it joins the
+   *       backend worker thread.
    * @note thread-safe
    */
   QUILL_ATTRIBUTE_COLD static void stop()
   {
+    uint32_t const backend_thread_id = detail::BackendManager::instance().get_backend_thread_id();
+    if (QUILL_UNLIKELY((backend_thread_id != 0) && (backend_thread_id == detail::get_thread_id())))
+    {
+      QUILL_THROW(QuillError{"Backend::stop() cannot be called from the backend worker thread"});
+    }
+
     detail::SignalHandlerContext::instance().backend_thread_id.store(0);
     detail::BackendManager::instance().stop_backend_thread();
 #if defined(_WIN32)

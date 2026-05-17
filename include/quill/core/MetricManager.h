@@ -128,8 +128,7 @@ private:
                                       [](std::unique_ptr<MetricMetadata> const& elem, std::string const& target)
                                       { return elem->metric_key() < target; });
 
-    insert_it =
-      _metrics.insert(insert_it, std::make_unique<MetricMetadata>(metric_key, metric_name, labels));
+    insert_it = _metrics.insert(insert_it, std::make_unique<MetricMetadata>(metric_key, metric_name, labels));
 
     return insert_it->get();
   }

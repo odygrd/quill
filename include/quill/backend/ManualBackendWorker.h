@@ -21,8 +21,9 @@ QUILL_BEGIN_EXPORT
  * Threading contract:
  * - The thread running `ManualBackendWorker` may log.
  * - That same thread must not use any path that waits for the backend to flush its own queue.
- *   In particular, it must not call `logger->flush_log()`, and it must not use immediate-flush
- *   settings that can trigger `flush_log()` implicitly.
+ *   In particular, it must not call `logger->flush_log()` or `Frontend::remove_logger_blocking()`.
+ *   If a logger has immediate flush enabled, the implicit flush is skipped for log calls from this
+ *   thread.
  * - The thread that calls `init()` must also call `shutdown()` explicitly before it exits.
  *   Do not rely on the destructor to perform shutdown for you.
  */

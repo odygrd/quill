@@ -60,14 +60,16 @@ public:
 
     // look for all three special specifiers
 
-    if (size_t const search_qms = _time_format.find(specifier_name[AdditionalSpecifier::Qms]);
+    if (size_t const search_qms = StringFromTime::_find_unescaped_modifier(
+          _time_format, specifier_name[AdditionalSpecifier::Qms]);
         search_qms != std::string::npos)
     {
       _additional_format_specifier = AdditionalSpecifier::Qms;
       specifier_begin = search_qms;
     }
 
-    if (size_t const search_qus = _time_format.find(specifier_name[AdditionalSpecifier::Qus]);
+    if (size_t const search_qus = StringFromTime::_find_unescaped_modifier(
+          _time_format, specifier_name[AdditionalSpecifier::Qus]);
         search_qus != std::string::npos)
     {
       if (specifier_begin != std::string::npos)
@@ -79,7 +81,8 @@ public:
       specifier_begin = search_qus;
     }
 
-    if (size_t const search_qns = _time_format.find(specifier_name[AdditionalSpecifier::Qns]);
+    if (size_t const search_qns = StringFromTime::_find_unescaped_modifier(
+          _time_format, specifier_name[AdditionalSpecifier::Qns]);
         search_qns != std::string::npos)
     {
       if (specifier_begin != std::string::npos)

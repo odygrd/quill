@@ -2,6 +2,7 @@
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
 #include <ctime>
+#include <limits>
 
 TEST_SUITE_BEGIN("StringFromTime");
 
@@ -401,6 +402,54 @@ TEST_CASE("string_from_time_gmtime_format_s_crossing_11_digits_preserves_suffix"
 #endif
 }
 
+/***/
+TEST_CASE("string_from_time_gmtime_escaped_percent_modifiers_match_strftime")
+{
+  char const* formats[] = {"%%H literal", "prefix %%M %%S", "%%%H:%M:%S"};
+
+  for (char const* fmt : formats)
+  {
+    StringFromTime string_from_time;
+    string_from_time.init(fmt, Timezone::GmtTime);
+
+    for (time_t raw_ts = 1579825361; raw_ts <= 1579825365; ++raw_ts)
+    {
+      auto const& actual = string_from_time.format_timestamp(raw_ts);
+
+      std::tm time_info{};
+      quill::detail::gmtime_rs(&raw_ts, &time_info);
+      char expected[256];
+      std::strftime(expected, sizeof(expected), fmt, &time_info);
+
+      REQUIRE_STREQ(actual.data(), expected);
+    }
+  }
+}
+
+/***/
+TEST_CASE("string_from_time_gmtime_escaped_composite_modifiers_match_strftime")
+{
+  char const* formats[] = {"%%r literal", "prefix %%R %%T", "%%%T %%r", "literal %%X"};
+
+  for (char const* fmt : formats)
+  {
+    StringFromTime string_from_time;
+    string_from_time.init(fmt, Timezone::GmtTime);
+
+    for (time_t raw_ts = 1579825361; raw_ts <= 1579825365; ++raw_ts)
+    {
+      auto const& actual = string_from_time.format_timestamp(raw_ts);
+
+      std::tm time_info{};
+      quill::detail::gmtime_rs(&raw_ts, &time_info);
+      char expected[256];
+      std::strftime(expected, sizeof(expected), fmt, &time_info);
+
+      REQUIRE_STREQ(actual.data(), expected);
+    }
+  }
+}
+
 class StringFromTimeMock : public quill::detail::StringFromTime
 {
 public:
@@ -494,6 +543,20 @@ TEST_CASE("safe_strftime_resize")
     std::string{StringFromTimeMock::safe_strftime(format_string, raw_ts, Timezone::LocalTime).data()};
 
   REQUIRE_STREQ(expected_result, safe_strftime_result.data());
+}
+
+TEST_CASE("safe_strftime_long_literal_resize")
+{
+  // Get the timestamp now
+  time_t raw_ts;
+  std::time(&raw_ts);
+
+  std::string const format_string(200, 'x');
+
+  std::string const safe_strftime_result =
+    std::string{StringFromTimeMock::safe_strftime(format_string.data(), raw_ts, Timezone::LocalTime).data()};
+
+  REQUIRE_EQ(format_string, safe_strftime_result);
 }
 
 TEST_CASE("safe_strftime_empty")

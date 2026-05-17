@@ -198,7 +198,6 @@ TEST_CASE("wide_std_types_logging")
 
     std::unordered_map<int, std::wstring> uccmi = {{7, L"700"}};
     LOG_INFO(logger, "uccmi {}", uccmi);
-
   }
 
   logger->flush_log();

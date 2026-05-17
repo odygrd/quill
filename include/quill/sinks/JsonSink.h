@@ -18,7 +18,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <cstdio>
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -70,10 +69,10 @@ public:
     {
       char const* message_format = log_metadata->message_format();
 
-      if (strchr(log_metadata->message_format(), '\n') != nullptr)
+      if (strchr(message_format, '\n') != nullptr)
       {
         // The format string contains at least one new line and that would break the json message, it needs to be removed
-        _format = log_metadata->message_format();
+        _format = message_format;
 
         for (size_t pos = 0; (pos = _format.find('\n', pos)) != std::string::npos; pos++)
         {
@@ -159,9 +158,9 @@ protected:
     _json_message.clear();
 
     char const* message_format = log_metadata->message_format();
-    if (strchr(log_metadata->message_format(), '\n') != nullptr)
+    if (strchr(message_format, '\n') != nullptr)
     {
-      _format = log_metadata->message_format();
+      _format = message_format;
 
       for (size_t pos = 0; (pos = _format.find('\n', pos)) != std::string::npos; pos++)
       {
@@ -182,8 +181,20 @@ protected:
 
   static void _append_json_escaped(fmtquill::memory_buffer& out, std::string_view value)
   {
-    for (char c : value)
+    // Pre-computed escape table for control characters (0x00..0x1F). Each entry is the 6-byte
+    // \uXXXX form. Faster and locale-safe compared to per-byte snprintf.
+    static constexpr char control_escape_table[32][7] = {
+      "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005", "\\u0006", "\\u0007",
+      "\\u0008", "\\u0009", "\\u000A", "\\u000B", "\\u000C", "\\u000D", "\\u000E", "\\u000F",
+      "\\u0010", "\\u0011", "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017",
+      "\\u0018", "\\u0019", "\\u001A", "\\u001B", "\\u001C", "\\u001D", "\\u001E", "\\u001F"};
+
+    size_t const size = value.size();
+    char const* const data = value.data();
+
+    for (size_t i = 0; i < size; ++i)
     {
+      unsigned char const c = static_cast<unsigned char>(data[i]);
       switch (c)
       {
       case '"':
@@ -207,16 +218,30 @@ protected:
       case '\t':
         out.append(std::string_view{"\\t"});
         break;
-      default:
-        if (static_cast<unsigned char>(c) < 0x20)
+      // U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR) are valid JSON characters
+      // but they break some JavaScript consumers that treat JSON as JS source. Escape the
+      // 3-byte UTF-8 sequences E2 80 A8 and E2 80 A9 when we see them.
+      case 0xE2:
+        if (i + 2 < size && static_cast<unsigned char>(data[i + 1]) == 0x80 &&
+            (static_cast<unsigned char>(data[i + 2]) == 0xA8 || static_cast<unsigned char>(data[i + 2]) == 0xA9))
         {
-          char escaped[7];
-          std::snprintf(escaped, sizeof(escaped), "\\u%04X", static_cast<unsigned char>(c));
-          out.append(std::string_view{escaped, 6});
+          out.append(static_cast<unsigned char>(data[i + 2]) == 0xA8 ? std::string_view{"\\u2028"}
+                                                                     : std::string_view{"\\u2029"});
+          i += 2;
         }
         else
         {
-          out.push_back(c);
+          out.push_back(static_cast<char>(c));
+        }
+        break;
+      default:
+        if (c < 0x20)
+        {
+          out.append(std::string_view{control_escape_table[c], 6});
+        }
+        else
+        {
+          out.push_back(static_cast<char>(c));
         }
         break;
       }

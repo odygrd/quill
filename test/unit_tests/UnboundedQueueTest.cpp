@@ -71,13 +71,8 @@ TEST_CASE("unbounded_queue_allocation_within_limit")
 
   // Attempt to allocate a buffer size that exceeds the default limit,
   // ensuring that allocation within configurable bounds does not throw.
-  auto func = [&buffer]()
-  {
-    auto* write_buffer_z = buffer.prepare_write(2 * two_mb);
-    return write_buffer_z;
-  };
-
-  REQUIRE_NOTHROW(func());
+  auto* write_buffer = buffer.prepare_write(2 * two_mb);
+  REQUIRE(write_buffer);
   REQUIRE_EQ(buffer.producer_capacity(), 2 * two_mb);
 }
 
@@ -87,6 +82,7 @@ TEST_CASE("unbounded_queue_allocation_exceeds_limit")
 
   UnboundedSPSCQueue buffer{1024, two_mb};
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   // Attempt to allocate a buffer size that exceeds the specified capacity,
   // which should trigger an exception.
   auto func = [&buffer]()
@@ -96,6 +92,7 @@ TEST_CASE("unbounded_queue_allocation_exceeds_limit")
   };
 
   REQUIRE_THROWS_AS(func(), quill::QuillError);
+#endif
   REQUIRE_EQ(buffer.producer_capacity(), 1024);
 }
 

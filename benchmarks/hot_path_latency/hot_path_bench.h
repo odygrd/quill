@@ -23,7 +23,6 @@
 #include <random>
 #include <thread>
 
-
 inline uint16_t get_cpu_to_pin_thread(uint16_t thread_num)
 {
   auto const num_cores = static_cast<uint16_t>(std::thread::hardware_concurrency());
@@ -252,6 +251,7 @@ inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t 
             << latencies_combined[percentile_index(0.9)] << "  |  "
             << latencies_combined[percentile_index(0.95)] << "  |  "
             << latencies_combined[percentile_index(0.99)] << "  |  "
-            << latencies_combined[percentile_index(0.999)] << "  |  " << latencies_combined[static_cast<size_t>(latencies_combined.size() - 1)] << "  |\n\n";
+            << latencies_combined[percentile_index(0.999)] << "  |  "
+            << latencies_combined[static_cast<size_t>(latencies_combined.size() - 1)] << "  |\n\n";
 #endif
 }

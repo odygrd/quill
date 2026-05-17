@@ -119,16 +119,30 @@ record on the hot path.
 - Extended `quill/std/Chrono.h` codec support to match bundled fmt's C++20 calendar formatters,
   including `std::chrono::year`, `month`, `day`, `weekday`, and `year_month_day` when available.
 - Added C++20 module support groundwork, including export markers and macro cleanup.
+- Switched to native file handles (`CreateFile`/`WriteFile`) on Windows for improved write throughput compared to
+  `FILE*`.
 - Added strict `Frontend::create_sink()` and `Frontend::create_logger()` APIs for callers that want
   duplicate names to fail instead of reusing existing objects.
 - Added `CsvWriter::close()` for deterministic logger removal and file closure before backend shutdown.
+- Added `BackendOptions::ensure_monotonic_output_timestamps` to correct regular log and metric output timestamps that
+  would otherwise move backwards. Backtrace records keep their original capture timestamps.
 - `BackendOptions::cpu_affinity` now supports pinning the backend to multiple CPUs.
-- Improved Windows sink and file handling, including native file handles and a fallback to `fs::absolute` when
-  `fs::canonical` fails on RAM disks. ([#910](https://github.com/odygrd/quill/issues/910))
+- Added a fallback to `fs::absolute` when `fs::canonical` fails on RAM
+  disks. ([#910](https://github.com/odygrd/quill/issues/910))
 - Hardened backend, signal-handler, manual-backend, and teardown paths with more robust startup and shutdown behavior.
 - Fixed multiple codec, sink rotation, named-argument, queue, and platform-specific edge cases.
+- Fixed an infinite loop in the backend when the user-provided `error_notifier`
+  throws. ([#915](https://github.com/odygrd/quill/issues/915))
 - Generated a Doxygen tag file for downstream documentation
   linking. ([#914](https://github.com/odygrd/quill/issues/914))
+- Fix rotating sink reopen failure when the disk is full ([#919](https://github.com/odygrd/quill/issues/919))
+- Fixes DLL unload on Windows, drain remaining log messages in stop() when backend thread was terminated
+  externally ([#925](https://github.com/odygrd/quill/discussions/925))
+- Fixed stale named arguments from a pooled `TransitEvent`. The `named_args` pointer is now consistently `nullptr` for
+  log statements without named arguments instead of occasionally being an empty
+  vector ([#926](https://github.com/odygrd/quill/issues/926))
+- `StopWatch` now samples its elapsed time on the frontend at the log call site instead of when the backend formats the
+  message, so logged values no longer include backend latency.
 
 ## v11.1.0
 

@@ -20,12 +20,10 @@
 #include "quill/sinks/Sink.h"
 
 #include <atomic>
-#include <chrono>
 #include <cstddef>
 #include <initializer_list>
 #include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
@@ -412,6 +410,7 @@ public:
    *
    * @note This function is thread-safe. However, removing the same logger (`logger_t*`) from multiple threads is not allowed. You must ensure that remove_logger_blocking is only called by a single thread for a given logger.
    * @note This function should only be called when the backend worker is running after Backend::start(...).
+   * @note This function must not be called from backend-thread callbacks because it waits for the backend worker.
    * @warning After calling this function, no thread should use this logger.
    *
    * @param logger A pointer to the logger to remove.
@@ -422,6 +421,12 @@ public:
     if (!logger)
     {
       return;
+    }
+
+    if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+    {
+      QUILL_THROW(QuillError{
+        "Frontend::remove_logger_blocking() cannot be called from the backend worker thread"});
     }
 
     static constexpr MacroMetadata macro_metadata{
@@ -436,11 +441,11 @@ public:
       // We do not want to drop the message if a dropping queue is used
       if (sleep_duration_ns > 0)
       {
-        std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+        detail::sleep_for_ns(sleep_duration_ns);
       }
       else
       {
-        std::this_thread::yield();
+        detail::yield_thread();
       }
     }
 
@@ -451,11 +456,11 @@ public:
       // The caller thread keeps checking the flag until the logger is removed
       if (sleep_duration_ns > 0)
       {
-        std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+        detail::sleep_for_ns(sleep_duration_ns);
       }
       else
       {
-        std::this_thread::yield();
+        detail::yield_thread();
       }
     }
   }

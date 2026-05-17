@@ -10,6 +10,7 @@
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
+#include "quill/core/QuillError.h"
 
 #include "quill/bundled/fmt/format.h"
 #include "quill/bundled/fmt/std.h"
@@ -20,11 +21,18 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
 
 QUILL_BEGIN_NAMESPACE
+
+#if defined(_WIN32) && defined(_MSC_VER)
+  // silence msvc warning C4702: unreachable code
+  #pragma warning(push)
+  #pragma warning(disable : 4702)
+#endif
 
 namespace detail
 {
@@ -38,18 +46,48 @@ struct DecodedVariantAlternative
 template <typename T>
 using decoded_variant_alternative_t = typename DecodedVariantAlternative<T>::type;
 
-template <size_t Index, typename VariantType, typename DecodedType>
-QUILL_NODISCARD inline VariantType make_decoded_variant(DecodedType&& decoded_type)
+template <typename... Types>
+struct DecodedVariant
+{
+  using variant_type = std::variant<Types...>;
+
+  operator variant_type const&() const
+  {
+    if (QUILL_UNLIKELY(!value.has_value()))
+    {
+      QUILL_THROW(QuillError{"Decoded std::variant is valueless_by_exception"});
+    }
+
+    return *value;
+  }
+
+  operator variant_type&&() &&
+  {
+    if (QUILL_UNLIKELY(!value.has_value()))
+    {
+      QUILL_THROW(QuillError{"Decoded std::variant is valueless_by_exception"});
+    }
+
+    return std::move(*value);
+  }
+
+  std::optional<variant_type> value;
+};
+
+template <size_t Index, typename DecodedVariantType, typename DecodedType>
+QUILL_NODISCARD inline DecodedVariantType make_decoded_variant(DecodedType&& decoded_type)
 {
   using StoredType = std::remove_reference_t<DecodedType>;
+  using VariantType = typename DecodedVariantType::variant_type;
 
   if constexpr (std::is_move_constructible_v<StoredType>)
   {
-    return VariantType{std::in_place_index<Index>, std::forward<DecodedType>(decoded_type)};
+    return DecodedVariantType{std::optional<VariantType>{std::in_place, std::in_place_index<Index>,
+                                                         std::forward<DecodedType>(decoded_type)}};
   }
   else
   {
-    return VariantType{std::in_place_index<Index>, decoded_type};
+    return DecodedVariantType{std::optional<VariantType>{std::in_place, std::in_place_index<Index>, decoded_type}};
   }
 }
 
@@ -115,23 +153,29 @@ struct StoredObjectCodec
       auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
       buffer += sizeof(T) + alignof(T) - 1;
 
+      // Guarantee *tmp is destroyed even if the move/copy below throws. The original object
+      // was placement-new'd into the queue buffer during encode().
+      struct DestroyGuard
+      {
+        T* ptr;
+        ~DestroyGuard()
+        {
+          if constexpr (!std::is_trivially_destructible_v<T>)
+          {
+            ptr->~T();
+          }
+        }
+      } destroy_guard{tmp};
+
       if constexpr (std::is_move_constructible_v<T>)
       {
-        T arg{std::move(*tmp)};
-        if constexpr (!std::is_trivially_destructible_v<T>)
-        {
-          tmp->~T();
-        }
-        return arg;
+        return T{std::move(*tmp)};
       }
       else
       {
-        T arg{*tmp};
-        if constexpr (!std::is_trivially_destructible_v<T>)
-        {
-          tmp->~T();
-        }
-        return T{arg};
+        // `return T{*tmp}` is preferred over `return *tmp` since the latter can still
+        // prefer a deleted move constructor for copy-only types.
+        return T{*tmp};
       }
     }
   }
@@ -185,10 +229,11 @@ struct Codec<std::variant<Types...>>
 {
 private:
   using VariantType = std::variant<Types...>;
-  using DecodedVariantType = std::variant<detail::decoded_variant_alternative_t<Types>...>;
-  static constexpr bool can_preserve_valueless_state = std::is_same_v<DecodedVariantType, VariantType>;
+  using DecodedVariantValueType = std::variant<detail::decoded_variant_alternative_t<Types>...>;
+  using DecodedVariantType = detail::DecodedVariant<detail::decoded_variant_alternative_t<Types>...>;
+  static constexpr bool can_preserve_valueless_state = std::is_same_v<DecodedVariantValueType, VariantType>;
 
-  static_assert(fmtquill::detail::is_variant_formattable<DecodedVariantType, char>::value,
+  static_assert(fmtquill::detail::is_variant_formattable<DecodedVariantValueType, char>::value,
                 "Codec<std::variant<Types...>> requires the decoded variant type to be formattable "
                 "by bundled fmt.");
 
@@ -210,8 +255,7 @@ private:
   }
 
 public:
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     VariantType const& arg) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, VariantType const& arg)
   {
     size_t total_size{sizeof(size_t)};
 
@@ -238,7 +282,7 @@ public:
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     if (arg.valueless_by_exception())
     {
@@ -284,15 +328,12 @@ public:
     {
       if constexpr (can_preserve_valueless_state)
       {
-        return detail::StoredObjectCodec<DecodedVariantType>::decode(buffer);
+        return DecodedVariantType{
+          std::optional<DecodedVariantValueType>{detail::StoredObjectCodec<VariantType>::decode(buffer)}};
       }
       else
       {
-        QUILL_ASSERT(
-          false,
-          "Codec<std::variant<Types...>>::decode_arg() does not support valueless_by_exception "
-          "when decoded alternative types differ from the stored alternative types");
-        std::abort();
+        return DecodedVariantType{};
       }
     }
 
@@ -314,3 +355,32 @@ public:
 QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE
+
+template <typename... Types, typename Char>
+struct fmtquill::formatter<quill::detail::DecodedVariant<Types...>, Char>
+{
+private:
+  fmtquill::formatter<std::variant<Types...>, Char> _underlying;
+
+public:
+  FMTQUILL_CONSTEXPR auto parse(fmtquill::parse_context<Char>& ctx) -> Char const*
+  {
+    return _underlying.parse(ctx);
+  }
+
+  template <typename FormatContext>
+  auto format(quill::detail::DecodedVariant<Types...> const& decoded_variant, FormatContext& ctx) const
+    -> decltype(ctx.out())
+  {
+    if (!decoded_variant.value.has_value())
+    {
+      return fmtquill::detail::write<Char>(ctx.out(), "variant(valueless by exception)");
+    }
+
+    return _underlying.format(*decoded_variant.value, ctx);
+  }
+};
+
+#if defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(pop)
+#endif

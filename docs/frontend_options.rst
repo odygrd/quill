@@ -11,7 +11,7 @@ Each frontend thread operates with its own queue, which can be configured with o
 
 - **UnboundedBlocking**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then blocks the calling thread until space becomes available.
 - **UnboundedDropping**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then discards log messages.
-- **BoundedBlocking**: Has a fixed capacity and never reallocates. It blocks the calling thread when the limit is reached until space becomes available.
+- **BoundedBlocking**: Has a fixed capacity and never reallocates. It blocks the calling thread when the limit is reached until space becomes available. A single log record larger than the fixed capacity cannot fit and fails immediately instead of blocking forever.
 - **BoundedDropping**: Has a fixed capacity and never reallocates. It discards log messages when the limit is reached.
 
 Even though each thread has its own queue, a single queue type must be defined for the entire application. By default the `UnboundedBlocking` queue type is used.

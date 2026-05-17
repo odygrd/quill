@@ -151,36 +151,50 @@ struct DeferredFormatCodec
       static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>,
                     "T must be move or copy constructible");
 
-      auto aligned_ptr = align_pointer(buffer, alignof(T));
+      auto* aligned_ptr = align_pointer(buffer, alignof(T));
       auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
       buffer += sizeof(T) + alignof(T) - 1;
 
+      // Guarantee *tmp is destroyed even if the move/copy below throws. The original object
+      // was placement-new'd into the queue buffer during encode().
+      struct DestroyGuard
+      {
+        T* ptr;
+        ~DestroyGuard()
+        {
+          if constexpr (!std::is_trivially_destructible_v<T>)
+          {
+            ptr->~T();
+          }
+        }
+      } destroy_guard{tmp};
+
       if constexpr (std::is_move_constructible_v<T>)
       {
-        T arg{std::move(*tmp)};
-        if constexpr (!std::is_trivially_destructible_v<T>)
-        {
-          tmp->~T();
-        }
-        return arg;
+        // Move into the backend value; DestroyGuard still owns the queue-buffer object.
+        return T{std::move(*tmp)};
       }
       else
       {
-        T arg{*tmp};
-        if constexpr (!std::is_trivially_destructible_v<T>)
-        {
-          tmp->~T();
-        }
-        // Keep the return as an explicit copy. `return arg;` can still prefer a deleted move
-        // constructor for copy-only types.
-        return T{arg};
+        // Keep the return as an explicit copy. `return T{*tmp};` is preferred over `return *tmp;`
+        // since the latter can still prefer a deleted move constructor for copy-only types.
+        return T{*tmp};
       }
     }
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    args_store->push_back(std::move(decode_arg(buffer)));
+    QUILL_TRY { args_store->push_back(decode_arg(buffer)); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Fall back to a placeholder so the surrounding log line is still produced. Without this,
+      // a throwing decode would propagate up and discard the whole transit event.
+      static constexpr char fallback[] = "[Quill deferred decode failed]";
+      args_store->push_back(fmtquill::string_view{fallback, sizeof(fallback) - 1u});
+    }
+#endif
   }
 
 private:

@@ -41,6 +41,8 @@ enum class LogLevel : uint8_t
   None
 };
 
+static constexpr size_t LogLevelCount = 11;
+
 QUILL_END_EXPORT
 
 namespace detail
@@ -66,7 +68,8 @@ QUILL_BEGIN_EXPORT
 /**
  * Converts a string to a LogLevel enum value
  * @param log_level the log level string to convert
- * "tracel3", "tracel2", "tracel1", "debug", "info", "notice", "warning", "error", "critical", "backtrace", "none"
+ * "tracel3", "tracel2", "tracel1", "debug", "info", "notice", "warning" (or "warn"),
+ * "error" (or "err"), "critical", "backtrace", "none"
  * TraceL3 is the most detailed trace level, while TraceL1 is the least detailed trace level.
  * @return the corresponding LogLevel enum value
  */
@@ -108,12 +111,12 @@ QUILL_NODISCARD LogLevel inline loglevel_from_string(std::string log_level)
     return LogLevel::Notice;
   }
 
-  if (log_level == "warning")
+  if (log_level == "warning" || log_level == "warn")
   {
     return LogLevel::Warning;
   }
 
-  if (log_level == "error")
+  if (log_level == "error" || log_level == "err")
   {
     return LogLevel::Error;
   }

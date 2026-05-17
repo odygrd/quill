@@ -17,18 +17,23 @@
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/Metric.h"
 #include "quill/core/Rdtsc.h"
+#include "quill/core/ThreadPrimitives.h"
 
 #include <atomic>
-#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
+
+#if defined(_WIN32) && defined(_MSC_VER)
+  // silence msvc warning C4702: unreachable code
+  #pragma warning(push)
+  #pragma warning(disable : 4702)
+#endif
 
 /** Forward Declarations **/
 QUILL_BEGIN_EXPORT
@@ -131,8 +136,7 @@ public:
 
     write_buffer = _encode_header(
       write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata)},
-      PackedQword{reinterpret_cast<uintptr_t>(this),
-                  reinterpret_cast<uintptr_t>(detail::decode_and_store_args<detail::remove_cvref_t<Args>...>)});
+      PackedQword{reinterpret_cast<uintptr_t>(this), reinterpret_cast<uintptr_t>(detail::decoder_ptr<Args...>)});
 
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
                    static_cast<decltype(fmt_args)&&>(fmt_args)...);
@@ -146,7 +150,8 @@ public:
       "Encoded bytes mismatch in log_statement(): total_size=%zu, actual_encoded=%zu, msg=\"%s\"",
       total_size, static_cast<size_t>(write_buffer - write_begin), macro_metadata->message_format());
 
-    _commit_log_statement_reservation<enable_immediate_flush>(queue, reservation.writer_pos + total_size);
+    _commit_log_statement_reservation(reservation.bounded_queue,
+                                      reservation.writer_pos + total_size, enable_immediate_flush);
     return true;
   }
 
@@ -166,6 +171,9 @@ public:
    */
   QUILL_ATTRIBUTE_HOT bool publish_metric(MetricMetadata const* metric_metadata, double value)
   {
+    QUILL_ASSERT(metric_metadata != nullptr,
+                 "publish_metric() requires a valid MetricMetadata pointer");
+
     QUILL_ASSERT(metric_metadata->event() == MacroMetadata::Event::Metric,
                  "publish_metric() should only be called with MacroMetadata::Event::Metric");
 
@@ -238,15 +246,16 @@ public:
   void set_mdc(Args&&... args)
   {
     static_assert(sizeof...(Args) > 0, "logger->set_mdc(...) expects key, value pairs");
-    static_assert((sizeof...(Args) % 2u) == 0u,
-                  "logger->set_mdc(...) expects an even number of arguments: key, value, key, value...");
+    static_assert(
+      (sizeof...(Args) % 2u) == 0u,
+      "logger->set_mdc(...) expects an even number of arguments: key, value, key, value...");
 
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcSet};
 
     while (!this->template log_statement<false>(&macro_metadata, static_cast<Args&&>(args)...))
     {
-      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+      detail::sleep_for_ns(100);
     }
   }
 
@@ -266,7 +275,7 @@ public:
 
     while (!this->template log_statement<false>(&macro_metadata, static_cast<Keys&&>(keys)...))
     {
-      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+      detail::sleep_for_ns(100);
     }
   }
 
@@ -282,7 +291,7 @@ public:
 
     while (!this->template log_statement<false>(&macro_metadata))
     {
-      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+      detail::sleep_for_ns(100);
     }
   }
 
@@ -369,8 +378,7 @@ public:
 
     write_buffer = _encode_header(
       write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata)},
-      PackedQword{reinterpret_cast<uintptr_t>(this),
-                  reinterpret_cast<uintptr_t>(detail::decode_and_store_args<detail::remove_cvref_t<Args>...>)});
+      PackedQword{reinterpret_cast<uintptr_t>(this), reinterpret_cast<uintptr_t>(detail::decoder_ptr<Args...>)});
 
     if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy)
     {
@@ -400,7 +408,7 @@ public:
                           "total_size=%zu, actual_encoded=%zu, fmt=\"%s\"",
                           total_size, static_cast<size_t>(write_buffer - write_begin), fmt);
 
-    _commit_log_statement<enable_immediate_flush>(queue, total_size);
+    _commit_log_statement(queue, total_size, enable_immediate_flush);
 
     return true;
   }
@@ -414,7 +422,10 @@ public:
    */
   void init_backtrace(uint32_t max_capacity, LogLevel flush_level = LogLevel::None)
   {
-    QUILL_ASSERT(max_capacity > 0, "logger->init_backtrace(...) requires max_capacity > 0");
+    if (QUILL_UNLIKELY(max_capacity == 0))
+    {
+      QUILL_THROW(QuillError{"logger->init_backtrace(...) requires max_capacity > 0"});
+    }
 
     // we do not care about the other fields, except MacroMetadata::Event::InitBacktrace
     static constexpr MacroMetadata macro_metadata{
@@ -424,7 +435,7 @@ public:
     // We do not want to drop the message if a dropping queue is used
     while (!this->template log_statement<false>(&macro_metadata, max_capacity))
     {
-      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+      detail::sleep_for_ns(100);
     }
 
     // Also store the desired flush log level
@@ -443,7 +454,7 @@ public:
     // We do not want to drop the message if a dropping queue is used
     while (!this->template log_statement<false>(&macro_metadata))
     {
-      std::this_thread::sleep_for(std::chrono::nanoseconds{100});
+      detail::sleep_for_ns(100);
     }
   }
 
@@ -466,6 +477,14 @@ public:
    */
   void flush_log(uint32_t sleep_duration_ns = 100)
   {
+    if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+    {
+      // flush_log() would wait on the backend worker to process the flush event,
+      // but we are the backend worker — surface the misuse instead of self-deadlocking.
+      QUILL_THROW(
+        QuillError{"logger->flush_log() cannot be called from the backend worker thread"});
+    }
+
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush};
 
@@ -477,11 +496,11 @@ public:
     {
       if (sleep_duration_ns > 0)
       {
-        std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+        detail::sleep_for_ns(sleep_duration_ns);
       }
       else
       {
-        std::this_thread::yield();
+        detail::yield_thread();
       }
     }
 
@@ -490,11 +509,11 @@ public:
     {
       if (sleep_duration_ns > 0)
       {
-        std::this_thread::sleep_for(std::chrono::nanoseconds{sleep_duration_ns});
+        detail::sleep_for_ns(sleep_duration_ns);
       }
       else
       {
-        std::this_thread::yield();
+        detail::yield_thread();
       }
     }
   }
@@ -526,13 +545,9 @@ private:
              UserClockSource* user_clock)
     : detail::LoggerBase(
         static_cast<std::string&&>(logger_name), static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
-        static_cast<PatternFormatterOptions&&>(pattern_formatter_options), clock_source, user_clock)
+        static_cast<PatternFormatterOptions&&>(pattern_formatter_options),
+        user_clock ? ClockSourceType::User : clock_source, user_clock)
   {
-    if (this->_user_clock)
-    {
-      // if a user clock is provided then set the ClockSourceType to User
-      this->_clock_source = ClockSourceType::User;
-    }
   }
 
   /**
@@ -631,8 +646,7 @@ private:
     write_buffer = _encode_header(
       write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata)},
       PackedQword{reinterpret_cast<uintptr_t>(this),
-                  reinterpret_cast<uintptr_t>(
-                    detail::decode_and_store_args<detail::remove_cvref_t<OriginalArgs>...>)});
+                  reinterpret_cast<uintptr_t>(detail::decoder_ptr<OriginalArgs...>)});
 
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
                    static_cast<decltype(fmt_args)&&>(fmt_args)...);
@@ -647,7 +661,7 @@ private:
                           total_size, static_cast<size_t>(write_buffer - write_begin),
                           macro_metadata->message_format());
 
-    _commit_log_statement<enable_immediate_flush>(queue, total_size);
+    _commit_log_statement(queue, total_size, enable_immediate_flush);
 
     return true;
   }
@@ -660,7 +674,7 @@ private:
   {
     if (_clock_source == ClockSourceType::System)
     {
-      return detail::get_timestamp_ns<std::chrono::system_clock>();
+      return detail::get_system_time_ns();
     }
 
     if (_user_clock)
@@ -698,8 +712,39 @@ private:
         thread_context->increment_failure_counter();
       }
     }
-    else if constexpr ((frontend_options_t::queue_type == QueueType::BoundedBlocking) ||
-                       (frontend_options_t::queue_type == QueueType::UnboundedBlocking))
+    else if constexpr (frontend_options_t::queue_type == QueueType::BoundedBlocking)
+    {
+      if (QUILL_UNLIKELY(write_buffer == nullptr))
+      {
+        if (QUILL_UNLIKELY(total_size > queue.capacity()))
+        {
+          QUILL_THROW(
+            QuillError{"Logging a single message larger than the configured bounded "
+                       "queue capacity is not possible.\n"
+                       "Message size: " +
+                       std::to_string(total_size) +
+                       " bytes\n"
+                       "Configured bounded queue capacity: " +
+                       std::to_string(queue.capacity()) + " bytes"});
+        }
+
+        // See the dropping-queue branch above for why both log and metric events bump the counter.
+        (void)macro_metadata;
+        thread_context->increment_failure_counter();
+
+        do
+        {
+          if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
+          {
+            detail::sleep_for_ns(frontend_options_t::blocking_queue_retry_interval_ns);
+          }
+
+          // not enough space to push to queue, keep trying
+          write_buffer = queue.prepare_write(total_size);
+        } while (write_buffer == nullptr);
+      }
+    }
+    else if constexpr (frontend_options_t::queue_type == QueueType::UnboundedBlocking)
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
@@ -711,7 +756,7 @@ private:
         {
           if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
           {
-            std::this_thread::sleep_for(std::chrono::nanoseconds{frontend_options_t::blocking_queue_retry_interval_ns});
+            detail::sleep_for_ns(frontend_options_t::blocking_queue_retry_interval_ns);
           }
 
           // not enough space to push to queue, keep trying
@@ -724,51 +769,74 @@ private:
   }
 
   /**
-   * Commit a log statement to the queue and optionally flush it
+   * Commit a log statement to the queue and optionally flush it.
+   *
+   * `enable_immediate_flush` is intentionally a runtime parameter (not a template) to avoid
+   * one template instantiation per TU per value. At every call site it is a compile-time
+   * constant (a non-type template parameter on the caller), so the optimizer constant-folds
+   * the branch and emits the same code as the templated version.
+   *
    * @param queue Reference to the SPSC queue to commit to
    * @param total_size The total size in bytes of the committed log message
+   * @param enable_immediate_flush Whether to honor per-logger immediate-flush thresholds
    */
-  template <bool enable_immediate_flush>
-  QUILL_ATTRIBUTE_HOT void _commit_log_statement(queue_t& queue, size_t total_size)
+  QUILL_ATTRIBUTE_HOT inline void _commit_log_statement(queue_t& queue, size_t total_size, bool enable_immediate_flush)
   {
     queue.finish_and_commit_write(total_size);
 
-    if constexpr (enable_immediate_flush)
-    {
-      uint32_t const threshold = _message_flush_threshold.load(std::memory_order_relaxed);
-      if (QUILL_UNLIKELY(threshold != 0))
-      {
-        uint32_t const prev = _messages_since_last_flush.fetch_add(1, std::memory_order_relaxed);
-        if ((prev + 1) >= threshold)
-        {
-          _messages_since_last_flush.store(0, std::memory_order_relaxed);
-          this->flush_log();
-        }
-      }
-    }
+    _flush_after_log_statement_if_needed(enable_immediate_flush);
   }
 
   /**
    * Commit a log statement using the reservation-based API.
    * Uses finish_and_commit_write_reservation which takes the new writer position directly,
    * avoiding a re-read of _writer_pos.
+   *
+   * Takes the BoundedSPSCQueue* cached in the reservation instead of going through
+   * UnboundedSPSCQueue::_producer. This saves a pointer reload after the encode stores:
+   * the compiler cannot prove the encode does not alias _producer, so without this it
+   * re-reads _producer from the ThreadContext at the commit site.
+   *
+   * See `_commit_log_statement` for why `enable_immediate_flush` is a runtime parameter.
    */
-  template <bool enable_immediate_flush>
-  QUILL_ATTRIBUTE_HOT void _commit_log_statement_reservation(queue_t& queue, size_t new_writer_pos)
+  QUILL_ATTRIBUTE_HOT inline void _commit_log_statement_reservation(detail::BoundedSPSCQueue* bounded_queue,
+                                                                    size_t new_writer_pos, bool enable_immediate_flush)
   {
-    queue.finish_and_commit_write_reservation(new_writer_pos);
+    bounded_queue->finish_and_commit_write_reservation(new_writer_pos);
 
-    if constexpr (enable_immediate_flush)
+    _flush_after_log_statement_if_needed(enable_immediate_flush);
+  }
+
+  /**
+   * Applies the per-logger immediate-flush policy after a log statement has been committed.
+   *
+   * Backend callbacks are allowed to log, but the backend thread cannot wait for itself to process
+   * a flush event. In that case the message remains queued and is processed after the callback
+   * returns to the backend loop.
+   */
+  QUILL_ATTRIBUTE_HOT inline void _flush_after_log_statement_if_needed(bool enable_immediate_flush)
+  {
+    if (!enable_immediate_flush)
     {
-      uint32_t const threshold = _message_flush_threshold.load(std::memory_order_relaxed);
-      if (QUILL_UNLIKELY(threshold != 0))
+      return;
+    }
+
+    uint32_t const threshold = _message_flush_threshold.load(std::memory_order_relaxed);
+    if (QUILL_LIKELY(threshold == 0))
+    {
+      return;
+    }
+
+    uint32_t const prev = _messages_since_last_flush.fetch_add(1, std::memory_order_relaxed);
+    if ((prev + 1) >= threshold)
+    {
+      _messages_since_last_flush.store(0, std::memory_order_relaxed);
+
+      // Skip the implicit flush on the backend thread so generic logging code reused
+      // there (e.g. backend hooks, custom sinks) does not throw via flush_log().
+      if (QUILL_LIKELY(!detail::LoggerBase::is_current_thread_backend_thread()))
       {
-        uint32_t const prev = _messages_since_last_flush.fetch_add(1, std::memory_order_relaxed);
-        if ((prev + 1) >= threshold)
-        {
-          _messages_since_last_flush.store(0, std::memory_order_relaxed);
-          this->flush_log();
-        }
+        this->flush_log();
       }
     }
   }
@@ -798,5 +866,9 @@ private:
 using Logger = LoggerImpl<FrontendOptions>;
 
 QUILL_END_EXPORT
+
+#if defined(_WIN32) && defined(_MSC_VER)
+  #pragma warning(pop)
+#endif
 
 QUILL_END_NAMESPACE

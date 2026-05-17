@@ -63,7 +63,7 @@ public:
    *
    * @param filename The name of the CSV file to write to.
    * @param open_mode The mode in which to open the file ('w' for write, 'a' for append).
-   * @param filename_append Option to append to the filename (None, Date, DateTime).
+   * @param filename_append Option to append to the filename (None, StartDate, StartDateTime).
    */
   explicit CsvWriter(std::string const& filename, char open_mode = 'w',
                      FilenameAppendOption filename_append = FilenameAppendOption::None)
@@ -209,7 +209,7 @@ public:
   void append_row(Args&&... fields)
   {
     _throw_if_closed("append_row()");
-    _logger->template log_statement<false>(&_line_metadata, fields...);
+    _logger->template log_statement<false>(&_line_metadata, static_cast<Args&&>(fields)...);
   }
 
   /**

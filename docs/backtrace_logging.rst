@@ -19,7 +19,7 @@ To manually flush backtrace logs, call :cpp:func:`LoggerImpl::flush_backtrace`.
    Backtrace log messages are always pushed to the SPSC (Single Producer Single Consumer) queue from the frontend to the backend. They are stored in a ring buffer that resides in the backend and flushed as needed.
 
 .. note::
-   Backtrace log messages store the original timestamp of the message. Since they are stored and flushed later, the timestamps in the log file may appear out of order.
+   Backtrace log messages store the original timestamp of the message. Since they are stored and flushed later, the timestamps in the log file may appear out of order. This remains true even when :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` is enabled.
 
 Store messages in the ring buffer and display them when ``LOG_ERROR`` is logged
 -------------------------------------------------------------------------------

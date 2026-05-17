@@ -35,7 +35,7 @@ template <typename T, typename Allocator>
 struct Codec<std::deque<T, Allocator>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::deque<T, Allocator> const& arg) noexcept
+                                     std::deque<T, Allocator> const& arg)
   {
     // We need to store the size of the deque in the buffer, so we reserve space for it.
     // We add sizeof(size_t) bytes to accommodate the size information.
@@ -63,7 +63,7 @@ struct Codec<std::deque<T, Allocator>>
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 

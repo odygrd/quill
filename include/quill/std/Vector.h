@@ -38,7 +38,7 @@ private:
 
 public:
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::vector<T, Allocator> const& arg) noexcept
+                                     std::vector<T, Allocator> const& arg)
   {
     // We need to store the size of the vector in the buffer, so we reserve space for it.
     // We add sizeof(size_t) bytes to accommodate the size information.
@@ -67,7 +67,7 @@ public:
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
 
@@ -161,3 +161,35 @@ public:
 QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE
+
+/**
+ * std::vector<bool> is a special container that uses proxy references rather than
+ * actual bool&. This prevents the generic ranges formatter from working on libc++,
+ * so we provide an explicit specialization.
+ */
+template <>
+struct fmtquill::formatter<std::vector<bool>>
+{
+  constexpr auto parse(fmtquill::format_parse_context& ctx) -> decltype(ctx.begin())
+  {
+    return ctx.begin();
+  }
+
+  auto format(std::vector<bool> const& vec, fmtquill::format_context& ctx) const -> fmtquill::format_context::iterator
+  {
+    auto out = ctx.out();
+    *out++ = '[';
+    for (size_t i = 0; i < vec.size(); ++i)
+    {
+      if (i > 0)
+      {
+        *out++ = ',';
+        *out++ = ' ';
+      }
+      bool const val = vec[i];
+      out = fmtquill::format_to(out, "{}", val);
+    }
+    *out++ = ']';
+    return out;
+  }
+};

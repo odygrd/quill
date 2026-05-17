@@ -46,14 +46,25 @@ struct Codec<T,
       len = arg.size();
     }
 
+    // The length is stored as uint32_t on the wire. Clamp before casting so a release
+    // build cannot truncate-then-overflow when given a pathologically large string.
+    constexpr size_t max_len = std::numeric_limits<uint32_t>::max();
     QUILL_ASSERT(
-      len <= std::numeric_limits<uint32_t>::max(),
+      len <= max_len,
       "Wide string length exceeds uint32_t max in Codec<std::wstring>::compute_encoded_size()");
-    conditional_arg_size_cache.push_back(static_cast<uint32_t>(len));
+    if (QUILL_UNLIKELY(len > max_len))
+    {
+      len = max_len;
+    }
+
+    uint32_t const len_u32 = static_cast<uint32_t>(len);
+    conditional_arg_size_cache.push_back(len_u32);
 
     // also include the size of the string in the buffer as a separate variable
-    // we can retrieve it when we decode. We do not store the null terminator in the buffer
-    return sizeof(uint32_t) + (static_cast<uint32_t>(len) * sizeof(wchar_t));
+    // we can retrieve it when we decode. We do not store the null terminator in the buffer.
+    // sizeof(wchar_t) is at most 4, so len_u32 * sizeof(wchar_t) fits in size_t on every
+    // platform we support after the clamp above.
+    return sizeof(uint32_t) + (static_cast<size_t>(len_u32) * sizeof(wchar_t));
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,

@@ -234,6 +234,8 @@
 #endif
 
 // Enable minimal optimizations for more compact code in debug mode.
+FMTQUILL_MSC_WARNING(push)
+FMTQUILL_MSC_WARNING(disable : 4702) // unreachable code
 FMTQUILL_PRAGMA_GCC(push_options)
 #if !defined(__OPTIMIZE__) && !defined(__CUDACC__) && !defined(FMTQUILL_MODULE)
 FMTQUILL_PRAGMA_GCC(optimize("Og"))
@@ -3021,8 +3023,8 @@ FMTQUILL_INLINE void println(format_string<T...> fmt, T&&... args) {
 FMTQUILL_PRAGMA_GCC(diagnostic pop)
 FMTQUILL_PRAGMA_CLANG(diagnostic pop)
 FMTQUILL_PRAGMA_GCC(pop_options)
+FMTQUILL_MSC_WARNING(pop)
 FMTQUILL_END_EXPORT
 FMTQUILL_END_NAMESPACE
 
-
-#endif  // FMTQUILL_BASE_H_
+#endif // FMTQUILL_BASE_H_

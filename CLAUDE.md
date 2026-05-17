@@ -99,9 +99,9 @@ Respect the library layering:
   test-only setup local to the `.cpp` file even if that means a small amount of duplication.
 - Integration tests must use unique logger names, test names, and log/output filenames so they can run safely in
   parallel without colliding through shared files or global state.
-- For platform-specific tests, keep the `TEST_CASE` itself unguarded and put the platform `#if` inside the test body.
-  On unsupported platforms, return early from the test instead of wrapping the whole test declaration in preprocessor
-  guards.
+- For conditionally-skipped tests (platform-specific, `QUILL_NO_EXCEPTIONS`, etc.), keep the `TEST_CASE` itself
+  unguarded and put the `#if` inside the test body. On unsupported configurations, return early from the test instead
+  of wrapping the whole test declaration in preprocessor guards.
 - If the behavior is user-visible or easy to regress, prefer an end-to-end test in addition to a narrow unit test.
 - New features and tests should compile and run across supported platforms and toolchains, including Linux, macOS, and
   Windows, and major compilers such as GCC, Clang, and Intel LLVM.

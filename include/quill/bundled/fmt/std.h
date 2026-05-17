@@ -76,6 +76,9 @@
 #  define FMTQUILL_CPP_LIB_VARIANT 0
 #endif
 
+FMTQUILL_MSC_WARNING(push)
+FMTQUILL_MSC_WARNING(disable : 4702) // unreachable code
+
 FMTQUILL_BEGIN_NAMESPACE
 namespace detail {
 
@@ -119,6 +122,8 @@ auto write_escaped_alternative(OutputIt out, const T& v, FormatContext& ctx)
     return write_escaped_string<Char>(out, detail::to_string_view(v));
   if constexpr (std::is_same_v<T, Char>) return write_escaped_char(out, v);
 
+  // out is unused for e.g. std::monostate (gcc 8 -Wunused-but-set-parameter).
+  ignore_unused(out);
   formatter<std::remove_cv_t<T>, Char> underlying;
   maybe_set_debug_format(underlying, true);
   return underlying.format(v, ctx);
@@ -733,4 +738,6 @@ struct formatter<std::reference_wrapper<T>, Char,
 
 FMTQUILL_END_NAMESPACE
 
-#endif  // FMTQUILL_STD_H_
+FMTQUILL_MSC_WARNING(pop)
+
+#endif // FMTQUILL_STD_H_

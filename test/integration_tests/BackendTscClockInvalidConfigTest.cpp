@@ -14,11 +14,12 @@ TEST_CASE("backend_tsc_clock_invalid_config_throws")
 
   Backend::start(backend_options);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   BackendTscClock::RdtscVal const tsc = BackendTscClock::rdtsc();
-
   REQUIRE_THROWS_AS([&]() { (void)Backend::convert_rdtsc_to_epoch_time(tsc.value()); }(), QuillError);
   REQUIRE_THROWS_AS([&]() { (void)BackendTscClock::now(); }(), QuillError);
   REQUIRE_THROWS_AS([&]() { (void)BackendTscClock::to_time_point(tsc); }(), QuillError);
+#endif
 
   Backend::stop();
 }

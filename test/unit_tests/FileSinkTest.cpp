@@ -6,6 +6,10 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/sinks/FileSink.h"
 
+#if !defined(_WIN32)
+  #include <unistd.h>
+#endif
+
 TEST_SUITE_BEGIN("FileSink");
 
 using namespace quill;
@@ -25,10 +29,31 @@ public:
 
   void close_file_for_test() { FileSink::close_file(); }
 
+  void fsync_file_for_test(bool force_fsync) { FileSink::fsync_file(force_fsync); }
+  bool write_occurred_for_test() const noexcept { return _write_occurred; }
+  std::chrono::steady_clock::time_point last_fsync_timestamp_for_test() const noexcept
+  {
+    return _last_fsync_timestamp;
+  }
+
 #if defined(_WIN32)
   FileEventNotifierHandle file_handle() const noexcept { return _native_file_handle; }
 #else
   FileEventNotifierHandle file_handle() const noexcept { return _file; }
+
+  void close_underlying_fd_for_test()
+  {
+    REQUIRE_NE(_file, nullptr);
+    // fileno is unqualified because BSD libcs define it as a function-like macro
+    REQUIRE_EQ(::close(fileno(_file)), 0);
+  }
+
+  void close_stream_after_fd_closed_for_test()
+  {
+    REQUIRE_NE(_file, nullptr);
+    std::fclose(_file);
+    _file = nullptr;
+  }
 #endif
 
   static FileEventNotifierHandle closed_file_handle() noexcept
@@ -92,7 +117,9 @@ TEST_CASE("fsync_interval_should_throw_when_fsync_disabled")
   fsc.set_minimum_fsync_interval(std::chrono::seconds{10});
   fsc.set_fsync_enabled(false);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(FileSink{filename, fsc});
+#endif
   REQUIRE_FALSE(fs::exists(filename));
 
   {
@@ -228,6 +255,75 @@ TEST_CASE("open_unicode_filename")
 }
 
 /***/
+TEST_CASE("dev_null_special_path")
+{
+  FileSinkTestHarness file_sink{"/dev/null"};
+  REQUIRE(file_sink.is_null());
+
+#if defined(_WIN32)
+  REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+#else
+  REQUIRE_NE(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+#endif
+
+  file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                      std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "",
+                      "dev null test\n");
+  file_sink.flush_sink();
+}
+
+/***/
+TEST_CASE("windows_append_mode_appends_after_external_writer")
+{
+#if defined(_WIN32)
+  fs::path const filename = "windows_append_mode_appends_after_external_writer.log";
+  testing::remove_file(filename);
+  testing::create_file(filename, "seed\n");
+
+  auto write_record = [](FileSink& file_sink, std::string_view message)
+  {
+    file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                        std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+    file_sink.flush_sink();
+  };
+
+  FileSinkConfig fsc;
+  fsc.set_open_mode('a');
+
+  {
+    FileSink file_sink{filename, fsc};
+    write_record(file_sink, "first\n");
+
+    HANDLE external_file_handle =
+      ::CreateFileW(filename.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                    nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    REQUIRE_NE(external_file_handle, INVALID_HANDLE_VALUE);
+
+    char const external_record[] = "external\n";
+    DWORD bytes_written{0};
+    REQUIRE(::WriteFile(external_file_handle, external_record,
+                        static_cast<DWORD>(sizeof(external_record) - 1u), &bytes_written,
+                        nullptr));
+    REQUIRE_EQ(bytes_written, static_cast<DWORD>(sizeof(external_record) - 1u));
+    REQUIRE(::CloseHandle(external_file_handle));
+
+    write_record(file_sink, "second\n");
+  }
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 4);
+  REQUIRE_EQ(file_contents[0], "seed");
+  REQUIRE_EQ(file_contents[1], "first");
+  REQUIRE_EQ(file_contents[2], "external");
+  REQUIRE_EQ(file_contents[3], "second");
+
+  testing::remove_file(filename);
+#else
+  return;
+#endif
+}
+
+/***/
 TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
 {
 #if defined(__linux__)
@@ -246,11 +342,7 @@ TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
     }
 
     recreate_on_next_close = false;
-
-    FILE* recreated_file = std::fopen(file_path.string().c_str(), "w");
-    REQUIRE(recreated_file != nullptr);
-    std::fputs("recreated\n", recreated_file);
-    std::fclose(recreated_file);
+    testing::create_file(file_path, "recreated\n");
   };
 
   auto write_record = [](FileSink& file_sink, std::string_view message)
@@ -303,7 +395,11 @@ TEST_CASE("after_open_throw_does_not_leak_file_descriptor_during_construction")
   { QUILL_THROW(QuillError{"after_open failure"}); };
 
   REQUIRE_EQ(count_open_fds_for_path(filename), 0);
+  #if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS((FileSink{filename, FileSinkConfig{}, file_event_notifier}), QuillError);
+  #else
+  (void)file_event_notifier;
+  #endif
   REQUIRE_EQ(count_open_fds_for_path(filename), 0);
 
   testing::remove_file(filename);
@@ -324,7 +420,9 @@ TEST_CASE("after_open_throw_leaves_sink_closed")
 
   FileSinkTestHarness file_sink{filename, FileSinkConfig{}, file_event_notifier, false};
   REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(file_sink.open_file_for_test(file_sink.get_filename(), "a"), QuillError);
+#endif
   REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
   testing::remove_file(filename);
@@ -348,16 +446,99 @@ TEST_CASE("after_open_throw_during_reopen_leaves_sink_closed")
   };
 
   FileSinkTestHarness file_sink{filename, FileSinkConfig{}, file_event_notifier, false};
-  REQUIRE_NOTHROW(file_sink.open_file_for_test(file_sink.get_filename(), "a"));
+  file_sink.open_file_for_test(file_sink.get_filename(), "a");
   REQUIRE_NE(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
   file_sink.close_file_for_test();
   REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(file_sink.open_file_for_test(file_sink.get_filename(), "a"), QuillError);
+#endif
+  REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+
+  // fsync_file() must tolerate the closed handle state left behind by a failed reopen.
+  // Previously this dereferenced a null FILE* / invalid HANDLE and crashed.
+  file_sink.fsync_file_for_test(true);
+  file_sink.fsync_file_for_test(false);
   REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
   testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("destructor_close_notifier_exception_does_not_escape")
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  fs::path const filename = "destructor_close_notifier_exception_does_not_escape.log";
+  testing::remove_file(filename);
+
+  bool before_close_called{false};
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.before_close = [&before_close_called](fs::path const&, FileEventNotifierHandle)
+  {
+    before_close_called = true;
+    QUILL_THROW(QuillError{"before_close failure"});
+  };
+
+  {
+    FileSink file_sink{filename, FileSinkConfig{}, file_event_notifier};
+  }
+
+  REQUIRE(before_close_called);
+  #if defined(__linux__)
+  REQUIRE_EQ(count_open_fds_for_path(filename), 0u);
+  #endif
+  testing::remove_file(filename);
+#endif
+}
+
+/***/
+TEST_CASE("fsync_reports_os_failure")
+{
+#if defined(_WIN32) || defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  fs::path const filename = "fsync_reports_os_failure.log";
+  testing::remove_file(filename);
+
+  FileSinkConfig cfg;
+  cfg.set_fsync_enabled(true);
+
+  FileSinkTestHarness file_sink{filename, cfg, FileEventNotifier{}, false};
+  file_sink.open_file_for_test(file_sink.get_filename(), "a");
+  auto const last_fsync_timestamp_before_failure = file_sink.last_fsync_timestamp_for_test();
+  file_sink.close_underlying_fd_for_test();
+
+  REQUIRE_THROWS_AS(file_sink.fsync_file_for_test(false), QuillError);
+  REQUIRE(file_sink.write_occurred_for_test());
+  REQUIRE_EQ(file_sink.last_fsync_timestamp_for_test(), last_fsync_timestamp_before_failure);
+
+  file_sink.close_stream_after_fd_closed_for_test();
+  testing::remove_file(filename);
+#endif
+}
+
+/***/
+TEST_CASE("close_file_reports_fclose_failure")
+{
+#if defined(_WIN32) || defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  fs::path const filename = "close_file_reports_fclose_failure.log";
+  testing::remove_file(filename);
+
+  FileSinkTestHarness file_sink{filename, FileSinkConfig{}, FileEventNotifier{}, false};
+  file_sink.open_file_for_test(file_sink.get_filename(), "a");
+  file_sink.close_underlying_fd_for_test();
+
+  REQUIRE_THROWS_AS(file_sink.close_file_for_test(), QuillError);
+  REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+
+  testing::remove_file(filename);
+#endif
 }
 
 /***/

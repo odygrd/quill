@@ -180,6 +180,7 @@ struct quill::Codec<CustomTypeCC> : quill::DeferredFormatCodec<CustomTypeCC>
 {
 };
 
+#if !defined(QUILL_NO_EXCEPTIONS)
 /***/
 class CustomTypeCCThrows
 {
@@ -210,6 +211,7 @@ template <>
 struct quill::Codec<CustomTypeCCThrows> : quill::DeferredFormatCodec<CustomTypeCCThrows>
 {
 };
+#endif
 
 /***/
 class MoveOnlyType
@@ -413,6 +415,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   logger->set_log_level(quill::LogLevel::TraceL3);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   {
     CustomTypeCCThrows custom_type_cct{"tt"};
     bool throws{false};
@@ -428,6 +431,7 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
     REQUIRE(throws);
   }
+#endif
 
   {
     CustomTypeTC custom_type_tc{1222, 13.12, 12};

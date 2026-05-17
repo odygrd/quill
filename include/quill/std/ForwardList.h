@@ -17,7 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <forward_list>
-#include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -36,38 +35,34 @@ template <typename T, typename Allocator>
 struct Codec<std::forward_list<T, Allocator>>
 {
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::forward_list<T, Allocator> const& arg) noexcept
+                                     std::forward_list<T, Allocator> const& arg)
   {
     // We need to store the size of the forward_list in the buffer, so we reserve space for it.
     // We add sizeof(size_t) bytes to accommodate the size information.
     size_t total_size{sizeof(size_t)};
 
-    // Cache the number of elements of the forward list to avoid iterating again when
-    // encoding. This information is inserted first to maintain sequence in the cache.
-    // It will be replaced with the actual count after calculating the size of elements.
-    size_t number_of_elements{0};
-    conditional_arg_size_cache.push_back(static_cast<uint32_t>(number_of_elements));
-    size_t const index = conditional_arg_size_cache.size() - 1u;
-
     for (auto const& elem : arg)
     {
       total_size += Codec<T>::compute_encoded_size(conditional_arg_size_cache, elem);
-      ++number_of_elements;
     }
 
-    QUILL_ASSERT(
-      number_of_elements <= std::numeric_limits<uint32_t>::max(),
-      "Forward list size exceeds uint32_t max in Codec<std::forward_list>::compute_encoded_size()");
-    conditional_arg_size_cache.assign(index, static_cast<uint32_t>(number_of_elements));
     return total_size;
   }
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
-    // First encode the number of elements of the forward list
-    size_t const elems_num = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+    // First encode the number of elements of the forward list.
+    // The wire format stores this as size_t; do not put it in SizeCacheVector, which is uint32_t
+    // and is reserved for nested codecs such as strings.
+    size_t elems_num{0};
+    for (auto const& ignored : arg)
+    {
+      (void)ignored;
+      ++elems_num;
+    }
+
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elems_num);
 
     if constexpr (std::is_rvalue_reference_v<Arg&&>)

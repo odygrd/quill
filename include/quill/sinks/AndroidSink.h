@@ -53,9 +53,9 @@ public:
   /**
    * @brief Sets the mapping from quill log levels to Android log levels.
    * This mapping determines which Android log level is used for each quill log level.
-   * @param mapping An array of 11 integers representing Android log levels, one per LogLevel value.
+   * @param mapping An array of LogLevelCount integers representing Android log levels, one per LogLevel value.
    */
-  QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, 11> mapping)
+  QUILL_ATTRIBUTE_COLD void set_log_level_mapping(std::array<int, LogLevelCount> mapping)
   {
     _log_level_mapping = mapping;
   }
@@ -70,7 +70,7 @@ public:
 
 private:
   std::string _tag{"quill"};
-  std::array<int, 11> _log_level_mapping = {
+  std::array<int, LogLevelCount> _log_level_mapping = {
     // Mapping from quill log levels to Android log levels:
     /* "TRACE_L3" */ ANDROID_LOG_VERBOSE, /* "TRACE_L2" */ ANDROID_LOG_VERBOSE,
     /* "TRACE_L1" */ ANDROID_LOG_VERBOSE, /* "DEBUG"    */ ANDROID_LOG_DEBUG,
@@ -113,7 +113,14 @@ public:
   {
     // Choose between formatted log statement or raw log message
     std::string_view const message = _config.should_format_message() ? log_statement : log_message;
-    size_t const message_length = message.size();
+    size_t message_length = message.size();
+
+    // Clamp to INT_MAX to avoid signed conversion overflow when passing the length to the
+    // C-style "%.*s" format specifier (matches Syslog/Systemd sinks).
+    if (message_length > static_cast<size_t>(std::numeric_limits<int>::max()))
+    {
+      message_length = static_cast<size_t>(std::numeric_limits<int>::max());
+    }
 
     __android_log_print(_config.get_android_level(log_level), _config.tag().data(), "%.*s",
                         static_cast<int>(message_length), message.data());

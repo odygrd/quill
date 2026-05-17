@@ -20,6 +20,10 @@ For example, to pin the backend worker thread to specific CPUs, you can use the 
 
 .. note::
 
+   On Windows, CPU IDs are relative to the backend thread's current processor group. If your application needs group-aware affinity on machines with more than 64 logical processors, leave ``cpu_affinity`` empty and apply affinity yourself from a backend-thread hook.
+
+.. note::
+
    When ``wait_for_queues_to_empty_before_exit`` is enabled, ``Backend::stop()`` assumes frontend threads have stopped logging.
    A few trailing log statements may still drain successfully, but you should not rely on that behavior.
    Sustained concurrent logging during shutdown, especially logging in a loop from another thread, can prevent shutdown from completing because the frontend queues may never become empty.
@@ -27,7 +31,8 @@ For example, to pin the backend worker thread to specific CPUs, you can use the 
 .. note::
 
    ``error_notifier``, backend poll hooks, sink periodic tasks, and custom sink ``write_log()`` implementations all run on the backend thread.
-   Avoid long-blocking work in these paths, and do not call ``logger->flush_log()`` from them because that would wait on the backend thread itself.
+   Avoid long-blocking work in these paths. Calling ``logger->flush_log()``, ``Backend::stop()``, or ``Frontend::remove_logger_blocking()`` from these paths throws ``QuillError`` because the backend cannot wait on itself.
+   If a logger has immediate flush enabled, backend-thread log calls still enqueue the record, but the implicit flush is silently skipped so generic logging code reused on the backend remains safe.
 
 Character Sanitization
 -----------------------

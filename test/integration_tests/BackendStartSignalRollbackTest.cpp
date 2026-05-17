@@ -15,9 +15,10 @@ using namespace quill;
 
 namespace
 {
+#if !defined(QUILL_NO_EXCEPTIONS)
 void test_sigterm_handler(int) {}
 
-#if defined(_WIN32)
+  #if defined(_WIN32)
 struct SignalStateRestorer
 {
   SignalStateRestorer()
@@ -42,7 +43,7 @@ struct SignalStateRestorer
 
   detail::signal_handler_t original_sigterm_handler{SIG_DFL};
 };
-#else
+  #else
 struct SignalStateRestorer
 {
   SignalStateRestorer()
@@ -67,20 +68,29 @@ struct SignalStateRestorer
   struct sigaction original_sigalrm_action{};
   sigset_t original_mask{};
 };
-#endif
+  #endif // !defined(_WIN32)
+#endif   // !defined(QUILL_NO_EXCEPTIONS)
 } // namespace
 
 /***/
 TEST_CASE("backend_start_signal_registration_failure_restores_caller_signal_state")
 {
+#if !defined(QUILL_NO_EXCEPTIONS)
   SignalStateRestorer restore_state;
 
-#if defined(_WIN32)
+  #if defined(_WIN32)
   auto const previous_sigterm_handler = std::signal(SIGTERM, test_sigterm_handler);
   REQUIRE_NE(previous_sigterm_handler, SIG_ERR);
 
   std::vector<int> const catchable_signals{SIGTERM, 9999};
-#else
+
+  REQUIRE_THROWS_AS(init_signal_handler<FrontendOptions>(catchable_signals), QuillError);
+
+  auto const current_sigterm_handler = std::signal(SIGTERM, test_sigterm_handler);
+  CHECK_EQ(reinterpret_cast<void*>(current_sigterm_handler), reinterpret_cast<void*>(test_sigterm_handler));
+
+  std::signal(SIGTERM, previous_sigterm_handler);
+  #else
   sigset_t baseline_mask = restore_state.original_mask;
   REQUIRE_EQ(sigdelset(&baseline_mask, SIGTERM), 0);
   REQUIRE_EQ(sigdelset(&baseline_mask, SIGINT), 0);
@@ -92,16 +102,7 @@ TEST_CASE("backend_start_signal_registration_failure_restores_caller_signal_stat
 
   SignalHandlerOptions signal_handler_options;
   signal_handler_options.catchable_signals = {SIGTERM, SIGALRM};
-#endif
 
-#if defined(_WIN32)
-  REQUIRE_THROWS_AS(init_signal_handler<FrontendOptions>(catchable_signals), QuillError);
-
-  auto const current_sigterm_handler = std::signal(SIGTERM, test_sigterm_handler);
-  CHECK_EQ(reinterpret_cast<void*>(current_sigterm_handler), reinterpret_cast<void*>(test_sigterm_handler));
-
-  std::signal(SIGTERM, previous_sigterm_handler);
-#else
   // Backend::start() propagates signal-registration failures to the caller.
   REQUIRE_THROWS_AS(Backend::start<FrontendOptions>(BackendOptions{}, signal_handler_options), QuillError);
 
@@ -116,5 +117,6 @@ TEST_CASE("backend_start_signal_registration_failure_restores_caller_signal_stat
   CHECK_EQ(reinterpret_cast<void*>(current_sigterm_handler), reinterpret_cast<void*>(test_sigterm_handler));
 
   std::signal(SIGTERM, previous_sigterm_handler);
+  #endif
 #endif
 }

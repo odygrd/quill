@@ -29,6 +29,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
+#include "quill/core/ThreadPrimitives.h"
 
 #include <string>
 
@@ -86,30 +87,92 @@ public:
     std::string path = "/tmp/QuillBackendLock" + pid;
 
     // Open or create the lock file. The file itself is just a vessel for the kernel lock.
-    _fd = open(path.data(), O_CREAT | O_RDWR, 0644);
-    if (_fd == -1)
+    // Retry on EINTR and transient errors. The lock is a diagnostic aid — if we ultimately
+    // cannot open the file, skip the check rather than crashing the application.
+    constexpr int max_retries{3};
+    constexpr uint64_t retry_delay_ns{100000000}; // 100 ms
+
+    int fd{-1};
+    for (int attempt = 0; attempt < max_retries; ++attempt)
     {
-      QUILL_THROW(QuillError{"Failed to open lock file '" + path + "' - errno: " + std::to_string(errno) +
-                             " error: " + std::strerror(errno)});
+      do
+      {
+        fd = open(path.data(), O_CREAT | O_RDWR, 0644);
+      } while (fd == -1 && errno == EINTR);
+
+      if (fd != -1)
+      {
+        break;
+      }
+
+      if (attempt < max_retries - 1)
+      {
+        sleep_for_ns(retry_delay_ns);
+      }
     }
 
+    if (fd == -1)
+    {
+      return;
+    }
+
+    _fd = fd;
     _path = path;
 
     // Try to acquire an exclusive lock without blocking.
     // Each open() creates a separate file description, so two BackendWorkerLock instances
     // in the same process get independent locks. flock returns -1 with errno EWOULDBLOCK
     // if the lock is already held.
-    if (flock(_fd, LOCK_EX | LOCK_NB) != 0)
+    // Retry on EINTR and transient errors, but EWOULDBLOCK means a genuine duplicate.
+    int flock_err{0};
+    for (int attempt = 0; attempt < max_retries; ++attempt)
+    {
+      int ret{0};
+      do
+      {
+        ret = flock(_fd, LOCK_EX | LOCK_NB);
+      } while (ret != 0 && errno == EINTR);
+
+      if (ret == 0)
+      {
+        flock_err = 0;
+        break;
+      }
+
+      flock_err = errno;
+
+      if (flock_err == EWOULDBLOCK)
+      {
+        // The lock is genuinely held by another instance — no point retrying.
+        break;
+      }
+
+      if (attempt < max_retries - 1)
+      {
+        sleep_for_ns(retry_delay_ns);
+      }
+    }
+
+    if (flock_err != 0)
     {
       close(_fd);
       _fd = -1;
 
-      QUILL_THROW(QuillError{
-        "Duplicate backend worker thread detected. This indicates that the logging library has "
-        "been compiled into multiple binary modules (for instance, one module using a static build "
-        "and another using a shared build), resulting in separate instances of the backend worker. "
-        "Please build and link the logging library uniformly as a shared library with exported "
-        "symbols to ensure a single backend instance."});
+      if (flock_err == EWOULDBLOCK)
+      {
+        QUILL_THROW(QuillError{
+          "Duplicate backend worker thread detected. This indicates that the logging library has "
+          "been compiled into multiple binary modules (for instance, one module using a static "
+          "build "
+          "and another using a shared build), resulting in separate instances of the backend "
+          "worker. "
+          "Please build and link the logging library uniformly as a shared library with exported "
+          "symbols to ensure a single backend instance."});
+      }
+
+      // For any other flock() error (e.g. EIO, ENOMEM, ENOLCK) that persists after
+      // retries, the lock is only a diagnostic aid. Skip the check rather than
+      // crashing the application.
     }
 #endif
   }

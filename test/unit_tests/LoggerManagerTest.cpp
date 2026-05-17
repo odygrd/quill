@@ -322,6 +322,29 @@ TEST_CASE("parse_log_level_from_env")
                ->get_log_level(),
              quill::LogLevel::Critical);
 
+  set_env("QUILL_LOG_LEVEL", "warn");
+  lm.parse_log_level_from_env();
+  REQUIRE_EQ(lm.create_or_get_logger<Logger>("lg6", std::vector<std::shared_ptr<Sink>>{},
+                                             PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr)
+               ->get_log_level(),
+             quill::LogLevel::Warning);
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+  // An invalid value must fail with an error message that names the environment variable
+  set_env("QUILL_LOG_LEVEL", "invalid_level");
+  bool exception_thrown{false};
+  try
+  {
+    lm.parse_log_level_from_env();
+  }
+  catch (quill::QuillError const& e)
+  {
+    exception_thrown = true;
+    REQUIRE_NE(std::string{e.what()}.find("QUILL_LOG_LEVEL"), std::string::npos);
+  }
+  REQUIRE(exception_thrown);
+#endif
+
   set_env("QUILL_LOG_LEVEL", "none");
   lm.parse_log_level_from_env();
   REQUIRE_EQ(lm.create_or_get_logger<Logger>("lg5", std::vector<std::shared_ptr<Sink>>{},
@@ -352,11 +375,15 @@ TEST_CASE("recreating_pending_removal_logger_throws")
   std::vector<std::shared_ptr<Sink>> recreated_sinks;
   recreated_sinks.push_back(sink);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(lm.create_or_get_logger<Logger>(
                       "logger_pending_removal", std::move(recreated_sinks),
                       PatternFormatterOptions{"%(message)", "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
                       ClockSourceType::Tsc, nullptr),
                     QuillError);
+#else
+  (void)recreated_sinks;
+#endif
 
   std::vector<std::string> removed_loggers;
   lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
@@ -385,11 +412,16 @@ TEST_CASE("creating_logger_with_null_sink_throws")
   std::vector<std::shared_ptr<Sink>> sinks;
   sinks.emplace_back();
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(lm.create_or_get_logger<Logger>(
                       "logger_with_null_sink", std::move(sinks),
                       PatternFormatterOptions{"%(message)", "%H:%M:%S.%Qns", quill::Timezone::GmtTime, false},
                       ClockSourceType::Tsc, nullptr),
                     QuillError);
+#else
+  (void)lm;
+  (void)sinks;
+#endif
 }
 
 /***/
@@ -413,11 +445,15 @@ TEST_CASE("create_logger_succeeds_and_rejects_duplicate")
   std::vector<std::shared_ptr<Sink>> sinks2;
   sinks2.push_back(sink);
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS(lm.create_logger<Logger>("create_logger_test", std::move(sinks2),
                                              PatternFormatterOptions{"%(message)", "%H:%M:%S.%Qns",
                                                                      quill::Timezone::GmtTime, false},
                                              ClockSourceType::Tsc, nullptr),
                     QuillError);
+#else
+  (void)sinks2;
+#endif
 
   // create_or_get_logger should still return the existing one without throwing
   std::vector<std::shared_ptr<Sink>> sinks3;

@@ -7,13 +7,16 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 
-#include "quill/DeferredFormatCodec.h"
 #include "quill/backend/RdtscClock.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/ChronoTimeUtils.h"
+#include "quill/core/Codec.h"
 #include "quill/core/Common.h"
+#include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/Rdtsc.h"
 
 #include "quill/bundled/fmt/format.h"
@@ -62,7 +65,7 @@ public:
     }
     else
     {
-      _start_tp = detail::get_timestamp_ns<std::chrono::steady_clock>();
+      _start_tp = detail::get_steady_time_ns();
     }
   }
 
@@ -89,8 +92,7 @@ public:
     }
     else
     {
-      return std::chrono::duration_cast<T>(
-        std::chrono::nanoseconds{detail::get_timestamp_ns<std::chrono::steady_clock>() - _start_tp});
+      return std::chrono::duration_cast<T>(std::chrono::nanoseconds{detail::get_steady_time_ns() - _start_tp});
     }
   }
 
@@ -105,7 +107,7 @@ public:
     }
     else
     {
-      _start_tp = detail::get_timestamp_ns<std::chrono::steady_clock>();
+      _start_tp = detail::get_steady_time_ns();
     }
   }
 
@@ -131,23 +133,43 @@ QUILL_END_NAMESPACE
 
 QUILL_BEGIN_EXPORT
 
-/** @cond */
+/**
+ * The elapsed time is sampled on the frontend (hot path) at the log call site and only the
+ * resulting elapsed seconds (a double) are pushed to the queue. This is both cheaper than
+ * deferring the whole StopWatch object and, more importantly, makes the reported value reflect
+ * the moment the log statement was issued rather than the moment the backend happens to format
+ * it.
+ */
 template <quill::ClockSourceType ClockType>
 struct quill::Codec<quill::detail::StopWatch<ClockType>>
-  : quill::DeferredFormatCodec<quill::detail::StopWatch<ClockType>>
 {
-};
-
-template <quill::ClockSourceType ClockType>
-struct fmtquill::formatter<quill::detail::StopWatch<ClockType>> : fmtquill::formatter<double>
-{
-  template <typename FormatContext>
-  auto format(quill::detail::StopWatch<ClockType> const& sw, FormatContext& ctx) const
-    -> decltype(ctx.out())
+  static size_t compute_encoded_size(quill::detail::SizeCacheVector&,
+                                     quill::detail::StopWatch<ClockType> const&) noexcept
   {
-    return fmtquill::formatter<double>::format(sw.elapsed().count(), ctx);
+    return sizeof(double);
+  }
+
+  static void encode(std::byte*& buffer, quill::detail::SizeCacheVector const&, uint32_t&,
+                     quill::detail::StopWatch<ClockType> const& sw) noexcept
+  {
+    // Sample the elapsed time on the frontend thread at the log call site.
+    double const elapsed_seconds = sw.elapsed().count();
+    std::memcpy(buffer, &elapsed_seconds, sizeof(elapsed_seconds));
+    buffer += sizeof(elapsed_seconds);
+  }
+
+  static double decode_arg(std::byte*& buffer)
+  {
+    double elapsed_seconds;
+    std::memcpy(&elapsed_seconds, buffer, sizeof(elapsed_seconds));
+    buffer += sizeof(elapsed_seconds);
+    return elapsed_seconds;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, quill::DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
   }
 };
-/** @endcond */
 
 QUILL_END_EXPORT

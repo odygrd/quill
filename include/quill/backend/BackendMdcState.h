@@ -28,10 +28,7 @@ public:
     _fields[std::string{key}] = std::string{value};
   }
 
-  void erase(std::string_view key)
-  {
-    _fields.erase(std::string{key});
-  }
+  void erase(std::string_view key) { _fields.erase(std::string{key}); }
 
   void clear()
   {
@@ -118,8 +115,7 @@ private:
       }
 
       prefix.assign(pattern.data(), first);
-      kv_sep.assign(pattern.data() + first + placeholder.size(),
-                    second - first - placeholder.size());
+      kv_sep.assign(pattern.data() + first + placeholder.size(), second - first - placeholder.size());
       field_sep.assign(pattern.data() + after_second, pattern.size() - after_second - 1u);
       suffix.assign(pattern.data() + pattern.size() - 1u, 1u);
       return true;

@@ -201,16 +201,20 @@ public:
 
         if (QUILL_LIKELY(handle != INVALID_HANDLE_VALUE))
         {
-          auto const total_bytes_remaining =
-            static_cast<DWORD>(std::min<size_t>(remaining, std::numeric_limits<DWORD>::max()));
+          constexpr size_t max_dword = static_cast<size_t>(~DWORD{0});
+          auto const total_bytes_remaining = static_cast<DWORD>(std::min<size_t>(remaining, max_dword));
           DWORD bytes_written_this_call = 0;
 
-          if (QUILL_UNLIKELY((::WriteFile(handle, current_ptr, total_bytes_remaining,
-                                          &bytes_written_this_call, nullptr) == 0) ||
-                             (bytes_written_this_call != total_bytes_remaining)))
+          if (QUILL_UNLIKELY(::WriteFile(handle, current_ptr, total_bytes_remaining,
+                                          &bytes_written_this_call, nullptr) == 0))
           {
             QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
                                    std::to_string(::GetLastError())});
+          }
+
+          if (QUILL_UNLIKELY(bytes_written_this_call == 0))
+          {
+            QUILL_THROW(QuillError{"WriteFile returned 0 bytes written without error"});
           }
 
           bytes_written += bytes_written_this_call;
@@ -266,7 +270,12 @@ protected:
    */
   QUILL_ATTRIBUTE_HOT void flush()
   {
-    int const result = std::fflush(_file);
+    // Retry on EINTR — a signal delivered during fflush() causes it to fail transiently.
+    int result{0};
+    do
+    {
+      result = std::fflush(_file);
+    } while (result != 0 && errno == EINTR);
 
     if (QUILL_LIKELY(result == 0))
     {

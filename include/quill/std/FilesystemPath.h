@@ -32,7 +32,7 @@ QUILL_BEGIN_EXPORT
 template <>
 struct Codec<fs::path>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, fs::path const& arg) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, fs::path const& arg)
   {
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {
@@ -52,7 +52,7 @@ struct Codec<fs::path>
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, fs::path const& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, fs::path const& arg)
   {
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {

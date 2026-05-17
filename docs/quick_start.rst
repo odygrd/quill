@@ -94,6 +94,9 @@ Next Steps
 ----------
 
 - :doc:`Overview <overview>` for the full architecture and design rationale.
-- :doc:`Metrics <metrics>` for sending compact metric samples through the backend worker.
-- :doc:`Guides <guides>` for sinks, metrics, formatters, JSON output, filters, and more.
-- :doc:`Recipes <recipes>` for common tasks and code examples.
+- :doc:`Metrics <metrics>` for publishing compact metric samples through the same backend worker — including the built-in Prometheus exporter.
+- :doc:`MDC <mdc>` for attaching per-thread request/session context to subsequent log lines.
+- :doc:`JSON Logging <json_logging>` for structured machine-friendly output.
+- :doc:`Backend Options <backend_options>` and :doc:`Frontend Options <frontend_options>` for tuning queues, clocks, and backend behavior.
+- :doc:`Guides <guides>` for sinks, formatters, filters, backtrace logging, and more.
+- :doc:`Recipes <recipes>` for common tasks and code examples, including STL and user-defined type logging.

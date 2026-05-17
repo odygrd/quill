@@ -17,7 +17,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
-#include <limits>
 #include <map>
 #include <string>
 #include <utility>
@@ -56,15 +55,15 @@ public:
     _timestamp_format = std::move(timestamp_format);
     _time_zone = timezone;
 
-    if (_timestamp_format.find("%X") != std::string::npos)
+    if (_find_unescaped_modifier(_timestamp_format, "%X") != std::string::npos)
     {
       QUILL_THROW(QuillError("`%X` as format modifier is not currently supported in format: " + _timestamp_format));
     }
 
     // We first look for some special format modifiers and replace them
-    _replace_all(_timestamp_format, "%r", "%I:%M:%S %p");
-    _replace_all(_timestamp_format, "%R", "%H:%M");
-    _replace_all(_timestamp_format, "%T", "%H:%M:%S");
+    _replace_unescaped_modifier(_timestamp_format, "%r", "%I:%M:%S %p");
+    _replace_unescaped_modifier(_timestamp_format, "%R", "%H:%M");
+    _replace_unescaped_modifier(_timestamp_format, "%T", "%H:%M:%S");
 
     // Populate the initial parts that we will use to generate a pre-formatted string
     _populate_initial_parts(_timestamp_format);
@@ -227,6 +226,37 @@ public:
     return _pre_formatted_ts;
   }
 
+  /***/
+  QUILL_NODISCARD static size_t _find_unescaped_modifier(std::string const& timestamp_format,
+                                                         std::string const& modifier) noexcept
+  {
+    size_t search_pos = 0;
+    while ((search_pos = timestamp_format.find(modifier, search_pos)) != std::string::npos)
+    {
+      if (!_is_escaped_percent(timestamp_format, search_pos))
+      {
+        return search_pos;
+      }
+
+      ++search_pos;
+    }
+
+    return std::string::npos;
+  }
+
+  /***/
+  QUILL_NODISCARD static bool _is_escaped_percent(std::string const& timestamp_format, size_t percent_pos) noexcept
+  {
+    size_t preceding_percent_count = 0;
+    while ((percent_pos > preceding_percent_count) &&
+           (timestamp_format[percent_pos - preceding_percent_count - 1] == '%'))
+    {
+      ++preceding_percent_count;
+    }
+
+    return (preceding_percent_count % 2u) != 0u;
+  }
+
 protected:
   enum class format_type : uint8_t
   {
@@ -343,7 +373,7 @@ protected:
   }
 
   /***/
-  std::pair<std::string, std::string> static _split_timestamp_format_once(std::string& timestamp_format) noexcept
+  std::pair<std::string, std::string> static _split_timestamp_format_once(std::string& timestamp_format)
   {
     // don't make this static as it breaks on windows with atexit when backend worker stops
     std::array<std::string, 7> const modifiers{"%H", "%M", "%S", "%I", "%k", "%l", "%s"};
@@ -356,7 +386,7 @@ protected:
 
     for (auto const& modifier : modifiers)
     {
-      if (auto const search = timestamp_format.find(modifier); search != std::string::npos)
+      if (auto const search = _find_unescaped_modifier(timestamp_format, modifier); search != std::string::npos)
       {
         // Add the index and the modifier string to our map
         found_format_modifiers.emplace(search, modifier);
@@ -410,18 +440,19 @@ protected:
       gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp)), std::addressof(time_info));
     }
 
-    // Create a buffer to call strftimex
+    // Create a buffer to call strftime
+    static constexpr size_t max_buffer_size{64 * 1024};
     std::vector<char> buffer;
     buffer.resize(32);
     size_t res = strftime(&buffer[0], buffer.size(), format_string, std::addressof(time_info));
 
     while (res == 0)
     {
-      if (QUILL_UNLIKELY(buffer.size() > (std::numeric_limits<size_t>::max() / 2)))
+      if (QUILL_UNLIKELY(buffer.size() >= max_buffer_size))
       {
-        std::vector<char> empty_result;
-        empty_result.push_back('\0');
-        return empty_result;
+        QUILL_THROW(
+          QuillError{"strftime failed to format timestamp. The timestamp pattern may "
+                     "contain an unsupported format specifier."});
       }
 
       // if strftime fails we will reserve more space
@@ -433,11 +464,17 @@ protected:
   }
 
   /***/
-  static void _replace_all(std::string& str, std::string const& old_value, std::string const& new_value) noexcept
+  static void _replace_unescaped_modifier(std::string& str, std::string const& old_value, std::string const& new_value)
   {
     std::string::size_type pos = 0u;
     while ((pos = str.find(old_value, pos)) != std::string::npos)
     {
+      if (_is_escaped_percent(str, pos))
+      {
+        ++pos;
+        continue;
+      }
+
       str.replace(pos, old_value.length(), new_value);
       pos += new_value.length();
     }

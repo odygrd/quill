@@ -69,8 +69,8 @@ inline constexpr size_t QUILL_CACHE_LINE_ALIGNED{2 * QUILL_CACHE_LINE_SIZE};
 
 // define our own PATH_PREFERRED_SEPARATOR to not include <filesystem>
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-// Regular Windows (MSVC, MinGW): use backslashes
-inline constexpr wchar_t PATH_PREFERRED_SEPARATOR = L'\\';
+// MSVC on Windows: use backslashes
+inline constexpr char PATH_PREFERRED_SEPARATOR = '\\';
 #else
 // Non-Windows OR Clang on Windows: use forward slashes
 inline constexpr char PATH_PREFERRED_SEPARATOR = '/';
@@ -82,7 +82,7 @@ QUILL_BEGIN_EXPORT
 /**
  * Enum to select a queue type
  */
-enum class QueueType
+enum class QueueType : uint8_t
 {
   UnboundedBlocking,
   UnboundedDropping,
@@ -112,7 +112,7 @@ enum class ClockSourceType : uint8_t
 /**
  * Enum for huge pages
  */
-enum class HugePagesPolicy
+enum class HugePagesPolicy : uint8_t
 {
   Never,  // Do not use huge pages
   Always, // Use huge pages, fail if unavailable

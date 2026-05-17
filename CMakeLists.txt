@@ -25,6 +25,8 @@ option(QUILL_ENABLE_ASSERTIONS "Enable assertions in release builds. When disabl
 
 option(QUILL_BUILD_EXAMPLES "Enable this option to build and install the examples. Set this to ON to include example projects in the build process and have them installed after configuring with CMake." OFF)
 
+option(QUILL_BUILD_EXAMPLE_PROMETHEUS "Build the prometheus-cpp metric publishing example. Requires prometheus-cpp to be installed and findable via CMAKE_PREFIX_PATH." OFF)
+
 option(QUILL_BUILD_TESTS "Enable this option to build the test suite." OFF)
 
 option(QUILL_ENABLE_EXTENSIVE_TESTS "Enable extensive tests that may require more resources and are not suitable for hosted CI runners." OFF)
@@ -144,6 +146,13 @@ if (QUILL_VERBOSE_MAKEFILE)
     set(CMAKE_VERBOSE_MAKEFILE TRUE CACHE BOOL "Verbose output" FORCE)
 endif ()
 
+# Strip MSVC default /EHsc when building without exceptions so that /EHs-c- is not
+# silently overridden. Must happen at directory scope; doing this inside a function
+# would be a no-op because CMAKE_CXX_FLAGS assignments would not escape the function.
+if (QUILL_NO_EXCEPTIONS AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+endif ()
+
 # address sanitizer flags
 if (QUILL_SANITIZE_ADDRESS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g")
@@ -196,6 +205,7 @@ set(TARGET_NAME quill)
 # header files
 set(HEADER_FILES
         include/quill/backend/BackendManager.h
+        include/quill/backend/BackendMdcState.h
         include/quill/backend/BackendOptions.h
         include/quill/backend/BackendWorker.h
         include/quill/backend/BackendWorkerLock.h
@@ -248,6 +258,7 @@ set(HEADER_FILES
         include/quill/core/SourceLocation.h
         include/quill/core/Spinlock.h
         include/quill/core/ThreadContextManager.h
+        include/quill/core/ThreadPrimitives.h
         include/quill/core/TimeUtilities.h
         include/quill/core/UnboundedSPSCQueue.h
         include/quill/backend/Utf8Conv.h
@@ -311,39 +322,39 @@ add_library(${TARGET_NAME} INTERFACE)
 add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
 
 if (QUILL_NO_EXCEPTIONS)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_NO_EXCEPTIONS)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_NO_EXCEPTIONS)
 endif ()
 
 if (QUILL_NO_THREAD_NAME_SUPPORT)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_NO_THREAD_NAME_SUPPORT)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_NO_THREAD_NAME_SUPPORT)
 endif ()
 
 if (QUILL_USE_SEQUENTIAL_THREAD_ID)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_USE_SEQUENTIAL_THREAD_ID)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_USE_SEQUENTIAL_THREAD_ID)
 endif ()
 
 if (QUILL_X86ARCH)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_X86ARCH)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_X86ARCH)
 endif ()
 
 if (QUILL_DISABLE_NON_PREFIXED_MACROS)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_DISABLE_NON_PREFIXED_MACROS)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_DISABLE_NON_PREFIXED_MACROS)
 endif ()
 
 if (QUILL_DISABLE_FUNCTION_NAME)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_DISABLE_FUNCTION_NAME)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_DISABLE_FUNCTION_NAME)
 endif ()
 
 if (QUILL_DETAILED_FUNCTION_NAME)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_DETAILED_FUNCTION_NAME)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_DETAILED_FUNCTION_NAME)
 endif ()
 
 if (QUILL_DISABLE_FILE_INFO)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_DISABLE_FILE_INFO)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_DISABLE_FILE_INFO)
 endif ()
 
 if (QUILL_ENABLE_ASSERTIONS)
-    target_compile_definitions(${TARGET_NAME} PUBLIC INTERFACE -DQUILL_ENABLE_ASSERTIONS)
+    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_ENABLE_ASSERTIONS)
 endif ()
 
 if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
@@ -352,15 +363,15 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
 endif ()
 
 # Link dependencies
-target_link_libraries(${TARGET_NAME} PUBLIC INTERFACE Threads::Threads)
+target_link_libraries(${TARGET_NAME} INTERFACE Threads::Threads)
 
 if (MINGW)
     # strftime requires this when using MinGw to correctly format the time ..
-    target_link_libraries(${TARGET_NAME} PUBLIC INTERFACE ucrtbase)
+    target_link_libraries(${TARGET_NAME} INTERFACE ucrtbase)
 endif ()
 
-if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
-    target_link_libraries(${TARGET_NAME} PUBLIC INTERFACE stdc++fs)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+    target_link_libraries(${TARGET_NAME} INTERFACE stdc++fs)
 endif ()
 
 # Add include directories for this library
@@ -396,10 +407,12 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
     set(QUILL_PKGCONFIG_DIR ${CMAKE_INSTALL_LIBDIR}/pkgconfig CACHE PATH
             "Installation directory for pkgconfig (.pc) files, relative to ${CMAKE_INSTALL_PREFIX}.")
 
+    # Use the thread lib flag that find_package(Threads) resolved for this platform
+    # (e.g. -pthread on FreeBSD, -lpthread on older Linux, empty where pthread is in libc).
     if (WIN32)
         set(QUILL_PTHREAD_LIBS "")
     else ()
-        set(QUILL_PTHREAD_LIBS "-lpthread")
+        set(QUILL_PTHREAD_LIBS "${CMAKE_THREAD_LIBS_INIT}")
     endif ()
 
     # Generate pkgconfig

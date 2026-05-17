@@ -58,7 +58,7 @@ private:
 #endif
 
 public:
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, T const (&arg)[N]) noexcept
+  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, T const (&arg)[N])
   {
     if constexpr (std::is_arithmetic_v<T>)
     {
@@ -84,7 +84,7 @@ public:
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     if constexpr (std::is_arithmetic_v<T>)
     {
@@ -163,7 +163,7 @@ private:
 
 public:
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::array<T, N> const& arg) noexcept
+                                     std::array<T, N> const& arg)
   {
     if constexpr (std::is_arithmetic_v<T>)
     {
@@ -189,7 +189,7 @@ public:
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     if constexpr (std::is_arithmetic_v<T>)
     {

@@ -41,7 +41,7 @@ TEST_CASE("check_logger")
   REQUIRE_EQ(logger_1->get_sinks().size(), 1);
   REQUIRE_EQ(logger_1->get_sinks().front().get(), sink.get());
 
-#ifndef QUILL_NO_EXCEPTIONS
+#if !defined(QUILL_NO_EXCEPTIONS)
   // throw if backtrace log level is used
   REQUIRE_THROWS_AS(logger_1->set_log_level(LogLevel::Backtrace), quill::QuillError);
 #endif

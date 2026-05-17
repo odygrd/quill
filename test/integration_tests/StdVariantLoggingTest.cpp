@@ -18,6 +18,7 @@
 
 using namespace quill;
 
+#if !defined(QUILL_NO_EXCEPTIONS)
 namespace
 {
 struct VariantThrowOnConstruction
@@ -58,6 +59,7 @@ template <>
 struct quill::Codec<VariantThrowOnConstruction> : quill::DeferredFormatCodec<VariantThrowOnConstruction>
 {
 };
+#endif
 
 /***/
 TEST_CASE("std_variant_logging")
@@ -102,6 +104,9 @@ TEST_CASE("std_variant_logging")
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   std::variant<int, VariantThrowOnConstruction> valueless_variant{123};
+  std::variant<std::string, VariantThrowOnConstruction> valueless_string_variant{
+    std::string{"before_exception"}};
+  std::vector<std::variant<std::string, VariantThrowOnConstruction>> nested_valueless_variants;
 
   try
   {
@@ -113,6 +118,20 @@ TEST_CASE("std_variant_logging")
 
   REQUIRE(valueless_variant.valueless_by_exception());
   LOG_INFO(logger, "valueless_variant {}", valueless_variant);
+
+  try
+  {
+    valueless_string_variant = VariantThrowOnConstruction{22};
+  }
+  catch (std::runtime_error const&)
+  {
+  }
+
+  REQUIRE(valueless_string_variant.valueless_by_exception());
+  LOG_INFO(logger, "valueless_string_variant {}", valueless_string_variant);
+
+  nested_valueless_variants.push_back(valueless_string_variant);
+  LOG_INFO(logger, "nested_valueless_variants {}", nested_valueless_variants);
 #endif
 
   logger->flush_log();
@@ -150,6 +169,12 @@ TEST_CASE("std_variant_logging")
 #if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE(quill::testing::file_contains(
     file_contents, logger_name + " valueless_variant variant(valueless by exception)"));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, logger_name + " valueless_string_variant variant(valueless by exception)"));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, logger_name + " nested_valueless_variants [variant(valueless by exception)]"));
 #endif
 
   testing::remove_file(filename);

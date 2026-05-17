@@ -39,7 +39,7 @@ private:
 
 public:
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::tuple<Types...> const& arg) noexcept
+                                     std::tuple<Types...> const& arg)
   {
     size_t total_size{0};
 
@@ -56,7 +56,7 @@ public:
 
   template <typename Arg>
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, Arg&& arg) noexcept
+                     uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     if constexpr (std::is_rvalue_reference_v<Arg&&>)
     {

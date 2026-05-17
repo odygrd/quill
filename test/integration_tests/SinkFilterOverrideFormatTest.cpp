@@ -88,10 +88,12 @@ TEST_CASE("sink_filter_override_format")
   // Add the filter
   file_sink_a->add_filter(std::move(filter_a));
 
+#if !defined(QUILL_NO_EXCEPTIONS)
   // Try to add the same again (same name)
   std::unique_ptr<Filter> filter_a_2 = std::make_unique<FileFilterA>();
   REQUIRE_EQ(filter_a_2->get_filter_name(), std::string_view{"FileFilterA"});
   REQUIRE_THROWS_AS(file_sink_a->add_filter(std::move(filter_a_2)), QuillError);
+#endif
 
   auto file_sink_b = Frontend::create_or_get_sink<FileSink>(
     filename_b,

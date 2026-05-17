@@ -7,9 +7,10 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/Common.h"
 
+#include <cstddef>
 #include <cstdint>
-#include <limits>
 
 QUILL_BEGIN_NAMESPACE
 
@@ -27,24 +28,15 @@ QUILL_NODISCARD constexpr bool is_power_of_two(uint64_t number) noexcept
 }
 
 /**
- * Helper function to calculate the maximum power of two for type T
- * @return maximum power of two for type T
- */
-template <typename T>
-QUILL_NODISCARD constexpr T max_power_of_two() noexcept
-{
-  return (std::numeric_limits<T>::max() >> 1) + 1;
-}
-
-/**
  * Round up to the next power of 2
  * @param n input
  * @return the next power of 2
  */
-template <typename T>
-QUILL_NODISCARD T next_power_of_two(T n) noexcept
+QUILL_NODISCARD inline size_t next_power_of_two(size_t n) noexcept
 {
-  constexpr T max_power_of_2 = max_power_of_two<T>();
+  // Highest power of 2 representable in size_t: the top bit set.
+  // SIZE_MAX comes from <cstdint> and avoids pulling <limits> on the frontend path.
+  constexpr size_t max_power_of_2 = (SIZE_MAX >> 1) + 1u;
 
   if (n >= max_power_of_2)
   {
@@ -56,7 +48,7 @@ QUILL_NODISCARD T next_power_of_two(T n) noexcept
     return n;
   }
 
-  T result = 1;
+  size_t result = 1;
   while (result < n)
   {
     result <<= 1;

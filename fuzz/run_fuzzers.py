@@ -189,23 +189,17 @@ class FuzzerRunner:
                 bufsize=1  # Line buffered
             )
 
-            # Read output line by line to avoid buffer deadlock
-            for line in process.stdout:
-                stdout_lines.append(line)
-
-            process.wait(timeout=self.duration + 60 if self.duration else None)
+            # communicate() drains the pipe (avoiding buffer deadlock) while still
+            # enforcing the timeout; a plain read loop would block for as long as the
+            # fuzzer keeps running, making the timeout below unreachable.
+            stdout, _ = process.communicate(timeout=self.duration + 60 if self.duration else None)
             exit_code = process.returncode
-            stdout = ''.join(stdout_lines)
             stderr = ""
 
         except subprocess.TimeoutExpired:
             process.kill()
             # Read any remaining output
-            remaining = process.stdout.read()
-            if remaining:
-                stdout_lines.append(remaining)
-            process.wait()
-            stdout = ''.join(stdout_lines)
+            stdout, _ = process.communicate()
             stderr = ""
             # Timeout is expected when fuzzer runs close to max_total_time
             # Only treat as error if actual errors are found in output

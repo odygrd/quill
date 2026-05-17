@@ -33,7 +33,9 @@ inline Logger* simple_logger_impl(std::string const& output)
 
     if (output == "stdout" || output == "stderr")
     {
-      sink = Frontend::create_or_get_sink<ConsoleSink>(output);
+      ConsoleSinkConfig console_sink_config;
+      console_sink_config.set_stream(output);
+      sink = Frontend::create_or_get_sink<ConsoleSink>(output, console_sink_config);
     }
     else
     {
