@@ -326,7 +326,9 @@ private:
   }
 
 private:
+#ifdef QUILL_X86ARCH
   static constexpr integer_type QUILL_CACHE_LINE_MASK{QUILL_CACHE_LINE_SIZE - 1};
+#endif
 
   integer_type const _capacity;
   integer_type const _mask;
@@ -337,12 +339,16 @@ private:
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
   alignas(QUILL_CACHE_LINE_ALIGNED) integer_type _writer_pos{0};
   integer_type _reader_pos_cache{0};
+#ifdef QUILL_X86ARCH
   integer_type _last_flushed_writer_pos{0};
+#endif
 
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_reader_pos{0};
   alignas(QUILL_CACHE_LINE_ALIGNED) integer_type _reader_pos{0};
   mutable integer_type _writer_pos_cache{0};
+#ifdef QUILL_X86ARCH
   integer_type _last_flushed_reader_pos{0};
+#endif
 };
 
 using BoundedSPSCQueue = BoundedSPSCQueueImpl<size_t>;
