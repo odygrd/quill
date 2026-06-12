@@ -1639,6 +1639,282 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolle
 }
 
 /***/
+TEST_CASE("rotating_file_sink_date_append_recovers_previous_run_files")
+{
+  // In append mode with the Date naming scheme, rotated files left behind by previous runs,
+  // including previous days, should count towards max_backup_files instead of accumulating
+  // forever across restarts (#930)
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+
+  fs::path const filename_old_1 = "rotating_file_sink_date_append_recovers_previous_run_files.20230610.log";
+  fs::path const filename_old_2 = "rotating_file_sink_date_append_recovers_previous_run_files.20230611.log";
+  fs::path const filename_rotated = "rotating_file_sink_date_append_recovers_previous_run_files.20230612.log";
+  fs::path const filename_rotated_1 = "rotating_file_sink_date_append_recovers_previous_run_files.20230612.1.log";
+  fs::path const filename = "rotating_file_sink_date_append_recovers_previous_run_files.log";
+
+  // create files simulating the previous runs
+  testing::create_file(filename_old_1, "Old [0]");
+  testing::create_file(filename_old_2, "Old [1]");
+  testing::create_file(filename, "Old [2]");
+
+  REQUIRE(fs::exists(filename_old_1));
+  REQUIRE(fs::exists(filename_old_2));
+  REQUIRE(fs::exists(filename));
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_max_backup_files(1);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // the recovered files exceed max_backup_files, the oldest one is removed on startup
+    REQUIRE_FALSE(fs::exists(filename_old_1));
+    REQUIRE(fs::exists(filename_old_2));
+    REQUIRE(fs::exists(filename));
+
+    // write some records to the file
+    for (size_t i = 0; i < 2; ++i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      // Add a big string to rotate the file
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  // each rotation displaces the oldest recovered file, keeping max_backup_files enforced
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_rotated));
+  REQUIRE_FALSE(fs::exists(filename_old_1));
+  REQUIRE_FALSE(fs::exists(filename_old_2));
+  REQUIRE_FALSE(fs::exists(filename_rotated_1));
+
+  // Read file and check
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
+
+  std::vector<std::string> const file_contents_rotated = testing::file_contents(filename_rotated);
+  REQUIRE_EQ(testing::file_contains(file_contents_rotated, "Record [0]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+  testing::remove_file(filename_rotated_1);
+  testing::remove_file(filename_old_1);
+  testing::remove_file(filename_old_2);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files")
+{
+  // In append mode with the DateAndTime naming scheme, rotated files left behind by previous
+  // runs should count towards max_backup_files instead of accumulating forever across
+  // restarts (#930)
+  uint64_t const timestamp_20230612 = 1686538000000000000; // 20230612_024640
+  uint64_t const timestamp_20230613 = 1686634400000000000;
+
+  fs::path const filename_old_1 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files.20230610_080000.1.log";
+  fs::path const filename_old_2 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files.20230610_080000.log";
+  fs::path const filename_old_3 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files.20230611_090000.log";
+  fs::path const filename_rotated =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files.20230612_024640.log";
+  fs::path const filename_rotated_1 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files.20230612_024640.1.log";
+  fs::path const filename = "rotating_file_sink_dateandtime_append_recovers_previous_run_files.log";
+
+  // create files simulating the previous runs, within the same date_time suffix a greater
+  // index means an older file
+  testing::create_file(filename_old_1, "Old [0]");
+  testing::create_file(filename_old_2, "Old [1]");
+  testing::create_file(filename_old_3, "Old [2]");
+  testing::create_file(filename, "Old [3]");
+
+  REQUIRE(fs::exists(filename_old_1));
+  REQUIRE(fs::exists(filename_old_2));
+  REQUIRE(fs::exists(filename_old_3));
+  REQUIRE(fs::exists(filename));
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_max_backup_files(2);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // the recovered files exceed max_backup_files, the oldest one is removed on startup
+    REQUIRE_FALSE(fs::exists(filename_old_1));
+    REQUIRE(fs::exists(filename_old_2));
+    REQUIRE(fs::exists(filename_old_3));
+    REQUIRE(fs::exists(filename));
+
+    {
+      std::string s{"Record [0]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      // Add a big string to rotate the file
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+
+    {
+      std::string s{"Record [1]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      // Add a big string to rotate the file
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  // each rotation displaces the oldest recovered file, keeping max_backup_files enforced
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_rotated));
+  REQUIRE(fs::exists(filename_rotated_1));
+  REQUIRE_FALSE(fs::exists(filename_old_1));
+  REQUIRE_FALSE(fs::exists(filename_old_2));
+  REQUIRE_FALSE(fs::exists(filename_old_3));
+
+  // Read file and check
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
+
+  std::vector<std::string> const file_contents_rotated = testing::file_contents(filename_rotated);
+  REQUIRE_EQ(testing::file_contains(file_contents_rotated, "Record [0]"), true);
+
+  std::vector<std::string> const file_contents_rotated_1 = testing::file_contents(filename_rotated_1);
+  REQUIRE_EQ(testing::file_contains(file_contents_rotated_1, "Old [3]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+  testing::remove_file(filename_rotated_1);
+  testing::remove_file(filename_old_1);
+  testing::remove_file(filename_old_2);
+  testing::remove_file(filename_old_3);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_dateandtime_append_dont_overwrite_preserves_previous_run_files")
+{
+  // When overwrite_rolled_files is false, files recovered from previous runs must never be
+  // deleted; instead the rotation stops and the current file keeps growing
+  uint64_t const timestamp_20230612 = 1686538000000000000; // 20230612_024640
+
+  fs::path const filename_old_1 =
+    "rotating_file_sink_dateandtime_append_dont_overwrite_previous_run.20230610_080000.log";
+  fs::path const filename_old_2 =
+    "rotating_file_sink_dateandtime_append_dont_overwrite_previous_run.20230611_090000.log";
+  fs::path const filename_rotated =
+    "rotating_file_sink_dateandtime_append_dont_overwrite_previous_run.20230612_024640.log";
+  fs::path const filename = "rotating_file_sink_dateandtime_append_dont_overwrite_previous_run.log";
+
+  // create files simulating the previous runs
+  testing::create_file(filename_old_1, "Old [0]");
+  testing::create_file(filename_old_2, "Old [1]");
+  testing::create_file(filename, "Old [2]");
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_max_backup_files(1);
+        cfg.set_overwrite_rolled_files(false);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // nothing is removed on startup when overwrite_rolled_files is false
+    REQUIRE(fs::exists(filename_old_1));
+    REQUIRE(fs::exists(filename_old_2));
+    REQUIRE(fs::exists(filename));
+
+    // write some records to the file
+    for (size_t i = 0; i < 2; ++i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      // Add a big string to rotate the file
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  // the recovered files already exceed max_backup_files so the rotation stopped and everything
+  // was appended to the current file, nothing was deleted
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_old_1));
+  REQUIRE(fs::exists(filename_old_2));
+  REQUIRE_FALSE(fs::exists(filename_rotated));
+
+  // Read file and check
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Old [2]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [0]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
+
+  std::vector<std::string> const file_contents_old_1 = testing::file_contents(filename_old_1);
+  REQUIRE_EQ(testing::file_contains(file_contents_old_1, "Old [0]"), true);
+
+  std::vector<std::string> const file_contents_old_2 = testing::file_contents(filename_old_2);
+  REQUIRE_EQ(testing::file_contains(file_contents_old_2, "Old [1]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_old_1);
+  testing::remove_file(filename_old_2);
+  testing::remove_file(filename_rotated);
+}
+
+/***/
 TEST_CASE("time_rotation_minutes_rotating_file_sink_index")
 {
   uint64_t const timestamp_20230612 = 1686528000000000000;
