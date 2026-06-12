@@ -143,6 +143,12 @@ record on the hot path.
   vector ([#926](https://github.com/odygrd/quill/issues/926))
 - `StopWatch` now samples its elapsed time on the frontend at the log call site instead of when the backend formats the
   message, so logged values no longer include backend latency.
+- `RotatingFileSink` in append mode now counts rotated files left behind by previous runs towards `max_backup_files`
+  for all `RotationNamingScheme` values, removing the oldest files on startup when they exceed the limit instead of
+  letting them accumulate across restarts. Previously only the `Index` scheme (and the `Date` scheme for same-day
+  files) recovered existing files, so `Date` and `DateAndTime` files from earlier runs were never cleaned up. Recovered
+  append-mode files are not removed when `overwrite_rolled_files` is set to `false`.
+  ([#930](https://github.com/odygrd/quill/discussions/930))
 
 ## v11.1.0
 

@@ -123,6 +123,9 @@ public:
 
   /**
    * @brief Sets the maximum number of log files to keep.
+   * When the sink starts in append mode, rotated files left behind by previous runs are also
+   * counted towards this limit and the oldest ones are removed on startup, unless
+   * set_overwrite_rolled_files() is set to false.
    * @param value The maximum number of log files
    */
   QUILL_ATTRIBUTE_COLD void set_max_backup_files(uint32_t value) { _max_backup_files = value; }
@@ -576,14 +579,6 @@ private:
   /***/
   void _clean_and_recover_files(fs::path const& filename, std::string const& open_mode, uint64_t today_timestamp_ns)
   {
-    if ((_config.rotation_naming_scheme() != RotatingFileSinkConfig::RotationNamingScheme::Index) &&
-        (_config.rotation_naming_scheme() != RotatingFileSinkConfig::RotationNamingScheme::Date))
-    {
-      // clean and recover is only supported for index and date naming scheme, when using
-      // DateAndTime there are no collisions in the filenames
-      return;
-    }
-
     // The normalized filename is absolute in practice, so resolving against the current working
     // directory only matters for relative paths. fs::current_path() can throw when the working
     // directory has been deleted, so use the non-throwing overload and skip clean-up on failure.
@@ -613,6 +608,12 @@ private:
     // if we are starting in "w" mode, then we also should clean all previous log files of the previous run
     if (_config.remove_old_files() && (open_mode.find('w') != std::string::npos))
     {
+      if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
+      {
+        // DateAndTime filenames are unique across runs and cannot collide, nothing to clean
+        return;
+      }
+
       // Collect paths first, then remove — deleting during directory_iterator
       // traversal is implementation-defined and can skip entries on some platforms.
       std::vector<fs::path> files_to_remove;
@@ -648,7 +649,8 @@ private:
     }
     else if (open_mode.find('a') != std::string::npos)
     {
-      // we need to recover the index from the existing files
+      // we need to recover the rotated files of the previous runs, so that rotation continues
+      // with the correct index and max_backup_files also counts files already on disk
       for (auto const& entry : fs::directory_iterator(parent_dir))
       {
         ParsedRotatedFileInfo parsed_file_info;
@@ -657,25 +659,32 @@ private:
           continue;
         }
 
-        if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index)
-        {
-          _created_files.emplace_front(filename, parsed_file_info.index, std::string{});
-        }
-        else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
-        {
-          std::string const today_date =
-            this->format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
-
-          if (parsed_file_info.date_time == today_date)
-          {
-            _created_files.emplace_front(filename, parsed_file_info.index, parsed_file_info.date_time);
-          }
-        }
+        _created_files.emplace_front(filename, parsed_file_info.index, parsed_file_info.date_time);
       }
 
-      // finally we need to sort the deque
+      // sort the recovered files with the newest first; within the same date_time suffix a
+      // greater index means an older file
       std::sort(_created_files.begin(), _created_files.end(),
-                [](FileInfo const& a, FileInfo const& b) { return a.index < b.index; });
+                [](FileInfo const& a, FileInfo const& b)
+                {
+                  if (a.date_time != b.date_time)
+                  {
+                    return a.date_time > b.date_time;
+                  }
+                  return a.index < b.index;
+                });
+
+      if (_config.overwrite_rolled_files())
+      {
+        // remove the oldest recovered files when they exceed max_backup_files, so that files
+        // from previous runs do not keep accumulating across restarts
+        while (_created_files.size() > _config.max_backup_files())
+        {
+          FileInfo const& oldest_file = _created_files.back();
+          _remove_file(_get_filename(oldest_file.base_filename, oldest_file.index, oldest_file.date_time));
+          _created_files.pop_back();
+        }
+      }
     }
   }
 
@@ -762,6 +771,39 @@ private:
       }
 
       parsed_file_info.date_time.assign(date_part.data(), date_part.size());
+      parsed_file_info.index = 0;
+
+      if (separator_pos == std::string_view::npos)
+      {
+        return true;
+      }
+
+      if (suffix.find('.', separator_pos + 1) != std::string_view::npos)
+      {
+        return false;
+      }
+
+      std::string_view const index_part = suffix.substr(separator_pos + 1);
+      return _parse_uint32(index_part, parsed_file_info.index);
+    }
+
+    if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
+    {
+      size_t const separator_pos = suffix.find('.');
+      std::string_view const date_time_part =
+        (separator_pos == std::string_view::npos) ? suffix : suffix.substr(0, separator_pos);
+
+      // expect the %Y%m%d_%H%M%S format
+      uint32_t date_part_value{0};
+      uint32_t time_part_value{0};
+      if ((date_time_part.size() != 15u) || (date_time_part[8] != '_') ||
+          !_parse_uint32(date_time_part.substr(0, 8), date_part_value) ||
+          !_parse_uint32(date_time_part.substr(9), time_part_value))
+      {
+        return false;
+      }
+
+      parsed_file_info.date_time.assign(date_time_part.data(), date_time_part.size());
       parsed_file_info.index = 0;
 
       if (separator_pos == std::string_view::npos)
