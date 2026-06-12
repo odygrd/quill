@@ -75,6 +75,14 @@ TEST_CASE("time_since_epoch_uses_resynced_slot")
     size_t const old_index = version_before & (tsc_clock.base().size() - 1);
 
     uint64_t const rdtsc_value = quill::detail::rdtsc();
+
+    // Make the currently active slot a stale sentinel before forcing resync. If time_since_epoch()
+    // accidentally keeps using this old slot after resync, the result will be near 42 instead of
+    // the real wall-clock timestamp from the new slot.
+    constexpr int64_t stale_base_time = 42;
+    tsc_clock.base()[old_index].base_time = stale_base_time;
+    tsc_clock.base()[old_index].base_tsc = rdtsc_value - 1;
+
     uint64_t const result = tsc_clock.time_since_epoch(rdtsc_value);
 
     uint32_t const version_after = tsc_clock.version().load(std::memory_order_relaxed);
@@ -93,13 +101,13 @@ TEST_CASE("time_since_epoch_uses_resynced_slot")
       static_cast<uint64_t>(tsc_clock.base()[new_index].base_time +
                             static_cast<int64_t>(static_cast<double>(diff_new) * tsc_clock.ns_per_tick()));
 
-    auto const diff_old = static_cast<int64_t>(rdtsc_value - tsc_clock.base()[old_index].base_tsc);
-    uint64_t const expected_old =
-      static_cast<uint64_t>(tsc_clock.base()[old_index].base_time +
-                            static_cast<int64_t>(static_cast<double>(diff_old) * tsc_clock.ns_per_tick()));
+    auto const diff_stale = static_cast<int64_t>(rdtsc_value - tsc_clock.base()[old_index].base_tsc);
+    uint64_t const expected_from_stale_slot = static_cast<uint64_t>(
+      tsc_clock.base()[old_index].base_time +
+      static_cast<int64_t>(static_cast<double>(diff_stale) * tsc_clock.ns_per_tick()));
 
     REQUIRE_EQ(result, expected_new);
-    REQUIRE_NE(result, expected_old);
+    REQUIRE_NE(result, expected_from_stale_slot);
     break;
   }
 
