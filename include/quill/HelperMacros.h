@@ -6,11 +6,13 @@
 
 #pragma once
 
-#include "quill/DeferredFormatCodec.h"
-#include "quill/DirectFormatCodec.h"
-#include "quill/bundled/fmt/format.h"
-#include "quill/bundled/fmt/ostream.h"
-#include <type_traits>
+#ifndef QUILL_USE_MODULE
+  #include "quill/DeferredFormatCodec.h"
+  #include "quill/DirectFormatCodec.h"
+  #include "quill/bundled/fmt/format.h"
+  #include "quill/bundled/fmt/ostream.h"
+  #include <type_traits>
+#endif
 
 /**
  * Convenient macro to define a formatter for a user defined type.

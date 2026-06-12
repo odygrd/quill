@@ -41,7 +41,7 @@ enum class LogLevel : uint8_t
   None
 };
 
-static constexpr size_t LogLevelCount = 11;
+inline constexpr size_t LogLevelCount = 11;
 
 QUILL_END_EXPORT
 

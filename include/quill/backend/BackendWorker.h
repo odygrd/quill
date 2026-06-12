@@ -67,7 +67,9 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
 class ManualBackendWorker; // Forward declaration
+QUILL_END_EXPORT
 
 namespace detail
 {

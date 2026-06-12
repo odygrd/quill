@@ -25,6 +25,8 @@ option(QUILL_ENABLE_ASSERTIONS "Enable assertions in release builds. When disabl
 
 option(QUILL_BUILD_EXAMPLES "Enable this option to build and install the examples. Set this to ON to include example projects in the build process and have them installed after configuring with CMake." OFF)
 
+option(QUILL_BUILD_MODULE "Enable this option to build the experimental C++20 named module target." OFF)
+
 option(QUILL_BUILD_EXAMPLE_PROMETHEUS "Build the prometheus-cpp metric publishing example. Requires prometheus-cpp to be installed and findable via CMAKE_PREFIX_PATH." OFF)
 
 option(QUILL_BUILD_TESTS "Enable this option to build the test suite." OFF)
@@ -138,6 +140,7 @@ message(STATUS "QUILL_DETAILED_FUNCTION_NAME: " ${QUILL_DETAILED_FUNCTION_NAME})
 message(STATUS "QUILL_DISABLE_FILE_INFO: " ${QUILL_DISABLE_FILE_INFO})
 message(STATUS "QUILL_ENABLE_ASSERTIONS: " ${QUILL_ENABLE_ASSERTIONS})
 message(STATUS "QUILL_ENABLE_INSTALL: " ${QUILL_ENABLE_INSTALL})
+message(STATUS "QUILL_BUILD_MODULE: " ${QUILL_BUILD_MODULE})
 
 #---------------------------------------------------------------------------------------
 # Verbose make file option
@@ -176,11 +179,6 @@ if (QUILL_ENABLE_TIME_TRACE)
     else ()
         message(WARNING "QUILL_ENABLE_TIME_TRACE is only supported with Clang. Ignoring.")
     endif ()
-endif ()
-
-if (QUILL_BUILD_EXAMPLES)
-    add_subdirectory(examples)
-    add_subdirectory(docs/snippets)
 endif ()
 
 if (QUILL_BUILD_BENCHMARKS)
@@ -383,6 +381,34 @@ target_include_directories(${TARGET_NAME}
 # Compiler options
 target_compile_options(${TARGET_NAME} INTERFACE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-gnu-zero-variadic-macro-arguments>)
+
+if (QUILL_BUILD_MODULE)
+    if (CMAKE_VERSION VERSION_LESS 3.28)
+        message(FATAL_ERROR "QUILL_BUILD_MODULE requires CMake 3.28 or newer.")
+    endif ()
+
+    if (CMAKE_CXX_STANDARD LESS 20)
+        message(FATAL_ERROR "QUILL_BUILD_MODULE requires CMAKE_CXX_STANDARD to be 20 or higher.")
+    endif ()
+
+    add_library(quill_module)
+    add_library(quill::quill_module ALIAS quill_module)
+
+    target_sources(quill_module
+            PUBLIC
+            FILE_SET CXX_MODULES
+            BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
+            FILES src/quill.cc)
+
+    target_link_libraries(quill_module PUBLIC ${TARGET_NAME})
+    target_compile_features(quill_module PUBLIC cxx_std_20)
+    set_target_properties(quill_module PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif ()
+
+if (QUILL_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+    add_subdirectory(docs/snippets)
+endif ()
 
 # Install
 if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)

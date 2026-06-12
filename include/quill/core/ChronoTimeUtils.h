@@ -37,6 +37,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 namespace detail
 {
 /**
@@ -114,5 +116,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t get_steady_time_ns() noexcep
 #endif
 }
 } // namespace detail
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE

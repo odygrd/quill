@@ -29,6 +29,8 @@
 
 QUILL_BEGIN_NAMESPACE
 
+QUILL_BEGIN_EXPORT
+
 namespace detail
 {
 
@@ -170,6 +172,8 @@ using SizeCacheVector = InlinedVector<uint32_t, 12>;
 static_assert(sizeof(SizeCacheVector) <= QUILL_CACHE_LINE_SIZE,
               "SizeCacheVector should not exceed a cache line");
 } // namespace detail
+
+QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE
 
