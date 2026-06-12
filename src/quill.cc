@@ -44,6 +44,7 @@ module;
 #include <new>
 #include <optional>
 #include <ostream>
+#include <set>
 #include <source_location>
 #include <stdexcept>
 #include <string>
@@ -71,6 +72,16 @@ module;
 #endif
 #if defined(_MSC_VER) || defined(__MINGW32__)
   #include <intrin.h>
+#endif
+#if defined(_WIN32)
+  #if !defined(WIN32_LEAN_AND_MEAN)
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #if !defined(NOMINMAX)
+    #define NOMINMAX
+  #endif
+  #include <io.h>
+  #include <windows.h>
 #endif
 #if !defined(__INTEL_COMPILER)
   #if QUILL_HAS_INCLUDE(<x86gprintrin.h>)
