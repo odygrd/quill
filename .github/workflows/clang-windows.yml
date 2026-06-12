@@ -30,7 +30,7 @@ jobs:
         build_type: [ Debug, Release ]
         std: [ 17 ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install LLVM
         uses: KyleMayes/install-llvm-action@v2

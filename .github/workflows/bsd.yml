@@ -28,7 +28,7 @@ jobs:
         build_type: [ Release ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: FreeBSD Build and Test (${{ matrix.build_type }})
         uses: vmactions/freebsd-vm@v1
@@ -52,7 +52,7 @@ jobs:
         build_type: [ Release ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: NetBSD Build and Test (${{ matrix.build_type }})
         uses: vmactions/netbsd-vm@v1
@@ -76,7 +76,7 @@ jobs:
         build_type: [ Release ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: OpenBSD Build and Test (${{ matrix.build_type }})
         uses: vmactions/openbsd-vm@v1
@@ -100,7 +100,7 @@ jobs:
         build_type: [ Release ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: DragonFly Build and Test (${{ matrix.build_type }})
         uses: vmactions/dragonflybsd-vm@v1

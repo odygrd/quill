@@ -27,7 +27,7 @@ jobs:
         std: [ 17 ]
         with_tests: [ ON ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Intel oneAPI DPC++ Compiler 2025.2.1
         run: |

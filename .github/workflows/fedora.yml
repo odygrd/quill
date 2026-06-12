@@ -39,7 +39,7 @@ jobs:
               dnf --setopt=retries=5 install -y gcc-c++ cmake make
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies and create build environment
         run: |
