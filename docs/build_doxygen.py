@@ -34,7 +34,14 @@ def _download_and_extract_doxygen() -> Path:
 
     if not archive_path.exists():
         print(f"Downloading Doxygen {DOXYGEN_VERSION} from {DOXYGEN_ARCHIVE_URL}")
-        urllib.request.urlretrieve(DOXYGEN_ARCHIVE_URL, archive_path)
+        request = urllib.request.Request(
+            DOXYGEN_ARCHIVE_URL,
+            headers={"User-Agent": "quill-docs-build/1.0"},
+        )
+        temporary_archive_path = archive_path.with_suffix(f"{archive_path.suffix}.tmp")
+        with urllib.request.urlopen(request) as response, temporary_archive_path.open("wb") as archive:
+            shutil.copyfileobj(response, archive)
+        temporary_archive_path.replace(archive_path)
 
     if extracted_dir.exists():
         shutil.rmtree(extracted_dir)
