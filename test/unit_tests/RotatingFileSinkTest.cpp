@@ -2160,6 +2160,7 @@ TEST_CASE("rotating_file_sink_date_append_mode")
       {
         quill::RotatingFileSinkConfig cfg;
         cfg.set_open_mode('a');
+        cfg.set_timezone(quill::Timezone::GmtTime);
         cfg.set_filename_append_option(quill::FilenameAppendOption::StartDate);
         cfg.set_rotation_max_file_size(512);
         cfg.set_max_backup_files(7);
@@ -2440,6 +2441,7 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
       {
         RotatingFileSinkConfig cfg;
         cfg.set_rotation_max_file_size(1024);
+        cfg.set_timezone(quill::Timezone::GmtTime);
         cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
         cfg.set_rotation_on_creation(false);
         cfg.set_open_mode('w');
@@ -2466,6 +2468,7 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
       {
         RotatingFileSinkConfig cfg;
         cfg.set_rotation_max_file_size(1024);
+        cfg.set_timezone(quill::Timezone::GmtTime);
         cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
         cfg.set_rotation_on_creation(true);
         cfg.set_open_mode('a');
@@ -3133,6 +3136,7 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming_write_mode")
       {
         RotatingFileSinkConfig cfg;
         cfg.set_rotation_max_file_size(1024);
+        cfg.set_timezone(quill::Timezone::GmtTime);
         cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
         cfg.set_rotation_on_creation(false);
         cfg.set_open_mode('w');
@@ -3158,6 +3162,7 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming_write_mode")
       {
         RotatingFileSinkConfig cfg;
         cfg.set_rotation_max_file_size(1024);
+        cfg.set_timezone(quill::Timezone::GmtTime);
         cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
         cfg.set_rotation_on_creation(true);
         cfg.set_open_mode('w');
