@@ -4,10 +4,12 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
+#include "quill/core/ThreadContextManager.h"
 #include "quill/sinks/FileSink.h"
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <thread>
@@ -85,7 +87,6 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
   };
 
   backend_options.sleep_duration = std::chrono::seconds{10};
-  Backend::start(backend_options);
 
   auto file_sink = CustomFrontend::create_or_get_sink<FileSink>(
     filename,
@@ -102,10 +103,18 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
     PatternFormatterOptions{
       "%(short_source_location) %(caller_function) LOG_%(log_level:<9) %(logger:<12) %(message)"});
 
+  // The backend is intentionally not started yet. If it were running and actively polling, it
+  // could drain the small queue in lockstep with the producer and no write would ever find the
+  // queue full. With nothing consuming, the producer is guaranteed to fill the bounded queue
+  // and block, since the messages do not all fit in it.
+  std::atomic<detail::ThreadContext*> producer_thread_context{nullptr};
   std::atomic<bool> producer_finished{false};
   std::thread producer(
-    [logger, &producer_finished]()
+    [logger, &producer_thread_context, &producer_finished]()
     {
+      producer_thread_context.store(detail::get_local_thread_context<CustomFrontendOptions>(),
+                                    std::memory_order_release);
+
       for (size_t i = 0; i < number_of_messages; ++i)
       {
         std::string payload(96u + i, static_cast<char>('a' + (i % 26)));
@@ -115,7 +124,29 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
       producer_finished.store(true, std::memory_order_release);
     });
 
-  std::this_thread::sleep_for(std::chrono::milliseconds{100});
+  detail::ThreadContext* thread_context{nullptr};
+  while (!(thread_context = producer_thread_context.load(std::memory_order_acquire)))
+  {
+    std::this_thread::sleep_for(std::chrono::microseconds{100});
+  }
+
+  // Wait until the producer has blocked at least once before starting the backend. Reading the
+  // failure counter resets it, so restore the harvested count afterwards for the backend to
+  // pick up and report through the error notifier. This is safe because the backend is not
+  // running yet and the producer cannot progress past its blocked write to increment it again.
+  size_t harvested_failures{0};
+  while (harvested_failures == 0)
+  {
+    harvested_failures = thread_context->get_and_reset_failure_counter();
+    std::this_thread::sleep_for(std::chrono::microseconds{100});
+  }
+
+  for (size_t i = 0; i < harvested_failures; ++i)
+  {
+    thread_context->increment_failure_counter();
+  }
+
+  Backend::start(backend_options);
 
   while (!producer_finished.load(std::memory_order_acquire))
   {
