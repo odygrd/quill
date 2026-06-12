@@ -40,7 +40,7 @@ jobs:
               apt-get install -y cmake make
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies and create build environment
         run: |
