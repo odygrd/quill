@@ -79,5 +79,15 @@ foreach (example_target ${EXAMPLE_TARGETS})
     endif ()
 endforeach ()
 
+if (TARGET quill_module)
+    add_executable(quill_example_console_logging_module console_logging_module.cpp)
+    set_common_compile_options(quill_example_console_logging_module)
+    target_compile_features(quill_example_console_logging_module PRIVATE cxx_std_20)
+    set_target_properties(quill_example_console_logging_module PROPERTIES CXX_SCAN_FOR_MODULES ON)
+    target_link_libraries(quill_example_console_logging_module PRIVATE quill_module)
+
+    list(APPEND EXAMPLE_TARGETS quill_example_console_logging_module)
+endif ()
+
 install(TARGETS ${EXAMPLE_TARGETS}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

@@ -421,7 +421,7 @@ void decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store
 }
 
 template <typename... Args>
-static constexpr FormatArgsDecoder decoder_ptr = &decode_and_store_args<remove_cvref_t<Args>...>;
+inline constexpr FormatArgsDecoder decoder_ptr = &decode_and_store_args<remove_cvref_t<Args>...>;
 } // namespace detail
 
 /** Codec helpers for user defined types convenience **/
