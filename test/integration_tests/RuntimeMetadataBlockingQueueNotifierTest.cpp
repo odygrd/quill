@@ -77,12 +77,24 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
 
   BackendOptions backend_options;
 
-  std::string blocking_message;
-  backend_options.error_notifier = [&blocking_message](std::string const& error_message)
+  std::atomic<uint64_t> blocking_events{0};
+
+  backend_options.error_notifier = [&blocking_events](std::string const& error_message)
   {
     if (error_message.find("blocking occurrences") != std::string::npos)
     {
-      blocking_message = error_message;
+      uint64_t count =
+        extract_count(error_message, "Experienced ", " blocking occurrences on thread ");
+
+      if (count == 0)
+      {
+        count = extract_count(error_message, "experienced ", " blocking occurrences on thread ");
+      }
+
+      if (count != 0)
+      {
+        blocking_events.store(count, std::memory_order_release);
+      }
     }
   };
 
@@ -109,8 +121,9 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
   // and block, since the messages do not all fit in it.
   std::atomic<detail::ThreadContext*> producer_thread_context{nullptr};
   std::atomic<bool> producer_finished{false};
+  std::atomic<bool> allow_producer_exit{false};
   std::thread producer(
-    [logger, &producer_thread_context, &producer_finished]()
+    [logger, &producer_thread_context, &producer_finished, &allow_producer_exit]()
     {
       producer_thread_context.store(detail::get_local_thread_context<CustomFrontendOptions>(),
                                     std::memory_order_release);
@@ -122,6 +135,11 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
       }
 
       producer_finished.store(true, std::memory_order_release);
+
+      while (!allow_producer_exit.load(std::memory_order_acquire))
+      {
+        std::this_thread::sleep_for(std::chrono::microseconds{100});
+      }
     });
 
   detail::ThreadContext* thread_context{nullptr};
@@ -131,19 +149,13 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
   }
 
   // Wait until the producer has blocked at least once before starting the backend. Reading the
-  // failure counter resets it, so restore the harvested count afterwards for the backend to
-  // pick up and report through the error notifier. This is safe because the backend is not
-  // running yet and the producer cannot progress past its blocked write to increment it again.
+  // failure counter resets it; the harvested count is restored after the producer has finished
+  // logging, while the producer thread is still alive and its ThreadContext cannot be cleaned up.
   size_t harvested_failures{0};
   while (harvested_failures == 0)
   {
     harvested_failures = thread_context->get_and_reset_failure_counter();
     std::this_thread::sleep_for(std::chrono::microseconds{100});
-  }
-
-  for (size_t i = 0; i < harvested_failures; ++i)
-  {
-    thread_context->increment_failure_counter();
   }
 
   Backend::start(backend_options);
@@ -154,6 +166,20 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
     std::this_thread::sleep_for(std::chrono::milliseconds{10});
   }
 
+  for (size_t i = 0; i < harvested_failures; ++i)
+  {
+    thread_context->increment_failure_counter();
+  }
+
+  Backend::notify();
+
+  while (blocking_events.load(std::memory_order_acquire) == 0)
+  {
+    Backend::notify();
+    std::this_thread::sleep_for(std::chrono::milliseconds{10});
+  }
+
+  allow_producer_exit.store(true, std::memory_order_release);
   producer.join();
 
   LOG_RUNTIME_METADATA_SHALLOW(logger, quill::LogLevel::Info,
@@ -174,11 +200,9 @@ TEST_CASE("runtime_metadata_blocking_queue_notifier")
   REQUIRE(testing::file_contains(file_contents, "block shallow 2"));
   REQUIRE(testing::file_contains(file_contents, "final blocking runtime metadata 42"));
 
-  uint64_t const blocking_events =
-    extract_count(blocking_message, "Experienced ", " blocking occurrences on thread ");
-
-  REQUIRE_GE(blocking_events, 1u);
-  REQUIRE_LE(blocking_events, number_of_messages);
+  uint64_t const notified_blocking_events = blocking_events.load(std::memory_order_acquire);
+  REQUIRE_GE(notified_blocking_events, 1u);
+  REQUIRE_LE(notified_blocking_events, number_of_messages);
 
   testing::remove_file(filename);
 }
