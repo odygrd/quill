@@ -349,8 +349,9 @@ struct BackendOptions
    * This issue commonly occurs on Windows when Quill is compiled as a static library and linked
    * into both a shared library and the main executable, creating separate instances. While using
    * Quill as a static library is generally recommended, in such cases, the preferred approach
-   * is to build Quill as a shared library and export its symbols
-   * (e.g., using `WINDOWS_EXPORT_ALL_SYMBOLS`).
+   * is to have one shared library own Quill and export/import its shared symbols consistently
+   * (for example, define `QUILL_DLL_EXPORT` while building that DLL and `QUILL_DLL_IMPORT`
+   * in consumers on Windows).
    *
    * On Windows, this check is implemented using a named mutex, whereas on POSIX systems
    * (Linux, macOS), it uses flock() on a lock file in /tmp. In rare cases, this mechanism
