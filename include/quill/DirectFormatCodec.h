@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "quill/bundled/fmt/base.h"
+#include "quill/bundled/fmt/format.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"

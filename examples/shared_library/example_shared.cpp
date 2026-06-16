@@ -45,7 +45,9 @@
  *
  * --- Windows ---
  * - Set QUILL_DLL_EXPORT when building the shared library and QUILL_DLL_IMPORT when
- *   consuming it. Also set the CMake option: -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE
+ *   consuming it. CMake's WINDOWS_EXPORT_ALL_SYMBOLS is an optional CMake auto-export
+ *   mechanism for projects without explicit dllexport annotations; it is not required by
+ *   this example and has no direct preprocessor equivalent in MSBuild.
  * - When using LoadLibrary/FreeLibrary: call flush_log() in DllMain during
  *   DLL_PROCESS_DETACH before the DLL is unloaded:
  *
