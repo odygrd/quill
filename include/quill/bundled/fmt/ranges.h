@@ -18,6 +18,10 @@
 
 #include "format.h"
 
+FMTQUILL_MSC_WARNING(push)
+FMTQUILL_MSC_WARNING(disable : 4127) // conditional expression is constant
+FMTQUILL_MSC_WARNING(disable : 4702) // unreachable code
+
 #if FMTQUILL_HAS_CPP_ATTRIBUTE(clang::lifetimebound)
 #  define FMTQUILL_LIFETIMEBOUND [[clang::lifetimebound]]
 #else
@@ -865,5 +869,7 @@ FMTQUILL_DEPRECATED auto join(std::initializer_list<T> list, string_view sep)
 
 FMTQUILL_END_EXPORT
 FMTQUILL_END_NAMESPACE
+
+FMTQUILL_MSC_WARNING(pop)
 
 #endif  // FMTQUILL_RANGES_H_

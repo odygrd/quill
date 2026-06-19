@@ -42,6 +42,7 @@
 
 FMTQUILL_MSC_WARNING(push)
 FMTQUILL_MSC_WARNING(disable : 4127) // conditional expression is constant
+FMTQUILL_MSC_WARNING(disable : 4702) // unreachable code
 
 #if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
   #pragma GCC diagnostic push
