@@ -1,5 +1,5 @@
 project('quill', 'cpp',
-        version : '12.0.0',
+        version : '12.1.0',
         meson_version : '>=0.60.0',
         default_options : ['warning_level=3', 'cpp_std=c++17'])
 

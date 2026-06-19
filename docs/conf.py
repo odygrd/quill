@@ -18,7 +18,7 @@ tagfile_path = Path(__file__).resolve().parent / "build" / "quill.tag"
 project = 'Quill'
 copyright = '2024, Odysseas Georgoudis'
 author = 'Odysseas Georgoudis'
-release = 'v12.0.0'
+release = 'v12.1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
