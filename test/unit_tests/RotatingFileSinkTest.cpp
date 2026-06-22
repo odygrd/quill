@@ -1646,10 +1646,14 @@ TEST_CASE("rotating_file_sink_date_append_recovers_previous_run_files")
   // forever across restarts (#930)
   uint64_t const timestamp_20230612 = 1686528000000000000;
 
-  fs::path const filename_old_1 = "rotating_file_sink_date_append_recovers_previous_run_files.20230610.log";
-  fs::path const filename_old_2 = "rotating_file_sink_date_append_recovers_previous_run_files.20230611.log";
-  fs::path const filename_rotated = "rotating_file_sink_date_append_recovers_previous_run_files.20230612.log";
-  fs::path const filename_rotated_1 = "rotating_file_sink_date_append_recovers_previous_run_files.20230612.1.log";
+  fs::path const filename_old_1 =
+    "rotating_file_sink_date_append_recovers_previous_run_files.20230610.log";
+  fs::path const filename_old_2 =
+    "rotating_file_sink_date_append_recovers_previous_run_files.20230611.log";
+  fs::path const filename_rotated =
+    "rotating_file_sink_date_append_recovers_previous_run_files.20230612.log";
+  fs::path const filename_rotated_1 =
+    "rotating_file_sink_date_append_recovers_previous_run_files.20230612.1.log";
   fs::path const filename = "rotating_file_sink_date_append_recovers_previous_run_files.log";
 
   // create files simulating the previous runs
@@ -1813,6 +1817,115 @@ TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files")
   REQUIRE_FALSE(fs::exists(filename_old_3));
 
   // Read file and check
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
+
+  std::vector<std::string> const file_contents_rotated = testing::file_contents(filename_rotated);
+  REQUIRE_EQ(testing::file_contains(file_contents_rotated, "Record [0]"), true);
+
+  std::vector<std::string> const file_contents_rotated_1 = testing::file_contents(filename_rotated_1);
+  REQUIRE_EQ(testing::file_contains(file_contents_rotated_1, "Old [3]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+  testing::remove_file(filename_rotated_1);
+  testing::remove_file(filename_old_1);
+  testing::remove_file(filename_old_2);
+  testing::remove_file(filename_old_3);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension")
+{
+  // Extensionless base filenames still generate rotated names with suffixes that look like file
+  // extensions to std::filesystem::path::extension(); recovery must parse them as rotation
+  // suffixes instead of skipping them.
+  uint64_t const timestamp_20230612 = 1686538000000000000; // 20230612_024640
+  uint64_t const timestamp_20230613 = 1686634400000000000;
+
+  fs::path const filename_old_1 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.1."
+    "20230610_080000";
+  fs::path const filename_old_2 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.20230610_"
+    "080000";
+  fs::path const filename_old_3 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.20230611_"
+    "090000";
+  fs::path const filename_rotated =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.20230612_"
+    "024640";
+  fs::path const filename_rotated_1 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.1."
+    "20230612_024640";
+  fs::path const filename =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension";
+
+  testing::create_file(filename_old_1, "Old [0]");
+  testing::create_file(filename_old_2, "Old [1]");
+  testing::create_file(filename_old_3, "Old [2]");
+  testing::create_file(filename, "Old [3]");
+
+  REQUIRE(fs::exists(filename_old_1));
+  REQUIRE(fs::exists(filename_old_2));
+  REQUIRE(fs::exists(filename_old_3));
+  REQUIRE(fs::exists(filename));
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_max_backup_files(2);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    REQUIRE_FALSE(fs::exists(filename_old_1));
+    REQUIRE(fs::exists(filename_old_2));
+    REQUIRE(fs::exists(filename_old_3));
+    REQUIRE(fs::exists(filename));
+
+    {
+      std::string s{"Record [0]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+
+    {
+      std::string s{"Record [1]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_rotated));
+  REQUIRE(fs::exists(filename_rotated_1));
+  REQUIRE_FALSE(fs::exists(filename_old_1));
+  REQUIRE_FALSE(fs::exists(filename_old_2));
+  REQUIRE_FALSE(fs::exists(filename_old_3));
+
   std::vector<std::string> const file_contents = testing::file_contents(filename);
   REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
 
