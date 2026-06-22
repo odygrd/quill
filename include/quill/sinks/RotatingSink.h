@@ -735,13 +735,23 @@ private:
   QUILL_NODISCARD bool _try_parse_rotated_file(fs::path const& base_filename, fs::path const& candidate_filename,
                                                ParsedRotatedFileInfo& parsed_file_info) const
   {
-    if (candidate_filename.extension() != base_filename.extension())
-    {
-      return false;
-    }
-
+    std::string const base_extension = base_filename.extension().string();
     std::string const base_stem = base_filename.stem().string();
-    std::string const candidate_stem = candidate_filename.stem().string();
+    std::string const candidate_name = candidate_filename.filename().string();
+    std::string_view candidate_stem{candidate_name};
+
+    if (!base_extension.empty())
+    {
+      if ((candidate_name.size() <= base_extension.size()) ||
+          (candidate_name.compare(candidate_name.size() - base_extension.size(),
+                                  base_extension.size(), base_extension) != 0))
+      {
+        return false;
+      }
+
+      candidate_stem =
+        std::string_view{candidate_name.data(), candidate_name.size() - base_extension.size()};
+    }
 
     if ((candidate_stem.size() <= (base_stem.size() + 1)) ||
         (candidate_stem.compare(0, base_stem.size(), base_stem) != 0) ||
@@ -762,11 +772,29 @@ private:
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
     {
       size_t const separator_pos = suffix.find('.');
-      std::string_view const date_part =
+      std::string_view date_part =
         (separator_pos == std::string_view::npos) ? suffix : suffix.substr(0, separator_pos);
 
       if ((date_part.size() != 8u) || !_parse_uint32(date_part, parsed_file_info.index))
       {
+        // With an extensionless base filename, indexed Date files are generated as
+        // "name.<index>.<date>" because the date suffix is treated as the extension when the
+        // index is appended.
+        if (base_extension.empty() && (separator_pos != std::string_view::npos) &&
+            (suffix.find('.', separator_pos + 1) == std::string_view::npos))
+        {
+          std::string_view const index_part = suffix.substr(0, separator_pos);
+          date_part = suffix.substr(separator_pos + 1);
+
+          uint32_t date_part_value{0};
+          if (_parse_uint32(index_part, parsed_file_info.index) && (date_part.size() == 8u) &&
+              _parse_uint32(date_part, date_part_value))
+          {
+            parsed_file_info.date_time.assign(date_part.data(), date_part.size());
+            return true;
+          }
+        }
+
         return false;
       }
 
@@ -790,7 +818,7 @@ private:
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
     {
       size_t const separator_pos = suffix.find('.');
-      std::string_view const date_time_part =
+      std::string_view date_time_part =
         (separator_pos == std::string_view::npos) ? suffix : suffix.substr(0, separator_pos);
 
       // expect the %Y%m%d_%H%M%S format
@@ -800,6 +828,24 @@ private:
           !_parse_uint32(date_time_part.substr(0, 8), date_part_value) ||
           !_parse_uint32(date_time_part.substr(9), time_part_value))
       {
+        // With an extensionless base filename, indexed DateAndTime files are generated as
+        // "name.<index>.<date_time>" because the date_time suffix is treated as the extension
+        // when the index is appended.
+        if (base_extension.empty() && (separator_pos != std::string_view::npos) &&
+            (suffix.find('.', separator_pos + 1) == std::string_view::npos))
+        {
+          std::string_view const index_part = suffix.substr(0, separator_pos);
+          date_time_part = suffix.substr(separator_pos + 1);
+
+          if (_parse_uint32(index_part, parsed_file_info.index) && (date_time_part.size() == 15u) &&
+              (date_time_part[8] == '_') && _parse_uint32(date_time_part.substr(0, 8), date_part_value) &&
+              _parse_uint32(date_time_part.substr(9), time_part_value))
+          {
+            parsed_file_info.date_time.assign(date_time_part.data(), date_time_part.size());
+            return true;
+          }
+        }
+
         return false;
       }
 

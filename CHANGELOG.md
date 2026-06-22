@@ -1,3 +1,4 @@
+- [v12.1.0](#v1210)
 - [v12.0.0](#v1200)
 - [v11.1.0](#v1110)
 - [v11.0.2](#v1102)
@@ -96,6 +97,12 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v12.1.0
+
+- Fixed append-mode `RotatingFileSink` recovery for base filenames without an extension, so `DateAndTime` rotated files
+  such as `application.20260622_120000` are counted towards `max_backup_files` instead of accumulating across
+  restarts. ([#938](https://github.com/odygrd/quill/discussions/938))
 
 ## v12.0.0
 

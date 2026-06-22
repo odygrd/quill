@@ -41,11 +41,12 @@ The :cpp:type:`RotatingFileSink` is built on top of the `FileSink` and provides 
 .. note::
 
    When the sink starts in append mode, rotated files left behind by previous runs are detected
-   for every ``RotationNamingScheme`` and count towards ``max_backup_files``; the oldest ones are
-   removed on startup if they exceed the limit, so log files do not accumulate across restarts.
-   Set ``set_overwrite_rolled_files(false)`` to prevent append-mode recovery from deleting
-   existing rotated files, or use ``FilenameAppendOption::StartDateTime`` to give each run its
-   own independent set of files.
+   for every ``RotationNamingScheme`` and count towards ``max_backup_files`` whether or not the
+   base filename has an extension; the oldest ones are removed on startup if they exceed the
+   limit, so log files do not accumulate across restarts. Set
+   ``set_overwrite_rolled_files(false)`` to prevent append-mode recovery from deleting existing
+   rotated files, or use ``FilenameAppendOption::StartDateTime`` to give each run its own
+   independent set of files.
 
 .. literalinclude:: ../examples/rotating_file_logging.cpp
    :language: cpp
