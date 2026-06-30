@@ -594,7 +594,7 @@ private:
       ? (detail::get_system_time_ns() -
          static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(_options.log_timestamp_ordering_grace_period)
                                  .count()))
-      : std::numeric_limits<uint64_t>::max();
+      : (std::numeric_limits<uint64_t>::max)();
 
     size_t total_cached_transit_events_count{0};
 
@@ -765,7 +765,7 @@ private:
 
     // Check if strict log timestamp order is enabled and the clock source is not User
     if ((transit_event->logger_base->_clock_source != ClockSourceType::User) &&
-        (ts_now != std::numeric_limits<uint64_t>::max()))
+        (ts_now != (std::numeric_limits<uint64_t>::max)()))
     {
       // We only check against `ts_now` for real timestamps, not custom timestamps by the user, and
       // when the grace period is enabled
@@ -955,7 +955,7 @@ private:
   QUILL_ATTRIBUTE_HOT bool _process_lowest_timestamp_transit_event()
   {
     // Get the lowest timestamp
-    uint64_t min_ts{std::numeric_limits<uint64_t>::max()};
+    uint64_t min_ts{(std::numeric_limits<uint64_t>::max)()};
     ThreadContext* thread_context{nullptr};
 
     for (ThreadContext* tc : _active_thread_contexts_cache)
@@ -1150,7 +1150,7 @@ private:
 
     if (QUILL_UNLIKELY(transit_event.timestamp < _last_output_timestamp))
     {
-      transit_event.timestamp = (_last_output_timestamp == std::numeric_limits<uint64_t>::max())
+      transit_event.timestamp = (_last_output_timestamp == (std::numeric_limits<uint64_t>::max)())
         ? _last_output_timestamp
         : _last_output_timestamp + 1;
     }

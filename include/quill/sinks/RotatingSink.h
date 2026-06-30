@@ -193,8 +193,8 @@ private:
   /***/
   static std::pair<std::chrono::hours, std::chrono::minutes> _disabled_daily_rotation_time() noexcept
   {
-    return std::make_pair(std::chrono::hours{std::numeric_limits<std::chrono::hours::rep>::max()},
-                          std::chrono::minutes{std::numeric_limits<std::chrono::minutes::rep>::max()});
+    return std::make_pair(std::chrono::hours{(std::numeric_limits<std::chrono::hours::rep>::max)()},
+                          std::chrono::minutes{(std::numeric_limits<std::chrono::minutes::rep>::max)()});
   }
 
   /***/
@@ -263,9 +263,9 @@ private:
 
 private:
   std::pair<std::chrono::hours, std::chrono::minutes> _daily_rotation_time;
-  size_t _rotation_max_file_size{0};                                // 0 means disabled
-  uint32_t _max_backup_files{std::numeric_limits<uint32_t>::max()}; // max means disabled
-  uint32_t _rotation_interval{0};                                   // 0 means disabled
+  size_t _rotation_max_file_size{0};                                  // 0 means disabled
+  uint32_t _max_backup_files{(std::numeric_limits<uint32_t>::max)()}; // max means disabled
+  uint32_t _rotation_interval{0};                                     // 0 means disabled
   RotationFrequency _rotation_frequency{RotationFrequency::Disabled};
   RotationNamingScheme _rotation_naming_scheme{RotationNamingScheme::Index};
   bool _overwrite_rolled_files{true};
@@ -722,7 +722,7 @@ private:
       }
 
       parsed = (parsed * 10u) + static_cast<uint32_t>(c - '0');
-      if (parsed > std::numeric_limits<uint32_t>::max())
+      if (parsed > (std::numeric_limits<uint32_t>::max)())
       {
         return false;
       }
