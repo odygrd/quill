@@ -9,8 +9,8 @@
 #if defined(_WIN32)
   #include <windows.h>
 
-  #if !defined(min) || !defined(max)
-    #error This test expects windows.h to define the min and max macros.
+  #if defined(_MSC_VER) && (!defined(min) || !defined(max))
+    #error This test expects windows.h to define the min and max macros on MSVC.
   #endif
 #endif
 

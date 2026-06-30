@@ -3,7 +3,7 @@
 Frequently Asked Questions (FAQ)
 ================================
 
-Use this page for setup decisions, common behavior questions, and integration pitfalls.  
+Use this page for setup decisions, common behavior questions, and integration pitfalls.
 
 Getting Started
 ---------------
