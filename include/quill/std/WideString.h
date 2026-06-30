@@ -48,7 +48,7 @@ struct Codec<T,
 
     // The length is stored as uint32_t on the wire. Clamp before casting so a release
     // build cannot truncate-then-overflow when given a pathologically large string.
-    constexpr size_t max_len = std::numeric_limits<uint32_t>::max();
+    constexpr size_t max_len = (std::numeric_limits<uint32_t>::max)();
     QUILL_ASSERT(
       len <= max_len,
       "Wide string length exceeds uint32_t max in Codec<std::wstring>::compute_encoded_size()");
