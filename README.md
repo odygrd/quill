@@ -256,8 +256,8 @@ Prometheus integration.
   queue reallocations, and blocked hot threads.
 - **Crash Handling**: Built-in signal handler for log preservation during crashes.
 - **Huge Pages Support (Linux)**: Leverage huge pages on the hot path for optimized performance.
-- **Wide Character Support (Windows)**: Compatible with ASCII-encoded wide strings and STL containers consisting of wide
-  strings.
+- **Wide Character Support (Windows)**: Logs wide strings by converting them to UTF-8 on the backend, with support for
+  STL containers consisting of wide strings.
 - **Exception-Free Option**: Configurable builds with or without exception handling.
 - **Clean Codebase**: Maintained to high standards, warning-free even at strict levels.
 - **Type-Safe API**: Built on [{fmt}](https://github.com/fmtlib/fmt) library.
