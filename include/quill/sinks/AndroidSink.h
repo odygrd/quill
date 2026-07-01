@@ -117,9 +117,9 @@ public:
 
     // Clamp to INT_MAX to avoid signed conversion overflow when passing the length to the
     // C-style "%.*s" format specifier (matches Syslog/Systemd sinks).
-    if (message_length > static_cast<size_t>(std::numeric_limits<int>::max()))
+    if (message_length > static_cast<size_t>((std::numeric_limits<int>::max)()))
     {
-      message_length = static_cast<size_t>(std::numeric_limits<int>::max());
+      message_length = static_cast<size_t>((std::numeric_limits<int>::max)());
     }
 
     __android_log_print(_config.get_android_level(log_level), _config.tag().data(), "%.*s",

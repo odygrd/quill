@@ -172,9 +172,9 @@ public:
     size_t message_length = message.size();
 
     // Ensure the length does not exceed the maximum int value
-    if (message_length > static_cast<size_t>(std::numeric_limits<int>::max()))
+    if (message_length > static_cast<size_t>((std::numeric_limits<int>::max)()))
     {
-      message_length = static_cast<size_t>(std::numeric_limits<int>::max());
+      message_length = static_cast<size_t>((std::numeric_limits<int>::max)());
     }
 
     ::syslog(_config.get_syslog_level(log_level), "%.*s", static_cast<int>(message_length), message.data());

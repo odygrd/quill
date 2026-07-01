@@ -103,6 +103,7 @@
 - Fixed append-mode `RotatingFileSink` recovery for base filenames without an extension, so `DateAndTime` rotated files
   such as `application.20260622_120000` are counted towards `max_backup_files` instead of accumulating across
   restarts. ([#938](https://github.com/odygrd/quill/discussions/938))
+- Fixed Windows builds that include `<windows.h>` before Quill wide-string logging headers. ([#941](https://github.com/odygrd/quill/issues/941))
 
 ## v12.0.0
 

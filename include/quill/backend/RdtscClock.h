@@ -130,9 +130,9 @@ public:
     double const calc_value = static_cast<double>(resync_interval.count()) / _ns_per_tick;
 
     // Check for overflow and negative values
-    if (calc_value >= static_cast<double>(std::numeric_limits<int64_t>::max()) || calc_value < 0)
+    if (calc_value >= static_cast<double>((std::numeric_limits<int64_t>::max)()) || calc_value < 0)
     {
-      _resync_interval_ticks = std::numeric_limits<int64_t>::max();
+      _resync_interval_ticks = (std::numeric_limits<int64_t>::max)();
     }
     else
     {
@@ -232,7 +232,7 @@ public:
 
     // we failed to return earlier and we never resynced, but we don't really want to keep retrying on each call
     // to time_since_epoch() so we do non accurate resync we will increase the resync duration to resync later
-    constexpr int64_t max_int64_half = std::numeric_limits<int64_t>::max() / 2;
+    constexpr int64_t max_int64_half = (std::numeric_limits<int64_t>::max)() / 2;
     if (_resync_interval_ticks <= max_int64_half)
     {
       _resync_interval_ticks = _resync_interval_ticks * 2;
