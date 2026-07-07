@@ -383,6 +383,11 @@ public:
     {
       close_file();
       open_file(_filename, _config.open_mode());
+
+      // Resync _file_size with the reopened file; RotatingSink relies on it for size-based rotation
+      ec.clear();
+      auto const reopened_file_size = fs::file_size(_filename, ec);
+      _file_size = ec ? 0 : static_cast<size_t>(reopened_file_size);
     }
   }
 
@@ -687,6 +692,11 @@ public:
     {
       close_file();
       open_file(_filename, _config.open_mode());
+
+      // Resync _file_size with the reopened file; RotatingSink relies on it for size-based rotation
+      ec.clear();
+      auto const reopened_file_size = fs::file_size(_filename, ec);
+      _file_size = ec ? 0 : static_cast<size_t>(reopened_file_size);
     }
   }
 
