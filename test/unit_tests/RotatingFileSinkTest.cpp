@@ -305,6 +305,68 @@ TEST_CASE("rotating_file_sink_rename_failure_preserves_current_file_and_state")
   testing::remove_file(filename_1);
 }
 
+/***/
+TEST_CASE("rotating_file_sink_size_rotation_after_deleted_file_reopen")
+{
+#if !defined(_WIN32)
+  // Deleting a file that is still held open requires POSIX semantics
+  fs::path const filename = "rotating_file_sink_size_rotation_after_deleted_file_reopen.log";
+  fs::path const filename_1 = "rotating_file_sink_size_rotation_after_deleted_file_reopen.1.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(2048);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    auto write_record = [&rfh](size_t i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      std::string f;
+      f.resize(590);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    };
+
+    write_record(0);
+    rfh.flush_sink();
+
+    // Simulate an external process (e.g. logrotate) deleting the active log file
+    fs::remove(filename);
+
+    write_record(1);
+    rfh.flush_sink(); // detects the deleted file and reopens a fresh one
+
+    // Both records fit inside rotation_max_file_size of the recreated file. A stale
+    // _file_size carried over from before the reopen would trigger a bogus rotation here
+    write_record(2);
+    write_record(3);
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE_FALSE(fs::exists(filename_1));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [2]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [3]"), true);
+
+  testing::remove_file(filename);
+#endif
+}
+
 TEST_CASE("rotating_json_file_sink_size_rotation_uses_actual_json_size")
 {
   fs::path const estimate_filename = "rotating_json_file_sink_size_rotation_estimate.log";
