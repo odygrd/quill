@@ -198,7 +198,13 @@ public:
 
   QUILL_ATTRIBUTE_HOT void commit_read() noexcept
   {
-    if (static_cast<integer_type>(_reader_pos - _atomic_reader_pos.load(std::memory_order_relaxed)) >= _bytes_per_batch)
+    // Publish the read position when a full batch of _bytes_per_batch was consumed, and also when
+    // the queue is drained as far as the reader knows (_writer_pos_cache == _reader_pos). Without
+    // the drained check, a residual lag smaller than _bytes_per_batch is never released back to
+    // the producer once the queue empties, and a subsequent message that fits in the capacity but
+    // not in (capacity - lag) can never be written
+    if ((static_cast<integer_type>(_reader_pos - _atomic_reader_pos.load(std::memory_order_relaxed)) >= _bytes_per_batch) ||
+        (_writer_pos_cache == _reader_pos))
     {
       _atomic_reader_pos.store(_reader_pos, std::memory_order_release);
 
