@@ -1,6 +1,7 @@
 #include "quill/backend/StringFromTime.h"
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
+#include <cstdlib>
 #include <ctime>
 #include <limits>
 
@@ -361,12 +362,13 @@ TEST_CASE("string_from_time_gmtime_format_s_crossing_10_digits_preserves_surroun
   {
     auto const& actual = string_from_time.format_timestamp(raw_ts);
 
-    std::tm time_info{};
-    quill::detail::gmtime_rs(&raw_ts, &time_info);
-    char expected[256];
-    std::strftime(expected, sizeof(expected), fmt.data(), &time_info);
+    // %s is timezone-independent, so the expected value is the raw epoch value. Note that
+    // strftime's %s cannot be used as a reference here: it round-trips through mktime() which
+    // interprets the gmtime broken-down time as local time, producing a utc-offset-shifted
+    // value on non-utc machines
+    std::string const expected = "X" + std::to_string(raw_ts) + "Z";
 
-    REQUIRE_STREQ(actual.data(), expected);
+    REQUIRE_STREQ(actual.data(), expected.data());
   }
 #else
   return;
@@ -390,13 +392,65 @@ TEST_CASE("string_from_time_gmtime_format_s_crossing_11_digits_preserves_suffix"
   {
     auto const& actual = string_from_time.format_timestamp(raw_ts);
 
-    std::tm time_info{};
-    quill::detail::gmtime_rs(&raw_ts, &time_info);
-    char expected[256];
-    std::strftime(expected, sizeof(expected), fmt.data(), &time_info);
+    // %s is timezone-independent, so the expected value is the raw epoch value
+    std::string const expected = std::to_string(raw_ts) + "Z";
 
-    REQUIRE_STREQ(actual.data(), expected);
+    REQUIRE_STREQ(actual.data(), expected.data());
   }
+#else
+  return;
+#endif
+}
+
+/***/
+TEST_CASE("string_from_time_gmtime_format_s_non_utc_timezone")
+{
+#if !defined(_WIN32)
+  // %s in GmtTime mode must produce the raw epoch value regardless of the machine's local
+  // timezone. It previously went through strftime, whose %s round-trips the gmtime broken-down
+  // time via mktime() and shifted the value by the utc offset
+  std::string previous_tz;
+  bool had_tz = false;
+  if (char const* current_tz = std::getenv("TZ"))
+  {
+    previous_tz = current_tz;
+    had_tz = true;
+  }
+
+  setenv("TZ", "America/New_York", 1);
+  tzset();
+
+  {
+    std::string fmt = "%s";
+    StringFromTime string_from_time;
+    string_from_time.init(fmt, Timezone::GmtTime);
+
+    time_t const start_ts = 1751884800;
+
+    // first iteration exercises the full recalculation path, the rest the incremental path
+    for (time_t raw_ts = start_ts; raw_ts <= start_ts + 3; ++raw_ts)
+    {
+      auto const& actual = string_from_time.format_timestamp(raw_ts);
+      std::string const expected = std::to_string(raw_ts);
+      REQUIRE_STREQ(actual.data(), expected.data());
+    }
+
+    // also exercise the back-in-time strftime fallback path
+    time_t const back_in_time_ts = start_ts - 100;
+    auto const& fallback_actual = string_from_time.format_timestamp(back_in_time_ts);
+    std::string const fallback_expected = std::to_string(back_in_time_ts);
+    REQUIRE_STREQ(fallback_actual.data(), fallback_expected.data());
+  }
+
+  if (had_tz)
+  {
+    setenv("TZ", previous_tz.c_str(), 1);
+  }
+  else
+  {
+    unsetenv("TZ");
+  }
+  tzset();
 #else
   return;
 #endif

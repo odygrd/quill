@@ -77,7 +77,21 @@ public:
     // that are incrementing not those back in time. In this case we just fall back to calling strfime
     if (timestamp < _cached_timestamp)
     {
-      _fallback_formatted = _safe_strftime(_timestamp_format.data(), timestamp, _time_zone).data();
+      // Format part by part so that %s can bypass strftime; strftime's %s round-trips through
+      // mktime() which interprets the broken-down time as local time and produces a
+      // utc-offset-shifted value in GmtTime mode
+      _fallback_formatted.clear();
+      for (auto const& format_part : _initial_parts)
+      {
+        if (format_part == "%s")
+        {
+          _fallback_formatted.append(std::to_string(timestamp));
+        }
+        else
+        {
+          _fallback_formatted.append(_safe_strftime(format_part.data(), timestamp, _time_zone).data());
+        }
+      }
       return _fallback_formatted;
     }
 
@@ -332,10 +346,22 @@ protected:
     // Now run through all parts and call strftime
     for (auto const& format_part : _initial_parts)
     {
+      if (format_part == "%s")
+      {
+        // %s must not go through strftime: strftime converts the broken-down time back to an
+        // epoch value with mktime(), which interprets the fields as local time and produces a
+        // utc-offset-shifted value in GmtTime mode. The epoch value is timezone-independent,
+        // so we format the raw timestamp directly
+        std::string const formatted_epoch = std::to_string(_cached_timestamp);
+        _pre_formatted_ts.append(formatted_epoch);
+        _cached_indexes.emplace_back(_pre_formatted_ts.size() - formatted_epoch.size(), format_type::s);
+        _cached_epoch_seconds_width = formatted_epoch.size();
+        continue;
+      }
+
       // We call strftime on each part of the timestamp to format it.
       std::vector<char> const formatted_part = _safe_strftime(format_part.data(), _cached_timestamp, _time_zone);
       std::string_view const formatted_part_sv{formatted_part.data()};
-      size_t const formatted_part_size = formatted_part_sv.size();
       _pre_formatted_ts.append(formatted_part_sv);
 
       // If we formatted and appended to the string a time modifier also store the
@@ -363,11 +389,6 @@ protected:
       else if (format_part == "%l")
       {
         _cached_indexes.emplace_back(_pre_formatted_ts.size() - 2, format_type::l);
-      }
-      else if (format_part == "%s")
-      {
-        _cached_indexes.emplace_back(_pre_formatted_ts.size() - formatted_part_size, format_type::s);
-        _cached_epoch_seconds_width = formatted_part_size;
       }
     }
   }
