@@ -4,13 +4,6 @@ function(quill_add_test TEST_NAME SOURCES)
             ../misc/TestUtilities.h
     )
 
-    set(ADD_SOURCE_FILES
-            ../misc/TestMain.cpp
-            ../misc/TestUtilities.cpp
-            ../misc/DocTestExtensions.cpp)
-
-    list(APPEND SOURCES ${ADD_SOURCE_FILES})
-
     # Create a test executable
     add_executable(${TEST_NAME} "")
 
@@ -31,9 +24,9 @@ function(quill_add_test TEST_NAME SOURCES)
     # Link dependencies
     check_cxx_atomics_available(HAVE_CXX_ATOMIC)
     if (HAVE_CXX_ATOMIC)
-        target_link_libraries(${TEST_NAME} quill)
+        target_link_libraries(${TEST_NAME} quill quill_test_common)
     else ()
-        target_link_libraries(${TEST_NAME} quill atomic)
+        target_link_libraries(${TEST_NAME} quill quill_test_common atomic)
     endif ()
 
     if (QUILL_ENABLE_EXTENSIVE_TESTS)

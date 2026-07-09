@@ -1,6 +1,5 @@
 #include "doctest/doctest.h"
 
-#include "misc/TestUtilities.h"
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"

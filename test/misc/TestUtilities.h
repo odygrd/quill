@@ -3,8 +3,6 @@
 #include "quill/core/Common.h"
 #include "quill/core/Filesystem.h"
 
-#include "DocTestExtensions.h"
-
 #include <cstring>
 #include <string>
 #include <vector>

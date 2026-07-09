@@ -1,5 +1,6 @@
 #include "doctest/doctest.h"
 
+#include "misc/DocTestExtensions.h"
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
