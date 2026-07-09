@@ -1,7 +1,8 @@
 #include "doctest/doctest.h"
 
-#include "misc/TestUtilities.h"
 #include "quill/core/MathUtilities.h"
+
+#include <limits>
 
 TEST_SUITE_BEGIN("MathUtilities");
 

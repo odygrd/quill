@@ -1,6 +1,6 @@
 #include "doctest/doctest.h"
 
-#include "misc/TestUtilities.h"
+#include "misc/DocTestExtensions.h"
 #include "quill/LogMacros.h"
 #include "quill/core/Common.h"
 #include "quill/core/MacroMetadata.h"
