@@ -24,6 +24,7 @@ jobs:
   build:
     name: GCC ${{ matrix.gcc_version }} ${{ matrix.build_type }} C++${{ matrix.std }}
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container:
       image: gcc:${{ matrix.gcc_version }}
     strategy:

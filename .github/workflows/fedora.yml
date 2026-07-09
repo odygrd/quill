@@ -23,6 +23,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     container: fedora:40
     strategy:
       fail-fast: false

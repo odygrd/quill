@@ -221,6 +221,13 @@ public:
 #endif
         }
 
+        // Synchronise with BackendWorker::stop() before tearing down backend-owned state. The loop
+        // above intentionally uses a relaxed load on the hot path; this acquire load is cold and
+        // pairs with stop()'s exchange(false) so Quill API calls sequenced-before stop() happen-before
+        // _exit() deletes resources such as RdtscClock.
+        QUILL_MAYBE_UNUSED bool const stopped = _is_worker_running.load(std::memory_order_acquire);
+        QUILL_ASSERT(!stopped, "Backend worker should only exit after stop() clears the running flag");
+
         // exit
         QUILL_TRY { _exit(); }
 #if !defined(QUILL_NO_EXCEPTIONS)

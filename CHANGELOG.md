@@ -104,6 +104,9 @@
   such as `application.20260622_120000` are counted towards `max_backup_files` instead of accumulating across
   restarts. ([#938](https://github.com/odygrd/quill/discussions/938))
 - Fixed Windows builds that include `<windows.h>` before Quill wide-string logging headers. ([#941](https://github.com/odygrd/quill/issues/941))
+- Fixed size-based `RotatingFileSink` rotation after an externally deleted active file is reopened. ([#945](https://github.com/odygrd/quill/pull/945))
+- Fixed bounded queue writes after the reader drains the queue without crossing the reader-position publish batch. ([#946](https://github.com/odygrd/quill/pull/946))
+- Fixed `%s` timestamp formatting in `GmtTime` mode on non-UTC machines. ([#947](https://github.com/odygrd/quill/pull/947))
 
 ## v12.0.0
 

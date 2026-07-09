@@ -10,6 +10,44 @@ TEST_SUITE_BEGIN("StringFromTime");
 using namespace quill;
 using namespace quill::detail;
 
+#if !defined(_WIN32)
+class ScopedTimezone
+{
+public:
+  explicit ScopedTimezone(char const* timezone)
+  {
+    if (char const* current_tz = std::getenv("TZ"))
+    {
+      _previous_tz = current_tz;
+      _had_tz = true;
+    }
+
+    setenv("TZ", timezone, 1);
+    tzset();
+  }
+
+  ~ScopedTimezone()
+  {
+    if (_had_tz)
+    {
+      setenv("TZ", _previous_tz.c_str(), 1);
+    }
+    else
+    {
+      unsetenv("TZ");
+    }
+    tzset();
+  }
+
+  ScopedTimezone(ScopedTimezone const&) = delete;
+  ScopedTimezone& operator=(ScopedTimezone const&) = delete;
+
+private:
+  std::string _previous_tz;
+  bool _had_tz{false};
+};
+#endif
+
 /***/
 TEST_CASE("string_from_time_localtime_format_time")
 {
@@ -409,16 +447,8 @@ TEST_CASE("string_from_time_gmtime_format_s_non_utc_timezone")
   // %s in GmtTime mode must produce the raw epoch value regardless of the machine's local
   // timezone. It previously went through strftime, whose %s round-trips the gmtime broken-down
   // time via mktime() and shifted the value by the utc offset
-  std::string previous_tz;
-  bool had_tz = false;
-  if (char const* current_tz = std::getenv("TZ"))
-  {
-    previous_tz = current_tz;
-    had_tz = true;
-  }
-
-  setenv("TZ", "America/New_York", 1);
-  tzset();
+  // Use a POSIX TZ string so the test does not depend on zoneinfo data being installed.
+  ScopedTimezone const scoped_timezone{"EST5"};
 
   {
     std::string fmt = "%s";
@@ -441,16 +471,6 @@ TEST_CASE("string_from_time_gmtime_format_s_non_utc_timezone")
     std::string const fallback_expected = std::to_string(back_in_time_ts);
     REQUIRE_STREQ(fallback_actual.data(), fallback_expected.data());
   }
-
-  if (had_tz)
-  {
-    setenv("TZ", previous_tz.c_str(), 1);
-  }
-  else
-  {
-    unsetenv("TZ");
-  }
-  tzset();
 #else
   return;
 #endif
