@@ -130,6 +130,8 @@
   `FormatBuffer` allocation for every slot.
 - Minutely and hourly rotation boundaries now stay wall-clock aligned after a late-triggered rotation, instead of
   permanently drifting off the initial rotation time point.
+- Documented the `QUILL_LOG_LEVEL` environment variable. It is now validated during first logger creation; invalid
+  values (including `backtrace`) throw `QuillError`, do not register a partial logger, and can be retried.
 - `create_or_get_sink<TSink>()` now throws when a sink with the same name already exists with an incompatible type
   (in builds with RTTI), instead of returning it for an undefined-behaviour cast.
 - Documented that `CsvWriter` writes fields verbatim and added an opt-in `quill::utility::csv_escape_field()`

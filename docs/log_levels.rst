@@ -23,6 +23,27 @@ Even if a log statement is compiled into your binary, it won't be displayed unle
 
 The runtime log level can be adjusted dynamically during program execution, making it suitable for configuration via command-line arguments, configuration files, or programmatic adjustments during runtime.
 
+Setting the Log Level from the Environment
+-------------------------------------------
+
+The ``QUILL_LOG_LEVEL`` environment variable sets the initial log level of every logger at creation,
+overriding the ``LogLevel::Info`` default. It only applies when a logger is created; existing loggers
+are unaffected, and ``Logger::set_log_level()`` can still change the level afterwards.
+
+The value is case-insensitive. Accepted values are ``tracel3`` (or ``trace_l3``), ``tracel2`` (or
+``trace_l2``), ``tracel1`` (or ``trace_l1``), ``debug``, ``info``, ``notice``, ``warning`` (or
+``warn``), ``error`` (or ``err``), ``critical`` and ``none``. ``backtrace`` is internal-only and is
+rejected.
+
+.. code-block:: shell
+
+   QUILL_LOG_LEVEL=debug ./my_application
+
+An invalid value fails with a ``QuillError`` naming the variable when the first logger is created.
+No logger is registered, and creation can be retried after correcting the environment. In builds
+configured with ``QUILL_NO_EXCEPTIONS``, the same invalid configuration invokes Quill's fatal error
+path instead.
+
 Compile-Time Log Level Control
 ------------------------------
 
