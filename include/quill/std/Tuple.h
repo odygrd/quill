@@ -31,10 +31,13 @@ private:
   template <size_t... Indices>
   static auto decode_arg_impl(std::byte*& buffer, std::index_sequence<Indices...>)
   {
-    using TupleType = std::tuple<decltype(Codec<Types>::decode_arg(buffer))...>;
+    // Strip cv qualifiers so const-qualified element types (e.g. std::tuple<int const, ...>)
+    // decode through the underlying element codecs, matching compute_encoded_size()/encode()
+    // which already decay the element types
+    using TupleType = std::tuple<decltype(Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))...>;
 
     // Brace initialization preserves left-to-right evaluation of the decode calls.
-    return TupleType{((void)Indices, Codec<Types>::decode_arg(buffer))...};
+    return TupleType{((void)Indices, Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))...};
   }
 
 public:
@@ -89,7 +92,7 @@ public:
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    if constexpr (std::conjunction_v<std::is_move_constructible<decltype(Codec<Types>::decode_arg(buffer))>...>)
+    if constexpr (std::conjunction_v<std::is_move_constructible<decltype(Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))>...>)
     {
       auto arg = decode_arg(buffer);
       args_store->push_back(std::move(arg));

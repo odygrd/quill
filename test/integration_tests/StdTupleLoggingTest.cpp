@@ -103,6 +103,10 @@ TEST_CASE("std_tuple_logging")
 
     LOG_INFO(logger, "temp_no_default_tuple {}",
              std::tuple<TupleNoDefaultType, int>{TupleNoDefaultType{"temp_no_default"}, 8});
+
+    // const-qualified element types must compile and decode through the underlying codecs
+    std::tuple<int const, std::string const> const_elems_tuple{300, "const_elem"};
+    LOG_INFO(logger, "const_elems_tuple {}", const_elems_tuple);
   }
 
   logger->flush_log();
@@ -142,6 +146,9 @@ TEST_CASE("std_tuple_logging")
     file_contents,
     std::string{"LOG_INFO      " + logger_name +
                 "       temp_no_default_tuple (TupleNoDefault(value: temp_no_default), 8)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       const_elems_tuple (300, \"const_elem\")"}));
 
   testing::remove_file(filename);
 }

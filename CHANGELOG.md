@@ -119,6 +119,9 @@
   Invalid attribute format specifications are rejected during formatter construction.
 - `timestamp_pattern` now rejects the time-of-day-embedding modifiers `%c`, `%Ec`, `%EX`, `%OH`, `%OI`, `%OM` and
   `%OS`, like `%X`, which silently froze at a cached value.
+- Fixed logging of `std::pair`, `std::tuple` and `std::array` with const-qualified element types, most notably
+  dereferenced `std::map` iterators (`std::pair<Key const, T>`), which previously failed to compile.
+- The backend singleton lock file is now opened with `O_CLOEXEC` and `O_NOFOLLOW`.
 
 ## v12.0.0
 

@@ -11,6 +11,7 @@
 
 #include <array>
 #include <cstdio>
+#include <map>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -106,6 +107,11 @@ TEST_CASE("std_pair_logging")
 
     LOG_INFO(logger, "temp_no_default_pair {}",
              std::pair<int, PairNoDefaultType>{20, PairNoDefaultType{"temp_no_default"}});
+
+    // std::map's value_type is std::pair<Key const, T>; logging a dereferenced map iterator
+    // must compile and decode through the underlying element codecs
+    std::map<std::string, int> map_value{{"map_key", 42}};
+    LOG_INFO(logger, "map_value_type {}", *map_value.begin());
   }
 
   logger->flush_log();
@@ -148,6 +154,9 @@ TEST_CASE("std_pair_logging")
     file_contents,
     std::string{"LOG_INFO      " + logger_name +
                 "       temp_no_default_pair (20, PairNoDefault(value: temp_no_default))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       map_value_type (\"map_key\", 42)"}));
 
   testing::remove_file(filename);
 }
