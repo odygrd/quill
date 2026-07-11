@@ -107,6 +107,8 @@
 - Fixed size-based `RotatingFileSink` rotation after an externally deleted active file is reopened. ([#945](https://github.com/odygrd/quill/pull/945))
 - Fixed bounded queue writes after the reader drains the queue without crossing the reader-position publish batch. ([#946](https://github.com/odygrd/quill/pull/946))
 - Fixed `%s` timestamp formatting in `GmtTime` mode on non-UTC machines. ([#947](https://github.com/odygrd/quill/pull/947))
+- Fixed a huge page mapping leak on Linux where `munmap` failed with `EINVAL` on queue destruction. Allocations now
+  request `MAP_HUGE_2MB` explicitly and round the mapping size up to a 2 MiB multiple.
 
 ## v12.0.0
 
