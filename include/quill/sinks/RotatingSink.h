@@ -302,9 +302,10 @@ public:
     uint64_t const today_timestamp_ns = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
 
-    _clean_and_recover_files(this->_filename, _config.open_mode(), today_timestamp_ns);
+    bool const recovery_succeeded =
+      _clean_and_recover_files(this->_filename, _config.open_mode(), today_timestamp_ns);
 
-    if (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled)
+    if (recovery_succeeded && (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled))
     {
       // Calculate next rotation time
       _next_rotation_time = _calculate_initial_rotation_tp(
@@ -316,12 +317,15 @@ public:
     _open_file_timestamp = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
 
-    _created_files.emplace_front(this->_filename, 0, std::string{});
+    if (recovery_succeeded)
+    {
+      _created_files.emplace_front(this->_filename, 0, std::string{});
+    }
 
     // Rotate an existing startup file before the initial open so mode='w' does not truncate it.
-    bool const should_rotate_on_creation =
+    bool const rotation_on_creation_requested =
       _config.rotation_on_creation() && !this->is_null() && (_get_file_size(this->_filename) > 0);
-    bool const can_rotate_on_creation = should_rotate_on_creation &&
+    bool const can_rotate_on_creation = _rotation_enabled() && rotation_on_creation_requested &&
       ((_created_files.size() <= _config.max_backup_files()) || _config.overwrite_rolled_files());
 
     if (can_rotate_on_creation)
@@ -332,7 +336,7 @@ public:
     {
       // If startup rotation was requested but cannot proceed, preserve the existing file and
       // continue without truncating it.
-      std::string const open_mode = should_rotate_on_creation
+      std::string const open_mode = rotation_on_creation_requested
         ? _reopen_mode_after_failed_rotation(_config.open_mode())
         : _config.open_mode();
       this->open_file(this->_filename, open_mode);
@@ -369,7 +373,7 @@ public:
                                      std::vector<std::pair<std::string, std::string>> const* named_args,
                                      std::string_view log_message, std::string_view log_statement) override
   {
-    if (this->is_null())
+    if (this->is_null() || !_rotation_enabled())
     {
       base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
                            logger_name, log_level, log_level_description, log_level_short_code,
@@ -421,6 +425,9 @@ protected:
   }
 
 private:
+  /***/
+  QUILL_NODISCARD bool _rotation_enabled() const noexcept { return !_created_files.empty(); }
+
   /***/
   QUILL_NODISCARD bool _time_rotation(uint64_t record_timestamp_ns)
   {
@@ -588,7 +595,8 @@ private:
   }
 
   /***/
-  void _clean_and_recover_files(fs::path const& filename, std::string const& open_mode, uint64_t today_timestamp_ns)
+  QUILL_NODISCARD bool _clean_and_recover_files(fs::path const& filename, std::string const& open_mode,
+                                                uint64_t today_timestamp_ns)
   {
     // The normalized filename is absolute in practice, so resolving against the current working
     // directory only matters for relative paths. fs::current_path() can throw when the working
@@ -602,17 +610,23 @@ private:
 
       if (current_path_ec)
       {
-        return;
+        return false;
       }
     }
 
     {
       std::error_code ec;
-      if (!fs::exists(parent_dir, ec) || ec)
+      bool const parent_exists = fs::exists(parent_dir, ec);
+      if (ec)
+      {
+        return false;
+      }
+
+      if (!parent_exists)
       {
         // Directory does not exist yet; nothing to clean or recover.
         // open_file will create it later.
-        return;
+        return true;
       }
     }
 
@@ -622,15 +636,21 @@ private:
       if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
       {
         // DateAndTime filenames are unique across runs and cannot collide, nothing to clean
-        return;
+        return true;
       }
 
       // Collect paths first, then remove — deleting during directory_iterator
       // traversal is implementation-defined and can skip entries on some platforms.
       std::vector<fs::path> files_to_remove;
 
-      for (auto const& entry : fs::directory_iterator(parent_dir))
+      // Iterate with the non-throwing overloads: under QUILL_NO_EXCEPTIONS a filesystem_error
+      // thrown from construction or increment would be uncatchable and terminate at startup
+      std::error_code dir_ec;
+      for (fs::directory_iterator dir_it{parent_dir, dir_ec}, dir_end;
+           !dir_ec && (dir_it != dir_end); dir_it.increment(dir_ec))
       {
+        auto const& entry = *dir_it;
+
         ParsedRotatedFileInfo parsed_file_info;
         if (!_try_parse_rotated_file(filename, entry.path(), parsed_file_info))
         {
@@ -653,29 +673,47 @@ private:
         }
       }
 
+      if (dir_ec)
+      {
+        // Never remove a partially enumerated set. Unknown files could then be overwritten by a
+        // later rotation, so disable rotation for this sink instance instead.
+        return false;
+      }
+
       for (auto const& file_path : files_to_remove)
       {
-        fs::remove(file_path);
+        _remove_file(file_path);
       }
     }
     else if (open_mode.find('a') != std::string::npos)
     {
       // we need to recover the rotated files of the previous runs, so that rotation continues
       // with the correct index and max_backup_files also counts files already on disk
-      for (auto const& entry : fs::directory_iterator(parent_dir))
+      std::deque<FileInfo> recovered_files;
+      std::error_code dir_ec;
+      for (fs::directory_iterator dir_it{parent_dir, dir_ec}, dir_end;
+           !dir_ec && (dir_it != dir_end); dir_it.increment(dir_ec))
       {
+        auto const& entry = *dir_it;
+
         ParsedRotatedFileInfo parsed_file_info;
         if (!_try_parse_rotated_file(filename, entry.path(), parsed_file_info))
         {
           continue;
         }
 
-        _created_files.emplace_front(filename, parsed_file_info.index, parsed_file_info.date_time);
+        recovered_files.emplace_front(filename, parsed_file_info.index, parsed_file_info.date_time);
+      }
+
+      if (dir_ec)
+      {
+        // A partial view cannot safely drive index rotation or retention pruning.
+        return false;
       }
 
       // sort the recovered files with the newest first; within the same date_time suffix a
       // greater index means an older file
-      std::sort(_created_files.begin(), _created_files.end(),
+      std::sort(recovered_files.begin(), recovered_files.end(),
                 [](FileInfo const& a, FileInfo const& b)
                 {
                   if (a.date_time != b.date_time)
@@ -689,14 +727,18 @@ private:
       {
         // remove the oldest recovered files when they exceed max_backup_files, so that files
         // from previous runs do not keep accumulating across restarts
-        while (_created_files.size() > _config.max_backup_files())
+        while (recovered_files.size() > _config.max_backup_files())
         {
-          FileInfo const& oldest_file = _created_files.back();
+          FileInfo const& oldest_file = recovered_files.back();
           _remove_file(_get_filename(oldest_file.base_filename, oldest_file.index, oldest_file.date_time));
-          _created_files.pop_back();
+          recovered_files.pop_back();
         }
       }
+
+      _created_files = std::move(recovered_files);
     }
+
+    return true;
   }
 
   /***/

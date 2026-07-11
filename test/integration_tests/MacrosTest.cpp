@@ -44,6 +44,10 @@ TEST_CASE("macros")
   LOG_TRACE_L1(logger, "L1: {}", 3);
   LOG_DEBUG(logger, "DBG: {}", 4);
   LOG_INFO(logger, "INF: {}", 5);
+
+  // a user variable named macro_metadata must not be shadowed by the macro's internal local
+  std::string const macro_metadata{"shadow_test"};
+  LOG_INFO(logger, "SHDW: {}", macro_metadata);
   LOG_NOTICE(logger, "NTC: {}", "N");
   LOG_WARNING(logger, "WRN: {}", "W");
   LOG_ERROR(logger, "ERR: {}", 6.78);
@@ -190,6 +194,8 @@ TEST_CASE("macros")
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"T1 LOG_TRACE_L1  logger       L1: 3"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"D LOG_DEBUG     logger       DBG: 4"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"I LOG_INFO      logger       INF: 5"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"I LOG_INFO      logger       SHDW: shadow_test"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"N LOG_NOTICE    logger       NTC: N"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"W LOG_WARNING   logger       WRN: W"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"E LOG_ERROR     logger       ERR: 6.78"}));

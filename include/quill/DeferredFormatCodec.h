@@ -34,7 +34,14 @@ QUILL_BEGIN_NAMESPACE
  *
  * This approach avoids expensive string formatting on the hot path.
  *
- * For a non trivially copyable types it requires valid copy constructor and move constructor.
+ * Non-trivially-copyable types require a publicly accessible copy or move constructor. A
+ * `friend struct quill::DeferredFormatCodec<T>` declaration can make a private default
+ * constructor available for the trivially-copyable memcpy recipe, but it does not make private
+ * copy or move constructors usable by the backend's format-argument store.
+ *
+ * @warning For non-trivially-copyable types, copy/move constructors used during encoding or
+ *          decoding, and the destructor, must not throw. A failed record remains uncommitted, but
+ *          Quill cannot destroy an earlier deferred argument from that record.
  *
  * Thread-Safety for non trivially copyable types:
  * It is the user's responsibility to ensure that an non trivially copyable type remains
@@ -92,8 +99,23 @@ QUILL_BEGIN_EXPORT
 template <typename T>
 struct DeferredFormatCodec
 {
+private:
+  // This check takes a `friend struct quill::DeferredFormatCodec<T>` declaration into account,
+  // unlike std::is_default_constructible. It supports the documented trivially-copyable recipe
+  // whose default constructor is private.
+  template <typename U, typename = void>
+  struct is_default_constructible : std::false_type
+  {
+  };
+
+  template <typename U>
+  struct is_default_constructible<U, std::void_t<decltype(U())>> : std::true_type
+  {
+  };
+
+public:
   static constexpr bool use_memcpy =
-    std::conjunction_v<std::is_trivially_copyable<T>, std::is_default_constructible<T>>;
+    std::conjunction_v<std::is_trivially_copyable<T>, is_default_constructible<T>>;
 
   static size_t compute_encoded_size(detail::SizeCacheVector&, T const&) noexcept
   {
@@ -120,13 +142,13 @@ struct DeferredFormatCodec
     {
       auto aligned_ptr = align_pointer(buffer, alignof(T));
 
-      if constexpr (std::is_rvalue_reference_v<Arg&&> && is_move_constructible<T>::value)
+      if constexpr (std::is_rvalue_reference_v<Arg&&> && std::is_move_constructible_v<T>)
       {
         new (static_cast<void*>(aligned_ptr)) T(std::move(arg));
       }
       else
       {
-        static_assert(is_copy_constructible<T>::value, "T is not copy-constructible!");
+        static_assert(std::is_copy_constructible_v<T>, "T is not publicly copy-constructible!");
         new (static_cast<void*>(aligned_ptr)) T(arg);
       }
 
@@ -149,7 +171,7 @@ struct DeferredFormatCodec
     else
     {
       static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>,
-                    "T must be move or copy constructible");
+                    "T must be publicly move or copy constructible");
 
       auto* aligned_ptr = align_pointer(buffer, alignof(T));
       auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
@@ -198,41 +220,6 @@ struct DeferredFormatCodec
   }
 
 private:
-  // These trait implementations will take the friend declaration into account
-
-  // Default constructible check
-  template <typename U, typename = void>
-  struct is_default_constructible : std::false_type
-  {
-  };
-
-  template <typename U>
-  struct is_default_constructible<U, std::void_t<decltype(U())>> : std::true_type
-  {
-  };
-
-  // Copy constructible check: tests if we can call U(const U&)
-  template <typename U, typename = void>
-  struct is_copy_constructible : std::false_type
-  {
-  };
-
-  template <typename U>
-  struct is_copy_constructible<U, std::void_t<decltype(U(std::declval<U const&>()))>> : std::true_type
-  {
-  };
-
-  // Move constructible check: tests if we can call U(U&&)
-  template <typename U, typename = void>
-  struct is_move_constructible : std::false_type
-  {
-  };
-
-  template <typename U>
-  struct is_move_constructible<U, std::void_t<decltype(U(std::declval<U&&>()))>> : std::true_type
-  {
-  };
-
   static std::byte* align_pointer(void* pointer, size_t alignment) noexcept
   {
     return reinterpret_cast<std::byte*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) &

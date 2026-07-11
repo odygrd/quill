@@ -708,8 +708,19 @@ private:
         // Not enough space to push: bump the shared failure counter for both log and metric
         // drops so that neither silently disappears. Metrics reuse the existing counter rather
         // than adding a parallel one; the error-notifier message reflects the combined count.
-        (void)macro_metadata;
-        thread_context->increment_failure_counter();
+        // Internal control events (flush, mdc updates, backtrace control, logger removal) are
+        // not counted: their callers retry in a loop until the event is enqueued, so a failed
+        // attempt would report a phantom drop for an event that is eventually delivered
+        MacroMetadata::Event const event = macro_metadata->event();
+
+        if ((event == MacroMetadata::Event::Log) ||
+            (event == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
+            (event == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy) ||
+            (event == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
+            (event == MacroMetadata::Event::Metric))
+        {
+          thread_context->increment_failure_counter();
+        }
       }
     }
     else if constexpr (frontend_options_t::queue_type == QueueType::BoundedBlocking)
@@ -728,7 +739,8 @@ private:
                        std::to_string(queue.capacity()) + " bytes"});
         }
 
-        // See the dropping-queue branch above for why both log and metric events bump the counter.
+        // Both log and metric events bump the counter; blocked events are reported as blocking
+        // occurrences, so unlike the dropping-queue branch no control-event exclusion is needed.
         (void)macro_metadata;
         thread_context->increment_failure_counter();
 
@@ -748,7 +760,8 @@ private:
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
-        // See the dropping-queue branch above for why both log and metric events bump the counter.
+        // Both log and metric events bump the counter; blocked events are reported as blocking
+        // occurrences, so unlike the dropping-queue branch no control-event exclusion is needed.
         (void)macro_metadata;
         thread_context->increment_failure_counter();
 

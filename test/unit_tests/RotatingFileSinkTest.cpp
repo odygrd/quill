@@ -10,6 +10,10 @@
 #include <ctime>
 #include <string>
 
+#if !defined(_WIN32)
+  #include <sys/stat.h>
+#endif
+
 TEST_SUITE_BEGIN("RotatingFileSink");
 
 using namespace quill;
@@ -3988,6 +3992,80 @@ TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
   write("Record [2]\n");
 
   fs::remove_all(log_dir, ec);
+#endif
+}
+
+/***/
+TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups")
+{
+#if defined(_WIN32)
+  // Removing directory-list permission portably requires ACL manipulation on Windows.
+  return;
+#else
+  fs::path const log_dir = "rotating_file_sink_scan_failure";
+  fs::path const filename = log_dir / "application.log";
+  fs::path const backup_filename = log_dir / "application.1.log";
+
+  std::error_code ec;
+  fs::remove_all(log_dir, ec);
+  fs::create_directories(log_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  std::string const active_prefix(500, 'A');
+  std::string const backup_sentinel{"existing backup must survive"};
+  testing::create_file(filename, active_prefix);
+  testing::create_file(backup_filename, backup_sentinel);
+
+  struct DirectoryCleanup
+  {
+    explicit DirectoryCleanup(fs::path path) : path{std::move(path)} {}
+    ~DirectoryCleanup()
+    {
+      restore_permissions();
+      std::error_code remove_ec;
+      fs::remove_all(path, remove_ec);
+    }
+
+    void restore_permissions() const noexcept { (void)::chmod(path.string().c_str(), 0700); }
+
+    fs::path path;
+  } directory_cleanup{log_dir};
+
+  if (::chmod(log_dir.string().c_str(), 0300) != 0)
+  {
+    return;
+  }
+
+  // Root and some filesystems can still enumerate this directory; skip when the failure cannot
+  // be reproduced on the current platform.
+  std::error_code probe_ec;
+  fs::directory_iterator probe{log_dir, probe_ec};
+  (void)probe;
+  if (!probe_ec)
+  {
+    return;
+  }
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_max_file_size(512);
+    cfg.set_open_mode('a');
+
+    RotatingFileSink sink{filename, cfg, FileEventNotifier{}};
+    std::string const appended_record(64, 'B');
+    sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                   std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", appended_record);
+  }
+
+  directory_cleanup.restore_permissions();
+
+  std::vector<std::string> const backup_contents = testing::file_contents(backup_filename);
+  REQUIRE_EQ(backup_contents.size(), 1u);
+  REQUIRE_EQ(backup_contents[0], backup_sentinel);
+
+  std::vector<std::string> const active_contents = testing::file_contents(filename);
+  REQUIRE_EQ(active_contents.size(), 1u);
+  REQUIRE_EQ(active_contents[0], active_prefix + std::string(64, 'B'));
 #endif
 }
 

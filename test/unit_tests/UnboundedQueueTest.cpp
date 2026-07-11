@@ -58,8 +58,8 @@ TEST_CASE("unbounded_queue_shrink")
     REQUIRE(res.allocation);
     REQUIRE_EQ(res.previous_capacity, INITIAL_SIZE * 2);
     REQUIRE_EQ(res.new_capacity, INITIAL_SIZE);
-    buffer.finish_read(CHUNK);
-    buffer.commit_read();
+    // Note: finish_read()/commit_read() must not be called after a prepare_read() that returned
+    // no data; it would publish a reader position ahead of the writer position
   }
 }
 

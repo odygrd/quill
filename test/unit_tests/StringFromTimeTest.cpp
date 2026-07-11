@@ -1,6 +1,7 @@
 #include "quill/backend/StringFromTime.h"
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
+#include <clocale>
 #include <cstdlib>
 #include <ctime>
 #include <limits>
@@ -47,6 +48,38 @@ private:
   bool _had_tz{false};
 };
 #endif
+
+/***/
+TEST_CASE("string_from_time_handles_legitimately_empty_strftime_expansion")
+{
+  // strftime returns 0 both for a too-small buffer and for a legitimately empty expansion.
+  // %p formats to an empty string in some locales (e.g. fr_FR); this must not be treated as a
+  // buffer-too-small failure, which previously grew the buffer to its cap and then threw on
+  // every formatted timestamp
+  time_t const timestamp = 1686528000; // 2023-06-12 00:00:00 UTC
+
+  {
+    // Sanity check in the default locale first: %p is "AM"
+    StringFromTime string_from_time;
+    string_from_time.init("%I%p", Timezone::GmtTime);
+    REQUIRE_EQ(string_from_time.format_timestamp(timestamp), "12AM");
+  }
+
+  struct ScopedLcTime
+  {
+    ~ScopedLcTime() { std::setlocale(LC_TIME, "C"); }
+  } scoped_lc_time;
+
+  if (std::setlocale(LC_TIME, "fr_FR.UTF-8") == nullptr)
+  {
+    // locale is not installed on this machine
+    return;
+  }
+
+  StringFromTime string_from_time;
+  string_from_time.init("%I%p", Timezone::GmtTime);
+  REQUIRE_EQ(string_from_time.format_timestamp(timestamp), "12");
+}
 
 /***/
 TEST_CASE("string_from_time_rejects_time_embedding_composite_modifiers")

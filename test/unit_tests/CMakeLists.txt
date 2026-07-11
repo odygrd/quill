@@ -58,6 +58,7 @@ endfunction()
 
 include(Doctest)
 
+quill_add_test(TEST_BackendWorkerLock BackendWorkerLockTest.cpp)
 quill_add_test(TEST_BoundedQueueTest BoundedQueueTest.cpp)
 quill_add_test(TEST_BacktraceStorage BacktraceStorageTest.cpp)
 quill_add_test(TEST_BackendMdcState BackendMdcStateTest.cpp)

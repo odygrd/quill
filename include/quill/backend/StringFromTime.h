@@ -468,11 +468,18 @@ protected:
       gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp)), std::addressof(time_info));
     }
 
+    // Prefix a sentinel character before calling strftime: a return value of 0 is ambiguous
+    // between "buffer too small" and a legitimately empty expansion (e.g. %p in locales with
+    // empty AM/PM strings such as fr_FR). With the sentinel, a successful call always returns
+    // at least 1, so 0 unambiguously means the buffer was too small
+    std::string sentinel_format{"x"};
+    sentinel_format += format_string;
+
     // Create a buffer to call strftime
     static constexpr size_t max_buffer_size{64 * 1024};
     std::vector<char> buffer;
     buffer.resize(32);
-    size_t res = strftime(&buffer[0], buffer.size(), format_string, std::addressof(time_info));
+    size_t res = strftime(&buffer[0], buffer.size(), sentinel_format.c_str(), std::addressof(time_info));
 
     while (res == 0)
     {
@@ -485,9 +492,11 @@ protected:
 
       // if strftime fails we will reserve more space
       buffer.resize(buffer.size() * 2);
-      res = strftime(&buffer[0], buffer.size(), format_string, std::addressof(time_info));
+      res = strftime(&buffer[0], buffer.size(), sentinel_format.c_str(), std::addressof(time_info));
     }
 
+    // Drop the sentinel character from the result
+    buffer.erase(buffer.begin());
     return buffer;
   }
 

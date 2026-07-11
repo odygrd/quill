@@ -130,6 +130,10 @@
   `FormatBuffer` allocation for every slot.
 - Minutely and hourly rotation boundaries now stay wall-clock aligned after a late-triggered rotation, instead of
   permanently drifting off the initial rotation time point.
+- Fixed a number of minor bugs and hardened edge cases across the frontend, backend, sinks and codecs, including
+  transactional startup rotation recovery and console colour handling around trailing newlines.
+- Clarified the custom-codec exception contract: sizing may throw before reservation, while encoding and decoding
+  must not.
 - Documented the `QUILL_LOG_LEVEL` environment variable. It is now validated during first logger creation; invalid
   values (including `backtrace`) throw `QuillError`, do not register a partial logger, and can be retried.
 - `create_or_get_sink<TSink>()` now throws when a sink with the same name already exists with an incompatible type

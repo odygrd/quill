@@ -424,6 +424,35 @@ To ensure a user-defined type can be logged, you must:
     - Specialize ``quill::Codec<T>`` for your type.
     - Specialize ``fmtquill::formatter<T>`` under the ``fmtquill`` namespace.
 
+Codec Exception Contract
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+``compute_encoded_size()`` may throw safely because it runs before queue reservation. Once
+``encode()`` begins, it must not throw.
+
+In simple terms, consider a statement with two deferred arguments:
+
+.. code-block:: cpp
+
+    LOG_INFO(logger, "{} {}", first, second);
+
+If copying ``first`` into the queue succeeds and then copying ``second`` throws, the state is:
+
+.. code-block:: text
+
+    first:  constructed but never destroyed
+    second: construction failed
+    record: never committed
+
+The backend never sees the uncommitted record, so the queue remains usable. Only cleanup is lost:
+resources owned by the queue copy of ``first`` may be retained because its destructor is not called.
+Therefore, ``DeferredFormatCodec`` constructors/destructors and ``DirectFormatCodec`` formatters
+must not throw.
+
+Custom backend decoders must also consume their complete payload without throwing. Records have no
+byte length, so the backend cannot skip a decoder-poisoned record; catch recoverable errors and
+store a fallback value when possible.
+
 Logging User-Defined Types in STL Containers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

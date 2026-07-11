@@ -838,9 +838,12 @@ private:
       }
       else
       {
-        if ((transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
-            (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
-            (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy))
+        bool const runtime_metadata_event =
+          (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
+          (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
+          (transit_event->macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy);
+
+        if (runtime_metadata_event)
         {
           _apply_runtime_metadata(read_pos, transit_event);
         }
@@ -854,6 +857,17 @@ private:
           if (!transit_event->macro_metadata->has_named_args())
           {
             _populate_formatted_log_message(transit_event, transit_event->macro_metadata->message_format());
+          }
+          else if (runtime_metadata_event)
+          {
+            // Runtime metadata format strings are user generated and can be unique per call;
+            // caching them would grow _named_args_templates without bound for the lifetime of
+            // the backend, so process them without caching
+            auto const [message_format, arg_names] =
+              _process_named_args_format_message(transit_event->macro_metadata->message_format());
+
+            _populate_formatted_log_message(transit_event, message_format.data());
+            _populate_formatted_named_args(transit_event, arg_names);
           }
           else
           {

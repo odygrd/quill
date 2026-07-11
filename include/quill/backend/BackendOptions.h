@@ -201,10 +201,9 @@ struct BackendOptions
    * in a loop from another thread, can prevent the backend from exiting because the queues may
    * never become empty.
    *
-   * When this option is disabled, the backend will try to read the queues once and then exit.
-   * Reading the queues only once means that some log messages can be dropped. This is more likely
-   * when `log_timestamp_ordering_grace_period` is non-zero, because the grace-period cutoff can
-   * intentionally leave newer queue entries unread until a later poll.
+   * When this option is disabled, the backend flushes the sinks and exits without reading the
+   * queues again. Log messages still in the queues, as well as messages that were already read
+   * from the queues but not yet processed, are discarded.
    */
   bool wait_for_queues_to_empty_before_exit = true;
 

@@ -87,13 +87,10 @@ QUILL_BEGIN_NAMESPACE
 QUILL_BEGIN_EXPORT
 
 /**
- * @note The user-provided `fmtquill::formatter<T>` must be a pure function of `arg`: its output
- *       must depend only on the argument and produce the same byte count every time it is
- *       invoked on the same value. This is required because the formatter runs twice on the
- *       frontend: once in compute_encoded_size() to determine the buffer size, and again in
- *       encode() to write the bytes. The same property allows the codec to be used with view
- *       types (e.g. fmtquill::join_view) — for views we additionally construct a temporary
- *       T{arg} each time, since fmt disallows formatting view types as lvalues.
+ * @note The user-provided `fmtquill::formatter<T>` must be a non-throwing pure function of `arg`:
+ *       it runs once while sizing and again after queue reservation while encoding, and must
+ *       produce the same byte count both times. For fmt view types (e.g. fmtquill::join_view),
+ *       each pass formats a temporary T{arg} because fmt disallows formatting views as lvalues.
  */
 template <typename T>
 struct DirectFormatCodec

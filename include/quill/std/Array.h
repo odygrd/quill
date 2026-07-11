@@ -199,8 +199,13 @@ public:
     {
       // Built-in arithmetic types don't require iteration.
       // Note: Enums are excluded as they may have custom Codecs (e.g., DirectFormatCodec)
-      std::memcpy(buffer, arg.data(), sizeof(T) * N);
-      buffer += sizeof(T) * N;
+      if constexpr (N > 0)
+      {
+        // std::array<T, 0>::data() can return nullptr and memcpy with a null pointer is
+        // undefined behaviour even for a zero length
+        std::memcpy(buffer, arg.data(), sizeof(T) * N);
+        buffer += sizeof(T) * N;
+      }
     }
     else
     {

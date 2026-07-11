@@ -21,7 +21,8 @@
     {                                                                                              \
       if (QUILL_UNLIKELY(!(expression)))                                                           \
       {                                                                                            \
-        printf("Quill fatal error: %s\n", error);                                                  \
+        /* stderr is unbuffered so the message is not lost when abort() skips stream flushing */   \
+        std::fprintf(stderr, "Quill fatal error: %s\n", error);                                    \
         std::abort();                                                                              \
       }                                                                                            \
     } while (0)

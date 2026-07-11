@@ -385,7 +385,7 @@
 /** -- LOGJ_ helpers end -- **/
 
 #define QUILL_DEFINE_MACRO_METADATA(caller_function, fmt, tags, log_level)                         \
-  static constexpr quill::MacroMetadata macro_metadata                                             \
+  static constexpr quill::MacroMetadata quill_macro_metadata_                                      \
   {                                                                                                \
     QUILL_FILE_INFO, caller_function, fmt, tags, log_level, quill::MacroMetadata::Event::Log       \
   }
@@ -396,8 +396,8 @@
     if (likelyhood(logger->template should_log_statement<log_level>()))                             \
     {                                                                                               \
       QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                       \
-      logger->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH>(&macro_metadata, ##__VA_ARGS__); \
-    }                                                                                               \
+      logger->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH>(&quill_macro_metadata_, ##__VA_ARGS__); \
+    }                                                                                                      \
   } while (0)
 
 #define QUILL_LOGGER_CALL_LIMIT(min_interval, likelyhood, logger, tags, log_level, fmt, ...)               \
@@ -453,8 +453,8 @@
   {                                                                                                 \
     if (QUILL_LIKELY(logger->template should_log_statement<quill::LogLevel::Backtrace>()))          \
     {                                                                                               \
-      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Backtrace);      \
-      logger->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH>(&macro_metadata, ##__VA_ARGS__); \
+      QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, quill::LogLevel::Backtrace);             \
+      logger->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH>(&quill_macro_metadata_, ##__VA_ARGS__); \
     }                                                                                               \
   } while (0)
 
@@ -1035,11 +1035,11 @@
   {                                                                                                            \
     if (logger->should_log_statement(log_level))                                                               \
     {                                                                                                          \
-      static constexpr quill::MacroMetadata macro_metadata{                                                    \
+      static constexpr quill::MacroMetadata quill_macro_metadata_{                                             \
         "[placeholder]", "[placeholder]", "[placeholder]", nullptr, quill::LogLevel::None, event};             \
                                                                                                                \
       logger->template log_statement_runtime_metadata<QUILL_ENABLE_IMMEDIATE_FLUSH>(                           \
-        &macro_metadata, fmt, file, function, tags, line_number, log_level, ##__VA_ARGS__);                    \
+        &quill_macro_metadata_, fmt, file, function, tags, line_number, log_level, ##__VA_ARGS__);             \
     }                                                                                                          \
   } while (0)
 

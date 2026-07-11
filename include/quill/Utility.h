@@ -13,6 +13,7 @@
 #include <string_view>
 
 #include "quill/core/Attributes.h"
+#include "quill/core/QuillError.h"
 
 QUILL_BEGIN_NAMESPACE
 
@@ -119,6 +120,13 @@ QUILL_NODISCARD std::string to_hex(T const* buffer, size_t size, bool uppercase 
   if (QUILL_UNLIKELY(!buffer || size == 0))
   {
     return std::string{};
+  }
+
+  if (QUILL_UNLIKELY(size > ((SIZE_MAX - 1u) / 3u)))
+  {
+    // the output size computation below would wrap, allocating an undersized string that the
+    // write loops then overflow; realistically reachable only on 32-bit targets
+    QUILL_THROW(QuillError{"to_hex input size is too large"});
   }
 
   char const* hex_table = uppercase ? hex_table_upper : hex_table_lower;

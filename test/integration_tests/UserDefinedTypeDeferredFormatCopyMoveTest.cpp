@@ -153,6 +153,48 @@ struct quill::Codec<MoveAndCopyTypeWithCounter> : quill::DeferredFormatCodec<Mov
 };
 
 /***/
+class TriviallyCopyableRecipeType
+{
+public:
+  TriviallyCopyableRecipeType(int id, double price) : id(id), price(price) {}
+
+  int id;
+  double price;
+
+private:
+  friend struct quill::DeferredFormatCodec<TriviallyCopyableRecipeType>;
+
+  TriviallyCopyableRecipeType() = default;
+};
+
+static_assert(std::is_trivially_copyable_v<TriviallyCopyableRecipeType>,
+              "TriviallyCopyableRecipeType must be trivially copyable");
+
+// The documented "trivially copyable type with non-default (private) constructor + friend"
+// recipe must take the memcpy fast path; the friend declaration makes the private default
+// constructor accessible to the codec
+static_assert(quill::DeferredFormatCodec<TriviallyCopyableRecipeType>::use_memcpy,
+              "the trivially copyable private-constructor + friend recipe must use memcpy");
+
+/***/
+template <>
+struct fmtquill::formatter<TriviallyCopyableRecipeType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::TriviallyCopyableRecipeType const& obj, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "Recipe({}, {})", obj.id, obj.price);
+  }
+};
+
+/***/
+template <>
+struct quill::Codec<TriviallyCopyableRecipeType> : quill::DeferredFormatCodec<TriviallyCopyableRecipeType>
+{
+};
+
+/***/
 TEST_CASE("custom_type_defined_type_deferred_format_logging_move_and_copy_semantics")
 {
   static constexpr char const* filename =
@@ -204,6 +246,12 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging_move_and_copy_semant
   {
     MoveAndCopyTypeWithCounter both_rvalue{"BothRvalue"};
     LOG_INFO(logger, "Test: {}", std::move(both_rvalue));
+  }
+
+  // Test 5: the documented trivially-copyable private-constructor + friend recipe (memcpy path)
+  {
+    TriviallyCopyableRecipeType recipe_obj{42, 3.5};
+    LOG_INFO(logger, "Test: {}", recipe_obj);
   }
 
   // Encode Phase Counters
@@ -284,6 +332,10 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging_move_and_copy_semant
 
   // Wait until the backend thread stops for test stability
   Backend::stop();
+
+  // Verify the friend-accessible recipe type decoded and formatted correctly end-to-end
+  std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
+  REQUIRE(quill::testing::file_contains(file_contents, "Test: Recipe(42, 3.5)"));
 
   testing::remove_file(filename);
 }
