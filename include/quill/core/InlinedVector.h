@@ -64,6 +64,32 @@ public:
   InlinedVector& operator=(InlinedVector const& other) = delete;
 
   /**
+   * Ensures storage for at least new_capacity elements without changing the size.
+   */
+  void reserve(size_t new_capacity)
+  {
+    if (new_capacity <= _capacity)
+    {
+      return;
+    }
+
+    auto* new_data = new value_type[new_capacity];
+
+    if (_capacity == N)
+    {
+      std::memcpy(new_data, _storage.inline_buffer, _size * sizeof(value_type));
+    }
+    else
+    {
+      std::memcpy(new_data, _storage.heap_buffer, _size * sizeof(value_type));
+      delete[] _storage.heap_buffer;
+    }
+
+    _storage.heap_buffer = new_data;
+    _capacity = new_capacity;
+  }
+
+  /**
    * Push back a new element
    */
   QUILL_ATTRIBUTE_HOT value_type push_back(value_type value)
