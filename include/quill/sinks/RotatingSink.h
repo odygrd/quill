@@ -427,7 +427,7 @@ private:
     if (record_timestamp_ns >= _next_rotation_time)
     {
       _rotate_files(record_timestamp_ns);
-      _next_rotation_time = _calculate_rotation_tp(record_timestamp_ns, _config);
+      _next_rotation_time = _calculate_rotation_tp(_next_rotation_time, record_timestamp_ns, _config);
       return true;
     }
 
@@ -1069,25 +1069,29 @@ private:
   }
 
   /***/
-  static uint64_t _calculate_rotation_tp(uint64_t rotation_timestamp_ns, RotatingFileSinkConfig const& config)
+  static uint64_t _calculate_rotation_tp(uint64_t previous_rotation_tp, uint64_t record_timestamp_ns,
+                                         RotatingFileSinkConfig const& config)
   {
-    if (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Minutely)
+    if ((config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Minutely) ||
+        (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Hourly))
     {
-      return rotation_timestamp_ns +
-        static_cast<uint64_t>(
-               std::chrono::nanoseconds{std::chrono::minutes{config.rotation_interval()}}.count());
-    }
+      uint64_t const interval_ns =
+        (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Minutely)
+        ? static_cast<uint64_t>(
+            std::chrono::nanoseconds{std::chrono::minutes{config.rotation_interval()}}.count())
+        : static_cast<uint64_t>(
+            std::chrono::nanoseconds{std::chrono::hours{config.rotation_interval()}}.count());
 
-    if (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Hourly)
-    {
-      return rotation_timestamp_ns +
-        static_cast<uint64_t>(
-               std::chrono::nanoseconds{std::chrono::hours{config.rotation_interval()}}.count());
+      // Advance from the previous boundary in whole intervals so that a late-triggered rotation
+      // (e.g. sparse logging past a missed boundary) does not permanently shift the following
+      // boundaries away from the wall-clock alignment of the initial rotation time point
+      uint64_t const intervals_elapsed = (record_timestamp_ns - previous_rotation_tp) / interval_ns;
+      return previous_rotation_tp + ((intervals_elapsed + 1u) * interval_ns);
     }
 
     if (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Daily)
     {
-      return _calculate_next_daily_rotation_tp(_timestamp_ns_to_time_t(rotation_timestamp_ns), config);
+      return _calculate_next_daily_rotation_tp(_timestamp_ns_to_time_t(record_timestamp_ns), config);
     }
 
     QUILL_THROW(QuillError{"Invalid rotation frequency"});

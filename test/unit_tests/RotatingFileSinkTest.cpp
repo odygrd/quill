@@ -3375,6 +3375,103 @@ TEST_CASE("time_rotation_initial_rotation_respects_interval_minutes")
   testing::remove_file(filename_rotated);
 }
 
+/***/
+TEST_CASE("time_rotation_interval_boundaries_stay_wall_clock_aligned")
+{
+  // Regression: a rotation triggered late (sparse logging past a missed boundary) used to
+  // schedule the next boundary at record_timestamp + interval, permanently drifting all
+  // subsequent boundaries off the wall-clock alignment of the initial rotation time point
+  uint64_t const timestamp_start = 1686528000000000000; // 2023-06-12 00:00:00 UTC
+  uint64_t const one_minute_ns =
+    static_cast<uint64_t>(std::chrono::nanoseconds(std::chrono::minutes(1)).count());
+
+  fs::path const filename = "time_rotation_interval_boundaries_aligned.log";
+  fs::path const filename_rotated = "time_rotation_interval_boundaries_aligned.20230612.log";
+  fs::path const filename_rotated_1 = "time_rotation_interval_boundaries_aligned.20230612.1.log";
+  fs::path const filename_rotated_2 = "time_rotation_interval_boundaries_aligned.20230612.2.log";
+  fs::path const filename_rotated_3 = "time_rotation_interval_boundaries_aligned.20230612.3.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+  testing::remove_file(filename_rotated_1);
+  testing::remove_file(filename_rotated_2);
+  testing::remove_file(filename_rotated_3);
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_frequency_and_interval('m', 5);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_start / 1000000000))};
+
+    auto write_record = [&rfh](std::string const& s, uint64_t timestamp)
+    {
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    };
+
+    // Boundaries are aligned at +5m, +10m, +15m, ...
+    write_record("Record [0]", timestamp_start);
+
+    // +7m is 2 minutes past the missed +5m boundary and triggers the first rotation. The next
+    // boundary must stay at +10m; the drifting behaviour would schedule it at +12m instead
+    write_record("Record [1]", timestamp_start + (7 * one_minute_ns));
+
+    // +11m is past the aligned +10m boundary and must trigger the second rotation. With the
+    // drifted +12m boundary it would stay in the same file. The next boundary becomes +15m
+    write_record("Record [2]", timestamp_start + (11 * one_minute_ns));
+
+    // +27m is more than two whole intervals past the missed +15m boundary. This triggers
+    // exactly one rotation (empty windows do not produce empty files) and the next boundary
+    // jumps to the next aligned multiple after the record: +30m, not +32m
+    write_record("Record [3]", timestamp_start + (27 * one_minute_ns));
+
+    // +29m is before the +30m boundary and must not rotate; it stays with Record [3]
+    write_record("Record [4]", timestamp_start + (29 * one_minute_ns));
+
+    // +31m is past the aligned +30m boundary and rotates again
+    write_record("Record [5]", timestamp_start + (31 * one_minute_ns));
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_rotated));
+  REQUIRE(fs::exists(filename_rotated_1));
+  REQUIRE(fs::exists(filename_rotated_2));
+  REQUIRE(fs::exists(filename_rotated_3));
+
+  std::vector<std::string> const rotated_contents_3 = testing::file_contents(filename_rotated_3);
+  REQUIRE_EQ(testing::file_contains(rotated_contents_3, "Record [0]"), true);
+
+  std::vector<std::string> const rotated_contents_2 = testing::file_contents(filename_rotated_2);
+  REQUIRE_EQ(testing::file_contains(rotated_contents_2, "Record [1]"), true);
+
+  std::vector<std::string> const rotated_contents_1 = testing::file_contents(filename_rotated_1);
+  REQUIRE_EQ(testing::file_contains(rotated_contents_1, "Record [2]"), true);
+
+  std::vector<std::string> const rotated_contents = testing::file_contents(filename_rotated);
+  REQUIRE_EQ(testing::file_contains(rotated_contents, "Record [3]"), true);
+  REQUIRE_EQ(testing::file_contains(rotated_contents, "Record [4]"), true);
+
+  std::vector<std::string> const current_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(current_contents, "Record [5]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+  testing::remove_file(filename_rotated_1);
+  testing::remove_file(filename_rotated_2);
+  testing::remove_file(filename_rotated_3);
+}
+
 #ifdef QUILL_ENABLE_EXTENSIVE_TESTS
 TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_localtime_dst")
 {

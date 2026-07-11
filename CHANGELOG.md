@@ -128,6 +128,8 @@
   formatter for the complete tuple remains supported even when elements have no standalone formatter.
 - `TransitEventBuffer` expansion now moves the existing events instead of default-constructing and discarding a
   `FormatBuffer` allocation for every slot.
+- Minutely and hourly rotation boundaries now stay wall-clock aligned after a late-triggered rotation, instead of
+  permanently drifting off the initial rotation time point.
 
 ## v12.0.0
 
