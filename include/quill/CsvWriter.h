@@ -203,6 +203,10 @@ public:
   /**
    * Appends a row to the CSV file. This function is also thread safe.
    *
+   * @note Fields are written verbatim. A string field containing a comma, double quote or line
+   * break corrupts the CSV structure; pass such fields through utility::csv_escape_field() from
+   * quill/Utility.h or sanitize them beforehand.
+   *
    * @param fields The fields to append to the CSV row.
    */
   template <typename... Args>

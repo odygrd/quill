@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include "quill/core/Attributes.h"
 
@@ -19,6 +20,50 @@ QUILL_BEGIN_EXPORT
 
 namespace utility
 {
+/**
+ * @brief Escapes a single CSV field according to RFC 4180.
+ *
+ * CsvWriter::append_row() writes fields verbatim; a string field containing a comma, double
+ * quote or line break would corrupt the CSV structure. This opt-in helper wraps such a field
+ * in double quotes and doubles any embedded double quotes. Fields without special characters
+ * are returned unchanged.
+ *
+ * @note The helper returns a new std::string; when used on the hot path prefer calling it only
+ * for fields that can actually contain special characters.
+ *
+ * @param field The field value to escape.
+ * @return The escaped field value.
+ */
+QUILL_NODISCARD inline std::string csv_escape_field(std::string_view field)
+{
+  if (field.find_first_of(",\"\r\n") == std::string_view::npos)
+  {
+    return std::string{field};
+  }
+
+  size_t quote_count{0};
+  for (size_t pos = field.find('"'); pos != std::string_view::npos; pos = field.find('"', pos + 1u))
+  {
+    ++quote_count;
+  }
+
+  std::string escaped;
+  escaped.reserve(field.size() + 2u + quote_count);
+  escaped += '"';
+
+  for (char const c : field)
+  {
+    if (c == '"')
+    {
+      escaped += '"';
+    }
+    escaped += c;
+  }
+
+  escaped += '"';
+  return escaped;
+}
+
 /**
  * @brief Formats the given buffer to hexadecimal representation.
  *

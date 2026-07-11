@@ -130,6 +130,8 @@
   `FormatBuffer` allocation for every slot.
 - Minutely and hourly rotation boundaries now stay wall-clock aligned after a late-triggered rotation, instead of
   permanently drifting off the initial rotation time point.
+- Documented that `CsvWriter` writes fields verbatim and added an opt-in `quill::utility::csv_escape_field()`
+  helper for RFC 4180 escaping of fields containing commas, quotes or line breaks.
 
 ## v12.0.0
 
