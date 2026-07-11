@@ -126,6 +126,8 @@
   the hot path.
 - `Codec<std::tuple>` now fails with a clear `static_assert` when the decoded tuple is not formattable. A custom
   formatter for the complete tuple remains supported even when elements have no standalone formatter.
+- `TransitEventBuffer` expansion now moves the existing events instead of default-constructing and discarding a
+  `FormatBuffer` allocation for every slot.
 
 ## v12.0.0
 
