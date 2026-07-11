@@ -77,7 +77,7 @@ public:
    * @param options The PatternFormatterOptions object containing the formatting configuration.
    *                @see PatternFormatterOptions for detailed information on available options.
    *
-   * @throws std::invalid_argument if the format string in options is invalid
+   * @throws QuillError if the format string in options is invalid
    */
   explicit PatternFormatter(PatternFormatterOptions options)
     : _options(std::move(options)),
@@ -264,6 +264,24 @@ private:
     _set_arg<Attribute::Mdc>(std::string_view("mdc"));
     _set_arg<Attribute::Tags>(std::string_view("tags"));
     _set_arg<Attribute::NamedArgs>(std::string_view("named_args"));
+
+    // Parse the generated fmt string now, while construction errors can be reported to the
+    // caller, rather than deferring them until every log record is formatted on the backend.
+    char discard{};
+#if defined(QUILL_NO_EXCEPTIONS)
+    (void)fmtquill::vformat_to_n(
+      &discard, 0, _fmt_format, fmtquill::basic_format_args(_args.data(), static_cast<int>(_args.size())));
+#else
+    try
+    {
+      (void)fmtquill::vformat_to_n(
+        &discard, 0, _fmt_format, fmtquill::basic_format_args(_args.data(), static_cast<int>(_args.size())));
+    }
+    catch (fmtquill::format_error const& error)
+    {
+      QUILL_THROW(QuillError{"Invalid format pattern: " + std::string{error.what()}});
+    }
+#endif
   }
 
   /***/
@@ -421,6 +439,25 @@ private:
     std::array<fmtquill::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS> named_args{};
     _store_named_args<0, 0>(named_args, args...);
     uint8_t arg_idx = 0;
+
+    // Escape any literal '{' or '}' in the pattern so fmt treats them as literal characters.
+    // Otherwise they are parsed as replacement fields, silently swallowing arguments or making
+    // every log statement throw at format time. The attribute placeholders are inserted below,
+    // after this escaping
+    for (size_t brace_pos = 0; (brace_pos = pattern.find_first_of("{}", brace_pos)) != std::string::npos;)
+    {
+      char const brace = pattern[brace_pos];
+      if ((brace_pos + 1u < pattern.size()) && (pattern[brace_pos + 1u] == brace))
+      {
+        // Preserve the traditional fmt spelling ({{ or }}) for one literal brace.
+        brace_pos += 2u;
+      }
+      else
+      {
+        pattern.insert(brace_pos, 1, brace);
+        brace_pos += 2u;
+      }
+    }
 
     // we will replace all %(....) with {} to construct a string to pass to fmt library
     size_t arg_identifier_pos = pattern.find_first_of('%');

@@ -55,9 +55,16 @@ public:
     _timestamp_format = std::move(timestamp_format);
     _time_zone = timezone;
 
-    if (_find_unescaped_modifier(_timestamp_format, "%X") != std::string::npos)
+    // These composite modifiers embed the time of day but are not split into dynamic parts by
+    // _populate_initial_parts, so the displayed time would freeze at the cached value until the
+    // next recalculation, silently printing stale timestamps
+    for (auto const* unsupported_modifier : {"%X", "%EX", "%c", "%Ec", "%OH", "%OI", "%OM", "%OS"})
     {
-      QUILL_THROW(QuillError("`%X` as format modifier is not currently supported in format: " + _timestamp_format));
+      if (_find_unescaped_modifier(_timestamp_format, unsupported_modifier) != std::string::npos)
+      {
+        QUILL_THROW(QuillError(std::string{"`"} + unsupported_modifier +
+                               "` as format modifier is not currently supported in format: " + _timestamp_format));
+      }
     }
 
     // We first look for some special format modifiers and replace them

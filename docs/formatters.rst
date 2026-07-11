@@ -84,6 +84,9 @@ The format output can be customised by providing a string of certain attributes.
      - Key-value pairs appended to the message. This is only applicable to a named-args
        format string and remains empty otherwise.
 
+Literal ``{`` and ``}`` characters can be written directly in a format pattern. The traditional
+fmt spellings ``{{`` and ``}}`` remain supported and each produce one literal brace.
+
 Customising the timestamp
 -------------------------
 
@@ -107,8 +110,10 @@ Use ``%%`` to write a literal percent sign in timestamp patterns, including esca
 ``%%Qms`` or ``%%T``. The escaped text is passed through as a literal instead of being interpreted
 as Quill's fractional-second extension or as a cached time modifier.
 
-.. note:: ``%X`` is not supported by Quill's cached timestamp formatter. Use an explicit equivalent
-   such as ``%H:%M:%S`` if you need locale-independent time output.
+.. note:: ``%X``, ``%EX``, ``%c``, ``%Ec``, ``%OH``, ``%OI``, ``%OM`` and ``%OS`` are not
+   supported by Quill's cached timestamp formatter because they embed the time of day, which
+   would go stale between cache recalculations. Use explicit equivalents such as ``%H``, ``%M``
+   and ``%S`` instead.
 
 .. note:: MinGW does not support all ``strftime(...)`` format specifiers. If the platform ``strftime`` implementation cannot format the configured pattern, Quill reports a formatting error.
 

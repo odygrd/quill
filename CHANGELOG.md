@@ -115,6 +115,10 @@
 - Fixed potential queue corruption when logging `std::error_code` with locale-dependent or user-provided error
   categories. The category name and message are now snapshotted once and reused for encoding.
 - Fixed `RotatingJsonFileSink` replaying a stale json payload after a failed size-based rotation.
+- Literal `{` and `}` in `format_pattern` are now escaped, while existing doubled-brace spelling remains compatible.
+  Invalid attribute format specifications are rejected during formatter construction.
+- `timestamp_pattern` now rejects the time-of-day-embedding modifiers `%c`, `%Ec`, `%EX`, `%OH`, `%OI`, `%OM` and
+  `%OS`, like `%X`, which silently froze at a cached value.
 
 ## v12.0.0
 

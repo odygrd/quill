@@ -49,6 +49,30 @@ private:
 #endif
 
 /***/
+TEST_CASE("string_from_time_rejects_time_embedding_composite_modifiers")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  // These modifiers embed the time of day but are not split into dynamic parts, so the displayed
+  // time would silently freeze at the cached value between recalculations. init() must reject
+  // them instead.
+  for (auto const* fmt :
+       {"%X", "%EX", "%c", "%Ec", "%OH", "%OI", "%OM", "%OS", "prefix %H:%M %c suffix"})
+  {
+    StringFromTime string_from_time;
+    REQUIRE_THROWS_AS(string_from_time.init(fmt, Timezone::GmtTime), QuillError);
+  }
+
+  // escaped variants are literal text and must remain accepted
+  for (auto const* fmt : {"literal %%X", "literal %%EX", "literal %%c", "literal %%Ec",
+                          "literal %%OH", "literal %%OI", "literal %%OM", "literal %%OS"})
+  {
+    StringFromTime string_from_time;
+    string_from_time.init(fmt, Timezone::GmtTime);
+  }
+#endif
+}
+
+/***/
 TEST_CASE("string_from_time_localtime_format_time")
 {
   std::string fmt2 = "%H:%M:%S";
