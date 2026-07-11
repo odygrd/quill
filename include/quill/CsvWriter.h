@@ -267,7 +267,18 @@ private:
       return should_write_header;
     }
 
+#if QUILL_USE_RTTI
+    auto const stream_sink = std::dynamic_pointer_cast<StreamSink>(sink);
+
+    if (!stream_sink)
+    {
+      // not a file backed sink, there is no existing file to inspect
+      return should_write_header;
+    }
+#else
     auto const stream_sink = std::static_pointer_cast<StreamSink>(sink);
+#endif
+
     std::error_code ec;
     auto const size = fs::file_size(stream_sink->get_filename(), ec);
     return ec || (size == 0);
