@@ -75,8 +75,9 @@ struct BackendOptions
    * The backend pops all log messages from the frontend queues and buffers them in a
    * local ring buffer queue as transit events. The transit_event_buffer is unbounded, starting with
    * a customizable initial capacity (in items, not bytes) and will reallocate up to
-   * transit_events_hard_limit The backend will use a separate transit_event_buffer for each
-   * frontend thread. The capacity is rounded up to the next power of two.
+   * transit_events_hard_limit. The backend will use a separate transit_event_buffer for each
+   * frontend thread. The capacity is rounded up to the next power of two and the rounded value
+   * must not exceed transit_events_hard_limit.
    */
   uint32_t transit_event_buffer_initial_capacity = 256;
 
@@ -94,6 +95,7 @@ struct BackendOptions
    * can be much greater than the transit_events_soft_limit.
    *
    * @note This number represents a limit across the messages received from ALL frontend threads.
+   *       It does not need to be a power of two. A value of zero is normalized to one.
    */
   size_t transit_events_soft_limit = 8192;
 
@@ -110,7 +112,8 @@ struct BackendOptions
    * This limit is the maximum size of the backend event buffer. When reached, the backend
    * will stop reading the frontend queues until there is space available in the buffer.
    *
-   * @note This number represents a limit PER frontend threads.
+   * @note This number represents a limit PER frontend thread. It must be a power of two. A value
+   *       of zero is normalized to one.
    */
   size_t transit_events_hard_limit = 65'536;
 

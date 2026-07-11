@@ -151,6 +151,7 @@ public:
     // Validate eagerly so Backend::start() can fail on the caller thread instead of surfacing
     // the error later from the backend poll loop.
     (void)BackendMdcState{options.mdc_format_pattern};
+    _validate_transit_event_limits(options);
 
     if (options.check_backend_singleton_instance)
     {
@@ -484,6 +485,37 @@ private:
     }
   }
 
+  /***/
+  QUILL_ATTRIBUTE_COLD static void _validate_transit_event_limits(BackendOptions const& options)
+  {
+    size_t const soft_limit = (options.transit_events_soft_limit == 0) ? 1 : options.transit_events_soft_limit;
+    size_t const hard_limit = (options.transit_events_hard_limit == 0) ? 1 : options.transit_events_hard_limit;
+
+    if (soft_limit > hard_limit)
+    {
+      QUILL_THROW(QuillError{fmtquill::format(
+        "transit_events_soft_limit ({}) cannot be greater than transit_events_hard_limit "
+        "({}). Please ensure that the soft limit is less than or equal to the hard limit.",
+        soft_limit, hard_limit)});
+    }
+
+    if (!is_power_of_two(hard_limit))
+    {
+      QUILL_THROW(QuillError{
+        fmtquill::format("transit_events_hard_limit ({}) must be a power of two", hard_limit)});
+    }
+
+    size_t const requested_initial_capacity = static_cast<size_t>(options.transit_event_buffer_initial_capacity);
+    size_t const rounded_initial_capacity = next_power_of_two(requested_initial_capacity);
+    if ((requested_initial_capacity > hard_limit) || (rounded_initial_capacity > hard_limit))
+    {
+      QUILL_THROW(QuillError{fmtquill::format(
+        "transit_event_buffer_initial_capacity ({}, rounded to {}) cannot be greater than "
+        "transit_events_hard_limit ({})",
+        options.transit_event_buffer_initial_capacity, rounded_initial_capacity, hard_limit)});
+    }
+  }
+
   /**
    * Logging thread init function
    */
@@ -493,37 +525,19 @@ private:
 
     // ManualBackendWorker::init() calls _init() directly, so validate here as well.
     (void)BackendMdcState{_options.mdc_format_pattern};
+    _validate_transit_event_limits(_options);
 
     (void)get_thread_name();
 
-    // Double check or modify some backend options before we start
+    // Zero limits make no sense as we can't process anything; normalize them to 1
     if (_options.transit_events_hard_limit == 0)
     {
-      // transit_events_hard_limit of 0 makes no sense as we can't process anything
       _options.transit_events_hard_limit = 1;
     }
 
     if (_options.transit_events_soft_limit == 0)
     {
       _options.transit_events_soft_limit = 1;
-    }
-
-    if (_options.transit_events_soft_limit > _options.transit_events_hard_limit)
-    {
-      QUILL_THROW(QuillError{fmtquill::format(
-        "transit_events_soft_limit ({}) cannot be greater than transit_events_hard_limit "
-        "({}). Please ensure that the soft limit is less than or equal to the hard limit.",
-        _options.transit_events_soft_limit, _options.transit_events_hard_limit)});
-    }
-    else if (!is_power_of_two(_options.transit_events_hard_limit))
-    {
-      QUILL_THROW(QuillError{fmtquill::format(
-        "transit_events_hard_limit ({}) must be a power of two", _options.transit_events_hard_limit)});
-    }
-    else if (!is_power_of_two(_options.transit_events_soft_limit))
-    {
-      QUILL_THROW(QuillError{fmtquill::format(
-        "transit_events_soft_limit ({}) must be a power of two", _options.transit_events_soft_limit)});
     }
 
     _last_output_timestamp = 0;
@@ -641,7 +655,11 @@ private:
     size_t const queue_capacity = frontend_queue.capacity();
     size_t total_bytes_read{0};
 
-    do
+    // Reads a maximum of one full frontend queue or up to the transit events' hard limit to
+    // prevent getting stuck on the same producer. The buffer size is checked before each read so
+    // that a buffer already at the hard limit does not accept another event and expand past it
+    while ((total_bytes_read < queue_capacity) &&
+           (thread_context->_transit_event_buffer->size() < _options.transit_events_hard_limit))
     {
       std::byte* read_pos;
 
@@ -676,10 +694,7 @@ private:
       auto const bytes_read = static_cast<size_t>(read_pos - read_begin);
       frontend_queue.finish_read(bytes_read);
       total_bytes_read += bytes_read;
-      // Reads a maximum of one full frontend queue or the transit events' hard limit to prevent
-      // getting stuck on the same producer.
-    } while ((total_bytes_read < queue_capacity) &&
-             (thread_context->_transit_event_buffer->size() < _options.transit_events_hard_limit));
+    }
 
     if (total_bytes_read != 0)
     {
