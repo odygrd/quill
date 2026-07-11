@@ -28,16 +28,17 @@ template <typename... Types>
 struct Codec<std::tuple<Types...>>
 {
 private:
+  using DecodedTuple =
+    std::tuple<decltype(Codec<detail::remove_cvref_t<Types>>::decode_arg(std::declval<std::byte*&>()))...>;
+
   template <size_t... Indices>
   static auto decode_arg_impl(std::byte*& buffer, std::index_sequence<Indices...>)
   {
     // Strip cv qualifiers so const-qualified element types (e.g. std::tuple<int const, ...>)
     // decode through the underlying element codecs, matching compute_encoded_size()/encode()
     // which already decay the element types
-    using TupleType = std::tuple<decltype(Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))...>;
-
     // Brace initialization preserves left-to-right evaluation of the decode calls.
-    return TupleType{((void)Indices, Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))...};
+    return DecodedTuple{((void)Indices, Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))...};
   }
 
 public:
@@ -92,6 +93,14 @@ public:
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
+    // Validate the object actually passed to fmt. Checking each element separately is too strict:
+    // a user-provided formatter for the complete tuple can intentionally support elements that
+    // have no standalone formatter. The check lives here rather than at class scope so that
+    // decode-only nested use of this codec does not require a formatter for the tuple itself.
+    static_assert(
+      fmtquill::is_formattable<DecodedTuple, char>::value,
+      "Codec<std::tuple<Types...>> requires the decoded tuple type to be formattable by bundled fmt");
+
     if constexpr (std::conjunction_v<std::is_move_constructible<decltype(Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))>...>)
     {
       auto arg = decode_arg(buffer);

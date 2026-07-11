@@ -32,16 +32,19 @@ QUILL_BEGIN_EXPORT
 template <>
 struct Codec<fs::path>
 {
+  // native() returns the internal string by const reference; The constexpr dispatch below
+  // guarantees string_type matches the codec type, so the bytes are identical
+
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, fs::path const& arg)
   {
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {
-      return Codec<std::string>::compute_encoded_size(conditional_arg_size_cache, arg.string());
+      return Codec<std::string>::compute_encoded_size(conditional_arg_size_cache, arg.native());
     }
 #if defined(_WIN32)
     else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
     {
-      return Codec<std::wstring>::compute_encoded_size(conditional_arg_size_cache, arg.wstring());
+      return Codec<std::wstring>::compute_encoded_size(conditional_arg_size_cache, arg.native());
     }
 #endif
     else
@@ -57,13 +60,13 @@ struct Codec<fs::path>
     if constexpr (std::is_same_v<fs::path::string_type, std::string>)
     {
       Codec<std::string>::encode(buffer, conditional_arg_size_cache,
-                                 conditional_arg_size_cache_index, arg.string());
+                                 conditional_arg_size_cache_index, arg.native());
     }
 #if defined(_WIN32)
     else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
     {
       Codec<std::wstring>::encode(buffer, conditional_arg_size_cache,
-                                  conditional_arg_size_cache_index, arg.wstring());
+                                  conditional_arg_size_cache_index, arg.native());
     }
 #endif
     else

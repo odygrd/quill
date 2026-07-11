@@ -122,6 +122,10 @@
 - Fixed logging of `std::pair`, `std::tuple` and `std::array` with const-qualified element types, most notably
   dereferenced `std::map` iterators (`std::pair<Key const, T>`), which previously failed to compile.
 - The backend singleton lock file is now opened with `O_CLOEXEC` and `O_NOFOLLOW`.
+- The `std::filesystem::path` codec now reads the path via `native()`, avoiding two temporary string allocations on
+  the hot path.
+- `Codec<std::tuple>` now fails with a clear `static_assert` when the decoded tuple is not formattable. A custom
+  formatter for the complete tuple remains supported even when elements have no standalone formatter.
 
 ## v12.0.0
 
