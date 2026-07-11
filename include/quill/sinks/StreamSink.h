@@ -266,6 +266,13 @@ protected:
   }
 
   /**
+   * Discards any state estimate_write_size() may have cached for the write that follows it.
+   * Called when that write is abandoned (e.g. an exception during file rotation) so a later,
+   * unrelated record cannot consume the stale cached state.
+   */
+  void discard_write_estimate() noexcept {}
+
+  /**
    * Flushes the stream
    */
   QUILL_ATTRIBUTE_HOT void flush()

@@ -430,6 +430,111 @@ TEST_CASE("rotating_json_file_sink_size_rotation_uses_actual_json_size")
   testing::remove_file(filename_1);
 }
 
+TEST_CASE("rotating_json_file_sink_failed_rotation_does_not_replay_stale_message")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  // Regression: with size and time rotation both enabled, estimate_write_size() caches the built
+  // json message for the record. When the size rotation then threw (e.g. disk full during the
+  // reopen), the cached message was never consumed, and the next record that took the time
+  // rotation branch (which skips the estimate) wrote the previous record's stale json payload
+  // in its place
+  fs::path const estimate_filename = "rotating_json_failed_rotation_stale_estimate.log";
+  fs::path const filename = "rotating_json_failed_rotation_stale.log";
+  fs::path const filename_1 = "rotating_json_failed_rotation_stale.1.log";
+
+  testing::remove_file(estimate_filename);
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+
+  static constexpr MacroMetadata macro_metadata{
+    "rotating_json_failed_rotation_stale.cpp:42", "test_fn", "json message", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  auto write_json_record = [](auto& sink, std::string const& payload, uint64_t timestamp)
+  {
+    std::vector<std::pair<std::string, std::string>> named_args{{"payload", payload}};
+    sink.write_log(&macro_metadata, timestamp, "thread_id", "thread_name", "process_id",
+                   "logger_name", LogLevel::Info, "INFO", "I", &named_args, "ignored_log_message",
+                   "x");
+  };
+
+  // 2023-01-01 00:30:00 UTC; hourly rotation puts the first time boundary at most one hour later
+  std::chrono::system_clock::time_point const start_time{std::chrono::seconds{1672533000}};
+  uint64_t const start_time_ns = static_cast<uint64_t>(
+    std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
+  uint64_t const record_ab_timestamp = start_time_ns + 1'000'000'000;                  // + 1 second
+  uint64_t const record_c_timestamp = start_time_ns + (2u * 3600u * 1'000'000'000ull); // + 2 hours
+
+  // large enough that a single json record exceeds the 512-byte rotation_max_file_size minimum
+  std::string const payload_a(700, 'a');
+  std::string const payload_b(700, 'b');
+  std::string const payload_c(700, 'c');
+
+  // Measure the size of one json record so the second record triggers the size rotation
+  size_t estimated_json_size = 0;
+  {
+    FileSinkConfig cfg;
+    cfg.set_open_mode('w');
+
+    JsonFileSink json_sink{estimate_filename, cfg, FileEventNotifier{}};
+    write_json_record(json_sink, payload_a, record_ab_timestamp);
+    json_sink.flush_sink();
+
+    estimated_json_size = static_cast<size_t>(fs::file_size(estimate_filename));
+  }
+
+  testing::remove_file(estimate_filename);
+
+  bool fail_open{false};
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_open = [&fail_open](fs::path const&, FileEventNotifierHandle)
+  {
+    if (fail_open)
+    {
+      QUILL_THROW(QuillError{"after_open failure during rotation"});
+    }
+  };
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_open_mode('w');
+    cfg.set_rotation_max_file_size(estimated_json_size + 1);
+    cfg.set_rotation_frequency_and_interval('H', 1);
+
+    RotatingJsonFileSink sink{filename, cfg, file_event_notifier, start_time};
+
+    // Record A writes normally
+    write_json_record(sink, payload_a, record_ab_timestamp);
+
+    // Record B triggers the size rotation, and the rotation fails with an exception after the
+    // estimate already cached B's json message. B is lost; the backend catches and reports this
+    fail_open = true;
+    REQUIRE_THROWS_AS(write_json_record(sink, payload_b, record_ab_timestamp), QuillError);
+    fail_open = false;
+
+    // Record C triggers the time rotation branch, which skips the estimate. It must write C's
+    // own json message and not replay B's cached one
+    write_json_record(sink, payload_c, record_c_timestamp);
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+
+  // The rotated file holds record A
+  REQUIRE(testing::file_contains(file_contents_1, payload_a));
+
+  // The current file holds record C's payload; B's stale payload must not appear anywhere
+  REQUIRE(testing::file_contains(file_contents, payload_c));
+  REQUIRE_FALSE(testing::file_contains(file_contents, payload_b));
+  REQUIRE_FALSE(testing::file_contains(file_contents_1, payload_b));
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+#endif
+}
+
 /***/
 TEST_CASE("rotating_file_sink_index_open_mode_write_clean_up_old_files")
 {

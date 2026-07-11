@@ -387,11 +387,22 @@ public:
 
     if (!time_rotation && _config.rotation_max_file_size() != 0)
     {
+      size_t const write_size = this->estimate_write_size(
+        log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
+        log_level_description, log_level_short_code, named_args, log_message, log_statement);
+
       // Check if we need to rotate based on size
-      _size_rotation(this->estimate_write_size(log_metadata, log_timestamp, thread_id, thread_name,
-                                               process_id, logger_name, log_level, log_level_description,
-                                               log_level_short_code, named_args, log_message, log_statement),
-                     log_timestamp);
+      QUILL_TRY { _size_rotation(write_size, log_timestamp); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL()
+      {
+        // The estimate may have cached state for this record (e.g. JsonSink caches the built
+        // json message). The write is abandoned, so discard it before propagating, otherwise a
+        // later record could consume the stale cached state
+        base_type::discard_write_estimate();
+        throw;
+      }
+#endif
     }
 
     // write to file
