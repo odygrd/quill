@@ -132,6 +132,7 @@
 - Fixed SIGTERM and SIGINT handling when the backend is running without a valid logger.
 - Unbounded queue maximum capacities are now rounded up to the next power of two and validated against the initial capacity.
 - Sink exceptions no longer prevent later sinks from receiving the same log or metric event.
+- Logging macros now evaluate logger and runtime log-level expressions once per invocation.
 - Minutely and hourly rotation boundaries now stay wall-clock aligned after a late-triggered rotation, instead of
   permanently drifting off the initial rotation time point.
 - Fixed a number of minor bugs and hardened edge cases across the frontend, backend, sinks and codecs, including

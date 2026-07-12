@@ -5,6 +5,8 @@ Logging Macros
 
 Complete reference for all ``LOG_``, ``LOGV_``, ``LOGJ_``, and ``LOG_DYNAMIC`` macros.
 
+Logger expressions, and runtime log-level expressions where applicable, are evaluated at most once per macro invocation; macros compiled out at build time do not evaluate them at all.
+
 Named Placeholders
 ------------------
 
