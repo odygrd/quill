@@ -76,6 +76,15 @@ TEST_CASE("unbounded_queue_allocation_within_limit")
   REQUIRE_EQ(buffer.producer_capacity(), 2 * two_mb);
 }
 
+TEST_CASE("unbounded_queue_rounds_max_capacity")
+{
+  UnboundedSPSCQueue buffer{1024, 3000};
+
+  auto* write_buffer = buffer.prepare_write(2500);
+  REQUIRE(write_buffer);
+  REQUIRE_EQ(buffer.producer_capacity(), 4096);
+}
+
 TEST_CASE("unbounded_queue_allocation_exceeds_limit")
 {
   constexpr static uint64_t two_mb = 2u * 1024u * 1024u;

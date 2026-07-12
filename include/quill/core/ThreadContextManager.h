@@ -429,6 +429,11 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT QUILL_EXPORT
 template <typename TFrontendOptions>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context()
 {
+  static_assert(TFrontendOptions::unbounded_queue_max_capacity >=
+                  TFrontendOptions::initial_queue_capacity,
+                "FrontendOptions::unbounded_queue_max_capacity must be greater than or equal to "
+                "FrontendOptions::initial_queue_capacity");
+
   return get_scoped_thread_context_impl(
     TFrontendOptions::queue_type, TFrontendOptions::initial_queue_capacity,
     TFrontendOptions::unbounded_queue_max_capacity, TFrontendOptions::huge_pages_policy);
