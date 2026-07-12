@@ -1264,8 +1264,18 @@ private:
 
     for (auto& sink : transit_event.logger_base->_sinks)
     {
-      sink->write_metric(metric_metadata, transit_event.timestamp, thread_id, thread_name,
-                         _process_id, transit_event.logger_base->_logger_name, metric_value);
+      QUILL_TRY
+      {
+        sink->write_metric(metric_metadata, transit_event.timestamp, thread_id, thread_name,
+                           _process_id, transit_event.logger_base->_logger_name, metric_value);
+      }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(std::exception const& e) { _notify_error(_options.error_notifier, e.what()); }
+      QUILL_CATCH_ALL()
+      {
+        _notify_error(_options.error_notifier, std::string{"Caught unhandled exception."});
+      }
+#endif
     }
   }
 
@@ -1284,52 +1294,66 @@ private:
     // Process each sink with the appropriate formatting and filtering
     for (auto& sink : transit_event.logger_base->_sinks)
     {
-      std::string_view log_to_write;
-
-      // Determine which formatted log to use
-      if (!sink->_override_pattern_formatter_options)
+      QUILL_TRY
       {
-        if (default_log_statement.empty())
+        std::string_view log_to_write;
+
+        // Determine which formatted log to use
+        if (!sink->_override_pattern_formatter_options)
         {
-          // Use the default formatted log statement, here by checking empty() we try to format once
-          // even for multiple sinks
-          default_log_statement = transit_event.logger_base->_pattern_formatter->format(
-            transit_event.timestamp, thread_id, thread_name, _process_id, transit_event.logger_base->_logger_name,
-            log_level_description, log_level_short_code, *transit_event.macro_metadata,
+          if (default_log_statement.empty())
+          {
+            // Use the default formatted log statement, here by checking empty() we try to format once
+            // even for multiple sinks
+            default_log_statement = transit_event.logger_base->_pattern_formatter->format(
+              transit_event.timestamp, thread_id, thread_name, _process_id,
+              transit_event.logger_base->_logger_name, log_level_description,
+              log_level_short_code, *transit_event.macro_metadata,
+              transit_event.get_named_args(), log_message, transit_event.mdc());
+          }
+
+          log_to_write = default_log_statement;
+        }
+        else
+        {
+          // Sink has override_pattern_formatter_options, we do not include PatternFormatter
+          // in the frontend fo this reason we init PatternFormatter here
+          if (!sink->_override_pattern_formatter)
+          {
+            // Initialize override formatter if needed
+            sink->_override_pattern_formatter =
+              std::make_shared<PatternFormatter>(*sink->_override_pattern_formatter_options);
+          }
+
+          // Use the sink's override formatter
+          log_to_write = sink->_override_pattern_formatter->format(
+            transit_event.timestamp, thread_id, thread_name, _process_id,
+            transit_event.logger_base->_logger_name, log_level_description,
+            log_level_short_code, *transit_event.macro_metadata,
             transit_event.get_named_args(), log_message, transit_event.mdc());
         }
 
-        log_to_write = default_log_statement;
-      }
-      else
-      {
-        // Sink has override_pattern_formatter_options, we do not include PatternFormatter
-        // in the frontend fo this reason we init PatternFormatter here
-        if (!sink->_override_pattern_formatter)
+        // Apply filters now that we have the formatted log
+        if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp,
+                                    thread_id, thread_name,
+                                    transit_event.logger_base->_logger_name,
+                                    transit_event.log_level(), log_message, log_to_write))
         {
-          // Initialize override formatter if needed
-          sink->_override_pattern_formatter =
-            std::make_shared<PatternFormatter>(*sink->_override_pattern_formatter_options);
+          // Forward the message using the computed log statement that passed the filter
+          sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
+                          thread_name, _process_id, transit_event.logger_base->_logger_name,
+                          transit_event.log_level(), log_level_description,
+                          log_level_short_code, transit_event.get_named_args(), log_message,
+                          log_to_write);
         }
-
-        // Use the sink's override formatter
-        log_to_write = sink->_override_pattern_formatter->format(
-          transit_event.timestamp, thread_id, thread_name, _process_id, transit_event.logger_base->_logger_name,
-          log_level_description, log_level_short_code, *transit_event.macro_metadata,
-          transit_event.get_named_args(), log_message, transit_event.mdc());
       }
-
-      // Apply filters now that we have the formatted log
-      if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp, thread_id,
-                                  thread_name, transit_event.logger_base->_logger_name,
-                                  transit_event.log_level(), log_message, log_to_write))
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(std::exception const& e) { _notify_error(_options.error_notifier, e.what()); }
+      QUILL_CATCH_ALL()
       {
-        // Forward the message using the computed log statement that passed the filter
-        sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
-                        thread_name, _process_id, transit_event.logger_base->_logger_name,
-                        transit_event.log_level(), log_level_description, log_level_short_code,
-                        transit_event.get_named_args(), log_message, log_to_write);
+        _notify_error(_options.error_notifier, std::string{"Caught unhandled exception."});
       }
+#endif
     }
   }
 

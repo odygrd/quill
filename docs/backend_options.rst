@@ -31,6 +31,7 @@ For example, to pin the backend worker thread to specific CPUs, you can use the 
 .. note::
 
    ``error_notifier``, backend poll hooks, sink periodic tasks, and custom sink ``write_log()`` implementations all run on the backend thread.
+   An exception from one sink is reported through ``error_notifier`` without preventing later sinks from receiving the same event.
    Avoid long-blocking work in these paths. Calling ``logger->flush_log()``, ``Backend::stop()``, or ``Frontend::remove_logger_blocking()`` from these paths throws ``QuillError`` because the backend cannot wait on itself.
    If a logger has immediate flush enabled, backend-thread log calls still enqueue the record, but the implicit flush is silently skipped so generic logging code reused on the backend remains safe.
 

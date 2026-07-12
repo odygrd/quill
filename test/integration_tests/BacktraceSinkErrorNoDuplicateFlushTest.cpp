@@ -50,7 +50,9 @@ TEST_CASE("backtrace_sink_error_no_duplicate_flush")
 {
 #if !defined(QUILL_NO_EXCEPTIONS)
   // Regression: when a sink threw in the middle of a backtrace flush, the already-written
-  // backtrace records stayed stored and were written again by the next flush, duplicating them
+  // backtrace records stayed stored and were written again by the next flush, duplicating them.
+  // Sink failures are now caught per-sink during dispatch, so the flush completes and the
+  // storage is cleared; either way a mid-flush sink failure must never replay written records
   static constexpr char const* filename = "backtrace_sink_error_no_duplicate_flush.log";
   static std::string const logger_name = "backtrace_no_dup_logger";
 

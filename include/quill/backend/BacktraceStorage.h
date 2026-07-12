@@ -92,7 +92,8 @@ public:
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
-      // The callback dispatches to sinks and can throw mid-iteration (e.g. a sink I/O failure).
+      // The callback can throw mid-iteration (e.g. a PatternFormatter creation failure); sink
+      // write failures are caught per-sink inside the callback and do not propagate here.
       // Clear before propagating, otherwise the records dispatched before the failure would be
       // written again by the next flush. The remaining records are dropped and the error is
       // reported through the backend error notifier

@@ -5,7 +5,10 @@
 #include "quill/LogMacros.h"
 
 #include <atomic>
+#include <initializer_list>
+#include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -49,20 +52,50 @@ struct MetricCapturingSink final : public quill::Sink
   std::atomic<size_t> log_writes{0};
 };
 
+struct ThrowingFanoutSink final : public quill::Sink
+{
+  void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
+                 std::string const&, std::string_view, quill::LogLevel, std::string_view,
+                 std::string_view, std::vector<std::pair<std::string, std::string>> const*,
+                 std::string_view, std::string_view) override
+  {
+#if !defined(QUILL_NO_EXCEPTIONS)
+    throw std::runtime_error{"simulated log sink failure"};
+#endif
+  }
+
+  void write_metric(quill::MetricMetadata const*, uint64_t, std::string_view, std::string_view,
+                    std::string const&, std::string_view, double) override
+  {
+#if !defined(QUILL_NO_EXCEPTIONS)
+    throw std::runtime_error{"simulated metric sink failure"};
+#endif
+  }
+
+  void flush_sink() noexcept override {}
+};
+
 TEST_CASE("metric_sink")
 {
+  static std::string const throwing_sink_name = "metric_sink_test_throwing_sink";
   static std::string const sink_name = "metric_sink_test_sink";
   static std::string const logger_name = "metric_sink_test_logger";
   static std::string const metric_key = "metric_sink_test_requests_total_01";
 
-  Backend::start();
+  BackendOptions backend_options;
+  backend_options.error_notifier = [](std::string const&) {};
+  Backend::start(backend_options);
 
+  auto throwing_sink = Frontend::create_or_get_sink<ThrowingFanoutSink>(throwing_sink_name);
   auto metric_sink = Frontend::create_or_get_sink<MetricCapturingSink>(sink_name);
-  Logger* logger = Frontend::create_or_get_logger(logger_name, metric_sink);
+  Logger* logger = Frontend::create_or_get_logger(
+    logger_name,
+    std::initializer_list<std::shared_ptr<Sink>>{throwing_sink, metric_sink});
 
   MetricMetadata const* metric_metadata =
     Frontend::create_metric(metric_key, "requests_total", {{"method", "POST"}, {"status", "200"}});
 
+  LOG_INFO(logger, "sink fan-out remains isolated");
   METRIC(logger, metric_metadata, 12.5);
   logger->publish_metric(metric_metadata, 3.25);
   logger->flush_log();
@@ -71,7 +104,7 @@ TEST_CASE("metric_sink")
   Frontend::remove_logger(logger);
 
   auto* sink_ptr = static_cast<MetricCapturingSink*>(metric_sink.get());
-  REQUIRE_EQ(sink_ptr->log_writes.load(std::memory_order_relaxed), 0);
+  REQUIRE_EQ(sink_ptr->log_writes.load(std::memory_order_relaxed), 1);
 
   std::lock_guard<std::mutex> const lock{sink_ptr->mutex};
   REQUIRE_EQ(sink_ptr->metrics.size(), 2);
