@@ -3,6 +3,7 @@
 
 #include "quill/core/Rdtsc.h"
 
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -57,7 +58,72 @@ public:
   double& ns_per_tick() { return _ns_per_tick; }
   std::atomic<uint32_t>& version() { return _version; }
   std::array<BaseTimeTsc, 2>& base() { return _base; }
+
+  void publish_snapshot(int64_t base_time, uint64_t base_tsc)
+  {
+    auto const index = (_version.load(std::memory_order_relaxed) + 1u) & (_base.size() - 1u);
+    _base[index].base_time = base_time;
+    _base[index].base_tsc = base_tsc;
+    _version.fetch_add(1u, std::memory_order_release);
+  }
 };
+
+TEST_CASE("time_since_epoch_safe_handles_concurrent_slot_reuse")
+{
+  RdtscClockMock tsc_clock{std::chrono::milliseconds{1200}};
+  tsc_clock.ns_per_tick() = 1.0;
+
+  constexpr uint64_t rdtsc_value{1'000'000};
+  constexpr uint64_t expected_wall_time{10'000'000};
+  constexpr uint32_t iterations{100'000};
+
+  tsc_clock.publish_snapshot(static_cast<int64_t>(expected_wall_time), rdtsc_value);
+
+  std::atomic<bool> start{false};
+  std::atomic<uint32_t> ready{0};
+  std::atomic<uint32_t> mismatches{0};
+
+  auto reader = [&]()
+  {
+    ready.fetch_add(1u, std::memory_order_release);
+    while (!start.load(std::memory_order_acquire))
+    {
+      std::this_thread::yield();
+    }
+
+    for (uint32_t i = 0; i < iterations; ++i)
+    {
+      if (tsc_clock.time_since_epoch_safe(rdtsc_value) != expected_wall_time)
+      {
+        mismatches.fetch_add(1u, std::memory_order_relaxed);
+      }
+    }
+  };
+
+  std::thread reader_one{reader};
+  std::thread reader_two{reader};
+
+  while (ready.load(std::memory_order_acquire) != 2u)
+  {
+    std::this_thread::yield();
+  }
+  start.store(true, std::memory_order_release);
+
+  for (uint32_t generation = 1; generation <= iterations; ++generation)
+  {
+    tsc_clock.publish_snapshot(static_cast<int64_t>(expected_wall_time + generation),
+                               rdtsc_value + generation);
+    if ((generation & 0xffu) == 0u)
+    {
+      std::this_thread::yield();
+    }
+  }
+
+  reader_one.join();
+  reader_two.join();
+
+  REQUIRE_EQ(mismatches.load(std::memory_order_relaxed), 0u);
+}
 
 TEST_CASE("time_since_epoch_uses_resynced_slot")
 {
