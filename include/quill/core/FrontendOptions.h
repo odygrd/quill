@@ -64,6 +64,8 @@ struct FrontendOptions
   /**
    * Maximum capacity for unbounded queues (UnboundedBlocking, UnboundedDropping).
    * This defines the maximum size to which the queue can grow before blocking or dropping messages.
+   * The value is rounded up to the next power of two and must be greater than or equal to
+   * initial_queue_capacity.
    */
   static constexpr size_t unbounded_queue_max_capacity = 2ull * 1024u * 1024u * 1024u; // 2 GiB
 

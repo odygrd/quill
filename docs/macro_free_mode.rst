@@ -45,6 +45,12 @@ Each function also accepts a ``quill::Tags`` object as an optional parameter aft
 Named placeholders (e.g., ``{name}`` instead of ``{}``) work the same way as with ``LOG_`` macros.
 See :ref:`Named Placeholders <logging_macros:Named Placeholders>` for details.
 
+.. note:: Rate-limited logging (``LOG_<LEVEL>_LIMIT`` and ``LOG_<LEVEL>_LIMIT_EVERY_N``) has no
+   macro-free equivalent and is out of scope for this mode. The limit macros maintain throttling
+   state per call site through ``static thread_local`` variables declared inside the macro
+   expansion; a function API has no call-site identity, so every call would share the same state.
+   Use the ``LOG_<LEVEL>_LIMIT`` macros when throttled logging is needed.
+
 Usage
 -----
 

@@ -64,6 +64,11 @@ using FileEventNotifierHandle = FILE*;
  *       performing the file open/close operation. Different callbacks, and different invocations
  *       of the same callback, may therefore run on different threads over the sink lifetime.
  *       Callbacks must be thread-safe and must not assume a single calling thread.
+ *
+ * @note When `before_write` changes the message size, size-based rotation
+ *       (`rotation_max_file_size`) evaluates its threshold using the pre-transform size of the
+ *       current message, so a rotation can trigger up to one transformed message later or
+ *       earlier than the exact limit. The tracked file size itself stays accurate.
  */
 struct FileEventNotifier
 {
@@ -138,16 +143,12 @@ public:
     if (_file_event_notifier.before_write)
     {
       std::string const user_log_statement = _file_event_notifier.before_write(log_statement);
-      safe_fwrite(user_log_statement.data(), sizeof(char), user_log_statement.size(), _file);
-      _file_size += user_log_statement.size();
+      _write_statement(user_log_statement);
     }
     else
     {
-      safe_fwrite(log_statement.data(), sizeof(char), log_statement.size(), _file);
-      _file_size += log_statement.size();
+      _write_statement(log_statement);
     }
-
-    _write_occurred = true;
   }
 
   /**
@@ -206,7 +207,7 @@ public:
           DWORD bytes_written_this_call = 0;
 
           if (QUILL_UNLIKELY(::WriteFile(handle, current_ptr, total_bytes_remaining,
-                                          &bytes_written_this_call, nullptr) == 0))
+                                         &bytes_written_this_call, nullptr) == 0))
           {
             QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
                                    std::to_string(::GetLastError())});
@@ -263,6 +264,23 @@ protected:
     std::string_view /* log_message */, std::string_view log_statement)
   {
     return log_statement.size();
+  }
+
+  /**
+   * Discards any state estimate_write_size() may have cached for the write that follows it.
+   * Called when that write is abandoned (e.g. an exception during file rotation) so a later,
+   * unrelated record cannot consume the stale cached state.
+   */
+  void discard_write_estimate() noexcept {}
+
+  /**
+   * Writes an already transformed statement without invoking before_write again.
+   */
+  QUILL_ATTRIBUTE_HOT void _write_statement(std::string_view statement)
+  {
+    safe_fwrite(statement.data(), sizeof(char), statement.size(), _file);
+    _file_size += statement.size();
+    _write_occurred = true;
   }
 
   /**

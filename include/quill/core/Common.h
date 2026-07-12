@@ -115,8 +115,8 @@ enum class ClockSourceType : uint8_t
 enum class HugePagesPolicy : uint8_t
 {
   Never,  // Do not use huge pages
-  Always, // Use huge pages, fail if unavailable
-  Try     // Try huge pages, but fall back to normal pages if unavailable
+  Always, // Use 2 MiB huge pages, fail if unavailable
+  Try     // Try 2 MiB huge pages, but fall back to normal pages if unavailable
 };
 
 QUILL_END_EXPORT

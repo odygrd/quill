@@ -3,6 +3,7 @@
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
 #include "quill/CsvWriter.h"
+#include "quill/Utility.h"
 #include "quill/core/FrontendOptions.h"
 
 using namespace quill;
@@ -44,6 +45,7 @@ TEST_CASE("csv_writing")
   static constexpr char const* filename_6 = "orders_6.csv";
   static constexpr char const* filename_7 = "orders_shared_writer.csv";
   static constexpr char const* filename_8 = "orders_appended_date.csv";
+  static constexpr char const* filename_9 = "orders_escaped_fields.csv";
 
   // Start the backend thread
   quill::BackendOptions backend_options;
@@ -186,6 +188,20 @@ TEST_CASE("csv_writing")
     csv_writter.close();
   }
 
+  {
+    // csv_escape_field: fields without special characters are returned unchanged
+    REQUIRE_EQ(quill::utility::csv_escape_field("AAPL"), "AAPL");
+    REQUIRE_EQ(quill::utility::csv_escape_field(""), "");
+    REQUIRE_EQ(quill::utility::csv_escape_field("A,B"), "\"A,B\"");
+    REQUIRE_EQ(quill::utility::csv_escape_field("say \"hi\""), "\"say \"\"hi\"\"\"");
+    REQUIRE_EQ(quill::utility::csv_escape_field("line\nbreak"), "\"line\nbreak\"");
+
+    quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writter{filename_9};
+    csv_writter.append_row(13212123, quill::utility::csv_escape_field("A,APL"), 100, 210.32321,
+                           quill::utility::csv_escape_field("B\"UY"));
+    csv_writter.close();
+  }
+
   // Wait until the backend thread stops for test stability
   Backend::stop();
 
@@ -299,6 +315,17 @@ TEST_CASE("csv_writing")
     testing::remove_file(appended_filename);
   }
 
+  {
+    // Read file and check the RFC 4180 escaped fields
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_9);
+    REQUIRE_EQ(file_contents.size(), 2);
+
+    REQUIRE(quill::testing::file_contains(file_contents, "order_id,symbol,quantity,price,side"));
+    REQUIRE(
+      quill::testing::file_contains(file_contents, "13212123,\"A,APL\",100,210.32,\"B\"\"UY\""));
+  }
+
+  testing::remove_file(filename_9);
   testing::remove_file(filename);
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);

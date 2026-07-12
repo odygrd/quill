@@ -1,8 +1,10 @@
 #include "doctest/doctest.h"
 
 #include "quill/core/Filesystem.h"
+#include "quill/core/QuillError.h"
 #include "quill/core/SinkManager.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/sinks/RotatingFileSink.h"
 #include <cstdio>
 
 TEST_SUITE_BEGIN("SinkManager");
@@ -243,6 +245,42 @@ TEST_CASE("file_event_notifier_after_open_can_create_another_sink")
 
   std::remove(outer_file_name.data());
   std::remove(inner_file_name.data());
+}
+
+/***/
+TEST_CASE("create_or_get_sink_rejects_incompatible_existing_type")
+{
+#if QUILL_USE_RTTI && !defined(QUILL_NO_EXCEPTIONS)
+  std::string const filename = "sink_manager_incompatible_type.log";
+
+  {
+    std::shared_ptr<Sink> file_sink = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      filename,
+      []()
+      {
+        quill::FileSinkConfig cfg;
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{});
+
+    // Requesting the same name as the same or a base type returns the existing sink
+    std::shared_ptr<Sink> same_sink = SinkManager::instance().create_or_get_sink<quill::FileSink>(
+      filename, quill::FileSinkConfig{}, FileEventNotifier{});
+    REQUIRE_EQ(file_sink.get(), same_sink.get());
+
+    // Requesting the same name as an incompatible type must throw instead of returning a sink
+    // that the caller would cast to the wrong type
+    quill::RotatingFileSinkConfig rotating_cfg;
+    rotating_cfg.set_rotation_max_file_size(1024);
+    REQUIRE_THROWS_AS((void)SinkManager::instance().create_or_get_sink<quill::RotatingFileSink>(
+                        filename, rotating_cfg, FileEventNotifier{}),
+                      QuillError);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
+  std::remove(filename.data());
+#endif
 }
 
 TEST_SUITE_END();

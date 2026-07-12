@@ -55,9 +55,16 @@ public:
     _timestamp_format = std::move(timestamp_format);
     _time_zone = timezone;
 
-    if (_find_unescaped_modifier(_timestamp_format, "%X") != std::string::npos)
+    // These composite modifiers embed the time of day but are not split into dynamic parts by
+    // _populate_initial_parts, so the displayed time would freeze at the cached value until the
+    // next recalculation, silently printing stale timestamps
+    for (auto const* unsupported_modifier : {"%X", "%EX", "%c", "%Ec", "%OH", "%OI", "%OM", "%OS"})
     {
-      QUILL_THROW(QuillError("`%X` as format modifier is not currently supported in format: " + _timestamp_format));
+      if (_find_unescaped_modifier(_timestamp_format, unsupported_modifier) != std::string::npos)
+      {
+        QUILL_THROW(QuillError(std::string{"`"} + unsupported_modifier +
+                               "` as format modifier is not currently supported in format: " + _timestamp_format));
+      }
     }
 
     // We first look for some special format modifiers and replace them
@@ -461,11 +468,18 @@ protected:
       gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp)), std::addressof(time_info));
     }
 
+    // Prefix a sentinel character before calling strftime: a return value of 0 is ambiguous
+    // between "buffer too small" and a legitimately empty expansion (e.g. %p in locales with
+    // empty AM/PM strings such as fr_FR). With the sentinel, a successful call always returns
+    // at least 1, so 0 unambiguously means the buffer was too small
+    std::string sentinel_format{"x"};
+    sentinel_format += format_string;
+
     // Create a buffer to call strftime
     static constexpr size_t max_buffer_size{64 * 1024};
     std::vector<char> buffer;
     buffer.resize(32);
-    size_t res = strftime(&buffer[0], buffer.size(), format_string, std::addressof(time_info));
+    size_t res = strftime(&buffer[0], buffer.size(), sentinel_format.c_str(), std::addressof(time_info));
 
     while (res == 0)
     {
@@ -478,9 +492,11 @@ protected:
 
       // if strftime fails we will reserve more space
       buffer.resize(buffer.size() * 2);
-      res = strftime(&buffer[0], buffer.size(), format_string, std::addressof(time_info));
+      res = strftime(&buffer[0], buffer.size(), sentinel_format.c_str(), std::addressof(time_info));
     }
 
+    // Drop the sentinel character from the result
+    buffer.erase(buffer.begin());
     return buffer;
   }
 

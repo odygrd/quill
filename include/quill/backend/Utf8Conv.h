@@ -43,8 +43,7 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string utf8_encode
   // Check if the input is empty or exceeds the maximum length WideCharToMultiByte accepts.
   // Also reject lengths where allocating (wide_str_len + 1) wchar_t would overflow size_t,
   // which can happen on 32-bit targets where size_t is the same width as the length.
-  constexpr size_t max_wide_len =
-    ((std::numeric_limits<size_t>::max)() / sizeof(wchar_t)) - 1u;
+  constexpr size_t max_wide_len = ((std::numeric_limits<size_t>::max)() / sizeof(wchar_t)) - 1u;
   if (wide_str_len == 0 || wide_str_len > static_cast<size_t>((std::numeric_limits<int>::max)()) ||
       wide_str_len > max_wide_len)
   {

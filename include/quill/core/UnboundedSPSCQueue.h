@@ -9,6 +9,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
+#include "quill/core/MathUtilities.h"
 #include "quill/core/QuillError.h"
 
 #include <atomic>
@@ -86,7 +87,7 @@ public:
    */
   UnboundedSPSCQueue(size_t initial_bounded_queue_capacity, size_t max_capacity,
                      HugePagesPolicy huge_pages_policy = quill::HugePagesPolicy::Never)
-    : _max_capacity(max_capacity),
+    : _max_capacity(next_power_of_two(max_capacity)),
       _producer(new Node(initial_bounded_queue_capacity, huge_pages_policy)),
       _consumer(_producer)
   {

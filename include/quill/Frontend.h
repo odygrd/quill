@@ -131,8 +131,13 @@ public:
    * @param sink_name The name of the sink.
    * @param args The arguments to pass to the sink constructor.
    * @return std::shared_ptr<Sink> A shared pointer to the created or retrieved sink.
-   * @note If a sink with the specified name already exists, the existing sink is returned
-   * and the provided constructor arguments are ignored.
+   * @note If a compatible sink with the specified name already exists, it is returned and the
+   *       provided constructor arguments are ignored.
+   * @throws QuillError if a sink with the same name exists with an incompatible type and RTTI is
+   *         enabled. In QUILL_NO_EXCEPTIONS builds this condition invokes the fatal error path
+   *         instead.
+   * @warning Without RTTI, Quill cannot diagnose an incompatible existing type. Callers must use
+   *          each sink name only with the same type, or with a compatible base type.
    */
   template <typename TSink, typename... Args>
   static std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)

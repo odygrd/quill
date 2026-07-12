@@ -68,6 +68,8 @@ public:
    * %(named_args)              - Key-value pairs appended to the message. Only applicable when the message has named args; remains empty otherwise.
    *
    * @warning The same attribute cannot be used twice in the same format pattern.
+   * @note Literal braces can be written directly. The traditional doubled forms `{{` and `}}`
+   *       are also accepted and produce one literal brace.
    */
   std::string format_pattern{default_format_pattern};
 

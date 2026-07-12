@@ -343,6 +343,22 @@ TEST_CASE("parse_log_level_from_env")
     REQUIRE_NE(std::string{e.what()}.find("QUILL_LOG_LEVEL"), std::string::npos);
   }
   REQUIRE(exception_thrown);
+
+  // "backtrace" parses as a LogLevel but is internal-only; it must be rejected here with the
+  // environment variable named in the error, instead of set_log_level() throwing later after
+  // the logger has already been registered
+  set_env("QUILL_LOG_LEVEL", "backtrace");
+  exception_thrown = false;
+  try
+  {
+    lm.parse_log_level_from_env();
+  }
+  catch (quill::QuillError const& e)
+  {
+    exception_thrown = true;
+    REQUIRE_NE(std::string{e.what()}.find("QUILL_LOG_LEVEL"), std::string::npos);
+  }
+  REQUIRE(exception_thrown);
 #endif
 
   set_env("QUILL_LOG_LEVEL", "none");

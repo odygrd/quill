@@ -104,8 +104,11 @@ public:
 
   /**
    * @brief Creates a new sink or returns an existing one with the given name.
-   * @note If a sink with the specified name already exists, the existing sink is returned
-   * and the provided constructor arguments are ignored.
+   * @note If a compatible sink with the specified name already exists, it is returned and the
+   *       provided constructor arguments are ignored.
+   * @throws QuillError if an incompatible sink exists and RTTI is enabled.
+   * @warning Without RTTI the type mismatch cannot be diagnosed; callers must keep sink names and
+   *          requested types compatible.
    */
   template <typename TSink, typename... Args>
   std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
@@ -115,6 +118,16 @@ public:
     std::string const sink_id = _normalized_sink_name<TSink>(sink_name);
 
     std::shared_ptr<Sink> sink = _reserve_sink_id_for_creation(sink_name, sink_id, true);
+
+#if QUILL_USE_RTTI
+    if (QUILL_UNLIKELY(sink && (dynamic_cast<TSink*>(sink.get()) == nullptr)))
+    {
+      // Callers cast the returned sink to the requested type, so returning a sink of an
+      // incompatible type would be undefined behaviour
+      QUILL_THROW(QuillError{"A sink named \"" + sink_name + "\" already exists with an incompatible type"});
+    }
+#endif
+
     return sink ? sink : _create_reserved_sink<TSink>(sink_id, static_cast<Args&&>(args)...);
   }
 

@@ -16,6 +16,16 @@
   #include <malloc.h>
 #else
   #include <sys/mman.h>
+  #if defined(__linux__)
+    // MAP_HUGE_2MB can be missing from older libc headers; construct it from the kernel ABI
+    // values (page size log2, shifted by MAP_HUGE_SHIFT)
+    #if !defined(MAP_HUGE_SHIFT)
+      #define MAP_HUGE_SHIFT 26
+    #endif
+    #if !defined(MAP_HUGE_2MB)
+      #define MAP_HUGE_2MB (21 << MAP_HUGE_SHIFT)
+    #endif
+  #endif
 #endif
 
 #if defined(QUILL_X86ARCH)
@@ -362,7 +372,7 @@ private:
 #else
     // Calculate the total size including the metadata and alignment
     constexpr size_t metadata_size{2u * sizeof(size_t)};
-    size_t const total_size{size + metadata_size + alignment};
+    size_t total_size{size + metadata_size + alignment};
 
     // Allocate the memory
     int flags = MAP_PRIVATE | MAP_ANONYMOUS;
@@ -370,7 +380,11 @@ private:
   #if defined(__linux__)
     if (huge_pages_policy != HugePagesPolicy::Never)
     {
-      flags |= MAP_HUGETLB;
+      // Request 2 MiB pages explicitly so the page size is known. The rounding cannot
+      // overflow: _validate_capacity() caps the capacity well below SIZE_MAX / 2
+      constexpr size_t huge_page_size{2u * 1024u * 1024u};
+      total_size = ((total_size + huge_page_size - 1u) / huge_page_size) * huge_page_size;
+      flags |= MAP_HUGETLB | MAP_HUGE_2MB;
     }
   #endif
 
@@ -379,8 +393,10 @@ private:
   #if defined(__linux__)
     if ((mem == MAP_FAILED) && (huge_pages_policy == HugePagesPolicy::Try))
     {
-      // we tried but failed allocating huge pages, try normal pages instead
-      flags &= ~MAP_HUGETLB;
+      // we tried but failed allocating huge pages, try normal pages instead. Normal pages do
+      // not need the huge-page-size rounding of the length
+      flags &= ~(MAP_HUGETLB | MAP_HUGE_2MB);
+      total_size = size + metadata_size + alignment;
       mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
     }
   #endif

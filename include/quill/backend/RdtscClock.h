@@ -158,23 +158,26 @@ public:
 
     // get the current index, this is only safe to call from the thread that is doing the resync
     auto const index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
+    uint64_t const base_tsc = _base[index].base_tsc.load(std::memory_order_relaxed);
+    int64_t const base_time = _base[index].base_time.load(std::memory_order_relaxed);
 
     // Unsigned subtraction + int64_t cast: a stale rdtsc_value yields a small negative
     // diff, producing a wall time slightly in the past. This is intentional.
-    auto diff = static_cast<int64_t>(rdtsc_value - _base[index].base_tsc);
+    auto diff = static_cast<int64_t>(rdtsc_value - base_tsc);
 
     // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value
     if (diff > _resync_interval_ticks)
     {
       resync(resync_lag_cycles);
       auto const resynced_index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
-      diff = static_cast<int64_t>(rdtsc_value - _base[resynced_index].base_tsc);
-      return static_cast<uint64_t>(_base[resynced_index].base_time +
+      uint64_t const resynced_base_tsc = _base[resynced_index].base_tsc.load(std::memory_order_relaxed);
+      int64_t const resynced_base_time = _base[resynced_index].base_time.load(std::memory_order_relaxed);
+      diff = static_cast<int64_t>(rdtsc_value - resynced_base_tsc);
+      return static_cast<uint64_t>(resynced_base_time +
                                    static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
     }
 
-    return static_cast<uint64_t>(_base[index].base_time +
-                                 static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
+    return static_cast<uint64_t>(base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
   }
 
   /***/
@@ -189,17 +192,23 @@ public:
     {
       version = _version.load(std::memory_order_acquire);
       auto const index = version & (_base.size() - 1);
+      uint64_t const base_tsc = _base[index].base_tsc.load(std::memory_order_relaxed);
+      int64_t const base_time = _base[index].base_time.load(std::memory_order_relaxed);
 
-      if (QUILL_UNLIKELY((_base[index].base_tsc) == 0 && (_base[index].base_time == 0)))
+      if (QUILL_UNLIKELY((base_tsc == 0) && (base_time == 0)))
       {
         return 0;
       }
 
       // get rdtsc current value and compare the diff then add it to base wall time
-      auto const diff = static_cast<int64_t>(rdtsc_value - _base[index].base_tsc);
-      wall_ts = static_cast<uint64_t>(_base[index].base_time +
-                                      static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
-    } while (version != _version.load(std::memory_order_acquire));
+      auto const diff = static_cast<int64_t>(rdtsc_value - base_tsc);
+      wall_ts = static_cast<uint64_t>(base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
+
+      // The fence prevents the relaxed data loads above from being reordered after the version
+      // re-check below on weakly-ordered architectures; an acquire load alone does not stop
+      // earlier loads from sinking past it
+      std::atomic_thread_fence(std::memory_order_acquire);
+    } while (version != _version.load(std::memory_order_relaxed));
 
     return wall_ts;
   }
@@ -221,8 +230,8 @@ public:
       {
         // update the next index
         auto const index = (_version.load(std::memory_order_relaxed) + 1) & (_base.size() - 1);
-        _base[index].base_time = wall_time;
-        _base[index].base_tsc = _fast_average(beg, end);
+        _base[index].base_time.store(wall_time, std::memory_order_relaxed);
+        _base[index].base_tsc.store(_fast_average(beg, end), std::memory_order_relaxed);
         _version.fetch_add(1, std::memory_order_release);
 
         _resync_interval_ticks = _resync_interval_original;
@@ -248,8 +257,8 @@ protected:
   struct BaseTimeTsc
   {
     BaseTimeTsc() = default;
-    int64_t base_time{0}; /**< Get the initial base time in nanoseconds from epoch */
-    uint64_t base_tsc{0}; /**< Get the initial base tsc time */
+    std::atomic<int64_t> base_time{0}; /**< Get the initial base time in nanoseconds from epoch */
+    std::atomic<uint64_t> base_tsc{0}; /**< Get the initial base tsc time */
   };
 
   /***/

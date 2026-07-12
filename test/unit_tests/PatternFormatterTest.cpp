@@ -1259,4 +1259,50 @@ TEST_CASE("pattern_suffix_multiline_metadata_with_no_suffix")
   }
 }
 
+TEST_CASE("pattern_with_literal_braces")
+{
+  // Literal '{' and '}' in the format pattern must appear verbatim in the output. Previously
+  // they were passed unescaped into the fmt format string, silently swallowing attributes
+  // (adjacent braces formed '{{...}}' escapes and the leftover '{}' consumed the next
+  // attribute) or making every format call throw for unpaired braces
+  PatternFormatter custom_pattern_formatter{PatternFormatterOptions{
+    "{%(log_level_short_code)} { %(message) } trailing {", "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello {}", nullptr, LogLevel::Debug, MacroMetadata::Event::Log};
+
+  fmtquill::memory_buffer log_msg;
+  fmtquill::format_to(std::back_inserter(log_msg),
+                      fmtquill::runtime(macro_metadata.message_format()), "world");
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  auto const& formatted_buffer = custom_pattern_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
+
+  std::string const formatted_string = fmtquill::to_string(formatted_buffer);
+  std::string const expected_string = "{D} { hello world } trailing {\n";
+
+  REQUIRE_EQ(formatted_string, expected_string);
+
+  // Keep compatibility with the traditional fmt spelling for literal braces.
+  PatternFormatter doubled_brace_formatter{
+    PatternFormatterOptions{"{{%(message)}}", "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+  auto const& doubled_brace_buffer = doubled_brace_formatter.format(
+    ts, thread_id, thread_name, process_id, logger_name, "DEBUG", "D", macro_metadata, &named_args,
+    std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
+  REQUIRE_EQ(fmtquill::to_string(doubled_brace_buffer), "{hello world}\n");
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+  // Invalid fmt specifications must fail during construction, not later on the backend thread.
+  REQUIRE_THROWS_AS(PatternFormatter(PatternFormatterOptions{"%(message:invalid)", "%H:%M:%S.%Qns",
+                                                             Timezone::GmtTime, false}),
+                    quill::QuillError);
+#endif
+}
+
 TEST_SUITE_END();

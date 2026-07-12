@@ -56,7 +56,7 @@ private:
 };
 
 /**
- * Tests that named args are correctly cleared by logging several messages with and without parameters
+ * Tests that named args are correctly cleared by logging several messages with and without  parameters
  **/
 TEST_CASE("json_varied_params_logging")
 {

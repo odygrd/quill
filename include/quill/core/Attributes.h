@@ -85,7 +85,7 @@
  */
 #ifndef QUILL_MAYBE_UNUSED
   // MSVC reports __cplusplus as 199711L unless /Zc:__cplusplus is passed; check _MSVC_LANG too
-  #if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused) && \
+  #if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused) &&                                                     \
     ((__cplusplus >= 201703L) || (defined(_MSVC_LANG) && (_MSVC_LANG >= 201703L)))
     #define QUILL_MAYBE_UNUSED [[maybe_unused]]
   #elif QUILL_HAS_ATTRIBUTE(__unused__)
@@ -208,9 +208,7 @@
  */
 #ifndef QUILL_BEGIN_EXPORT
   #if defined(QUILL_MODULE)
-    #define QUILL_BEGIN_EXPORT                                                                     \
-      export                                                                                       \
-      {
+    #define QUILL_BEGIN_EXPORT export {
     #define QUILL_END_EXPORT }
   #else
     #define QUILL_BEGIN_EXPORT
