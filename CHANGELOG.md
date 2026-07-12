@@ -129,6 +129,7 @@
 - `TransitEventBuffer` expansion now moves the existing events instead of default-constructing and discarding a
   `FormatBuffer` allocation for every slot.
 - Fixed a C++ data race in `BackendTscClock` snapshot reads when resynchronization reused a slot concurrently.
+- Fixed SIGTERM and SIGINT handling when the backend is running without a valid logger.
 - Minutely and hourly rotation boundaries now stay wall-clock aligned after a late-triggered rotation, instead of
   permanently drifting off the initial rotation time point.
 - Fixed a number of minor bugs and hardened edge cases across the frontend, backend, sinks and codecs, including
