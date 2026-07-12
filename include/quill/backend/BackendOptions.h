@@ -213,8 +213,11 @@ struct BackendOptions
    * By default, the backend is not pinned to any CPU unless values are specified.
    * It is recommended to pin the backend to shared non-critical CPUs.
    *
+   * @note A failure to apply the affinity is reported through `error_notifier`; in
+   *       QUILL_NO_EXCEPTIONS builds it invokes the fatal error path instead.
    * @note On macOS, only the first entry is used because the platform does not expose a per-core
-   *       affinity API equivalent to Linux/Windows CPU masks.
+   *       affinity API equivalent to Linux/Windows CPU masks. Apple Silicon does not support the
+   *       affinity policy at all, so leave this option empty there.
    * @note On Windows, CPU IDs are relative to the backend thread's current processor group
    *       because this option uses SetThreadAffinityMask. Leave this empty and use a custom
    *       backend-thread hook if your application needs group-aware affinity.

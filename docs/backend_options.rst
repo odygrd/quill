@@ -17,6 +17,8 @@ For example, to pin the backend worker thread to specific CPUs, you can use the 
 .. note::
 
    On macOS, only the first CPU entry is used because the platform does not provide a per-core affinity API equivalent to Linux and Windows CPU masks.
+   Apple Silicon does not support the affinity policy at all, so leave ``cpu_affinity`` empty there.
+   On all platforms, a failure to apply the affinity is reported through ``error_notifier``; in ``QUILL_NO_EXCEPTIONS`` builds it invokes Quill's fatal error path instead.
 
 .. note::
 

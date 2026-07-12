@@ -185,10 +185,15 @@ public:
           }
         }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _notify_error(_options.error_notifier, e.what()); }
+        // The backend continues running without the affinity, prefix as a warning
+        QUILL_CATCH(std::exception const& e)
+        {
+          _notify_error(_options.error_notifier, _get_local_time_str() + " Quill WARNING: " + e.what());
+        }
         QUILL_CATCH_ALL()
         {
-          _notify_error(_options.error_notifier, std::string{"Caught unhandled exception."});
+          _notify_error(_options.error_notifier,
+                        _get_local_time_str() + " Quill WARNING: Caught unhandled exception.");
         }
 #endif
 
@@ -198,10 +203,15 @@ public:
           set_thread_name(_options.thread_name.data());
         }
 #if !defined(QUILL_NO_EXCEPTIONS)
-        QUILL_CATCH(std::exception const& e) { _notify_error(_options.error_notifier, e.what()); }
+        // The backend continues running without the thread name, prefix as a warning
+        QUILL_CATCH(std::exception const& e)
+        {
+          _notify_error(_options.error_notifier, _get_local_time_str() + " Quill WARNING: " + e.what());
+        }
         QUILL_CATCH_ALL()
         {
-          _notify_error(_options.error_notifier, std::string{"Caught unhandled exception."});
+          _notify_error(_options.error_notifier,
+                        _get_local_time_str() + " Quill WARNING: Caught unhandled exception.");
         }
 #endif
 
@@ -351,6 +361,20 @@ private:
 
     poll_end_called = true;
     _invoke_poll_hook(_options.backend_worker_on_poll_end);
+  }
+
+  /**
+   * Formats the current local time as "HH:MM:SS", matching the prefix used by the
+   * "Quill INFO:" queue notifications
+   */
+  QUILL_NODISCARD static std::string _get_local_time_str()
+  {
+    char ts[24];
+    time_t t = time(nullptr);
+    tm p;
+    localtime_rs(std::addressof(t), std::addressof(p));
+    strftime(ts, 24, "%X", std::addressof(p));
+    return std::string{ts};
   }
 
   template <typename TMessage>
@@ -1374,11 +1398,7 @@ private:
 
       if (QUILL_UNLIKELY(failed_events_cnt > 0))
       {
-        char timestamp[24];
-        time_t now = time(nullptr);
-        tm local_time;
-        localtime_rs(&now, &local_time);
-        strftime(timestamp, sizeof(timestamp), "%X", &local_time);
+        std::string const timestamp = _get_local_time_str();
 
         if (thread_context->has_dropping_queue())
         {
@@ -1612,19 +1632,13 @@ private:
       // When allocation_info has a value it means that the queue has re-allocated
       if (_options.error_notifier)
       {
-        char ts[24];
-        time_t t = time(nullptr);
-        tm p;
-        localtime_rs(std::addressof(t), std::addressof(p));
-        strftime(ts, 24, "%X", std::addressof(p));
-
         // we switched to a new here, and we also notify the user of the allocation via the
         // error_notifier
         _notify_error(
           _options.error_notifier,
           fmtquill::format("{} Quill INFO: Allocated a new SPSC queue with a capacity of {} KiB "
                            "(previously {} KiB) from thread {}",
-                           ts, (read_result.new_capacity / 1024),
+                           _get_local_time_str(), (read_result.new_capacity / 1024),
                            (read_result.previous_capacity / 1024), thread_context->thread_id()));
       }
     }

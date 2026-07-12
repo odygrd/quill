@@ -29,6 +29,7 @@
 
   #include "quill/backend/ThreadUtilities.h"
 #elif defined(__APPLE__)
+  #include <mach/mach_error.h>
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
   #include <pthread.h>
@@ -98,9 +99,14 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(QUILL_MAYBE_UNUSED std::vector
   // Get the mach thread bound to this thread
   thread_port_t mach_thread = pthread_mach_thread_np(pthread_self());
 
-  thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, 1);
+  auto const err = thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, 1);
+  if (QUILL_UNLIKELY(err != KERN_SUCCESS))
+  {
+    QUILL_THROW(QuillError{std::string{"Failed to set cpu affinity - error: "} +
+                           std::to_string(err) + " " + mach_error_string(err)});
+  }
 #else
-  // Linux
+  // POSIX platforms
   #if defined(__NetBSD__)
   cpuset_t* cpuset;
   cpuset = cpuset_create();
@@ -153,11 +159,20 @@ QUILL_ATTRIBUTE_COLD inline void set_cpu_affinity(QUILL_MAYBE_UNUSED std::vector
   auto const err = sched_setaffinity(0, sizeof(cpuset), &cpuset);
   #endif
 
+  #if defined(__FreeBSD__) || defined(__NetBSD__)
+  if (QUILL_UNLIKELY(err != 0))
+  {
+    auto const error = std::error_code(err, std::generic_category());
+    QUILL_THROW(QuillError{std::string{
+      "Failed to set cpu affinity - error: " + std::to_string(error.value()) + " " + error.message()}});
+  }
+  #else
   if (QUILL_UNLIKELY(err == -1))
   {
     QUILL_THROW(QuillError{std::string{"Failed to set cpu affinity - errno: " + std::to_string(errno) +
                                        " error: " + std::strerror(errno)}});
   }
+  #endif
 #endif
 }
 

@@ -132,8 +132,10 @@ TEST_CASE("backend_exception_notifier")
 
   #if !(defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
   // Look for the async errors
-  std::string const expected_string_1 = "error handler invoked Failed to set cpu affinity ";
-  std::string const expected_string_2 = "error handler invoked Failed to set thread name ";
+  // The notified message is prefixed with a local timestamp, e.g.
+  // "error handler invoked 14:35:45 Quill WARNING: Failed to set cpu affinity ..."
+  std::string const expected_string_1 = "Quill WARNING: Failed to set cpu affinity ";
+  std::string const expected_string_2 = "Quill WARNING: Failed to set thread name ";
 
   bool const has_any_error = quill::testing::file_contains(file_contents, expected_string_1) ||
     quill::testing::file_contains(file_contents, expected_string_2);
