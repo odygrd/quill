@@ -66,10 +66,10 @@ TEST_CASE("log_arguments_evaluation")
   REQUIRE_EQ(logger_evaluation_count, 1);
 
   LOG_INFO_LIMIT(std::chrono::nanoseconds{0}, logger_expression(),
-                 "Rate limited logger expression");
+                 "Rate limited logger expression {}", 1);
   REQUIRE_EQ(logger_evaluation_count, 2);
 
-  LOG_INFO_LIMIT_EVERY_N(1, logger_expression(), "Every N logger expression");
+  LOG_INFO_LIMIT_EVERY_N(1, logger_expression(), "Every N logger expression {}", 1);
   REQUIRE_EQ(logger_evaluation_count, 3);
 
   logger->init_backtrace(1, LogLevel::Error);

@@ -15,11 +15,11 @@ namespace
 #if !defined(QUILL_NO_EXCEPTIONS)
 void set_log_level_env(char const* value)
 {
-#if defined(_WIN32)
+  #if defined(_WIN32)
   _putenv_s("QUILL_LOG_LEVEL", value);
-#else
+  #else
   setenv("QUILL_LOG_LEVEL", value, 1);
-#endif
+  #endif
 }
 #endif
 } // namespace

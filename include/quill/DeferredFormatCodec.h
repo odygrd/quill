@@ -103,19 +103,15 @@ private:
   // This check takes a `friend struct quill::DeferredFormatCodec<T>` declaration into account,
   // unlike std::is_default_constructible. It supports the documented trivially-copyable recipe
   // whose default constructor is private.
-  template <typename U, typename = void>
-  struct is_default_constructible : std::false_type
-  {
-  };
-
   template <typename U>
-  struct is_default_constructible<U, std::void_t<decltype(U())>> : std::true_type
-  {
-  };
+  static auto is_default_constructible(int) -> decltype(U(), std::true_type{});
+
+  template <typename>
+  static auto is_default_constructible(...) -> std::false_type;
 
 public:
   static constexpr bool use_memcpy =
-    std::conjunction_v<std::is_trivially_copyable<T>, is_default_constructible<T>>;
+    std::conjunction_v<std::is_trivially_copyable<T>, decltype(is_default_constructible<T>(0))>;
 
   static size_t compute_encoded_size(detail::SizeCacheVector&, T const&) noexcept
   {

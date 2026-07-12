@@ -170,17 +170,14 @@ public:
     {
       resync(resync_lag_cycles);
       auto const resynced_index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
-      uint64_t const resynced_base_tsc =
-        _base[resynced_index].base_tsc.load(std::memory_order_relaxed);
-      int64_t const resynced_base_time =
-        _base[resynced_index].base_time.load(std::memory_order_relaxed);
+      uint64_t const resynced_base_tsc = _base[resynced_index].base_tsc.load(std::memory_order_relaxed);
+      int64_t const resynced_base_time = _base[resynced_index].base_time.load(std::memory_order_relaxed);
       diff = static_cast<int64_t>(rdtsc_value - resynced_base_tsc);
       return static_cast<uint64_t>(resynced_base_time +
                                    static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
     }
 
-    return static_cast<uint64_t>(base_time +
-                                 static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
+    return static_cast<uint64_t>(base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
   }
 
   /***/
@@ -205,8 +202,7 @@ public:
 
       // get rdtsc current value and compare the diff then add it to base wall time
       auto const diff = static_cast<int64_t>(rdtsc_value - base_tsc);
-      wall_ts = static_cast<uint64_t>(base_time +
-                                      static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
+      wall_ts = static_cast<uint64_t>(base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
 
       // The fence prevents the relaxed data loads above from being reordered after the version
       // re-check below on weakly-ordered architectures; an acquire load alone does not stop

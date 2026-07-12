@@ -136,6 +136,13 @@ public:
     return _worker_thread_id.load();
   }
 
+  /***/
+  QUILL_ATTRIBUTE_COLD static void validate_options(BackendOptions const& options)
+  {
+    (void)BackendMdcState{options.mdc_format_pattern};
+    _validate_transit_event_limits(options);
+  }
+
   /**
    * Starts the backend worker thread
    * @throws std::runtime_error, std::system_error on failures
@@ -148,10 +155,7 @@ public:
 
     _process_id = std::to_string(get_process_id());
 
-    // Validate eagerly so Backend::start() can fail on the caller thread instead of surfacing
-    // the error later from the backend poll loop.
-    (void)BackendMdcState{options.mdc_format_pattern};
-    _validate_transit_event_limits(options);
+    validate_options(options);
 
     if (options.check_backend_singleton_instance)
     {
@@ -234,10 +238,11 @@ public:
 
         // Synchronise with BackendWorker::stop() before tearing down backend-owned state. The loop
         // above intentionally uses a relaxed load on the hot path; this acquire load is cold and
-        // pairs with stop()'s exchange(false) so Quill API calls sequenced-before stop() happen-before
-        // _exit() deletes resources such as RdtscClock.
+        // pairs with stop()'s exchange(false) so Quill API calls sequenced-before stop()
+        // happen-before _exit() deletes resources such as RdtscClock.
         QUILL_MAYBE_UNUSED bool const stopped = _is_worker_running.load(std::memory_order_acquire);
-        QUILL_ASSERT(!stopped, "Backend worker should only exit after stop() clears the running flag");
+        QUILL_ASSERT(!stopped,
+                     "Backend worker should only exit after stop() clears the running flag");
 
         // exit
         QUILL_TRY { _exit(); }
@@ -291,7 +296,10 @@ public:
       QUILL_TRY { _exit(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH(std::exception const& e) { _notify_error(_options.error_notifier, e.what()); }
-      QUILL_CATCH_ALL() { _notify_error(_options.error_notifier, std::string{"Caught unhandled exception."}); }
+      QUILL_CATCH_ALL()
+      {
+        _notify_error(_options.error_notifier, std::string{"Caught unhandled exception."});
+      }
 #endif
     }
 
@@ -548,8 +556,7 @@ private:
     _options = options;
 
     // ManualBackendWorker::init() calls _init() directly, so validate here as well.
-    (void)BackendMdcState{_options.mdc_format_pattern};
-    _validate_transit_event_limits(_options);
+    validate_options(_options);
 
     (void)get_thread_name();
 
@@ -1327,13 +1334,13 @@ private:
         {
           if (default_log_statement.empty())
           {
-            // Use the default formatted log statement, here by checking empty() we try to format once
-            // even for multiple sinks
+            // Use the default formatted log statement, here by checking empty() we try to format
+            // once even for multiple sinks
             default_log_statement = transit_event.logger_base->_pattern_formatter->format(
               transit_event.timestamp, thread_id, thread_name, _process_id,
-              transit_event.logger_base->_logger_name, log_level_description,
-              log_level_short_code, *transit_event.macro_metadata,
-              transit_event.get_named_args(), log_message, transit_event.mdc());
+              transit_event.logger_base->_logger_name, log_level_description, log_level_short_code,
+              *transit_event.macro_metadata, transit_event.get_named_args(), log_message,
+              transit_event.mdc());
           }
 
           log_to_write = default_log_statement;
@@ -1351,24 +1358,21 @@ private:
 
           // Use the sink's override formatter
           log_to_write = sink->_override_pattern_formatter->format(
-            transit_event.timestamp, thread_id, thread_name, _process_id,
-            transit_event.logger_base->_logger_name, log_level_description,
-            log_level_short_code, *transit_event.macro_metadata,
+            transit_event.timestamp, thread_id, thread_name, _process_id, transit_event.logger_base->_logger_name,
+            log_level_description, log_level_short_code, *transit_event.macro_metadata,
             transit_event.get_named_args(), log_message, transit_event.mdc());
         }
 
         // Apply filters now that we have the formatted log
         if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp,
-                                    thread_id, thread_name,
-                                    transit_event.logger_base->_logger_name,
+                                    thread_id, thread_name, transit_event.logger_base->_logger_name,
                                     transit_event.log_level(), log_message, log_to_write))
         {
           // Forward the message using the computed log statement that passed the filter
           sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
                           thread_name, _process_id, transit_event.logger_base->_logger_name,
-                          transit_event.log_level(), log_level_description,
-                          log_level_short_code, transit_event.get_named_args(), log_message,
-                          log_to_write);
+                          transit_event.log_level(), log_level_description, log_level_short_code,
+                          transit_event.get_named_args(), log_message, log_to_write);
         }
       }
 #if !defined(QUILL_NO_EXCEPTIONS)

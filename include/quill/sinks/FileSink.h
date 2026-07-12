@@ -456,8 +456,8 @@ protected:
         creation_disposition = CREATE_ALWAYS;
       }
 
-      native_file_handle = ::CreateFileW(filename.c_str(), GENERIC_WRITE,
-                                         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+      native_file_handle = ::CreateFileW(
+        filename.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         nullptr, creation_disposition, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
 
       if (native_file_handle == INVALID_HANDLE_VALUE)
@@ -487,9 +487,9 @@ protected:
 
     if (native_file_handle == INVALID_HANDLE_VALUE)
     {
-      QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} + std::to_string(max_retries) +
-                             " attempts, path: " + filename.string() + " mode: " + mode +
-                             " GetLastError: " + std::to_string(last_error)});
+      QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} +
+                             std::to_string(max_retries) + " attempts, path: " + filename.string() +
+                             " mode: " + mode + " GetLastError: " + std::to_string(last_error)});
     }
 
     _native_write_buffer_cap = _native_write_buffer_capacity();
@@ -610,8 +610,7 @@ protected:
         overlapped_ptr = &overlapped;
       }
 
-      if (!::WriteFile(_native_file_handle, data, chunk, &bytes_written, overlapped_ptr) ||
-          (bytes_written == 0))
+      if (!::WriteFile(_native_file_handle, data, chunk, &bytes_written, overlapped_ptr) || (bytes_written == 0))
       {
         QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
                                std::to_string(::GetLastError())});

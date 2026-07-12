@@ -14,7 +14,11 @@ using namespace quill;
 
 TEST_CASE("signal_handler_sigterm_without_logger")
 {
-#if !defined(_WIN32)
+#if defined(_WIN32) || !defined(QUILL_ENABLE_EXTENSIVE_TESTS) ||                                   \
+  QUILL_HAS_FEATURE(thread_sanitizer) || defined(__SANITIZE_THREAD__)
+  // This fork-based signal test is opt-in and unsupported under TSan.
+  return;
+#else
   pid_t const child_pid = fork();
   REQUIRE_NE(child_pid, -1);
 

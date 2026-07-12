@@ -104,8 +104,8 @@ QUILL_NODISCARD inline std::string ws2s(std::wstring const& wstr)
   }
 
   std::string ret_val(static_cast<size_t>(size_needed), 0);
-  ::WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()),
-                        &ret_val[0], size_needed, nullptr, nullptr);
+  ::WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), &ret_val[0],
+                        size_needed, nullptr, nullptr);
   return ret_val;
 }
 

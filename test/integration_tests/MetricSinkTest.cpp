@@ -89,8 +89,7 @@ TEST_CASE("metric_sink")
   auto throwing_sink = Frontend::create_or_get_sink<ThrowingFanoutSink>(throwing_sink_name);
   auto metric_sink = Frontend::create_or_get_sink<MetricCapturingSink>(sink_name);
   Logger* logger = Frontend::create_or_get_logger(
-    logger_name,
-    std::initializer_list<std::shared_ptr<Sink>>{throwing_sink, metric_sink});
+    logger_name, std::initializer_list<std::shared_ptr<Sink>>{throwing_sink, metric_sink});
 
   MetricMetadata const* metric_metadata =
     Frontend::create_metric(metric_key, "requests_total", {{"method", "POST"}, {"status", "200"}});

@@ -97,9 +97,9 @@ public:
     // a user-provided formatter for the complete tuple can intentionally support elements that
     // have no standalone formatter. The check lives here rather than at class scope so that
     // decode-only nested use of this codec does not require a formatter for the tuple itself.
-    static_assert(
-      fmtquill::is_formattable<DecodedTuple, char>::value,
-      "Codec<std::tuple<Types...>> requires the decoded tuple type to be formattable by bundled fmt");
+    static_assert(fmtquill::is_formattable<DecodedTuple, char>::value,
+                  "Codec<std::tuple<Types...>> requires the decoded tuple type to be formattable "
+                  "by bundled fmt");
 
     if constexpr (std::conjunction_v<std::is_move_constructible<decltype(Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))>...>)
     {

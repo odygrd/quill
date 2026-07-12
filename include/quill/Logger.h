@@ -543,10 +543,10 @@ private:
   LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
              UserClockSource* user_clock)
-    : detail::LoggerBase(
-        static_cast<std::string&&>(logger_name), static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
-        static_cast<PatternFormatterOptions&&>(pattern_formatter_options),
-        user_clock ? ClockSourceType::User : clock_source, user_clock)
+    : detail::LoggerBase(static_cast<std::string&&>(logger_name),
+                         static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+                         static_cast<PatternFormatterOptions&&>(pattern_formatter_options),
+                         user_clock ? ClockSourceType::User : clock_source, user_clock)
   {
   }
 

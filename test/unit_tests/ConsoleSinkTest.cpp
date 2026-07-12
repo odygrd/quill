@@ -15,7 +15,14 @@ public:
   TestConsoleSink(ConsoleSinkConfig const& config, FileEventNotifier notifier)
     : ConsoleSink(config, std::move(notifier))
   {
+#if defined(_WIN32)
+    if (::tmpfile_s(&_file) != 0)
+    {
+      _file = nullptr;
+    }
+#else
     _file = std::tmpfile();
+#endif
   }
 
   ~TestConsoleSink() override
@@ -46,7 +53,8 @@ public:
     std::string result(static_cast<size_t>(file_size), '\0');
     if (!result.empty())
     {
-      (void)std::fread(result.data(), sizeof(char), result.size(), _file);
+      size_t const bytes_read = std::fread(result.data(), sizeof(char), result.size(), _file);
+      result.resize(bytes_read);
     }
     return result;
   }

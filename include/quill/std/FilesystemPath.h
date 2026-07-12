@@ -19,8 +19,6 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <type_traits>
-
 #if defined(_WIN32)
   #include "quill/std/WideString.h"
 #endif
@@ -32,66 +30,24 @@ QUILL_BEGIN_EXPORT
 template <>
 struct Codec<fs::path>
 {
-  // native() returns the internal string by const reference; The constexpr dispatch below
-  // guarantees string_type matches the codec type, so the bytes are identical
+  // native() returns the internal string by const reference, avoiding a temporary string
 
   static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, fs::path const& arg)
   {
-    if constexpr (std::is_same_v<fs::path::string_type, std::string>)
-    {
-      return Codec<std::string>::compute_encoded_size(conditional_arg_size_cache, arg.native());
-    }
-#if defined(_WIN32)
-    else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
-    {
-      return Codec<std::wstring>::compute_encoded_size(conditional_arg_size_cache, arg.native());
-    }
-#endif
-    else
-    {
-      detail::codec_not_found_for_type<fs::path::string_type>();
-      return 0;
-    }
+    return Codec<fs::path::string_type>::compute_encoded_size(conditional_arg_size_cache, arg.native());
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, fs::path const& arg)
   {
-    if constexpr (std::is_same_v<fs::path::string_type, std::string>)
-    {
-      Codec<std::string>::encode(buffer, conditional_arg_size_cache,
-                                 conditional_arg_size_cache_index, arg.native());
-    }
-#if defined(_WIN32)
-    else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
-    {
-      Codec<std::wstring>::encode(buffer, conditional_arg_size_cache,
-                                  conditional_arg_size_cache_index, arg.native());
-    }
-#endif
-    else
-    {
-      detail::codec_not_found_for_type<fs::path::string_type>();
-    }
+    Codec<fs::path::string_type>::encode(buffer, conditional_arg_size_cache,
+                                         conditional_arg_size_cache_index, arg.native());
   }
 
   static fs::path decode_arg(std::byte*& buffer)
   {
-    if constexpr (std::is_same_v<fs::path::string_type, std::string>)
-    {
-      return fs::path{Codec<std::string_view>::decode_arg(buffer)};
-    }
-#if defined(_WIN32)
-    else if constexpr (std::is_same_v<fs::path::string_type, std::wstring>)
-    {
-      return fs::path{Codec<std::wstring_view>::decode_arg(buffer)};
-    }
-#endif
-    else
-    {
-      detail::codec_not_found_for_type<fs::path::string_type>();
-      return fs::path{};
-    }
+    using NativeStringView = std::basic_string_view<fs::path::value_type>;
+    return fs::path{Codec<NativeStringView>::decode_arg(buffer)};
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)

@@ -111,8 +111,7 @@ TEST_CASE("time_since_epoch_safe_handles_concurrent_slot_reuse")
 
   for (uint32_t generation = 1; generation <= iterations; ++generation)
   {
-    tsc_clock.publish_snapshot(static_cast<int64_t>(expected_wall_time + generation),
-                               rdtsc_value + generation);
+    tsc_clock.publish_snapshot(static_cast<int64_t>(expected_wall_time + generation), rdtsc_value + generation);
     if ((generation & 0xffu) == 0u)
     {
       std::this_thread::yield();
