@@ -275,6 +275,13 @@ Logging STL Library Types
 -------------------------
 To log STL types, include the relevant header from ``quill/std/``. There is support for most ``STL`` types.
 
+.. note::
+
+    Quill creates a temporary container on the backend when it formats the log message. Custom allocators,
+    comparators, hash functions, and equality functions must work when default constructed; any settings stored in
+    the original objects are not copied. They must also accept the decoded element type. For example,
+    ``std::greater<int>`` works, but use ``std::greater<>`` rather than ``std::greater<std::string>`` for string keys.
+
 .. code:: cpp
 
     #include "quill/std/Vector.h"
