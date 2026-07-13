@@ -166,8 +166,9 @@ protected:
    * to perform custom tasks. For example, batch committing to a database, or any other
    * desired periodic operations.
    * @note It is recommended to avoid heavy operations within this function as it may affect performance of the backend thread.
+   * @note In exception-enabled builds, exceptions are forwarded to the configured backend error notifier.
    */
-  QUILL_ATTRIBUTE_HOT virtual void run_periodic_tasks() noexcept {}
+  QUILL_ATTRIBUTE_HOT virtual void run_periodic_tasks() {}
 
   /**
    * @brief Applies all registered filters to the log record.
