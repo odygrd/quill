@@ -238,6 +238,8 @@ struct BackendOptions
    * to sinks. It only disables the callback notifications themselves.
    *
    * It's safe to perform logging operations within this function (e.g., LOG_INFO(...)).
+   * If the backend fills its own blocking frontend queue, additional backend-thread records are
+   * dropped because waiting for the backend to consume them would self-deadlock.
    * Calling logger->flush_log(), Backend::stop(), or Frontend::remove_logger_blocking() from the
    * backend thread throws QuillError because the backend cannot wait on itself. If the logger has
    * immediate flush enabled, the implicit flush is silently skipped for backend-thread log calls so
