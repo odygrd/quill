@@ -153,6 +153,8 @@
 - Exceptions from custom sink periodic tasks are now reported through `error_notifier` instead of terminating the process.
 - Concurrent `Backend::stop()` callers now wait for the in-progress shutdown to complete before returning.
 - Default JSON sinks now suffix named arguments that collide with built-in JSON fields, avoiding duplicate object keys.
+- Oversized runtime source paths are now truncated safely instead of overflowing metadata offsets.
+- Negative backend and file-sync intervals are now rejected during configuration.
 
 ## v12.0.0
 

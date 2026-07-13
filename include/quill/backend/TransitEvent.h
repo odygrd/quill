@@ -15,6 +15,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -250,8 +251,18 @@ struct TransitEvent
         return std::string{};
       }
 
+      std::string_view file_path{file};
+      constexpr size_t max_file_path_length{(std::numeric_limits<uint16_t>::max)()};
+
+      // MacroMetadata stores source-location offsets as uint16_t. Keep the path suffix so the
+      // filename and line offsets remain representable while preserving the most useful part.
+      if (QUILL_UNLIKELY(file_path.size() > max_file_path_length))
+      {
+        file_path.remove_prefix(file_path.size() - max_file_path_length);
+      }
+
       // Format as "file:line"
-      return std::string{file} + ":" + std::to_string(line);
+      return std::string{file_path} + ":" + std::to_string(line);
     }
   };
 
