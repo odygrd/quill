@@ -39,6 +39,10 @@ public:
    */
   QUILL_ATTRIBUTE_COLD static void start(BackendOptions const& options = BackendOptions{})
   {
+    // Keep deterministic validation outside call_once: TSan's pthread_once interceptor cannot
+    // recover its once state when the callable exits with an exception.
+    detail::BackendWorker::validate_options(options);
+
     std::call_once(detail::BackendManager::instance().get_start_once_flag(),
                    [options]()
                    {
@@ -99,6 +103,8 @@ public:
   QUILL_ATTRIBUTE_COLD static void start(BackendOptions const& backend_options,
                                          SignalHandlerOptions const& signal_handler_options)
   {
+    detail::BackendWorker::validate_options(backend_options);
+
     std::call_once(
       detail::BackendManager::instance().get_start_once_flag(),
       [backend_options, signal_handler_options]()

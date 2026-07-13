@@ -1,6 +1,6 @@
 #include "doctest/doctest.h"
 
-#include "misc/TestUtilities.h"
+#include "misc/DocTestExtensions.h"
 #include "quill/backend/BackendOptions.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/QuillError.h"

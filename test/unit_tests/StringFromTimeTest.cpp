@@ -1,6 +1,8 @@
 #include "quill/backend/StringFromTime.h"
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
+#include <clocale>
+#include <cstdlib>
 #include <ctime>
 #include <limits>
 
@@ -8,6 +10,100 @@ TEST_SUITE_BEGIN("StringFromTime");
 
 using namespace quill;
 using namespace quill::detail;
+
+#if !defined(_WIN32)
+class ScopedTimezone
+{
+public:
+  explicit ScopedTimezone(char const* timezone)
+  {
+    if (char const* current_tz = std::getenv("TZ"))
+    {
+      _previous_tz = current_tz;
+      _had_tz = true;
+    }
+
+    setenv("TZ", timezone, 1);
+    tzset();
+  }
+
+  ~ScopedTimezone()
+  {
+    if (_had_tz)
+    {
+      setenv("TZ", _previous_tz.c_str(), 1);
+    }
+    else
+    {
+      unsetenv("TZ");
+    }
+    tzset();
+  }
+
+  ScopedTimezone(ScopedTimezone const&) = delete;
+  ScopedTimezone& operator=(ScopedTimezone const&) = delete;
+
+private:
+  std::string _previous_tz;
+  bool _had_tz{false};
+};
+#endif
+
+/***/
+TEST_CASE("string_from_time_handles_legitimately_empty_strftime_expansion")
+{
+  // strftime returns 0 both for a too-small buffer and for a legitimately empty expansion.
+  // %p formats to an empty string in some locales (e.g. fr_FR); this must not be treated as a
+  // buffer-too-small failure, which previously grew the buffer to its cap and then threw on
+  // every formatted timestamp
+  time_t const timestamp = 1686528000; // 2023-06-12 00:00:00 UTC
+
+  {
+    // Sanity check in the default locale first: %p is "AM"
+    StringFromTime string_from_time;
+    string_from_time.init("%I%p", Timezone::GmtTime);
+    REQUIRE_EQ(string_from_time.format_timestamp(timestamp), "12AM");
+  }
+
+  struct ScopedLcTime
+  {
+    ~ScopedLcTime() { std::setlocale(LC_TIME, "C"); }
+  } scoped_lc_time;
+
+  if (std::setlocale(LC_TIME, "fr_FR.UTF-8") == nullptr)
+  {
+    // locale is not installed on this machine
+    return;
+  }
+
+  StringFromTime string_from_time;
+  string_from_time.init("%I%p", Timezone::GmtTime);
+  REQUIRE_EQ(string_from_time.format_timestamp(timestamp), "12");
+}
+
+/***/
+TEST_CASE("string_from_time_rejects_time_embedding_composite_modifiers")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  // These modifiers embed the time of day but are not split into dynamic parts, so the displayed
+  // time would silently freeze at the cached value between recalculations. init() must reject
+  // them instead.
+  for (auto const* fmt :
+       {"%X", "%EX", "%c", "%Ec", "%OH", "%OI", "%OM", "%OS", "prefix %H:%M %c suffix"})
+  {
+    StringFromTime string_from_time;
+    REQUIRE_THROWS_AS(string_from_time.init(fmt, Timezone::GmtTime), QuillError);
+  }
+
+  // escaped variants are literal text and must remain accepted
+  for (auto const* fmt : {"literal %%X", "literal %%EX", "literal %%c", "literal %%Ec",
+                          "literal %%OH", "literal %%OI", "literal %%OM", "literal %%OS"})
+  {
+    StringFromTime string_from_time;
+    string_from_time.init(fmt, Timezone::GmtTime);
+  }
+#endif
+}
 
 /***/
 TEST_CASE("string_from_time_localtime_format_time")
@@ -361,12 +457,13 @@ TEST_CASE("string_from_time_gmtime_format_s_crossing_10_digits_preserves_surroun
   {
     auto const& actual = string_from_time.format_timestamp(raw_ts);
 
-    std::tm time_info{};
-    quill::detail::gmtime_rs(&raw_ts, &time_info);
-    char expected[256];
-    std::strftime(expected, sizeof(expected), fmt.data(), &time_info);
+    // %s is timezone-independent, so the expected value is the raw epoch value. Note that
+    // strftime's %s cannot be used as a reference here: it round-trips through mktime() which
+    // interprets the gmtime broken-down time as local time, producing a utc-offset-shifted
+    // value on non-utc machines
+    std::string const expected = "X" + std::to_string(raw_ts) + "Z";
 
-    REQUIRE_STREQ(actual.data(), expected);
+    REQUIRE_STREQ(actual.data(), expected.data());
   }
 #else
   return;
@@ -390,12 +487,46 @@ TEST_CASE("string_from_time_gmtime_format_s_crossing_11_digits_preserves_suffix"
   {
     auto const& actual = string_from_time.format_timestamp(raw_ts);
 
-    std::tm time_info{};
-    quill::detail::gmtime_rs(&raw_ts, &time_info);
-    char expected[256];
-    std::strftime(expected, sizeof(expected), fmt.data(), &time_info);
+    // %s is timezone-independent, so the expected value is the raw epoch value
+    std::string const expected = std::to_string(raw_ts) + "Z";
 
-    REQUIRE_STREQ(actual.data(), expected);
+    REQUIRE_STREQ(actual.data(), expected.data());
+  }
+#else
+  return;
+#endif
+}
+
+/***/
+TEST_CASE("string_from_time_gmtime_format_s_non_utc_timezone")
+{
+#if !defined(_WIN32)
+  // %s in GmtTime mode must produce the raw epoch value regardless of the machine's local
+  // timezone. It previously went through strftime, whose %s round-trips the gmtime broken-down
+  // time via mktime() and shifted the value by the utc offset
+  // Use a POSIX TZ string so the test does not depend on zoneinfo data being installed.
+  ScopedTimezone const scoped_timezone{"EST5"};
+
+  {
+    std::string fmt = "%s";
+    StringFromTime string_from_time;
+    string_from_time.init(fmt, Timezone::GmtTime);
+
+    time_t const start_ts = 1751884800;
+
+    // first iteration exercises the full recalculation path, the rest the incremental path
+    for (time_t raw_ts = start_ts; raw_ts <= start_ts + 3; ++raw_ts)
+    {
+      auto const& actual = string_from_time.format_timestamp(raw_ts);
+      std::string const expected = std::to_string(raw_ts);
+      REQUIRE_STREQ(actual.data(), expected.data());
+    }
+
+    // also exercise the back-in-time strftime fallback path
+    time_t const back_in_time_ts = start_ts - 100;
+    auto const& fallback_actual = string_from_time.format_timestamp(back_in_time_ts);
+    std::string const fallback_expected = std::to_string(back_in_time_ts);
+    REQUIRE_STREQ(fallback_actual.data(), fallback_expected.data());
   }
 #else
   return;

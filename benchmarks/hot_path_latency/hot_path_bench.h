@@ -23,6 +23,24 @@
 #include <random>
 #include <thread>
 
+// Pinning can legitimately fail (e.g. Apple Silicon does not support the affinity policy);
+// warn and continue instead of terminating the benchmark
+inline void try_set_cpu_affinity(std::vector<uint16_t> const& cpus)
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  quill::detail::set_cpu_affinity(cpus);
+#else
+  try
+  {
+    quill::detail::set_cpu_affinity(cpus);
+  }
+  catch (std::exception const& e)
+  {
+    std::cerr << "Failed to set cpu affinity: " << e.what() << std::endl;
+  }
+#endif
+}
+
 inline uint16_t get_cpu_to_pin_thread(uint16_t thread_num)
 {
   auto const num_cores = static_cast<uint16_t>(std::thread::hardware_concurrency());
@@ -83,7 +101,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
                               size_t participant_count, size_t current_thread_num)
 {
   // running thread affinity
-  quill::detail::set_cpu_affinity({get_cpu_to_pin_thread(static_cast<uint16_t>(current_thread_num))});
+  try_set_cpu_affinity({get_cpu_to_pin_thread(static_cast<uint16_t>(current_thread_num))});
 
   on_thread_start();
   wait_for_all_threads_to_start(started_threads, participant_count);
@@ -120,7 +138,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
                               std::vector<uint64_t>& latencies, double rdtsc_ns_per_tick)
 {
   // running thread affinity
-  quill::detail::set_cpu_affinity({get_cpu_to_pin_thread(current_thread_num)});
+  try_set_cpu_affinity({get_cpu_to_pin_thread(current_thread_num)});
 
   on_thread_start();
   wait_for_all_threads_to_start(started_threads, participant_count);
@@ -171,7 +189,7 @@ inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t 
   }
 
   // main thread affinity
-  quill::detail::set_cpu_affinity({0});
+  try_set_cpu_affinity({0});
 
 #ifndef PERF_ENABLED
   std::cout << "running for " << thread_count << " thread(s)" << std::endl;

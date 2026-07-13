@@ -4,13 +4,6 @@ function(quill_add_test TEST_NAME SOURCES)
             ../misc/TestUtilities.h
     )
 
-    set(ADD_SOURCE_FILES
-            ../misc/TestMain.cpp
-            ../misc/TestUtilities.cpp
-            ../misc/DocTestExtensions.cpp)
-
-    list(APPEND SOURCES ${ADD_SOURCE_FILES})
-
     # Create a test executable
     add_executable(${TEST_NAME} "")
 
@@ -31,9 +24,9 @@ function(quill_add_test TEST_NAME SOURCES)
     # Link dependencies
     check_cxx_atomics_available(HAVE_CXX_ATOMIC)
     if (HAVE_CXX_ATOMIC)
-        target_link_libraries(${TEST_NAME} quill)
+        target_link_libraries(${TEST_NAME} quill quill_test_common)
     else ()
-        target_link_libraries(${TEST_NAME} quill atomic)
+        target_link_libraries(${TEST_NAME} quill quill_test_common atomic)
     endif ()
 
     if (QUILL_ENABLE_EXTENSIVE_TESTS)
@@ -67,6 +60,7 @@ quill_add_test(TEST_BackendExceptionNotifier BackendExceptionNotifierTest.cpp)
 quill_add_test(TEST_BackendImmediateFlushFromBackendThread BackendImmediateFlushFromBackendThreadTest.cpp)
 quill_add_test(TEST_ErrorNotifierThrows ErrorNotifierThrowsTest.cpp)
 quill_add_test(TEST_BackendLongSleepAndNotify BackendLongSleepAndNotifyTest.cpp)
+quill_add_test(TEST_BackendStartInvalidTransitLimits BackendStartInvalidTransitLimitsTest.cpp)
 quill_add_test(TEST_BackendStartSignalRollback BackendStartSignalRollbackTest.cpp)
 quill_add_test(TEST_BackendTransitBufferHardLimit BackendTransitBufferHardLimitTest.cpp)
 quill_add_test(TEST_BackendTransitBufferSoftLimit BackendTransitBufferSoftLimitTest.cpp)
@@ -79,6 +73,7 @@ quill_add_test(TEST_ManualBackendWorkerTimeoutPoll ManualBackendWorkerTimeoutPol
 quill_add_test(TEST_MetricSink MetricSinkTest.cpp)
 quill_add_test(TEST_BacktraceDynamicLogLevel BacktraceDynamicLogLevelTest.cpp)
 quill_add_test(TEST_BacktraceFlushOnError BacktraceFlushOnErrorTest.cpp)
+quill_add_test(TEST_BacktraceSinkErrorNoDuplicateFlush BacktraceSinkErrorNoDuplicateFlushTest.cpp)
 quill_add_test(TEST_BacktraceMultithreadedStressTest BacktraceMultithreadedStressTest.cpp)
 quill_add_test(TEST_BacktraceManualFlush BacktraceManualFlushTest.cpp)
 quill_add_test(TEST_BacktraceNoFlush BacktraceNoFlushTest.cpp)
@@ -104,6 +99,7 @@ quill_add_test(TEST_CsvWriterAfterClose CsvWriterAfterCloseTest.cpp)
 quill_add_test(TEST_CsvWritingCustomFrontend CsvWritingCustomFrontendTest.cpp)
 quill_add_test(TEST_EnumLogging EnumLoggingTest.cpp)
 quill_add_test(TEST_ErrorNotifierDisabled ErrorNotifierDisabledTest.cpp)
+quill_add_test(TEST_EnvironmentLogLevelInitialization EnvironmentLogLevelInitializationTest.cpp)
 quill_add_test(TEST_FlushMultipleLoggers FlushMultipleLoggers.cpp)
 quill_add_test(TEST_FlushWithoutAnyLog FlushWithoutAnyLog.cpp)
 quill_add_test(TEST_JsonConsoleLogging JsonConsoleLoggingTest.cpp)
@@ -145,6 +141,7 @@ quill_add_test(TEST_RuntimeMetadataDroppingQueueNotifier RuntimeMetadataDropping
 quill_add_test(TEST_ShrinkThreadLocalQueueTest ShrinkThreadLocalQueueTest.cpp)
 quill_add_test(TEST_SignalHandler SignalHandlerTest.cpp)
 quill_add_test(TEST_SignalHandlerLogger SignalHandlerLoggerTest.cpp)
+quill_add_test(TEST_SignalHandlerWithoutLogger SignalHandlerWithoutLoggerTest.cpp)
 quill_add_test(TEST_SimpleSetupConsoleStream SimpleSetupConsoleStreamTest.cpp)
 quill_add_test(TEST_SingleFrontendThreadMultipleLoggers SingleFrontendThreadMultipleLoggersTest.cpp)
 quill_add_test(TEST_SingleFrontendThread SingleFrontendThreadTest.cpp)
@@ -200,5 +197,6 @@ if (WIN32)
     quill_add_test(TEST_WideStdTypesLogging WideStdTypesLoggingTest.cpp)
     quill_add_test(TEST_WideStringLogging WideStringLoggingTest.cpp)
     quill_add_test(TEST_WideStringLargeLogging WideStringLargeLoggingTest.cpp)
+    quill_add_test(TEST_WideStringWindowsHeaderMacros WideStringWindowsHeaderMacrosTest.cpp)
     quill_add_test(TEST_WindowsConsoleSignalHandlerUnhandled WindowsConsoleSignalHandlerUnhandledTest.cpp)
 endif ()

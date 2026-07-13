@@ -164,6 +164,7 @@ public:
                             ClockSourceType clock_source, UserClockSource* user_clock)
   {
     LockGuard const lock{_spinlock};
+    _ensure_env_log_level_parsed();
 
     LoggerBase* logger_ptr = _find_logger(logger_name);
 
@@ -214,6 +215,7 @@ public:
                                    ClockSourceType clock_source, UserClockSource* user_clock)
   {
     LockGuard const lock{_spinlock};
+    _ensure_env_log_level_parsed();
 
     LoggerBase* logger_ptr = _find_logger(logger_name);
 
@@ -323,6 +325,7 @@ public:
     constexpr char const* field = "QUILL_LOG_LEVEL";
 
     std::string log_level;
+    std::optional<LogLevel> env_log_level;
 
 #if defined(_MSC_VER)
     size_t len = 0;
@@ -342,7 +345,20 @@ public:
 
     if (!log_level.empty())
     {
-      QUILL_TRY { _env_log_level = loglevel_from_string(log_level); }
+      QUILL_TRY
+      {
+        LogLevel const parsed_log_level = loglevel_from_string(log_level);
+
+        if (parsed_log_level == LogLevel::Backtrace)
+        {
+          // set_log_level() rejects Backtrace, but by the time it runs the logger is already
+          // registered, leaving a half-configured logger behind. Fail here instead so the
+          // error is attributed to the environment variable
+          QUILL_THROW(QuillError{"LogLevel::Backtrace is only used internally"});
+        }
+
+        env_log_level = parsed_log_level;
+      }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH(QuillError const& e)
       {
@@ -353,12 +369,26 @@ public:
       }
 #endif
     }
+
+    // Commit only after parsing and validation succeed. If parsing throws, first logger creation
+    // can be retried after the environment is corrected without retaining partial state.
+    _env_log_level = env_log_level;
+    _env_log_level_parsed = true;
   }
 
 private:
-  LoggerManager() { parse_log_level_from_env(); }
+  LoggerManager() = default;
 
   ~LoggerManager() = default;
+
+  /***/
+  QUILL_ATTRIBUTE_COLD void _ensure_env_log_level_parsed()
+  {
+    if (!_env_log_level_parsed)
+    {
+      parse_log_level_from_env();
+    }
+  }
 
   /***/
   void _insert_logger(std::unique_ptr<LoggerBase> logger)
@@ -387,6 +417,7 @@ private:
   std::optional<LogLevel> _env_log_level;
   mutable Spinlock _spinlock;
   std::atomic<bool> _has_invalidated_loggers{false};
+  bool _env_log_level_parsed{false};
 };
 } // namespace detail
 

@@ -16,6 +16,8 @@ Each frontend thread operates with its own queue, which can be configured with o
 
 Even though each thread has its own queue, a single queue type must be defined for the entire application. By default the `UnboundedBlocking` queue type is used.
 
+Queue capacities are rounded up to the next power of two. ``unbounded_queue_max_capacity`` must be greater than or equal to ``initial_queue_capacity``.
+
 To modify the queue type, define your own options type by deriving from :cpp:struct:`FrontendOptions` and overriding only the values that differ. Then use that type to create a custom :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl`.
 
 It is important to consistently use your custom types throughout the application, instead of the default ones.

@@ -149,18 +149,17 @@ struct is_std_string<std::basic_string<char, std::char_traits<char>, Allocator>>
 QUILL_BEGIN_EXPORT
 
 /**
- * Codec contract notes (apply to this primary template and every specialization, including
- * those in the quill/std headers):
+ * Codec exception contract:
  *
- *   compute_encoded_size() and encode() are intentionally NOT declared noexcept when they
- *   delegate to a nested Codec<T>. User-provided codecs (DirectFormatCodec, hand-written
- *   formatters, container element codecs that touch fs::path, std::wstring conversions, etc.)
- *   may throw at the frontend hot path. Marking the wrapper noexcept would turn that into
- *   std::terminate via the noexcept boundary. The exception propagates back through
- *   log_statement() and is reported via BackendWorker error_notifier on the backend side.
+ *   - compute_encoded_size() may throw safely because it runs before queue reservation.
+ *   - encode() must not throw. A failed record is not committed and does not block the queue, but
+ *     an earlier non-trivial DeferredFormatCodec argument in that record is not destroyed.
+ *   - decode_arg() and decode_and_store_arg() must consume their payload without throwing. Queue
+ *     records have no byte length, so the backend cannot skip a decoder-poisoned record.
  *
- *   Leaf specializations that only memcpy arithmetic/enum/raw-pointer payloads keep
- *   noexcept — they cannot throw.
+ * DeferredFormatCodec therefore requires non-throwing selected constructors/destructors, and
+ * DirectFormatCodec requires a non-throwing formatter. Custom decoders should catch recoverable
+ * errors and store a fallback value when possible.
  */
 
 /** typename = void for specializations with enable_if **/

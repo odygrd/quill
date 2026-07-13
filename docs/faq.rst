@@ -256,6 +256,15 @@ If your application uses ``fork()`` and you want to log in the child processes a
 Troubleshooting
 ----------------
 
+I see MSVC warning C4275 when exporting a class from a wrapper DLL
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This can happen when a Windows wrapper DLL exports a C++ class that derives from a Quill type which is not itself exported as a DLL-interface type. Custom filters are one example, but the same DLL-boundary concern can apply to other wrapper-owned extension classes.
+
+Prefer keeping concrete extension classes private to the wrapper implementation. Create and attach them in the same DLL that owns the Quill setup, and export small wrapper functions or opaque wrapper-owned handles for operations the consumer needs.
+
+This avoids exposing C++ class layout, STL members, vtables, constructors/destructors, and allocator ownership across the DLL boundary. For dynamic objects addressed by sink or logger name, the wrapper can keep a private registry from name to a callback or internal pointer owned by the wrapper.
+
 My log messages are not appearing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

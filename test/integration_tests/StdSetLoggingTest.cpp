@@ -9,6 +9,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <functional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -54,6 +55,9 @@ TEST_CASE("std_set_logging")
 
     std::set<int> i = {-123, 1};
     LOG_INFO(logger, "i {}", i);
+
+    std::set<int, std::greater<int>> greater_set = {1, 2, 3};
+    LOG_INFO(logger, "greater_set {}", greater_set);
 
     std::set<long> li = {9876, 1232};
     LOG_INFO(logger, "li {}", li);
@@ -157,6 +161,9 @@ TEST_CASE("std_set_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       i {-123, 1}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       greater_set {3, 2, 1}"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       li {1232, 9876}"}));

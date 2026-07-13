@@ -6,13 +6,6 @@ function(quill_add_test TEST_NAME SOURCES)
             ../misc/TestUtilities.h
     )
 
-    set(ADD_SOURCE_FILES
-            ../misc/TestMain.cpp
-            ../misc/TestUtilities.cpp
-            ../misc/DocTestExtensions.cpp)
-
-    list(APPEND SOURCES ${ADD_SOURCE_FILES})
-
     # Create a test executable
     add_executable(${TEST_NAME} "")
 
@@ -37,7 +30,7 @@ function(quill_add_test TEST_NAME SOURCES)
             ..)
 
     # Link dependencies
-    target_link_libraries(${TEST_NAME} quill)
+    target_link_libraries(${TEST_NAME} quill quill_test_common)
 
     if (QUILL_ENABLE_EXTENSIVE_TESTS)
         target_compile_definitions(${TEST_NAME} PRIVATE QUILL_ENABLE_EXTENSIVE_TESTS)
@@ -65,6 +58,7 @@ endfunction()
 
 include(Doctest)
 
+quill_add_test(TEST_BackendWorkerLock BackendWorkerLockTest.cpp)
 quill_add_test(TEST_BoundedQueueTest BoundedQueueTest.cpp)
 quill_add_test(TEST_BacktraceStorage BacktraceStorageTest.cpp)
 quill_add_test(TEST_BackendMdcState BackendMdcStateTest.cpp)

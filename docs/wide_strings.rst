@@ -5,11 +5,13 @@ Wide Strings
 
 Use this page if you need to log ``wchar_t`` strings on Windows. On other platforms, log UTF-8 strings directly after disabling character sanitization (see :doc:`Backend Options <backend_options>`).
 
-The library does not provide native support for writing Unicode characters to log files; only ASCII characters are supported by default. Non-ASCII characters (including UTF-8 encoded text) are automatically converted to their hexadecimal representation (e.g., Chinese characters appear as ``\xE4\xB8\xAD``). To log UTF-8 or other Unicode text properly, you need to disable character sanitization in :cpp:struct:`BackendOptions` (see :doc:`backend_options`).
+On Windows, Quill supports ``wchar_t*``, ``std::wstring``, and ``std::wstring_view`` log arguments. The wide-string data is copied on the frontend and converted to UTF-8 on the backend before it is formatted and written to sinks. Quill does not use fmt's wide-character formatting context and does not write UTF-16 log files.
 
-However, on Windows, wide strings compatible with ASCII encoding are supported.
+By default, Quill's character sanitizer allows only printable ASCII bytes, plus newline, tab, and carriage return. Non-ASCII UTF-8 bytes are converted to hexadecimal escapes (for example, Chinese text may appear as ``\xE4\xB8\xAD``). To write real UTF-8 Unicode text to file sinks, disable or customize :cpp:member:`BackendOptions::check_printable_char` (see :doc:`backend_options`).
 
-It is possible to pass wide characters, wide strings, or wide string views to the logger, but this functionality is specific to Windows.
+.. note::
+
+   Disable or customize ``BackendOptions::check_printable_char`` when you want non-ASCII wide-string output to appear as UTF-8 text in the sink. If the default sanitizer remains enabled, Unicode text is still logged safely, but non-ASCII bytes are written as hexadecimal escapes.
 
 How It Works
 ------------
@@ -31,7 +33,7 @@ Wide String Logging Example
     #include "quill/Frontend.h"
     #include "quill/LogMacros.h"
     #include "quill/Logger.h"
-    #include "quill/sinks/ConsoleSink.h"
+    #include "quill/sinks/FileSink.h"
     #include "quill/std/WideString.h"
 
     #include <string>
@@ -40,12 +42,15 @@ Wide String Logging Example
 
     int main()
     {
-      quill::Backend::start();
+      quill::BackendOptions backend_options;
+      backend_options.check_printable_char = {}; // Preserve UTF-8 output for non-ASCII text.
+      quill::Backend::start(backend_options);
 
-      auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
-      quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(console_sink));
+      auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("wide_strings.log");
+      quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
 
       std::wstring ws = L"example";
       std::wstring_view wsv{L"string_view"};
-      LOG_INFO(logger, "This is a log info example {} {}", ws, wsv);
+      std::wstring unicode_ws = L"\u4E2D\u6587 \u03A9";
+      LOG_INFO(logger, "This is a log info example {} {} {}", ws, wsv, unicode_ws);
     }

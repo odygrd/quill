@@ -97,7 +97,12 @@ public:
     {
       do
       {
-        fd = open(path.data(), O_CREAT | O_RDWR, 0644);
+        // O_CLOEXEC prevents the flock from leaking into fork/exec'd children, which would keep
+        // the lock alive after this process exits and falsely report a duplicate backend for an
+        // unrelated process that recycles the pid. O_NOFOLLOW refuses to open the predictable
+        // /tmp path through a symlink planted by another local user; the failure is then treated
+        // like any other open failure below and the check is skipped
+        fd = open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW, 0644);
       } while (fd == -1 && errno == EINTR);
 
       if (fd != -1)

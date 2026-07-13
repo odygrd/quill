@@ -24,6 +24,7 @@ on:
 jobs:
   clang_msvc:
     runs-on: windows-2022
+    timeout-minutes: 60
     strategy:
       matrix:
         compiler: [ clang-cl ]

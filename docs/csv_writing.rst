@@ -29,6 +29,21 @@ Csv output (orders.csv):
     132121123,META,300,478.32,SELL
     13212123,AAPL,120,210.42,BUY
 
+Field Escaping
+--------------
+
+Fields are written verbatim. A string field containing a comma, double quote or line break
+corrupts the CSV structure. For such fields, pass the value through
+``quill::utility::csv_escape_field()`` from ``quill/Utility.h``, which quotes the field according
+to RFC 4180 (fields without special characters are returned unchanged):
+
+.. code-block:: cpp
+
+    csv_writer.append_row(13212123, quill::utility::csv_escape_field("A,B \"C\""), 100, 210.32, "BUY");
+
+.. note:: ``csv_escape_field()`` returns a new ``std::string``. When writing on a latency-sensitive
+   path, prefer calling it only for fields that can actually contain special characters.
+
 CSV Writing To Existing Sink
 ----------------------------
 It is possible to pass an existing ``Sink``, or a custom user-created ``Sink``, to the CSV file for output. The following example shows how to use the console sink.

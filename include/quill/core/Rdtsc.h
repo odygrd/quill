@@ -49,25 +49,10 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 #elif (defined(__ARM_ARCH) && !defined(_MSC_VER))
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t rdtsc() noexcept
 {
-  #if (__ARM_ARCH >= 6)
-  // V6 is the earliest arch that has a standard cyclecount
-  uint32_t pmccntr;
-  uint32_t pmuseren;
-  uint32_t pmcntenset;
-
-  __asm__ volatile("mrc p15, 0, %0, c9, c14, 0" : "=r"(pmuseren));
-  if (pmuseren & 1)
-  {
-    __asm__ volatile("mrc p15, 0, %0, c9, c12, 1" : "=r"(pmcntenset));
-    if (pmcntenset & 0x80000000ul)
-    {
-      __asm__ volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(pmccntr));
-      return (static_cast<uint64_t>(pmccntr)) * 64u;
-    }
-  }
-  #endif
-
-  // soft failover
+  // 32-bit ARM: PMCCNTR is a 32-bit cycle counter that wraps within minutes and also assumes
+  // the PMCR.D divider is set. After a wrap, RdtscClock computes a hugely negative difference
+  // that never triggers a resync, producing timestamps far in the past. Use the steady clock
+  // instead, which was already the fallback when user-mode PMU access was unavailable
   return detail::get_steady_time_ns();
 }
 #elif defined(__riscv)

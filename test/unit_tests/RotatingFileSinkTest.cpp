@@ -10,6 +10,10 @@
 #include <ctime>
 #include <string>
 
+#if !defined(_WIN32)
+  #include <sys/stat.h>
+#endif
+
 TEST_SUITE_BEGIN("RotatingFileSink");
 
 using namespace quill;
@@ -305,6 +309,68 @@ TEST_CASE("rotating_file_sink_rename_failure_preserves_current_file_and_state")
   testing::remove_file(filename_1);
 }
 
+/***/
+TEST_CASE("rotating_file_sink_size_rotation_after_deleted_file_reopen")
+{
+#if !defined(_WIN32)
+  // Deleting a file that is still held open requires POSIX semantics
+  fs::path const filename = "rotating_file_sink_size_rotation_after_deleted_file_reopen.log";
+  fs::path const filename_1 = "rotating_file_sink_size_rotation_after_deleted_file_reopen.1.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(2048);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    auto write_record = [&rfh](size_t i)
+    {
+      std::string s{"Record [" + std::to_string(i) + "]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      std::string f;
+      f.resize(590);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    };
+
+    write_record(0);
+    rfh.flush_sink();
+
+    // Simulate an external process (e.g. logrotate) deleting the active log file
+    fs::remove(filename);
+
+    write_record(1);
+    rfh.flush_sink(); // detects the deleted file and reopens a fresh one
+
+    // Both records fit inside rotation_max_file_size of the recreated file. A stale
+    // _file_size carried over from before the reopen would trigger a bogus rotation here
+    write_record(2);
+    write_record(3);
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE_FALSE(fs::exists(filename_1));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [2]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [3]"), true);
+
+  testing::remove_file(filename);
+#endif
+}
+
 TEST_CASE("rotating_json_file_sink_size_rotation_uses_actual_json_size")
 {
   fs::path const estimate_filename = "rotating_json_file_sink_size_rotation_estimate.log";
@@ -366,6 +432,111 @@ TEST_CASE("rotating_json_file_sink_size_rotation_uses_actual_json_size")
 
   testing::remove_file(filename);
   testing::remove_file(filename_1);
+}
+
+TEST_CASE("rotating_json_file_sink_failed_rotation_does_not_replay_stale_message")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  // Regression: with size and time rotation both enabled, estimate_write_size() caches the built
+  // json message for the record. When the size rotation then threw (e.g. disk full during the
+  // reopen), the cached message was never consumed, and the next record that took the time
+  // rotation branch (which skips the estimate) wrote the previous record's stale json payload
+  // in its place
+  fs::path const estimate_filename = "rotating_json_failed_rotation_stale_estimate.log";
+  fs::path const filename = "rotating_json_failed_rotation_stale.log";
+  fs::path const filename_1 = "rotating_json_failed_rotation_stale.1.log";
+
+  testing::remove_file(estimate_filename);
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+
+  static constexpr MacroMetadata macro_metadata{
+    "rotating_json_failed_rotation_stale.cpp:42", "test_fn", "json message", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  auto write_json_record = [](auto& sink, std::string const& payload, uint64_t timestamp)
+  {
+    std::vector<std::pair<std::string, std::string>> named_args{{"payload", payload}};
+    sink.write_log(&macro_metadata, timestamp, "thread_id", "thread_name", "process_id",
+                   "logger_name", LogLevel::Info, "INFO", "I", &named_args, "ignored_log_message",
+                   "x");
+  };
+
+  // 2023-01-01 00:30:00 UTC; hourly rotation puts the first time boundary at most one hour later
+  std::chrono::system_clock::time_point const start_time{std::chrono::seconds{1672533000}};
+  uint64_t const start_time_ns = static_cast<uint64_t>(
+    std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
+  uint64_t const record_ab_timestamp = start_time_ns + 1'000'000'000;                  // + 1 second
+  uint64_t const record_c_timestamp = start_time_ns + (2u * 3600u * 1'000'000'000ull); // + 2 hours
+
+  // large enough that a single json record exceeds the 512-byte rotation_max_file_size minimum
+  std::string const payload_a(700, 'a');
+  std::string const payload_b(700, 'b');
+  std::string const payload_c(700, 'c');
+
+  // Measure the size of one json record so the second record triggers the size rotation
+  size_t estimated_json_size = 0;
+  {
+    FileSinkConfig cfg;
+    cfg.set_open_mode('w');
+
+    JsonFileSink json_sink{estimate_filename, cfg, FileEventNotifier{}};
+    write_json_record(json_sink, payload_a, record_ab_timestamp);
+    json_sink.flush_sink();
+
+    estimated_json_size = static_cast<size_t>(fs::file_size(estimate_filename));
+  }
+
+  testing::remove_file(estimate_filename);
+
+  bool fail_open{false};
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_open = [&fail_open](fs::path const&, FileEventNotifierHandle)
+  {
+    if (fail_open)
+    {
+      QUILL_THROW(QuillError{"after_open failure during rotation"});
+    }
+  };
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_open_mode('w');
+    cfg.set_rotation_max_file_size(estimated_json_size + 1);
+    cfg.set_rotation_frequency_and_interval('H', 1);
+
+    RotatingJsonFileSink sink{filename, cfg, file_event_notifier, start_time};
+
+    // Record A writes normally
+    write_json_record(sink, payload_a, record_ab_timestamp);
+
+    // Record B triggers the size rotation, and the rotation fails with an exception after the
+    // estimate already cached B's json message. B is lost; the backend catches and reports this
+    fail_open = true;
+    REQUIRE_THROWS_AS(write_json_record(sink, payload_b, record_ab_timestamp), QuillError);
+    fail_open = false;
+
+    // Record C triggers the time rotation branch, which skips the estimate. It must write C's
+    // own json message and not replay B's cached one
+    write_json_record(sink, payload_c, record_c_timestamp);
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+
+  // The rotated file holds record A
+  REQUIRE(testing::file_contains(file_contents_1, payload_a));
+
+  // The current file holds record C's payload; B's stale payload must not appear anywhere
+  REQUIRE(testing::file_contains(file_contents, payload_c));
+  REQUIRE_FALSE(testing::file_contains(file_contents, payload_b));
+  REQUIRE_FALSE(testing::file_contains(file_contents_1, payload_b));
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+#endif
 }
 
 /***/
@@ -1646,10 +1817,14 @@ TEST_CASE("rotating_file_sink_date_append_recovers_previous_run_files")
   // forever across restarts (#930)
   uint64_t const timestamp_20230612 = 1686528000000000000;
 
-  fs::path const filename_old_1 = "rotating_file_sink_date_append_recovers_previous_run_files.20230610.log";
-  fs::path const filename_old_2 = "rotating_file_sink_date_append_recovers_previous_run_files.20230611.log";
-  fs::path const filename_rotated = "rotating_file_sink_date_append_recovers_previous_run_files.20230612.log";
-  fs::path const filename_rotated_1 = "rotating_file_sink_date_append_recovers_previous_run_files.20230612.1.log";
+  fs::path const filename_old_1 =
+    "rotating_file_sink_date_append_recovers_previous_run_files.20230610.log";
+  fs::path const filename_old_2 =
+    "rotating_file_sink_date_append_recovers_previous_run_files.20230611.log";
+  fs::path const filename_rotated =
+    "rotating_file_sink_date_append_recovers_previous_run_files.20230612.log";
+  fs::path const filename_rotated_1 =
+    "rotating_file_sink_date_append_recovers_previous_run_files.20230612.1.log";
   fs::path const filename = "rotating_file_sink_date_append_recovers_previous_run_files.log";
 
   // create files simulating the previous runs
@@ -1813,6 +1988,115 @@ TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files")
   REQUIRE_FALSE(fs::exists(filename_old_3));
 
   // Read file and check
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
+
+  std::vector<std::string> const file_contents_rotated = testing::file_contents(filename_rotated);
+  REQUIRE_EQ(testing::file_contains(file_contents_rotated, "Record [0]"), true);
+
+  std::vector<std::string> const file_contents_rotated_1 = testing::file_contents(filename_rotated_1);
+  REQUIRE_EQ(testing::file_contains(file_contents_rotated_1, "Old [3]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+  testing::remove_file(filename_rotated_1);
+  testing::remove_file(filename_old_1);
+  testing::remove_file(filename_old_2);
+  testing::remove_file(filename_old_3);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension")
+{
+  // Extensionless base filenames still generate rotated names with suffixes that look like file
+  // extensions to std::filesystem::path::extension(); recovery must parse them as rotation
+  // suffixes instead of skipping them.
+  uint64_t const timestamp_20230612 = 1686538000000000000; // 20230612_024640
+  uint64_t const timestamp_20230613 = 1686634400000000000;
+
+  fs::path const filename_old_1 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.1."
+    "20230610_080000";
+  fs::path const filename_old_2 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.20230610_"
+    "080000";
+  fs::path const filename_old_3 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.20230611_"
+    "090000";
+  fs::path const filename_rotated =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.20230612_"
+    "024640";
+  fs::path const filename_rotated_1 =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension.1."
+    "20230612_024640";
+  fs::path const filename =
+    "rotating_file_sink_dateandtime_append_recovers_previous_run_files_without_extension";
+
+  testing::create_file(filename_old_1, "Old [0]");
+  testing::create_file(filename_old_2, "Old [1]");
+  testing::create_file(filename_old_3, "Old [2]");
+  testing::create_file(filename, "Old [3]");
+
+  REQUIRE(fs::exists(filename_old_1));
+  REQUIRE(fs::exists(filename_old_2));
+  REQUIRE(fs::exists(filename_old_3));
+  REQUIRE(fs::exists(filename));
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_max_backup_files(2);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    REQUIRE_FALSE(fs::exists(filename_old_1));
+    REQUIRE(fs::exists(filename_old_2));
+    REQUIRE(fs::exists(filename_old_3));
+    REQUIRE(fs::exists(filename));
+
+    {
+      std::string s{"Record [0]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+
+    {
+      std::string s{"Record [1]"};
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+
+      std::string f;
+      f.resize(1024);
+      formatted_log_statement.append(f.data(), f.data() + f.size());
+
+      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    }
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_rotated));
+  REQUIRE(fs::exists(filename_rotated_1));
+  REQUIRE_FALSE(fs::exists(filename_old_1));
+  REQUIRE_FALSE(fs::exists(filename_old_2));
+  REQUIRE_FALSE(fs::exists(filename_old_3));
+
   std::vector<std::string> const file_contents = testing::file_contents(filename);
   REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
 
@@ -3095,6 +3379,103 @@ TEST_CASE("time_rotation_initial_rotation_respects_interval_minutes")
   testing::remove_file(filename_rotated);
 }
 
+/***/
+TEST_CASE("time_rotation_interval_boundaries_stay_wall_clock_aligned")
+{
+  // Regression: a rotation triggered late (sparse logging past a missed boundary) used to
+  // schedule the next boundary at record_timestamp + interval, permanently drifting all
+  // subsequent boundaries off the wall-clock alignment of the initial rotation time point
+  uint64_t const timestamp_start = 1686528000000000000; // 2023-06-12 00:00:00 UTC
+  uint64_t const one_minute_ns =
+    static_cast<uint64_t>(std::chrono::nanoseconds(std::chrono::minutes(1)).count());
+
+  fs::path const filename = "time_rotation_interval_boundaries_aligned.log";
+  fs::path const filename_rotated = "time_rotation_interval_boundaries_aligned.20230612.log";
+  fs::path const filename_rotated_1 = "time_rotation_interval_boundaries_aligned.20230612.1.log";
+  fs::path const filename_rotated_2 = "time_rotation_interval_boundaries_aligned.20230612.2.log";
+  fs::path const filename_rotated_3 = "time_rotation_interval_boundaries_aligned.20230612.3.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+  testing::remove_file(filename_rotated_1);
+  testing::remove_file(filename_rotated_2);
+  testing::remove_file(filename_rotated_3);
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_frequency_and_interval('m', 5);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_start / 1000000000))};
+
+    auto write_record = [&rfh](std::string const& s, uint64_t timestamp)
+    {
+      std::string formatted_log_statement;
+      formatted_log_statement.append(s.data(), s.data() + s.size());
+      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    };
+
+    // Boundaries are aligned at +5m, +10m, +15m, ...
+    write_record("Record [0]", timestamp_start);
+
+    // +7m is 2 minutes past the missed +5m boundary and triggers the first rotation. The next
+    // boundary must stay at +10m; the drifting behaviour would schedule it at +12m instead
+    write_record("Record [1]", timestamp_start + (7 * one_minute_ns));
+
+    // +11m is past the aligned +10m boundary and must trigger the second rotation. With the
+    // drifted +12m boundary it would stay in the same file. The next boundary becomes +15m
+    write_record("Record [2]", timestamp_start + (11 * one_minute_ns));
+
+    // +27m is more than two whole intervals past the missed +15m boundary. This triggers
+    // exactly one rotation (empty windows do not produce empty files) and the next boundary
+    // jumps to the next aligned multiple after the record: +30m, not +32m
+    write_record("Record [3]", timestamp_start + (27 * one_minute_ns));
+
+    // +29m is before the +30m boundary and must not rotate; it stays with Record [3]
+    write_record("Record [4]", timestamp_start + (29 * one_minute_ns));
+
+    // +31m is past the aligned +30m boundary and rotates again
+    write_record("Record [5]", timestamp_start + (31 * one_minute_ns));
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_rotated));
+  REQUIRE(fs::exists(filename_rotated_1));
+  REQUIRE(fs::exists(filename_rotated_2));
+  REQUIRE(fs::exists(filename_rotated_3));
+
+  std::vector<std::string> const rotated_contents_3 = testing::file_contents(filename_rotated_3);
+  REQUIRE_EQ(testing::file_contains(rotated_contents_3, "Record [0]"), true);
+
+  std::vector<std::string> const rotated_contents_2 = testing::file_contents(filename_rotated_2);
+  REQUIRE_EQ(testing::file_contains(rotated_contents_2, "Record [1]"), true);
+
+  std::vector<std::string> const rotated_contents_1 = testing::file_contents(filename_rotated_1);
+  REQUIRE_EQ(testing::file_contains(rotated_contents_1, "Record [2]"), true);
+
+  std::vector<std::string> const rotated_contents = testing::file_contents(filename_rotated);
+  REQUIRE_EQ(testing::file_contains(rotated_contents, "Record [3]"), true);
+  REQUIRE_EQ(testing::file_contains(rotated_contents, "Record [4]"), true);
+
+  std::vector<std::string> const current_contents = testing::file_contents(filename);
+  REQUIRE_EQ(testing::file_contains(current_contents, "Record [5]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_rotated);
+  testing::remove_file(filename_rotated_1);
+  testing::remove_file(filename_rotated_2);
+  testing::remove_file(filename_rotated_3);
+}
+
 #ifdef QUILL_ENABLE_EXTENSIVE_TESTS
 TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_localtime_dst")
 {
@@ -3611,6 +3992,80 @@ TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
   write("Record [2]\n");
 
   fs::remove_all(log_dir, ec);
+#endif
+}
+
+/***/
+TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups")
+{
+#if defined(_WIN32)
+  // Removing directory-list permission portably requires ACL manipulation on Windows.
+  return;
+#else
+  fs::path const log_dir = "rotating_file_sink_scan_failure";
+  fs::path const filename = log_dir / "application.log";
+  fs::path const backup_filename = log_dir / "application.1.log";
+
+  std::error_code ec;
+  fs::remove_all(log_dir, ec);
+  fs::create_directories(log_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  std::string const active_prefix(500, 'A');
+  std::string const backup_sentinel{"existing backup must survive"};
+  testing::create_file(filename, active_prefix);
+  testing::create_file(backup_filename, backup_sentinel);
+
+  struct DirectoryCleanup
+  {
+    explicit DirectoryCleanup(fs::path path) : path{std::move(path)} {}
+    ~DirectoryCleanup()
+    {
+      restore_permissions();
+      std::error_code remove_ec;
+      fs::remove_all(path, remove_ec);
+    }
+
+    void restore_permissions() const noexcept { (void)::chmod(path.string().c_str(), 0700); }
+
+    fs::path path;
+  } directory_cleanup{log_dir};
+
+  if (::chmod(log_dir.string().c_str(), 0300) != 0)
+  {
+    return;
+  }
+
+  // Root and some filesystems can still enumerate this directory; skip when the failure cannot
+  // be reproduced on the current platform.
+  std::error_code probe_ec;
+  fs::directory_iterator probe{log_dir, probe_ec};
+  (void)probe;
+  if (!probe_ec)
+  {
+    return;
+  }
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_max_file_size(512);
+    cfg.set_open_mode('a');
+
+    RotatingFileSink sink{filename, cfg, FileEventNotifier{}};
+    std::string const appended_record(64, 'B');
+    sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                   std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", appended_record);
+  }
+
+  directory_cleanup.restore_permissions();
+
+  std::vector<std::string> const backup_contents = testing::file_contents(backup_filename);
+  REQUIRE_EQ(backup_contents.size(), 1u);
+  REQUIRE_EQ(backup_contents[0], backup_sentinel);
+
+  std::vector<std::string> const active_contents = testing::file_contents(filename);
+  REQUIRE_EQ(active_contents.size(), 1u);
+  REQUIRE_EQ(active_contents[0], active_prefix + std::string(64, 'B'));
 #endif
 }
 

@@ -266,9 +266,8 @@ TEST_CASE("dev_null_special_path")
   REQUIRE_NE(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 #endif
 
-  file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                      std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "",
-                      "dev null test\n");
+  file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                      LogLevel::Info, "INFO", "I", nullptr, "", "dev null test\n");
   file_sink.flush_sink();
 }
 
@@ -295,15 +294,14 @@ TEST_CASE("windows_append_mode_appends_after_external_writer")
     write_record(file_sink, "first\n");
 
     HANDLE external_file_handle =
-      ::CreateFileW(filename.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+      ::CreateFileW(filename.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                    OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     REQUIRE_NE(external_file_handle, INVALID_HANDLE_VALUE);
 
     char const external_record[] = "external\n";
     DWORD bytes_written{0};
     REQUIRE(::WriteFile(external_file_handle, external_record,
-                        static_cast<DWORD>(sizeof(external_record) - 1u), &bytes_written,
-                        nullptr));
+                        static_cast<DWORD>(sizeof(external_record) - 1u), &bytes_written, nullptr));
     REQUIRE_EQ(bytes_written, static_cast<DWORD>(sizeof(external_record) - 1u));
     REQUIRE(::CloseHandle(external_file_handle));
 

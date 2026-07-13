@@ -231,6 +231,10 @@ TEST_CASE("std_array_logging")
     LOG_INFO(logger, "temp_no_default_arr {}",
              std::array<ArrayNoDefaultType, 2>{ArrayNoDefaultType{"temp_left", 3},
                                                ArrayNoDefaultType{"temp_right", 4}});
+
+    // const-qualified element types must compile and decode through the underlying codecs
+    std::array<std::string const, 2> const_elems_arr{{"const_one", "const_two"}};
+    LOG_INFO(logger, "const_elems_arr {}", const_elems_arr);
   }
 
   logger->flush_log();
@@ -336,6 +340,9 @@ TEST_CASE("std_array_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_no_default_arr [ArrayNoDefault(label: temp_left, value: 3), ArrayNoDefault(label: temp_right, value: 4)]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       const_elems_arr [\"const_one\", \"const_two\"]"}));
 
   testing::remove_file(filename);
 }

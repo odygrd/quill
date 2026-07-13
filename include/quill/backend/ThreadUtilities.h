@@ -104,8 +104,8 @@ QUILL_NODISCARD inline std::string ws2s(std::wstring const& wstr)
   }
 
   std::string ret_val(static_cast<size_t>(size_needed), 0);
-  ::WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()),
-                        &ret_val[0], size_needed, nullptr, nullptr);
+  ::WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), &ret_val[0],
+                        size_needed, nullptr, nullptr);
   return ret_val;
 }
 
@@ -194,7 +194,10 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
   auto res = pthread_getname_np(pthread_self(), &thread_name[0], 16);
   if (res != 0)
   {
-    QUILL_THROW(QuillError{"Failed to get thread name. error: " + std::to_string(res)});
+    // This runs on each thread's first log statement, and glibc reads the name from procfs;
+    // degrade gracefully like the Windows branch instead of failing the log statement in
+    // /proc-less environments (minimal containers, chroots)
+    return std::string{"ThreadNameDisabled"};
   }
   #endif
   return std::string{&thread_name[0], strlen(&thread_name[0])};

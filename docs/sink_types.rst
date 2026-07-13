@@ -27,7 +27,9 @@ Each file can only have a single instance of `FileSink`.
    ``before_close``, and ``after_close`` run on whichever thread performs the file open/close
    operation. Different callbacks, and different invocations of the same callback, may therefore
    run on different threads over the sink lifetime. Callbacks must be thread-safe and must not
-   assume a single calling thread.
+   assume a single calling thread. When ``before_write`` changes the message size, size-based
+   rotation evaluates its threshold using the pre-transform size of the current message, so a
+   rotation can trigger up to one transformed message later or earlier than the exact limit.
 
 .. literalinclude:: snippets/quill_docs_example_file.cpp
    :language: cpp
@@ -41,11 +43,15 @@ The :cpp:type:`RotatingFileSink` is built on top of the `FileSink` and provides 
 .. note::
 
    When the sink starts in append mode, rotated files left behind by previous runs are detected
-   for every ``RotationNamingScheme`` and count towards ``max_backup_files``; the oldest ones are
-   removed on startup if they exceed the limit, so log files do not accumulate across restarts.
-   Set ``set_overwrite_rolled_files(false)`` to prevent append-mode recovery from deleting
-   existing rotated files, or use ``FilenameAppendOption::StartDateTime`` to give each run its
-   own independent set of files.
+   for every ``RotationNamingScheme`` and count towards ``max_backup_files`` whether or not the
+   base filename has an extension; the oldest ones are removed on startup if they exceed the
+   limit, so log files do not accumulate across restarts. Set
+   ``set_overwrite_rolled_files(false)`` to prevent append-mode recovery from deleting existing
+   rotated files, or use ``FilenameAppendOption::StartDateTime`` to give each run its own
+   independent set of files.
+
+   If the startup directory cannot be enumerated safely, existing rotated files are left untouched
+   and rotation is disabled for that sink instance. Writes to the active file continue normally.
 
 .. literalinclude:: ../examples/rotating_file_logging.cpp
    :language: cpp

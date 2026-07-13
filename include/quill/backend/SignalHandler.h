@@ -357,6 +357,12 @@ void on_signal(int32_t signal_number)
       }
     }
 
+    // SIGINT and SIGTERM must still terminate when no valid logger was found.
+    if (signal_number == SIGINT || signal_number == SIGTERM)
+    {
+      std::_Exit(EXIT_SUCCESS);
+    }
+
     // If we reach here it means we have no valid logger or should_reraise_signal is false.
     // For synchronous fault signals we must not return to avoid re-executing the faulting instruction.
     if (is_synchronous_fault_signal(signal_number))

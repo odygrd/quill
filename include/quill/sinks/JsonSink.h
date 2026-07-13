@@ -179,6 +179,8 @@ protected:
     return _json_message.size();
   }
 
+  void discard_write_estimate() noexcept { _json_message_ready = false; }
+
   static void _append_json_escaped(fmtquill::memory_buffer& out, std::string_view value)
   {
     // Pre-computed escape table for control characters (0x00..0x1F). Each entry is the 6-byte

@@ -47,8 +47,8 @@ public:
     : _data{reinterpret_cast<std::byte const*>(data)},
       _size{_data == nullptr
               ? 0u
-              : (size > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max()
-                                                             : static_cast<uint32_t>(size))}
+              : (size > (std::numeric_limits<uint32_t>::max)() ? (std::numeric_limits<uint32_t>::max)()
+                                                               : static_cast<uint32_t>(size))}
   {
     static_assert(sizeof(U) == 1, "BinaryData only accepts byte-sized element types");
   }

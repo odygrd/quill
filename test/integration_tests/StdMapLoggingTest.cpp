@@ -9,6 +9,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <functional>
 #include <map>
 #include <string>
 #include <string_view>
@@ -48,6 +49,9 @@ TEST_CASE("std_map_logging")
   {
     std::map<int, double> idm = {{111, 3213.21}, {222, 321.19}, {333, 5555.99}};
     LOG_INFO(logger, "idm {}", idm);
+
+    std::map<int, int, std::greater<int>> greater_map = {{1, 1}, {2, 2}, {3, 3}};
+    LOG_INFO(logger, "greater_map {}", greater_map);
 
     std::map<int, std::string> loopv;
     for (int iter = 0; iter < 25; ++iter)
@@ -92,11 +96,13 @@ TEST_CASE("std_map_logging")
     file_contents, std::string{"LOG_INFO      " + logger_name + "       idm {111: 3213.21, 222: 321.19, 333: 5555.99}"}));
 
   REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       greater_map {3: 3, 2: 2, 1: 1}"}));
+
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       loopv {0: \"0\", 1: \"1\", 2: \"2\", 3: \"3\", 4: \"4\", 5: \"5\", 6: \"6\", 7: \"7\", 8: \"8\", 9: \"9\", 10: \"10\", 11: \"11\", 12: \"12\", 13: \"13\", 14: \"14\", 15: \"15\", 16: \"16\", 17: \"17\", 18: \"18\", 19: \"19\", 20: \"20\", 21: \"21\", 22: \"22\", 23: \"23\", 24: \"24\"}"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       loopsv {\"0\": \"0\", \"1\": \"2\", \"10\": \"20\", \"11\": \"22\", \"12\": \"24\", \"13\": \"26\", \"14\": \"28\", \"15\": \"30\", \"16\": \"32\", \"17\": \"34\", \"18\": \"36\", \"19\": \"38\", \"2\": \"4\", \"20\": \"40\", \"21\": \"42\", \"22\": \"44\", \"23\": \"46\", \"24\": \"48\", \"3\": \"6\", \"4\": \"8\", \"5\": \"10\", \"6\": \"12\", \"7\": \"14\", \"8\": \"16\", \"9\": \"18\"}"}));
-
 
   REQUIRE(quill::testing::file_contains(
     file_contents,

@@ -75,8 +75,9 @@ struct BackendOptions
    * The backend pops all log messages from the frontend queues and buffers them in a
    * local ring buffer queue as transit events. The transit_event_buffer is unbounded, starting with
    * a customizable initial capacity (in items, not bytes) and will reallocate up to
-   * transit_events_hard_limit The backend will use a separate transit_event_buffer for each
-   * frontend thread. The capacity is rounded up to the next power of two.
+   * transit_events_hard_limit. The backend will use a separate transit_event_buffer for each
+   * frontend thread. The capacity is rounded up to the next power of two and the rounded value
+   * must not exceed transit_events_hard_limit.
    */
   uint32_t transit_event_buffer_initial_capacity = 256;
 
@@ -94,6 +95,7 @@ struct BackendOptions
    * can be much greater than the transit_events_soft_limit.
    *
    * @note This number represents a limit across the messages received from ALL frontend threads.
+   *       It does not need to be a power of two. A value of zero is normalized to one.
    */
   size_t transit_events_soft_limit = 8192;
 
@@ -110,7 +112,8 @@ struct BackendOptions
    * This limit is the maximum size of the backend event buffer. When reached, the backend
    * will stop reading the frontend queues until there is space available in the buffer.
    *
-   * @note This number represents a limit PER frontend threads.
+   * @note This number represents a limit PER frontend thread. It must be a power of two. A value
+   *       of zero is normalized to one.
    */
   size_t transit_events_hard_limit = 65'536;
 
@@ -198,10 +201,9 @@ struct BackendOptions
    * in a loop from another thread, can prevent the backend from exiting because the queues may
    * never become empty.
    *
-   * When this option is disabled, the backend will try to read the queues once and then exit.
-   * Reading the queues only once means that some log messages can be dropped. This is more likely
-   * when `log_timestamp_ordering_grace_period` is non-zero, because the grace-period cutoff can
-   * intentionally leave newer queue entries unread until a later poll.
+   * When this option is disabled, the backend flushes the sinks and exits without reading the
+   * queues again. Log messages still in the queues, as well as messages that were already read
+   * from the queues but not yet processed, are discarded.
    */
   bool wait_for_queues_to_empty_before_exit = true;
 
@@ -211,8 +213,11 @@ struct BackendOptions
    * By default, the backend is not pinned to any CPU unless values are specified.
    * It is recommended to pin the backend to shared non-critical CPUs.
    *
+   * @note A failure to apply the affinity is reported through `error_notifier`; in
+   *       QUILL_NO_EXCEPTIONS builds it invokes the fatal error path instead.
    * @note On macOS, only the first entry is used because the platform does not expose a per-core
-   *       affinity API equivalent to Linux/Windows CPU masks.
+   *       affinity API equivalent to Linux/Windows CPU masks. Apple Silicon does not support the
+   *       affinity policy at all, so leave this option empty there.
    * @note On Windows, CPU IDs are relative to the backend thread's current processor group
    *       because this option uses SetThreadAffinityMask. Leave this empty and use a custom
    *       backend-thread hook if your application needs group-aware affinity.

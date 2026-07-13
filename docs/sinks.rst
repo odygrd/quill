@@ -13,17 +13,29 @@ Each sink handles outputting logs, metrics, or both to a single target, such as 
 
 Upon creation, a sink object is registered and owned by a central manager object, the `SinkManager`.
 
-For files, one sink is created per normalized file path, and the file is opened once. If a sink is
-requested that refers to an already opened file, the existing Sink object is returned and any
-additional constructor arguments are ignored.
+For files, one sink is created per normalized file path, and the file is opened once. If a
+compatible sink type is requested for an already opened file, the existing Sink object is returned
+and any additional constructor arguments are ignored. In RTTI-enabled builds, requesting the same
+name with an incompatible type throws ``QuillError``.
 
 When creating a logger, one or more sinks for that logger can be specified. Sinks can only be registered during the logger creation.
 
 Sinks can be obtained using :cpp:func:`FrontendImpl::get_sink`, :cpp:func:`FrontendImpl::create_or_get_sink`, or :cpp:func:`FrontendImpl::create_sink`.
 
 - ``create_sink`` creates a new sink and throws ``QuillError`` if a sink with the same name already exists.
-- ``create_or_get_sink`` creates a new sink if one does not already exist; otherwise, it returns the existing sink with the specified name. Note that when a sink with the given name already exists, the provided constructor arguments are ignored — the existing sink is returned as-is.
+- ``create_or_get_sink`` creates a new sink if one does not already exist; otherwise, it returns a
+  compatible existing sink and ignores the provided constructor arguments. In RTTI-enabled builds,
+  an incompatible existing type throws ``QuillError``.
 - ``get_sink`` retrieves an existing sink by name and throws ``QuillError`` if it does not exist.
+
+In builds configured with ``QUILL_NO_EXCEPTIONS``, conditions documented as throwing ``QuillError``
+invoke Quill's fatal error path instead.
+
+.. warning::
+
+   Builds without RTTI cannot diagnose an incompatible type passed to ``create_or_get_sink``.
+   In those builds, request a given sink name only with the same sink type, or with a compatible
+   base type.
 
 Configuring Sinks
 -----------------

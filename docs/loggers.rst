@@ -79,7 +79,9 @@ For example, if your server creates a logger for each connected TCP session and 
    ``before_close``, and ``after_close`` run on whichever thread performs the file open/close
    operation. Different callbacks, and different invocations of the same callback, may therefore
    run on different threads over the sink lifetime. Callbacks must be thread-safe and must not
-   assume a single calling thread.
+   assume a single calling thread. When ``before_write`` changes the message size, size-based
+   rotation evaluates its threshold using the pre-transform size of the current message, so a
+   rotation can trigger up to one transformed message later or earlier than the exact limit.
 
 Simplifying Logger Usage for Single Root Logger Applications
 ------------------------------------------------------------

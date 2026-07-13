@@ -101,6 +101,52 @@
 ## v12.1.0
 
 - Updated bundled `libfmt` to `v12.2.0`.
+- Fixed append-mode `RotatingFileSink` recovery for base filenames without an extension, so `DateAndTime` rotated files
+  such as `application.20260622_120000` are counted towards `max_backup_files` instead of accumulating across
+  restarts. ([#938](https://github.com/odygrd/quill/discussions/938))
+- Fixed Windows builds that include `<windows.h>` before Quill wide-string logging headers. ([#941](https://github.com/odygrd/quill/issues/941))
+- Fixed size-based `RotatingFileSink` rotation after an externally deleted active file is reopened. ([#945](https://github.com/odygrd/quill/pull/945))
+- Fixed bounded queue writes after the reader drains the queue without crossing the reader-position publish batch. ([#946](https://github.com/odygrd/quill/pull/946))
+- Fixed `%s` timestamp formatting in `GmtTime` mode on non-UTC machines. ([#947](https://github.com/odygrd/quill/pull/947))
+- Fixed a huge page mapping leak on Linux where `munmap` failed with `EINVAL` on queue destruction. Allocations now
+  request `MAP_HUGE_2MB` explicitly and round the mapping size up to a 2 MiB multiple.
+- Fixed the transit event buffer expanding to twice the configured `transit_events_hard_limit`.
+- `Backend::start()` now throws on the caller thread when `transit_events_soft_limit` or `transit_events_hard_limit` is
+  misconfigured, instead of terminating the process from the backend thread.
+- Fixed potential queue corruption when logging `std::error_code` with locale-dependent or user-provided error
+  categories. The category name and message are now snapshotted once and reused for encoding.
+- Fixed `RotatingJsonFileSink` replaying a stale json payload after a failed size-based rotation.
+- Literal `{` and `}` in `format_pattern` are now escaped, while existing doubled-brace spelling remains compatible.
+  Invalid attribute format specifications are rejected during formatter construction.
+- `timestamp_pattern` now rejects the time-of-day-embedding modifiers `%c`, `%Ec`, `%EX`, `%OH`, `%OI`, `%OM` and
+  `%OS`, like `%X`, which silently froze at a cached value.
+- Fixed logging of `std::pair`, `std::tuple` and `std::array` with const-qualified element types, most notably
+  dereferenced `std::map` iterators (`std::pair<Key const, T>`), which previously failed to compile.
+- The backend singleton lock file is now opened with `O_CLOEXEC` and `O_NOFOLLOW`.
+- The `std::filesystem::path` codec now reads the path via `native()`, avoiding two temporary string allocations on
+  the hot path.
+- `Codec<std::tuple>` now fails with a clear `static_assert` when the decoded tuple is not formattable. A custom
+  formatter for the complete tuple remains supported even when elements have no standalone formatter.
+- `TransitEventBuffer` expansion now moves the existing events instead of default-constructing and discarding a
+  `FormatBuffer` allocation for every slot.
+- Fixed a C++ data race in `BackendTscClock` snapshot reads when resynchronization reused a slot concurrently.
+- Fixed SIGTERM and SIGINT handling when the backend is running without a valid logger.
+- Unbounded queue maximum capacities are now rounded up to the next power of two and validated against the initial capacity.
+- Sink exceptions no longer prevent later sinks from receiving the same log or metric event.
+- Logging macros now evaluate logger and runtime log-level expressions once per invocation.
+- CPU-affinity failures are now reported on macOS, FreeBSD, and NetBSD instead of being silently ignored.
+- Minutely and hourly rotation boundaries now stay wall-clock aligned after a late-triggered rotation, instead of
+  permanently drifting off the initial rotation time point.
+- Fixed a number of minor bugs and hardened edge cases across the frontend, backend, sinks and codecs, including
+  transactional startup rotation recovery and console colour handling around trailing newlines.
+- Clarified the custom-codec exception contract: sizing may throw before reservation, while encoding and decoding
+  must not.
+- Documented the `QUILL_LOG_LEVEL` environment variable. It is now validated during first logger creation; invalid
+  values (including `backtrace`) throw `QuillError`, do not register a partial logger, and can be retried.
+- `create_or_get_sink<TSink>()` now throws when a sink with the same name already exists with an incompatible type
+  (in builds with RTTI), instead of returning it for an undefined-behaviour cast.
+- Documented that `CsvWriter` writes fields verbatim and added an opt-in `quill::utility::csv_escape_field()`
+  helper for RFC 4180 escaping of fields containing commas, quotes or line breaks.
 
 ## v12.0.0
 

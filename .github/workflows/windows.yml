@@ -26,6 +26,7 @@ jobs:
     # windows-2016 and windows-2019 have MSVC 2017 and 2019 installed
     # respectively: https://github.com/actions/virtual-environments.
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       matrix:
         os: [ windows-2022 ]
@@ -78,6 +79,7 @@ jobs:
 
   mingw:
     runs-on: windows-2022
+    timeout-minutes: 60
     defaults:
       run:
         shell: msys2 {0}

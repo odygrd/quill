@@ -203,6 +203,10 @@ public:
   /**
    * Appends a row to the CSV file. This function is also thread safe.
    *
+   * @note Fields are written verbatim. A string field containing a comma, double quote or line
+   * break corrupts the CSV structure; pass such fields through utility::csv_escape_field() from
+   * quill/Utility.h or sanitize them beforehand.
+   *
    * @param fields The fields to append to the CSV row.
    */
   template <typename... Args>
@@ -263,7 +267,18 @@ private:
       return should_write_header;
     }
 
+#if QUILL_USE_RTTI
+    auto const stream_sink = std::dynamic_pointer_cast<StreamSink>(sink);
+
+    if (!stream_sink)
+    {
+      // not a file backed sink, there is no existing file to inspect
+      return should_write_header;
+    }
+#else
     auto const stream_sink = std::static_pointer_cast<StreamSink>(sink);
+#endif
+
     std::error_code ec;
     auto const size = fs::file_size(stream_sink->get_filename(), ec);
     return ec || (size == 0);
