@@ -10,6 +10,7 @@
 #include "quill/backend/BackendWorker.h"
 #include "quill/backend/ManualBackendWorker.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/Spinlock.h"
 
 #include <atomic>
 #include <cstdint>
@@ -119,6 +120,7 @@ private:
   void set_atexit_registered() noexcept { _atexit_registered.store(true); }
 
 private:
+  Spinlock _stop_spinlock;
   BackendWorker _backend_worker;
   ManualBackendWorker _manual_backend_worker{&_backend_worker};
   std::atomic<std::once_flag*> _start_once_flag{new std::once_flag};

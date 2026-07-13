@@ -2291,6 +2291,7 @@ private:
 private:
   friend class quill::ManualBackendWorker;
 
+  std::unique_ptr<RdtscClock> _rdtsc_clock_owner;
   std::unique_ptr<BackendWorkerLock> _backend_worker_lock;
   ThreadContextManager& _thread_context_manager = ThreadContextManager::instance();
   SinkManager& _sink_manager = SinkManager::instance();
@@ -2316,7 +2317,6 @@ private:
   std::atomic<bool> _has_worker_thread_exited{true}; /** Set to true when the backend thread completes its exit sequence */
   std::atomic<bool> _is_rdtsc_clock_config_valid{true}; /** Cached for concurrent clock conversions. */
 
-  std::unique_ptr<RdtscClock> _rdtsc_clock_owner; /** Stable lifetime across backend restarts. */
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<RdtscClock*> _rdtsc_clock{
     nullptr}; /** rdtsc clock if enabled, can be accessed by any thread **/
   alignas(QUILL_CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
