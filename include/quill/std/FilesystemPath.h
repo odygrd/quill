@@ -21,6 +21,9 @@
 #include <string_view>
 #if defined(_WIN32)
   #include "quill/std/WideString.h"
+
+  #include <cstring>
+  #include <utility>
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -47,7 +50,20 @@ struct Codec<fs::path>
   static fs::path decode_arg(std::byte*& buffer)
   {
     using NativeStringView = std::basic_string_view<fs::path::value_type>;
-    return fs::path{Codec<NativeStringView>::decode_arg(buffer)};
+    NativeStringView const native_path_view = Codec<NativeStringView>::decode_arg(buffer);
+
+#if defined(_WIN32)
+    // Encoded arguments are byte-packed and may not satisfy wchar_t alignment.
+    fs::path::string_type native_path(native_path_view.size(), fs::path::value_type{});
+    if (!native_path_view.empty())
+    {
+      std::memcpy(native_path.data(), native_path_view.data(),
+                  native_path_view.size() * sizeof(fs::path::value_type));
+    }
+    return fs::path{std::move(native_path)};
+#else
+    return fs::path{native_path_view};
+#endif
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)

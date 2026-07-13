@@ -72,6 +72,9 @@ TEST_CASE("wide_std_types_logging")
     fs::path wp{L"C:\\some\\path"};
     LOG_INFO(logger, "wp {}", wp);
 
+    std::string const odd_length_prefix{"x"};
+    LOG_INFO(logger, "misaligned_path {} {}", odd_length_prefix, wp);
+
     fs::path p{"C:\\another\\path"};
     LOG_INFO(logger, "p {}", p);
 
@@ -211,6 +214,9 @@ TEST_CASE("wide_std_types_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       wp C:\\some\\path"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       misaligned_path x C:\\some\\path"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       p C:\\another\\path"}));
