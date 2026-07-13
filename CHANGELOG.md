@@ -155,6 +155,9 @@
 - Default JSON sinks now suffix named arguments that collide with built-in JSON fields, avoiding duplicate object keys.
 - Oversized runtime source paths are now truncated safely instead of overflowing metadata offsets.
 - Negative backend and file-sync intervals are now rejected during configuration.
+- Fixed Windows `std::filesystem::path` decoding when byte-packed arguments are not aligned for `wchar_t`.
+- Fixed rotating `CsvWriter` header writes on Windows after failed rotation recovery, so the header is appended instead
+  of overwriting the beginning of the active CSV file.
 
 ## v12.0.0
 
