@@ -85,7 +85,7 @@ public:
    * @param macro_metadata metadata of the log message
    * @param fmt_args arguments
    *
-   * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
+   * @return true if the message is written to the queue, false if it is dropped
    */
   template <bool enable_immediate_flush, typename... Args>
   QUILL_ATTRIBUTE_HOT bool log_statement(MacroMetadata const* macro_metadata, Args&&... fmt_args)
@@ -239,8 +239,8 @@ public:
    * The supplied fields are propagated asynchronously to the backend thread and then appended to
    * subsequent log messages from the same frontend thread until erased or cleared.
    *
-   * This operation is not on the hot path. If a dropping queue is configured and is temporarily
-   * full, this function retries until the control event is queued.
+   * This operation is not on the hot path. On frontend threads, if a dropping queue is configured
+   * and is temporarily full, this function retries until the control event is queued.
    */
   template <typename... Args>
   void set_mdc(Args&&... args)
@@ -255,6 +255,11 @@ public:
 
     while (!this->template log_statement<false>(&macro_metadata, static_cast<Args&&>(args)...))
     {
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return;
+      }
+
       detail::sleep_for_ns(100);
     }
   }
@@ -262,8 +267,8 @@ public:
   /**
    * Erases one or more MDC fields for the calling thread.
    *
-   * Missing keys are ignored. The operation retries until queued when a dropping queue is
-   * temporarily full.
+   * Missing keys are ignored. On frontend threads, the operation retries until queued when a
+   * dropping queue is temporarily full.
    */
   template <typename... Keys>
   void erase_mdc(Keys&&... keys)
@@ -275,6 +280,11 @@ public:
 
     while (!this->template log_statement<false>(&macro_metadata, static_cast<Keys&&>(keys)...))
     {
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return;
+      }
+
       detail::sleep_for_ns(100);
     }
   }
@@ -282,7 +292,8 @@ public:
   /**
    * Clears all MDC fields for the calling thread.
    *
-   * The operation retries until queued when a dropping queue is temporarily full.
+   * On frontend threads, the operation retries until queued when a dropping queue is temporarily
+   * full.
    */
   void clear_mdc()
   {
@@ -291,6 +302,11 @@ public:
 
     while (!this->template log_statement<false>(&macro_metadata))
     {
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return;
+      }
+
       detail::sleep_for_ns(100);
     }
   }
@@ -310,7 +326,7 @@ public:
    * @param log_level Severity level of the log message
    * @param fmt_args Format arguments for the log message
    *
-   * @return true if the message is written to the queue, false if it is dropped (when a dropping queue is used)
+   * @return true if the message is written to the queue, false if it is dropped
    */
   template <bool enable_immediate_flush, typename... Args>
   QUILL_ATTRIBUTE_HOT bool log_statement_runtime_metadata(MacroMetadata const* macro_metadata,
@@ -435,6 +451,11 @@ public:
     // We do not want to drop the message if a dropping queue is used
     while (!this->template log_statement<false>(&macro_metadata, max_capacity))
     {
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return;
+      }
+
       detail::sleep_for_ns(100);
     }
 
@@ -454,6 +475,11 @@ public:
     // We do not want to drop the message if a dropping queue is used
     while (!this->template log_statement<false>(&macro_metadata))
     {
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return;
+      }
+
       detail::sleep_for_ns(100);
     }
   }
@@ -739,6 +765,14 @@ private:
                        std::to_string(queue.capacity()) + " bytes"});
         }
 
+        if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+        {
+          // The backend is the only consumer of this queue, so waiting here would self-deadlock.
+          // Do not increment the failure counter: reporting this drop through error_notifier could
+          // recursively fill the same queue.
+          return nullptr;
+        }
+
         // Both log and metric events bump the counter; blocked events are reported as blocking
         // occurrences, so unlike the dropping-queue branch no control-event exclusion is needed.
         (void)macro_metadata;
@@ -760,6 +794,14 @@ private:
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
+        if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+        {
+          // The backend is the only consumer of this queue, so waiting here would self-deadlock.
+          // Do not increment the failure counter: reporting this drop through error_notifier could
+          // recursively fill the same queue.
+          return nullptr;
+        }
+
         // Both log and metric events bump the counter; blocked events are reported as blocking
         // occurrences, so unlike the dropping-queue branch no control-event exclusion is needed.
         (void)macro_metadata;

@@ -225,6 +225,27 @@ Quill's internal managers (``LoggerManager``, ``SinkManager``, ``ThreadContextMa
 
 Logging from constructors of static objects and calling ``Backend::start()`` before ``main()`` is safe — the singletons will be constructed and remain alive for the lifetime of the program. The problem only arises during shutdown when destruction order is reversed.
 
+Can I log from destructors of thread-local objects?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Only when Quill's thread-local context is still alive. Thread-local objects are destroyed in the
+reverse order of their initialization. If a user ``thread_local`` object is initialized before the
+first log statement on that thread, Quill's context is initialized later and therefore destroyed
+first. Logging from the user's later destructor is then unsupported because that context may
+already have been reclaimed by the backend.
+
+If logging from such a destructor is unavoidable, initialize Quill's context before initializing
+or first accessing the user thread-local object on the same thread:
+
+.. code-block:: cpp
+
+   quill::Frontend::preallocate();
+   initialize_or_access_my_thread_local_object();
+
+This ordering makes the user object's destructor run before Quill's context destructor. The backend
+must still be running and the logger must remain valid. Prefer explicit cleanup before thread exit
+when possible rather than relying on thread-local destruction order.
+
 Can I use Quill with fork()?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

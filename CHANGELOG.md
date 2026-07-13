@@ -149,6 +149,7 @@
   (in builds with RTTI), instead of returning it for an undefined-behaviour cast.
 - Documented that `CsvWriter` writes fields verbatim and added an opt-in `quill::utility::csv_escape_field()`
   helper for RFC 4180 escaping of fields containing commas, quotes or line breaks.
+- Backend callback logging no longer self-deadlocks when its own blocking queue is full; additional backend-thread records are dropped instead.
 
 ## v12.0.0
 
