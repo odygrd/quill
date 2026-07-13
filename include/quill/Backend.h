@@ -210,14 +210,17 @@ public:
    */
   QUILL_ATTRIBUTE_COLD static void stop()
   {
-    uint32_t const backend_thread_id = detail::BackendManager::instance().get_backend_thread_id();
+    detail::BackendManager& backend_manager = detail::BackendManager::instance();
+    uint32_t const backend_thread_id = backend_manager.get_backend_thread_id();
     if (QUILL_UNLIKELY((backend_thread_id != 0) && (backend_thread_id == detail::get_thread_id())))
     {
       QUILL_THROW(QuillError{"Backend::stop() cannot be called from the backend worker thread"});
     }
 
+    detail::LockGuard const stop_lock{backend_manager._stop_spinlock};
+
     detail::SignalHandlerContext::instance().backend_thread_id.store(0);
-    detail::BackendManager::instance().stop_backend_thread();
+    backend_manager.stop_backend_thread();
 #if defined(_WIN32)
     if (auto const fn = detail::SignalHandlerContext::instance().exception_handler_deinit_callback)
     {
