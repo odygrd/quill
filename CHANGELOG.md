@@ -152,6 +152,7 @@
 - Backend callback logging no longer self-deadlocks when its own blocking queue is full; additional backend-thread records are dropped instead.
 - Exceptions from custom sink periodic tasks are now reported through `error_notifier` instead of terminating the process.
 - Concurrent `Backend::stop()` callers now wait for the in-progress shutdown to complete before returning.
+- Default JSON sinks now suffix named arguments that collide with built-in JSON fields, avoiding duplicate object keys.
 
 ## v12.0.0
 

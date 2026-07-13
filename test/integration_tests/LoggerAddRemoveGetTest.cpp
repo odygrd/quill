@@ -39,7 +39,7 @@ public:
   ~LoggingTestClass()
   {
     _logger->flush_log();
-    Frontend::remove_logger(_logger);
+    Frontend::remove_logger_blocking(_logger);
   }
 
   /**
@@ -88,12 +88,7 @@ TEST_CASE("logger_add_remove_get")
     REQUIRE(!Frontend::get_logger(logger_a_name));
     REQUIRE(!Frontend::get_logger(logger_b_name));
 
-    // The only safe way to know that the loggers are really removed is currently this
-    while (Frontend::get_number_of_loggers())
-    {
-      // wait for all the to be removed first by the backend thread first then repeat the test
-      std::this_thread::sleep_for(std::chrono::milliseconds{1});
-    }
+    REQUIRE_EQ(Frontend::get_number_of_loggers(), 0u);
 
     // Read file and check
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename);

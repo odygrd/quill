@@ -42,6 +42,9 @@ TEST_CASE("json_console_logging")
     LOG_INFO(logger_a, "Hello log num [{num}, {multiply}, {add}]", i, i * i, i + i);
   }
 
+  LOG_INFO(logger_a, "Reserved {timestamp} {timestamp_1} {logger}", "user timestamp",
+           "user timestamp 1", "user logger");
+
   // flush all log and remove all loggers
   for (Logger* logger : Frontend::get_all_loggers())
   {
@@ -63,7 +66,7 @@ TEST_CASE("json_console_logging")
     file_contents.push_back(line);
   }
 
-  REQUIRE_EQ(file_contents.size(), number_of_messages);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 1);
 
   for (size_t i = 0; i < number_of_messages; ++i)
   {
@@ -74,4 +77,7 @@ TEST_CASE("json_console_logging")
 
     REQUIRE(testing::file_contains(file_contents, expected_string));
   }
+
+  REQUIRE(testing::file_contains(
+    file_contents, R"("message":"Reserved {timestamp} {timestamp_1} {logger}","timestamp_2":"user timestamp","timestamp_1":"user timestamp 1","logger_1":"user logger")"));
 }
