@@ -150,6 +150,7 @@
 - Documented that `CsvWriter` writes fields verbatim and added an opt-in `quill::utility::csv_escape_field()`
   helper for RFC 4180 escaping of fields containing commas, quotes or line breaks.
 - Backend callback logging no longer self-deadlocks when its own blocking queue is full; additional backend-thread records are dropped instead.
+- Exceptions from custom sink periodic tasks are now reported through `error_notifier` instead of terminating the process.
 
 ## v12.0.0
 
