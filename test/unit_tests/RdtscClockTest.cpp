@@ -124,6 +124,48 @@ TEST_CASE("time_since_epoch_safe_handles_concurrent_slot_reuse")
   REQUIRE_EQ(mismatches.load(std::memory_order_relaxed), 0u);
 }
 
+TEST_CASE("reconfigure_is_safe_with_concurrent_readers")
+{
+  quill::detail::RdtscClock tsc_clock{std::chrono::milliseconds{500}};
+
+  std::atomic<bool> keep_reading{true};
+  std::atomic<uint32_t> readers_started{0};
+  std::atomic<uint32_t> zero_timestamps{0};
+
+  auto reader = [&]()
+  {
+    readers_started.fetch_add(1u, std::memory_order_release);
+    while (keep_reading.load(std::memory_order_acquire))
+    {
+      if (tsc_clock.time_since_epoch_safe(quill::detail::rdtsc()) == 0)
+      {
+        zero_timestamps.fetch_add(1u, std::memory_order_relaxed);
+      }
+    }
+  };
+
+  std::thread reader_one{reader};
+  std::thread reader_two{reader};
+
+  while (readers_started.load(std::memory_order_acquire) != 2u)
+  {
+    std::this_thread::yield();
+  }
+
+  constexpr uint32_t reconfigure_iterations{1'000};
+  for (uint32_t i = 0; i < reconfigure_iterations; ++i)
+  {
+    auto const interval = ((i & 1u) == 0u) ? std::chrono::milliseconds{250} : std::chrono::milliseconds{750};
+    tsc_clock.reconfigure(interval);
+  }
+
+  keep_reading.store(false, std::memory_order_release);
+  reader_one.join();
+  reader_two.join();
+
+  REQUIRE_EQ(zero_timestamps.load(std::memory_order_relaxed), 0u);
+}
+
 TEST_CASE("time_since_epoch_uses_resynced_slot")
 {
   RdtscClockMock tsc_clock{std::chrono::milliseconds{1200}};

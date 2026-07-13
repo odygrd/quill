@@ -113,6 +113,8 @@
 - Fixed the transit event buffer expanding to twice the configured `transit_events_hard_limit`.
 - `Backend::start()` now throws on the caller thread when `transit_events_soft_limit` or `transit_events_hard_limit` is
   misconfigured, instead of terminating the process from the backend thread.
+- Fixed `BackendTscClock` calls overlapping `Backend::stop()`. Backend restarts now reconfigure and republish one
+  stable clock allocation, so a conversion already in progress can safely finish without unbounded retained clocks.
 - Fixed potential queue corruption when logging `std::error_code` with locale-dependent or user-provided error
   categories. The category name and message are now snapshotted once and reused for encoding.
 - Fixed `RotatingJsonFileSink` replaying a stale json payload after a failed size-based rotation.

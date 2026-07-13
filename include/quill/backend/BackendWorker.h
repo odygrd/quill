@@ -100,9 +100,7 @@ public:
   {
     // This destructor will run during static destruction as the thread is part of the singleton
     stop();
-
-    RdtscClock const* rdtsc_clock = _rdtsc_clock.exchange(nullptr);
-    delete rdtsc_clock;
+    _rdtsc_clock.store(nullptr, std::memory_order_release);
   }
 
   /***/
@@ -116,7 +114,7 @@ public:
    */
   QUILL_NODISCARD uint64_t time_since_epoch(uint64_t rdtsc_value) const
   {
-    if (QUILL_UNLIKELY(_options.sleep_duration > _options.rdtsc_resync_interval))
+    if (QUILL_UNLIKELY(!_is_rdtsc_clock_config_valid.load(std::memory_order_relaxed)))
     {
       QUILL_THROW(
         QuillError{"Invalid config, When TSC clock is used backend_thread_sleep_duration should "
@@ -239,7 +237,7 @@ public:
         // Synchronise with BackendWorker::stop() before tearing down backend-owned state. The loop
         // above intentionally uses a relaxed load on the hot path; this acquire load is cold and
         // pairs with stop()'s exchange(false) so Quill API calls sequenced-before stop()
-        // happen-before _exit() deletes resources such as RdtscClock.
+        // happen-before _exit() tears down the active backend state.
         QUILL_MAYBE_UNUSED bool const stopped = _is_worker_running.load(std::memory_order_acquire);
         QUILL_ASSERT(!stopped,
                      "Backend worker should only exit after stop() clears the running flag");
@@ -554,6 +552,8 @@ private:
   QUILL_ATTRIBUTE_COLD void _init(BackendOptions const& options)
   {
     _options = options;
+    _is_rdtsc_clock_config_valid.store(_options.sleep_duration <= _options.rdtsc_resync_interval,
+                                       std::memory_order_relaxed);
 
     // ManualBackendWorker::init() calls _init() directly, so validate here as well.
     validate_options(_options);
@@ -623,16 +623,14 @@ private:
       }
     }
 
+    // Publish that no active clock is available so calls made after stop use their documented
+    // fallback. The clock remains owned by _rdtsc_clock_owner: a concurrent reader may already
+    // have loaded its address and must be allowed to finish. A subsequent start reconfigures,
+    // resynchronizes, and republishes the same stable allocation.
+    _rdtsc_clock.store(nullptr, std::memory_order_release);
+
     _cleanup_invalidated_thread_contexts();
     _cleanup_invalidated_loggers();
-
-    // Tear down the RdtscClock so a subsequent Backend::start() can recalibrate
-    // using the current options (e.g. a different rdtsc_resync_interval). The
-    // documented contract of Backend::stop() is that no other Quill API may run
-    // concurrently with it, including BackendTscClock::now()/to_time_point on
-    // user threads, so this is safe.
-    RdtscClock const* rdtsc_clock = _rdtsc_clock.exchange(nullptr, std::memory_order_acq_rel);
-    delete rdtsc_clock;
 
     _clear_backend_thread_flag();
   }
@@ -807,7 +805,18 @@ private:
       {
         // Lazy initialization of rdtsc clock on the backend thread only if the user decides to use
         // it. The clock requires a few seconds to init as it is taking samples first.
-        _rdtsc_clock.store(new RdtscClock{_options.rdtsc_resync_interval}, std::memory_order_release);
+        if (!_rdtsc_clock_owner)
+        {
+          _rdtsc_clock_owner = std::make_unique<RdtscClock>(_options.rdtsc_resync_interval);
+        }
+        else
+        {
+          _rdtsc_clock_owner->reconfigure(_options.rdtsc_resync_interval);
+        }
+
+        // Publish only after construction or reconfiguration has completed. The allocation remains
+        // stable across every backend stop/start cycle.
+        _rdtsc_clock.store(_rdtsc_clock_owner.get(), std::memory_order_release);
         _last_rdtsc_resync_time = std::chrono::steady_clock::now();
       }
 
@@ -2305,7 +2314,9 @@ private:
   std::atomic<uint32_t> _worker_thread_id{0};  /** cached backend worker thread id */
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
   std::atomic<bool> _has_worker_thread_exited{true}; /** Set to true when the backend thread completes its exit sequence */
+  std::atomic<bool> _is_rdtsc_clock_config_valid{true}; /** Cached for concurrent clock conversions. */
 
+  std::unique_ptr<RdtscClock> _rdtsc_clock_owner; /** Stable lifetime across backend restarts. */
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<RdtscClock*> _rdtsc_clock{
     nullptr}; /** rdtsc clock if enabled, can be accessed by any thread **/
   alignas(QUILL_CACHE_LINE_ALIGNED) std::mutex _wake_up_mutex;
