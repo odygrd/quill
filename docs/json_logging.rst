@@ -11,6 +11,10 @@ For convenience, the ``LOGJ_`` macros offer an alternative method for logging l-
 
 For details on how named arguments work in Quill, including important differences from ``fmtlib``'s ``fmt::arg()``, see :ref:`Named Placeholders <logging_macros:Named Placeholders>` in the Logging Macros guide.
 
+The default JSON sinks reserve the fields ``timestamp``, ``file_name``, ``line``, ``thread_id``,
+``logger``, ``log_level``, and ``message``. A named argument that uses one of these fields is
+suffixed with ``_1``, ``_2``, and so on until it is unique, leaving the built-in field unchanged.
+
 It is also possible to combine JSON output with standard log pattern display by passing multiple ``Sink`` objects to a ``Logger``. This allows you to see the same log message in different formats simultaneously.
 
 Logging Json to Console

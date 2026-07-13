@@ -95,7 +95,7 @@ public:
    *
    * @return The current capacity of the thread-local SPSC queue.
    */
-  QUILL_NODISCARD static size_t get_thread_local_queue_capacity() noexcept
+  QUILL_NODISCARD static size_t get_thread_local_queue_capacity()
   {
     if constexpr (logger_t::using_unbounded_queue)
     {

@@ -138,7 +138,37 @@ public:
       for (auto const& [key, value] : *named_args)
       {
         _json_message.append(std::string_view{",\""});
-        _append_json_escaped(_json_message, key);
+
+        if (_is_reserved_json_key(key))
+        {
+          std::string suffixed_key;
+          size_t suffix{1};
+          bool key_exists;
+
+          do
+          {
+            suffixed_key = key;
+            suffixed_key += '_';
+            suffixed_key += std::to_string(suffix++);
+
+            key_exists = false;
+            for (auto const& named_arg : *named_args)
+            {
+              if (named_arg.first == suffixed_key)
+              {
+                key_exists = true;
+                break;
+              }
+            }
+          } while (key_exists);
+
+          _append_json_escaped(_json_message, suffixed_key);
+        }
+        else
+        {
+          _append_json_escaped(_json_message, key);
+        }
+
         _json_message.append(std::string_view{"\":\""});
         _append_json_escaped(_json_message, value);
         _json_message.append(std::string_view{"\""});
@@ -180,6 +210,12 @@ protected:
   }
 
   void discard_write_estimate() noexcept { _json_message_ready = false; }
+
+  QUILL_NODISCARD static bool _is_reserved_json_key(std::string_view key) noexcept
+  {
+    return (key == "timestamp") || (key == "file_name") || (key == "line") ||
+      (key == "thread_id") || (key == "logger") || (key == "log_level") || (key == "message");
+  }
 
   static void _append_json_escaped(fmtquill::memory_buffer& out, std::string_view value)
   {
