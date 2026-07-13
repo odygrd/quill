@@ -177,6 +177,11 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void set_minimum_fsync_interval(std::chrono::milliseconds value)
   {
+    if (value.count() < 0)
+    {
+      QUILL_THROW(QuillError{"minimum_fsync_interval must not be negative"});
+    }
+
     _minimum_fsync_interval = value;
   }
 

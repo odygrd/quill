@@ -137,8 +137,55 @@ public:
   /***/
   QUILL_ATTRIBUTE_COLD static void validate_options(BackendOptions const& options)
   {
+    if (options.sleep_duration.count() < 0)
+    {
+      QUILL_THROW(QuillError{"BackendOptions::sleep_duration must not be negative"});
+    }
+
+    if (options.log_timestamp_ordering_grace_period.count() < 0)
+    {
+      QUILL_THROW(
+        QuillError{"BackendOptions::log_timestamp_ordering_grace_period must not be negative"});
+    }
+
+    if (options.rdtsc_resync_interval.count() < 0)
+    {
+      QUILL_THROW(QuillError{"BackendOptions::rdtsc_resync_interval must not be negative"});
+    }
+
+    if (options.sink_min_flush_interval.count() < 0)
+    {
+      QUILL_THROW(QuillError{"BackendOptions::sink_min_flush_interval must not be negative"});
+    }
+
     (void)BackendMdcState{options.mdc_format_pattern};
-    _validate_transit_event_limits(options);
+
+    size_t const soft_limit = (options.transit_events_soft_limit == 0) ? 1 : options.transit_events_soft_limit;
+    size_t const hard_limit = (options.transit_events_hard_limit == 0) ? 1 : options.transit_events_hard_limit;
+
+    if (soft_limit > hard_limit)
+    {
+      QUILL_THROW(QuillError{fmtquill::format(
+        "transit_events_soft_limit ({}) cannot be greater than transit_events_hard_limit "
+        "({}). Please ensure that the soft limit is less than or equal to the hard limit.",
+        soft_limit, hard_limit)});
+    }
+
+    if (!is_power_of_two(hard_limit))
+    {
+      QUILL_THROW(QuillError{
+        fmtquill::format("transit_events_hard_limit ({}) must be a power of two", hard_limit)});
+    }
+
+    size_t const requested_initial_capacity = static_cast<size_t>(options.transit_event_buffer_initial_capacity);
+    size_t const rounded_initial_capacity = next_power_of_two(requested_initial_capacity);
+    if ((requested_initial_capacity > hard_limit) || (rounded_initial_capacity > hard_limit))
+    {
+      QUILL_THROW(QuillError{fmtquill::format(
+        "transit_event_buffer_initial_capacity ({}, rounded to {}) cannot be greater than "
+        "transit_events_hard_limit ({})",
+        options.transit_event_buffer_initial_capacity, rounded_initial_capacity, hard_limit)});
+    }
   }
 
   /**
@@ -512,37 +559,6 @@ private:
     if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_end)))
     {
       _invoke_poll_end_once(poll_end_called);
-    }
-  }
-
-  /***/
-  QUILL_ATTRIBUTE_COLD static void _validate_transit_event_limits(BackendOptions const& options)
-  {
-    size_t const soft_limit = (options.transit_events_soft_limit == 0) ? 1 : options.transit_events_soft_limit;
-    size_t const hard_limit = (options.transit_events_hard_limit == 0) ? 1 : options.transit_events_hard_limit;
-
-    if (soft_limit > hard_limit)
-    {
-      QUILL_THROW(QuillError{fmtquill::format(
-        "transit_events_soft_limit ({}) cannot be greater than transit_events_hard_limit "
-        "({}). Please ensure that the soft limit is less than or equal to the hard limit.",
-        soft_limit, hard_limit)});
-    }
-
-    if (!is_power_of_two(hard_limit))
-    {
-      QUILL_THROW(QuillError{
-        fmtquill::format("transit_events_hard_limit ({}) must be a power of two", hard_limit)});
-    }
-
-    size_t const requested_initial_capacity = static_cast<size_t>(options.transit_event_buffer_initial_capacity);
-    size_t const rounded_initial_capacity = next_power_of_two(requested_initial_capacity);
-    if ((requested_initial_capacity > hard_limit) || (rounded_initial_capacity > hard_limit))
-    {
-      QUILL_THROW(QuillError{fmtquill::format(
-        "transit_event_buffer_initial_capacity ({}, rounded to {}) cannot be greater than "
-        "transit_events_hard_limit ({})",
-        options.transit_event_buffer_initial_capacity, rounded_initial_capacity, hard_limit)});
     }
   }
 

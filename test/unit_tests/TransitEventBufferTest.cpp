@@ -6,11 +6,29 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <string>
+#include <string_view>
 
 TEST_SUITE_BEGIN("TransitEventBuffer");
 
 using namespace quill;
 using namespace quill::detail;
+
+/***/
+TEST_CASE("runtime_metadata_truncates_oversized_file_path")
+{
+  std::string file_path(65'530, 'a');
+  file_path += "/forwarded.cpp";
+
+  TransitEvent::RuntimeMetadata const runtime_metadata{
+    file_path.c_str(), 42u, "forwarded", "", "message", LogLevel::Info};
+
+  std::string_view const file_name = runtime_metadata.macro_metadata.file_name();
+  REQUIRE_EQ(file_name.size(), std::string_view{"forwarded.cpp"}.size());
+  REQUIRE_EQ(file_name, std::string_view{"forwarded.cpp"});
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.line(), "42");
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.short_source_location(), "forwarded.cpp:42");
+}
 
 /***/
 TEST_CASE("transit_event_unbounded_buffer")
