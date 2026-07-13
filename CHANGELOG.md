@@ -100,6 +100,7 @@
 
 ## v12.1.0
 
+- Updated bundled `libfmt` to `v12.2.0`.
 - Fixed append-mode `RotatingFileSink` recovery for base filenames without an extension, so `DateAndTime` rotated files
   such as `application.20260622_120000` are counted towards `max_backup_files` instead of accumulating across
   restarts. ([#938](https://github.com/odygrd/quill/discussions/938))

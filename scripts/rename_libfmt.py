@@ -1,18 +1,3 @@
-# python3 rename_libfmt.py ~/git/quill/include/quill/bundled/fmt FMTQUILL fmtquill
-
-# Update bundled libfmt 11.0.2:
-# 1) run python3 rename_libfmt.py ~/git/quill/include/quill/bundled/fmt FMTQUILL fmtquill
-# 2) Add to base.h
-#     #if !defined(FMTQUILL_HEADER_ONLY)
-#       #define FMTQUILL_HEADER_ONLY
-#     #endif
-# 3) in base.h remove format.h always included for FMTQUILL_HEADER_ONLY at the end of file
-# 4) Change append to use memcpy,       if constexpr (std::is_same<T, U>::value) {
-#         memcpy(ptr_ + size_, begin, count * sizeof(T));
-#       } else
-# 5) in chrono.h   if (std::is_same<Period, std::micro>::value) return "us";
-# 6) Add GCC diagnostic ignored "-Wfloat-equal" CC diagnostic ignored "-Wstringop-overflow" to format.h
-# 7) In format.h change `is_fast_float<>()` to `is_fast_float::value`
 import sys
 import os
 import re
@@ -51,7 +36,7 @@ def process_directory(directory, macro_replace, namespace_replace):
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print("Usage: python rename.py <directory> <macro_replace> <namespace_replace>")
+        print("Usage: python rename_libfmt.py <directory> <macro_replace> <namespace_replace>")
     else:
         directory = sys.argv[1]
         macro_replace = sys.argv[2]

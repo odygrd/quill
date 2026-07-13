@@ -1,6 +1,6 @@
 // Formatting library for C++ - the base API for char/UTF-8
 //
-// Copyright (c) 2012 - present, Victor Zverovich
+// Copyright (c) 2012 - present, Victor Zverovich and {fmt} contributors
 // All rights reserved.
 //
 // For the license information refer to format.h.
@@ -25,7 +25,7 @@
 #endif
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMTQUILL_VERSION 120100
+#define FMTQUILL_VERSION 120200
 
 // Detect compiler versions.
 #if defined(__clang__) && !defined(__ibmxl__)
@@ -130,8 +130,8 @@
 #  define FMTQUILL_USE_CONSTEVAL 0
 #elif defined(__apple_build_version__) && __apple_build_version__ < 14000029L
 #  define FMTQUILL_USE_CONSTEVAL 0  // consteval is broken in Apple clang < 14.
-#elif FMTQUILL_MSC_VERSION && FMTQUILL_MSC_VERSION < 1929
-#  define FMTQUILL_USE_CONSTEVAL 0  // consteval is broken in MSVC VS2019 < 16.10.
+#elif FMTQUILL_MSC_VERSION && FMTQUILL_MSC_VERSION < 1940
+#  define FMTQUILL_USE_CONSTEVAL 0  // consteval is broken in some MSVC2022 versions.
 #elif defined(__cpp_consteval)
 #  define FMTQUILL_USE_CONSTEVAL 1
 #elif FMTQUILL_GCC_VERSION >= 1002 || FMTQUILL_CLANG_VERSION >= 1101
@@ -233,16 +233,27 @@
 #  define FMTQUILL_MSC_WARNING(...)
 #endif
 
+#ifndef FMTQUILL_USE_OPTIMIZE_PRAGMA
+#  define FMTQUILL_USE_OPTIMIZE_PRAGMA 1
+#endif
+
 // Enable minimal optimizations for more compact code in debug mode.
 FMTQUILL_MSC_WARNING(push)
+FMTQUILL_MSC_WARNING(disable : 4127) // conditional expression is constant
 FMTQUILL_MSC_WARNING(disable : 4702) // unreachable code
 FMTQUILL_PRAGMA_GCC(push_options)
-#if !defined(__OPTIMIZE__) && !defined(__CUDACC__) && !defined(FMTQUILL_MODULE)
+#if FMTQUILL_USE_OPTIMIZE_PRAGMA && !defined(__OPTIMIZE__) && \
+    !defined(__CUDACC__) && !defined(FMTQUILL_MODULE)
 FMTQUILL_PRAGMA_GCC(optimize("Og"))
-#  define FMTQUILL_GCC_OPTIMIZED
 #endif
-FMTQUILL_PRAGMA_CLANG(diagnostic push)
-FMTQUILL_PRAGMA_GCC(diagnostic push)
+
+#ifdef FMTQUILL_DEPRECATED
+// Use the provided definition.
+#elif FMTQUILL_HAS_CPP14_ATTRIBUTE(deprecated)
+#  define FMTQUILL_DEPRECATED [[deprecated]]
+#else
+#  define FMTQUILL_DEPRECATED /* deprecated */
+#endif
 
 #ifdef FMTQUILL_ALWAYS_INLINE
 // Use the provided definition.
@@ -252,7 +263,7 @@ FMTQUILL_PRAGMA_GCC(diagnostic push)
 #  define FMTQUILL_ALWAYS_INLINE inline
 #endif
 // A version of FMTQUILL_ALWAYS_INLINE to prevent code bloat in debug mode.
-#if defined(NDEBUG) || defined(FMTQUILL_GCC_OPTIMIZED)
+#ifdef NDEBUG
 #  define FMTQUILL_INLINE FMTQUILL_ALWAYS_INLINE
 #else
 #  define FMTQUILL_INLINE inline
@@ -327,6 +338,8 @@ using underlying_t = typename std::underlying_type<T>::type;
 template <typename T> using decay_t = typename std::decay<T>::type;
 using nullptr_t = decltype(nullptr);
 
+using ullong = unsigned long long;
+
 #if (FMTQUILL_GCC_VERSION && FMTQUILL_GCC_VERSION < 500) || FMTQUILL_MSC_VERSION
 // A workaround for gcc 4.9 & MSVC v141 to make void_t work in a SFINAE context.
 template <typename...> struct void_t_impl {
@@ -382,15 +395,7 @@ constexpr auto is_constant_evaluated(bool default_value = false) noexcept
 #endif
 }
 
-// Suppresses "conditional expression is constant" warnings.
-template <typename T> FMTQUILL_ALWAYS_INLINE constexpr auto const_check(T val) -> T {
-  return val;
-}
-
-FMTQUILL_NORETURN FMTQUILL_API void assert_fail(const char* file, int line,
-                                      const char* message);
-
-#if defined(FMTQUILL_ASSERT)
+#ifdef FMTQUILL_ASSERT
 // Use the provided definition.
 #elif defined(NDEBUG)
 // FMTQUILL_ASSERT is not empty to avoid -Wempty-body.
@@ -408,37 +413,20 @@ FMTQUILL_NORETURN FMTQUILL_API void assert_fail(const char* file, int line,
 #elif defined(__SIZEOF_INT128__) && !defined(__NVCC__) && \
     !(FMTQUILL_CLANG_VERSION && FMTQUILL_MSC_VERSION)
 #  define FMTQUILL_USE_INT128 1
-using int128_opt = __int128_t;  // An optional native 128-bit integer.
-using uint128_opt = __uint128_t;
-inline auto map(int128_opt x) -> int128_opt { return x; }
-inline auto map(uint128_opt x) -> uint128_opt { return x; }
+using native_int128 = __int128_t;
+using native_uint128 = __uint128_t;
+inline auto map(native_int128 x) -> native_int128 { return x; }
+inline auto map(native_uint128 x) -> native_uint128 { return x; }
 #else
 #  define FMTQUILL_USE_INT128 0
 #endif
 #if !FMTQUILL_USE_INT128
-enum class int128_opt {};
-enum class uint128_opt {};
-// Reduce template instantiations.
-inline auto map(int128_opt) -> monostate { return {}; }
-inline auto map(uint128_opt) -> monostate { return {}; }
+// Fallbacks to reduce conditional compilation and SFINAE.
+enum class native_int128 {};
+enum class native_uint128 {};
+inline auto map(native_int128) -> monostate { return {}; }
+inline auto map(native_uint128) -> monostate { return {}; }
 #endif
-
-#ifdef FMTQUILL_USE_BITINT
-// Use the provided definition.
-#elif FMTQUILL_CLANG_VERSION >= 1500 && !defined(__CUDACC__)
-#  define FMTQUILL_USE_BITINT 1
-#else
-#  define FMTQUILL_USE_BITINT 0
-#endif
-
-#if FMTQUILL_USE_BITINT
-FMTQUILL_PRAGMA_CLANG(diagnostic ignored "-Wbit-int-extension")
-template <int N> using bitint = _BitInt(N);
-template <int N> using ubitint = unsigned _BitInt(N);
-#else
-template <int N> struct bitint {};
-template <int N> struct ubitint {};
-#endif  // FMTQUILL_USE_BITINT
 
 // Casts a nonnegative integer to unsigned.
 template <typename Int>
@@ -505,22 +493,30 @@ struct is_back_insert_iterator<
 
 // Extracts a reference to the container from *insert_iterator.
 template <typename OutputIt>
-inline FMTQUILL_CONSTEXPR20 auto get_container(OutputIt it) ->
+inline FMTQUILL_CONSTEXPR auto get_container(OutputIt it) ->
     typename OutputIt::container_type& {
   struct accessor : OutputIt {
-    FMTQUILL_CONSTEXPR20 accessor(OutputIt base) : OutputIt(base) {}
+    constexpr accessor(OutputIt base) : OutputIt(base) {}
     using OutputIt::container;
   };
   return *accessor(it).container;
 }
+
+template <typename T, typename Enable = void>
+struct is_contiguous : std::false_type {};
+template <typename T>
+struct is_contiguous<T, void_t<decltype(std::declval<T&>().data()),
+                               decltype(std::declval<T&>().size()),
+                               decltype(std::declval<T&>()[size_t()])>>
+    : std::true_type {};
 }  // namespace detail
 
 // Parsing-related public API and forward declarations.
 FMTQUILL_BEGIN_EXPORT
 
 /**
- * An implementation of `std::basic_string_view` for pre-C++17. It provides a
- * subset of the API. `fmtquill::basic_string_view` is used for format strings even
+ * An implementation of `std::basic_string_view` for pre-C++17 providing a
+ * subset of the API. `fmtquill::basic_string_view` is used in the public API even
  * if `std::basic_string_view` is available to prevent issues when a library is
  * compiled with a different `-std` option than the client code (which is not
  * recommended).
@@ -535,18 +531,13 @@ template <typename Char> class basic_string_view {
   using iterator = const Char*;
 
   constexpr basic_string_view() noexcept : data_(nullptr), size_(0) {}
-
-  /// Constructs a string view object from a C string and a size.
   constexpr basic_string_view(const Char* s, size_t count) noexcept
       : data_(s), size_(count) {}
 
-  constexpr basic_string_view(nullptr_t) = delete;
-
-  /// Constructs a string view object from a C string.
 #if FMTQUILL_GCC_VERSION
   FMTQUILL_ALWAYS_INLINE
 #endif
-  FMTQUILL_CONSTEXPR20 basic_string_view(const Char* s) : data_(s) {
+  FMTQUILL_CONSTEXPR basic_string_view(const Char* s) : data_(s) {
 #if FMTQUILL_HAS_BUILTIN(__builtin_strlen) || FMTQUILL_GCC_VERSION || FMTQUILL_CLANG_VERSION
     if (std::is_same<Char, char>::value && !detail::is_constant_evaluated()) {
       size_ = __builtin_strlen(detail::narrow(s));  // strlen is not constexpr.
@@ -558,18 +549,14 @@ template <typename Char> class basic_string_view {
     size_ = len;
   }
 
-  /// Constructs a string view from a `std::basic_string` or a
-  /// `std::basic_string_view` object.
-  template <typename S,
-            FMTQUILL_ENABLE_IF(detail::is_std_string_like<S>::value&& std::is_same<
-                          typename S::value_type, Char>::value)>
-  FMTQUILL_CONSTEXPR basic_string_view(const S& s) noexcept
+  template <
+      typename S,
+      FMTQUILL_ENABLE_IF(detail::is_std_string_like<S>::value&&  //
+                        std::is_same<typename S::value_type, Char>::value)>
+  constexpr basic_string_view(const S& s) noexcept
       : data_(s.data()), size_(s.size()) {}
 
-  /// Returns a pointer to the string data.
   constexpr auto data() const noexcept -> const Char* { return data_; }
-
-  /// Returns the string size.
   constexpr auto size() const noexcept -> size_t { return size_; }
 
   constexpr auto begin() const noexcept -> iterator { return data_; }
@@ -584,21 +571,19 @@ template <typename Char> class basic_string_view {
     size_ -= n;
   }
 
-  FMTQUILL_CONSTEXPR auto starts_with(basic_string_view<Char> sv) const noexcept
-      -> bool {
+  FMTQUILL_CONSTEXPR auto starts_with(basic_string_view sv) const noexcept -> bool {
     return size_ >= sv.size_ && detail::compare(data_, sv.data_, sv.size_) == 0;
   }
   FMTQUILL_CONSTEXPR auto starts_with(Char c) const noexcept -> bool {
     return size_ >= 1 && *data_ == c;
   }
   FMTQUILL_CONSTEXPR auto starts_with(const Char* s) const -> bool {
-    return starts_with(basic_string_view<Char>(s));
+    return starts_with(basic_string_view(s));
   }
 
   FMTQUILL_CONSTEXPR auto compare(basic_string_view other) const -> int {
-    int result =
-        detail::compare(data_, other.data_, min_of(size_, other.size_));
-    if (result != 0) return result;
+    int cmp = detail::compare(data_, other.data_, min_of(size_, other.size_));
+    if (cmp != 0) return cmp;
     return size_ == other.size_ ? 0 : (size_ < other.size_ ? -1 : 1);
   }
 
@@ -622,14 +607,10 @@ template <typename Char> class basic_string_view {
     return lhs.compare(rhs) >= 0;
   }
 };
-
 using string_view = basic_string_view<char>;
 
 template <typename T> class basic_appender;
 using appender = basic_appender<char>;
-
-// Checks whether T is a container with contiguous storage.
-template <typename T> struct is_contiguous : std::false_type {};
 
 class context;
 template <typename OutputIt, typename Char> class generic_context;
@@ -649,6 +630,8 @@ using buffered_context =
     conditional_t<std::is_same<Char, char>::value, context,
                   generic_context<basic_appender<Char>, Char>>;
 
+template <typename T> struct is_contiguous : detail::is_contiguous<T> {};
+
 template <typename Context> class basic_format_arg;
 template <typename Context> class basic_format_args;
 
@@ -662,6 +645,9 @@ struct formatter {
   // A deleted default constructor indicates a disabled formatter.
   formatter() = delete;
 };
+
+template <typename T, typename Enable = void>
+struct locking : std::false_type {};
 
 /// Reports a format error at compile time or, via a `format_error` exception,
 /// at runtime.
@@ -742,8 +728,7 @@ class basic_specs {
   char fill_data_[max_fill_size] = {' '};
 
   FMTQUILL_CONSTEXPR void set_fill_size(size_t size) {
-    data_ = (data_ & ~fill_size_mask) |
-            (static_cast<unsigned>(size) << fill_size_shift);
+    data_ = (data_ & ~fill_size_mask) | (unsigned(size) << fill_size_shift);
   }
 
  public:
@@ -751,21 +736,21 @@ class basic_specs {
     return static_cast<presentation_type>(data_ & type_mask);
   }
   FMTQUILL_CONSTEXPR void set_type(presentation_type t) {
-    data_ = (data_ & ~type_mask) | static_cast<unsigned>(t);
+    data_ = (data_ & ~type_mask) | unsigned(t);
   }
 
   constexpr auto align() const -> align {
     return static_cast<fmtquill::align>((data_ & align_mask) >> align_shift);
   }
   FMTQUILL_CONSTEXPR void set_align(fmtquill::align a) {
-    data_ = (data_ & ~align_mask) | (static_cast<unsigned>(a) << align_shift);
+    data_ = (data_ & ~align_mask) | (unsigned(a) << align_shift);
   }
 
   constexpr auto dynamic_width() const -> arg_id_kind {
     return static_cast<arg_id_kind>((data_ & width_mask) >> width_shift);
   }
   FMTQUILL_CONSTEXPR void set_dynamic_width(arg_id_kind w) {
-    data_ = (data_ & ~width_mask) | (static_cast<unsigned>(w) << width_shift);
+    data_ = (data_ & ~width_mask) | (unsigned(w) << width_shift);
   }
 
   FMTQUILL_CONSTEXPR auto dynamic_precision() const -> arg_id_kind {
@@ -773,8 +758,7 @@ class basic_specs {
                                     precision_shift);
   }
   FMTQUILL_CONSTEXPR void set_dynamic_precision(arg_id_kind p) {
-    data_ = (data_ & ~precision_mask) |
-            (static_cast<unsigned>(p) << precision_shift);
+    data_ = (data_ & ~precision_mask) | (unsigned(p) << precision_shift);
   }
 
   constexpr auto dynamic() const -> bool {
@@ -785,7 +769,7 @@ class basic_specs {
     return static_cast<fmtquill::sign>((data_ & sign_mask) >> sign_shift);
   }
   FMTQUILL_CONSTEXPR void set_sign(fmtquill::sign s) {
-    data_ = (data_ & ~sign_mask) | (static_cast<unsigned>(s) << sign_shift);
+    data_ = (data_ & ~sign_mask) | (unsigned(s) << sign_shift);
   }
 
   constexpr auto upper() const -> bool { return (data_ & uppercase_mask) != 0; }
@@ -815,9 +799,8 @@ class basic_specs {
 
   template <typename Char> constexpr auto fill_unit() const -> Char {
     using uchar = unsigned char;
-    return static_cast<Char>(static_cast<uchar>(fill_data_[0]) |
-                             (static_cast<uchar>(fill_data_[1]) << 8) |
-                             (static_cast<uchar>(fill_data_[2]) << 16));
+    return Char(uchar(fill_data_[0]) | uchar(fill_data_[1]) << 8 |
+                uchar(fill_data_[2]) << 16);
   }
 
   FMTQUILL_CONSTEXPR void set_fill(char c) {
@@ -831,14 +814,13 @@ class basic_specs {
     set_fill_size(size);
     if (size == 1) {
       unsigned uchar = static_cast<detail::unsigned_char<Char>>(s[0]);
-      fill_data_[0] = static_cast<char>(uchar);
-      fill_data_[1] = static_cast<char>(uchar >> 8);
-      fill_data_[2] = static_cast<char>(uchar >> 16);
+      fill_data_[0] = char(uchar);
+      fill_data_[1] = char(uchar >> 8);
+      fill_data_[2] = char(uchar >> 16);
       return;
     }
     FMTQUILL_ASSERT(size <= max_fill_size, "invalid fill");
-    for (size_t i = 0; i < size; ++i)
-      fill_data_[i & 3] = static_cast<char>(s[i]);
+    for (size_t i = 0; i < size; ++i) fill_data_[i & 3] = char(s[i]);
   }
 
   FMTQUILL_CONSTEXPR void copy_fill_from(const basic_specs& specs) {
@@ -933,10 +915,13 @@ class locale_ref {
   template <typename Locale, FMTQUILL_ENABLE_IF(sizeof(Locale::collate) != 0)>
   locale_ref(const Locale& loc) : locale_(&loc) {
     // Check if std::isalpha is found via ADL to reduce the chance of misuse.
-    isalpha('x', loc);
+    detail::ignore_unused(sizeof(isalpha('x', loc)));
   }
 
   inline explicit operator bool() const noexcept { return locale_ != nullptr; }
+#else
+ public:
+  inline explicit operator bool() const noexcept { return false; }
 #endif  // FMTQUILL_USE_LOCALE
 
  public:
@@ -1023,9 +1008,9 @@ struct type_constant : std::integral_constant<type, type::custom_type> {};
 FMTQUILL_TYPE_CONSTANT(int, int_type);
 FMTQUILL_TYPE_CONSTANT(unsigned, uint_type);
 FMTQUILL_TYPE_CONSTANT(long long, long_long_type);
-FMTQUILL_TYPE_CONSTANT(unsigned long long, ulong_long_type);
-FMTQUILL_TYPE_CONSTANT(int128_opt, int128_type);
-FMTQUILL_TYPE_CONSTANT(uint128_opt, uint128_type);
+FMTQUILL_TYPE_CONSTANT(ullong, ulong_long_type);
+FMTQUILL_TYPE_CONSTANT(native_int128, int128_type);
+FMTQUILL_TYPE_CONSTANT(native_uint128, uint128_type);
 FMTQUILL_TYPE_CONSTANT(bool, bool_type);
 FMTQUILL_TYPE_CONSTANT(Char, char_type);
 FMTQUILL_TYPE_CONSTANT(float, float_type);
@@ -1042,9 +1027,9 @@ constexpr auto is_arithmetic_type(type t) -> bool {
   return t > type::none_type && t <= type::last_numeric_type;
 }
 
-constexpr auto set(type rhs) -> int { return 1 << static_cast<int>(rhs); }
+constexpr auto set(type rhs) -> int { return 1 << int(rhs); }
 constexpr auto in(type t, int set) -> bool {
-  return ((set >> static_cast<int>(t)) & 1) != 0;
+  return ((set >> int(t)) & 1) != 0;
 }
 
 // Bitsets of types.
@@ -1069,14 +1054,15 @@ struct is_view : std::false_type {};
 template <typename T>
 struct is_view<T, bool_constant<sizeof(T) != 0>> : std::is_base_of<view, T> {};
 
-template <typename Char, typename T> struct named_arg;
+// DEPRECATED! named_arg will be moved to the fmt namespace.
+template <typename T, typename Char> struct named_arg;
 template <typename T> struct is_named_arg : std::false_type {};
 template <typename T> struct is_static_named_arg : std::false_type {};
 
-template <typename Char, typename T>
-struct is_named_arg<named_arg<Char, T>> : std::true_type {};
+template <typename T, typename Char>
+struct is_named_arg<named_arg<T, Char>> : std::true_type {};
 
-template <typename Char, typename T> struct named_arg : view {
+template <typename T, typename Char = char> struct named_arg : view {
   const Char* name;
   const T& value;
 
@@ -1140,7 +1126,7 @@ FMTQUILL_CONSTEXPR void init_static_named_arg(named_arg_info<Char>* named_args,
 // either to int or to long long depending on its size.
 enum { long_short = sizeof(long) == sizeof(int) && FMTQUILL_BUILTIN_TYPES };
 using long_type = conditional_t<long_short, int, long long>;
-using ulong_type = conditional_t<long_short, unsigned, unsigned long long>;
+using ulong_type = conditional_t<long_short, unsigned, ullong>;
 
 template <typename T>
 using format_as_result =
@@ -1194,16 +1180,10 @@ template <typename Char> struct type_mapper {
   static auto map(long) -> long_type;
   static auto map(unsigned long) -> ulong_type;
   static auto map(long long) -> long long;
-  static auto map(unsigned long long) -> unsigned long long;
-  static auto map(int128_opt) -> int128_opt;
-  static auto map(uint128_opt) -> uint128_opt;
+  static auto map(ullong) -> ullong;
+  static auto map(native_int128) -> native_int128;
+  static auto map(native_uint128) -> native_uint128;
   static auto map(bool) -> bool;
-
-  template <int N>
-  static auto map(bitint<N>) -> conditional_t<N <= 64, long long, void>;
-  template <int N>
-  static auto map(ubitint<N>)
-      -> conditional_t<N <= 64, unsigned long long, void>;
 
   template <typename T, FMTQUILL_ENABLE_IF(is_code_unit<T>::value)>
   static auto map(T) -> conditional_t<
@@ -1264,9 +1244,9 @@ class compile_parse_context : public parse_context<Char> {
   using base = parse_context<Char>;
 
  public:
-  FMTQUILL_CONSTEXPR explicit compile_parse_context(basic_string_view<Char> fmt,
-                                               int num_args, const type* types,
-                                               int next_arg_id = 0)
+  constexpr explicit compile_parse_context(basic_string_view<Char> fmt,
+                                           int num_args, const type* types,
+                                           int next_arg_id = 0)
       : base(fmt, next_arg_id), num_args_(num_args), types_(types) {}
 
   constexpr auto num_args() const -> int { return num_args_; }
@@ -1285,7 +1265,6 @@ class compile_parse_context : public parse_context<Char> {
   using base::check_arg_id;
 
   FMTQUILL_CONSTEXPR void check_dynamic_spec(int arg_id) {
-    ignore_unused(arg_id);
     if (arg_id < num_args_ && types_ && !is_integral_type(types_[arg_id]))
       report_error("width/precision is not integer");
   }
@@ -1311,13 +1290,13 @@ template <typename Char = char> struct dynamic_format_specs : format_specs {
 // Converts a character to ASCII. Returns '\0' on conversion failure.
 template <typename Char, FMTQUILL_ENABLE_IF(std::is_integral<Char>::value)>
 constexpr auto to_ascii(Char c) -> char {
-  return c <= 0xff ? static_cast<char>(c) : '\0';
+  return c <= 0xff ? char(c) : '\0';
 }
 
 // Returns the number of code units in a code point or 1 on error.
 template <typename Char>
 FMTQUILL_CONSTEXPR auto code_point_length(const Char* begin) -> int {
-  if (const_check(sizeof(Char) != 1)) return 1;
+  if FMTQUILL_CONSTEXPR20 (sizeof(Char) != 1) return 1;
   auto c = static_cast<unsigned char>(*begin);
   return static_cast<int>((0x3a55000000000000ull >> (2 * (c >> 3))) & 3) + 1;
 }
@@ -1337,13 +1316,13 @@ FMTQUILL_CONSTEXPR auto parse_nonnegative_int(const Char*& begin, const Char* en
   } while (p != end && '0' <= *p && *p <= '9');
   auto num_digits = p - begin;
   begin = p;
-  int digits10 = static_cast<int>(sizeof(int) * CHAR_BIT * 3 / 10);
-  if (num_digits <= digits10) return static_cast<int>(value);
+  int digits10 = int(sizeof(int) * CHAR_BIT * 3 / 10);
+  if (num_digits <= digits10) return int(value);
   // Check for overflow.
   unsigned max = INT_MAX;
   return num_digits == digits10 + 1 &&
                  prev * 10ull + unsigned(p[-1] - '0') <= max
-             ? static_cast<int>(value)
+             ? int(value)
              : error_value;
 }
 
@@ -1787,9 +1766,10 @@ template <typename T> class buffer {
 
  protected:
   // Don't initialize ptr_ since it is not accessed to save a few cycles.
-  FMTQUILL_MSC_WARNING(suppress : 26495)
   FMTQUILL_CONSTEXPR buffer(grow_fun grow, size_t sz) noexcept
-      : size_(sz), capacity_(sz), grow_(grow) {}
+      : size_(sz), capacity_(sz), grow_(grow) {
+    if (FMTQUILL_MSC_VERSION != 0) ptr_ = nullptr;  // Suppress warning 26495.
+  }
 
   constexpr buffer(grow_fun grow, T* p = nullptr, size_t sz = 0,
                    size_t cap = 0) noexcept
@@ -1852,32 +1832,24 @@ template <typename T> class buffer {
 
   /// Appends data to the end of the buffer.
   template <typename U>
-// Workaround for MSVC2019 to fix error C2893: Failed to specialize function
-// template 'void fmtquill::v11::detail::buffer<T>::append(const U *,const U *)'.
-#if !FMTQUILL_MSC_VERSION || FMTQUILL_MSC_VERSION >= 1940
-  FMTQUILL_CONSTEXPR20
-#endif
-      void
-      append(const U* begin, const U* end) {
+  FMTQUILL_CONSTEXPR20 void append(const U* begin, const U* end) {
+    static_assert(std::is_same<T, U>() || std::is_same<U, char>(), "");
     while (begin != end) {
       auto size = size_;
       auto free_cap = capacity_ - size;
       auto count = to_unsigned(end - begin);
-
       if (free_cap < count) {
         grow_(*this, size + count);
         size = size_;
         free_cap = capacity_ - size;
         count = count < free_cap ? count : free_cap;
       }
-
       if constexpr (std::is_same<T, U>::value) {
         memcpy(ptr_ + size_, begin, count * sizeof(T));
       } else {
         T* out = ptr_ + size_;
-        for (size_t i = 0; i < count; ++i) out[i] = begin[i];
+        for (size_t i = 0; i < count; ++i) out[i] = static_cast<T>(begin[i]);
       }
-
       size_ += count;
       begin += count;
     }
@@ -1887,7 +1859,7 @@ template <typename T> class buffer {
     return ptr_[index];
   }
   template <typename Idx>
-  FMTQUILL_CONSTEXPR auto operator[](Idx index) const -> const T& {
+  constexpr auto operator[](Idx index) const -> const T& {
     return ptr_[index];
   }
 };
@@ -1913,6 +1885,64 @@ class fixed_buffer_traits {
   }
 };
 
+template <typename OutputIt, typename InputIt, typename = void>
+struct has_append : std::false_type {};
+
+template <typename OutputIt, typename InputIt>
+struct has_append<OutputIt, InputIt,
+                  void_t<decltype(get_container(std::declval<OutputIt>())
+                                      .append(std::declval<InputIt>(),
+                                              std::declval<InputIt>()))>>
+    : std::true_type {};
+
+template <typename OutputIt, typename T, typename = void>
+struct has_insert : std::false_type {};
+
+template <typename OutputIt, typename T>
+struct has_insert<
+    OutputIt, T,
+    void_t<decltype(get_container(std::declval<OutputIt>())
+                        .insert({}, std::declval<T>(), std::declval<T>()))>>
+    : std::true_type {};
+
+// An optimized version of std::copy with the output value type (T).
+template <typename T, typename InputIt, typename OutputIt,
+          FMTQUILL_ENABLE_IF(is_back_insert_iterator<OutputIt>() &&
+                        has_append<OutputIt, InputIt>())>
+FMTQUILL_CONSTEXPR auto copy(InputIt begin, InputIt end, OutputIt out) -> OutputIt {
+  get_container(out).append(begin, end);
+  return out;
+}
+
+template <typename T, typename InputIt, typename OutputIt,
+          FMTQUILL_ENABLE_IF(is_back_insert_iterator<OutputIt>() &&
+                        !has_append<OutputIt, InputIt>() &&
+                        has_insert<OutputIt, InputIt>())>
+FMTQUILL_CONSTEXPR auto copy(InputIt begin, InputIt end, OutputIt out) -> OutputIt {
+  auto& c = get_container(out);
+  c.insert(c.end(), begin, end);
+  return out;
+}
+
+template <typename T, typename InputIt, typename OutputIt,
+          FMTQUILL_ENABLE_IF(!is_back_insert_iterator<OutputIt>() ||
+                        !(has_append<OutputIt, InputIt>() ||
+                          has_insert<OutputIt, InputIt>()))>
+FMTQUILL_CONSTEXPR auto copy(InputIt begin, InputIt end, OutputIt out) -> OutputIt {
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
+  while (begin != end) *out++ = static_cast<T>(*begin++);
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#endif
+
+  return out;
+}
+
 // A buffer that writes to an output iterator when flushed.
 template <typename OutputIt, typename T, typename Traits = buffer_traits>
 class iterator_buffer : public Traits, public buffer<T> {
@@ -1930,7 +1960,7 @@ class iterator_buffer : public Traits, public buffer<T> {
     this->clear();
     const T* begin = data_;
     const T* end = begin + this->limit(size);
-    while (begin != end) *out_++ = *begin++;
+    out_ = copy<T>(begin, end, out_);
   }
 
  public:
@@ -2057,7 +2087,7 @@ template <typename T = char> class counting_buffer : public buffer<T> {
   }
 
  public:
-  FMTQUILL_CONSTEXPR counting_buffer() : buffer<T>(grow, data_, 0, buffer_size) {}
+  constexpr counting_buffer() : buffer<T>(grow, data_, 0, buffer_size) {}
 
   constexpr auto count() const noexcept -> size_t {
     return count_ + this->size();
@@ -2066,76 +2096,6 @@ template <typename T = char> class counting_buffer : public buffer<T> {
 
 template <typename T>
 struct is_back_insert_iterator<basic_appender<T>> : std::true_type {};
-
-template <typename OutputIt, typename InputIt, typename = void>
-struct has_back_insert_iterator_container_append : std::false_type {};
-template <typename OutputIt, typename InputIt>
-struct has_back_insert_iterator_container_append<
-    OutputIt, InputIt,
-    void_t<decltype(get_container(std::declval<OutputIt>())
-                        .append(std::declval<InputIt>(),
-                                std::declval<InputIt>()))>> : std::true_type {};
-
-template <typename OutputIt, typename InputIt, typename = void>
-struct has_back_insert_iterator_container_insert_at_end : std::false_type {};
-
-template <typename OutputIt, typename InputIt>
-struct has_back_insert_iterator_container_insert_at_end<
-    OutputIt, InputIt,
-    void_t<decltype(get_container(std::declval<OutputIt>())
-                        .insert(get_container(std::declval<OutputIt>()).end(),
-                                std::declval<InputIt>(),
-                                std::declval<InputIt>()))>> : std::true_type {};
-
-// An optimized version of std::copy with the output value type (T).
-template <typename T, typename InputIt, typename OutputIt,
-          FMTQUILL_ENABLE_IF(is_back_insert_iterator<OutputIt>::value&&
-                            has_back_insert_iterator_container_append<
-                                OutputIt, InputIt>::value)>
-FMTQUILL_CONSTEXPR20 auto copy(InputIt begin, InputIt end, OutputIt out)
-    -> OutputIt {
-  get_container(out).append(begin, end);
-  return out;
-}
-
-template <typename T, typename InputIt, typename OutputIt,
-          FMTQUILL_ENABLE_IF(is_back_insert_iterator<OutputIt>::value &&
-                        !has_back_insert_iterator_container_append<
-                            OutputIt, InputIt>::value &&
-                        has_back_insert_iterator_container_insert_at_end<
-                            OutputIt, InputIt>::value)>
-FMTQUILL_CONSTEXPR20 auto copy(InputIt begin, InputIt end, OutputIt out)
-    -> OutputIt {
-  auto& c = get_container(out);
-  c.insert(c.end(), begin, end);
-  return out;
-}
-
-template <typename T, typename InputIt, typename OutputIt,
-          FMTQUILL_ENABLE_IF(!(is_back_insert_iterator<OutputIt>::value &&
-                          (has_back_insert_iterator_container_append<
-                               OutputIt, InputIt>::value ||
-                           has_back_insert_iterator_container_insert_at_end<
-                               OutputIt, InputIt>::value)))>
-FMTQUILL_CONSTEXPR auto copy(InputIt begin, InputIt end, OutputIt out) -> OutputIt {
-#if defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
-
-  while (begin != end) *out++ = static_cast<T>(*begin++);
-
-#if defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC diagnostic pop
-#endif
-
-  return out;
-}
-
-template <typename T, typename V, typename OutputIt>
-FMTQUILL_CONSTEXPR auto copy(basic_string_view<V> s, OutputIt out) -> OutputIt {
-  return copy<T>(s.begin(), s.end(), out);
-}
 
 template <typename It, typename Enable = std::true_type>
 struct is_buffer_appender : std::false_type {};
@@ -2206,9 +2166,9 @@ template <typename Context> class value {
     int int_value;
     unsigned uint_value;
     long long long_long_value;
-    unsigned long long ulong_long_value;
-    int128_opt int128_value;
-    uint128_opt uint128_value;
+    ullong ulong_long_value;
+    native_int128 int128_value;
+    native_uint128 uint128_value;
     bool bool_value;
     char_type char_value;
     float float_value;
@@ -2227,24 +2187,14 @@ template <typename Context> class value {
   constexpr FMTQUILL_INLINE value(unsigned short x FMTQUILL_BUILTIN) : uint_value(x) {}
   constexpr FMTQUILL_INLINE value(int x) : int_value(x) {}
   constexpr FMTQUILL_INLINE value(unsigned x FMTQUILL_BUILTIN) : uint_value(x) {}
-  FMTQUILL_CONSTEXPR FMTQUILL_INLINE value(long x FMTQUILL_BUILTIN) : value(long_type(x)) {}
-  FMTQUILL_CONSTEXPR FMTQUILL_INLINE value(unsigned long x FMTQUILL_BUILTIN)
+  constexpr FMTQUILL_INLINE value(long x FMTQUILL_BUILTIN) : value(long_type(x)) {}
+  constexpr FMTQUILL_INLINE value(unsigned long x FMTQUILL_BUILTIN)
       : value(ulong_type(x)) {}
   constexpr FMTQUILL_INLINE value(long long x FMTQUILL_BUILTIN) : long_long_value(x) {}
-  constexpr FMTQUILL_INLINE value(unsigned long long x FMTQUILL_BUILTIN)
-      : ulong_long_value(x) {}
-  FMTQUILL_INLINE value(int128_opt x FMTQUILL_BUILTIN) : int128_value(x) {}
-  FMTQUILL_INLINE value(uint128_opt x FMTQUILL_BUILTIN) : uint128_value(x) {}
+  constexpr FMTQUILL_INLINE value(ullong x FMTQUILL_BUILTIN) : ulong_long_value(x) {}
+  FMTQUILL_INLINE value(native_int128 x FMTQUILL_BUILTIN) : int128_value(x) {}
+  FMTQUILL_INLINE value(native_uint128 x FMTQUILL_BUILTIN) : uint128_value(x) {}
   constexpr FMTQUILL_INLINE value(bool x FMTQUILL_BUILTIN) : bool_value(x) {}
-
-  template <int N>
-  constexpr FMTQUILL_INLINE value(bitint<N> x FMTQUILL_BUILTIN) : long_long_value(x) {
-    static_assert(N <= 64, "unsupported _BitInt");
-  }
-  template <int N>
-  constexpr FMTQUILL_INLINE value(ubitint<N> x FMTQUILL_BUILTIN) : ulong_long_value(x) {
-    static_assert(N <= 64, "unsupported _BitInt");
-  }
 
   template <typename T, FMTQUILL_ENABLE_IF(is_code_unit<T>::value)>
   constexpr FMTQUILL_INLINE value(T x FMTQUILL_BUILTIN) : char_value(x) {
@@ -2274,17 +2224,20 @@ template <typename Context> class value {
     string.data = sv.data();
     string.size = sv.size();
   }
-  FMTQUILL_INLINE value(void* x FMTQUILL_BUILTIN) : pointer(x) {}
-  FMTQUILL_INLINE value(const void* x FMTQUILL_BUILTIN) : pointer(x) {}
-  FMTQUILL_INLINE value(volatile void* x FMTQUILL_BUILTIN)
+  constexpr FMTQUILL_INLINE value(void* x FMTQUILL_BUILTIN) : pointer(x) {}
+  constexpr FMTQUILL_INLINE value(const void* x FMTQUILL_BUILTIN) : pointer(x) {}
+  constexpr FMTQUILL_INLINE value(volatile void* x FMTQUILL_BUILTIN)
       : pointer(const_cast<const void*>(x)) {}
-  FMTQUILL_INLINE value(const volatile void* x FMTQUILL_BUILTIN)
+  constexpr FMTQUILL_INLINE value(const volatile void* x FMTQUILL_BUILTIN)
       : pointer(const_cast<const void*>(x)) {}
-  FMTQUILL_INLINE value(nullptr_t) : pointer(nullptr) {}
+  constexpr FMTQUILL_INLINE value(nullptr_t) : pointer(nullptr) {}
 
-  template <typename T, FMTQUILL_ENABLE_IF(std::is_pointer<T>::value ||
-                                      std::is_member_pointer<T>::value)>
-  value(const T&) {
+  template <typename T,
+            FMTQUILL_ENABLE_IF(
+                (std::is_pointer<T>::value ||
+                 std::is_member_pointer<T>::value) &&
+                !std::is_void<typename std::remove_pointer<T>::type>::value)>
+  constexpr value(const T&) {
     // Formatting of arbitrary pointers is disallowed. If you want to format a
     // pointer cast it to `void*` or `const void*`. In particular, this forbids
     // formatting of `[const] volatile char*` printed as bool by iostreams.
@@ -2293,16 +2246,16 @@ template <typename Context> class value {
   }
 
   template <typename T, FMTQUILL_ENABLE_IF(use_format_as<T>::value)>
-  value(const T& x) : value(format_as(x)) {}
+  constexpr value(const T& x) : value(format_as(x)) {}
   template <typename T, FMTQUILL_ENABLE_IF(use_format_as_member<T>::value)>
-  value(const T& x) : value(formatter<T>::format_as(x)) {}
+  constexpr value(const T& x) : value(formatter<T>::format_as(x)) {}
 
   template <typename T, FMTQUILL_ENABLE_IF(is_named_arg<T>::value)>
-  value(const T& named_arg) : value(named_arg.value) {}
+  constexpr value(const T& named_arg) : value(named_arg.value) {}
 
   template <typename T,
             FMTQUILL_ENABLE_IF(use_formatter<T>::value || !FMTQUILL_BUILTIN_TYPES)>
-  FMTQUILL_CONSTEXPR20 FMTQUILL_INLINE value(T& x) : value(x, custom_tag()) {}
+  FMTQUILL_CONSTEXPR FMTQUILL_INLINE value(T& x) : value(x, custom_tag()) {}
 
   FMTQUILL_ALWAYS_INLINE value(const named_arg_info<char_type>* args, size_t size)
       : named_args{args, size} {}
@@ -2328,7 +2281,7 @@ template <typename Context> class value {
   template <typename T, FMTQUILL_ENABLE_IF(!has_formatter<T, char_type>())>
   FMTQUILL_CONSTEXPR value(const T&, custom_tag) {
     // Cannot format an argument; to make type T formattable provide a
-    // formatter<T> specialization: https://fmt.dev/latest/api.html#udt.
+    // formatter<T> specialization: https://fmt.dev/latest/api#udt.
     type_is_unformattable_for<T, char_type> _;
   }
 
@@ -2349,8 +2302,8 @@ template <typename Context> class value {
 enum { packed_arg_bits = 4 };
 // Maximum number of arguments with packed types.
 enum { max_packed_args = 62 / packed_arg_bits };
-enum : unsigned long long { is_unpacked_bit = 1ULL << 63 };
-enum : unsigned long long { has_named_args_bit = 1ULL << 62 };
+enum : ullong { is_unpacked_bit = 1ULL << 63 };
+enum : ullong { has_named_args_bit = 1ULL << 62 };
 
 template <typename It, typename T, typename Enable = void>
 struct is_output_iterator : std::false_type {};
@@ -2363,18 +2316,16 @@ struct is_output_iterator<
     enable_if_t<std::is_assignable<decltype(*std::declval<decay_t<It>&>()++),
                                    T>::value>> : std::true_type {};
 
-template <typename> constexpr auto encode_types() -> unsigned long long {
-  return 0;
-}
+template <typename> constexpr auto encode_types() -> ullong { return 0; }
 
 template <typename Context, typename First, typename... T>
-constexpr auto encode_types() -> unsigned long long {
-  return static_cast<unsigned>(stored_type_constant<First, Context>::value) |
+constexpr auto encode_types() -> ullong {
+  return unsigned(stored_type_constant<First, Context>::value) |
          (encode_types<Context, T...>() << packed_arg_bits);
 }
 
 template <typename Context, typename... T, size_t NUM_ARGS = sizeof...(T)>
-constexpr auto make_descriptor() -> unsigned long long {
+constexpr auto make_descriptor() -> ullong {
   return NUM_ARGS <= max_packed_args ? encode_types<Context, T...>()
                                      : is_unpacked_bit | NUM_ARGS;
 }
@@ -2383,13 +2334,11 @@ template <typename Context, int NUM_ARGS>
 using arg_t = conditional_t<NUM_ARGS <= max_packed_args, value<Context>,
                             basic_format_arg<Context>>;
 
-template <typename Context, int NUM_ARGS, int NUM_NAMED_ARGS,
-          unsigned long long DESC>
+template <typename Context, int NUM_ARGS, int NUM_NAMED_ARGS, ullong DESC>
 struct named_arg_store {
   // args_[0].named_args points to named_args to avoid bloating format_args.
-  arg_t<Context, NUM_ARGS> args[1u + NUM_ARGS];
-  named_arg_info<typename Context::char_type>
-      named_args[static_cast<size_t>(NUM_NAMED_ARGS)];
+  arg_t<Context, NUM_ARGS> args[NUM_ARGS + 1u];
+  named_arg_info<typename Context::char_type> named_args[NUM_NAMED_ARGS + 0u];
 
   template <typename... T>
   FMTQUILL_CONSTEXPR FMTQUILL_ALWAYS_INLINE named_arg_store(T&... values)
@@ -2416,8 +2365,7 @@ struct named_arg_store {
 // An array of references to arguments. It can be implicitly converted to
 // `basic_format_args` for passing into type-erased formatting functions
 // such as `vformat`. It is a plain struct to reduce binary size in debug mode.
-template <typename Context, int NUM_ARGS, int NUM_NAMED_ARGS,
-          unsigned long long DESC>
+template <typename Context, int NUM_ARGS, int NUM_NAMED_ARGS, ullong DESC>
 struct format_arg_store {
   // +1 to workaround a bug in gcc 7.5 that causes duplicated-branches warning.
   using type =
@@ -2433,12 +2381,10 @@ template <typename T, typename Char, type TYPE> struct native_formatter {
   dynamic_format_specs<Char> specs_;
 
  public:
-  using nonlocking = void;
-
   FMTQUILL_CONSTEXPR auto parse(parse_context<Char>& ctx) -> const Char* {
     if (ctx.begin() == ctx.end() || *ctx.begin() == '}') return ctx.begin();
     auto end = parse_format_specs(ctx.begin(), ctx.end(), specs_, ctx, TYPE);
-    if (const_check(TYPE == type::char_type)) check_char_specs(specs_);
+    if FMTQUILL_CONSTEXPR20 (TYPE == type::char_type) check_char_specs(specs_);
     return end;
   }
 
@@ -2449,25 +2395,26 @@ template <typename T, typename Char, type TYPE> struct native_formatter {
     specs_.set_type(set ? presentation_type::debug : presentation_type::none);
   }
 
-  FMTQUILL_PRAGMA_CLANG(diagnostic ignored "-Wundefined-inline")
   template <typename FormatContext>
   FMTQUILL_CONSTEXPR auto format(const T& val, FormatContext& ctx) const
       -> decltype(ctx.out());
 };
 
-template <typename T, typename Enable = void>
-struct locking
-    : bool_constant<mapped_type_constant<T>::value == type::custom_type> {};
-template <typename T>
-struct locking<T, void_t<typename formatter<remove_cvref_t<T>>::nonlocking>>
-    : std::false_type {};
+template <bool B> constexpr bool enforce_compile_checks() {
+#ifdef FMTQUILL_ENFORCE_COMPILE_STRING
+  static_assert(
+      FMTQUILL_USE_CONSTEVAL && B,
+      "FMTQUILL_ENFORCE_COMPILE_STRING requires format strings to use FMTQUILL_STRING");
+#endif
+  return true;
+}
 
-template <typename T = int> FMTQUILL_CONSTEXPR inline auto is_locking() -> bool {
-  return locking<T>::value;
+template <typename T = int> constexpr auto is_locking() -> bool {
+  return locking<remove_cvref_t<T>>::value;
 }
 template <typename T1, typename T2, typename... Tail>
-FMTQUILL_CONSTEXPR inline auto is_locking() -> bool {
-  return locking<T1>::value || is_locking<T2, Tail...>();
+constexpr auto is_locking() -> bool {
+  return locking<remove_cvref_t<T1>>::value || is_locking<T2, Tail...>();
 }
 
 FMTQUILL_API void vformat_to(buffer<char>& buf, string_view fmt, format_args args,
@@ -2481,6 +2428,9 @@ inline void vprint_mojibake(FILE*, string_view, const format_args&, bool) {}
 }  // namespace detail
 
 // The main public API.
+
+template <typename T, typename Char = char>
+using named_arg = detail::named_arg<T, Char>;
 
 template <typename Char>
 FMTQUILL_CONSTEXPR void parse_context<Char>::do_check_arg_id(int arg_id) {
@@ -2510,15 +2460,15 @@ template <typename T> class basic_appender {
  public:
   using container_type = detail::buffer<T>;
 
-  FMTQUILL_CONSTEXPR basic_appender(detail::buffer<T>& buf) : container(&buf) {}
+  constexpr basic_appender(detail::buffer<T>& buf) : container(&buf) {}
 
-  FMTQUILL_CONSTEXPR20 auto operator=(T c) -> basic_appender& {
+  FMTQUILL_CONSTEXPR auto operator=(T c) -> basic_appender& {
     container->push_back(c);
     return *this;
   }
-  FMTQUILL_CONSTEXPR20 auto operator*() -> basic_appender& { return *this; }
-  FMTQUILL_CONSTEXPR20 auto operator++() -> basic_appender& { return *this; }
-  FMTQUILL_CONSTEXPR20 auto operator++(int) -> basic_appender { return *this; }
+  FMTQUILL_CONSTEXPR auto operator*() -> basic_appender& { return *this; }
+  FMTQUILL_CONSTEXPR auto operator++() -> basic_appender& { return *this; }
+  FMTQUILL_CONSTEXPR auto operator++(int) -> basic_appender { return *this; }
 };
 
 // A formatting argument. Context is a template parameter for the compiled API
@@ -2610,7 +2560,7 @@ template <typename Context> class basic_format_args {
   // If the number of arguments is less or equal to max_packed_args then
   // argument types are passed in the descriptor. This reduces binary code size
   // per formatting function call.
-  unsigned long long desc_;
+  ullong desc_;
   union {
     // If is_packed() returns true then argument values are stored in values_;
     // otherwise they are stored in args_. This is done to improve cache
@@ -2634,7 +2584,7 @@ template <typename Context> class basic_format_args {
     return static_cast<detail::type>((desc_ >> shift) & mask);
   }
 
-  template <int NUM_ARGS, int NUM_NAMED_ARGS, unsigned long long DESC>
+  template <int NUM_ARGS, int NUM_NAMED_ARGS, ullong DESC>
   using store =
       detail::format_arg_store<Context, NUM_ARGS, NUM_NAMED_ARGS, DESC>;
 
@@ -2644,14 +2594,14 @@ template <typename Context> class basic_format_args {
   constexpr basic_format_args() : desc_(0), args_(nullptr) {}
 
   /// Constructs a `basic_format_args` object from `format_arg_store`.
-  template <int NUM_ARGS, int NUM_NAMED_ARGS, unsigned long long DESC,
+  template <int NUM_ARGS, int NUM_NAMED_ARGS, ullong DESC,
             FMTQUILL_ENABLE_IF(NUM_ARGS <= detail::max_packed_args)>
   constexpr FMTQUILL_ALWAYS_INLINE basic_format_args(
       const store<NUM_ARGS, NUM_NAMED_ARGS, DESC>& s)
       : desc_(DESC | (NUM_NAMED_ARGS != 0 ? +detail::has_named_args_bit : 0)),
         values_(s.args) {}
 
-  template <int NUM_ARGS, int NUM_NAMED_ARGS, unsigned long long DESC,
+  template <int NUM_ARGS, int NUM_NAMED_ARGS, ullong DESC,
             FMTQUILL_ENABLE_IF(NUM_ARGS > detail::max_packed_args)>
   constexpr basic_format_args(const store<NUM_ARGS, NUM_NAMED_ARGS, DESC>& s)
       : desc_(DESC | (NUM_NAMED_ARGS != 0 ? +detail::has_named_args_bit : 0)),
@@ -2668,10 +2618,10 @@ template <typename Context> class basic_format_args {
   FMTQUILL_CONSTEXPR auto get(int id) const -> format_arg {
     auto arg = format_arg();
     if (!is_packed()) {
-      if (id < max_size()) arg = args_[id];
+      if (unsigned(id) < unsigned(max_size())) arg = args_[id];
       return arg;
     }
-    if (static_cast<unsigned>(id) >= detail::max_packed_args) return arg;
+    if (unsigned(id) >= detail::max_packed_args) return arg;
     arg.type_ = type(id);
     if (arg.type_ != detail::type::none_type) arg.value_ = values_[id];
     return arg;
@@ -2695,9 +2645,8 @@ template <typename Context> class basic_format_args {
   }
 
   auto max_size() const -> int {
-    unsigned long long max_packed = detail::max_packed_args;
-    return static_cast<int>(is_packed() ? max_packed
-                                        : desc_ & ~detail::is_unpacked_bit);
+    return int(is_packed() ? ullong(detail::max_packed_args)
+                           : desc_ & ~detail::is_unpacked_bit);
   }
 };
 
@@ -2716,7 +2665,7 @@ class context {
 
   /// Constructs a `context` object. References to the arguments are stored
   /// in the object so make sure they have appropriate lifetimes.
-  FMTQUILL_CONSTEXPR context(iterator out, format_args args, locale_ref loc = {})
+  constexpr context(iterator out, format_args args, locale_ref loc = {})
       : out_(out), args_(args), loc_(loc) {}
   context(context&&) = default;
   context(const context&) = delete;
@@ -2732,12 +2681,12 @@ class context {
   auto args() const -> const format_args& { return args_; }
 
   // Returns an iterator to the beginning of the output range.
-  FMTQUILL_CONSTEXPR auto out() const -> iterator { return out_; }
+  constexpr auto out() const -> iterator { return out_; }
 
   // Advances the begin iterator to `it`.
   FMTQUILL_CONSTEXPR void advance_to(iterator) {}
 
-  FMTQUILL_CONSTEXPR auto locale() const -> locale_ref { return loc_; }
+  constexpr auto locale() const -> locale_ref { return loc_; }
 };
 
 template <typename Char = char> struct runtime_format_string {
@@ -2762,7 +2711,7 @@ template <typename... T> struct fstring {
       detail::count_static_named_args<T...>();
 
   using checker = detail::format_string_checker<
-      char, static_cast<int>(sizeof...(T)), num_static_named_args,
+      char, int(sizeof...(T)), num_static_named_args,
       num_static_named_args != detail::count_named_args<T...>()>;
 
   using arg_pack = detail::arg_pack<T...>;
@@ -2778,38 +2727,30 @@ template <typename... T> struct fstring {
     static_assert(count<(is_view<remove_cvref_t<T>>::value &&
                          std::is_reference<T>::value)...>() == 0,
                   "passing views as lvalues is disallowed");
-    if (FMTQUILL_USE_CONSTEVAL) parse_format_string<char>(s, checker(s, arg_pack()));
-#ifdef FMTQUILL_ENFORCE_COMPILE_STRING
-    static_assert(
-        FMTQUILL_USE_CONSTEVAL && sizeof(s) != 0,
-        "FMTQUILL_ENFORCE_COMPILE_STRING requires format strings to use FMTQUILL_STRING");
-#endif
+    if (FMTQUILL_USE_CONSTEVAL)
+      parse_format_string<char>(str, checker(str, arg_pack()));
+    constexpr bool unused = detail::enforce_compile_checks<sizeof(s) != 0>();
+    (void)unused;
   }
   template <typename S,
             FMTQUILL_ENABLE_IF(std::is_convertible<const S&, string_view>::value)>
   FMTQUILL_CONSTEVAL FMTQUILL_ALWAYS_INLINE fstring(const S& s) : str(s) {
-    auto sv = string_view(str);
     if (FMTQUILL_USE_CONSTEVAL)
-      detail::parse_format_string<char>(sv, checker(sv, arg_pack()));
-#ifdef FMTQUILL_ENFORCE_COMPILE_STRING
-    static_assert(
-        FMTQUILL_USE_CONSTEVAL && sizeof(s) != 0,
-        "FMTQUILL_ENFORCE_COMPILE_STRING requires format strings to use FMTQUILL_STRING");
-#endif
+      detail::parse_format_string<char>(str, checker(str, arg_pack()));
+    constexpr bool unused = detail::enforce_compile_checks<sizeof(s) != 0>();
+    (void)unused;
   }
   template <typename S,
             FMTQUILL_ENABLE_IF(std::is_base_of<detail::compile_string, S>::value&&
                               std::is_same<typename S::char_type, char>::value)>
   FMTQUILL_ALWAYS_INLINE fstring(const S&) : str(S()) {
     FMTQUILL_CONSTEXPR auto sv = string_view(S());
-    FMTQUILL_CONSTEXPR int unused =
-        (parse_format_string(sv, checker(sv, arg_pack())), 0);
-    detail::ignore_unused(unused);
+    FMTQUILL_CONSTEXPR int x = (parse_format_string(sv, checker(sv, arg_pack())), 0);
+    detail::ignore_unused(x);
   }
   fstring(runtime_format_string<> fmt) : str(fmt.str) {}
 
-  // Returning by reference generates better code in debug mode.
-  FMTQUILL_ALWAYS_INLINE operator const string_view&() const { return str; }
+  FMTQUILL_DEPRECATED operator const string_view&() const { return str; }
   auto get() const -> string_view { return str; }
 };
 
@@ -2819,7 +2760,7 @@ template <typename T, typename Char = char>
 using is_formattable = bool_constant<!std::is_same<
     detail::mapped_t<conditional_t<std::is_void<T>::value, int*, T>, Char>,
     void>::value>;
-#ifdef __cpp_concepts
+#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
 template <typename T, typename Char = char>
 concept formattable = is_formattable<remove_reference_t<T>, Char>::value;
 #endif
@@ -2840,19 +2781,17 @@ struct formatter<T, Char,
 // Take arguments by lvalue references to avoid some lifetime issues, e.g.
 //   auto args = make_format_args(std::string());
 template <typename Context = context, typename... T,
-          int NUM_ARGS = sizeof...(T),
+          int NUM_ARGS = int(sizeof...(T)),
           int NUM_NAMED_ARGS = detail::count_named_args<T...>(),
-          unsigned long long DESC = detail::make_descriptor<Context, T...>()>
+          ullong DESC = detail::make_descriptor<Context, T...>()>
 constexpr FMTQUILL_ALWAYS_INLINE auto make_format_args(T&... args)
     -> detail::format_arg_store<Context, NUM_ARGS, NUM_NAMED_ARGS, DESC> {
-  // Suppress warnings for pathological types convertible to detail::value.
-  FMTQUILL_PRAGMA_GCC(diagnostic ignored "-Wconversion")
   return {{args...}};
 }
 
 template <typename... T>
 using vargs =
-    detail::format_arg_store<context, sizeof...(T),
+    detail::format_arg_store<context, int(sizeof...(T)),
                              detail::count_named_args<T...>(),
                              detail::make_descriptor<context, T...>()>;
 
@@ -2863,9 +2802,13 @@ using vargs =
  * **Example**:
  *
  *     fmtquill::print("The answer is {answer}.", fmtquill::arg("answer", 42));
+ *
+ * Named arguments passed with `fmtquill::arg` are not supported
+ * in compile-time checks, but `"answer"_a=42` are compile-time checked in
+ * sufficiently new compilers. See `operator""_a()`.
  */
-template <typename Char, typename T>
-inline auto arg(const Char* name, const T& arg) -> detail::named_arg<Char, T> {
+template <typename T>
+inline auto arg(const char* name, const T& arg) -> named_arg<T> {
   return {name, arg};
 }
 
@@ -2873,6 +2816,7 @@ inline auto arg(const Char* name, const T& arg) -> detail::named_arg<Char, T> {
 template <typename OutputIt,
           FMTQUILL_ENABLE_IF(detail::is_output_iterator<remove_cvref_t<OutputIt>,
                                                    char>::value)>
+// DEPRECATED! Passing out as a forwarding reference.
 auto vformat_to(OutputIt&& out, string_view fmt, format_args args)
     -> remove_cvref_t<OutputIt> {
   auto&& buf = detail::get_buffer<char>(out);
@@ -2899,10 +2843,8 @@ FMTQUILL_INLINE auto format_to(OutputIt&& out, format_string<T...> fmt, T&&... a
 }
 
 template <typename OutputIt> struct format_to_n_result {
-  /// Iterator past the end of the output range.
-  OutputIt out;
-  /// Total (not truncated) output size.
-  size_t size;
+  OutputIt out;  ///< Iterator past the end of the output range.
+  size_t size;   ///< Total (not truncated) output size.
 };
 
 template <typename OutputIt, typename... T,
@@ -2929,10 +2871,8 @@ FMTQUILL_INLINE auto format_to_n(OutputIt out, size_t n, format_string<T...> fmt
 }
 
 struct format_to_result {
-  /// Pointer to just after the last successful write in the array.
-  char* out;
-  /// Specifies if the output was truncated.
-  bool truncated;
+  char* out;       ///< Pointer to just after the last successful write.
+  bool truncated;  ///< Specifies if the output was truncated.
 
   FMTQUILL_CONSTEXPR operator char*() const {
     // Report truncation to prevent silent data loss.
@@ -2942,8 +2882,8 @@ struct format_to_result {
 };
 
 template <size_t N>
-auto vformat_to(char (&out)[N], string_view fmt, format_args args)
-    -> format_to_result {
+FMTQUILL_DEPRECATED auto vformat_to(char (&out)[N], string_view fmt,
+                               format_args args) -> format_to_result {
   auto result = vformat_to_n(out, N, fmt, args);
   return {result.out, result.size > N};
 }
@@ -2980,10 +2920,10 @@ FMTQUILL_API void vprint_buffered(FILE* f, string_view fmt, format_args args);
 template <typename... T>
 FMTQUILL_INLINE void print(format_string<T...> fmt, T&&... args) {
   vargs<T...> va = {{args...}};
-  if (detail::const_check(!detail::use_utf8))
+  if FMTQUILL_CONSTEXPR20 (!detail::use_utf8)
     return detail::vprint_mojibake(stdout, fmt.str, va, false);
-  return detail::is_locking<T...>() ? vprint_buffered(stdout, fmt.str, va)
-                                    : vprint(fmt.str, va);
+  detail::is_locking<T...>() ? vprint_buffered(stdout, fmt.str, va)
+                             : vprint(fmt.str, va);
 }
 
 /**
@@ -2997,10 +2937,10 @@ FMTQUILL_INLINE void print(format_string<T...> fmt, T&&... args) {
 template <typename... T>
 FMTQUILL_INLINE void print(FILE* f, format_string<T...> fmt, T&&... args) {
   vargs<T...> va = {{args...}};
-  if (detail::const_check(!detail::use_utf8))
+  if FMTQUILL_CONSTEXPR20 (!detail::use_utf8)
     return detail::vprint_mojibake(f, fmt.str, va, false);
-  return detail::is_locking<T...>() ? vprint_buffered(f, fmt.str, va)
-                                    : vprint(f, fmt.str, va);
+  detail::is_locking<T...>() ? vprint_buffered(f, fmt.str, va)
+                             : vprint(f, fmt.str, va);
 }
 
 /// Formats `args` according to specifications in `fmt` and writes the output
@@ -3008,20 +2948,17 @@ FMTQUILL_INLINE void print(FILE* f, format_string<T...> fmt, T&&... args) {
 template <typename... T>
 FMTQUILL_INLINE void println(FILE* f, format_string<T...> fmt, T&&... args) {
   vargs<T...> va = {{args...}};
-  return detail::const_check(detail::use_utf8)
-             ? vprintln(f, fmt.str, va)
-             : detail::vprint_mojibake(f, fmt.str, va, true);
+  if FMTQUILL_CONSTEXPR20 (detail::use_utf8) return vprintln(f, fmt.str, va);
+  detail::vprint_mojibake(f, fmt.str, va, true);
 }
 
 /// Formats `args` according to specifications in `fmt` and writes the output
 /// to `stdout` followed by a newline.
 template <typename... T>
 FMTQUILL_INLINE void println(format_string<T...> fmt, T&&... args) {
-  return fmtquill::println(stdout, fmt, static_cast<T&&>(args)...);
+  fmtquill::println(stdout, fmt, static_cast<T&&>(args)...);
 }
 
-FMTQUILL_PRAGMA_GCC(diagnostic pop)
-FMTQUILL_PRAGMA_CLANG(diagnostic pop)
 FMTQUILL_PRAGMA_GCC(pop_options)
 FMTQUILL_MSC_WARNING(pop)
 FMTQUILL_END_EXPORT
