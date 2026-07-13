@@ -7,6 +7,7 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#include <atomic>
 #include <cstdio>
 #include <string>
 #include <thread>
@@ -61,7 +62,65 @@ TEST_CASE("backend_tsc_clock")
   REQUIRE_GE(backend_tsc_time_2, system_now - ten_minutes);
   REQUIRE_LE(backend_tsc_time_2, system_now + ten_minutes);
 
-  Backend::stop();
+  // Repeated stop/start must not invalidate readers that loaded the clock before stop published
+  // nullptr. Restarts alternate resync intervals to exercise reconfiguration of the same stable
+  // clock allocation.
+  static constexpr size_t restart_cycles = 32;
+  static constexpr size_t reader_count = 4;
+
+  for (size_t cycle = 0; cycle < restart_cycles; ++cycle)
+  {
+    std::atomic<bool> keep_reading{true};
+    std::atomic<size_t> readers_started{0};
+    std::vector<std::thread> readers;
+    readers.reserve(reader_count);
+
+    for (size_t i = 0; i < reader_count; ++i)
+    {
+      readers.emplace_back(
+        [&keep_reading, &readers_started]()
+        {
+          readers_started.fetch_add(1, std::memory_order_release);
+          while (keep_reading.load(std::memory_order_acquire))
+          {
+            (void)BackendTscClock::now();
+          }
+        });
+    }
+
+    while (readers_started.load(std::memory_order_acquire) != reader_count)
+    {
+      std::this_thread::yield();
+    }
+
+    Backend::stop();
+
+    BackendTscClock::RdtscVal const stopped_tsc = BackendTscClock::rdtsc();
+    REQUIRE_EQ(BackendTscClock::to_time_point(stopped_tsc).time_since_epoch().count(), 0);
+    REQUIRE_GE(BackendTscClock::now().time_since_epoch().count(), 0);
+
+    if ((cycle + 1) != restart_cycles)
+    {
+      BackendOptions restart_options;
+      restart_options.rdtsc_resync_interval =
+        ((cycle % 2) == 0) ? std::chrono::milliseconds{250} : std::chrono::milliseconds{750};
+      Backend::start(restart_options);
+      LOG_INFO(logger, "Init after restart {}", cycle);
+      logger->flush_log();
+
+      auto const restarted_system_now = std::chrono::system_clock::now().time_since_epoch();
+      auto const restarted_tsc_now = BackendTscClock::now().time_since_epoch();
+      REQUIRE_GE(restarted_tsc_now, restarted_system_now - ten_minutes);
+      REQUIRE_LE(restarted_tsc_now, restarted_system_now + ten_minutes);
+    }
+
+    keep_reading.store(false, std::memory_order_release);
+
+    for (std::thread& reader : readers)
+    {
+      reader.join();
+    }
+  }
 
   testing::remove_file(filename);
 }

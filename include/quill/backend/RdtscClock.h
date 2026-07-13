@@ -127,6 +127,16 @@ public:
   explicit RdtscClock(std::chrono::nanoseconds resync_interval)
     : _ns_per_tick(RdtscTicks::instance().ns_per_tick())
   {
+    reconfigure(resync_interval);
+  }
+
+  /**
+   * Reconfigures the resync interval and publishes a fresh clock snapshot.
+   * This is a single-backend-writer operation and may run concurrently with
+   * time_since_epoch_safe().
+   */
+  void reconfigure(std::chrono::nanoseconds resync_interval) noexcept
+  {
     double const calc_value = static_cast<double>(resync_interval.count()) / _ns_per_tick;
 
     // Check for overflow and negative values
