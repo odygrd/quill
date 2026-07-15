@@ -21,6 +21,7 @@ TEST_CASE("console_sink_stdout_multiple_formats")
 {
   static std::string const logger_name_a = "logger_a";
   static std::string const logger_name_b = "logger_b";
+  std::string const caller_function{QUILL_FUNCTION_NAME};
 
   // Start the logging backend thread
   BackendOptions bo;
@@ -97,7 +98,7 @@ TEST_CASE("console_sink_stdout_multiple_formats")
     else
     {
       std::string expected_string =
-        logger_name_b + " - Hello log num " + std::to_string(i) + " (DOCTEST_ANON_FUNC_2)";
+        logger_name_b + " - Hello log num " + std::to_string(i) + " (" + caller_function + ")";
 
       if (!quill::testing::file_contains(result_arr, expected_string))
       {

@@ -96,6 +96,7 @@ quill::Logger* create_logger()
 /***/
 TEST_CASE("flush_multiple_loggers")
 {
+  std::string const caller_function{QUILL_FUNCTION_NAME};
   quill::Logger* logger_a = create_logger();
   quill::Logger* logger_b = create_logger();
   quill::Logger* logger_c = create_logger();
@@ -124,19 +125,19 @@ TEST_CASE("flush_multiple_loggers")
     {
       file_001_checked = true;
       REQUIRE(quill::testing::file_contains(
-        file_contents, std::string{"[INFO] [001::DOCTEST_ANON_FUNC_2]: hello! - logger_a"}));
+        file_contents, std::string{"[INFO] [001::"} + caller_function + "]: hello! - logger_a"));
     }
     else if (file.string().find("PS_002") != std::string::npos)
     {
       file_002_checked = true;
       REQUIRE(quill::testing::file_contains(
-        file_contents, std::string{"[002::DOCTEST_ANON_FUNC_2]: hello! - logger_b"}));
+        file_contents, std::string{"[002::"} + caller_function + "]: hello! - logger_b"));
     }
     else if (file.string().find("PS_003") != std::string::npos)
     {
       file_003_checked = true;
       REQUIRE(quill::testing::file_contains(
-        file_contents, std::string{"[INFO] [003::DOCTEST_ANON_FUNC_2]: hello! - logger_c"}));
+        file_contents, std::string{"[INFO] [003::"} + caller_function + "]: hello! - logger_c"));
     }
   }
 

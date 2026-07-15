@@ -20,6 +20,7 @@ TEST_CASE("json_multi_line_metadata")
   static constexpr char const* json_filename = "json_multi_line_metadata.json";
   static std::string const logger_name_a = "logger_a";
   static std::string const logger_name_b = "logger_b";
+  std::string const caller_function{QUILL_FUNCTION_NAME};
 
   // Start the logging backend thread
   Backend::start();
@@ -91,7 +92,7 @@ TEST_CASE("json_multi_line_metadata")
   expected_string = "Line 2: data1.";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-  expected_string = "Line 3: data2. DOCTEST_ANON_FUNC_2";
+  expected_string = "Line 3: data2. " + caller_function;
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
   expected_string = logger_name_a + "     Warning: Multiple issues detected:";
@@ -103,7 +104,7 @@ TEST_CASE("json_multi_line_metadata")
   expected_string = "2. issue2.";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-  expected_string = "3. issue3. DOCTEST_ANON_FUNC_2";
+  expected_string = "3. issue3. " + caller_function;
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
   expected_string = logger_name_a + "     Another multiline info message.";
@@ -130,13 +131,13 @@ TEST_CASE("json_multi_line_metadata")
   expected_string = "2. issue5.";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-  expected_string = "3. issue6. DOCTEST_ANON_FUNC_2";
+  expected_string = "3. issue6. " + caller_function;
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
   expected_string = logger_name_b + "     Another multiline info message.";
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-  expected_string = "Line 2: [data1] DOCTEST_ANON_FUNC_2";
+  expected_string = "Line 2: [data1] " + caller_function;
   REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
   std::vector<std::string> const file_contents_json = quill::testing::file_contents(json_filename);
