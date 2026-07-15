@@ -39,7 +39,7 @@ TEST_CASE("construct")
     REQUIRE_STREQ(macro_metadata.line(), "30");
     REQUIRE_EQ(macro_metadata.file_name(), std::string_view{"MacroMetadataTest.cpp"});
     REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:30");
-    REQUIRE_STREQ(macro_metadata.caller_function(), "DOCTEST_ANON_FUNC_3");
+    REQUIRE_STREQ(macro_metadata.caller_function(), __FUNCTION__);
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Flush);
     REQUIRE_EQ(macro_metadata.has_named_args(), true);
     REQUIRE_NE(std::string_view{macro_metadata.source_location()}.find("MacroMetadataTest.cpp"),
@@ -62,7 +62,7 @@ TEST_CASE("construct")
     REQUIRE_STREQ(macro_metadata.line(), "52");
     REQUIRE_EQ(macro_metadata.file_name(), std::string_view{"MacroMetadataTest.cpp"});
     REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:52");
-    REQUIRE_STREQ(macro_metadata.caller_function(), "DOCTEST_ANON_FUNC_3");
+    REQUIRE_STREQ(macro_metadata.caller_function(), __FUNCTION__);
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Flush);
     REQUIRE_EQ(macro_metadata.has_named_args(), true);
   }
@@ -80,7 +80,7 @@ TEST_CASE("construct")
     REQUIRE_STREQ(macro_metadata.line(), "71");
     REQUIRE_EQ(macro_metadata.file_name(), std::string_view{"MacroMetadataTest.cpp"});
     REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:71");
-    REQUIRE_STREQ(macro_metadata.caller_function(), "DOCTEST_ANON_FUNC_3");
+    REQUIRE_STREQ(macro_metadata.caller_function(), __FUNCTION__);
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Flush);
     REQUIRE_EQ(macro_metadata.has_named_args(), false);
   }
@@ -111,7 +111,7 @@ TEST_CASE("construct")
   {
     constexpr MacroMetadata macro_metadata{
       "MacroMetadataTest.cpp:51",                          // source_location
-      "DOCTEST_ANON_FUNC_3",                               // caller_function
+      "TestCallerFunction",                                // caller_function
       "Test another fmt {name} and {surname} and {{age}}", // message_format with named args {name} and {surname}
       nullptr,                                             // tags
       quill::LogLevel::Info,                               // log_level
@@ -125,7 +125,7 @@ TEST_CASE("construct")
     REQUIRE_EQ(macro_metadata.full_path(), std::string_view{"MacroMetadataTest.cpp"});
     REQUIRE_EQ(macro_metadata.file_name(), std::string_view{"MacroMetadataTest.cpp"});
     REQUIRE_STREQ(macro_metadata.short_source_location(), "MacroMetadataTest.cpp:51");
-    REQUIRE_STREQ(macro_metadata.caller_function(), "DOCTEST_ANON_FUNC_3");
+    REQUIRE_STREQ(macro_metadata.caller_function(), "TestCallerFunction");
     REQUIRE_EQ(macro_metadata.event(), MacroMetadata::Event::Flush);
     REQUIRE_EQ(macro_metadata.has_named_args(), true);
   }

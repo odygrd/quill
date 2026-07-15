@@ -18,6 +18,7 @@ TEST_CASE("multi_line_metadata_override_format")
   static constexpr char const* filename_a = "multi_line_metadata_override_format_a.log";
   static constexpr char const* filename_b = "multi_line_metadata_override_format_b.log";
   static std::string const logger_name = "logger_a";
+  std::string const caller_function{QUILL_FUNCTION_NAME};
 
   // Start the logging backend thread
   Backend::start();
@@ -99,16 +100,16 @@ TEST_CASE("multi_line_metadata_override_format")
     expected_string = "2. issue5.";
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = "3. issue6. DOCTEST_ANON_FUNC_2";
+    expected_string = "3. issue6. " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
     expected_string = logger_name + "     Another multiline info message [data1]";
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = "Line 2: [data2] DOCTEST_ANON_FUNC_2";
+    expected_string = "Line 2: [data2] " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "      DOCTEST_ANON_FUNC_2"; // empty message
+    expected_string = logger_name + "      " + caller_function; // empty message
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
     expected_string = logger_name + "     End";
@@ -120,36 +121,34 @@ TEST_CASE("multi_line_metadata_override_format")
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename_b);
     REQUIRE_EQ(file_contents.size(), 11);
 
-    std::string expected_string =
-      logger_name + "     This is a multiline info message. DOCTEST_ANON_FUNC_2";
+    std::string expected_string = logger_name + "     This is a multiline info message. " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "     Line 2: data3. DOCTEST_ANON_FUNC_2";
+    expected_string = logger_name + "     Line 2: data3. " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "     Line 3: data4. DOCTEST_ANON_FUNC_2";
+    expected_string = logger_name + "     Line 3: data4. " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "     Warning: Multiple issues detected: DOCTEST_ANON_FUNC_2";
+    expected_string = logger_name + "     Warning: Multiple issues detected: " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "     1. issue4. DOCTEST_ANON_FUNC_2";
+    expected_string = logger_name + "     1. issue4. " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "     2. issue5. DOCTEST_ANON_FUNC_2";
+    expected_string = logger_name + "     2. issue5. " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "     3. issue6. DOCTEST_ANON_FUNC_2";
+    expected_string = logger_name + "     3. issue6. " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string =
-      logger_name + "     Another multiline info message [data1] DOCTEST_ANON_FUNC_2";
+    expected_string = logger_name + "     Another multiline info message [data1] " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "     Line 2: [data2] DOCTEST_ANON_FUNC_2";
+    expected_string = logger_name + "     Line 2: [data2] " + caller_function;
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
-    expected_string = logger_name + "      DOCTEST_ANON_FUNC_2"; // empty message
+    expected_string = logger_name + "      " + caller_function; // empty message
     REQUIRE(quill::testing::file_contains(file_contents, expected_string));
 
     expected_string = logger_name + "     End";
