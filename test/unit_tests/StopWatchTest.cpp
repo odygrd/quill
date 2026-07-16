@@ -8,7 +8,8 @@ TEST_SUITE_BEGIN("StopWatch");
 TEST_CASE("stopwatch_tsc")
 {
   quill::StopWatchTsc swt;
-  std::this_thread::sleep_for(std::chrono::seconds{1});
+
+  std::this_thread::sleep_for(std::chrono::milliseconds{1100});
 
   // greater than 1 second
   REQUIRE_GE(swt.elapsed().count(), 1.0);
@@ -20,7 +21,7 @@ TEST_CASE("stopwatch_tsc")
   swt.reset();
   REQUIRE_LT(swt.elapsed().count(), 1.0);
 
-  std::this_thread::sleep_for(std::chrono::seconds{2});
+  std::this_thread::sleep_for(std::chrono::milliseconds{2100});
 
   // greater than 2 seconds
   REQUIRE_GE(swt.elapsed().count(), 2.0);
@@ -33,7 +34,7 @@ TEST_CASE("stopwatch_tsc")
 TEST_CASE("stopwatch_chrono")
 {
   quill::StopWatchChrono swt;
-  std::this_thread::sleep_for(std::chrono::seconds{1});
+  std::this_thread::sleep_for(std::chrono::milliseconds{1100});
 
   // greater than 1 second
   REQUIRE_GE(swt.elapsed().count(), 1.0);
@@ -45,7 +46,7 @@ TEST_CASE("stopwatch_chrono")
   swt.reset();
   REQUIRE_LT(swt.elapsed().count(), 1.0);
 
-  std::this_thread::sleep_for(std::chrono::seconds{2});
+  std::this_thread::sleep_for(std::chrono::milliseconds{2100});
 
   // greater than 2 seconds
   REQUIRE_GE(swt.elapsed().count(), 2.0);
