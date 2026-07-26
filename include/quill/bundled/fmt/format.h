@@ -376,8 +376,8 @@ class uint128 {
     lo_ &= n.lo_;
     hi_ &= n.hi_;
   }
-  FMTQUILL_CONSTEXPR auto operator~() -> uint128 {
-    return uint128(~hi_, ~lo_);
+  friend constexpr auto operator~(const uint128& n) -> uint128 {
+    return {~n.hi_, ~n.lo_};
   }
 
   FMTQUILL_CONSTEXPR20 auto operator+=(uint64_t n) noexcept -> uint128& {
