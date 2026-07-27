@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cstring>
 
-
 TEST_SUITE_BEGIN("Utility");
 
 /***/
