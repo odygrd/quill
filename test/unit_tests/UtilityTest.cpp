@@ -4,25 +4,6 @@
 #include <cstdint>
 #include <cstring>
 
-#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ || \
-    defined(__BIG_ENDIAN__) || \
-    defined(__ARMEB__) || \
-    defined(__AARCH64EB__) || \
-    defined(_MIPSEB)
-#define QUILL_LITTLE_ENDIAN 0
-#elif defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ || \
-    defined(__LITTLE_ENDIAN__) || \
-    defined(__ARMEL__) || \
-    defined(__AARCH64EL__) || \
-    defined(_MIPSEL) || \
-    defined(_M_IX86) || \
-    defined(_M_X64) || \
-    defined(_M_ARM) || \
-    defined(_M_ARM64)
-#define QUILL_LITTLE_ENDIAN 1
-#else
-#  error "Unknown or unsupported architecture endianness!"
-#endif
 
 TEST_SUITE_BEGIN("Utility");
 
@@ -109,18 +90,16 @@ TEST_CASE("const_string_to_hex_uppercase_and_lowercase")
 /***/
 TEST_CASE("byte_buffer_to_hex_uppercase_and_lowercase")
 {
-  uint32_t input = 431234;
-  unsigned char buffer[4];
-  std::memcpy(buffer, reinterpret_cast<char*>(&input), sizeof(input));
+  unsigned char buffer[4] = {0x82, 0x94, 0x06, 0x00};
 
   // Test uppercase
   std::string const result_upper = quill::utility::to_hex(buffer, 4, true);
-  std::string const expected_upper = QUILL_LITTLE_ENDIAN ? "82 94 06 00" : "00 06 94 82";
+  std::string const expected_upper = "82 94 06 00";
   REQUIRE_EQ(result_upper, expected_upper);
 
   // Test lowercase
   std::string const result_lower = quill::utility::to_hex(buffer, 4, false);
-  std::string const expected_lower = QUILL_LITTLE_ENDIAN ? "82 94 06 00" : "00 06 94 82";
+  std::string const expected_lower = "82 94 06 00";
   REQUIRE_EQ(result_lower, expected_lower);
 
   // Test with const buffer
