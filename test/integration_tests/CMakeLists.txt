@@ -149,6 +149,7 @@ quill_add_test(TEST_SingleFrontendThreadMultipleLoggers SingleFrontendThreadMult
 quill_add_test(TEST_SingleFrontendThread SingleFrontendThreadTest.cpp)
 quill_add_test(TEST_SinkFilter SinkFilterTest.cpp)
 quill_add_test(TEST_SinkFilterOverrideFormat SinkFilterOverrideFormatTest.cpp)
+quill_add_test(TEST_SinkFlushReason SinkFlushReasonTest.cpp)
 quill_add_test(TEST_StdArrayLogging StdArrayLoggingTest.cpp)
 quill_add_test(TEST_StdBitsetLogging StdBitsetLoggingTest.cpp)
 quill_add_test(TEST_StdChronoLogging StdChronoLoggingTest.cpp)

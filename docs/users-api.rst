@@ -103,6 +103,11 @@ Sink Class
 .. doxygenclass:: Sink
    :members:
 
+Sink Flush Reasons
+------------------
+
+.. doxygenenum:: SinkFlushReason
+
 Filter Class
 ------------
 

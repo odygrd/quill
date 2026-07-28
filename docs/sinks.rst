@@ -86,6 +86,10 @@ change. If you want to export metrics, implement ``write_metric()`` and bind a l
 sink. See :doc:`Metrics <metrics>` for the metric publishing model and the Prometheus/custom-sink
 examples.
 
+Custom sinks can also override ``flush_sink(SinkFlushReason)`` in addition to ``flush_sink()``
+when they need to distinguish backend idle flushes, explicit ``logger->flush_log()`` flushes, and
+final backend shutdown flushes.
+
 .. literalinclude:: ../examples/user_defined_sink.cpp
    :language: cpp
    :linenos:
