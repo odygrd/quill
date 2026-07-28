@@ -89,9 +89,7 @@ TEST_CASE("const_string_to_hex_uppercase_and_lowercase")
 /***/
 TEST_CASE("byte_buffer_to_hex_uppercase_and_lowercase")
 {
-  uint32_t input = 431234;
-  unsigned char buffer[4];
-  std::memcpy(buffer, reinterpret_cast<char*>(&input), sizeof(input));
+  unsigned char buffer[4] = {0x82, 0x94, 0x06, 0x00};
 
   // Test uppercase
   std::string const result_upper = quill::utility::to_hex(buffer, 4, true);
