@@ -511,7 +511,7 @@ private:
       // No cached transit events to process, minimal thread workload.
 
       // force flush all remaining messages
-      _flush_and_run_active_sinks(true, _options.sink_min_flush_interval);
+      _flush_and_run_active_sinks(true, _options.sink_min_flush_interval, SinkFlushReason::Periodic);
 
       // check for any dropped events / blocked threads
       _check_failure_counter(_options.error_notifier);
@@ -621,7 +621,7 @@ private:
       {
         // we are done, all queues are now empty
         _check_failure_counter(_options.error_notifier);
-        _flush_and_run_active_sinks(false, std::chrono::milliseconds{0});
+        _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Final);
         break;
       }
 
@@ -1200,7 +1200,7 @@ private:
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
     {
-      _flush_and_run_active_sinks(false, std::chrono::milliseconds{0});
+      _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Explicit);
 
       // This is a flush event, so we capture the flush flag to notify the caller after processing.
       flush_flag = transit_event.flush_flag();
@@ -1727,7 +1727,9 @@ private:
   }
 
   /***/
-  QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks, std::chrono::milliseconds sink_min_flush_interval)
+  QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks,
+                                                       std::chrono::milliseconds sink_min_flush_interval,
+                                                       SinkFlushReason flush_reason)
   {
     // Populate the active sinks cache with unique sinks, consider only the valid loggers
     _logger_manager.for_each_logger(
@@ -1784,7 +1786,7 @@ private:
           // If an exception is thrown, catch it here to prevent it from propagating
           // to the outer function. This prevents potential infinite loops caused by failing
           // flush operations.
-          sink->flush_sink();
+          sink->flush_sink(flush_reason);
         }
       }
 #if !defined(QUILL_NO_EXCEPTIONS)

@@ -98,6 +98,10 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
+- Added `SinkFlushReason` and `Sink::flush_sink(SinkFlushReason)` so custom sinks can opt in to
+  distinguishing periodic backend flushes, explicit `logger->flush_log()` flushes, and final
+  backend shutdown flushes.
+
 ## v12.1.0
 
 - Updated bundled `libfmt` to `v12.2.0`.

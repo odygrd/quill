@@ -100,6 +100,16 @@ enum class Timezone : uint8_t
 };
 
 /**
+ * Enum to indicate why a sink flush was requested
+ */
+enum class SinkFlushReason : uint8_t
+{
+  Periodic, /**< Backend idle/maintenance flush. */
+  Explicit, /**< Explicit flush requested through logger->flush_log(). */
+  Final     /**< Final flush requested during backend shutdown. */
+};
+
+/**
  * Enum for the used clock type
  */
 enum class ClockSourceType : uint8_t

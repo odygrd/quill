@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/Common.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/PatternFormatterOptions.h"
 #include "quill/core/QuillError.h"
@@ -162,6 +163,14 @@ protected:
   QUILL_ATTRIBUTE_HOT virtual void flush_sink() = 0;
 
   /**
+   * @brief Flushes the sink with the reason for the backend flush request.
+   */
+  QUILL_ATTRIBUTE_HOT virtual void flush_sink(QUILL_MAYBE_UNUSED SinkFlushReason flush_reason)
+  {
+    flush_sink();
+  }
+
+  /**
    * @brief Executes periodic tasks by the backend thread, providing an opportunity for the user
    * to perform custom tasks. For example, batch committing to a database, or any other
    * desired periodic operations.
@@ -247,6 +256,7 @@ private:
   /** Global filter for this sink **/
   std::vector<RegisteredFilter> _global_filters;
   detail::Spinlock _global_filters_lock;
+
   /** Indicator that a new filter was added **/
   std::atomic<bool> _new_filter{false};
 
