@@ -100,7 +100,7 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexc
   #endif
 
   // Suppress during LTO analysis
-  asm volatile("" : "+r"(maxlen) : : "memory");
+  asm volatile("" : "+r"(maxlen));
 #endif
 
   auto end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
