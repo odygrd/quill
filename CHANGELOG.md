@@ -101,6 +101,7 @@
 - Added `SinkFlushReason` and `Sink::flush_sink(SinkFlushReason)` so custom sinks can opt in to
   distinguishing periodic backend flushes, explicit `logger->flush_log()` flushes, and final
   backend shutdown flushes.
+- Added missing includes to quill module. ([#960](https://github.com/odygrd/quill/issues/960))
 
 ## v12.1.0
 
