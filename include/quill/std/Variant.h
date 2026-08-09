@@ -298,6 +298,11 @@ public:
 
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.index());
 
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
     if constexpr (std::is_rvalue_reference_v<Arg&&>)
     {
       std::visit(
@@ -318,6 +323,11 @@ public:
         },
         arg);
     }
+
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#endif
+
   }
 
   static DecodedVariantType decode_arg(std::byte*& buffer)
