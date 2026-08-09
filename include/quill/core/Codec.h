@@ -99,8 +99,6 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexc
     #pragma GCC diagnostic ignored "-Wstringop-overread"
   #endif
 
-  // Suppress during LTO analysis
-  asm volatile("" : "+r"(maxlen));
 #endif
 
   auto end = static_cast<char const*>(std::memchr(str, '\0', maxlen));
@@ -115,16 +113,18 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str, size_t maxlen) noexc
 /***/
 QUILL_NODISCARD inline size_t safe_strnlen(char const* str) noexcept
 {
-#if defined(__i386__) || defined(__arm__)
-  // On i386, armel and armhf std::memchr "max number of bytes to examine" set to maximum size of
-  // unsigned int which does not compile
-  // Currently Debian package is using architecture `any` which includes them
-  static constexpr int32_t max_len = INT32_MAX;
-#else
-  static constexpr uint32_t max_len = UINT32_MAX;
-#endif
+  if (!str)
+  {
+    return 0;
+  }
 
-  return safe_strnlen(str, max_len);
+  // Deliberately strlen rather than delegating to safe_strnlen(str, UINT32_MAX). The bound there is
+  // meaningless for a c string, and passing it made gcc see a 4 GiB read from what it can trace to
+  // a small object and report -Wstringop-overread, which previously needed an asm barrier to hide -
+  // and that barrier in turn stopped gcc folding the length for constant char arrays. It also
+  // removes the i386/armel/armhf special case, which only existed because std::memchr's size
+  // parameter cannot hold UINT32_MAX there.
+  return std::strlen(str);
 }
 
 /***/

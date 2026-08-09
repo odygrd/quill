@@ -101,8 +101,16 @@ public:
 
     if (_clock_source != ClockSourceType::Tsc)
     {
-      return _log_statement_noinline<enable_immediate_flush, Args...>(
-        macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
+      if constexpr (std::conjunction_v<std::bool_constant<std::is_trivially_copyable_v<detail::remove_cvref_t<Args>> &&
+                                                          !std::is_array_v<detail::remove_cvref_t<Args>>>...>)
+      {
+        return _log_statement_noinline_byval<enable_immediate_flush, Args...>(macro_metadata, 0, fmt_args...);
+      }
+      else
+      {
+        return _log_statement_noinline<enable_immediate_flush, Args...>(
+          macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
+      }
     }
 
     uint64_t const current_timestamp = detail::rdtsc();
@@ -110,8 +118,17 @@ public:
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
-      return _log_statement_noinline<enable_immediate_flush, Args...>(
-        macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
+      if constexpr (std::conjunction_v<std::bool_constant<std::is_trivially_copyable_v<detail::remove_cvref_t<Args>> &&
+                                                          !std::is_array_v<detail::remove_cvref_t<Args>>>...>)
+      {
+        return _log_statement_noinline_byval<enable_immediate_flush, Args...>(
+          macro_metadata, current_timestamp, fmt_args...);
+      }
+      else
+      {
+        return _log_statement_noinline<enable_immediate_flush, Args...>(
+          macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
+      }
     }
 
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
@@ -124,8 +141,17 @@ public:
 
     if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
     {
-      return _log_statement_noinline<enable_immediate_flush, Args...>(
-        macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
+      if constexpr (std::conjunction_v<std::bool_constant<std::is_trivially_copyable_v<detail::remove_cvref_t<Args>> &&
+                                                          !std::is_array_v<detail::remove_cvref_t<Args>>>...>)
+      {
+        return _log_statement_noinline_byval<enable_immediate_flush, Args...>(
+          macro_metadata, current_timestamp, fmt_args...);
+      }
+      else
+      {
+        return _log_statement_noinline<enable_immediate_flush, Args...>(
+          macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
+      }
     }
 
     std::byte* write_buffer = reservation.write_buffer;
@@ -637,6 +663,27 @@ private:
    * Kept NOINLINE so log_statement's hot path avoids a full stack frame.
    * If current_timestamp is 0, a non-TSC timestamp is fetched.
    */
+  /**
+   * Cold path taking the arguments by value.
+   *
+   * _log_statement_noinline takes them by reference, which forces log_statement to make every
+   * argument addressable - a spill and a reload each, on the hot path, to serve branches that are
+   * almost never taken. Passing by value keeps them in registers there; this wrapper's own
+   * parameters are addressable in its own frame, so it can hand them to the reference-taking slow
+   * path unchanged.
+   *
+   * Only used for small trivially copyable arguments. Arrays are excluded deliberately: a char[N]
+   * would re-deduce as char const* here, and the c string codec strnlens it, which reads past the
+   * end of an array that has no null terminator.
+   */
+  template <bool enable_immediate_flush, typename... OriginalArgs, typename... Args>
+  QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline_byval(MacroMetadata const* macro_metadata,
+                                                                    uint64_t current_timestamp, Args... fmt_args)
+  {
+    return _log_statement_noinline<enable_immediate_flush, OriginalArgs...>(
+      macro_metadata, current_timestamp, fmt_args...);
+  }
+
   template <bool enable_immediate_flush, typename... OriginalArgs, typename... Args>
   QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline(MacroMetadata const* macro_metadata,
                                                               uint64_t current_timestamp, Args&&... fmt_args)
@@ -899,9 +946,21 @@ private:
   /**
    * Encodes header information into the write buffer.
    *
-   * Header fields are passed as PackedQword pairs (16 bytes each) so that on x86-64 the
-   * System V ABI delivers them in XMM registers, enabling the compiler to emit vmovdqu/movups
-   * stores instead of individual 8-byte movs.
+   * Header fields are passed as PackedQword pairs (16 bytes each) with the intent that on x86-64
+   * the System V ABI delivers them in XMM registers and the compiler emits two 16-byte stores
+   * rather than four 8-byte movs.
+   *
+   * In practice only gcc 11 does that. gcc 12 and later, and clang, all emit the four 8-byte
+   * stores, so that is the expected codegen on any current compiler rather than a missed
+   * optimisation - two independent compilers prefer four simple stores over two stores plus four
+   * GPR-to-XMM packing ops. Copying the header as one 32-byte object does not help either: gcc 12+
+   * then emits a single wide store, but gcc 11 builds the value in a ymm register, spills it to the
+   * stack and reloads half of it first, which is worse than both. Kept as two 16-byte copies
+   * because no form is good on every supported compiler and this one is at worst four plain stores.
+   *
+   * Forcing the two 16-byte stores with intrinsics does work on all of them and costs only one
+   * extra instruction in context, but it is not worth x86 specific code in this header for a gain
+   * nobody has measured.
    *
    * @return Updated pointer to the write buffer after encoding the header.
    */
