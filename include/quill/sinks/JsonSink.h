@@ -67,21 +67,8 @@ public:
   {
     if (!_json_message_ready)
     {
-      char const* message_format = log_metadata->message_format();
-
-      if (strchr(message_format, '\n') != nullptr)
-      {
-        // The format string contains at least one new line and that would break the json message, it needs to be removed
-        _format = message_format;
-
-        for (size_t pos = 0; (pos = _format.find('\n', pos)) != std::string::npos; pos++)
-        {
-          _format.replace(pos, 1, " ");
-        }
-
-        // we do not want newlines in the json message, use the modified message_format
-        message_format = _format.data();
-      }
+      char const* const message_format =
+        _normalized_message_format(log_metadata, named_args, log_message);
 
       _json_message.clear();
 
@@ -187,18 +174,8 @@ protected:
   {
     _json_message.clear();
 
-    char const* message_format = log_metadata->message_format();
-    if (strchr(message_format, '\n') != nullptr)
-    {
-      _format = message_format;
-
-      for (size_t pos = 0; (pos = _format.find('\n', pos)) != std::string::npos; pos++)
-      {
-        _format.replace(pos, 1, " ");
-      }
-
-      message_format = _format.data();
-    }
+    char const* const message_format =
+      _normalized_message_format(log_metadata, named_args, log_message);
 
     generate_json_message(log_metadata, log_timestamp, thread_id, thread_name, process_id,
                           logger_name, log_level, log_level_description, log_level_short_code,
@@ -210,6 +187,51 @@ protected:
   }
 
   void discard_write_estimate() noexcept { _json_message_ready = false; }
+
+  QUILL_NODISCARD char const* _normalized_message_format(
+    MacroMetadata const* log_metadata,
+    std::vector<std::pair<std::string, std::string>> const* named_args,
+    std::string_view log_message)
+  {
+    char const* const message_format = log_metadata->message_format();
+    if (!log_metadata->is_rate_limited() && (strchr(message_format, '\n') == nullptr))
+    {
+      return message_format;
+    }
+
+    _format = message_format;
+
+    if (log_metadata->is_rate_limited())
+    {
+      if (log_metadata->has_named_args())
+      {
+        std::string_view occurrence_key{"occurred"};
+        if (named_args && !named_args->empty())
+        {
+          occurrence_key = named_args->back().first;
+        }
+
+        _format += " ({";
+        _format.append(occurrence_key.data(), occurrence_key.size());
+        _format += "}x)";
+      }
+      else
+      {
+        // Positional events intentionally have no structured argument vector carrying the
+        // occurrence count. Preserve the complete rendered message instead of producing a mixed
+        // manual/automatic indexing template such as "{1} {0} ({}x)".
+        _format.assign(log_message.data(), log_message.size());
+      }
+    }
+
+    // Keep the JSON message template on one line.
+    for (size_t pos = 0; (pos = _format.find('\n', pos)) != std::string::npos; ++pos)
+    {
+      _format.replace(pos, 1, " ");
+    }
+
+    return _format.data();
+  }
 
   QUILL_NODISCARD static bool _is_reserved_json_key(std::string_view key) noexcept
   {

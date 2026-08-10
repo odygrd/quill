@@ -64,6 +64,10 @@ TEST_CASE("macros")
   LOG_WARNING_LIMIT(std::chrono::nanoseconds{0}, logger, "B WRN: {}", "Warning");
   LOG_ERROR_LIMIT(std::chrono::nanoseconds{0}, logger, "B ERR: {}", 60.78);
   LOG_CRITICAL_LIMIT(std::chrono::nanoseconds{0}, logger, "B CRT: {}", -10);
+  LOG_INFO_LIMIT(std::chrono::nanoseconds{0}, logger, "B INDEXED: {1} {0}", "zero", "one");
+  LOG_INFO_LIMIT(std::chrono::nanoseconds{0}, logger, "B INDEXED UNUSED: {1}", "zero", "one",
+                 "unused");
+  LOG_INFO_LIMIT(std::chrono::nanoseconds{0}, logger, "B NO ARGS");
 
   LOG_TRACE_L3_LIMIT_EVERY_N(1, logger, "BA L3: {}", 10);
   LOG_TRACE_L2_LIMIT_EVERY_N(1, logger, "BA L2: {}", 20);
@@ -215,6 +219,11 @@ TEST_CASE("macros")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"E LOG_ERROR     logger       B ERR: 60.78 (1x)"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"C LOG_CRITICAL  logger       B CRT: -10 (1x)"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"I LOG_INFO      logger       B INDEXED: one zero (1x)"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"I LOG_INFO      logger       B INDEXED UNUSED: one (1x)"}));
+  REQUIRE(quill::testing::file_contains(file_contents, std::string{"I LOG_INFO      logger       B NO ARGS (1x)"}));
 
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"T3 LOG_TRACE_L3  logger       BA L3: 10"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{"T2 LOG_TRACE_L2  logger       BA L2: 20"}));

@@ -107,6 +107,7 @@
 - Fixed the built-in signal handler suppressing core dumps for fatal signals. ([#962](https://github.com/odygrd/quill/issues/962))
 - Improve frontend codegen.
 - Added missing includes to quill module. ([#960](https://github.com/odygrd/quill/issues/960))
+- Fixed indexed placeholders and JSON messages in interval rate-limited logs.
 
 ## v12.1.0
 
