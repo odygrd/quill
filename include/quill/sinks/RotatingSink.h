@@ -87,13 +87,18 @@ public:
    */
   QUILL_ATTRIBUTE_COLD void set_rotation_frequency_and_interval(char frequency, uint32_t interval)
   {
+    RotationFrequency rotation_frequency;
+    uint64_t interval_unit_ns;
+
     if (frequency == 'M' || frequency == 'm')
     {
-      _rotation_frequency = RotationFrequency::Minutely;
+      rotation_frequency = RotationFrequency::Minutely;
+      interval_unit_ns = 60ull * 1'000'000'000ull;
     }
     else if (frequency == 'H' || frequency == 'h')
     {
-      _rotation_frequency = RotationFrequency::Hourly;
+      rotation_frequency = RotationFrequency::Hourly;
+      interval_unit_ns = 60ull * 60ull * 1'000'000'000ull;
     }
     else
     {
@@ -106,6 +111,13 @@ public:
       QUILL_THROW(QuillError{"interval must be set to a value greater than 0"});
     }
 
+    if (static_cast<uint64_t>(interval) >
+        (static_cast<uint64_t>((std::numeric_limits<int64_t>::max)()) / interval_unit_ns))
+    {
+      QUILL_THROW(QuillError{"rotation interval is too large to represent in nanoseconds"});
+    }
+
+    _rotation_frequency = rotation_frequency;
     _rotation_interval = interval;
     _daily_rotation_time = _disabled_daily_rotation_time();
   }
@@ -1002,14 +1014,32 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD static time_t _timestamp_ns_to_time_t(uint64_t timestamp_ns) noexcept
+  QUILL_NODISCARD static time_t _timestamp_ns_to_time_t(uint64_t timestamp_ns)
   {
-// time_t on i386 is 32 bits so casting out of range number results in zero
-#if (defined(__i386))
-    return static_cast<time_t>(timestamp_ns / 1000000000);
-#else
-    return static_cast<time_t>(timestamp_ns) / 1000000000;
-#endif
+    uint64_t constexpr nanoseconds_per_second{1'000'000'000u};
+    uint64_t const seconds_since_epoch{timestamp_ns / nanoseconds_per_second};
+
+    if (QUILL_UNLIKELY(
+          seconds_since_epoch > static_cast<uint64_t>((std::numeric_limits<time_t>::max)())))
+    {
+      QUILL_THROW(QuillError{"timestamp is too large to represent as time_t"});
+    }
+
+    return static_cast<time_t>(seconds_since_epoch);
+  }
+
+  /***/
+  QUILL_NODISCARD static uint64_t _seconds_to_nanoseconds_saturated(uint64_t seconds) noexcept
+  {
+    uint64_t constexpr nanoseconds_per_second{1'000'000'000u};
+    uint64_t constexpr max_timestamp_ns{(std::numeric_limits<uint64_t>::max)()};
+
+    if (QUILL_UNLIKELY(seconds > (max_timestamp_ns / nanoseconds_per_second)))
+    {
+      return max_timestamp_ns;
+    }
+
+    return seconds * nanoseconds_per_second;
   }
 
   /***/
@@ -1051,7 +1081,7 @@ private:
       rotation_time = to_timestamp(date);
     }
 
-    return static_cast<uint64_t>(std::chrono::nanoseconds{std::chrono::seconds{rotation_time}}.count());
+    return _seconds_to_nanoseconds_saturated(static_cast<uint64_t>(rotation_time));
   }
 
   /***/
@@ -1106,8 +1136,7 @@ private:
       ? static_cast<uint64_t>(rotation_time)
       : static_cast<uint64_t>(rotation_time + interval_seconds);
 
-    return static_cast<uint64_t>(
-      std::chrono::nanoseconds{std::chrono::seconds{rotation_time_seconds}}.count());
+    return _seconds_to_nanoseconds_saturated(rotation_time_seconds);
   }
 
   /***/
@@ -1128,7 +1157,16 @@ private:
       // (e.g. sparse logging past a missed boundary) does not permanently shift the following
       // boundaries away from the wall-clock alignment of the initial rotation time point
       uint64_t const intervals_elapsed = (record_timestamp_ns - previous_rotation_tp) / interval_ns;
-      return previous_rotation_tp + ((intervals_elapsed + 1u) * interval_ns);
+      uint64_t const intervals_to_next_rotation = intervals_elapsed + 1u;
+      uint64_t const remaining_timestamp_range =
+        (std::numeric_limits<uint64_t>::max)() - previous_rotation_tp;
+
+      if (QUILL_UNLIKELY(intervals_to_next_rotation > (remaining_timestamp_range / interval_ns)))
+      {
+        return (std::numeric_limits<uint64_t>::max)();
+      }
+
+      return previous_rotation_tp + (intervals_to_next_rotation * interval_ns);
     }
 
     if (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Daily)

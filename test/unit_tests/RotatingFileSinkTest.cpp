@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
+#include <limits>
 #include <string>
 
 #if !defined(_WIN32)
@@ -55,6 +56,42 @@ private:
   uint32_t _rename_call_count{0};
   uint32_t _fail_on_call{0};
 };
+
+void check_deadline_saturation(char const* filename_stem, RotatingFileSinkConfig const& cfg)
+{
+  fs::path const filename = std::string{filename_stem} + ".log";
+  fs::path const filename_1 = std::string{filename_stem} + ".1.log";
+  fs::path const filename_2 = std::string{filename_stem} + ".2.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+
+  std::chrono::system_clock::time_point const start_time{
+    std::chrono::duration_cast<std::chrono::system_clock::duration>(
+      std::chrono::seconds{1'672'531'200})};
+
+  {
+    RotatingFileSink sink{filename, cfg, FileEventNotifier{}, start_time};
+    sink.write_log(nullptr, 1'672'531'200'000'000'000ull, {}, {}, {}, {}, LogLevel::Info, "INFO",
+                   "I", nullptr, {}, "first\n");
+    sink.write_log(nullptr, (std::numeric_limits<uint64_t>::max)() - 10'000'000'000ull, {}, {}, {},
+                   {}, LogLevel::Info, "INFO", "I", nullptr, {}, "near max\n");
+    sink.write_log(nullptr, (std::numeric_limits<uint64_t>::max)() - 5'000'000'000ull, {}, {}, {},
+                   {}, LogLevel::Info, "INFO", "I", nullptr, {}, "still near max\n");
+  }
+
+  std::vector<std::string> const current_contents = testing::file_contents(filename);
+  REQUIRE_EQ(current_contents.size(), 2u);
+  REQUIRE_EQ(current_contents[0], "near max");
+  REQUIRE_EQ(current_contents[1], "still near max");
+  REQUIRE(testing::file_contains(testing::file_contents(filename_1), "first"));
+  REQUIRE_FALSE(fs::exists(filename_2));
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+}
 } // namespace
 
 /***/
@@ -71,6 +108,51 @@ TEST_CASE("rotating_file_sink_config_rejects_invalid_daily_rotation_time")
   REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("ab:cd"), QuillError);
   REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("24:00"), QuillError);
   REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("23:60"), QuillError);
+#else
+  return;
+#endif
+}
+
+TEST_CASE("rotating_file_sink_config_rejects_unrepresentable_intervals")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  RotatingFileSinkConfig cfg;
+  cfg.set_rotation_frequency_and_interval('M', 1);
+
+  REQUIRE_THROWS_AS(
+    cfg.set_rotation_frequency_and_interval('H', (std::numeric_limits<uint32_t>::max)()), QuillError);
+  REQUIRE_EQ(cfg.rotation_frequency(), RotatingFileSinkConfig::RotationFrequency::Minutely);
+  REQUIRE_EQ(cfg.rotation_interval(), 1);
+
+  REQUIRE_THROWS_AS(
+    cfg.set_rotation_frequency_and_interval('M', (std::numeric_limits<uint32_t>::max)()), QuillError);
+#endif
+}
+
+/***/
+TEST_CASE("rotating_file_sink_rejects_unrepresentable_start_timestamp")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  if constexpr (sizeof(time_t) < sizeof(uint64_t))
+  {
+    fs::path const filename = "rotating_file_sink_rejects_unrepresentable_start_timestamp.log";
+    testing::remove_file(filename);
+
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_time_daily("00:00");
+    cfg.set_open_mode('w');
+
+    auto const out_of_range_seconds = static_cast<std::chrono::seconds::rep>(
+      static_cast<uint64_t>((std::numeric_limits<time_t>::max)()) + 1u);
+    std::chrono::system_clock::time_point const start_time{
+      std::chrono::duration_cast<std::chrono::system_clock::duration>(
+        std::chrono::seconds{out_of_range_seconds})};
+
+    REQUIRE_THROWS_AS(
+      [&]() { RotatingFileSink sink(filename, cfg, FileEventNotifier{}, start_time); }(), QuillError);
+
+    testing::remove_file(filename);
+  }
 #else
   return;
 #endif
@@ -307,6 +389,30 @@ TEST_CASE("rotating_file_sink_rename_failure_preserves_current_file_and_state")
 
   testing::remove_file(filename);
   testing::remove_file(filename_1);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_interval_deadline_saturates_at_max_timestamp")
+{
+  RotatingFileSinkConfig cfg;
+  cfg.set_rotation_frequency_and_interval('M', 1);
+  cfg.set_open_mode('w');
+  check_deadline_saturation("rotating_file_sink_interval_deadline_saturates", cfg);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_daily_deadline_saturates_at_max_timestamp")
+{
+  if constexpr (sizeof(time_t) < sizeof(uint64_t))
+  {
+    return;
+  }
+
+  RotatingFileSinkConfig cfg;
+  cfg.set_rotation_time_daily("00:00");
+  cfg.set_timezone(Timezone::GmtTime);
+  cfg.set_open_mode('w');
+  check_deadline_saturation("rotating_file_sink_daily_deadline_saturates", cfg);
 }
 
 /***/
