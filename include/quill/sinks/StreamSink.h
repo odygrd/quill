@@ -65,6 +65,11 @@ using FileEventNotifierHandle = FILE*;
  *       of the same callback, may therefore run on different threads over the sink lifetime.
  *       Callbacks must be thread-safe and must not assume a single calling thread.
  *
+ * @warning File-event callbacks must not call `Frontend::create_sink()` or
+ *          `Frontend::create_or_get_sink()` with the name of the sink currently being constructed.
+ *          That sink name remains reserved until construction completes, so recursively requesting
+ *          it waits indefinitely. Creating a sink with a different name is supported.
+ *
  * @note When `before_write` changes the message size, size-based rotation
  *       (`rotation_max_file_size`) evaluates its threshold using the pre-transform size of the
  *       current message, so a rotation can trigger up to one transformed message later or

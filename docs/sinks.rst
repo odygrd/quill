@@ -37,6 +37,13 @@ invoke Quill's fatal error path instead.
    In those builds, request a given sink name only with the same sink type, or with a compatible
    base type.
 
+.. warning::
+
+   A sink name remains reserved while that sink is being constructed. A ``FileEventNotifier``
+   callback invoked during construction must not call ``create_sink`` or ``create_or_get_sink``
+   with that same sink name, because the recursive call waits for its own construction to finish.
+   Creating a sink with a different name from the callback is supported.
+
 Configuring Sinks
 -----------------
 
