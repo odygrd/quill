@@ -37,6 +37,14 @@ QUILL_BEGIN_NAMESPACE
 namespace detail
 {
 
+#if defined(_WIN32)
+QUILL_NODISCARD constexpr unsigned long sleep_timeout_ms(uint64_t ns) noexcept
+{
+  uint64_t const milliseconds = (ns / 1'000'000ull) + static_cast<uint64_t>((ns % 1'000'000ull) != 0);
+  return static_cast<unsigned long>((milliseconds > 0xFFFFFFFFull) ? 0xFFFFFFFFull : milliseconds);
+}
+#endif
+
 /**
  * Mirrors std::this_thread::sleep_for(std::chrono::nanoseconds{ns}).
  */
@@ -48,13 +56,7 @@ QUILL_ATTRIBUTE_HOT inline void sleep_for_ns(uint64_t ns) noexcept
   }
 
 #if defined(_WIN32)
-  // ceil(ns / 1'000'000) and clamp to ULONG_MAX
-  uint64_t ms = (ns + 999'999ull) / 1'000'000ull;
-  if (ms > 0xFFFFFFFFull)
-  {
-    ms = 0xFFFFFFFFull;
-  }
-  ::Sleep(static_cast<unsigned long>(ms));
+  ::Sleep(sleep_timeout_ms(ns));
 #else
   struct timespec ts;
   ts.tv_sec = static_cast<time_t>(ns / 1'000'000'000ull);
