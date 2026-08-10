@@ -1230,13 +1230,15 @@ private:
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Flush)
     {
-      _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Explicit);
-
       // This is a flush event, so we capture the flush flag to notify the caller after processing.
+      // Capture it before flushing because growing _active_sinks_cache can throw. The parent
+      // catches that error and removes this event, so it must still be able to release the caller.
       flush_flag = transit_event.flush_flag();
 
       // Reset the flush flag as TransitEvents are re-used, preventing incorrect flag reuse.
       transit_event.reset_payload();
+
+      _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Explicit);
 
       // We defer notifying the caller until after this function completes.
     }
