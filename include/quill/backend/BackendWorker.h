@@ -148,6 +148,14 @@ public:
         QuillError{"BackendOptions::log_timestamp_ordering_grace_period must not be negative"});
     }
 
+    constexpr int64_t max_microseconds_as_nanoseconds = (std::numeric_limits<int64_t>::max)() / 1'000ll;
+    if (options.log_timestamp_ordering_grace_period.count() > max_microseconds_as_nanoseconds)
+    {
+      QUILL_THROW(
+        QuillError{"BackendOptions::log_timestamp_ordering_grace_period is too large to represent "
+                   "in nanoseconds"});
+    }
+
     if (options.rdtsc_resync_interval.count() < 0)
     {
       QUILL_THROW(QuillError{"BackendOptions::rdtsc_resync_interval must not be negative"});
@@ -156,6 +164,19 @@ public:
     if (options.sink_min_flush_interval.count() < 0)
     {
       QUILL_THROW(QuillError{"BackendOptions::sink_min_flush_interval must not be negative"});
+    }
+
+    constexpr int64_t max_milliseconds_as_nanoseconds = (std::numeric_limits<int64_t>::max)() / 1'000'000ll;
+    if (options.rdtsc_resync_interval.count() > max_milliseconds_as_nanoseconds)
+    {
+      QUILL_THROW(QuillError{
+        "BackendOptions::rdtsc_resync_interval is too large to represent in nanoseconds"});
+    }
+
+    if (options.sink_min_flush_interval.count() > max_milliseconds_as_nanoseconds)
+    {
+      QUILL_THROW(QuillError{
+        "BackendOptions::sink_min_flush_interval is too large to represent in nanoseconds"});
     }
 
     (void)BackendMdcState{options.mdc_format_pattern};
@@ -656,11 +677,15 @@ private:
    */
   QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues()
   {
-    uint64_t const ts_now = _options.log_timestamp_ordering_grace_period.count()
-      ? (detail::get_system_time_ns() -
-         static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(_options.log_timestamp_ordering_grace_period)
-                                 .count()))
-      : (std::numeric_limits<uint64_t>::max)();
+    uint64_t ts_now = (std::numeric_limits<uint64_t>::max)();
+    if (_options.log_timestamp_ordering_grace_period.count())
+    {
+      uint64_t const system_time_ns = detail::get_system_time_ns();
+      uint64_t const grace_period_ns = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(_options.log_timestamp_ordering_grace_period)
+          .count());
+      ts_now = (system_time_ns > grace_period_ns) ? (system_time_ns - grace_period_ns) : 0u;
+    }
 
     size_t total_cached_transit_events_count{0};
 

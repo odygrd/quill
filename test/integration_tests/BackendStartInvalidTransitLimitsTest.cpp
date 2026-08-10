@@ -7,6 +7,7 @@
 #include "quill/core/QuillError.h"
 #include "quill/sinks/FileSink.h"
 
+#include <chrono>
 #include <cstdio>
 #include <limits>
 #include <string>
@@ -44,6 +45,30 @@ TEST_CASE("backend_start_invalid_transit_limits")
     BackendOptions backend_options;
     backend_options.transit_events_soft_limit = 8192;
     backend_options.transit_events_hard_limit = 4096; // soft > hard
+    REQUIRE_THROWS_AS(Backend::start(backend_options), QuillError);
+    REQUIRE_FALSE(Backend::is_running());
+  }
+
+  {
+    BackendOptions backend_options;
+    backend_options.log_timestamp_ordering_grace_period =
+      std::chrono::microseconds{((std::numeric_limits<int64_t>::max)() / 1'000ll) + 1ll};
+    REQUIRE_THROWS_AS(Backend::start(backend_options), QuillError);
+    REQUIRE_FALSE(Backend::is_running());
+  }
+
+  {
+    BackendOptions backend_options;
+    backend_options.rdtsc_resync_interval =
+      std::chrono::milliseconds{((std::numeric_limits<int64_t>::max)() / 1'000'000ll) + 1ll};
+    REQUIRE_THROWS_AS(Backend::start(backend_options), QuillError);
+    REQUIRE_FALSE(Backend::is_running());
+  }
+
+  {
+    BackendOptions backend_options;
+    backend_options.sink_min_flush_interval =
+      std::chrono::milliseconds{((std::numeric_limits<int64_t>::max)() / 1'000'000ll) + 1ll};
     REQUIRE_THROWS_AS(Backend::start(backend_options), QuillError);
     REQUIRE_FALSE(Backend::is_running());
   }
