@@ -195,15 +195,20 @@ protected:
     {
       // Remove any relative paths (e.g., relative paths can appear when using a mounted volume under docker)
 
-#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-      static constexpr std::string_view relative_path = "..\\";
-#else
-      static constexpr std::string_view relative_path = "../";
-#endif
+      size_t const forward_slash_pos = result.rfind("../");
+      size_t const backslash_pos = result.rfind("..\\");
+      size_t relative_path_pos{forward_slash_pos};
 
-      if (size_t n = result.rfind(relative_path); n != std::string_view::npos)
+      bool const use_backslash_pos = (backslash_pos != std::string_view::npos) &&
+        ((relative_path_pos == std::string_view::npos) || (backslash_pos > relative_path_pos));
+      if (use_backslash_pos)
       {
-        result = result.substr(n + relative_path.size());
+        relative_path_pos = backslash_pos;
+      }
+
+      if (relative_path_pos != std::string_view::npos)
+      {
+        result = result.substr(relative_path_pos + 3u);
       }
     }
 
@@ -219,7 +224,8 @@ protected:
 
         // If the prefix doesn't end with a separator and there is a character after the prefix
         // and that character is a separator, skip it as well
-        if (after_prefix_pos < result.length() && result[after_prefix_pos] == detail::PATH_PREFERRED_SEPARATOR)
+        if (after_prefix_pos < result.length() &&
+            ((result[after_prefix_pos] == '/') || (result[after_prefix_pos] == '\\')))
         {
           after_prefix_pos++;
         }

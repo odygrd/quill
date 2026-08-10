@@ -912,6 +912,17 @@ TEST_CASE("process_source_location_path")
 
     REQUIRE_EQ(result, expected);
   }
+
+  // Paths can use either separator regardless of the host compiler (for example, MinGW builds
+  // and source paths supplied by a build system).
+  REQUIRE_EQ(formatter.process_source_location_path("C:/repo/quill/../src/file.cpp", "", true),
+             "src/file.cpp");
+  REQUIRE_EQ(formatter.process_source_location_path("C:\\repo\\quill\\..\\src\\file.cpp", "", true),
+             "src\\file.cpp");
+  REQUIRE_EQ(formatter.process_source_location_path("C:/repo/quill/src/file.cpp", "quill", false),
+             "src/file.cpp");
+  REQUIRE_EQ(formatter.process_source_location_path("C:\\repo\\quill\\src\\file.cpp", "quill", false),
+             "src\\file.cpp");
 }
 
 TEST_CASE("pattern_suffix_nullopt")
