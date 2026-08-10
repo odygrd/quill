@@ -56,6 +56,10 @@ constexpr bool can_pass_slow_path_arg_by_value() noexcept
   return std::is_trivially_copyable_v<arg_t> && std::is_trivially_copy_constructible_v<arg_t> &&
     !std::is_array_v<arg_t> && (sizeof(arg_t) <= (sizeof(uintptr_t) * 2u));
 }
+
+template <typename Arg>
+using slow_path_arg_t =
+  std::conditional_t<can_pass_slow_path_arg_by_value<Arg>(), remove_cvref_t<Arg>, Arg&&>;
 } // namespace detail
 
 QUILL_BEGIN_EXPORT
@@ -108,20 +112,10 @@ public:
     QUILL_ASSERT(_valid.load(std::memory_order_acquire),
                  "Attempting to log with an invalidated logger");
 
-    static constexpr bool use_by_value_slow_path =
-      (sizeof...(Args) != 0) && (detail::can_pass_slow_path_arg_by_value<Args>() && ...);
-
     if (_clock_source != ClockSourceType::Tsc)
     {
-      if constexpr (use_by_value_slow_path)
-      {
-        return _log_statement_noinline_byval<enable_immediate_flush, Args...>(macro_metadata, 0, fmt_args...);
-      }
-      else
-      {
-        return _log_statement_noinline<enable_immediate_flush, Args...>(
-          macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
-      }
+      return _log_statement_noinline<enable_immediate_flush, Args...>(
+        macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
     }
 
     uint64_t const current_timestamp = detail::rdtsc();
@@ -129,16 +123,8 @@ public:
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
-      if constexpr (use_by_value_slow_path)
-      {
-        return _log_statement_noinline_byval<enable_immediate_flush, Args...>(
-          macro_metadata, current_timestamp, fmt_args...);
-      }
-      else
-      {
-        return _log_statement_noinline<enable_immediate_flush, Args...>(
-          macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
-      }
+      return _log_statement_noinline<enable_immediate_flush, Args...>(
+        macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
     }
 
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
@@ -151,16 +137,8 @@ public:
 
     if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
     {
-      if constexpr (use_by_value_slow_path)
-      {
-        return _log_statement_noinline_byval<enable_immediate_flush, Args...>(
-          macro_metadata, current_timestamp, fmt_args...);
-      }
-      else
-      {
-        return _log_statement_noinline<enable_immediate_flush, Args...>(
-          macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
-      }
+      return _log_statement_noinline<enable_immediate_flush, Args...>(
+        macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
     }
 
     std::byte* write_buffer = reservation.write_buffer;
@@ -667,37 +645,15 @@ private:
   }
 
   /**
-   * Slow path for log_statement. Handles all cold conditions: non-TSC clock,
-   * thread_context initialization, and queue cache miss.
-   * Kept NOINLINE so log_statement's hot path avoids a full stack frame.
-   * If current_timestamp is 0, a non-TSC timestamp is fetched.
+   * Slow path for log_statement. Small, safely copyable arguments are accepted by value so the hot
+   * caller can keep them in registers; all other arguments retain their original reference type.
+   * Keeping both cases in this one NOINLINE function also avoids adding a call on the System clock
+   * path. If current_timestamp is 0, a non-TSC timestamp is fetched.
    */
-  /**
-   * Cold path taking the arguments by value.
-   *
-   * _log_statement_noinline takes them by reference, which forces log_statement to make every
-   * argument addressable - a spill and a reload each, on the hot path, to serve branches that are
-   * almost never taken. Passing by value keeps them in registers there; this wrapper's own
-   * parameters are addressable in its own frame, so it can hand them to the reference-taking slow
-   * path unchanged.
-   *
-   * Only used when every argument is trivially copyable, trivially copy-constructible, and no
-   * larger than two pointer-sized words. The copy-construction check matters because a type can be
-   * trivially copyable while having a deleted copy constructor; the size limit avoids turning a
-   * cold branch into an arbitrary aggregate copy. Arrays are excluded deliberately: a char[N]
-   * would re-deduce as char const* here and lose the bound needed for an unterminated array.
-   */
-  template <bool enable_immediate_flush, typename... OriginalArgs, typename... Args>
-  QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline_byval(MacroMetadata const* macro_metadata,
-                                                                    uint64_t current_timestamp, Args... fmt_args)
-  {
-    return _log_statement_noinline<enable_immediate_flush, OriginalArgs...>(
-      macro_metadata, current_timestamp, static_cast<OriginalArgs&&>(fmt_args)...);
-  }
-
-  template <bool enable_immediate_flush, typename... OriginalArgs, typename... Args>
+  template <bool enable_immediate_flush, typename... OriginalArgs>
   QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline(MacroMetadata const* macro_metadata,
-                                                              uint64_t current_timestamp, Args&&... fmt_args)
+                                                              uint64_t current_timestamp,
+                                                              detail::slow_path_arg_t<OriginalArgs>... fmt_args)
   {
     if (current_timestamp == 0)
     {
@@ -733,7 +689,7 @@ private:
                   reinterpret_cast<uintptr_t>(detail::decoder_ptr<OriginalArgs...>)});
 
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
-                   static_cast<decltype(fmt_args)&&>(fmt_args)...);
+                   static_cast<OriginalArgs&&>(fmt_args)...);
 
     QUILL_ASSERT_WITH_FMT(write_buffer > write_begin,
                           "write_buffer must be greater than write_begin after encoding in "
