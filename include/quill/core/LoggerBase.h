@@ -127,7 +127,7 @@ public:
 #if defined(__GNUC__) && !defined(__clang__)
     // GCC warns about potential null pointer access when logger might be
     // uninitialized during LTO analysis
-    asm volatile("" : "+r"(self) : : "memory");
+    asm volatile("" : "+r"(self));
 #endif
 
     return self->_log_level.load(std::memory_order_relaxed);
