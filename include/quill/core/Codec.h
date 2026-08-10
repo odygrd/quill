@@ -118,12 +118,8 @@ QUILL_NODISCARD inline size_t safe_strnlen(char const* str) noexcept
     return 0;
   }
 
-  // Deliberately strlen rather than delegating to safe_strnlen(str, UINT32_MAX). The bound there is
-  // meaningless for a c string, and passing it made gcc see a 4 GiB read from what it can trace to
-  // a small object and report -Wstringop-overread, which previously needed an asm barrier to hide -
-  // and that barrier in turn stopped gcc folding the length for constant char arrays. It also
-  // removes the i386/armel/armhf special case, which only existed because std::memchr's size
-  // parameter cannot hold UINT32_MAX there.
+  // Raw char pointers are c strings and must be null-terminated. Fixed char arrays use the bounded
+  // overload above; use std::string_view when the input is a buffer with an explicit length.
   return std::strlen(str);
 }
 

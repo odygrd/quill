@@ -82,6 +82,72 @@ static_assert(quill::DeferredFormatCodec<CustomTypeTC>::use_memcpy,
               "CustomTypeTC must be trivially copyable");
 
 /***/
+struct TriviallyCopyableMoveOnly
+{
+  TriviallyCopyableMoveOnly() = default;
+  explicit TriviallyCopyableMoveOnly(uint64_t value) : value(value) {}
+
+  TriviallyCopyableMoveOnly(TriviallyCopyableMoveOnly const&) = delete;
+  TriviallyCopyableMoveOnly& operator=(TriviallyCopyableMoveOnly const&) = delete;
+  TriviallyCopyableMoveOnly(TriviallyCopyableMoveOnly&&) = default;
+  TriviallyCopyableMoveOnly& operator=(TriviallyCopyableMoveOnly&&) = default;
+
+  uint64_t value{};
+};
+
+static_assert(std::is_trivially_copyable_v<TriviallyCopyableMoveOnly>);
+static_assert(!std::is_copy_constructible_v<TriviallyCopyableMoveOnly>);
+
+/***/
+template <>
+struct fmtquill::formatter<TriviallyCopyableMoveOnly>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::TriviallyCopyableMoveOnly const& arg, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "{}", arg.value);
+  }
+};
+
+template <>
+struct quill::Codec<TriviallyCopyableMoveOnly> : quill::DeferredFormatCodec<TriviallyCopyableMoveOnly>
+{
+};
+
+static_assert(quill::DeferredFormatCodec<TriviallyCopyableMoveOnly>::use_memcpy);
+
+/***/
+struct RvalueEncoded
+{
+  uint64_t value{};
+};
+
+template <>
+struct fmtquill::formatter<RvalueEncoded>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::RvalueEncoded const& arg, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "{}", arg.value);
+  }
+};
+
+template <>
+struct quill::Codec<RvalueEncoded> : quill::DeferredFormatCodec<RvalueEncoded>
+{
+  template <typename Arg>
+  static void encode(std::byte*& buffer, detail::SizeCacheVector const& size_cache,
+                     uint32_t& size_cache_index, Arg&& arg)
+  {
+    static_assert(std::is_rvalue_reference_v<Arg&&>,
+                  "The cold log path must preserve the argument's rvalue category");
+    DeferredFormatCodec<RvalueEncoded>::encode(buffer, size_cache, size_cache_index, std::forward<Arg>(arg));
+  }
+};
+
+/***/
 struct CustomTypeTCCC
 {
   CustomTypeTCCC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
@@ -437,6 +503,13 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
     CustomTypeTC custom_type_tc{1222, 13.12, 12};
     LOG_INFO(logger, "CustomTypeTC {}", custom_type_tc);
   }
+
+  {
+    TriviallyCopyableMoveOnly value{42};
+    LOG_INFO(logger, "TriviallyCopyableMoveOnly {}", value);
+  }
+
+  LOG_INFO(logger, "RvalueEncoded {}", RvalueEncoded{43});
 
   {
     CustomTypeTCCC custom_type_tccc{1233, 13.12, 12};
@@ -961,13 +1034,19 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
 #if !defined(__GNUC__) || __GNUC__ >= 10
-  REQUIRE_EQ(file_contents.size(), 69);
+  REQUIRE_EQ(file_contents.size(), 71);
 #else
-  REQUIRE_EQ(file_contents.size(), 67);
+  REQUIRE_EQ(file_contents.size(), 69);
 #endif
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       TriviallyCopyableMoveOnly 42"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       RvalueEncoded 43"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTCCC Name: 1233, Surname: 13.12, Age: 12"}));

@@ -25,6 +25,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
@@ -47,6 +48,14 @@ namespace detail
 class LoggerManager;
 
 class BackendWorker;
+
+template <typename Arg>
+constexpr bool can_pass_slow_path_arg_by_value() noexcept
+{
+  using arg_t = remove_cvref_t<Arg>;
+  return std::is_trivially_copyable_v<arg_t> && std::is_trivially_copy_constructible_v<arg_t> &&
+    !std::is_array_v<arg_t> && (sizeof(arg_t) <= (sizeof(uintptr_t) * 2u));
+}
 } // namespace detail
 
 QUILL_BEGIN_EXPORT
@@ -99,10 +108,12 @@ public:
     QUILL_ASSERT(_valid.load(std::memory_order_acquire),
                  "Attempting to log with an invalidated logger");
 
+    static constexpr bool use_by_value_slow_path =
+      (sizeof...(Args) != 0) && (detail::can_pass_slow_path_arg_by_value<Args>() && ...);
+
     if (_clock_source != ClockSourceType::Tsc)
     {
-      if constexpr (std::conjunction_v<std::bool_constant<std::is_trivially_copyable_v<detail::remove_cvref_t<Args>> &&
-                                                          !std::is_array_v<detail::remove_cvref_t<Args>>>...>)
+      if constexpr (use_by_value_slow_path)
       {
         return _log_statement_noinline_byval<enable_immediate_flush, Args...>(macro_metadata, 0, fmt_args...);
       }
@@ -118,8 +129,7 @@ public:
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
-      if constexpr (std::conjunction_v<std::bool_constant<std::is_trivially_copyable_v<detail::remove_cvref_t<Args>> &&
-                                                          !std::is_array_v<detail::remove_cvref_t<Args>>>...>)
+      if constexpr (use_by_value_slow_path)
       {
         return _log_statement_noinline_byval<enable_immediate_flush, Args...>(
           macro_metadata, current_timestamp, fmt_args...);
@@ -141,8 +151,7 @@ public:
 
     if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
     {
-      if constexpr (std::conjunction_v<std::bool_constant<std::is_trivially_copyable_v<detail::remove_cvref_t<Args>> &&
-                                                          !std::is_array_v<detail::remove_cvref_t<Args>>>...>)
+      if constexpr (use_by_value_slow_path)
       {
         return _log_statement_noinline_byval<enable_immediate_flush, Args...>(
           macro_metadata, current_timestamp, fmt_args...);
@@ -672,16 +681,18 @@ private:
    * parameters are addressable in its own frame, so it can hand them to the reference-taking slow
    * path unchanged.
    *
-   * Only used for small trivially copyable arguments. Arrays are excluded deliberately: a char[N]
-   * would re-deduce as char const* here, and the c string codec strnlens it, which reads past the
-   * end of an array that has no null terminator.
+   * Only used when every argument is trivially copyable, trivially copy-constructible, and no
+   * larger than two pointer-sized words. The copy-construction check matters because a type can be
+   * trivially copyable while having a deleted copy constructor; the size limit avoids turning a
+   * cold branch into an arbitrary aggregate copy. Arrays are excluded deliberately: a char[N]
+   * would re-deduce as char const* here and lose the bound needed for an unterminated array.
    */
   template <bool enable_immediate_flush, typename... OriginalArgs, typename... Args>
   QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline_byval(MacroMetadata const* macro_metadata,
                                                                     uint64_t current_timestamp, Args... fmt_args)
   {
     return _log_statement_noinline<enable_immediate_flush, OriginalArgs...>(
-      macro_metadata, current_timestamp, fmt_args...);
+      macro_metadata, current_timestamp, static_cast<OriginalArgs&&>(fmt_args)...);
   }
 
   template <bool enable_immediate_flush, typename... OriginalArgs, typename... Args>
