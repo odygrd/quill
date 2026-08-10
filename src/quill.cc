@@ -30,6 +30,7 @@ module;
 #include <ctime>
 #include <deque>
 #include <exception>
+#include <forward_list>
 #include <fstream>
 #include <functional>
 #include <initializer_list>
@@ -59,6 +60,11 @@ module;
 #include <utility>
 #include <variant>
 #include <vector>
+
+#if QUILL_HAS_INCLUDE(<expected>)
+  #include <expected>
+#endif
+
 #if QUILL_HAS_INCLUDE(<filesystem>)
   #include <filesystem>
 #elif QUILL_HAS_INCLUDE(<experimental/filesystem>)
