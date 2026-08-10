@@ -53,8 +53,18 @@ template <typename Arg>
 constexpr bool can_pass_slow_path_arg_by_value() noexcept
 {
   using arg_t = remove_cvref_t<Arg>;
+
+  // The Microsoft x64 ABI passes 16-byte aggregates indirectly, so copying them into a
+  // temporary before a noinline call is strictly worse than forwarding the existing reference.
+  // System V x64 and AArch64 can pass two-word aggregates in registers.
+#if defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64))
+  constexpr size_t max_by_value_size = sizeof(uintptr_t);
+#else
+  constexpr size_t max_by_value_size = sizeof(uintptr_t) * 2u;
+#endif
+
   return std::is_trivially_copyable_v<arg_t> && std::is_trivially_copy_constructible_v<arg_t> &&
-    !std::is_array_v<arg_t> && (sizeof(arg_t) <= (sizeof(uintptr_t) * 2u));
+    !std::is_array_v<arg_t> && (sizeof(arg_t) <= max_by_value_size);
 }
 
 template <typename Arg>
