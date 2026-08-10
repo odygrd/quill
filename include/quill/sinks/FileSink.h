@@ -354,6 +354,27 @@ protected:
  */
 class FileSink : public FileSinkBase
 {
+private:
+  struct OpenedHandleGuard
+  {
+    ~OpenedHandleGuard()
+    {
+      if (handle != INVALID_HANDLE_VALUE)
+      {
+        ::CloseHandle(handle);
+      }
+    }
+
+    QUILL_NODISCARD HANDLE release() noexcept
+    {
+      HANDLE const released_handle = handle;
+      handle = INVALID_HANDLE_VALUE;
+      return released_handle;
+    }
+
+    HANDLE handle{INVALID_HANDLE_VALUE};
+  };
+
 public:
   explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
                     FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
@@ -384,7 +405,8 @@ public:
     }
 
     std::error_code ec;
-    if (!fs::exists(_filename, ec))
+    bool const file_exists = fs::exists(_filename, ec);
+    if (!ec && !file_exists)
     {
       close_file();
       open_file(_filename, _config.open_mode());
@@ -450,7 +472,7 @@ protected:
 
     constexpr int max_retries = 3;
     constexpr int retry_delay_ms = 200;
-    HANDLE native_file_handle = INVALID_HANDLE_VALUE;
+    OpenedHandleGuard opened_handle_guard;
     DWORD last_error = 0;
 
     for (int attempt = 0; attempt < max_retries; ++attempt)
@@ -461,25 +483,25 @@ protected:
         creation_disposition = CREATE_ALWAYS;
       }
 
-      native_file_handle = ::CreateFileW(
+      opened_handle_guard.handle = ::CreateFileW(
         filename.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         nullptr, creation_disposition, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
 
-      if (native_file_handle == INVALID_HANDLE_VALUE)
+      if (opened_handle_guard.handle == INVALID_HANDLE_VALUE)
       {
         last_error = ::GetLastError();
       }
       else
       {
-        if (!::SetHandleInformation(native_file_handle, HANDLE_FLAG_INHERIT, 0))
+        if (!::SetHandleInformation(opened_handle_guard.handle, HANDLE_FLAG_INHERIT, 0))
         {
           last_error = ::GetLastError();
-          ::CloseHandle(native_file_handle);
-          native_file_handle = INVALID_HANDLE_VALUE;
+          ::CloseHandle(opened_handle_guard.handle);
+          opened_handle_guard.handle = INVALID_HANDLE_VALUE;
         }
       }
 
-      if (native_file_handle != INVALID_HANDLE_VALUE)
+      if (opened_handle_guard.handle != INVALID_HANDLE_VALUE)
       {
         break;
       }
@@ -490,7 +512,7 @@ protected:
       }
     }
 
-    if (native_file_handle == INVALID_HANDLE_VALUE)
+    if (opened_handle_guard.handle == INVALID_HANDLE_VALUE)
     {
       QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} +
                              std::to_string(max_retries) + " attempts, path: " + filename.string() +
@@ -503,18 +525,11 @@ protected:
 
     if (_file_event_notifier.after_open)
     {
-      QUILL_TRY { _file_event_notifier.after_open(filename, native_file_handle); }
-  #if !defined(QUILL_NO_EXCEPTIONS)
-      QUILL_CATCH(...)
-      {
-        ::CloseHandle(native_file_handle);
-        throw;
-      }
-  #endif
+      _file_event_notifier.after_open(filename, opened_handle_guard.handle);
     }
 
     _append_mode = !mode.empty() && mode[0] == 'a';
-    _native_file_handle = native_file_handle;
+    _native_file_handle = opened_handle_guard.release();
   }
 
   void close_file()
@@ -692,7 +707,8 @@ public:
     }
 
     std::error_code ec;
-    if (!fs::exists(_filename, ec))
+    bool const file_exists = fs::exists(_filename, ec);
+    if (!ec && !file_exists)
     {
       close_file();
       open_file(_filename, _config.open_mode());
