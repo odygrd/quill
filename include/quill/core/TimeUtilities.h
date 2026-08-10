@@ -82,18 +82,20 @@ inline tm* localtime_rs(time_t const* timer, tm* buf)
 inline time_t timegm(tm* tm)
 {
 #if defined(_WIN32)
-  time_t const ret_val = _mkgmtime(tm);
+  errno = 0;
+  time_t const ret_val = ::_mkgmtime(tm);
 
-  if (QUILL_UNLIKELY(ret_val == -1))
+  if (QUILL_UNLIKELY((ret_val == static_cast<time_t>(-1)) && (errno != 0)))
   {
     QUILL_THROW(QuillError{"_mkgmtime failed."});
   }
 
   return ret_val;
 #else
+  errno = 0;
   time_t const ret_val = ::timegm(tm);
 
-  if (QUILL_UNLIKELY(ret_val == (time_t)-1))
+  if (QUILL_UNLIKELY((ret_val == static_cast<time_t>(-1)) && (errno != 0)))
   {
     QUILL_THROW(QuillError{"timegm failed."});
   }
