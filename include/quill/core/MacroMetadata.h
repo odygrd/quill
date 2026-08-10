@@ -44,7 +44,8 @@ public:
   constexpr MacroMetadata() = default;
 
   constexpr MacroMetadata(char const* source_location, char const* caller_function,
-                          char const* message_format, char const* tags, LogLevel log_level, Event event) noexcept
+                          char const* message_format, char const* tags, LogLevel log_level,
+                          Event event, bool is_rate_limited = false) noexcept
     : _source_location(source_location),
       _caller_function(caller_function),
       _message_format(message_format),
@@ -52,7 +53,8 @@ public:
       _colon_separator_pos(_calc_colon_separator_pos()),
       _file_name_pos(_calc_file_name_pos()),
       _log_level(log_level),
-      _event(event)
+      _event(event),
+      _is_rate_limited(is_rate_limited)
   {
   }
 
@@ -98,6 +100,8 @@ public:
   }
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
+
+  QUILL_NODISCARD bool is_rate_limited() const noexcept { return _is_rate_limited; }
 
   /***/
   QUILL_NODISCARD static constexpr bool contains_named_args(std::string_view fmt) noexcept
@@ -212,6 +216,7 @@ private:
   uint16_t _file_name_pos{0};
   LogLevel _log_level{LogLevel::None};
   Event _event{Event::None};
+  bool _is_rate_limited{false};
 };
 
 QUILL_END_EXPORT

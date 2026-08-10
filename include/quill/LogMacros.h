@@ -390,6 +390,12 @@
     QUILL_FILE_INFO, caller_function, fmt, tags, log_level, quill::MacroMetadata::Event::Log       \
   }
 
+#define QUILL_DEFINE_RATE_LIMIT_MACRO_METADATA(caller_function, fmt, tags, log_level)              \
+  static constexpr quill::MacroMetadata quill_macro_metadata_                                      \
+  {                                                                                                \
+    QUILL_FILE_INFO, caller_function, fmt, tags, log_level, quill::MacroMetadata::Event::Log, true \
+  }
+
 // Public logger/level arguments may be stateful expressions, so capture them before reuse.
 #define QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ...)                           \
   do                                                                                               \
@@ -419,16 +425,9 @@
         break;                                                                                             \
       }                                                                                                    \
                                                                                                            \
-      if constexpr (quill::MacroMetadata::contains_named_args(fmt))                                        \
-      {                                                                                                    \
-        QUILL_LOGGER_CALL(likelyhood, quill_macro_rate_limit_logger_, tags, log_level,                     \
-                          fmt " ({occurred}x)", ##__VA_ARGS__, quill_suppressed_log_count_ + 1);           \
-      }                                                                                                    \
-      else                                                                                                 \
-      {                                                                                                    \
-        QUILL_LOGGER_CALL(likelyhood, quill_macro_rate_limit_logger_, tags, log_level,                     \
-                          fmt " ({}x)", ##__VA_ARGS__, quill_suppressed_log_count_ + 1);                   \
-      }                                                                                                    \
+      QUILL_DEFINE_RATE_LIMIT_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                   \
+      quill_macro_rate_limit_logger_->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH>(                \
+        &quill_macro_metadata_, ##__VA_ARGS__, quill_suppressed_log_count_ + 1);                           \
                                                                                                            \
       quill_next_log_time_ns_ = quill_now_ns_ +                                                            \
         static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(min_interval).count()); \

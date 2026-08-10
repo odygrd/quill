@@ -2156,10 +2156,22 @@ private:
       (*named_args)[i].first = arg_names[i].first;
     }
 
-    for (size_t i = arg_names.size(); i < static_cast<size_t>(_format_args_store.size()); ++i)
+    bool const is_rate_limited = transit_event->macro_metadata->is_rate_limited();
+    QUILL_ASSERT(!is_rate_limited || (_format_args_store.size() > 0),
+                 "A rate-limited log event must contain its occurrence count");
+    size_t const user_arg_count =
+      static_cast<size_t>(_format_args_store.size()) - static_cast<size_t>(is_rate_limited);
+
+    for (size_t i = arg_names.size(); i < user_arg_count; ++i)
     {
       // we do not have a named_arg for the argument value here so we just append its index as a placeholder
       named_args->push_back(std::pair<std::string, std::string>(fmtquill::format("_{}", i), std::string{}));
+    }
+
+    if (is_rate_limited)
+    {
+      named_args->push_back(
+        std::pair<std::string, std::string>{_make_unique_named_arg_key(arg_names, "occurred"), {}});
     }
 
     // Then populate all the values of each arg
@@ -2182,15 +2194,27 @@ private:
   {
     transit_event->formatted_msg->clear();
 
+    bool const is_rate_limited = transit_event->macro_metadata->is_rate_limited();
+    QUILL_ASSERT(!is_rate_limited || (_format_args_store.size() > 0),
+                 "A rate-limited log event must contain its occurrence count");
+    int const user_arg_count = _format_args_store.size() - static_cast<int>(is_rate_limited);
+
     QUILL_TRY
     {
-      fmtquill::vformat_to(std::back_inserter(*transit_event->formatted_msg), message_format,
-                           fmtquill::basic_format_args<fmtquill::format_context>{
-                             _format_args_store.data(), _format_args_store.size()});
+      fmtquill::vformat_to(
+        std::back_inserter(*transit_event->formatted_msg), message_format,
+        fmtquill::basic_format_args<fmtquill::format_context>{_format_args_store.data(), user_arg_count});
 
       if (_options.check_printable_char && _format_args_store.has_string_related_type())
       {
         sanitize_non_printable_chars(*transit_event->formatted_msg, _options);
+      }
+
+      if (is_rate_limited)
+      {
+        fmtquill::vformat_to(std::back_inserter(*transit_event->formatted_msg), " ({}x)",
+                             fmtquill::basic_format_args<fmtquill::format_context>{
+                               _format_args_store.data() + user_arg_count, 1});
       }
     }
 #if !defined(QUILL_NO_EXCEPTIONS)

@@ -8,6 +8,7 @@
 #include "quill/bundled/fmt/ostream.h"
 #include "quill/sinks/JsonSink.h"
 
+#include <chrono>
 #include <cstdio>
 #include <optional>
 #include <string>
@@ -136,6 +137,11 @@ TEST_CASE("json_file_logging")
 
           // json extras
           LOG_INFO(logger, "A {name} with {type} extras", "message", "json", 1234, "json_extra");
+
+          LOG_INFO_LIMIT(std::chrono::nanoseconds{0}, logger, "indexed rate {1} then {0}", "zero",
+                         "one");
+          LOG_INFO_LIMIT(std::chrono::nanoseconds{0}, logger, "named rate {value}", 42);
+          LOG_INFO_LIMIT(std::chrono::nanoseconds{0}, logger, "named collision {occurred}", "user");
         }
       });
   }
@@ -160,13 +166,13 @@ TEST_CASE("json_file_logging")
   std::vector<std::string> const file_contents_s = quill::testing::file_contents(filename);
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads + 5);
+  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads + 8);
   // The plain text sink receives the actual newline and carriage-return characters in the
   // escaped_chars payload, so this file no longer has a stable one-record-per-line count.
-  REQUIRE(file_contents_s.size() >= (number_of_messages * number_of_threads + 5));
+  REQUIRE(file_contents_s.size() >= (number_of_messages * number_of_threads + 8));
 #else
-  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads + 4);
-  REQUIRE(file_contents_s.size() >= (number_of_messages * number_of_threads + 4));
+  REQUIRE_EQ(file_contents.size(), number_of_messages * number_of_threads + 7);
+  REQUIRE(file_contents_s.size() >= (number_of_messages * number_of_threads + 7));
 #endif
 
   for (size_t i = 0; i < number_of_threads; ++i)
@@ -225,6 +231,21 @@ TEST_CASE("json_file_logging")
       "A message with json extras [name: message, type: json, _2: 1234, _3: json_extra]";
     REQUIRE(quill::testing::file_contains(file_contents, expected_extras_json));
     REQUIRE(quill::testing::file_contains(file_contents_s, expected_extras_fmt));
+
+    REQUIRE(quill::testing::file_contains(
+      file_contents, "\"message\":\"indexed rate one then zero (1x)\""));
+    REQUIRE(quill::testing::file_contains(file_contents_s, "indexed rate one then zero (1x)"));
+
+    REQUIRE(quill::testing::file_contains(
+      file_contents,
+      "\"message\":\"named rate {value} ({occurred}x)\",\"value\":\"42\",\"occurred\":\"1\""));
+    REQUIRE(quill::testing::file_contains(file_contents_s, "named rate 42 (1x)"));
+
+    REQUIRE(quill::testing::file_contains(
+      file_contents,
+      "\"message\":\"named collision {occurred} ({occurred_1}x)\",\"occurred\":\"user\","
+      "\"occurred_1\":\"1\""));
+    REQUIRE(quill::testing::file_contains(file_contents_s, "named collision user (1x)"));
   }
 
   testing::remove_file(json_filename);
