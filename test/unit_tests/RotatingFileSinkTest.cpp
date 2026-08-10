@@ -31,6 +31,14 @@ protected:
   bool rename_file(fs::path const&, fs::path const&) noexcept override { return false; }
 };
 
+class TrackedSizeRotatingFileSink : public RotatingFileSink
+{
+public:
+  using RotatingFileSink::RotatingFileSink;
+
+  void set_tracked_file_size(size_t value) { _file_size = value; }
+};
+
 class PartialFailingRenameRotatingFileSink : public RotatingFileSink
 {
 public:
@@ -386,6 +394,38 @@ TEST_CASE("rotating_file_sink_rename_failure_preserves_current_file_and_state")
   std::vector<std::string> const file_contents = testing::file_contents(filename);
   REQUIRE_EQ(testing::file_contains(file_contents, "Record [0]"), true);
   REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+}
+
+TEST_CASE("rotating_file_sink_size_check_does_not_overflow")
+{
+  fs::path const filename = "rotating_file_sink_size_check_does_not_overflow.log";
+  fs::path const filename_1 = "rotating_file_sink_size_check_does_not_overflow.1.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_max_file_size(512);
+    cfg.set_open_mode('w');
+    TrackedSizeRotatingFileSink sink{filename, cfg, FileEventNotifier{}};
+
+    std::string const first_record = "first record";
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, first_record);
+    sink.flush_sink();
+
+    sink.set_tracked_file_size((std::numeric_limits<size_t>::max)() - 8u);
+    std::string const second_record = "second record that crosses the tracked size boundary";
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, second_record);
+  }
+
+  REQUIRE(fs::exists(filename));
+  REQUIRE(fs::exists(filename_1));
+  REQUIRE(testing::file_contains(testing::file_contents(filename_1), "first record"));
+  REQUIRE(testing::file_contains(testing::file_contents(filename), "second record"));
 
   testing::remove_file(filename);
   testing::remove_file(filename_1);

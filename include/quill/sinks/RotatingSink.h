@@ -456,8 +456,8 @@ private:
   /***/
   void _size_rotation(size_t log_msg_size, uint64_t record_timestamp_ns)
   {
-    // Calculate the new size of the file
-    if ((this->_file_size + log_msg_size) > _config.rotation_max_file_size())
+    size_t const max_file_size = _config.rotation_max_file_size();
+    if ((this->_file_size > max_file_size) || (log_msg_size > (max_file_size - this->_file_size)))
     {
       _rotate_files(record_timestamp_ns);
     }
