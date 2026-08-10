@@ -104,6 +104,7 @@
 - Added `SinkFlushReason` and `Sink::flush_sink(SinkFlushReason)` so custom sinks can opt in to
   distinguishing periodic backend flushes, explicit `logger->flush_log()` flushes, and final
   backend shutdown flushes.
+- Fixed the built-in signal handler suppressing core dumps for fatal signals. ([#962](https://github.com/odygrd/quill/issues/962))
 
 ## v12.1.0
 
