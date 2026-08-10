@@ -223,9 +223,10 @@ public:
 
     validate_options(options);
 
+    std::unique_ptr<BackendWorkerLock> backend_worker_lock;
     if (options.check_backend_singleton_instance)
     {
-      _backend_worker_lock = std::make_unique<BackendWorkerLock>(_process_id);
+      backend_worker_lock = std::make_unique<BackendWorkerLock>(_process_id);
     }
 
     std::thread worker(
@@ -322,6 +323,10 @@ public:
 
         _has_worker_thread_exited.store(true);
       });
+
+    // Publish ownership only after thread creation succeeds. If std::thread construction throws,
+    // the local singleton lock is released so a later start attempt can proceed.
+    _backend_worker_lock = std::move(backend_worker_lock);
 
     // Move the worker ownership to our class
     _worker_thread.swap(worker);
