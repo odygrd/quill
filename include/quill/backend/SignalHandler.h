@@ -302,20 +302,6 @@ void on_signal(int32_t signal_number)
     {
       std::_Exit(EXIT_SUCCESS);
     }
-
-    if (should_reraise_signal)
-    {
-      // for other signals expect SIGINT and SIGTERM we re-raise
-      std::signal(signal_number, SIG_DFL);
-      std::raise(signal_number);
-    }
-
-    // For synchronous fault signals (SIGSEGV, SIGFPE, etc.) we must not return —
-    // returning re-executes the faulting instruction, causing an infinite loop.
-    if (is_synchronous_fault_signal(signal_number))
-    {
-      std::_Exit(EXIT_FAILURE);
-    }
   }
   else
   {
@@ -346,10 +332,6 @@ void on_signal(int32_t signal_number)
 
         // This is here in order to flush the above log statement
         logger->flush_log(0);
-
-        // Reset to the default signal handler and re-raise the signal
-        std::signal(signal_number, SIG_DFL);
-        std::raise(signal_number);
       }
       else
       {
@@ -362,13 +344,27 @@ void on_signal(int32_t signal_number)
     {
       std::_Exit(EXIT_SUCCESS);
     }
+  }
 
-    // If we reach here it means we have no valid logger or should_reraise_signal is false.
-    // For synchronous fault signals we must not return to avoid re-executing the faulting instruction.
-    if (is_synchronous_fault_signal(signal_number))
-    {
-      std::_Exit(EXIT_FAILURE);
-    }
+  if (should_reraise_signal)
+  {
+    // Reset to the default signal handler and re-raise the signal, even when no valid logger exists.
+    // Fatal signals must reach their default disposition so the process is reported as terminated
+    // by the original signal and the OS can generate a core dump when core dumps are enabled.
+    std::signal(signal_number, SIG_DFL);
+    std::raise(signal_number);
+
+    // On POSIX the signal is blocked while its handler is running, so raise() leaves it pending.
+    // Returning restores the previous signal mask and allows the default disposition to run. Do
+    // not replace this return with _Exit(), because that would suppress signal status and core dumps.
+    return;
+  }
+
+  // For synchronous fault signals (SIGSEGV, SIGFPE, etc.) we must not return when re-raising is
+  // disabled, because returning would re-execute the faulting instruction and loop indefinitely.
+  if (is_synchronous_fault_signal(signal_number))
+  {
+    std::_Exit(EXIT_FAILURE);
   }
 }
 } // namespace detail
