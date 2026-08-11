@@ -905,16 +905,28 @@ private:
       return;
     }
 
-    uint32_t const prev = _messages_since_last_flush.fetch_add(1, std::memory_order_relaxed);
-    if ((prev + 1) >= threshold)
+    if (threshold == 1)
     {
-      _messages_since_last_flush.store(0, std::memory_order_relaxed);
-
-      // Skip the implicit flush on the backend thread so generic logging code reused
-      // there (e.g. backend hooks, custom sinks) does not throw via flush_log().
       if (QUILL_LIKELY(!detail::LoggerBase::is_current_thread_backend_thread()))
       {
         this->flush_log();
+      }
+      return;
+    }
+
+    uint32_t message_count =
+      _messages_since_last_flush.fetch_add(1, std::memory_order_relaxed) + 1;
+    while (message_count >= threshold)
+    {
+      // Only the thread that successfully resets the counter is allowed to flush.
+      if (_messages_since_last_flush.compare_exchange_weak(
+            message_count, 0, std::memory_order_relaxed, std::memory_order_relaxed))
+      {
+        if (QUILL_LIKELY(!detail::LoggerBase::is_current_thread_backend_thread()))
+        {
+          this->flush_log();
+        }
+        return;
       }
     }
   }
