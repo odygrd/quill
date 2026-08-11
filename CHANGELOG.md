@@ -110,6 +110,8 @@
 - Fixed indexed placeholders and JSON messages in interval rate-limited logs.
 - Added overflow protection for backend duration settings and timestamp grace periods.
 - Repeated backend error notifications are now rate-limited.
+- Fixed duplicate flushes when multiple threads share a logger configured with
+  `set_immediate_flush(N)` where `N > 1`.
 
 ## v12.1.0
 
