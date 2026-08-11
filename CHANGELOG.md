@@ -109,6 +109,7 @@
 - Added missing includes to quill module. ([#960](https://github.com/odygrd/quill/issues/960))
 - Fixed indexed placeholders and JSON messages in interval rate-limited logs.
 - Added overflow protection for backend duration settings and timestamp grace periods.
+- Repeated backend error notifications are now rate-limited.
 
 ## v12.1.0
 

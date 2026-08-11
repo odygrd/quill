@@ -418,7 +418,7 @@ public:
 
 private:
   /***/
-  QUILL_ATTRIBUTE_HOT void _invoke_poll_hook(std::function<void()> const& hook) const
+  QUILL_ATTRIBUTE_HOT void _invoke_poll_hook(std::function<void()> const& hook)
   {
     QUILL_TRY { hook(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
@@ -431,7 +431,7 @@ private:
   }
 
   /***/
-  QUILL_ATTRIBUTE_HOT void _invoke_poll_end_once(bool& poll_end_called) const
+  QUILL_ATTRIBUTE_HOT void _invoke_poll_end_once(bool& poll_end_called)
   {
     if (poll_end_called)
     {
@@ -456,20 +456,31 @@ private:
     return std::string{ts};
   }
 
-  template <typename TMessage>
-  static void _notify_error(std::function<void(std::string const&)> const& error_notifier, TMessage&& message)
+  void _notify_error(std::function<void(std::string const&)> const& error_notifier,
+                     std::string const& error_message)
   {
-    if (static_cast<bool>(error_notifier))
+    if (!static_cast<bool>(error_notifier))
     {
-      QUILL_TRY { error_notifier(static_cast<TMessage&&>(message)); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-      QUILL_CATCH_ALL()
-      {
-        // Swallow exceptions from the user-provided error_notifier to prevent
-        // infinite loops when both formatting and the notifier throw.
-      }
-#endif
+      return;
     }
+
+    auto const now = std::chrono::steady_clock::now();
+    if ((error_message == _last_error_notification) && (now < _next_error_notification_time))
+    {
+      return;
+    }
+
+    _last_error_notification = error_message;
+    _next_error_notification_time = now + std::chrono::seconds{5};
+
+    QUILL_TRY { error_notifier(error_message); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Swallow exceptions from the user-provided error_notifier to prevent
+      // infinite loops when both formatting and the notifier throw.
+    }
+#endif
   }
 
   /**
@@ -594,6 +605,8 @@ private:
   QUILL_ATTRIBUTE_COLD void _init(BackendOptions const& options)
   {
     _options = options;
+    _last_error_notification.clear();
+    _next_error_notification_time = std::chrono::steady_clock::now();
     _is_rdtsc_clock_config_valid.store(_options.sleep_duration <= _options.rdtsc_resync_interval,
                                        std::memory_order_relaxed);
 
@@ -1337,7 +1350,7 @@ private:
    * Forwards a decoded metric sample to each sink associated with the logger.
    */
   QUILL_ATTRIBUTE_HOT void _write_metric_sample(TransitEvent const& transit_event, std::string_view thread_id,
-                                                std::string_view thread_name) const
+                                                 std::string_view thread_name)
   {
     QUILL_ASSERT(
       transit_event.macro_metadata,
@@ -1371,11 +1384,11 @@ private:
    * Formats and writes the log statement to each sink
    */
   QUILL_ATTRIBUTE_HOT void _write_log_statement(TransitEvent const& transit_event,
-                                                std::string_view const& thread_id,
-                                                std::string_view const& thread_name,
-                                                std::string_view const& log_level_description,
-                                                std::string_view const& log_level_short_code,
-                                                std::string_view const& log_message) const
+                                                 std::string_view const& thread_id,
+                                                 std::string_view const& thread_name,
+                                                 std::string_view const& log_level_description,
+                                                 std::string_view const& log_level_short_code,
+                                                 std::string_view const& log_message)
   {
     std::string_view default_log_statement;
 
@@ -1677,7 +1690,7 @@ private:
    * @return start position of read
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _read_unbounded_frontend_queue(UnboundedSPSCQueue& frontend_queue,
-                                                                                ThreadContext* thread_context) const
+                                                                                 ThreadContext* thread_context)
   {
     auto const read_result = frontend_queue.prepare_read();
 
@@ -2384,8 +2397,11 @@ private:
   std::unordered_map<std::string, std::atomic<bool>*> _logger_removal_flags; /** Maps logger names to atomic flags used for synchronizing remove_logger_blocking(). */
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/
+  std::string _last_error_notification;
   std::chrono::steady_clock::time_point _last_rdtsc_resync_time;
   std::chrono::steady_clock::time_point _last_sink_flush_time;
+  std::chrono::steady_clock::time_point _next_error_notification_time{
+    std::chrono::steady_clock::now()};
   std::atomic<uint32_t> _worker_thread_id{0};  /** cached backend worker thread id */
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
   std::atomic<bool> _has_worker_thread_exited{true}; /** Set to true when the backend thread completes its exit sequence */

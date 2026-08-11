@@ -82,8 +82,10 @@ TEST_CASE("metric_sink")
   static std::string const logger_name = "metric_sink_test_logger";
   static std::string const metric_key = "metric_sink_test_requests_total_01";
 
+  std::atomic<size_t> error_notifications{0};
   BackendOptions backend_options;
-  backend_options.error_notifier = [](std::string const&) {};
+  backend_options.error_notifier = [&error_notifications](std::string const&)
+  { error_notifications.fetch_add(1, std::memory_order_relaxed); };
   Backend::start(backend_options);
 
   auto throwing_sink = Frontend::create_or_get_sink<ThrowingFanoutSink>(throwing_sink_name);
@@ -104,6 +106,11 @@ TEST_CASE("metric_sink")
 
   auto* sink_ptr = static_cast<MetricCapturingSink*>(metric_sink.get());
   REQUIRE_EQ(sink_ptr->log_writes.load(std::memory_order_relaxed), 1);
+#if !defined(QUILL_NO_EXCEPTIONS)
+  REQUIRE_EQ(error_notifications.load(std::memory_order_relaxed), 2);
+#else
+  REQUIRE_EQ(error_notifications.load(std::memory_order_relaxed), 0);
+#endif
 
   std::lock_guard<std::mutex> const lock{sink_ptr->mutex};
   REQUIRE_EQ(sink_ptr->metrics.size(), 2);
