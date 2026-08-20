@@ -83,6 +83,16 @@ jobs:
             with_tests: ON
             cmake_options: -DQUILL_NO_EXCEPTIONS=ON
 
+            # Builds and tests the x86 cache-coherence code paths
+          - cxx: g++-14
+            build_type: Release
+            std: 20
+            os: ubuntu-24.04
+            with_tests: ON
+            cmake_options: -DQUILL_X86ARCH=ON
+            cxxflags: -march=x86-64-v3
+            install: sudo apt -o Acquire::Retries=5 install g++-14
+
             # Build and test with valgrind
           - cxx: g++-10
             build_type: Release
