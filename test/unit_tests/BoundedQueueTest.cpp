@@ -143,11 +143,13 @@ TEST_CASE("bounded_queue_read_write_multithreaded_plain_ints")
 
 TEST_CASE("bounded_queue_prepare_write_larger_than_capacity_fails")
 {
-  BoundedSPSCQueue buffer{64u};
+  // 1024 is the minimum capacity accepted under QUILL_X86ARCH, so this test runs unchanged in
+  // both configurations
+  BoundedSPSCQueue buffer{1024u};
 
-  REQUIRE_EQ(buffer.capacity(), 64u);
-  REQUIRE_EQ(buffer.prepare_write(65u), nullptr);
-  REQUIRE_EQ(buffer.prepare_write(128u), nullptr);
+  REQUIRE_EQ(buffer.capacity(), 1024u);
+  REQUIRE_EQ(buffer.prepare_write(1025u), nullptr);
+  REQUIRE_EQ(buffer.prepare_write(2048u), nullptr);
 
   std::byte* write_buf = buffer.prepare_write(32u);
   REQUIRE_NE(write_buf, nullptr);
@@ -159,8 +161,8 @@ TEST_CASE("bounded_queue_prepare_write_larger_than_capacity_fails")
   buffer.finish_read(32u);
   buffer.commit_read();
 
-  REQUIRE_EQ(buffer.prepare_write(65u), nullptr);
-  REQUIRE_EQ(buffer.prepare_write(128u), nullptr);
+  REQUIRE_EQ(buffer.prepare_write(1025u), nullptr);
+  REQUIRE_EQ(buffer.prepare_write(2048u), nullptr);
 }
 
 TEST_CASE("bounded_queue_write_after_drain_uses_full_capacity")

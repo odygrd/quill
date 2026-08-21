@@ -253,6 +253,23 @@ public:
 
 private:
 #if defined(QUILL_X86ARCH)
+  /**
+   * Flush a single cache line.
+   *
+   * clflushopt is a separate CPU feature rather than a part of any x86-64 microarchitecture
+   * level, so -march=x86-64-v2/v3/v4 do not enable it and the compiler rejects the always_inline
+   * intrinsic. Fall back to clflush, which is SSE2 baseline and is already used unconditionally
+   * by the constructor, when the compiler reports no clflushopt support.
+   */
+  QUILL_ATTRIBUTE_HOT static void _flush_cacheline(void* address) noexcept
+  {
+  #if defined(__CLFLUSHOPT__) || (defined(_MSC_VER) && !defined(__GNUC__) && !defined(__clang__))
+    _mm_clflushopt(address);
+  #else
+    _mm_clflush(address);
+  #endif
+  }
+
   QUILL_ATTRIBUTE_HOT void _flush_cachelines(integer_type& last, integer_type offset)
   {
     integer_type last_diff = last - (last & QUILL_CACHE_LINE_MASK);
@@ -262,7 +279,7 @@ private:
     {
       do
       {
-        _mm_clflushopt(_storage + (last_diff & _mask));
+        _flush_cacheline(_storage + (last_diff & _mask));
         last_diff += QUILL_CACHE_LINE_SIZE;
       } while (cur_diff > last_diff);
 
