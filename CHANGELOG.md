@@ -112,9 +112,9 @@
 - Repeated backend error notifications are now rate-limited.
 - Fixed duplicate flushes when multiple threads share a logger configured with
   `set_immediate_flush(N)` where `N > 1`.
-- Fixed `QUILL_X86ARCH` builds failing to compile with the generic `-march=x86-64-v2`, `-march=x86-64-v3`
-  and `-march=x86-64-v4` levels, none of which enable `clflushopt`. The cache-line flush now falls back
-  to `clflush` when the compiler reports no `clflushopt` support.
+- Removed the `QUILL_X86ARCH` build option along with the x86 cache-line flush and prefetch code it
+  enabled. Benchmarks on Intel and AMD systems across several thread-pinning topologies showed the
+  option consistently increased producer-side latency with no measurable benefit.
 
 ## v12.1.0
 

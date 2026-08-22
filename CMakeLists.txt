@@ -11,8 +11,6 @@ option(QUILL_NO_THREAD_NAME_SUPPORT "Enable this option to disable features that
 
 option(QUILL_USE_SEQUENTIAL_THREAD_ID "Enable this option to use a sequential counter for thread IDs instead of OS-assigned thread IDs. Requires defining QUILL_DEFINE_SEQUENTIAL_THREAD_ID (from quill/Utility.h) in exactly one translation unit." OFF)
 
-option(QUILL_X86ARCH "Enable x86-specific optimizations for cache coherence using _mm_prefetch, _mm_clflush, and _mm_clflushopt instructions. Ensure the target architecture must also be specified with -march=\"...\" when enabling this option." OFF)
-
 option(QUILL_DISABLE_NON_PREFIXED_MACROS "Enable this option to disable non-prefixed `LOG_*` macros, keeping only the `QUILL_LOG_*` macros to avoid conflicts with other logging libraries." OFF)
 
 option(QUILL_DISABLE_FUNCTION_NAME "Disable the use of __FUNCTION__ in `LOG_*` macros when the function name is not needed." OFF)
@@ -133,7 +131,6 @@ endif ()
 message(STATUS "QUILL_NO_EXCEPTIONS: " ${QUILL_NO_EXCEPTIONS})
 message(STATUS "QUILL_NO_THREAD_NAME_SUPPORT: " ${QUILL_NO_THREAD_NAME_SUPPORT})
 message(STATUS "QUILL_USE_SEQUENTIAL_THREAD_ID: " ${QUILL_USE_SEQUENTIAL_THREAD_ID})
-message(STATUS "QUILL_X86ARCH: " ${QUILL_X86ARCH})
 message(STATUS "QUILL_DISABLE_NON_PREFIXED_MACROS: " ${QUILL_DISABLE_NON_PREFIXED_MACROS})
 message(STATUS "QUILL_DISABLE_FUNCTION_NAME: " ${QUILL_DISABLE_FUNCTION_NAME})
 message(STATUS "QUILL_DETAILED_FUNCTION_NAME: " ${QUILL_DETAILED_FUNCTION_NAME})
@@ -329,10 +326,6 @@ endif ()
 
 if (QUILL_USE_SEQUENTIAL_THREAD_ID)
     target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_USE_SEQUENTIAL_THREAD_ID)
-endif ()
-
-if (QUILL_X86ARCH)
-    target_compile_definitions(${TARGET_NAME} INTERFACE -DQUILL_X86ARCH)
 endif ()
 
 if (QUILL_DISABLE_NON_PREFIXED_MACROS)

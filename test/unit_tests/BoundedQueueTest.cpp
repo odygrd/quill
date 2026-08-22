@@ -18,9 +18,6 @@ TEST_SUITE_BEGIN("BoundedQueue");
 
 using namespace quill::detail;
 
-#if !defined(QUILL_X86ARCH)
-// QUILL_X86ARCH requires at least a queue capacity of 1024 and those tests are using a smaller number
-
 TEST_CASE("read_write_buffer")
 {
   BoundedSPSCQueue buffer{64u};
@@ -87,7 +84,6 @@ TEST_CASE("bounded_queue_integer_overflow")
     buffer.commit_read();
   }
 }
-#endif
 
 TEST_CASE("bounded_queue_read_write_multithreaded_plain_ints")
 {
@@ -143,13 +139,11 @@ TEST_CASE("bounded_queue_read_write_multithreaded_plain_ints")
 
 TEST_CASE("bounded_queue_prepare_write_larger_than_capacity_fails")
 {
-  // 1024 is the minimum capacity accepted under QUILL_X86ARCH, so this test runs unchanged in
-  // both configurations
-  BoundedSPSCQueue buffer{1024u};
+  BoundedSPSCQueue buffer{64u};
 
-  REQUIRE_EQ(buffer.capacity(), 1024u);
-  REQUIRE_EQ(buffer.prepare_write(1025u), nullptr);
-  REQUIRE_EQ(buffer.prepare_write(2048u), nullptr);
+  REQUIRE_EQ(buffer.capacity(), 64u);
+  REQUIRE_EQ(buffer.prepare_write(65u), nullptr);
+  REQUIRE_EQ(buffer.prepare_write(128u), nullptr);
 
   std::byte* write_buf = buffer.prepare_write(32u);
   REQUIRE_NE(write_buf, nullptr);
@@ -161,8 +155,8 @@ TEST_CASE("bounded_queue_prepare_write_larger_than_capacity_fails")
   buffer.finish_read(32u);
   buffer.commit_read();
 
-  REQUIRE_EQ(buffer.prepare_write(1025u), nullptr);
-  REQUIRE_EQ(buffer.prepare_write(2048u), nullptr);
+  REQUIRE_EQ(buffer.prepare_write(65u), nullptr);
+  REQUIRE_EQ(buffer.prepare_write(128u), nullptr);
 }
 
 TEST_CASE("bounded_queue_write_after_drain_uses_full_capacity")
@@ -187,21 +181,6 @@ TEST_CASE("bounded_queue_write_after_drain_uses_full_capacity")
   REQUIRE_EQ(buffer.prepare_read(), nullptr);
   REQUIRE_NE(buffer.prepare_write(4000u), nullptr);
 }
-
-#if defined(QUILL_X86ARCH) && !defined(QUILL_NO_EXCEPTIONS)
-TEST_CASE("below_minimum_capacity_throws_before_allocating")
-{
-  // On x86 the constructor requires at least 1024 bytes so that cache-line warmup via
-  // _mm_prefetch has enough backing memory. The capacity check must run in the member
-  // initialiser list BEFORE mmap/aligned_malloc happens, otherwise the allocation would
-  // leak (the destructor does not run on a partially-constructed object).
-  REQUIRE_THROWS_AS(BoundedSPSCQueue{512u}, quill::QuillError);
-  REQUIRE_THROWS_AS(BoundedSPSCQueue{1023u}, quill::QuillError);
-
-  // Exactly 1024 is the documented minimum and must succeed.
-  REQUIRE_NOTHROW(BoundedSPSCQueue{1024u});
-}
-#endif
 
 #if !defined(QUILL_NO_EXCEPTIONS)
 TEST_CASE("oversized_capacity_throws_before_allocating")
