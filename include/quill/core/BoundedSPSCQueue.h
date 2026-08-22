@@ -28,25 +28,6 @@
   #endif
 #endif
 
-#if defined(QUILL_X86ARCH)
-  #if defined(_WIN32)
-    #include <intrin.h>
-  #else
-    #if __has_include(<x86gprintrin.h>)
-      #if defined(__GNUC__) && __GNUC__ > 10
-        #include <emmintrin.h>
-        #include <x86gprintrin.h>
-      #elif defined(__clang_major__)
-      // clang needs immintrin for _mm_clflushopt
-        #include <immintrin.h>
-      #endif
-    #else
-      #include <immintrin.h>
-      #include <x86intrin.h>
-    #endif
-  #endif
-#endif
-
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
@@ -95,21 +76,6 @@ public:
 
     // reader_pos starts at 0, so cached value is 0 + capacity
     _reader_pos_cache_plus_capacity = _capacity;
-
-#if defined(QUILL_X86ARCH)
-    // remove log memory from cache
-    for (size_t i = 0; i < storage_size; i += QUILL_CACHE_LINE_SIZE)
-    {
-      _mm_clflush(_storage + i);
-    }
-
-    uint64_t const cache_lines = (_capacity >= 2048) ? 32 : 16;
-
-    for (uint64_t i = 0; i < cache_lines; ++i)
-    {
-      _mm_prefetch(reinterpret_cast<char const*>(_storage + (QUILL_CACHE_LINE_SIZE * i)), _MM_HINT_T0);
-    }
-#endif
   }
 
   ~BoundedSPSCQueueImpl() { _free_aligned(_storage); }
@@ -158,15 +124,6 @@ public:
   {
     // set the atomic flag so the reader can see write
     _atomic_writer_pos.store(_writer_pos, std::memory_order_release);
-
-#if defined(QUILL_X86ARCH)
-    // flush writen cache lines
-    _flush_cachelines(_last_flushed_writer_pos, _writer_pos);
-
-    // prefetch a future cache line
-    _mm_prefetch(
-      reinterpret_cast<char const*>(_storage + ((_writer_pos + QUILL_CACHE_LINE_SIZE * 10) & _mask)), _MM_HINT_T0);
-#endif
   }
 
   /**
@@ -183,15 +140,6 @@ public:
 
     // set the atomic flag so the reader can see write
     _atomic_writer_pos.store(new_writer_pos, std::memory_order_release);
-
-#if defined(QUILL_X86ARCH)
-    // flush writen cache lines
-    _flush_cachelines(_last_flushed_writer_pos, new_writer_pos);
-
-    // prefetch a future cache line
-    _mm_prefetch(
-      reinterpret_cast<char const*>(_storage + ((new_writer_pos + QUILL_CACHE_LINE_SIZE * 10) & _mask)), _MM_HINT_T0);
-#endif
   }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_read() noexcept
@@ -217,10 +165,6 @@ public:
         (_writer_pos_cache == _reader_pos))
     {
       _atomic_reader_pos.store(_reader_pos, std::memory_order_release);
-
-#if defined(QUILL_X86ARCH)
-      _flush_cachelines(_last_flushed_reader_pos, _reader_pos);
-#endif
     }
   }
 
@@ -252,42 +196,6 @@ public:
   QUILL_NODISCARD HugePagesPolicy huge_pages_policy() const noexcept { return _huge_pages_policy; }
 
 private:
-#if defined(QUILL_X86ARCH)
-  /**
-   * Flush a single cache line.
-   *
-   * clflushopt is a separate CPU feature rather than a part of any x86-64 microarchitecture
-   * level, so -march=x86-64-v2/v3/v4 do not enable it and the compiler rejects the always_inline
-   * intrinsic. Fall back to clflush, which is SSE2 baseline and is already used unconditionally
-   * by the constructor, when the compiler reports no clflushopt support.
-   */
-  QUILL_ATTRIBUTE_HOT static void _flush_cacheline(void* address) noexcept
-  {
-  #if defined(__CLFLUSHOPT__) || (defined(_MSC_VER) && !defined(__GNUC__) && !defined(__clang__))
-    _mm_clflushopt(address);
-  #else
-    _mm_clflush(address);
-  #endif
-  }
-
-  QUILL_ATTRIBUTE_HOT void _flush_cachelines(integer_type& last, integer_type offset)
-  {
-    integer_type last_diff = last - (last & QUILL_CACHE_LINE_MASK);
-    integer_type const cur_diff = offset - (offset & QUILL_CACHE_LINE_MASK);
-
-    if (cur_diff > last_diff)
-    {
-      do
-      {
-        _flush_cacheline(_storage + (last_diff & _mask));
-        last_diff += QUILL_CACHE_LINE_SIZE;
-      } while (cur_diff > last_diff);
-
-      last = last_diff;
-    }
-  }
-#endif
-
   /**
    * align a pointer to the given alignment
    * @param pointer a pointer the object
@@ -315,18 +223,9 @@ private:
   /**
    * Validate the requested capacity before any allocation happens. Called from the member
    * initialiser list so that a bad argument throws before mmap/aligned_malloc leaks memory.
-   * The 1024-byte minimum exists on x86 because the constructor warms up cache lines via
-   * _mm_prefetch and assumes the backing region is at least that large.
    */
   static integer_type _validate_capacity(QUILL_MAYBE_UNUSED integer_type capacity)
   {
-#if defined(QUILL_X86ARCH)
-    if (capacity < 1024)
-    {
-      QUILL_THROW(QuillError{"Capacity must be at least 1024"});
-    }
-#endif
-
     size_t const rounded_capacity = next_power_of_two(static_cast<size_t>(capacity));
 
     constexpr auto max_integer_capacity = []() constexpr
@@ -462,8 +361,6 @@ private:
   }
 
 private:
-  static constexpr integer_type QUILL_CACHE_LINE_MASK{QUILL_CACHE_LINE_SIZE - 1};
-
   integer_type const _capacity;
   integer_type const _mask;
   integer_type const _bytes_per_batch;
@@ -473,12 +370,10 @@ private:
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};
   alignas(QUILL_CACHE_LINE_ALIGNED) integer_type _writer_pos{0};
   integer_type _reader_pos_cache_plus_capacity{0};
-  integer_type _last_flushed_writer_pos{0};
 
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_reader_pos{0};
   alignas(QUILL_CACHE_LINE_ALIGNED) integer_type _reader_pos{0};
   mutable integer_type _writer_pos_cache{0};
-  integer_type _last_flushed_reader_pos{0};
 };
 
 using BoundedSPSCQueue = BoundedSPSCQueueImpl<size_t>;
