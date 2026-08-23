@@ -133,7 +133,7 @@ public:
   /**
    * A single quantile target for a summary metric.
    *
-   * `quantile` is the target rank in [0, 1] (e.g. 0.5 for the median, 0.99 for p99).
+   * `quantile` is the target rank from 0 to 1; for example, 0.5 is the median and 0.99 is p99.
    * `error` is the allowed absolute error around that rank used by the CKMS streaming algorithm:
    * smaller `error` produces more accurate quantiles but uses more memory and CPU.
    *

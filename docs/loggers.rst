@@ -88,4 +88,4 @@ Simplifying Logger Usage for Single Root Logger Applications
 
 For some applications the use of the single root logger might be enough. In that case, passing the logger every time
 to the macro becomes inconvenient. The solution is to store the created ``Logger`` as a static variable and create your
-own macros. See `example <https://github.com/odygrd/quill/blob/master/examples/recommended_usage/quill_wrapper/include/quill_wrapper/overwrite_macros.h>`_.
+own macros. See `example <https://github.com/odygrd/quill/blob/master/examples/recommended_usage/quill_static_lib/overwrite_macros.h>`_.

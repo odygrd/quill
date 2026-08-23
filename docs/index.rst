@@ -1,7 +1,11 @@
 .. meta::
    :google-site-verification: OdGHhtE4NLXZfqvQWdVxnV4z8MJeRUws09jAYCDjqhI
+   :description: Quill is an ultra-low-latency asynchronous C++17 logging and metrics library with deferred formatting, structured logging, and production-ready sinks.
 
 .. _index:
+
+Quill: Ultra-Low-Latency C++ Logging and Metrics
+=================================================
 
 Fast asynchronous logging and metrics for low-latency C++ applications.
 

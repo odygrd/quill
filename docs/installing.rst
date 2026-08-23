@@ -1,5 +1,8 @@
 .. title:: Installing
 
+.. meta::
+   :description: Install Quill for C++ with vcpkg, Conan, Homebrew, Conda, Meson, Bazel, CMake, or directly from source.
+
 Installing
 ==========
 

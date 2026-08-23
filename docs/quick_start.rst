@@ -1,5 +1,8 @@
 .. title:: Quick Start
 
+.. meta::
+   :description: Get started with Quill, an ultra-low-latency asynchronous C++ logging library, using a minimal C++ example with macros or function calls.
+
 Quick Start
 ===========
 

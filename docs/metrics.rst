@@ -1,5 +1,8 @@
 .. title:: Metrics
 
+.. meta::
+   :description: Publish low-latency C++ application metrics through Quill's asynchronous backend to Prometheus, StatsD, OpenTelemetry, or custom collectors.
+
 Metrics
 =======
 

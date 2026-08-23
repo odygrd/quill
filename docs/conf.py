@@ -20,6 +20,12 @@ copyright = '2024, Odysseas Georgoudis'
 author = 'Odysseas Georgoudis'
 release = 'v12.2.0'
 
+# Read the Docs provides the canonical URL for the version being built. Use the
+# public documentation URL when building locally.
+canonical_url = os.environ.get(
+    "READTHEDOCS_CANONICAL_URL", "https://quillcpp.readthedocs.io/en/latest/"
+).rstrip("/") + "/"
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
@@ -36,8 +42,10 @@ html_extra_path = ['build/quill.tag'] if tagfile_path.exists() else []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_immaterial"
+html_baseurl = canonical_url
+html_use_index = False
 html_theme_options = {
-    "site_url": "https://quill.readthedocs.io/",
+    "site_url": canonical_url,
     "repo_url": "https://github.com/odygrd/quill",
     "repo_name": "quill",
     "icon": {"repo": "fontawesome/brands/github"},
@@ -76,6 +84,20 @@ html_theme_options = {
     ],
 }
 html_logo = "quill_logo.png"
+html_favicon = "quill_logo.png"
 html_static_path = ['_static']
 html_css_files = ["theme_extra.css"]
 html_title = f"Quill {release} - C++ Logging Library"
+
+
+def _add_canonical_url(_app, _pagename, _templatename, context, _doctree):
+    """Expose Sphinx's canonical page URL to the Immaterial theme."""
+    page = context.get("page")
+    page_url = context.get("pageurl")
+    if page is not None and page_url:
+        page["canonical_url"] = page_url
+
+
+def setup(app):
+    # Run after the theme creates its ``page`` context object.
+    app.connect("html-page-context", _add_canonical_url, priority=999)
