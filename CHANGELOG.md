@@ -104,6 +104,7 @@
 
 - Fixed a frontend performance regression when logging variable-length arguments.
 - Updated hot-path benchmark timing and producer pacing for more consistent measurements.
+- Added Bazel 9 support by loading `cc_library` from `rules_cc` and updating the Bazel dependencies.
 
 ## v12.2.0
 
