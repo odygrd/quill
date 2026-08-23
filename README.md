@@ -102,9 +102,12 @@ backend worker.
   sink handles common metric types, while custom sinks can route samples to StatsD, OpenTelemetry, or other collectors.
   See the
   [Metrics guide](https://quillcpp.readthedocs.io/en/latest/metrics.html).
-- **Timestamp-Ordered Logs**: Events from multiple producer threads are written in timestamp order.
-- **Explicit Backpressure**: Choose bounded or unbounded queues with blocking or dropping behaviour to match the
-  application's latency and delivery requirements.
+- **Highly Customizable**: Tune frontend queues and memory policy at compile time; configure backend idle behaviour,
+  CPU affinity, buffering, timestamp handling, flushing, and callbacks at runtime; and compose loggers from built-in or
+  custom sinks with per-sink filters. See
+  [Frontend Options](https://quillcpp.readthedocs.io/en/latest/frontend_options.html),
+  [Backend Options](https://quillcpp.readthedocs.io/en/latest/backend_options.html), and
+  [Sinks](https://quillcpp.readthedocs.io/en/latest/sinks.html).
 - **Production-Focused Testing**: Continuously tested across Linux, macOS, Windows, and BSD, with sanitizers and fuzzing.
 
 > Using Quill? Click **Star** at the top of the [GitHub repository](https://github.com/odygrd/quill) to help other C++
@@ -246,7 +249,9 @@ Prometheus integration.
 - **Compile-Time Optimization**: Eliminate specific log levels at compile time.
 - **Custom Formatters**: Define your own log output patterns.
   See [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
-- **Timestamp-Ordered Logs**: Simplify debugging of multithreaded applications with chronologically ordered logs.
+- **Cross-Thread Timestamp Handling**: The backend compares available events across frontend queues by timestamp, with
+  a configurable grace window for delayed producers and optional sink-visible monotonic timestamp correction.
+  See [Timestamp Types](https://quillcpp.readthedocs.io/en/latest/timestamp_types.html).
 - **Flexible Timestamps**: Support for `rdtsc`, `chrono`, or `custom clocks` - ideal for simulations and more.
 - **Backtrace Logging**: Store messages in a ring buffer for on-demand display.
   See [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html)

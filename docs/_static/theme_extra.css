@@ -40,3 +40,41 @@
 .md-typeset img {
     border-radius: 0.5rem;
 }
+
+.md-typeset .quill-home-lead {
+    max-width: 52rem;
+    font-size: 1.08rem;
+    line-height: 1.65;
+}
+
+.md-typeset .quill-home-links {
+    margin: 1.25rem 0 2rem;
+    font-weight: 600;
+}
+
+.quill-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 2rem;
+    margin: 2rem 0 1.5rem;
+}
+
+.quill-feature-grid > section {
+    min-width: 0;
+    padding: 0.4rem 0.5rem 1rem;
+}
+
+.quill-feature-grid > section > h2 {
+    margin-top: 0;
+}
+
+.quill-feature-grid > section > :last-child {
+    margin-bottom: 0;
+}
+
+@media screen and (max-width: 768px) {
+    .quill-feature-grid {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+}
