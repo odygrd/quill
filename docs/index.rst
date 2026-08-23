@@ -65,19 +65,6 @@ universal.
 
    </section><section>
 
-Choose the overload policy
---------------------------
-
-Select one application-wide queue policy: bounded or unbounded, and blocking or dropping.
-Bounded queues have fixed capacity and never reallocate; unbounded queues grow to a configured
-maximum before applying their blocking or dropping policy. The default is ``UnboundedBlocking``.
-
-:doc:`Configure frontend queues <frontend_options>`
-
-.. raw:: html
-
-   </section><section>
-
 Publish logs and metrics through one backend
 --------------------------------------------
 
@@ -106,19 +93,6 @@ pattern-formatted sinks.
 
    </section><section>
 
-Reduce cross-thread timestamp reordering
-----------------------------------------
-
-The single backend worker compares available events across frontend queues by timestamp. A
-configurable grace period holds recent events briefly, reducing—but not universally eliminating—
-reordering when a producer is delayed after taking its timestamp.
-
-:doc:`Configure the backend <backend_options>`
-
-.. raw:: html
-
-   </section><section>
-
 Extend types and destinations
 -----------------------------
 
@@ -129,6 +103,37 @@ file, rotating file, Syslog, systemd, Android, JSON, and Prometheus; custom dest
 from ``Sink``.
 
 :doc:`Type recipes <recipes>` · :doc:`Browse sink types <sink_types>`
+
+.. raw:: html
+
+   </section><section>
+
+Add context and control
+-----------------------
+
+Mapped Diagnostic Context attaches thread-local key/value fields to subsequent records without
+re-enqueueing the full context on every log call. Per-sink filters and rate-limited macros help
+control noisy streams. Backtrace logging keeps selected low-level records in a backend ring buffer
+for on-demand or high-severity-triggered flushing.
+
+:doc:`Mapped Diagnostic Context <mdc>` · :doc:`Filters <filters>` ·
+:doc:`Backtrace logging <backtrace_logging>`
+
+.. raw:: html
+
+   </section><section>
+
+Configure the complete pipeline
+-------------------------------
+
+``FrontendOptions`` is a compile-time traits type for queue mode and capacity, blocking retries,
+and Linux huge-page policy. At runtime, ``BackendOptions`` controls idle behaviour and CPU
+affinity, transit-buffer limits, timestamp handling, flushing, shutdown draining, callbacks, and
+character sanitization. Loggers select their format pattern, clock source, and one or more sinks;
+sinks can be shared, filtered, or user-defined for logs, metrics, or both.
+
+:doc:`Frontend options <frontend_options>` · :doc:`Backend options <backend_options>` ·
+:doc:`Sinks and extensions <sinks>`
 
 .. raw:: html
 

@@ -102,9 +102,13 @@ backend worker.
   sink handles common metric types, while custom sinks can route samples to StatsD, OpenTelemetry, or other collectors.
   See the
   [Metrics guide](https://quillcpp.readthedocs.io/en/latest/metrics.html).
-- **Timestamp-Ordered Logs**: Events from multiple producer threads are written in timestamp order.
-- **Explicit Backpressure**: Choose bounded or unbounded queues with blocking or dropping behaviour to match the
-  application's latency and delivery requirements.
+- **Timestamp-Aware Ordering**: The backend compares available events by timestamp, with a configurable grace period
+  that reduces cross-thread reordering.
+- **Highly Customizable**: Tune frontend queues and memory policy at compile time, configure backend scheduling,
+  buffering, timestamp handling, flushing, and callbacks at runtime, and compose loggers from built-in or custom sinks
+  with per-sink filters. See [Frontend Options](https://quillcpp.readthedocs.io/en/latest/frontend_options.html),
+  [Backend Options](https://quillcpp.readthedocs.io/en/latest/backend_options.html), and
+  [Sinks](https://quillcpp.readthedocs.io/en/latest/sinks.html).
 - **Production-Focused Testing**: Continuously tested across Linux, macOS, Windows, and BSD, with sanitizers and fuzzing.
 
 > Using Quill? Click **Star** at the top of the [GitHub repository](https://github.com/odygrd/quill) to help other C++
