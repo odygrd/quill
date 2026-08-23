@@ -1,3 +1,4 @@
+- [v12.2.1](#v1221)
 - [v12.2.0](#v1220)
 - [v12.1.0](#v1210)
 - [v12.0.0](#v1200)
@@ -98,6 +99,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v12.2.1
+
+- Fixed a frontend performance regression when logging variable-length arguments.
+- Updated hot-path benchmark timing and producer pacing for more consistent measurements.
 
 ## v12.2.0
 

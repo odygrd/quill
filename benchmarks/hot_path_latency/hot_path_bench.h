@@ -53,13 +53,16 @@ inline uint16_t get_cpu_to_pin_thread(uint16_t thread_num)
 }
 
 // Instead of sleep
-inline void wait([[maybe_unused]] std::chrono::nanoseconds min, std::chrono::nanoseconds max)
+inline void wait([[maybe_unused]] std::chrono::nanoseconds min, std::chrono::nanoseconds max,
+                 [[maybe_unused]] size_t stream_id)
 {
 #ifdef PERF_ENABLED
   // when in perf use sleep as the other variables add noise
   std::this_thread::sleep_for(max);
 #else
-  thread_local std::mt19937 gen{std::random_device{}()};
+  // Use a separate, repeatable sequence per producer so repeated runs get the
+  // same pacing without artificially synchronizing all producer threads.
+  thread_local std::mt19937 gen{static_cast<std::mt19937::result_type>(0x51ee'50a7u + stream_id)};
   std::uniform_int_distribution<int64_t> dis(min.count(), max.count());
 
   auto const start_time = std::chrono::steady_clock::now();
@@ -69,6 +72,21 @@ inline void wait([[maybe_unused]] std::chrono::nanoseconds min, std::chrono::nan
   {
     time_now = std::chrono::steady_clock::now().time_since_epoch();
   } while (time_now < end_time.time_since_epoch());
+#endif
+}
+
+// On x86, RDTSC is not a serializing instruction. Fence both sides so the
+// measured logging calls cannot move into or out of the timed region. Other
+// targets use Quill's platform clock directly.
+inline uint64_t serialized_benchmark_clock() noexcept
+{
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+  _mm_lfence();
+  uint64_t const timestamp = quill::detail::rdtsc();
+  _mm_lfence();
+  return timestamp;
+#else
+  return quill::detail::rdtsc();
 #endif
 }
 
@@ -124,7 +142,7 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
     }
 
     // send the next batch of messages after x time
-    wait(MIN_WAIT_DURATION, MAX_WAIT_DURATION);
+    wait(MIN_WAIT_DURATION, MAX_WAIT_DURATION, current_thread_num);
   }
 
   on_thread_exit();
@@ -156,19 +174,19 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
   {
     double const d = static_cast<double>(iteration) + (0.1 * static_cast<double>(iteration));
 
-    auto const start = quill::detail::rdtsc();
+    auto const start = serialized_benchmark_clock();
     for (size_t i = 0; i < messages_per_iteration; ++i)
     {
       log_func(iteration, i, d);
     }
-    auto const end = quill::detail::rdtsc();
+    auto const end = serialized_benchmark_clock();
 
     uint64_t const latency{static_cast<uint64_t>(
       static_cast<double>((end - start)) / static_cast<double>(messages_per_iteration) * rdtsc_ns_per_tick)};
     latencies.push_back(latency);
 
     // send the next batch of messages after x time
-    wait(MIN_WAIT_DURATION, MAX_WAIT_DURATION);
+    wait(MIN_WAIT_DURATION, MAX_WAIT_DURATION, current_thread_num);
   }
 
   on_thread_exit();

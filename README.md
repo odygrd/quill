@@ -281,7 +281,8 @@ Prometheus integration.
 
 - **OS:** Linux RHEL 9.4
 - **CPU:** Intel Core i5-12600 (12th Gen) @ 4.8 GHz
-- **Compiler:** GCC 13.1
+- **Compiler:** GCC 14.2
+- **Build:** Release with `-march=x86-64-v3`
 - **Benchmark-Tuned System:** The system is specifically tuned for benchmarking.
 
 - **Command Line Parameters:**
