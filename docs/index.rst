@@ -9,9 +9,19 @@
 Quill: Ultra-Low-Latency C++ Logging and Metrics
 =================================================
 
-Fast asynchronous logging and metrics for low-latency C++ applications.
+.. rst-class:: quill-home-lead
 
-Quill keeps formatting and I/O off your hot threads: ``LOG_*`` macros binary-serialize arguments into a thread-local lock-free queue, and a single backend worker reconstructs, timestamp-orders, formats, and writes them.
+Quill is a C++17 library for applications that need to keep log formatting and sink I/O away
+from latency-sensitive threads.
+
+An enabled ``LOG_*`` call places a pointer to static call-site metadata and encoded copies of its
+arguments into the calling thread's SPSC queue. A dedicated backend worker decodes and formats
+events, compares available events by timestamp, and dispatches them to sinks.
+
+.. container:: quill-home-links
+
+   :doc:`Get started <quick_start>` · :doc:`Install Quill <installing>` ·
+   `Review the benchmarks <https://github.com/odygrd/quill#user-content--performance>`_
 
 Quick Example
 -------------
@@ -27,21 +37,102 @@ Quick Example
      LOG_INFO(logger, "Hello from {}!", "Quill");
    }
 
-A macro-free interface (``quill::info()``, ``quill::warning()``, ...) is also available — see :doc:`Macro-Free Mode <macro_free_mode>`.
+A macro-free interface (``quill::info()``, ``quill::warning()``, ...) is also available. The
+recommended ``LOG_*`` macros avoid evaluating arguments when a log level is disabled and keep
+call-site metadata in a static object. See :doc:`Macro-Free Mode <macro_free_mode>` for the
+alternative interface and its performance trade-offs.
 
-Use :doc:`Quick Start <quick_start>` for the smallest setup, or move to the full
-``Backend`` / ``Frontend`` APIs when you need custom sinks, multiple loggers, metrics,
-or more explicit lifecycle control.
+Use :doc:`Quick Start <quick_start>` for the smallest setup, or move to the full ``Backend`` and
+``Frontend`` APIs when you need custom sinks, multiple loggers, metrics, or explicit lifecycle
+control.
 
-Highlights
-----------
+.. raw:: html
 
-- **Nanosecond hot path** — binary-copy arguments into a per-thread SPSC queue, defer formatting to the backend.
-- **Timestamp-ordered logs** — a single backend worker merges events from all frontend queues chronologically.
-- **Publish metrics on the same pipeline** — send :doc:`pre-registered metric samples <metrics>` to Prometheus, StatsD, OpenTelemetry, or any custom collector through the same backend worker (built-in ``PrometheusSink`` included). Quill is the low-latency transport, not a metrics system itself.
-- **Mapped Diagnostic Context** — attach per-thread key/value context that appears on subsequent log lines automatically. See :doc:`MDC <mdc>`.
-- **Rich STL and user-type support** — codecs for ``std::vector``, ``std::map``, ``std::variant``, ``std::chrono``, ``std::bitset``, ``std::complex``, ``std::error_code``, nested containers, and your own types.
-- **Structured JSON output**, rotating sinks, filters, backtrace logging, custom clocks, and more.
+   <div class="quill-feature-grid"><section>
+
+Keep formatting off latency-sensitive threads
+----------------------------------------------
+
+``LOG_*`` binary-encodes copies of its arguments into the calling thread's queue. The backend
+decodes and formats the event, then performs sink I/O. Published frontend-latency and throughput
+results include the benchmark system and methodology rather than presenting one number as
+universal.
+
+:doc:`How Quill works <overview>` ·
+`Benchmark methodology <https://github.com/odygrd/quill#user-content--performance>`_
+
+.. raw:: html
+
+   </section><section>
+
+Choose the overload policy
+--------------------------
+
+Select one application-wide queue policy: bounded or unbounded, and blocking or dropping.
+Bounded queues have fixed capacity and never reallocate; unbounded queues grow to a configured
+maximum before applying their blocking or dropping policy. The default is ``UnboundedBlocking``.
+
+:doc:`Configure frontend queues <frontend_options>`
+
+.. raw:: html
+
+   </section><section>
+
+Publish logs and metrics through one backend
+--------------------------------------------
+
+Register metric names and labels once; the hot path carries a stable ``MetricMetadata`` pointer
+and a ``double`` sample through the same backend used for logs. The built-in ``PrometheusSink``
+supports counters, gauges, histograms, and summaries. Custom sinks can route samples elsewhere;
+the core metric API transports samples, while aggregation and storage belong to the selected sink
+or external metrics system.
+
+:doc:`Publish metrics <metrics>`
+
+.. raw:: html
+
+   </section><section>
+
+Emit structured data
+--------------------
+
+Named placeholders preserve field names for JSON output. Built-in sinks cover JSON console,
+file, and rotating-file output, and one logger can send the same event to both JSON and standard
+pattern-formatted sinks.
+
+:doc:`Configure JSON logging <json_logging>`
+
+.. raw:: html
+
+   </section><section>
+
+Reduce cross-thread timestamp reordering
+----------------------------------------
+
+The single backend worker compares available events across frontend queues by timestamp. A
+configurable grace period holds recent events briefly, reducing—but not universally eliminating—
+reordering when a producer is delayed after taking its timestamp.
+
+:doc:`Configure the backend <backend_options>`
+
+.. raw:: html
+
+   </section><section>
+
+Extend types and destinations
+-----------------------------
+
+Optional headers under ``quill/std`` provide codecs for common standard-library types, including
+containers, ``std::chrono``, ``std::variant``, and ``std::error_code``. User-defined types can
+provide formatting support and a ``Codec`` specialization. Built-in destinations include console,
+file, rotating file, Syslog, systemd, Android, JSON, and Prometheus; custom destinations derive
+from ``Sink``.
+
+:doc:`Type recipes <recipes>` · :doc:`Browse sink types <sink_types>`
+
+.. raw:: html
+
+   </section></div>
 
 Start Here
 ----------
