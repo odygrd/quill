@@ -8,7 +8,7 @@
     <img src="docs/quill_logo.png" alt="Quill C++ Logging Library" width="100" /><br>
     Quill
   </h1>
-  <p><b>Asynchronous Low Latency C++ Logging Library</b></p>
+  <p><b>Ultra-Low-Latency Asynchronous C++17 Logging and Metrics Library</b></p>
 
   <div>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Afedora">
@@ -58,12 +58,14 @@
   <h4>
     <a href="https://godbolt.org/z/n68asK7bY" title="Try Quill live on Compiler Explorer">🔬 Try It Online</a>
     <span> · </span>
+    <a href="#-performance" title="Benchmark methodology and results">🚀 Benchmarks</a>
+    <span> · </span>
     <a href="https://quillcpp.readthedocs.io" title="Explore the full documentation">📚 Documentation</a>
     <span> · </span>
     <a href="https://quillcpp.readthedocs.io/en/latest/recipes.html" title="Quick reference for common tasks">⚡ Recipes</a>
     <span> · </span>
     <a href="https://quillcpp.readthedocs.io/en/latest/faq.html" title="Frequently asked questions">❓ FAQ</a>
-    <span> · </span>
+    <br />
     <a href="https://github.com/odygrd/quill/issues/new?assignees=&labels=&projects=&template=bug-report.md&title=" title="Report a bug or issue">🐛 Report Bug</a>
     <span> · </span>
     <a href="https://github.com/odygrd/quill/issues/new?assignees=&labels=&projects=&template=feature_request.md&title=">💡 Request Feature</a>
@@ -89,20 +91,24 @@
 
 ## ✨ Introduction
 
-**Quill** is a **high-performance asynchronous logging library** written in **C++**. It is designed for low-latency,
-performance-critical applications where every microsecond counts.
+**Quill** is an asynchronous logging and metrics library for **C++17 and later**. It keeps formatting and I/O away from
+latency-sensitive application threads by encoding log arguments on the frontend and processing them on a dedicated
+backend worker.
 
-- **Performance-Focused**: Quill consistently outperforms many popular logging libraries.
-- **Feature-Rich**: Packed with advanced features to meet diverse logging needs.
-- **Metric Publishing**: Publish pre-registered metric samples to Prometheus, StatsD, OpenTelemetry, or any in-process
-  collector through the same asynchronous backend used for logs. See
-  the [Metrics guide](https://quillcpp.readthedocs.io/en/latest/metrics.html).
-- **Battle-Tested**: Proven in demanding production environments. Extensively tested with sanitizers (ASan, UBSan, LSan)
-  and fuzzed across a wide range of inputs.
-- **Extensive Documentation**: Comprehensive guides and examples available.
-- **Community-Driven**: Open to contributions, feedback, and feature requests.
+- **Low Frontend Latency**: Log arguments are encoded and queued for asynchronous processing, minimizing work on the
+  calling thread. See the [latency benchmarks](#latency) for measured results and methodology.
+- **Deferred Formatting**: Expensive formatting is performed by the backend worker instead of the calling thread.
+- **Logging and Metrics**: Publish pre-registered metrics through the same asynchronous backend. The bundled Prometheus
+  sink handles common metric types, while custom sinks can route samples to StatsD, OpenTelemetry, or other collectors.
+  See the
+  [Metrics guide](https://quillcpp.readthedocs.io/en/latest/metrics.html).
+- **Timestamp-Ordered Logs**: Events from multiple producer threads are written in timestamp order.
+- **Explicit Backpressure**: Choose bounded or unbounded queues with blocking or dropping behaviour to match the
+  application's latency and delivery requirements.
+- **Production-Focused Testing**: Continuously tested across Linux, macOS, Windows, and BSD, with sanitizers and fuzzing.
 
-Try it on [Compiler Explorer](https://godbolt.org/z/n68asK7bY)
+> Using Quill? Click **Star** at the top of the [GitHub repository](https://github.com/odygrd/quill) to help other C++
+> developers discover it.
 
 ---
 
