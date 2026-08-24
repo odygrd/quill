@@ -139,7 +139,7 @@ public:
 
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
 
-    size_t total_size = s_packed_header_size +
+    size_t total_size = s_header_size +
       detail::compute_encoded_size_and_cache_string_lengths(
                           thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
@@ -158,8 +158,8 @@ public:
 #endif
 
     write_buffer = _encode_header(
-      write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata)},
-      PackedQword{reinterpret_cast<uintptr_t>(this), reinterpret_cast<uintptr_t>(detail::decoder_ptr<Args...>)});
+      write_buffer, current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata),
+      reinterpret_cast<uintptr_t>(this), reinterpret_cast<uintptr_t>(detail::decoder_ptr<Args...>));
 
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
                    static_cast<decltype(fmt_args)&&>(fmt_args)...);
@@ -218,7 +218,7 @@ public:
 
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
 
-    size_t total_size = s_packed_header_size;
+    size_t total_size = s_header_size;
 
     auto const reservation = queue.prepare_write_reserve_cached(total_size);
 
@@ -234,12 +234,11 @@ public:
 #endif
 
     // Since the decoder ptr is unused in the header we can use it to store the value
-    PackedQword pq;
-    pq.lo = reinterpret_cast<uintptr_t>(this);
-    std::memcpy(&pq.hi, &value, sizeof(pq.hi));
+    uint64_t value_bits;
+    std::memcpy(&value_bits, &value, sizeof(value_bits));
 
-    write_buffer = _encode_header(
-      write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(metric_metadata)}, pq);
+    write_buffer = _encode_header(write_buffer, current_timestamp, reinterpret_cast<uintptr_t>(metric_metadata),
+                                  reinterpret_cast<uintptr_t>(this), value_bits);
 
     QUILL_ASSERT_WITH_FMT(
       write_buffer > write_begin,
@@ -378,7 +377,7 @@ public:
     detail::ThreadContext* const thread_context = _thread_context;
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
 
-    size_t total_size{s_packed_header_size};
+    size_t total_size{s_header_size};
 
     if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy)
     {
@@ -416,8 +415,8 @@ public:
 #endif
 
     write_buffer = _encode_header(
-      write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata)},
-      PackedQword{reinterpret_cast<uintptr_t>(this), reinterpret_cast<uintptr_t>(detail::decoder_ptr<Args...>)});
+      write_buffer, current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata),
+      reinterpret_cast<uintptr_t>(this), reinterpret_cast<uintptr_t>(detail::decoder_ptr<Args...>));
 
     if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy)
     {
@@ -571,22 +570,14 @@ private:
   friend class detail::LoggerManager;
   friend class detail::BackendWorker;
 
-  /***/
-  struct PackedQword
-  {
-    uint64_t lo;
-    uint64_t hi;
-  };
-
   static_assert(sizeof(detail::FormatArgsDecoder) == sizeof(uintptr_t),
-                "FormatArgsDecoder must fit in uintptr_t for packed header encoding");
+                "FormatArgsDecoder must fit in uintptr_t for header encoding");
   static_assert(sizeof(uintptr_t) <= sizeof(uint64_t),
-                "Packed header encoding requires pointers to fit in 64 bits");
-  static_assert(
-    sizeof(double) == sizeof(uint64_t),
-    "publish_metric packs a double into the uint64_t decoder slot of the packed header");
+                "Header encoding requires pointers to fit in 64 bits");
+  static_assert(sizeof(double) == sizeof(uint64_t),
+                "publish_metric stores a double in the uint64_t decoder slot of the header");
 
-  static constexpr size_t s_packed_header_size = 2 * sizeof(PackedQword);
+  static constexpr size_t s_header_size = 4 * sizeof(uint64_t);
 
   /***/
   LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
@@ -619,7 +610,7 @@ private:
     detail::ThreadContext* const thread_context = _thread_context;
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
 
-    size_t total_size = s_packed_header_size;
+    size_t total_size = s_header_size;
 
     std::byte* write_buffer = _reserve_queue_space(queue, total_size, metric_metadata, thread_context);
 
@@ -632,12 +623,11 @@ private:
     std::byte const* const write_begin = write_buffer;
 #endif
 
-    PackedQword pq;
-    pq.lo = reinterpret_cast<uintptr_t>(this);
-    std::memcpy(&pq.hi, &value, sizeof(pq.hi));
+    uint64_t value_bits;
+    std::memcpy(&value_bits, &value, sizeof(value_bits));
 
-    write_buffer = _encode_header(
-      write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(metric_metadata)}, pq);
+    write_buffer = _encode_header(write_buffer, current_timestamp, reinterpret_cast<uintptr_t>(metric_metadata),
+                                  reinterpret_cast<uintptr_t>(this), value_bits);
 
     QUILL_ASSERT_WITH_FMT(write_buffer > write_begin,
                           "write_buffer must be greater than write_begin after encoding in "
@@ -677,7 +667,7 @@ private:
     detail::ThreadContext* const thread_context = _thread_context;
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
 
-    size_t total_size = s_packed_header_size +
+    size_t total_size = s_header_size +
       detail::compute_encoded_size_and_cache_string_lengths(
                           thread_context->get_conditional_arg_size_cache(), fmt_args...);
 
@@ -692,10 +682,9 @@ private:
     std::byte const* const write_begin = write_buffer;
 #endif
 
-    write_buffer = _encode_header(
-      write_buffer, PackedQword{current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata)},
-      PackedQword{reinterpret_cast<uintptr_t>(this),
-                  reinterpret_cast<uintptr_t>(detail::decoder_ptr<OriginalArgs...>)});
+    write_buffer = _encode_header(write_buffer, current_timestamp, reinterpret_cast<uintptr_t>(macro_metadata),
+                                  reinterpret_cast<uintptr_t>(this),
+                                  reinterpret_cast<uintptr_t>(detail::decoder_ptr<OriginalArgs...>));
 
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
                    static_cast<OriginalArgs&&>(fmt_args)...);
@@ -934,20 +923,23 @@ private:
   /**
    * Encodes header information into the write buffer.
    *
-   * Header fields are passed as PackedQword pairs (16 bytes each) with the intent that on x86-64
-   * the System V ABI delivers them in XMM registers and the compiler emits two 16-byte stores
-   * rather than four 8-byte movs.
-   *
    * @return Updated pointer to the write buffer after encoding the header.
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static std::byte* _encode_header(std::byte* write_buffer, PackedQword ts_meta,
-                                                                       PackedQword logger_decoder) noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static std::byte* _encode_header(std::byte* write_buffer,
+                                                                       uint64_t timestamp, uint64_t metadata,
+                                                                       uint64_t logger, uint64_t decoder) noexcept
   {
-    std::memcpy(write_buffer, &ts_meta, sizeof(ts_meta));
-    write_buffer += sizeof(ts_meta);
-
-    std::memcpy(write_buffer, &logger_decoder, sizeof(logger_decoder));
-    write_buffer += sizeof(logger_decoder);
+    // Keep the header as four individual qword copies. Combining them into two 16-byte copies can
+    // introduce stack temporaries and vector-register reloads; with variable-length arguments,
+    // that code shape can also add spills around the following memcpy.
+    std::memcpy(write_buffer, &timestamp, sizeof(timestamp));
+    write_buffer += sizeof(timestamp);
+    std::memcpy(write_buffer, &metadata, sizeof(metadata));
+    write_buffer += sizeof(metadata);
+    std::memcpy(write_buffer, &logger, sizeof(logger));
+    write_buffer += sizeof(logger);
+    std::memcpy(write_buffer, &decoder, sizeof(decoder));
+    write_buffer += sizeof(decoder);
 
     return write_buffer;
   }

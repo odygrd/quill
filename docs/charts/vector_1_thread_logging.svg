@@ -5,8 +5,8 @@
 <linearGradient id="grad_Quill_Unbounded_Queue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#86efac"/><stop offset="100%" stop-color="#22c55e"/></linearGradient>
 <linearGradient id="grad_XTR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fde047"/><stop offset="100%" stop-color="#eab308"/></linearGradient>
 <linearGradient id="grad_fmtlog" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fdba74"/><stop offset="100%" stop-color="#f97316"/></linearGradient>
-<linearGradient id="grad_spdlog" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#0ea5e9"/></linearGradient>
 <linearGradient id="grad_Boost_Log" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a8a29e"/><stop offset="100%" stop-color="#78716c"/></linearGradient>
+<linearGradient id="grad_spdlog" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#0ea5e9"/></linearGradient>
 </defs>
 <rect width="100%" height="100%" fill="#ffffff" rx="16"/>
 <text x="80.0" y="36.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start" fill="#0f172a" >Logging Complex Types — 1 Thread Logging</text>
@@ -14,81 +14,79 @@
 <rect x="80" y="80" width="1060" height="650" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
 <line x1="80" y1="730.0" x2="1140" y2="730.0" stroke="#e2e8f0" stroke-width="1"/>
 <text x="70.0" y="734.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >1</text>
-<line x1="80" y1="600.0" x2="1140" y2="600.0" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="604.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >10</text>
-<line x1="80" y1="470.0" x2="1140" y2="470.0" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="474.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >100</text>
-<line x1="80" y1="340.0" x2="1140" y2="340.0" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="344.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >1k</text>
-<line x1="80" y1="210.0" x2="1140" y2="210.0" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="214.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >10k</text>
+<line x1="80" y1="567.5" x2="1140" y2="567.5" stroke="#e2e8f0" stroke-width="1"/>
+<text x="70.0" y="571.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >10</text>
+<line x1="80" y1="405.0" x2="1140" y2="405.0" stroke="#e2e8f0" stroke-width="1"/>
+<text x="70.0" y="409.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >100</text>
+<line x1="80" y1="242.5" x2="1140" y2="242.5" stroke="#e2e8f0" stroke-width="1"/>
+<text x="70.0" y="246.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >1k</text>
 <line x1="80" y1="80.0" x2="1140" y2="80.0" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="84.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >100k</text>
+<text x="70.0" y="84.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >10k</text>
 <text x="168.3" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >50th</text>
-<rect x="96.3" y="502.7" width="17.0" height="227.3" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="117.5" y="487.8" width="17.0" height="242.2" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="138.7" y="452.2" width="17.0" height="277.8" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="159.9" y="406.3" width="17.0" height="323.7" rx="3" fill="url(#grad_XTR)"/>
-<rect x="181.1" y="356.2" width="17.0" height="373.8" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="202.3" y="232.2" width="17.0" height="497.8" rx="3" fill="url(#grad_spdlog)"/>
-<rect x="223.5" y="85.4" width="17.0" height="644.6" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="96.3" y="455.3" width="17.0" height="274.7" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="117.5" y="439.9" width="17.0" height="290.1" rx="3" fill="url(#grad_MS_BinLog)"/>
+<rect x="138.7" y="393.9" width="17.0" height="336.1" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="159.9" y="261.9" width="17.0" height="468.1" rx="3" fill="url(#grad_XTR)"/>
+<rect x="181.1" y="259.6" width="17.0" height="470.4" rx="3" fill="url(#grad_fmtlog)"/>
+<rect x="202.3" y="141.4" width="17.0" height="588.6" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="223.5" y="107.0" width="17.0" height="623.0" rx="3" fill="url(#grad_spdlog)"/>
 <line x1="256.7" y1="80" x2="256.7" y2="730" stroke="#f1f5f9" stroke-width="1"/>
 <text x="345.0" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >75th</text>
-<rect x="272.9" y="500.8" width="17.0" height="229.2" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="294.1" y="485.5" width="17.0" height="244.5" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="315.3" y="447.1" width="17.0" height="282.9" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="336.5" y="405.4" width="17.0" height="324.6" rx="3" fill="url(#grad_XTR)"/>
-<rect x="357.7" y="353.5" width="17.0" height="376.5" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="378.9" y="231.5" width="17.0" height="498.5" rx="3" fill="url(#grad_spdlog)"/>
-<rect x="400.1" y="85.3" width="17.0" height="644.7" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="272.9" y="449.8" width="17.0" height="280.2" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="294.1" y="437.6" width="17.0" height="292.4" rx="3" fill="url(#grad_MS_BinLog)"/>
+<rect x="315.3" y="388.1" width="17.0" height="341.9" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="336.5" y="258.1" width="17.0" height="471.9" rx="3" fill="url(#grad_XTR)"/>
+<rect x="357.7" y="256.2" width="17.0" height="473.8" rx="3" fill="url(#grad_fmtlog)"/>
+<rect x="378.9" y="139.5" width="17.0" height="590.5" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="400.1" y="105.8" width="17.0" height="624.2" rx="3" fill="url(#grad_spdlog)"/>
 <line x1="433.3" y1="80" x2="433.3" y2="730" stroke="#f1f5f9" stroke-width="1"/>
 <text x="521.7" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >90th</text>
-<rect x="449.6" y="497.9" width="17.0" height="232.1" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="470.8" y="484.0" width="17.0" height="246.0" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="492.0" y="442.1" width="17.0" height="287.9" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="513.2" y="404.5" width="17.0" height="325.5" rx="3" fill="url(#grad_XTR)"/>
-<rect x="534.4" y="351.0" width="17.0" height="379.0" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="555.6" y="230.9" width="17.0" height="499.1" rx="3" fill="url(#grad_spdlog)"/>
-<rect x="576.8" y="85.2" width="17.0" height="644.8" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="449.6" y="444.7" width="17.0" height="285.3" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="470.8" y="435.4" width="17.0" height="294.6" rx="3" fill="url(#grad_MS_BinLog)"/>
+<rect x="492.0" y="383.3" width="17.0" height="346.7" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="513.2" y="254.9" width="17.0" height="475.1" rx="3" fill="url(#grad_XTR)"/>
+<rect x="534.4" y="253.3" width="17.0" height="476.7" rx="3" fill="url(#grad_fmtlog)"/>
+<rect x="555.6" y="138.4" width="17.0" height="591.6" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="576.8" y="104.3" width="17.0" height="625.7" rx="3" fill="url(#grad_spdlog)"/>
 <line x1="610.0" y1="80" x2="610.0" y2="730" stroke="#f1f5f9" stroke-width="1"/>
 <text x="698.3" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >95th</text>
-<rect x="626.3" y="496.1" width="17.0" height="233.9" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="647.5" y="483.3" width="17.0" height="246.7" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="668.7" y="439.7" width="17.0" height="290.3" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="689.9" y="404.0" width="17.0" height="326.0" rx="3" fill="url(#grad_XTR)"/>
-<rect x="711.1" y="349.4" width="17.0" height="380.6" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="732.3" y="230.4" width="17.0" height="499.6" rx="3" fill="url(#grad_spdlog)"/>
-<rect x="753.5" y="85.2" width="17.0" height="644.8" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="626.3" y="441.1" width="17.0" height="288.9" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="647.5" y="433.3" width="17.0" height="296.7" rx="3" fill="url(#grad_MS_BinLog)"/>
+<rect x="668.7" y="381.3" width="17.0" height="348.7" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="689.9" y="253.1" width="17.0" height="476.9" rx="3" fill="url(#grad_XTR)"/>
+<rect x="711.1" y="251.6" width="17.0" height="478.4" rx="3" fill="url(#grad_fmtlog)"/>
+<rect x="732.3" y="136.9" width="17.0" height="593.1" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="753.5" y="102.3" width="17.0" height="627.7" rx="3" fill="url(#grad_spdlog)"/>
 <line x1="786.7" y1="80" x2="786.7" y2="730" stroke="#f1f5f9" stroke-width="1"/>
 <text x="875.0" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >99th</text>
-<rect x="802.9" y="491.8" width="17.0" height="238.2" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="824.1" y="477.9" width="17.0" height="252.1" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="845.3" y="436.5" width="17.0" height="293.5" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="866.5" y="399.4" width="17.0" height="330.6" rx="3" fill="url(#grad_XTR)"/>
-<rect x="887.7" y="346.2" width="17.0" height="383.8" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="908.9" y="228.4" width="17.0" height="501.6" rx="3" fill="url(#grad_spdlog)"/>
-<rect x="930.1" y="84.3" width="17.0" height="645.7" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="802.9" y="434.3" width="17.0" height="295.7" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="824.1" y="427.2" width="17.0" height="302.8" rx="3" fill="url(#grad_MS_BinLog)"/>
+<rect x="845.3" y="376.9" width="17.0" height="353.1" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="866.5" y="249.3" width="17.0" height="480.7" rx="3" fill="url(#grad_XTR)"/>
+<rect x="887.7" y="248.3" width="17.0" height="481.7" rx="3" fill="url(#grad_fmtlog)"/>
+<rect x="908.9" y="134.3" width="17.0" height="595.7" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="930.1" y="98.5" width="17.0" height="631.5" rx="3" fill="url(#grad_spdlog)"/>
 <line x1="963.3" y1="80" x2="963.3" y2="730" stroke="#f1f5f9" stroke-width="1"/>
 <text x="1051.7" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >99.9th</text>
-<rect x="979.6" y="473.5" width="17.0" height="256.5" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="1000.8" y="398.6" width="17.0" height="331.4" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="1022.0" y="434.1" width="17.0" height="295.9" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="1043.2" y="362.9" width="17.0" height="367.1" rx="3" fill="url(#grad_XTR)"/>
-<rect x="1064.4" y="341.0" width="17.0" height="389.0" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="1085.6" y="223.6" width="17.0" height="506.4" rx="3" fill="url(#grad_spdlog)"/>
-<rect x="1106.8" y="84.1" width="17.0" height="645.9" rx="3" fill="url(#grad_Boost_Log)"/>
-<text x="104.7" y="498.7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >56</text>
-<text x="147.1" y="448.2" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >137</text>
-<text x="281.4" y="496.8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >58</text>
-<text x="323.8" y="443.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >150</text>
-<text x="458.1" y="493.9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >61</text>
-<text x="500.5" y="438.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >164</text>
-<text x="634.7" y="492.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >63</text>
-<text x="677.1" y="435.7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >171</text>
-<text x="811.4" y="487.8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >68</text>
-<text x="853.8" y="432.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >181</text>
-<text x="988.1" y="469.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >94</text>
-<text x="1030.5" y="430.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >189</text>
+<rect x="979.6" y="404.3" width="17.0" height="325.7" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="1000.8" y="312.9" width="17.0" height="417.1" rx="3" fill="url(#grad_MS_BinLog)"/>
+<rect x="1022.0" y="373.2" width="17.0" height="356.8" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
+<rect x="1043.2" y="243.9" width="17.0" height="486.1" rx="3" fill="url(#grad_XTR)"/>
+<rect x="1064.4" y="244.7" width="17.0" height="485.3" rx="3" fill="url(#grad_fmtlog)"/>
+<rect x="1085.6" y="129.4" width="17.0" height="600.6" rx="3" fill="url(#grad_Boost_Log)"/>
+<rect x="1106.8" y="94.8" width="17.0" height="635.2" rx="3" fill="url(#grad_spdlog)"/>
+<text x="104.7" y="451.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >49</text>
+<text x="147.1" y="389.9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >117</text>
+<text x="281.4" y="445.8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >53</text>
+<text x="323.8" y="384.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >127</text>
+<text x="458.1" y="440.7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >57</text>
+<text x="500.5" y="379.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >136</text>
+<text x="634.7" y="437.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >60</text>
+<text x="677.1" y="377.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >140</text>
+<text x="811.4" y="430.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >66</text>
+<text x="853.8" y="372.9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >149</text>
+<text x="988.1" y="400.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >101</text>
+<text x="1030.5" y="369.2" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >157</text>
 <text x="610.0" y="800.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#475569" >Percentile</text>
 <text x="22.0" y="405.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#475569" transform="rotate(-90 22 405.0)">Latency (ns, log scale)</text>
 <rect x="1164.0" y="80.0" width="290" height="206" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
@@ -104,8 +102,8 @@
 <text x="1202.0" y="208.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >XTR</text>
 <rect x="1182.0" y="221.0" width="12" height="12" rx="3" fill="#f97316"/>
 <text x="1202.0" y="230.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >fmtlog</text>
-<rect x="1182.0" y="243.0" width="12" height="12" rx="3" fill="#0ea5e9"/>
-<text x="1202.0" y="252.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >spdlog</text>
-<rect x="1182.0" y="265.0" width="12" height="12" rx="3" fill="#78716c"/>
-<text x="1202.0" y="274.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >Boost.Log</text>
+<rect x="1182.0" y="243.0" width="12" height="12" rx="3" fill="#78716c"/>
+<text x="1202.0" y="252.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >Boost.Log</text>
+<rect x="1182.0" y="265.0" width="12" height="12" rx="3" fill="#0ea5e9"/>
+<text x="1202.0" y="274.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >spdlog</text>
 </svg>
