@@ -297,7 +297,7 @@ You can find the benchmark code on the [logger_benchmarks](https://github.com/od
 
 The results presented in the tables below are measured in `nanoseconds (ns)`.
 
-The tables are sorted by the 95th percentile (lower is better).
+The tables are sorted by the 90th percentile (lower is better).
 
 #### Logging Numbers
 
