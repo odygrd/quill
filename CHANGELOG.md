@@ -1,3 +1,4 @@
+- [v12.2.2](#v1222)
 - [v12.2.1](#v1221)
 - [v12.2.0](#v1220)
 - [v12.1.0](#v1210)
@@ -99,6 +100,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v12.2.2
+
+- Fixed a benchmark build failure on x86 caused by a missing include.
+- Fixed inaccurate hot-path benchmark timing on AArch64.
 
 ## v12.2.1
 

@@ -18,7 +18,7 @@ tagfile_path = Path(__file__).resolve().parent / "build" / "quill.tag"
 project = 'Quill'
 copyright = '2024, Odysseas Georgoudis'
 author = 'Odysseas Georgoudis'
-release = 'v12.2.1'
+release = 'v12.2.2'
 
 # Read the Docs provides the canonical URL for the version being built. Use the
 # public documentation URL when building locally.
