@@ -62,6 +62,7 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_options}} \
+              -DQUILL_BUILD_BENCHMARKS=${{ matrix.build_type == 'Release' && matrix.with_tests != 'OFF' && 'ON' || 'OFF' }} \
               -A ${{matrix.platform}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} \
               -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 

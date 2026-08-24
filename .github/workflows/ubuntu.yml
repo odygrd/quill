@@ -109,13 +109,13 @@ jobs:
             with_tests: ON
             cmake_options: -DQUILL_SANITIZE_THREAD=ON
 
-            # Build with clang-21 and ASAN/UBSAN (Release)
+            # Build with clang-21 and ASAN/UBSAN (Release), also builds the benchmarks
           - cxx: clang++-21
             build_type: Release
             std: 23
             os: ubuntu-22.04
             with_tests: ON
-            cmake_options: -DQUILL_SANITIZE_ADDRESS=ON
+            cmake_options: -DQUILL_SANITIZE_ADDRESS=ON -DQUILL_BUILD_BENCHMARKS=ON
             install: |
               wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
               sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-21 main"
