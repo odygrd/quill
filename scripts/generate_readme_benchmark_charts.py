@@ -35,7 +35,7 @@ LATENCY_LABELS = ["50th", "75th", "90th", "95th", "99th", "99.9th"]
 COLOR_MAP = {
     "Quill Bounded Dropping Queue": "#16a34a",
     "Quill Unbounded Queue": "#22c55e",
-    "Quill Unbounded Queue (Log Functions)": "#06b6d4",
+    "Quill Unbounded Queue (Macro Free Mode)": "#06b6d4",
     "Quill": "#22c55e",
     "Quill - Macro Free Mode": "#06b6d4",
     "fmtlog": "#f97316",
@@ -56,7 +56,7 @@ COLOR_MAP = {
 COLOR_MAP_LIGHT = {
     "Quill Bounded Dropping Queue": "#4ade80",
     "Quill Unbounded Queue": "#86efac",
-    "Quill Unbounded Queue (Log Functions)": "#67e8f9",
+    "Quill Unbounded Queue (Macro Free Mode)": "#67e8f9",
     "Quill": "#86efac",
     "Quill - Macro Free Mode": "#67e8f9",
     "fmtlog": "#fdba74",
