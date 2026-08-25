@@ -1091,24 +1091,29 @@ private:
   {
     // Get the lowest timestamp
     uint64_t min_ts{(std::numeric_limits<uint64_t>::max)()};
-    ThreadContext* thread_context{nullptr};
+    ThreadContext* thread_context{_active_thread_contexts_cache.size() == 1
+                                    ? _active_thread_contexts_cache.front()
+                                    : nullptr};
 
-    for (ThreadContext* tc : _active_thread_contexts_cache)
+    if (!thread_context)
     {
-      QUILL_ASSERT(tc->_transit_event_buffer,
-                   "transit_event_buffer is nullptr in "
-                   "BackendWorker::_process_lowest_timestamp_transit_event(), should be valid in "
-                   "_active_thread_contexts_cache");
-
-      TransitEvent const* te = tc->_transit_event_buffer->front();
-      if (te && (min_ts > te->timestamp))
+      for (ThreadContext* tc : _active_thread_contexts_cache)
       {
-        min_ts = te->timestamp;
-        thread_context = tc;
+        QUILL_ASSERT(tc->_transit_event_buffer,
+                     "transit_event_buffer is nullptr in "
+                     "BackendWorker::_process_lowest_timestamp_transit_event(), should be valid in "
+                     "_active_thread_contexts_cache");
+
+        TransitEvent const* te = tc->_transit_event_buffer->front();
+        if (te && (min_ts > te->timestamp))
+        {
+          min_ts = te->timestamp;
+          thread_context = tc;
+        }
       }
     }
 
-    if (!thread_context)
+    if (!thread_context || !thread_context->_transit_event_buffer->front())
     {
       // all transit event buffers are empty
       return false;
