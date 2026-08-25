@@ -1,3 +1,4 @@
+- [v13.0.0](#v1300)
 - [v12.2.2](#v1222)
 - [v12.2.1](#v1221)
 - [v12.2.0](#v1220)
@@ -100,6 +101,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v13.0.0
+
+- Improvements to frontend throughput for macro-free logging and backend throughput
+  for filtering, structured logging, and reusable transit-event data.
 
 ## v12.2.2
 
