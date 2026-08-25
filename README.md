@@ -313,7 +313,7 @@ The tables are sorted by the 90th percentile (lower is better).
 | [XTR](https://github.com/choll/xtr)                                       |   6    |   6    |   6    |   7    |   9    |   11   |
 | [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)             |   8    |   8    |   9    |   10   |   10   |   11   |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   18   |   18   |   19   |   19   |   73   |  119   |
-| [Quill Unbounded Queue (Log Functions)](https://github.com/odygrd/quill)  |   25   |   26   |   27   |   28   |   29   |   34   |
+| [Quill Unbounded Queue (Macro Free Mode)](https://github.com/odygrd/quill)  |   25   |   26   |   27   |   28   |   29   |   34   |
 | [Reckless](https://github.com/mattiasflodin/reckless)                     |   26   |   28   |   31   |   33   |   35   |   47   |
 | [BqLog](https://github.com/Tencent/BqLog)                                 |  124   |  132   |  138   |  141   |  153   |  186   |
 | [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                  |  106   |  116   |  154   |  163   |  386   |  477   |
@@ -333,7 +333,7 @@ The tables are sorted by the 90th percentile (lower is better).
 | [fmtlog](https://github.com/MengRao/fmtlog)                               |   8    |   9    |   9    |   9    |   11   |   15   |
 | [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)             |   14   |   15   |   15   |   15   |   16   |   22   |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   29   |   30   |   31   |   33   |  253   |  450   |
-| [Quill Unbounded Queue (Log Functions)](https://github.com/odygrd/quill)  |   33   |   35   |   39   |   42   |   48   |   57   |
+| [Quill Unbounded Queue (Macro Free Mode)](https://github.com/odygrd/quill)  |   33   |   35   |   39   |   42   |   48   |   57   |
 | [Reckless](https://github.com/mattiasflodin/reckless)                     |   27   |   37   |   44   |   47   |   59   |   89   |
 | [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                  |   72   |   77   |  261   |  279   |  354   |  1406  |
 | [BqLog](https://github.com/Tencent/BqLog)                                 |  110   |  391   |  407   |  416   |  445   |  621   |
@@ -359,7 +359,7 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 | [Quill Bounded Dropping Queue](https://github.com/odygrd/quill)           |   9    |   10   |   12   |   13   |   16   |   19   |
 | [Quill Unbounded Queue](https://github.com/odygrd/quill)                  |   10   |   11   |   13   |   15   |   16   |   19   |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   19   |   20   |   22   |   23   |   77   |  122   |
-| [Quill Unbounded Queue (Log Functions)](https://github.com/odygrd/quill)  |   29   |   31   |   32   |   33   |   35   |   38   |
+| [Quill Unbounded Queue (Macro Free Mode)](https://github.com/odygrd/quill)  |   29   |   31   |   32   |   33   |   35   |   38   |
 | [Reckless](https://github.com/mattiasflodin/reckless)                     |   87   |  102   |  110   |  113   |  120   |  135   |
 | [BqLog](https://github.com/Tencent/BqLog)                                 |  127   |  136   |  143   |  150   |  163   |  189   |
 | [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                  |  105   |  115   |  154   |  162   |  383   |  455   |
@@ -379,7 +379,7 @@ Logging `std::string` over 35 characters to prevent the short string optimizatio
 | [XTR](https://github.com/choll/xtr)                                       |   9    |   10   |   16   |   17   |   21   |   27   |
 | [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)             |   15   |   17   |   19   |   21   |   23   |   32   |
 | [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   30   |   30   |   33   |   36   |  254   |  452   |
-| [Quill Unbounded Queue (Log Functions)](https://github.com/odygrd/quill)  |   36   |   40   |   45   |   49   |   55   |   68   |
+| [Quill Unbounded Queue (Macro Free Mode)](https://github.com/odygrd/quill)  |   36   |   40   |   45   |   49   |   55   |   68   |
 | [Reckless](https://github.com/mattiasflodin/reckless)                     |   37   |   74   |  127   |  140   |  159   |  180   |
 | [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                  |   74   |   88   |  279   |  294   |  475   |  1457  |
 | [BqLog](https://github.com/Tencent/BqLog)                                 |  118   |  395   |  413   |  426   |  475   |  642   |
