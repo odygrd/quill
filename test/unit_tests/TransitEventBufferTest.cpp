@@ -31,6 +31,41 @@ TEST_CASE("runtime_metadata_truncates_oversized_file_path")
 }
 
 /***/
+TEST_CASE("runtime_metadata_reuse_updates_changed_fields")
+{
+  TransitEvent::RuntimeMetadata runtime_metadata{
+    "first/path.cpp", 42u, "first_function", "first_tag", "value {name}", LogLevel::Info};
+
+  REQUIRE_EQ(runtime_metadata.macro_metadata.full_path(), std::string_view{"first/path.cpp"});
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.line(), "42");
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.caller_function(), "first_function");
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.tags(), "first_tag");
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.message_format(), "value {name}");
+  REQUIRE(runtime_metadata.macro_metadata.has_named_args());
+
+  runtime_metadata.has_runtime_metadata = false;
+  runtime_metadata.set("first/path.cpp", 42u, "first_function", "first_tag", "value {name}", LogLevel::Info);
+  REQUIRE(runtime_metadata.has_runtime_metadata);
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.line(), "42");
+
+  runtime_metadata.set("second.cpp", 7u, "fn", nullptr, "value {}", LogLevel::Warning);
+  REQUIRE_EQ(runtime_metadata.macro_metadata.full_path(), std::string_view{"second.cpp"});
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.line(), "7");
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.caller_function(), "fn");
+  REQUIRE_EQ(runtime_metadata.macro_metadata.tags(), nullptr);
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.message_format(), "value {}");
+  REQUIRE_EQ(runtime_metadata.macro_metadata.log_level(), LogLevel::Warning);
+  REQUIRE_FALSE(runtime_metadata.macro_metadata.has_named_args());
+
+  runtime_metadata.set(nullptr, 99u, nullptr, nullptr, nullptr, LogLevel::Error);
+  REQUIRE_EQ(runtime_metadata.macro_metadata.full_path(), std::string_view{});
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.line(), "");
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.caller_function(), "");
+  REQUIRE_STREQ(runtime_metadata.macro_metadata.message_format(), "");
+  REQUIRE_EQ(runtime_metadata.macro_metadata.log_level(), LogLevel::Error);
+}
+
+/***/
 TEST_CASE("transit_event_unbounded_buffer")
 {
   TransitEventBuffer bte{4};

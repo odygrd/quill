@@ -378,6 +378,8 @@ public:
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
 
     size_t total_size{s_header_size};
+    uint32_t hybrid_fmt_len{0};
+    uint32_t hybrid_tags_len{0};
 
     if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy)
     {
@@ -394,9 +396,15 @@ public:
     }
     else if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy)
     {
+      // The hybrid path owns only fmt and tags. Cache their lengths in locals so the generic
+      // argument-size cache is reserved for the format arguments and does not need four metadata
+      // dispatches on every macro-free log call.
+      hybrid_fmt_len = detail::clamp_encoded_string_length(detail::safe_strnlen(fmt) + 1u);
+      hybrid_tags_len = detail::clamp_encoded_string_length(detail::safe_strnlen(tags) + 1u);
+      total_size += hybrid_fmt_len + (sizeof(void const*) * 2u) + hybrid_tags_len +
+        sizeof(line_number) + sizeof(log_level);
       total_size += detail::compute_encoded_size_and_cache_string_lengths(
-        thread_context->get_conditional_arg_size_cache(), fmt, static_cast<void const*>(file_path),
-        static_cast<void const*>(function_name), tags, line_number, log_level, fmt_args...);
+        thread_context->get_conditional_arg_size_cache(), fmt_args...);
     }
     else
     {
@@ -432,9 +440,23 @@ public:
     }
     else if (macro_metadata->event() == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy)
     {
-      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), fmt,
-                     static_cast<void const*>(file_path), static_cast<void const*>(function_name),
-                     tags, line_number, log_level, static_cast<decltype(fmt_args)&&>(fmt_args)...);
+      auto encode_c_string = [](std::byte*& buffer, char const* value, uint32_t len) noexcept
+      {
+        if (QUILL_LIKELY(value != nullptr))
+        {
+          std::memcpy(buffer, value, len - 1u);
+        }
+        buffer[len - 1u] = std::byte{'\0'};
+        buffer += len;
+      };
+
+      encode_c_string(write_buffer, fmt, hybrid_fmt_len);
+      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
+                     static_cast<void const*>(file_path), static_cast<void const*>(function_name));
+      encode_c_string(write_buffer, tags, hybrid_tags_len);
+      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), line_number, log_level);
+      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
+                     static_cast<decltype(fmt_args)&&>(fmt_args)...);
     }
 
     QUILL_ASSERT_WITH_FMT(write_buffer > write_begin,

@@ -4,23 +4,21 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
-#include "quill/sinks/FileSink.h"
+#include "quill/sinks/JsonSink.h"
 
 static constexpr size_t total_iterations = 4'000'000;
 
 /**
- * The backend worker just spins, so we just measure the total time elapsed for total_iterations
+ * Measures total backend throughput when serializing positional arguments to JSON.
  */
 int main()
 {
-  // main thread affinity - pinning can legitimately fail (e.g. Apple Silicon does not support
-  // the affinity policy); warn and continue instead of terminating the benchmark
 #if defined(QUILL_NO_EXCEPTIONS)
-  quill::detail::set_cpu_affinity({0});
+  quill::detail::set_cpu_affinity({1});
 #else
   try
   {
-    quill::detail::set_cpu_affinity({0});
+    quill::detail::set_cpu_affinity({1});
   }
   catch (std::exception const& e)
   {
@@ -31,19 +29,11 @@ int main()
   quill::BackendOptions backend_options;
   backend_options.cpu_affinity = {5};
   backend_options.sleep_duration = std::chrono::nanoseconds{0};
-  backend_options.transit_events_hard_limit = 1;
-  backend_options.transit_events_soft_limit = 1;
-  backend_options.transit_event_buffer_initial_capacity = 1;
-  backend_options.log_timestamp_ordering_grace_period = std::chrono::microseconds{1};
 
-  // Start the logging backend thread and give it some tiem to init
   quill::Backend::start(backend_options);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds{100});
-
-  // Create a file sink to write to a file
-  std::shared_ptr<quill::Sink> file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
-    "quill_backend_total_time.log",
+  std::shared_ptr<quill::Sink> file_sink = quill::Frontend::create_or_get_sink<quill::JsonFileSink>(
+    "quill_backend_throughput_json.log",
     []()
     {
       quill::FileSinkConfig cfg;
@@ -54,14 +44,11 @@ int main()
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "bench_logger", std::move(file_sink),
-    quill::PatternFormatterOptions{
-      "%(time) [%(thread_id)] %(short_source_location) %(log_level) %(message)", "%H:%M:%S.%Qns",
-      quill::Timezone::LocalTime, false});
-  ;
+    quill::PatternFormatterOptions{"", "%H:%M:%S.%Qns", quill::Timezone::LocalTime, false});
 
-  quill::Frontend::preallocate();
+  LOG_INFO(logger, "preallocate");
+  logger->flush_log(0);
 
-  // start counting the time until backend worker finishes
   auto const start_time = std::chrono::steady_clock::now();
   for (size_t iteration = 0; iteration < total_iterations; ++iteration)
   {
@@ -69,12 +56,11 @@ int main()
              static_cast<double>(iteration) / 2);
   }
 
-  // block until all messages are flushed
   logger->flush_log(0);
 
   auto const end_time = std::chrono::steady_clock::now();
   auto const delta = end_time - start_time;
-  auto delta_d = std::chrono::duration_cast<std::chrono::duration<double>>(delta).count();
+  auto const delta_d = std::chrono::duration_cast<std::chrono::duration<double>>(delta).count();
 
   std::cout << fmtquill::format(
                  "Throughput is {:.2f} million msgs/sec average, total time elapsed: {} ms for {} "

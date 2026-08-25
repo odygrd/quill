@@ -14,6 +14,7 @@
 #include "quill/bundled/fmt/format.h"
 
 #include <atomic>
+#include <charconv>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -187,14 +188,31 @@ struct TransitEvent
 
     RuntimeMetadata(char const* file, uint32_t line, char const* function, char const* in_tags,
                     char const* in_fmt, LogLevel log_level)
-      : fmt(_safe_string(in_fmt)),
-        source_location(_format_file_location(file, line)),
-        function_name(_safe_string(function)),
-        tags(_safe_string(in_tags)),
-        macro_metadata(source_location.data(), function_name.data(), fmt.data(),
-                       tags.empty() ? nullptr : tags.data(), log_level, MacroMetadata::Event::Log),
-        has_runtime_metadata(true)
     {
+      set(file, line, function, in_tags, in_fmt, log_level);
+    }
+
+    QUILL_ATTRIBUTE_HOT void set(char const* file, uint32_t line, char const* function,
+                                 char const* in_tags, char const* in_fmt, LogLevel log_level)
+    {
+      if ((macro_metadata.event() == MacroMetadata::Event::Log) && (macro_metadata.log_level() == log_level) &&
+          (fmt == _safe_string(in_fmt)) && (function_name == _safe_string(function)) &&
+          (tags == _safe_string(in_tags)) && _source_location_matches(file, line))
+      {
+        has_runtime_metadata = true;
+        return;
+      }
+
+      fmt.assign(_safe_string(in_fmt));
+      line_number = line;
+      _set_source_location(file, line);
+      function_name.assign(_safe_string(function));
+      tags.assign(_safe_string(in_tags));
+
+      macro_metadata =
+        MacroMetadata(source_location.data(), function_name.data(), fmt.data(),
+                      tags.empty() ? nullptr : tags.data(), log_level, MacroMetadata::Event::Log);
+      has_runtime_metadata = true;
     }
 
     RuntimeMetadata(RuntimeMetadata const& other)
@@ -205,6 +223,7 @@ struct TransitEvent
         macro_metadata(source_location.data(), function_name.data(), fmt.data(),
                        tags.empty() ? nullptr : tags.data(), other.macro_metadata.log_level(),
                        MacroMetadata::Event::Log),
+        line_number(other.line_number),
         has_runtime_metadata(other.has_runtime_metadata)
     {
       // Recreate macro_metadata to point to our own strings
@@ -218,6 +237,7 @@ struct TransitEvent
         source_location = other.source_location;
         function_name = other.function_name;
         tags = other.tags;
+        line_number = other.line_number;
         has_runtime_metadata = other.has_runtime_metadata;
 
         // Recreate macro_metadata to point to our own strings
@@ -236,6 +256,7 @@ struct TransitEvent
     std::string function_name;
     std::string tags;
     MacroMetadata macro_metadata;
+    uint32_t line_number{0};
     bool has_runtime_metadata{false};
 
   private:
@@ -244,11 +265,34 @@ struct TransitEvent
       return value ? value : "";
     }
 
-    QUILL_NODISCARD static std::string _format_file_location(char const* file, uint32_t line)
+    QUILL_NODISCARD bool _source_location_matches(char const* file, uint32_t line) const noexcept
     {
       if (!file || (file[0] == '\0' && line == 0))
       {
-        return std::string{};
+        return source_location.empty();
+      }
+
+      if (line_number != line)
+      {
+        return false;
+      }
+
+      std::string_view file_path{file};
+      constexpr size_t max_file_path_length{(std::numeric_limits<uint16_t>::max)()};
+      if (QUILL_UNLIKELY(file_path.size() > max_file_path_length))
+      {
+        file_path.remove_prefix(file_path.size() - max_file_path_length);
+      }
+
+      return macro_metadata.full_path() == file_path;
+    }
+
+    void _set_source_location(char const* file, uint32_t line)
+    {
+      if (!file || (file[0] == '\0' && line == 0))
+      {
+        source_location.clear();
+        return;
       }
 
       std::string_view file_path{file};
@@ -261,8 +305,12 @@ struct TransitEvent
         file_path.remove_prefix(file_path.size() - max_file_path_length);
       }
 
-      // Format as "file:line"
-      return std::string{file_path} + ":" + std::to_string(line);
+      source_location.assign(file_path);
+      source_location.push_back(':');
+
+      char line_buffer[std::numeric_limits<uint32_t>::digits10 + 1];
+      auto const result = std::to_chars(line_buffer, line_buffer + sizeof(line_buffer), line);
+      source_location.append(line_buffer, result.ptr);
     }
   };
 

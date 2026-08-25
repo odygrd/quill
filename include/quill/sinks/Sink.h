@@ -202,8 +202,22 @@ protected:
       return false;
     }
 
+    return _apply_all_user_filters(log_metadata, log_timestamp, thread_id, thread_name, logger_name,
+                                   log_level, log_message, log_statement);
+  }
+
+private:
+  friend class detail::BackendWorker;
+
+  /** Applies user-defined filters after the sink log-level check has passed. */
+  QUILL_NODISCARD bool _apply_all_user_filters(MacroMetadata const* log_metadata, uint64_t log_timestamp,
+                                               std::string_view thread_id, std::string_view thread_name,
+                                               std::string_view logger_name, LogLevel log_level,
+                                               std::string_view log_message, std::string_view log_statement)
+  {
     // Update our local collection of the filters
-    if (QUILL_UNLIKELY(_new_filter.exchange(false, std::memory_order_relaxed)))
+    if (QUILL_UNLIKELY(_new_filter.load(std::memory_order_relaxed)) &&
+        _new_filter.exchange(false, std::memory_order_relaxed))
     {
       // if there is a new filter we have to update
       _local_filters.clear();
@@ -233,8 +247,6 @@ protected:
   }
 
 private:
-  friend class detail::BackendWorker;
-
   struct RegisteredFilter
   {
     RegisteredFilter(std::string filter_name_arg, std::unique_ptr<Filter> filter_arg)

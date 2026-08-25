@@ -54,7 +54,8 @@ public:
       _file_name_pos(_calc_file_name_pos()),
       _log_level(log_level),
       _event(event),
-      _is_rate_limited(is_rate_limited)
+      _is_rate_limited(is_rate_limited),
+      _has_named_args(contains_named_args(message_format))
   {
   }
 
@@ -94,10 +95,7 @@ public:
 
   QUILL_NODISCARD char const* tags() const noexcept { return _tags; }
 
-  QUILL_NODISCARD constexpr bool has_named_args() const noexcept
-  {
-    return contains_named_args(_message_format);
-  }
+  QUILL_NODISCARD constexpr bool has_named_args() const noexcept { return _has_named_args; }
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
 
@@ -217,6 +215,7 @@ private:
   LogLevel _log_level{LogLevel::None};
   Event _event{Event::None};
   bool _is_rate_limited{false};
+  bool _has_named_args{false};
 };
 
 QUILL_END_EXPORT
