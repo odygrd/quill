@@ -16,6 +16,12 @@
 #include <type_traits>
 #include <utility>
 
+#if !defined(QUILL_ENABLE_IMMEDIATE_FLUSH)
+  // Keep the macro-free API consistent with the macro API: immediate flush support is enabled
+  // unless it is explicitly disabled for the translation unit.
+  #define QUILL_ENABLE_IMMEDIATE_FLUSH 1
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
@@ -344,7 +350,7 @@ QUILL_ATTRIBUTE_HOT void log(TLogger* logger, char const* tags, LogLevel log_lev
 
   if (logger->should_log_statement(log_level))
   {
-    logger->template log_statement_runtime_metadata<true>(
+    logger->template log_statement_runtime_metadata<QUILL_ENABLE_IMMEDIATE_FLUSH>(
       &macro_metadata, fmt, location.file_name(), location.function_name(), tags, location.line(),
       log_level, std::forward<Args>(args)...);
   }

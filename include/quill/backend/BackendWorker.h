@@ -1134,7 +1134,13 @@ private:
     // Finally, clean up any remaining fields in the transit event
     if (transit_event->extra_data)
     {
-      transit_event->extra_data->named_args.clear();
+      // Keep the string capacities owned by pooled transit slots so structured logging does not
+      // allocate the same named fields again when the slot is reused.
+      for (auto& [name, value] : transit_event->extra_data->named_args)
+      {
+        name.clear();
+        value.clear();
+      }
       transit_event->extra_data->mdc.clear();
       transit_event->extra_data->runtime_metadata.has_runtime_metadata = false;
     }
@@ -1391,10 +1397,16 @@ private:
                                                  std::string_view const& log_message)
   {
     std::string_view default_log_statement;
+    LogLevel const log_level = transit_event.log_level();
 
     // Process each sink with the appropriate formatting and filtering
     for (auto& sink : transit_event.logger_base->_sinks)
     {
+      if (QUILL_UNLIKELY(log_level < sink->_log_level.load(std::memory_order_relaxed)))
+      {
+        continue;
+      }
+
       QUILL_TRY
       {
         std::string_view log_to_write;
@@ -1434,14 +1446,14 @@ private:
         }
 
         // Apply filters now that we have the formatted log
-        if (sink->apply_all_filters(transit_event.macro_metadata, transit_event.timestamp,
-                                    thread_id, thread_name, transit_event.logger_base->_logger_name,
-                                    transit_event.log_level(), log_message, log_to_write))
+        if (sink->_apply_all_user_filters(transit_event.macro_metadata, transit_event.timestamp,
+                                          thread_id, thread_name, transit_event.logger_base->_logger_name,
+                                          log_level, log_message, log_to_write))
         {
           // Forward the message using the computed log statement that passed the filter
           sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
                           thread_name, _process_id, transit_event.logger_base->_logger_name,
-                          transit_event.log_level(), log_level_description, log_level_short_code,
+                          log_level, log_level_description, log_level_short_code,
                           transit_event.get_named_args(), log_message, log_to_write);
         }
       }
@@ -2186,10 +2198,10 @@ private:
     transit_event->ensure_extra_data();
 
     auto* named_args = &transit_event->extra_data->named_args;
-    named_args->clear();
 
     if (arg_names.empty())
     {
+      named_args->clear();
       return;
     }
 
@@ -2199,6 +2211,7 @@ private:
     for (size_t i = 0; i < arg_names.size(); ++i)
     {
       (*named_args)[i].first = arg_names[i].first;
+      (*named_args)[i].second.clear();
     }
 
     bool const is_rate_limited = transit_event->macro_metadata->is_rate_limited();
@@ -2325,10 +2338,8 @@ private:
     auto const line = Codec<uint32_t>::decode_arg(read_pos);
     auto const log_level = Codec<LogLevel>::decode_arg(read_pos);
 
-    auto temp = TransitEvent::RuntimeMetadata{file, line, function, tags, fmt, log_level};
-
     transit_event->ensure_extra_data();
-    transit_event->extra_data->runtime_metadata = temp;
+    transit_event->extra_data->runtime_metadata.set(file, line, function, tags, fmt, log_level);
 
     // point to the runtime metadata
     transit_event->macro_metadata = &transit_event->extra_data->runtime_metadata.macro_metadata;

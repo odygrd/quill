@@ -16,9 +16,11 @@
 
 #include "quill/bundled/fmt/format.h"
 
+#include <charconv>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -104,7 +106,11 @@ public:
     std::string_view /** log_message **/, std::string_view /** log_statement **/, char const* message_format)
   {
     _json_message.append(std::string_view{"{\"timestamp\":\""});
-    _append_json_escaped(_json_message, std::to_string(log_timestamp));
+    char timestamp_buffer[std::numeric_limits<uint64_t>::digits10 + 1];
+    auto const timestamp_result =
+      std::to_chars(timestamp_buffer, timestamp_buffer + sizeof(timestamp_buffer), log_timestamp);
+    _json_message.append(std::string_view{
+      timestamp_buffer, static_cast<size_t>(timestamp_result.ptr - timestamp_buffer)});
     _json_message.append(std::string_view{"\",\"file_name\":\""});
     _append_json_escaped(_json_message, log_metadata->file_name());
     _json_message.append(std::string_view{"\",\"line\":\""});
