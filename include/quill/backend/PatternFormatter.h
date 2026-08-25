@@ -20,7 +20,6 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <iterator>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -240,11 +239,85 @@ protected:
   }
 
 private:
+  /** A pre-parsed attribute and the literal text immediately preceding it. */
+  struct FormatPart
+  {
+    size_t literal_pos{0};
+    size_t literal_size{0};
+    Attribute attribute{Attribute::ATTR_NR_ITEMS};
+    fmtquill::format_specs specs;
+    bool has_format_specs{false};
+  };
+
+  struct FormatPartParser
+  {
+    void on_text(char const* begin, char const* end)
+    {
+      literal_buffer.append(begin, static_cast<size_t>(end - begin));
+    }
+
+    int on_arg_id() { return parse_context.next_arg_id(); }
+
+    int on_arg_id(int id)
+    {
+      parse_context.check_arg_id(id);
+      return id;
+    }
+
+    int on_arg_id(fmtquill::string_view id)
+    {
+      parse_context.check_arg_id(id);
+      fmtquill::report_error("argument not found");
+      return -1;
+    }
+
+    void on_replacement_field(int id, char const*) { _add_format_part(id, {}, false); }
+
+    char const* on_format_specs(int id, char const* begin, char const* end)
+    {
+      fmtquill::detail::dynamic_format_specs<char> specs;
+      begin = fmtquill::detail::parse_format_specs(begin, end, specs, parse_context,
+                                                   fmtquill::detail::type::string_type);
+      if (specs.dynamic())
+      {
+        fmtquill::report_error("width/precision is not integer");
+      }
+
+      _add_format_part(id, specs, true);
+      return begin;
+    }
+
+    void on_error(char const* message) { fmtquill::report_error(message); }
+
+  private:
+    void _add_format_part(int id, fmtquill::format_specs const& specs, bool has_format_specs)
+    {
+      if ((id < 0) || (static_cast<size_t>(id) >= attribute_by_arg_id.size()) ||
+          (attribute_by_arg_id[static_cast<size_t>(id)] == Attribute::ATTR_NR_ITEMS))
+      {
+        fmtquill::report_error("argument not found");
+      }
+
+      format_parts.push_back(FormatPart{literal_begin, literal_buffer.size() - literal_begin,
+                                        attribute_by_arg_id[static_cast<size_t>(id)], specs, has_format_specs});
+      literal_begin = literal_buffer.size();
+    }
+
+  public:
+    fmtquill::parse_context<char> parse_context;
+    std::array<Attribute, Attribute::ATTR_NR_ITEMS> const& attribute_by_arg_id;
+    std::string& literal_buffer;
+    std::vector<FormatPart>& format_parts;
+    size_t literal_begin{0};
+  };
+
   void _set_pattern()
   {
     // the order we pass the arguments here must match with the order of Attribute enum
     using namespace fmtquill::literals;
-    std::tie(_fmt_format, _order_index) = _generate_fmt_format_string(
+    std::string fmt_format;
+    std::array<size_t, Attribute::ATTR_NR_ITEMS> order_index;
+    std::tie(fmt_format, order_index) = _generate_fmt_format_string(
       _is_set_in_pattern, _options.format_pattern, "time"_a = "", "file_name"_a = "",
       "caller_function"_a = "", "log_level"_a = "", "log_level_short_code"_a = "",
       "line_number"_a = "", "logger"_a = "", "full_path"_a = "", "thread_id"_a = "",
@@ -252,35 +325,31 @@ private:
       "short_source_location"_a = "", "message"_a = "", "mdc"_a = "", "tags"_a = "",
       "named_args"_a = "");
 
-    _set_arg<Attribute::Time>(std::string_view("time"));
-    _set_arg<Attribute::FileName>(std::string_view("file_name"));
-    _set_arg<Attribute::CallerFunction>(std::string_view("caller_function"));
-    _set_arg<Attribute::LogLevel>(std::string_view("log_level"));
-    _set_arg<Attribute::LogLevelShortCode>(std::string_view("log_level_short_code"));
-    _set_arg<Attribute::LineNumber>("line_number");
-    _set_arg<Attribute::Logger>(std::string_view("logger"));
-    _set_arg<Attribute::FullPath>(std::string_view("full_path"));
-    _set_arg<Attribute::ThreadId>(std::string_view("thread_id"));
-    _set_arg<Attribute::ThreadName>(std::string_view("thread_name"));
-    _set_arg<Attribute::ProcessId>(std::string_view("process_id"));
-    _set_arg<Attribute::SourceLocation>("source_location");
-    _set_arg<Attribute::ShortSourceLocation>("short_source_location");
-    _set_arg<Attribute::Message>(std::string_view("message"));
-    _set_arg<Attribute::Mdc>(std::string_view("mdc"));
-    _set_arg<Attribute::Tags>(std::string_view("tags"));
-    _set_arg<Attribute::NamedArgs>(std::string_view("named_args"));
+    std::array<Attribute, Attribute::ATTR_NR_ITEMS> attribute_by_arg_id;
+    attribute_by_arg_id.fill(Attribute::ATTR_NR_ITEMS);
+    for (size_t i = 0; i < Attribute::ATTR_NR_ITEMS; ++i)
+    {
+      if (_is_set_in_pattern[i])
+      {
+        attribute_by_arg_id[order_index[i]] = static_cast<Attribute>(i);
+      }
+    }
 
-    // Parse the generated fmt string now, while construction errors can be reported to the
-    // caller, rather than deferring them until every log record is formatted on the backend.
-    char discard{};
+    auto const parse_pattern = [this, &fmt_format, &attribute_by_arg_id]()
+    {
+      _format_parts.reserve(_is_set_in_pattern.count());
+      FormatPartParser parser{fmtquill::parse_context<char>{fmt_format}, attribute_by_arg_id,
+                              _literal_buffer, _format_parts};
+      fmtquill::detail::parse_format_string<char>(fmt_format, parser);
+      _trailing_literal_pos = parser.literal_begin;
+    };
+
 #if defined(QUILL_NO_EXCEPTIONS)
-    (void)fmtquill::vformat_to_n(
-      &discard, 0, _fmt_format, fmtquill::basic_format_args(_args.data(), static_cast<int>(_args.size())));
+    parse_pattern();
 #else
     try
     {
-      (void)fmtquill::vformat_to_n(
-        &discard, 0, _fmt_format, fmtquill::basic_format_args(_args.data(), static_cast<int>(_args.size())));
+      parse_pattern();
     }
     catch (fmtquill::format_error const& error)
     {
@@ -291,20 +360,9 @@ private:
 
   /***/
   template <size_t I, typename T>
-  void _set_arg(T const& arg)
-  {
-    _args[_order_index[I]] = arg;
-  }
-
-  template <size_t I, typename T>
   void _set_arg_val(T const& arg)
   {
-    // This relies on the internal layout used by the bundled fmtquill copy
-    fmtquill::detail::value<fmtquill::format_context>& value_ =
-      *(reinterpret_cast<fmtquill::detail::value<fmtquill::format_context>*>(
-        std::addressof(_args[_order_index[I]])));
-
-    value_ = fmtquill::detail::value<fmtquill::format_context>(arg);
+    _attribute_values[I] = arg;
   }
 
   /***/
@@ -684,19 +742,42 @@ private:
 
     _set_arg_val<Attribute::Message>(log_msg);
 
-    fmtquill::vformat_to(std::back_inserter(_formatted_log_message_buffer), _fmt_format,
-                         fmtquill::basic_format_args(_args.data(), static_cast<int>(_args.size())));
+    fmtquill::appender out{_formatted_log_message_buffer};
+
+    for (FormatPart const& part : _format_parts)
+    {
+      if (part.literal_size != 0)
+      {
+        _formatted_log_message_buffer.append(
+          std::string_view{_literal_buffer.data() + part.literal_pos, part.literal_size});
+      }
+
+      std::string_view const value = _attribute_values[part.attribute];
+      if (!part.has_format_specs)
+      {
+        // All pattern attributes are string views, so the common case needs no fmt dispatch.
+        _formatted_log_message_buffer.append(value);
+      }
+      else
+      {
+        (void)fmtquill::detail::write<char>(out, fmtquill::string_view{value.data(), value.size()},
+                                            part.specs);
+      }
+    }
+
+    _formatted_log_message_buffer.append(std::string_view{
+      _literal_buffer.data() + _trailing_literal_pos, _literal_buffer.size() - _trailing_literal_pos});
 
     return std::string_view{_formatted_log_message_buffer.data(), _formatted_log_message_buffer.size()};
   }
 
 private:
   PatternFormatterOptions _options;
-  std::string _fmt_format;
+  std::string _literal_buffer;
+  std::vector<FormatPart> _format_parts;
+  size_t _trailing_literal_pos{0};
 
-  /** Each named argument in the format_pattern is mapped in order to this array **/
-  std::array<size_t, Attribute::ATTR_NR_ITEMS> _order_index{};
-  std::array<fmtquill::basic_format_arg<fmtquill::format_context>, Attribute::ATTR_NR_ITEMS> _args{};
+  std::array<std::string_view, Attribute::ATTR_NR_ITEMS> _attribute_values{};
   std::bitset<Attribute::ATTR_NR_ITEMS> _is_set_in_pattern;
 
   /** class responsible for formatting the timestamp */
