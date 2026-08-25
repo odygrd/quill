@@ -73,3 +73,91 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           ctest --build-config ${{matrix.build_type}} --output-on-failure
+
+  clang_libcxx:
+    name: clang-cl with libc++
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "21.1.8"
+
+      - name: Check out libc++ sources
+        uses: actions/checkout@v5
+        with:
+          repository: llvm/llvm-project
+          ref: llvmorg-21.1.8
+          path: llvm-project
+          sparse-checkout: |
+            cmake
+            libc
+            libcxx
+            llvm/cmake
+            runtimes
+
+      - name: Build libc++
+        shell: pwsh
+        run: |
+          $build_dir = Join-Path $env:RUNNER_TEMP "libcxx-build"
+          $clang_cl = Join-Path $env:LLVM_PATH "bin\clang-cl.exe"
+
+          cmake -S llvm-project/runtimes -B $build_dir -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            "-DCMAKE_C_COMPILER=$clang_cl" `
+            "-DCMAKE_CXX_COMPILER=$clang_cl" `
+            -DLLVM_ENABLE_RUNTIMES=libcxx `
+            -DLLVM_INCLUDE_TESTS=OFF `
+            -DLLVM_INCLUDE_DOCS=OFF `
+            -DLIBCXX_ENABLE_SHARED=OFF
+          cmake --build $build_dir --target cxx --parallel
+
+      - name: Configure with Clang and libc++
+        shell: pwsh
+        run: |
+          $build_dir = Join-Path $env:RUNNER_TEMP "quill-build"
+          $libcxx_dir = Join-Path $env:RUNNER_TEMP "libcxx-build"
+          $libcxx_include = Join-Path $libcxx_dir "include\c++\v1"
+          $libcxx_lib = Join-Path $libcxx_dir "lib"
+          $clang_cl = Join-Path $env:LLVM_PATH "bin\clang-cl.exe"
+
+          # Prevent clang-cl's MSVC compatibility headers from selecting the MSVC STL.
+          $cxx_flags = @(
+            "/EHsc"
+            "/D_YVALS"
+            "/D_YVALS_CORE_H_"
+            "/D_CRT_STDIO_ISO_WIDE_SPECIFIERS"
+            "/DDOCTEST_CONFIG_NO_WINDOWS_SEH"
+            "/clang:-stdlib++-isystem"
+            "/clang:$libcxx_include"
+          ) -join " "
+          $linker_flags = "/LIBPATH:$libcxx_lib libc++.lib msvcprt.lib"
+
+          cmake -S . -B $build_dir -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            "-DCMAKE_C_COMPILER=$clang_cl" `
+            "-DCMAKE_CXX_COMPILER=$clang_cl" `
+            "-DCMAKE_CXX_FLAGS=$cxx_flags" `
+            "-DCMAKE_EXE_LINKER_FLAGS=$linker_flags" `
+            "-DCMAKE_SHARED_LINKER_FLAGS=$linker_flags" `
+            -DCMAKE_CXX_STANDARD=17 `
+            -DQUILL_BUILD_TESTS=ON `
+            -DQUILL_BUILD_EXAMPLES=ON `
+            -DQUILL_VERBOSE_MAKEFILE=ON
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $build_dir = Join-Path $env:RUNNER_TEMP "quill-build"
+          $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          cmake --build $build_dir --parallel $threads
+
+      - name: Test
+        shell: pwsh
+        run: |
+          $build_dir = Join-Path $env:RUNNER_TEMP "quill-build"
+          $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          ctest --test-dir $build_dir --parallel $threads --output-on-failure

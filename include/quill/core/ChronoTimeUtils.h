@@ -15,18 +15,18 @@
  * quill/core/) can read wall-clock and monotonic time without pulling in <chrono>
  * on the common path.
  *
- * Windows + MSVC: route through the UCRT shims exposed by <xtimec.h>. This is
+ * Windows + MSVC STL: route through the UCRT shims exposed by <xtimec.h>. This is
  * what MSVC STL's std::chrono::system_clock / std::chrono::steady_clock invoke
  * under the hood and avoids pulling <Windows.h> into public headers.
  *
- * Windows + non-MSVC (MinGW, Clang on Windows): UCRT private shims may not be
+ * Windows + non-MSVC STL (libc++, MinGW): UCRT private shims may not be
  * available; just include <chrono> and call the standard clocks. The frontend
  * include path is unaffected on the MSVC and POSIX configurations that the
  * vast majority of users hit.
  */
 
 #if defined(_WIN32)
-  #if defined(_MSC_VER)
+  #if defined(_MSVC_STL_VERSION)
     #include <xtimec.h>
   #else
     #include <chrono>
@@ -59,7 +59,7 @@ namespace detail
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t get_system_time_ns() noexcept
 {
 #if defined(_WIN32)
-  #if defined(_MSC_VER)
+  #if defined(_MSVC_STL_VERSION)
   return static_cast<uint64_t>(::_Xtime_get_ticks()) * 100ull;
   #else
   return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -92,7 +92,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t get_system_time_ns() noexcep
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint64_t get_steady_time_ns() noexcept
 {
 #if defined(_WIN32)
-  #if defined(_MSC_VER)
+  #if defined(_MSVC_STL_VERSION)
   static int64_t const qpc_freq = []() noexcept { return ::_Query_perf_frequency(); }();
 
   int64_t const ticks = ::_Query_perf_counter();
