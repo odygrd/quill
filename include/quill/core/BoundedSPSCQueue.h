@@ -68,8 +68,9 @@ public:
         2u * static_cast<size_t>(_capacity), QUILL_CACHE_LINE_ALIGNED, huge_pages_policy))),
       _huge_pages_policy(huge_pages_policy)
   {
-    size_t const storage_size = 2u * static_cast<size_t>(_capacity);
-    std::memset(_storage, 0, storage_size);
+    // Initialise and pre-fault the logical queue region. The second half is scratch space for
+    // records that cross the ring boundary and is written before it is read.
+    std::memset(_storage, 0, static_cast<size_t>(_capacity));
 
     _atomic_writer_pos.store(0);
     _atomic_reader_pos.store(0);
