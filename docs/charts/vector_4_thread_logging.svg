@@ -1,109 +1,137 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="820" viewBox="0 0 1480 820">
-<defs>
-<linearGradient id="grad_Quill_Bounded_Dropping_Queue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#16a34a"/></linearGradient>
-<linearGradient id="grad_MS_BinLog" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient>
-<linearGradient id="grad_Quill_Unbounded_Queue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#86efac"/><stop offset="100%" stop-color="#22c55e"/></linearGradient>
-<linearGradient id="grad_fmtlog" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fdba74"/><stop offset="100%" stop-color="#f97316"/></linearGradient>
-<linearGradient id="grad_XTR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fde047"/><stop offset="100%" stop-color="#eab308"/></linearGradient>
-<linearGradient id="grad_Boost_Log" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a8a29e"/><stop offset="100%" stop-color="#78716c"/></linearGradient>
-<linearGradient id="grad_spdlog" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#0ea5e9"/></linearGradient>
-</defs>
-<rect width="100%" height="100%" fill="#ffffff" rx="16"/>
-<text x="80.0" y="36.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="700" text-anchor="start" fill="#0f172a" >Logging Complex Types — 4 Threads Logging Simultaneously</text>
-<text x="80.0" y="56.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#64748b" >Latency percentiles in nanoseconds — lower is better</text>
-<rect x="80" y="80" width="1060" height="650" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
-<line x1="80" y1="730.0" x2="1140" y2="730.0" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="734.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >1</text>
-<line x1="80" y1="567.5" x2="1140" y2="567.5" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="571.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >10</text>
-<line x1="80" y1="405.0" x2="1140" y2="405.0" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="409.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >100</text>
-<line x1="80" y1="242.5" x2="1140" y2="242.5" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="246.5" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >1k</text>
-<line x1="80" y1="80.0" x2="1140" y2="80.0" stroke="#e2e8f0" stroke-width="1"/>
-<text x="70.0" y="84.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="end" fill="#94a3b8" >10k</text>
-<text x="168.3" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >50th</text>
-<rect x="96.3" y="435.4" width="17.0" height="294.6" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="117.5" y="428.2" width="17.0" height="301.8" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="138.7" y="423.4" width="17.0" height="306.6" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="159.9" y="270.0" width="17.0" height="460.0" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="181.1" y="269.3" width="17.0" height="460.7" rx="3" fill="url(#grad_XTR)"/>
-<rect x="202.3" y="173.0" width="17.0" height="557.0" rx="3" fill="url(#grad_Boost_Log)"/>
-<rect x="223.5" y="105.6" width="17.0" height="624.4" rx="3" fill="url(#grad_spdlog)"/>
-<line x1="256.7" y1="80" x2="256.7" y2="730" stroke="#f1f5f9" stroke-width="1"/>
-<text x="345.0" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >75th</text>
-<rect x="272.9" y="427.2" width="17.0" height="302.8" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="294.1" y="422.5" width="17.0" height="307.5" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="315.3" y="415.6" width="17.0" height="314.4" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="336.5" y="267.3" width="17.0" height="462.7" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="357.7" y="264.9" width="17.0" height="465.1" rx="3" fill="url(#grad_XTR)"/>
-<rect x="378.9" y="151.8" width="17.0" height="578.2" rx="3" fill="url(#grad_Boost_Log)"/>
-<rect x="400.1" y="103.6" width="17.0" height="626.4" rx="3" fill="url(#grad_spdlog)"/>
-<line x1="433.3" y1="80" x2="433.3" y2="730" stroke="#f1f5f9" stroke-width="1"/>
-<text x="521.7" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >90th</text>
-<rect x="449.6" y="415.6" width="17.0" height="314.4" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="470.8" y="414.8" width="17.0" height="315.2" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="492.0" y="405.7" width="17.0" height="324.3" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="513.2" y="264.7" width="17.0" height="465.3" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="534.4" y="260.3" width="17.0" height="469.7" rx="3" fill="url(#grad_XTR)"/>
-<rect x="555.6" y="134.2" width="17.0" height="595.8" rx="3" fill="url(#grad_Boost_Log)"/>
-<rect x="576.8" y="101.4" width="17.0" height="628.6" rx="3" fill="url(#grad_spdlog)"/>
-<line x1="610.0" y1="80" x2="610.0" y2="730" stroke="#f1f5f9" stroke-width="1"/>
-<text x="698.3" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >95th</text>
-<rect x="626.3" y="407.9" width="17.0" height="322.1" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="647.5" y="406.4" width="17.0" height="323.6" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="668.7" y="399.6" width="17.0" height="330.4" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="689.9" y="263.3" width="17.0" height="466.7" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="711.1" y="258.1" width="17.0" height="471.9" rx="3" fill="url(#grad_XTR)"/>
-<rect x="732.3" y="131.5" width="17.0" height="598.5" rx="3" fill="url(#grad_Boost_Log)"/>
-<rect x="753.5" y="99.4" width="17.0" height="630.6" rx="3" fill="url(#grad_spdlog)"/>
-<line x1="786.7" y1="80" x2="786.7" y2="730" stroke="#f1f5f9" stroke-width="1"/>
-<text x="875.0" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >99th</text>
-<rect x="802.9" y="397.6" width="17.0" height="332.4" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="824.1" y="326.3" width="17.0" height="403.7" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="845.3" y="389.3" width="17.0" height="340.7" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="866.5" y="260.6" width="17.0" height="469.4" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="887.7" y="254.5" width="17.0" height="475.5" rx="3" fill="url(#grad_XTR)"/>
-<rect x="908.9" y="118.1" width="17.0" height="611.9" rx="3" fill="url(#grad_Boost_Log)"/>
-<rect x="930.1" y="92.6" width="17.0" height="637.4" rx="3" fill="url(#grad_spdlog)"/>
-<line x1="963.3" y1="80" x2="963.3" y2="730" stroke="#f1f5f9" stroke-width="1"/>
-<text x="1051.7" y="752.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#475569" >99.9th</text>
-<rect x="979.6" y="389.3" width="17.0" height="340.7" rx="3" fill="url(#grad_Quill_Bounded_Dropping_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="1000.8" y="284.8" width="17.0" height="445.2" rx="3" fill="url(#grad_MS_BinLog)"/>
-<rect x="1022.0" y="379.8" width="17.0" height="350.2" rx="3" fill="url(#grad_Quill_Unbounded_Queue)" stroke="#15803d" stroke-width="0.8"/>
-<rect x="1043.2" y="257.7" width="17.0" height="472.3" rx="3" fill="url(#grad_fmtlog)"/>
-<rect x="1064.4" y="252.1" width="17.0" height="477.9" rx="3" fill="url(#grad_XTR)"/>
-<rect x="1085.6" y="97.0" width="17.0" height="633.0" rx="3" fill="url(#grad_Boost_Log)"/>
-<rect x="1106.8" y="80.7" width="17.0" height="649.3" rx="3" fill="url(#grad_spdlog)"/>
-<text x="104.7" y="431.4" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >65</text>
-<text x="147.1" y="419.4" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >77</text>
-<text x="281.4" y="423.2" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >73</text>
-<text x="323.8" y="411.6" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >86</text>
-<text x="458.1" y="411.6" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >86</text>
-<text x="500.5" y="401.7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >99</text>
-<text x="634.7" y="403.9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >96</text>
-<text x="677.1" y="395.6" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >108</text>
-<text x="811.4" y="393.6" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >111</text>
-<text x="853.8" y="385.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >125</text>
-<text x="988.1" y="385.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >125</text>
-<text x="1030.5" y="375.8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="8" font-weight="700" text-anchor="middle" fill="#15803d" >143</text>
-<text x="610.0" y="800.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#475569" >Percentile</text>
-<text x="22.0" y="405.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#475569" transform="rotate(-90 22 405.0)">Latency (ns, log scale)</text>
-<rect x="1164.0" y="80.0" width="290" height="206" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
-<text x="1182.0" y="106.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" fill="#334155" >Libraries</text>
-<rect x="1182.0" y="121.0" width="12" height="12" rx="3" fill="#16a34a" stroke="#15803d" stroke-width="1.5"/>
-<text x="1202.0" y="130.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="600" text-anchor="start" fill="#15803d" >Quill Bounded Dropping</text>
-<text x="1202.0" y="144.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="600" text-anchor="start" fill="#15803d" >Queue</text>
-<rect x="1182.0" y="155.0" width="12" height="12" rx="3" fill="#8b5cf6"/>
-<text x="1202.0" y="164.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >MS BinLog</text>
-<rect x="1182.0" y="177.0" width="12" height="12" rx="3" fill="#22c55e" stroke="#15803d" stroke-width="1.5"/>
-<text x="1202.0" y="186.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="600" text-anchor="start" fill="#15803d" >Quill Unbounded Queue</text>
-<rect x="1182.0" y="199.0" width="12" height="12" rx="3" fill="#f97316"/>
-<text x="1202.0" y="208.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >fmtlog</text>
-<rect x="1182.0" y="221.0" width="12" height="12" rx="3" fill="#eab308"/>
-<text x="1202.0" y="230.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >XTR</text>
-<rect x="1182.0" y="243.0" width="12" height="12" rx="3" fill="#78716c"/>
-<text x="1202.0" y="252.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >Boost.Log</text>
-<rect x="1182.0" y="265.0" width="12" height="12" rx="3" fill="#0ea5e9"/>
-<text x="1202.0" y="274.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="400" text-anchor="start" fill="#334155" >spdlog</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="760" viewBox="0 0 1480 760" role="img" aria-labelledby="vector_4_thread_logging_title vector_4_thread_logging_desc">
+<title id="vector_4_thread_logging_title">Logging Complex Types — 4 Concurrent Threads</title>
+<desc id="vector_4_thread_logging_desc">Log-scale frontend latency profile for 7 logging libraries. Series use color and marker shape. Lower values are better; Quill series are emphasized and the panel ranks 99th-percentile latency. Equal percentile values share a rank. Visually overlapping markers are offset horizontally while retaining their exact value-bearing vertical position. Quill results use v13.0.0.</desc>
+<rect x="0.5" y="0.5" width="1479" height="759" rx="18" fill="#ffffff" stroke="#dbe5ee"/>
+<rect x="48" y="25" width="6" height="43" rx="3" fill="#22c55e"/>
+<text x="68.0" y="44.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="25" font-weight="700" text-anchor="start" fill="#111827" >Logging Complex Types — 4 Concurrent Threads</text>
+<text x="68.0" y="67.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="500" text-anchor="start" fill="#64748b" >Frontend latency across percentiles • nanoseconds • Quill v13.0.0</text>
+<rect x="1212" y="28" width="98" height="28" rx="14" fill="#f1f5f9"/>
+<text x="1261.0" y="46.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#475569" letter-spacing="0.8">LOG SCALE</text>
+<rect x="1318" y="28" width="114" height="28" rx="14" fill="#ecfdf5"/>
+<text x="1375.0" y="46.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#15803d" letter-spacing="0.5">LOWER IS BETTER</text>
+<rect x="92" y="104" width="953" height="590" rx="14" fill="#fbfdff" stroke="#dbe5ee"/>
+<line x1="92" y1="634.8" x2="1045" y2="634.8" stroke="#edf2f7" stroke-width="1"/>
+<line x1="92" y1="556.5" x2="1045" y2="556.5" stroke="#edf2f7" stroke-width="1"/>
+<line x1="92" y1="438.1" x2="1045" y2="438.1" stroke="#edf2f7" stroke-width="1"/>
+<line x1="92" y1="359.9" x2="1045" y2="359.9" stroke="#edf2f7" stroke-width="1"/>
+<line x1="92" y1="241.5" x2="1045" y2="241.5" stroke="#edf2f7" stroke-width="1"/>
+<line x1="92" y1="163.2" x2="1045" y2="163.2" stroke="#edf2f7" stroke-width="1"/>
+<line x1="92" y1="694.0" x2="1045" y2="694.0" stroke="#dbe5ee" stroke-width="1"/>
+<text x="80.0" y="698.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="end" fill="#64748b" >10</text>
+<line x1="92" y1="497.3" x2="1045" y2="497.3" stroke="#dbe5ee" stroke-width="1"/>
+<text x="80.0" y="501.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="end" fill="#64748b" >100</text>
+<line x1="92" y1="300.7" x2="1045" y2="300.7" stroke="#dbe5ee" stroke-width="1"/>
+<text x="80.0" y="304.7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="end" fill="#64748b" >1k</text>
+<line x1="92" y1="104.0" x2="1045" y2="104.0" stroke="#dbe5ee" stroke-width="1"/>
+<text x="80.0" y="108.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="600" text-anchor="end" fill="#64748b" >10k</text>
+<rect x="789.2" y="105" width="96.9" height="588" rx="10" fill="#f0fdf4" opacity="0.72"/>
+<line x1="120.0" y1="104" x2="120.0" y2="694" stroke="#e5ebf2" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="120.0" y="719.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#475569" >50th</text>
+<line x1="299.4" y1="104" x2="299.4" y2="694" stroke="#e5ebf2" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="299.4" y="719.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#475569" >75th</text>
+<line x1="478.8" y1="104" x2="478.8" y2="694" stroke="#e5ebf2" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="478.8" y="719.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#475569" >90th</text>
+<line x1="658.2" y1="104" x2="658.2" y2="694" stroke="#e5ebf2" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="658.2" y="719.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#475569" >95th</text>
+<line x1="837.6" y1="104" x2="837.6" y2="694" stroke="#e5ebf2" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="837.6" y="719.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="#15803d" >99th</text>
+<line x1="1017.0" y1="104" x2="1017.0" y2="694" stroke="#e5ebf2" stroke-width="1" stroke-dasharray="3 5"/>
+<text x="1017.0" y="719.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#475569" >99.9th</text>
+<polyline points="120.0,523.1 299.4,516.4 478.8,506.3 658.2,498.2 837.6,402.4 1017.0,354.7" fill="none" stroke="#8b5cf6" stroke-width="2.5" opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="120.0,518.8 124.0,521.7 122.5,526.5 117.5,526.5 116.0,521.7" fill="#ffffff" stroke="#8b5cf6" stroke-width="2.0"><title>MS BinLog: 74 ns at 50th</title></polygon>
+<polygon points="299.4,512.1 303.4,515.1 301.9,519.8 296.9,519.8 295.4,515.1" fill="#ffffff" stroke="#8b5cf6" stroke-width="2.0"><title>MS BinLog: 80 ns at 75th</title></polygon>
+<polygon points="491.8,502.1 495.8,505.0 494.3,509.8 489.3,509.8 487.8,505.0" fill="#ffffff" stroke="#8b5cf6" stroke-width="2.0"><title>MS BinLog: 90 ns at 90th</title></polygon>
+<polygon points="671.2,493.9 675.2,496.9 673.7,501.6 668.7,501.6 667.2,496.9" fill="#ffffff" stroke="#8b5cf6" stroke-width="2.0"><title>MS BinLog: 99 ns at 95th</title></polygon>
+<polygon points="837.6,398.1 841.6,401.1 840.1,405.8 835.1,405.8 833.6,401.1" fill="#ffffff" stroke="#8b5cf6" stroke-width="2.0"><title>MS BinLog: 304 ns at 99th</title></polygon>
+<polygon points="1017.0,350.5 1021.0,353.4 1019.5,358.2 1014.5,358.2 1013.0,353.4" fill="#ffffff" stroke="#8b5cf6" stroke-width="2.0"><title>MS BinLog: 531 ns at 99.9th</title></polygon>
+<polyline points="120.0,334.4 299.4,331.0 478.8,328.0 658.2,326.4 837.6,323.0 1017.0,318.9" fill="none" stroke="#ea580c" stroke-width="2.5" opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 113.5 330.1 L 117.8 336.5 L 109.2 336.5 Z" fill="#ffffff" stroke="#ea580c" stroke-width="2.0"><title>fmtlog: 674 ns at 50th</title></path>
+<path d="M 305.9 326.8 L 310.1 333.1 L 301.6 333.1 Z" fill="#ffffff" stroke="#ea580c" stroke-width="2.0"><title>fmtlog: 701 ns at 75th</title></path>
+<path d="M 485.3 323.8 L 489.6 330.1 L 481.1 330.1 Z" fill="#ffffff" stroke="#ea580c" stroke-width="2.0"><title>fmtlog: 726 ns at 90th</title></path>
+<path d="M 664.7 322.1 L 669.0 328.5 L 660.5 328.5 Z" fill="#ffffff" stroke="#ea580c" stroke-width="2.0"><title>fmtlog: 740 ns at 95th</title></path>
+<path d="M 844.1 318.7 L 848.4 325.1 L 839.9 325.1 Z" fill="#ffffff" stroke="#ea580c" stroke-width="2.0"><title>fmtlog: 770 ns at 99th</title></path>
+<path d="M 1023.5 314.6 L 1027.8 321.0 L 1019.2 321.0 Z" fill="#ffffff" stroke="#ea580c" stroke-width="2.0"><title>fmtlog: 808 ns at 99.9th</title></path>
+<polyline points="120.0,334.4 299.4,329.6 478.8,325.0 658.2,322.3 837.6,318.0 1017.0,314.6" fill="none" stroke="#a16207" stroke-width="2.5" opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 122.2 334.4 L 124.4 330.7 L 128.6 330.7 L 130.8 334.4 L 128.6 338.1 L 124.4 338.1 Z" fill="#ffffff" stroke="#a16207" stroke-width="2.0"><title>XTR: 674 ns at 50th</title></path>
+<path d="M 288.6 329.6 L 290.8 325.9 L 295.0 325.9 L 297.1 329.6 L 295.0 333.3 L 290.8 333.3 Z" fill="#ffffff" stroke="#a16207" stroke-width="2.0"><title>XTR: 713 ns at 75th</title></path>
+<path d="M 468.1 325.0 L 470.2 321.3 L 474.4 321.3 L 476.6 325.0 L 474.4 328.7 L 470.2 328.7 Z" fill="#ffffff" stroke="#a16207" stroke-width="2.0"><title>XTR: 752 ns at 90th</title></path>
+<path d="M 647.5 322.3 L 649.6 318.6 L 653.8 318.6 L 656.0 322.3 L 653.8 326.0 L 649.6 326.0 Z" fill="#ffffff" stroke="#a16207" stroke-width="2.0"><title>XTR: 776 ns at 95th</title></path>
+<path d="M 826.9 318.0 L 829.0 314.3 L 833.2 314.3 L 835.4 318.0 L 833.2 321.7 L 829.0 321.7 Z" fill="#ffffff" stroke="#a16207" stroke-width="2.0"><title>XTR: 816 ns at 99th</title></path>
+<path d="M 1006.2 314.6 L 1008.4 311.0 L 1012.6 311.0 L 1014.8 314.6 L 1012.6 318.3 L 1008.4 318.3 Z" fill="#ffffff" stroke="#a16207" stroke-width="2.0"><title>XTR: 849 ns at 99.9th</title></path>
+<polyline points="120.0,218.3 299.4,191.5 478.8,175.3 658.2,173.4 837.6,155.7 1017.0,131.8" fill="none" stroke="#78716c" stroke-width="2.5" opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 115.8 218.3 L 124.2 218.3 M 120.0 214.0 L 120.0 222.5" fill="none" stroke="#78716c" stroke-width="2.0" stroke-linecap="round"><title>Boost.Log: 2.624k ns at 50th</title></path>
+<path d="M 295.1 191.5 L 303.6 191.5 M 299.4 187.2 L 299.4 195.7" fill="none" stroke="#78716c" stroke-width="2.0" stroke-linecap="round"><title>Boost.Log: 3.59k ns at 75th</title></path>
+<path d="M 474.6 175.3 L 483.1 175.3 M 478.8 171.0 L 478.8 179.5" fill="none" stroke="#78716c" stroke-width="2.0" stroke-linecap="round"><title>Boost.Log: 4.342k ns at 90th</title></path>
+<path d="M 654.0 173.4 L 662.5 173.4 M 658.2 169.1 L 658.2 177.6" fill="none" stroke="#78716c" stroke-width="2.0" stroke-linecap="round"><title>Boost.Log: 4.439k ns at 95th</title></path>
+<path d="M 833.4 155.7 L 841.9 155.7 M 837.6 151.5 L 837.6 160.0" fill="none" stroke="#78716c" stroke-width="2.0" stroke-linecap="round"><title>Boost.Log: 5.457k ns at 99th</title></path>
+<path d="M 1012.8 131.8 L 1021.2 131.8 M 1017.0 127.6 L 1017.0 136.1" fill="none" stroke="#78716c" stroke-width="2.0" stroke-linecap="round"><title>Boost.Log: 7.219k ns at 99.9th</title></path>
+<polyline points="120.0,133.9 299.4,131.1 478.8,127.7 658.2,123.7 837.6,116.2 1017.0,106.5" fill="none" stroke="#0284c7" stroke-width="2.5" opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+<g><title>spdlog: 7.047k ns at 50th</title><circle cx="120.0" cy="133.9" r="4.2" fill="#ffffff" stroke="#0284c7" stroke-width="2.0"/><circle cx="120.0" cy="133.9" r="1.4" fill="#0284c7"/></g>
+<g><title>spdlog: 7.284k ns at 75th</title><circle cx="299.4" cy="131.1" r="4.2" fill="#ffffff" stroke="#0284c7" stroke-width="2.0"/><circle cx="299.4" cy="131.1" r="1.4" fill="#0284c7"/></g>
+<g><title>spdlog: 7.581k ns at 90th</title><circle cx="478.8" cy="127.7" r="4.2" fill="#ffffff" stroke="#0284c7" stroke-width="2.0"/><circle cx="478.8" cy="127.7" r="1.4" fill="#0284c7"/></g>
+<g><title>spdlog: 7.943k ns at 95th</title><circle cx="658.2" cy="123.7" r="4.2" fill="#ffffff" stroke="#0284c7" stroke-width="2.0"/><circle cx="658.2" cy="123.7" r="1.4" fill="#0284c7"/></g>
+<g><title>spdlog: 8.669k ns at 99th</title><circle cx="837.6" cy="116.2" r="4.2" fill="#ffffff" stroke="#0284c7" stroke-width="2.0"/><circle cx="837.6" cy="116.2" r="1.4" fill="#0284c7"/></g>
+<g><title>spdlog: 9.711k ns at 99.9th</title><circle cx="1017.0" cy="106.5" r="4.2" fill="#ffffff" stroke="#0284c7" stroke-width="2.0"/><circle cx="1017.0" cy="106.5" r="1.4" fill="#0284c7"/></g>
+<polyline points="120.0,531.5 299.4,521.9 478.8,503.5 658.2,494.0 837.6,483.9 1017.0,474.9" fill="none" stroke="#ffffff" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="120.0,531.5 299.4,521.9 478.8,503.5 658.2,494.0 837.6,483.9 1017.0,474.9" fill="none" stroke="#15803d" stroke-width="4.2" opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="126.8" y="525.3" width="12.5" height="12.5" rx="1.5" fill="#15803d" stroke="#ffffff" stroke-width="2.5"><title>Quill Bounded Dropping Queue: 67 ns at 50th</title></rect>
+<rect x="306.1" y="515.7" width="12.5" height="12.5" rx="1.5" fill="#15803d" stroke="#ffffff" stroke-width="2.5"><title>Quill Bounded Dropping Queue: 75 ns at 75th</title></rect>
+<rect x="472.6" y="497.3" width="12.5" height="12.5" rx="1.5" fill="#15803d" stroke="#ffffff" stroke-width="2.5"><title>Quill Bounded Dropping Queue: 93 ns at 90th</title></rect>
+<rect x="652.0" y="487.7" width="12.5" height="12.5" rx="1.5" fill="#15803d" stroke="#ffffff" stroke-width="2.5"><title>Quill Bounded Dropping Queue: 104 ns at 95th</title></rect>
+<rect x="837.9" y="477.7" width="12.5" height="12.5" rx="1.5" fill="#15803d" stroke="#ffffff" stroke-width="2.5"><title>Quill Bounded Dropping Queue: 117 ns at 99th</title></rect>
+<rect x="1017.2" y="468.7" width="12.5" height="12.5" rx="1.5" fill="#15803d" stroke="#ffffff" stroke-width="2.5"><title>Quill Bounded Dropping Queue: 130 ns at 99.9th</title></rect>
+<polyline points="120.0,518.6 299.4,507.3 478.8,494.8 658.2,487.7 837.6,475.6 1017.0,464.4" fill="none" stroke="#ffffff" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="120.0,518.6 299.4,507.3 478.8,494.8 658.2,487.7 837.6,475.6 1017.0,464.4" fill="none" stroke="#16a34a" stroke-width="4.2" opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="107.0" cy="518.6" r="6.2" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"><title>Quill Unbounded Queue: 78 ns at 50th</title></circle>
+<circle cx="286.4" cy="507.3" r="6.2" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"><title>Quill Unbounded Queue: 89 ns at 75th</title></circle>
+<circle cx="465.8" cy="494.8" r="6.2" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"><title>Quill Unbounded Queue: 103 ns at 90th</title></circle>
+<circle cx="645.2" cy="487.7" r="6.2" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"><title>Quill Unbounded Queue: 112 ns at 95th</title></circle>
+<circle cx="831.1" cy="475.6" r="6.2" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"><title>Quill Unbounded Queue: 129 ns at 99th</title></circle>
+<circle cx="1010.5" cy="464.4" r="6.2" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"><title>Quill Unbounded Queue: 147 ns at 99.9th</title></circle>
+<text x="568.5" y="743.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#64748b" letter-spacing="0.5">Percentile</text>
+<text x="24.0" y="399.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#64748b" transform="rotate(-90 24 399.0)" letter-spacing="0.5">Latency (ns)</text>
+<rect x="1074.0" y="104.0" width="358.0" height="590.0" rx="14" fill="#ffffff" stroke="#dbe5ee" stroke-width="1"/>
+<text x="1092.0" y="126.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="start" fill="#15803d" letter-spacing="1.2">TAIL RANKING</text>
+<text x="1092.0" y="148.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" fill="#172033" >99th percentile</text>
+<text x="1414.0" y="148.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="600" text-anchor="end" fill="#64748b" >ns</text>
+<text x="1414.0" y="126.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="9" font-weight="700" text-anchor="end" fill="#64748b" letter-spacing="0.5">COLOR + SYMBOL KEY</text>
+<rect x="1082.0" y="164.0" width="342.0" height="70.3" rx="8" fill="#ecfdf5"/>
+<text x="1095.0" y="203.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#64748b" >#1</text>
+<line x1="1113.0" y1="199.1" x2="1131.0" y2="199.1" stroke="#15803d" stroke-width="3.2" stroke-linecap="round"/>
+<rect x="1115.8" y="192.9" width="12.5" height="12.5" rx="1.5" fill="#15803d" stroke="#ffffff" stroke-width="2.5"></rect>
+<text x="1142.0" y="203.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" fill="#15803d" >Quill Bounded Dropping Queue</text>
+<text x="1414.0" y="203.1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="end" fill="#15803d" >117</text>
+<rect x="1082.0" y="238.3" width="342.0" height="70.3" rx="8" fill="#ecfdf5"/>
+<text x="1095.0" y="277.4" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#64748b" >#2</text>
+<line x1="1113.0" y1="273.4" x2="1131.0" y2="273.4" stroke="#16a34a" stroke-width="3.2" stroke-linecap="round"/>
+<circle cx="1122.0" cy="273.4" r="6.2" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"></circle>
+<text x="1142.0" y="277.4" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="start" fill="#15803d" >Quill Unbounded Queue</text>
+<text x="1414.0" y="277.4" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="end" fill="#15803d" >129</text>
+<text x="1095.0" y="351.7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#64748b" >#3</text>
+<line x1="1113.0" y1="347.7" x2="1131.0" y2="347.7" stroke="#8b5cf6" stroke-width="3.2" stroke-linecap="round"/>
+<polygon points="1122.0,343.5 1126.0,346.4 1124.5,351.2 1119.5,351.2 1118.0,346.4" fill="#ffffff" stroke="#8b5cf6" stroke-width="2.0"></polygon>
+<text x="1142.0" y="351.7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="500" text-anchor="start" fill="#334155" >MS BinLog</text>
+<text x="1414.0" y="351.7" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="end" fill="#334155" >304</text>
+<rect x="1082.0" y="386.9" width="342.0" height="70.3" rx="8" fill="#f8fafc"/>
+<text x="1095.0" y="426.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#64748b" >#4</text>
+<line x1="1113.0" y1="422.0" x2="1131.0" y2="422.0" stroke="#ea580c" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M 1122.0 417.8 L 1126.2 424.1 L 1117.8 424.1 Z" fill="#ffffff" stroke="#ea580c" stroke-width="2.0"></path>
+<text x="1142.0" y="426.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="500" text-anchor="start" fill="#334155" >fmtlog</text>
+<text x="1414.0" y="426.0" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="end" fill="#334155" >770</text>
+<text x="1095.0" y="500.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#64748b" >#5</text>
+<line x1="1113.0" y1="496.3" x2="1131.0" y2="496.3" stroke="#a16207" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M 1117.8 496.3 L 1119.9 492.6 L 1124.1 492.6 L 1126.2 496.3 L 1124.1 500.0 L 1119.9 500.0 Z" fill="#ffffff" stroke="#a16207" stroke-width="2.0"></path>
+<text x="1142.0" y="500.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="500" text-anchor="start" fill="#334155" >XTR</text>
+<text x="1414.0" y="500.3" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="end" fill="#334155" >816</text>
+<rect x="1082.0" y="535.4" width="342.0" height="70.3" rx="8" fill="#f8fafc"/>
+<text x="1095.0" y="574.6" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#64748b" >#6</text>
+<line x1="1113.0" y1="570.6" x2="1131.0" y2="570.6" stroke="#78716c" stroke-width="3.2" stroke-linecap="round"/>
+<path d="M 1117.8 570.6 L 1126.2 570.6 M 1122.0 566.3 L 1122.0 574.8" fill="none" stroke="#78716c" stroke-width="2.0" stroke-linecap="round"></path>
+<text x="1142.0" y="574.6" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="500" text-anchor="start" fill="#334155" >Boost.Log</text>
+<text x="1414.0" y="574.6" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="end" fill="#334155" >5.457k</text>
+<text x="1095.0" y="648.9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="#64748b" >#7</text>
+<line x1="1113.0" y1="644.9" x2="1131.0" y2="644.9" stroke="#0284c7" stroke-width="3.2" stroke-linecap="round"/>
+<g><circle cx="1122.0" cy="644.9" r="4.2" fill="#ffffff" stroke="#0284c7" stroke-width="2.0"/><circle cx="1122.0" cy="644.9" r="1.4" fill="#0284c7"/></g>
+<text x="1142.0" y="648.9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="13" font-weight="500" text-anchor="start" fill="#334155" >spdlog</text>
+<text x="1414.0" y="648.9" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="700" text-anchor="end" fill="#334155" >8.669k</text>
 </svg>
