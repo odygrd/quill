@@ -55,6 +55,30 @@ QUILL_BEGIN_EXPORT
  * For performance-critical logging paths, use the macro-based logging interface.
  */
 
+namespace detail
+{
+template <typename TLogger, typename... Args>
+QUILL_ATTRIBUTE_HOT void log(TLogger* logger, char const* tags, LogLevel log_level, char const* fmt,
+                             SourceLocation const& location, Args&&... args)
+{
+  if (QUILL_UNLIKELY(!logger))
+  {
+    return;
+  }
+
+  static constexpr MacroMetadata macro_metadata{
+    "[placeholder]", "[placeholder]", "[placeholder]",
+    nullptr,         LogLevel::None,  MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy};
+
+  if (logger->should_log_statement(log_level))
+  {
+    logger->template log_statement_runtime_metadata<QUILL_ENABLE_IMMEDIATE_FLUSH>(
+      &macro_metadata, fmt, location.file_name(), location.function_name(), tags, location.line(),
+      log_level, std::forward<Args>(args)...);
+  }
+}
+} // namespace detail
+
 /**
  * Tag structure for log messages that supports multiple tags
  */
@@ -129,13 +153,13 @@ struct tracel3
 {
   tracel3(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::TraceL3, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::TraceL3, fmt, location, std::forward<Args>(args)...);
   }
 
   tracel3(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
           SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::TraceL3, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::TraceL3, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -150,13 +174,13 @@ struct tracel2
 {
   tracel2(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::TraceL2, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::TraceL2, fmt, location, std::forward<Args>(args)...);
   }
 
   tracel2(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
           SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::TraceL2, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::TraceL2, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -171,13 +195,13 @@ struct tracel1
 {
   tracel1(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::TraceL1, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::TraceL1, fmt, location, std::forward<Args>(args)...);
   }
 
   tracel1(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
           SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::TraceL1, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::TraceL1, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -192,13 +216,13 @@ struct debug
 {
   debug(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::Debug, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::Debug, fmt, location, std::forward<Args>(args)...);
   }
 
   debug(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
         SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::Debug, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::Debug, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -213,13 +237,13 @@ struct info
 {
   info(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::Info, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::Info, fmt, location, std::forward<Args>(args)...);
   }
 
   info(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
        SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::Info, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::Info, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -234,13 +258,13 @@ struct notice
 {
   notice(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::Notice, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::Notice, fmt, location, std::forward<Args>(args)...);
   }
 
   notice(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
          SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::Notice, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::Notice, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -255,13 +279,13 @@ struct warning
 {
   warning(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::Warning, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::Warning, fmt, location, std::forward<Args>(args)...);
   }
 
   warning(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
           SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::Warning, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::Warning, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -276,13 +300,13 @@ struct error
 {
   error(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::Error, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::Error, fmt, location, std::forward<Args>(args)...);
   }
 
   error(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
         SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::Error, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::Error, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -297,13 +321,13 @@ struct critical
 {
   critical(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::Critical, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::Critical, fmt, location, std::forward<Args>(args)...);
   }
 
   critical(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
            SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::Critical, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::Critical, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -318,13 +342,13 @@ struct backtrace
 {
   backtrace(TLogger* logger, char const* fmt, Args&&... args, SourceLocation location = SourceLocation::current())
   {
-    log(logger, "", LogLevel::Backtrace, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, "", LogLevel::Backtrace, fmt, location, std::forward<Args>(args)...);
   }
 
   backtrace(TLogger* logger, Tags const& tags, char const* fmt, Args&&... args,
             SourceLocation location = SourceLocation::current())
   {
-    log(logger, tags.value(), LogLevel::Backtrace, fmt, location, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), LogLevel::Backtrace, fmt, location, std::forward<Args>(args)...);
   }
 };
 
@@ -334,27 +358,27 @@ backtrace(TLogger*, char const*, Args&&...) -> backtrace<TLogger, Args...>;
 template <typename TLogger, typename... Args>
 backtrace(TLogger*, Tags const& tags, char const*, Args&&...) -> backtrace<TLogger, Args...>;
 
-/***/
 template <typename TLogger, typename... Args>
-QUILL_ATTRIBUTE_HOT void log(TLogger* logger, char const* tags, LogLevel log_level, char const* fmt,
-                             SourceLocation const& location, Args&&... args)
+struct log
 {
-  if (QUILL_UNLIKELY(!logger))
+  log(TLogger* logger, LogLevel log_level, char const* fmt, Args&&... args,
+      SourceLocation location = SourceLocation::current())
   {
-    return;
+    detail::log(logger, "", log_level, fmt, location, std::forward<Args>(args)...);
   }
 
-  static constexpr MacroMetadata macro_metadata{
-    "[placeholder]", "[placeholder]", "[placeholder]",
-    nullptr,         LogLevel::None,  MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy};
-
-  if (logger->should_log_statement(log_level))
+  log(TLogger* logger, LogLevel log_level, Tags const& tags, char const* fmt, Args&&... args,
+      SourceLocation location = SourceLocation::current())
   {
-    logger->template log_statement_runtime_metadata<QUILL_ENABLE_IMMEDIATE_FLUSH>(
-      &macro_metadata, fmt, location.file_name(), location.function_name(), tags, location.line(),
-      log_level, std::forward<Args>(args)...);
+    detail::log(logger, tags.value(), log_level, fmt, location, std::forward<Args>(args)...);
   }
-}
+};
+
+template <typename TLogger, typename... Args>
+log(TLogger*, LogLevel, char const*, Args&&...) -> log<TLogger, Args...>;
+
+template <typename TLogger, typename... Args>
+log(TLogger*, LogLevel, Tags const& tags, char const*, Args&&...) -> log<TLogger, Args...>;
 
 QUILL_END_EXPORT
 

@@ -39,8 +39,14 @@ The following logging functions are available in the macro-free mode:
 - ``quill::error(logger, fmt, args...)`` - Error level
 - ``quill::critical(logger, fmt, args...)`` - Critical level
 - ``quill::backtrace(logger, fmt, args...)`` - Backtrace level
+- ``quill::log(logger, log_level, fmt, args...)`` - Level selected at runtime
 
-Each function also accepts a ``quill::Tags`` object as an optional parameter after the logger.
+The level-specific functions also accept a ``quill::Tags`` object as an optional parameter after
+the logger. For ``quill::log``, pass the tags after the runtime log level:
+
+.. code-block:: cpp
+
+   quill::log(logger, log_level, quill::Tags{"NETWORK"}, "Connected to {}", endpoint);
 
 Named placeholders (e.g., ``{name}`` instead of ``{}``) work the same way as with ``LOG_`` macros.
 See :ref:`Named Placeholders <logging_macros:Named Placeholders>` for details.

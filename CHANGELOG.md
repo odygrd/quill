@@ -104,6 +104,7 @@
 
 ## v13.0.0
 
+- Added `quill::log()` to macro-free mode for logging with a runtime-selected log level.
 - Improvements to frontend throughput for macro-free logging and backend throughput
   for filtering, structured logging, and reusable transit-event data.
 
