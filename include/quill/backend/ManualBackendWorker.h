@@ -19,13 +19,22 @@ QUILL_BEGIN_EXPORT
  * This class can be used when you want to run the backend worker on your own thread.
  *
  * Threading contract:
- * - The thread running `ManualBackendWorker` may log.
- * - That same thread must not use any path that waits for the backend to flush its own queue.
+ * - By default, the thread that calls `init()` must perform all polling and call `shutdown()`.
+ *   This is the usual and recommended mode.
+ * - In the default mode, the thread running `ManualBackendWorker` may log, but it must not use any
+ *   path that waits for the backend to flush its own queue.
  *   In particular, it must not call `logger->flush_log()` or `Frontend::remove_logger_blocking()`.
  *   If a logger has immediate flush enabled, the implicit flush is skipped for log calls from this
  *   thread.
- * - The thread that calls `init()` must also call `shutdown()` explicitly before it exits.
- *   Do not rely on the destructor to perform shutdown for you.
+ * - In the default mode, the thread that calls `init()` must also call `shutdown()` explicitly
+ *   before it exits. Do not rely on the destructor to perform shutdown for you.
+ *
+ * `init(options, true)` enables thread migration for externally managed executors and task pools.
+ * In that mode, successive worker operations may run on different threads, but the caller must
+ * externally serialize them, and completion of `init()` and each worker operation must
+ * happen-before the next operation starts. Quill does not track which thread is running the backend
+ * in this mode, so backend-thread deadlock checks are disabled and signal-handler logging and
+ * flushing are not supported.
  */
 class ManualBackendWorker
 {
@@ -53,24 +62,43 @@ public:
    * for manual operation, disabling certain options that are incompatible with manual control.
    *
    * @param options The `BackendOptions` to configure the backend worker.
+   * @param allow_thread_migration When `false` (the default and recommended mode), the thread
+   * calling `init()` must perform all polling and call `shutdown()`. When `true`, successive calls
+   * to `poll_one()`, `poll()`, and `shutdown()` may run on different threads. The caller must
+   * externally serialize those operations so completion of `init()` and each operation happens-before
+   * invocation of the next. Quill does not track a backend thread in this mode, and
+   * `Backend::get_thread_id()` returns zero. Code executed by the backend, including hooks, sinks,
+   * and error notifiers, must not call `flush_log()`, `Frontend::remove_logger_blocking()`, or
+   * otherwise block waiting for the backend. Quill's signal handler cannot log or flush in
+   * thread-migration mode.
    */
-  void init(BackendOptions options)
+  void init(BackendOptions options, bool allow_thread_migration = false)
   {
     QUILL_ASSERT(!_started, "ManualBackendWorker::init() must not be called more than once");
 
     options.sleep_duration = std::chrono::nanoseconds{0};
     options.enable_yield_when_idle = false;
     _backend_worker->_init(options);
+    _allow_thread_migration = allow_thread_migration;
+
+    if (_allow_thread_migration)
+    {
+      // Migratable mode has no persistent backend-thread identity. This also ensures that the
+      // thread that called init() is treated as an ordinary producer after init() returns.
+      _backend_worker->_clear_backend_thread_flag();
+      _backend_worker->_worker_thread_id.store(0);
+    }
+
     _started = true;
   }
 
   /**
    * Flushes remaining frontend queues and marks the manual backend worker as stopped.
    *
-   * This function must be called from the same thread that called init() and performs the same
-   * shutdown work that the automatic backend thread executes during stop().
-   * Call this explicitly before the manual backend thread exits. Do not rely on the destructor to
-   * do this for you.
+   * Unless thread migration was enabled during `init()`, this function must be called from the same
+   * thread that called `init()`. It performs the same shutdown work that the automatic backend
+   * thread executes during `stop()`. Call this explicitly after all polling has finished. Do not
+   * rely on the destructor to do this for you.
    */
   void shutdown()
   {
@@ -79,9 +107,10 @@ public:
       return;
     }
 
-    QUILL_ASSERT(_backend_worker->_worker_thread_id.load() == detail::get_thread_id(),
-                 "ManualBackendWorker::shutdown() must be called from the same thread that "
-                 "called init()");
+    QUILL_ASSERT(
+      _allow_thread_migration || (_backend_worker->_worker_thread_id.load() == detail::get_thread_id()),
+      "ManualBackendWorker::shutdown() must be called from the same thread that called init() "
+      "unless thread migration is enabled");
 
     _backend_worker->_exit();
     _backend_worker->_worker_thread_id.store(0);
@@ -98,16 +127,17 @@ public:
    */
   void poll_one()
   {
+    QUILL_ASSERT(_started, "ManualBackendWorker::poll_one() requires init() to be called first");
     QUILL_ASSERT(
       _backend_worker->_options.sleep_duration.count() == 0,
       "ManualBackendWorker::poll_one() requires init() to be called first with sleep_duration = 0");
     QUILL_ASSERT(_backend_worker->_options.enable_yield_when_idle == false,
                  "ManualBackendWorker::poll_one() requires init() to be called first with "
                  "enable_yield_when_idle = false");
-    QUILL_ASSERT(_backend_worker->_worker_thread_id.load() != 0,
-                 "ManualBackendWorker::poll_one() requires init() to be called first");
-    QUILL_ASSERT(_backend_worker->_worker_thread_id.load() == detail::get_thread_id(),
-                 "ManualBackendWorker::poll_one() must always be called from the same thread");
+    QUILL_ASSERT(
+      _allow_thread_migration || (_backend_worker->_worker_thread_id.load() == detail::get_thread_id()),
+      "ManualBackendWorker::poll_one() must be called from the thread that called init() unless "
+      "thread migration is enabled");
 
     QUILL_TRY { _backend_worker->_poll(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
@@ -159,6 +189,7 @@ public:
 private:
   detail::BackendWorker* _backend_worker;
   bool _started{false};
+  bool _allow_thread_migration{false};
 };
 
 QUILL_END_EXPORT
