@@ -14,6 +14,8 @@ Note that the frontend hot path is designed for a producer and consumer on diffe
 Basic Usage
 -----------
 
+The default and recommended mode assigns the manual backend worker to one dedicated thread:
+
 1. Start a dedicated thread that will own the manual backend worker.
 2. Call :cpp:func:`Backend::acquire_manual_backend_worker()` exactly once for the process.
 3. Call ``init()`` on that same thread.
@@ -30,12 +32,57 @@ Example
 Important Rules
 ---------------
 
-- Use exactly one thread to own and drive the ``ManualBackendWorker``.
-- The thread that calls ``init()`` must also call ``shutdown()`` before it exits.
+- Unless thread migration is explicitly enabled, use exactly one thread to own and drive the
+  ``ManualBackendWorker``.
+- In the default mode, the thread that calls ``init()`` must also call ``shutdown()`` before it
+  exits.
 - Do not rely on the destructor for shutdown ordering.
-- The manual backend thread may log, but it must not use paths that wait for the backend to flush its own queue. In particular, avoid ``logger->flush_log()`` and ``Frontend::remove_logger_blocking()`` on that same thread. If a logger has immediate flush enabled, the implicit flush is skipped for log calls from the manual backend thread.
+- In the default mode, the manual backend thread may log, but it must not use paths that wait for the
+  backend to flush its own queue. In particular, avoid ``logger->flush_log()`` and
+  ``Frontend::remove_logger_blocking()`` on that same thread. If a logger has immediate flush
+  enabled, the implicit flush is skipped for log calls from the manual backend thread.
 - ``Backend::acquire_manual_backend_worker()`` is mutually exclusive with :cpp:func:`Backend::start()`. You can only choose one model per process.
 - The built-in signal handler setup is not performed for ``ManualBackendWorker``.
+
+Thread Migration
+----------------
+
+Applications built around an executor or task pool can allow successive manual backend operations
+to run on different threads:
+
+.. code-block:: cpp
+
+   manual_backend_worker->init(backend_options, true);
+
+The executor may use any number of worker threads. A single long-lived coroutine that completes
+each polling call before suspending can safely resume on a different thread, provided the executor
+synchronizes the continuation handoff. When polling is submitted as separate tasks, bind every task
+to the same strand or serial executor; posting independent polling tasks directly to a
+multi-threaded executor is unsafe because they can overlap.
+
+This is an advanced mode with reduced safety checks. The caller must satisfy all of the following
+requirements:
+
+- Calls to ``poll_one()``, ``poll()``, and ``shutdown()`` must be externally serialized and must
+  never overlap.
+- Completion of ``init()`` and each worker operation must *happen-before* the next operation starts.
+  A mutex, serial executor or strand, or an explicit task dependency normally provides this
+  synchronization. Timing alone is not sufficient.
+- ``shutdown()`` must run only after every scheduled polling task has completed.
+- Hooks, sinks, error notifiers, and other code executed synchronously by the backend must not call
+  ``logger->flush_log()``, ``Frontend::remove_logger_blocking()``, or otherwise wait for the backend.
+  They must also avoid filling a blocking frontend queue. Quill cannot detect these self-deadlocks
+  in thread-migration mode.
+- Hooks and custom sinks must tolerate being invoked from different threads over time.
+- Quill's signal handler cannot log or flush in thread-migration mode because there is no stable
+  backend thread to exclude. The built-in signal handler is not installed for any
+  ``ManualBackendWorker`` mode.
+
+Normal producer threads can still call ``flush_log()`` and ``Frontend::remove_logger_blocking()``
+provided another task can continue polling the backend. If such a blocking call runs on the same
+executor, at least one executor thread must remain available to resume the polling coroutine;
+blocking its last available thread will deadlock. ``Backend::get_thread_id()`` returns ``0`` in
+thread-migration mode because there is no persistent backend thread identity.
 
 When To Use It
 --------------

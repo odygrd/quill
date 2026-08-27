@@ -250,6 +250,8 @@ public:
 
   /**
    * Retrieves the ID of the backend thread.
+   * @note Returns zero when a `ManualBackendWorker` is initialized with thread migration enabled,
+   * because there is no persistent backend thread in that mode.
    * @return The ID of the backend thread.
    */
   QUILL_NODISCARD static uint32_t get_thread_id() noexcept
@@ -286,14 +288,18 @@ public:
    *   - The thread running the `ManualBackendWorker` can log, but it must not use backend-waiting
    *     flush paths from that same thread. See `ManualBackendWorker` for the manual-backend
    *     threading contract.
-   *   - The `ManualBackendWorker` should only be used by a single thread. It is not designed to handle
-   *     multiple threads calling `poll()` simultaneously.
-   *   - You must call `ManualBackendWorker::shutdown()` explicitly from the same thread that called
-   *     `init()` before that thread exits. Do not rely on the `ManualBackendWorker` destructor for
-   *     shutdown ordering.
+   *   - By default, one thread must own the `ManualBackendWorker`, perform all polling, and call
+   *     `shutdown()`. This is the usual and recommended mode.
+   *   - `ManualBackendWorker::init()` can opt into thread migration for externally managed executors
+   *     and task pools. In that mode, worker operations may run on different threads but must never
+   *     overlap, and the caller must provide a happens-before relationship between successive calls.
+   *     See `ManualBackendWorker` for the reduced backend-thread checks in that mode.
+   *   - Call `ManualBackendWorker::shutdown()` explicitly after polling has finished. Do not rely on
+   *     the `ManualBackendWorker` destructor for shutdown ordering.
    *   - The built-in signal handler is not set up with `ManualBackendWorker`. If signal handling is
    *     required, you must manually set up the signal handler and block signals from reaching the `ManualBackendWorker` thread.
    *     See the `start<FrontendOptions>(BackendOptions, SignalHandlerOptions)` implementation for guidance on how to do this.
+   *     Signal-handler logging and flushing are not supported when thread migration is enabled.
    *   - The following options are not supported when using `ManualBackendWorker`: `cpu_affinity`,
    *     `thread_name`, `sleep_duration`, and `enable_yield_when_idle`.
    *   - Avoid performing very heavy tasks in your custom thread. Significant delays in calling `poll()`
