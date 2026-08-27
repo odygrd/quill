@@ -105,6 +105,9 @@
 ## v13.0.0
 
 - Added `quill::log()` to macro-free mode for logging with a runtime-selected log level.
+- Added backend tag processing through `PatternFormatterOptions::process_tags` and support for
+  constructing macro-free `quill::Tags` from `std::string` and `std::string_view`.
+  ([#970](https://github.com/odygrd/quill/issues/970))
 - Avoided allocating physical pages for unused bounded queue scratch space until it is needed.
   (Related: [#979](https://github.com/odygrd/quill/issues/979))
 - Improvements to frontend throughput for macro-free logging and backend throughput

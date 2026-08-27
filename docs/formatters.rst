@@ -74,7 +74,8 @@ The format output can be customised by providing a string of certain attributes.
        excluding the full file path.
    * - ``tags``
      - ``%(tags)``
-     - Additional custom tags appended to the message when ``_TAGS`` macros are used.
+     - Additional custom tags supplied by ``_TAGS`` macros, macro-free logging, or runtime
+       metadata.
    * - ``mdc``
      - ``%(mdc)``
      - Mapped Diagnostic Context fields for the current frontend thread. This expands to an
@@ -176,6 +177,26 @@ When ``QUILL_DETAILED_FUNCTION_NAME`` is enabled, the logger uses compiler-speci
 
 .. note::
    The ``process_function_name`` callback is only used when ``QUILL_DETAILED_FUNCTION_NAME`` is enabled. Without this define, ``%(caller_function)`` shows simple function names and this callback is ignored.
+
+**Custom Tag Processing**
+
+Use ``process_tags`` to transform tag text on the backend before ``%(tags)`` is formatted:
+
+.. code-block:: cpp
+
+   quill::PatternFormatterOptions options{"%(tags)%(message)"};
+   options.process_tags = [](char const* tags) -> std::string {
+       std::string result{tags};
+       // For example, map a runtime numeric identifier to a readable name.
+       // ... modify result ...
+       return result;
+   };
+
+The callback runs only when ``%(tags)`` is present and the record contains tags. It changes the
+formatted pattern output without modifying the original tag metadata exposed to sinks. Because the
+option stores a function pointer, use a regular function or a non-capturing lambda.
+
+See :doc:`Log Tagging <log_tagging>` for static and dynamic tag APIs.
 
 **Timestamp Configuration**
 

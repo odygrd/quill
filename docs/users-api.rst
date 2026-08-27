@@ -74,6 +74,12 @@ Log Levels
 
 .. doxygenenum:: LogLevel
 
+Tags Struct
+-----------
+
+.. doxygenstruct:: Tags
+   :members:
+
 LoggerImpl Class
 ----------------
 

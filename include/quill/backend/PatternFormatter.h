@@ -732,7 +732,15 @@ private:
     {
       if (log_statement_metadata.tags())
       {
-        _set_arg_val<Attribute::Tags>(std::string_view{log_statement_metadata.tags()});
+        if (_options.process_tags)
+        {
+          _processed_tags = _options.process_tags(log_statement_metadata.tags());
+          _set_arg_val<Attribute::Tags>(_processed_tags);
+        }
+        else
+        {
+          _set_arg_val<Attribute::Tags>(std::string_view{log_statement_metadata.tags()});
+        }
       }
       else
       {
@@ -787,6 +795,7 @@ private:
    * re-allocations **/
   fmtquill::basic_memory_buffer<char, 512> _formatted_log_message_buffer;
   fmtquill::basic_memory_buffer<char, 512> _formatted_named_args_buffer;
+  std::string _processed_tags;
 };
 
 QUILL_END_EXPORT

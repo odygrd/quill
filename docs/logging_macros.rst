@@ -393,3 +393,9 @@ the compile-time metadata macros whenever possible. Quill provides three special
 - :c:macro:`QUILL_LOG_RUNTIME_METADATA_SHALLOW` - Takes everything as reference. Most efficient option when using compile-time metadata with dynamic log levels like ``LOG_DYNAMIC``.
 
 Note that ``QUILL_LOG_RUNTIME_METADATA`` is equivalent to ``QUILL_LOG_RUNTIME_METADATA_DEEP`` but without the ``tags`` parameter.
+
+``DEEP`` and ``HYBRID`` are safe for dynamic null-terminated tag strings because they copy the tag
+text into the frontend queue. ``SHALLOW`` stores only the tag pointer, so its target must remain
+valid and immutable until the backend consumes the record. For a simpler dynamic-tag API, the
+macro-free logging functions accept ``quill::Tags`` constructed from ``std::string`` and
+``std::string_view`` values; see :doc:`Log Tagging <log_tagging>`.
