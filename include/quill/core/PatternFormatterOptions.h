@@ -63,7 +63,7 @@ public:
    * %(process_id)              - ID of the process in which the logging call was made.
    * %(source_location)         - Full source file path and line number as a single string.
    * %(short_source_location)   - Shortened source file name and line number as a single string.
-   * %(tags)                    - Additional custom tags appended to the message when _TAGS macros are used.
+   * %(tags)                    - Additional custom tags supplied by _TAGS macros, macro-free logging, or runtime metadata.
    * %(mdc)                     - The backend-formatted MDC block for the calling thread. Empty when no MDC is set.
    * %(named_args)              - Key-value pairs appended to the message. Only applicable when the message has named args; remains empty otherwise.
    *
@@ -118,6 +118,17 @@ public:
   std::string_view (*process_function_name)(char const*){nullptr};
 
   /**
+   * @brief Function pointer for custom backend processing of %(tags)
+   *
+   * The function receives the combined null-terminated tag string and returns the text to display
+   * for the %(tags) pattern attribute. It is invoked by the backend only when %(tags) is present
+   * in the format pattern and the log record contains tags.
+   *
+   * If set to nullptr (default), tags are displayed without additional processing.
+   */
+  std::string (*process_tags)(char const*){nullptr};
+
+  /**
    * @brief The timezone to use for timestamps.
    *
    * Determines whether timestamps are formatted in local time or GMT.
@@ -163,7 +174,8 @@ public:
   {
     return format_pattern == other.format_pattern && timestamp_pattern == other.timestamp_pattern &&
       source_location_path_strip_prefix == other.source_location_path_strip_prefix &&
-      timestamp_timezone == other.timestamp_timezone && process_function_name == other.process_function_name &&
+      timestamp_timezone == other.timestamp_timezone &&
+      process_function_name == other.process_function_name && process_tags == other.process_tags &&
       add_metadata_to_multi_line_logs == other.add_metadata_to_multi_line_logs &&
       source_location_remove_relative_paths == other.source_location_remove_relative_paths &&
       pattern_suffix == other.pattern_suffix;

@@ -48,6 +48,13 @@ the logger. For ``quill::log``, pass the tags after the runtime log level:
 
    quill::log(logger, log_level, quill::Tags{"NETWORK"}, "Connected to {}", endpoint);
 
+``quill::Tags`` owns its combined tag text and accepts ``char const*``, ``std::string``, and
+``std::string_view`` inputs. This makes runtime-selected tags safe to pass through the macro-free
+API, including string views that are not null-terminated. Macro-free logging copies the resulting
+tags into the asynchronous queue before the call returns.
+
+See :doc:`Log Tagging <log_tagging>` for compile-time alternatives and backend tag processing.
+
 Named placeholders (e.g., ``{name}`` instead of ``{}``) work the same way as with ``LOG_`` macros.
 See :ref:`Named Placeholders <logging_macros:Named Placeholders>` for details.
 

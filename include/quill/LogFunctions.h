@@ -13,7 +13,7 @@
 #include "quill/core/SourceLocation.h"
 
 #include <string>
-#include <type_traits>
+#include <string_view>
 #include <utility>
 
 #if !defined(QUILL_ENABLE_IMMEDIATE_FLUSH)
@@ -87,29 +87,14 @@ struct Tags
   Tags() = default;
 
   /**
-   * Single tag constructor
-   * @param tag Tag to add to the log message
-   */
-  explicit Tags(char const* tag)
-  {
-    append_tag(tag);
-    _append_trailing_space_if_needed();
-  }
-
-  /**
-   * Constructor for multiple tags
+   * Constructor for one or more tags
    * @param first_tag Tag to add to the log message
-   * @param second_tag Tag to add to the log message
    * @param rest_tags Tag to add to the log message
    */
-  template <typename... RestTags>
-  Tags(char const* first_tag, char const* second_tag, RestTags... rest_tags)
+  template <typename FirstTag, typename... RestTags>
+  explicit Tags(FirstTag const& first_tag, RestTags const&... rest_tags)
   {
-    static_assert(std::conjunction_v<std::is_same<char const*, RestTags>...>,
-                  "All tag parameters must be of type 'char const*'");
-
     append_tag(first_tag);
-    append_tag(second_tag);
     (append_tag(rest_tags), ...);
     _append_trailing_space_if_needed();
   }
@@ -127,16 +112,18 @@ private:
       return;
     }
 
-    if (!_value.empty())
-    {
-      _value += " #";
-    }
-    else
-    {
-      _value += '#';
-    }
+    append_tag(std::string_view{tag});
+  }
 
-    _value += tag;
+  void append_tag(std::string const& tag) { append_tag(std::string_view{tag}); }
+
+  void append_tag(std::string_view tag)
+  {
+    _value += _value.empty() ? "#" : " #";
+    if (!tag.empty())
+    {
+      _value.append(tag.data(), tag.size());
+    }
   }
 
   void _append_trailing_space_if_needed()
