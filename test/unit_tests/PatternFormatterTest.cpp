@@ -1270,6 +1270,30 @@ TEST_CASE("pattern_suffix_multiline_metadata_with_no_suffix")
   }
 }
 
+TEST_CASE("pattern_format_specifiers")
+{
+  PatternFormatter formatter{
+    PatternFormatterOptions{"|%(logger:>13)|%(log_level:^10)|%(thread_name:*^15)|%(message:.5)|",
+                            "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello world", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+
+  fmtquill::memory_buffer log_msg;
+  fmtquill::format_to(std::back_inserter(log_msg), fmtquill::runtime(macro_metadata.message_format()));
+
+  std::vector<std::pair<std::string, std::string>> named_args;
+  auto const& formatted_buffer =
+    formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I", macro_metadata,
+                     &named_args, std::string_view{log_msg.data(), log_msg.size()}, std::string_view{});
+
+  REQUIRE_EQ(fmtquill::to_string(formatted_buffer),
+             "|  test_logger|   INFO   |**test_thread**|hello|\n");
+}
+
 TEST_CASE("pattern_with_literal_braces")
 {
   // Literal '{' and '}' in the format pattern must appear verbatim in the output. Previously

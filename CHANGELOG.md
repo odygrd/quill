@@ -112,6 +112,10 @@
   task-pool integrations. ([#972](https://github.com/odygrd/quill/issues/972))
 - Avoided allocating physical pages for unused bounded queue scratch space until it is needed.
   (Related: [#979](https://github.com/odygrd/quill/issues/979))
+- Precompiled `PatternFormatter` fields when the formatter is created instead of parsing the
+  pattern for every log record.
+- Added a backend fast path for applications with a single active frontend thread context.
+- Added Android NDK compile coverage for API 24 on `arm64-v8a` and `x86_64`.
 - Improvements to frontend throughput for macro-free logging and backend throughput
   for filtering, structured logging, and reusable transit-event data.
 

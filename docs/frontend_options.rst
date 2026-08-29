@@ -60,20 +60,18 @@ These allocation messages are informational, not errors, indicating the queue is
 
 .. code-block:: cpp
 
-    quill::BackendOptions backend_options{
-        .error_notifier = [](const std::string& error_message) {
-            // Custom handling - log to your preferred destination
-            my_logger.info("Quill: {}", error_message);
-        }
+    quill::BackendOptions backend_options;
+    backend_options.error_notifier = [](const std::string& error_message) {
+        // Custom handling - log to your preferred destination
+        my_logger.info("Quill: {}", error_message);
     };
 
 To completely disable these notifications, set the error notifier to an empty function:
 
 .. code-block:: cpp
 
-    quill::BackendOptions backend_options{
-        .error_notifier = {}  // Disable notifications
-    };
+    quill::BackendOptions backend_options;
+    backend_options.error_notifier = {};  // Disable notifications
 
 This disables callback notifications from :cpp:member:`BackendOptions::error_notifier`. If Quill later encounters a malformed format string, it will still write the fallback ``[Could not format log statement ...]`` entry to the configured sink output.
 
