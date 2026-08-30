@@ -25,7 +25,7 @@ Backend Options
 Backend Class
 -------------
 
-.. doxygenclass:: quill::Backend
+.. doxygenclass:: Backend
    :members:
 
 BackendTscClock Class
