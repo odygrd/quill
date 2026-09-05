@@ -105,6 +105,7 @@
 
 ## Unreleased
 
+- Flush sinks during logger removal and final shutdown even when callers retain the sink.
 - Restore the configured daily rotation time after normalizing a missing DST hour.
 - Keep structured field values aligned after dynamic width and precision arguments.
 - Retry failed deleted-file recovery on subsequent sink flushes, including after the output path recovers.
