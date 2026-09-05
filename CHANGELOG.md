@@ -1,3 +1,4 @@
+- [Unreleased](#unreleased)
 - [v13.0.0](#v1300)
 - [v12.2.2](#v1222)
 - [v12.2.1](#v1221)
@@ -101,6 +102,12 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## Unreleased
+
+- `Logger::set_mdc()` and `Logger::erase_mdc()` now reject requests larger than a `QueueType::BoundedDropping`
+  queue rather than retrying indefinitely. Application threads still retry when the request fits but the queue
+  is temporarily full.
 
 ## v13.0.0
 
