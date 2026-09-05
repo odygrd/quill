@@ -105,6 +105,7 @@
 
 ## Unreleased
 
+- `FileSink` now releases its Windows file handle even when a buffered write fails during destruction.
 - `PrometheusSink::unregister_metric()` now allows a metric to be registered again with updated help text or a
   different type after the last metric with that name is removed.
 - Fixed an assertion when logging threads exit concurrently in debug builds or builds with
