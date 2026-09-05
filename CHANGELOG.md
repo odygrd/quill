@@ -105,6 +105,9 @@
 
 ## Unreleased
 
+- `Frontend::remove_logger_blocking()` now flushes its sinks before returning even if the caller retains a
+  `std::shared_ptr<Sink>`. Removal no longer loops when repeated `Sink::flush_sink()` failures trigger
+  `BackendOptions::error_notifier` to log through another logger.
 - With `Timezone::LocalTime`, `RotatingFileSink` now returns to the time set by
   `RotatingFileSinkConfig::set_rotation_time_daily()` on following days if a daylight-saving change skips the
   scheduled time.
