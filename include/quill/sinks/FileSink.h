@@ -535,6 +535,16 @@ protected:
 
     if (_file_event_notifier.after_open)
     {
+      if (!mode.empty() && mode[0] == 'a' &&
+          ::GetFileType(opened_handle_guard.handle) == FILE_TYPE_DISK)
+      {
+        LARGE_INTEGER offset{};
+        if (!::SetFilePointerEx(opened_handle_guard.handle, offset, nullptr, FILE_END))
+        {
+          DWORD const seek_error = ::GetLastError();
+          QUILL_THROW(QuillError{"SetFilePointerEx failed. GetLastError: " + std::to_string(seek_error)});
+        }
+      }
       _file_event_notifier.after_open(filename, opened_handle_guard.handle);
     }
 
@@ -551,6 +561,8 @@ protected:
 
     if (_file_event_notifier.before_close)
     {
+      // Callbacks write through the handle, outside Quill's separate native buffer.
+      _flush_native_write_buffer();
       QUILL_TRY { _file_event_notifier.before_close(_filename, _native_file_handle); }
   #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH_ALL()

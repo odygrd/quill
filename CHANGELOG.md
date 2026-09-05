@@ -105,6 +105,7 @@
 
 ## Unreleased
 
+- Preserve buffered log ordering and append positions when Windows file-event callbacks write output.
 - Close Windows file handles when a final buffered write fails during sink destruction.
 - Remove empty sink-owned Prometheus families so metrics can be registered again with updated metadata.
 - Publish thread-retirement accounting before making the context eligible for backend cleanup.
