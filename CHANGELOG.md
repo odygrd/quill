@@ -105,6 +105,9 @@
 
 ## Unreleased
 
+- `FileSink::flush_sink()` now retries a failed reopen after an external deletion, allowing logging to resume
+  if the directory becomes available again. On Windows, this also handles files marked for deletion while the
+  sink's handle is still open.
 - `LOG_INFO(logger, "{}", std::tie(symbol))` now handles a referenced `char[N]` without a null terminator
   using its array length.
 - When `Codec<T>` uses `DeferredFormatCodec<T>`, logging `std::tie(object)` or a temporary pair containing

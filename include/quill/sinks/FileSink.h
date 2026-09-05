@@ -391,6 +391,11 @@ public:
 
   QUILL_ATTRIBUTE_HOT void flush_sink() override
   {
+    if (_write_occurred && !is_open())
+    {
+      _reopen_file();
+    }
+
     if (!_write_occurred)
     {
       return;
@@ -406,15 +411,21 @@ public:
 
     std::error_code ec;
     bool const file_exists = fs::exists(_filename, ec);
-    if (!ec && !file_exists)
+    bool file_removed = !ec && !file_exists;
+    if (ec)
+    {
+      // libc++ can report access denied for a file pending deletion. Query the open
+      // handle so an unrelated status error does not cause a valid file to be reopened.
+      FILE_STANDARD_INFO file_info{};
+      file_removed = ::GetFileInformationByHandleEx(
+                       _native_file_handle, FileStandardInfo, &file_info, sizeof(file_info)) &&
+        file_info.DeletePending;
+    }
+    if (file_removed)
     {
       close_file();
-      open_file(_filename, _config.open_mode());
-
-      // Resync _file_size with the reopened file; RotatingSink relies on it for size-based rotation
-      ec.clear();
-      auto const reopened_file_size = fs::file_size(_filename, ec);
-      _file_size = ec ? 0 : static_cast<size_t>(reopened_file_size);
+      _write_occurred = true;
+      _reopen_file();
     }
   }
 
@@ -463,6 +474,15 @@ public:
   }
 
 protected:
+  void _reopen_file()
+  {
+    open_file(_filename, _config.open_mode());
+    std::error_code ec;
+    auto const reopened_file_size = fs::file_size(_filename, ec);
+    _file_size = ec ? 0 : static_cast<size_t>(reopened_file_size);
+    _write_occurred = false;
+  }
+
   void open_file(fs::path const& filename, std::string const& mode)
   {
     if (_file_event_notifier.before_open)
@@ -694,6 +714,11 @@ public:
 
   QUILL_ATTRIBUTE_HOT void flush_sink() override
   {
+    if (_write_occurred && !is_open())
+    {
+      _reopen_file();
+    }
+
     if (!_write_occurred || !_file)
     {
       return;
@@ -711,12 +736,8 @@ public:
     if (!ec && !file_exists)
     {
       close_file();
-      open_file(_filename, _config.open_mode());
-
-      // Resync _file_size with the reopened file; RotatingSink relies on it for size-based rotation
-      ec.clear();
-      auto const reopened_file_size = fs::file_size(_filename, ec);
-      _file_size = ec ? 0 : static_cast<size_t>(reopened_file_size);
+      _write_occurred = true;
+      _reopen_file();
     }
   }
 
@@ -796,6 +817,15 @@ protected:
       std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
 
     return stem + format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern) + ext;
+  }
+
+  void _reopen_file()
+  {
+    open_file(_filename, _config.open_mode());
+    std::error_code ec;
+    auto const reopened_file_size = fs::file_size(_filename, ec);
+    _file_size = ec ? 0 : static_cast<size_t>(reopened_file_size);
+    _write_occurred = false;
   }
 
   void open_file(fs::path const& filename, std::string const& mode)
