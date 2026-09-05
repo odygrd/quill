@@ -105,6 +105,8 @@
 
 ## Unreleased
 
+- On Windows, text written by `FileEventNotifier::after_open` now goes to the end of the file in append mode.
+  `FileEventNotifier::before_close` now runs after pending `FileSink` writes have been flushed.
 - `FileSink` now releases its Windows file handle even when a buffered write fails during destruction.
 - `PrometheusSink::unregister_metric()` now allows a metric to be registered again with updated help text or a
   different type after the last metric with that name is removed.
