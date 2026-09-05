@@ -1,6 +1,6 @@
 include(CheckCXXSourceCompiles)
 
-# Get Quill version from include/quill/Version.h and store it as QUILL_VERSION
+# Get Quill version from include/quill/Backend.h and store it as QUILL_VERSION
 function(quill_extract_version)
     file(READ "${CMAKE_CURRENT_LIST_DIR}/include/quill/Backend.h" file_contents)
 

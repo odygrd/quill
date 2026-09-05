@@ -1,4 +1,4 @@
-- [Unreleased](#unreleased)
+- [v13.1.0](#v1310)
 - [v13.0.0](#v1300)
 - [v12.2.2](#v1222)
 - [v12.2.1](#v1221)
@@ -103,7 +103,7 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## Unreleased
+## v13.1.0
 
 - Preserve buffered log ordering and append positions when Windows file-event callbacks write output.
 - Close Windows file handles when a final buffered write fails during sink destruction.
