@@ -1078,6 +1078,10 @@ private:
     if (rotation_time <= reference_time)
     {
       date.tm_mday += 1;
+      // mktime may have normalized a nonexistent local time on the previous day.
+      date.tm_hour = static_cast<decltype(date.tm_hour)>(config.daily_rotation_time().first.count());
+      date.tm_min = static_cast<decltype(date.tm_min)>(config.daily_rotation_time().second.count());
+      date.tm_sec = 0;
       rotation_time = to_timestamp(date);
     }
 
