@@ -105,6 +105,8 @@
 
 ## Unreleased
 
+- Fixed an assertion when logging threads exit concurrently in debug builds or builds with
+  `QUILL_ENABLE_ASSERTIONS` enabled.
 - `Frontend::remove_logger_blocking()` now flushes its sinks before returning even if the caller retains a
   `std::shared_ptr<Sink>`. Removal no longer loops when repeated `Sink::flush_sink()` failures trigger
   `BackendOptions::error_notifier` to log through another logger.

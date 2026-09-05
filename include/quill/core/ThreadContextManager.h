@@ -385,10 +385,9 @@ public:
     // the ThreadContextCollection
     // There is only exception for the thread who owns the ThreadContextCollection the
     // main thread. The thread context of the main thread can get deleted before getting invalidated
-    _thread_context->mark_invalid();
-
-    // Notify the backend thread that one context has been removed
+    // Count retirement before publishing invalidity: the backend may remove it immediately.
     ThreadContextManager::instance().add_invalid_thread_context();
+    _thread_context->mark_invalid();
   }
 
   /***/
