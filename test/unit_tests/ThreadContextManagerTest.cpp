@@ -170,4 +170,39 @@ TEST_CASE("invalid_thread_context_counter_handles_large_batches")
   REQUIRE_FALSE(ThreadContextManager::instance().has_invalid_thread_context());
 }
 
+TEST_CASE("invalid_context_is_already_counted")
+{
+  auto& manager = ThreadContextManager::instance();
+  for (size_t iteration = 0; iteration < 100; ++iteration)
+  {
+    std::atomic<ThreadContext*> context{nullptr};
+    std::atomic<bool> retire{false};
+    std::thread producer{[&]
+    {
+      context.store(get_local_thread_context<FrontendOptions>(), std::memory_order_release);
+      while (!retire.load(std::memory_order_acquire))
+      {
+        std::this_thread::yield();
+      }
+    }};
+
+    ThreadContext* observed_context{nullptr};
+    while (!(observed_context = context.load(std::memory_order_acquire)))
+    {
+      std::this_thread::yield();
+    }
+    retire.store(true, std::memory_order_release);
+    while (observed_context->is_valid())
+    {
+      std::this_thread::yield();
+    }
+
+    // Check before joining, while the producer can still be completing TLS destruction.
+    CHECK(manager.has_invalid_thread_context());
+    manager.remove_shared_invalidated_thread_context(observed_context);
+    producer.join();
+    CHECK_FALSE(manager.has_invalid_thread_context());
+  }
+}
+
 TEST_SUITE_END();
