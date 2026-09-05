@@ -1588,13 +1588,20 @@ private:
         arg_name = text_inside_placeholders;
       }
 
-      std::string const normalized_arg_syntax = _normalize_named_arg_syntax(arg_syntax);
+      size_t dynamic_arg_count{0};
+      std::string const normalized_arg_syntax = _normalize_named_arg_syntax(arg_syntax, dynamic_arg_count);
 
       fmt_str += "{";
       fmt_str += normalized_arg_syntax;
       fmt_str += "}";
 
       keys.emplace_back(_make_unique_named_arg_key(keys, arg_name), normalized_arg_syntax);
+      // Width and precision consume argument slots before the next outer field.
+      for (size_t i = 0; i < dynamic_arg_count; ++i)
+      {
+        keys.emplace_back(_make_unique_named_arg_key(keys, fmtquill::format("_{}", keys.size())),
+                          std::string{});
+      }
       pos = close_bracket_pos + 1;
     }
 
@@ -1664,7 +1671,8 @@ private:
     return std::string_view::npos;
   }
 
-  QUILL_NODISCARD static std::string _normalize_named_arg_syntax(std::string_view arg_syntax)
+  QUILL_NODISCARD static std::string _normalize_named_arg_syntax(std::string_view arg_syntax,
+                                                               size_t& dynamic_arg_count)
   {
     std::string normalized;
     normalized.reserve(arg_syntax.size());
@@ -1694,6 +1702,7 @@ private:
       }
 
       normalized += "{}";
+      ++dynamic_arg_count;
       pos = close_bracket_pos + 1;
     }
 

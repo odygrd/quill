@@ -105,6 +105,8 @@
 
 ## Unreleased
 
+- `LOG_INFO` with `"{amount:.{precision}f} {currency}"` now maps `currency` to the currency argument in JSON
+  and `%(named_args)` output. It previously used the precision argument.
 - `FileSink::flush_sink()` now retries a failed reopen after an external deletion, allowing logging to resume
   if the directory becomes available again. On Windows, this also handles files marked for deletion while the
   sink's handle is still open.

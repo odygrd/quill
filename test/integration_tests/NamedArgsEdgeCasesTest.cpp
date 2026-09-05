@@ -133,6 +133,10 @@ TEST_CASE("named_args_edge_cases")
   // 18. Duplicate labels should remain distinct in structured output
   LOG_INFO(logger, "{dup} {dup}", "first", "second");
 
+  LOG_INFO(logger, "{amount:.{precision}f} {currency}", 12.345, 2, "USD");
+  LOG_INFO(logger, "|{val:{width}.{precision}f}| {unit}", 1.234, 6, 2, "ms");
+  LOG_INFO_LIMIT(std::chrono::milliseconds{1}, logger, "{value:{width}} {unit}", 7, 3, "ms");
+
   logger->flush_log();
   Frontend::remove_logger_blocking(logger);
   Backend::stop();
@@ -141,8 +145,8 @@ TEST_CASE("named_args_edge_cases")
   std::vector<std::string> const text_file_contents = quill::testing::file_contents(text_filename);
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_EQ(json_file_contents.size(), 18u);
-  REQUIRE_EQ(text_file_contents.size(), 18u);
+  REQUIRE_EQ(json_file_contents.size(), 21u);
+  REQUIRE_EQ(text_file_contents.size(), 21u);
   REQUIRE_EQ(error_messages.size(), 2u);
 
   // Check the malformed case (1)
@@ -159,8 +163,8 @@ TEST_CASE("named_args_edge_cases")
   REQUIRE(quill::testing::file_contains(
     text_file_contents, R"([Could not format log statement. message: "{name}} text")"));
 #else
-  REQUIRE_EQ(json_file_contents.size(), 16u);
-  REQUIRE_EQ(text_file_contents.size(), 16u);
+  REQUIRE_EQ(json_file_contents.size(), 19u);
+  REQUIRE_EQ(text_file_contents.size(), 19u);
 #endif
 
   // Successful cases (2, 4, 5, 6, 7, 8, 9)
@@ -186,6 +190,11 @@ TEST_CASE("named_args_edge_cases")
   // Dynamic width and precision with two nested replacement fields (13)
   REQUIRE(quill::testing::file_contains(text_file_contents,
                                         "|     3.142| [val:      3.142, _1: 10, _2: 4]"));
+
+  CHECK(testing::file_contains(text_file_contents,
+                              "12.35 USD [amount: 12.35, _1: 2, currency: USD]"));
+  CHECK(testing::file_contains(json_file_contents, R"("_1":"6","_2":"2","unit":"ms")"));
+  CHECK(testing::file_contains(json_file_contents, R"("_1":"3","unit":"ms","occurred":"1")"));
 
   // Only escaped braces, no named args (14)
   REQUIRE(quill::testing::file_contains(text_file_contents, "nothing {here} at all []"));
