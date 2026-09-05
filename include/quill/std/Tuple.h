@@ -36,7 +36,7 @@ private:
   {
     // Strip cv qualifiers so const-qualified element types (e.g. std::tuple<int const, ...>)
     // decode through the underlying element codecs, matching compute_encoded_size()/encode()
-    // which already decay the element types
+    // which also preserve array extents
     // Brace initialization preserves left-to-right evaluation of the decode calls.
     return DecodedTuple{((void)Indices, Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))...};
   }
@@ -50,7 +50,7 @@ public:
     std::apply(
       [&total_size, &conditional_arg_size_cache](auto const&... elems)
       {
-        ((total_size += Codec<std::decay_t<decltype(elems)>>::compute_encoded_size(conditional_arg_size_cache, elems)),
+        ((total_size += Codec<detail::remove_cvref_t<decltype(elems)>>::compute_encoded_size(conditional_arg_size_cache, elems)),
          ...);
       },
       arg);
@@ -67,7 +67,7 @@ public:
       std::apply(
         [&conditional_arg_size_cache, &conditional_arg_size_cache_index, &buffer](auto&&... elems)
         {
-          ((Codec<std::decay_t<decltype(elems)>>::encode(
+          ((Codec<detail::remove_cvref_t<decltype(elems)>>::encode(
              buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, std::forward<decltype(elems)>(elems))),
            ...);
         },
@@ -78,7 +78,7 @@ public:
       std::apply(
         [&conditional_arg_size_cache, &conditional_arg_size_cache_index, &buffer](auto const&... elems)
         {
-          ((Codec<std::decay_t<decltype(elems)>>::encode(buffer, conditional_arg_size_cache,
+          ((Codec<detail::remove_cvref_t<decltype(elems)>>::encode(buffer, conditional_arg_size_cache,
                                                          conditional_arg_size_cache_index, elems)),
            ...);
         },

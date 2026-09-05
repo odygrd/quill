@@ -105,6 +105,8 @@
 
 ## Unreleased
 
+- `LOG_INFO(logger, "{}", std::tie(symbol))` now handles a referenced `char[N]` without a null terminator
+  using its array length.
 - When `Codec<T>` uses `DeferredFormatCodec<T>`, logging `std::tie(object)` or a temporary pair containing
   lvalue references no longer moves from those referenced objects.
 - On Linux/macOS, `SignalHandlerOptions::timeout_seconds` now works when the alarm interrupts the thread
