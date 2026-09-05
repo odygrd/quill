@@ -105,6 +105,7 @@
 
 ## Unreleased
 
+- Preserve referenced elements when logging temporary tuples and pairs, while still moving owned rvalue elements.
 - Unblock the original signal in the POSIX watchdog, preserving its default termination and core-dump behavior.
 - Reject oversized control events on bounded dropping queues while preserving retries for temporarily full queues.
 
