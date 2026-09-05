@@ -105,6 +105,7 @@
 
 ## Unreleased
 
+- Restore the configured daily rotation time after normalizing a missing DST hour.
 - Keep structured field values aligned after dynamic width and precision arguments.
 - Retry failed deleted-file recovery on subsequent sink flushes, including after the output path recovers.
 - Preserve fixed-array bounds when sizing and encoding tuple elements.
