@@ -105,6 +105,9 @@
 
 ## Unreleased
 
+- On Linux/macOS, `SignalHandlerOptions::timeout_seconds` now works when the alarm interrupts the thread
+  already handling the signal during a stalled flush. The original signal's default termination and core-dump
+  behavior is preserved.
 - `Logger::set_mdc()` and `Logger::erase_mdc()` now reject requests larger than a `QueueType::BoundedDropping`
   queue rather than retrying indefinitely. Application threads still retry when the request fits but the queue
   is temporarily full.
