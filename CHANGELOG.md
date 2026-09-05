@@ -105,6 +105,7 @@
 
 ## Unreleased
 
+- Retry failed deleted-file recovery on subsequent sink flushes, including after the output path recovers.
 - Preserve fixed-array bounds when sizing and encoding tuple elements.
 - Preserve referenced elements when logging temporary tuples and pairs, while still moving owned rvalue elements.
 - Unblock the original signal in the POSIX watchdog, preserving its default termination and core-dump behavior.
