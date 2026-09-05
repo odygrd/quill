@@ -105,6 +105,7 @@
 
 ## Unreleased
 
+- Close Windows file handles when a final buffered write fails during sink destruction.
 - Remove empty sink-owned Prometheus families so metrics can be registered again with updated metadata.
 - Publish thread-retirement accounting before making the context eligible for backend cleanup.
 - Flush sinks during logger removal and final shutdown even when callers retain the sink.

@@ -583,7 +583,14 @@ protected:
   {
     QUILL_TRY { close_file(); }
   #if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH_ALL() {}
+    QUILL_CATCH_ALL()
+    {
+      if (_native_file_handle != INVALID_HANDLE_VALUE)
+      {
+        ::CloseHandle(_native_file_handle);
+        _native_file_handle = INVALID_HANDLE_VALUE;
+      }
+    }
   #endif
   }
 
