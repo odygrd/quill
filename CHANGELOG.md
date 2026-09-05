@@ -105,6 +105,8 @@
 
 ## Unreleased
 
+- When `Codec<T>` uses `DeferredFormatCodec<T>`, logging `std::tie(object)` or a temporary pair containing
+  lvalue references no longer moves from those referenced objects.
 - On Linux/macOS, `SignalHandlerOptions::timeout_seconds` now works when the alarm interrupts the thread
   already handling the signal during a stalled flush. The original signal's default termination and core-dump
   behavior is preserved.

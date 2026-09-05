@@ -112,6 +112,16 @@ TEST_CASE("std_pair_logging")
     // must compile and decode through the underlying element codecs
     std::map<std::string, int> map_value{{"map_key", 42}};
     LOG_INFO(logger, "map_value_type {}", *map_value.begin());
+
+    PairNoDefaultType referenced{"referenced"};
+    LOG_INFO(logger, "reference_first {}", (std::pair<PairNoDefaultType&, int>{referenced, 7}));
+    CHECK_EQ(referenced.value, "referenced");
+    LOG_INFO(logger, "reference_second {}", (std::pair<int, PairNoDefaultType&>{8, referenced}));
+    CHECK_EQ(referenced.value, "referenced");
+
+    std::pair<int, PairNoDefaultType> const const_pair{9, PairNoDefaultType{"const"}};
+    LOG_INFO(logger, "const_pair {}", std::move(const_pair));
+    CHECK_EQ(const_pair.second.value, "const");
   }
 
   logger->flush_log();
@@ -157,6 +167,10 @@ TEST_CASE("std_pair_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       map_value_type (\"map_key\", 42)"}));
+
+  CHECK(testing::file_contains(file_contents, "reference_first (PairNoDefault(value: referenced), 7)"));
+  CHECK(testing::file_contains(file_contents, "reference_second (8, PairNoDefault(value: referenced))"));
+  CHECK(testing::file_contains(file_contents, "const_pair (9, PairNoDefault(value: const))"));
 
   testing::remove_file(filename);
 }

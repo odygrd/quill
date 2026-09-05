@@ -90,6 +90,28 @@ struct quill::Codec<TupleNoDefaultType> : quill::DeferredFormatCodec<TupleNoDefa
 {
 };
 
+struct TupleReferenceValue
+{
+  explicit TupleReferenceValue(int v) : value(v) {}
+  TupleReferenceValue(TupleReferenceValue const&) noexcept = default;
+  TupleReferenceValue(TupleReferenceValue&& other) noexcept : value(std::exchange(other.value, -1)) {}
+  int value;
+};
+
+template <>
+struct quill::Codec<TupleReferenceValue> : quill::DeferredFormatCodec<TupleReferenceValue>
+{
+};
+
+template <>
+struct fmtquill::formatter<TupleReferenceValue> : fmtquill::formatter<int>
+{
+  auto format(TupleReferenceValue const& value, fmtquill::format_context& ctx) const
+  {
+    return fmtquill::formatter<int>::format(value.value, ctx);
+  }
+};
+
 /***/
 TEST_CASE("std_tuple_logging")
 {
@@ -151,6 +173,14 @@ TEST_CASE("std_tuple_logging")
     // formatted on its own.
     std::tuple<TupleOnlyElement> tuple_only_formatter{TupleOnlyElement{400}};
     LOG_INFO(logger, "tuple_only_formatter {}", tuple_only_formatter);
+
+    TupleReferenceValue referenced{42};
+    LOG_INFO(logger, "reference_tuple {}", std::tie(referenced));
+    CHECK_EQ(referenced.value, 42);
+
+    std::tuple<TupleReferenceValue> owned{TupleReferenceValue{43}};
+    LOG_INFO(logger, "owned_tuple {}", std::move(owned));
+    CHECK_EQ(std::get<0>(owned).value, -1);
   }
 
   logger->flush_log();
@@ -196,6 +226,9 @@ TEST_CASE("std_tuple_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       tuple_only_formatter TupleOnly(400)"}));
+
+  CHECK(testing::file_contains(file_contents, "reference_tuple (42)"));
+  CHECK(testing::file_contains(file_contents, "owned_tuple (43)"));
 
   testing::remove_file(filename);
 }
