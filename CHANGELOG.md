@@ -1,3 +1,4 @@
+- [Unreleased](#unreleased)
 - [v13.0.0](#v1300)
 - [v12.2.2](#v1222)
 - [v12.2.1](#v1221)
@@ -101,6 +102,10 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## Unreleased
+
+- Reject oversized control events on bounded dropping queues while preserving retries for temporarily full queues.
 
 ## v13.0.0
 

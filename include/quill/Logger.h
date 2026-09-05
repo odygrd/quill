@@ -263,6 +263,7 @@ public:
    *
    * This operation is not on the hot path. On frontend threads, if a dropping queue is configured
    * and is temporarily full, this function retries until the control event is queued.
+   * An event larger than a bounded queue's capacity is rejected with QuillError.
    */
   template <typename... Args>
   void set_mdc(Args&&... args)
@@ -780,6 +781,14 @@ private:
             (event == MacroMetadata::Event::Metric))
         {
           thread_context->increment_failure_counter();
+        }
+        else if constexpr (frontend_options_t::queue_type == QueueType::BoundedDropping)
+        {
+          if (QUILL_UNLIKELY(total_size > queue.capacity()))
+          {
+            QUILL_THROW(QuillError{"Control event size exceeds the configured bounded queue capacity: " +
+                                   std::to_string(total_size) + " > " + std::to_string(queue.capacity())});
+          }
         }
       }
     }
