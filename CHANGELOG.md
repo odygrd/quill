@@ -1,4 +1,4 @@
-- [Unreleased](#unreleased)
+- [v13.1.0](#v1310)
 - [v13.0.0](#v1300)
 - [v12.2.2](#v1222)
 - [v12.2.1](#v1221)
@@ -103,7 +103,7 @@
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
 
-## Unreleased
+## v13.1.0
 
 - On Windows, text written by `FileEventNotifier::after_open` now goes to the end of the file in append mode.
   `FileEventNotifier::before_close` now runs after pending `FileSink` writes have been flushed.
