@@ -381,6 +381,50 @@ TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
 }
 
 /***/
+TEST_CASE("deleted_file_retries_failed_reopen")
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  fs::path const filename = "deleted_file_retries_failed_reopen.log";
+  uint32_t open_attempts{0};
+  FileEventNotifier notifier;
+  notifier.before_open = [&open_attempts](fs::path const&)
+  {
+    if (++open_attempts == 2)
+    {
+      QUILL_THROW(QuillError{"temporary reopen failure"});
+    }
+  };
+
+  auto write_record = [](FileSink& sink, std::string_view message)
+  {
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+  };
+
+  {
+    FileSinkTestHarness sink{filename, FileSinkConfig{}, notifier};
+    write_record(sink, "before deletion\n");
+    sink.flush_sink();
+    REQUIRE(fs::remove(filename));
+    write_record(sink, "deleted file\n");
+    CHECK_THROWS_AS(sink.flush_sink(), QuillError);
+    CHECK_EQ(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+
+    sink.flush_sink();
+    CHECK_NE(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+    CHECK_EQ(open_attempts, 3);
+    write_record(sink, "recovered\n");
+    sink.flush_sink();
+  }
+
+  auto const contents = testing::file_contents(filename);
+  REQUIRE_EQ(contents.size(), 1);
+  CHECK_EQ(contents[0], "recovered");
+  testing::remove_file(filename);
+#endif
+}
+
 TEST_CASE("after_open_throw_does_not_leak_file_descriptor_during_construction")
 {
 #if defined(__linux__)
@@ -494,6 +538,51 @@ TEST_CASE("destructor_close_notifier_exception_does_not_escape")
 }
 
 /***/
+TEST_CASE("windows_destructor_closes_handle_after_write_failure")
+{
+#if !defined(_WIN32) || defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  fs::path const filename = "windows_destructor_write_failure.log";
+  FileSinkConfig config;
+  config.set_open_mode('w');
+  struct HandleGuard
+  {
+    HANDLE handle;
+    ~HandleGuard()
+    {
+      if (handle != INVALID_HANDLE_VALUE)
+      {
+        ::CloseHandle(handle);
+      }
+    }
+  };
+
+  {
+    auto sink = std::make_unique<FileSinkTestHarness>(filename, config);
+    HANDLE const sink_handle = sink->file_handle();
+    HandleGuard lock_file{::CreateFileW(filename.c_str(), GENERIC_READ | GENERIC_WRITE,
+                                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                       nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr)};
+    REQUIRE_NE(lock_file.handle, INVALID_HANDLE_VALUE);
+    OVERLAPPED range{};
+    REQUIRE(::LockFileEx(lock_file.handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+                         0, 4096, 0, &range));
+    sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", "buffered\n");
+    sink.reset(); // Flushing fails because another handle holds the byte-range lock.
+
+    DWORD flags{0};
+    bool const still_open = ::GetHandleInformation(sink_handle, &flags) != 0;
+    CHECK_FALSE(still_open);
+    if (still_open)
+    {
+      ::CloseHandle(sink_handle);
+    }
+  }
+  testing::remove_file(filename);
+#endif
+}
+
 TEST_CASE("fsync_reports_os_failure")
 {
 #if defined(_WIN32) || defined(QUILL_NO_EXCEPTIONS)

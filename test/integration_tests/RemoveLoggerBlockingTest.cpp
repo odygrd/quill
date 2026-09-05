@@ -30,10 +30,12 @@ TEST_CASE("remove_logger_blocking")
   static constexpr char const* filename = "remove_logger_blocking.log";
   static std::string const logger_name = "logger";
 
+  BackendOptions options;
+  options.sink_min_flush_interval = std::chrono::hours{24};
   for (size_t iter = 0; iter < 5; ++iter)
   {
     // Start the logging backend thread
-    Backend::start();
+    Backend::start(options);
 
     // Set writing logging to a file
     auto file_sink = Frontend::create_or_get_sink<FileSink>(
@@ -55,14 +57,14 @@ TEST_CASE("remove_logger_blocking")
     std::string const iter_str = std::to_string(iter) + "_ITER";
 
     Logger* logger = Frontend::create_or_get_logger(
-      logger_name, std::move(file_sink), quill::PatternFormatterOptions{iter_str + " %(message)"});
+      logger_name, file_sink, quill::PatternFormatterOptions{iter_str + " %(message)"});
 
     for (size_t i = 0; i < number_of_messages; ++i)
     {
       LOG_INFO(logger, "This is message {}", i);
     }
 
-    // Remove logger should also close the Sink and the file
+    // Removal must flush even while this scope retains the sink and keeps the file open.
     Frontend::remove_logger_blocking(logger, 0);
 
     // Read file and check
@@ -76,8 +78,17 @@ TEST_CASE("remove_logger_blocking")
     }
   }
 
-  // Wait until backend stops
+  char const* final_filename = "remove_logger_final_flush.log";
+  FileSinkConfig final_config;
+  final_config.set_open_mode('w');
+  auto retained_sink = Frontend::create_sink<FileSink>(final_filename, final_config);
+  auto* final_logger = Frontend::create_logger("remove_logger_final_flush", retained_sink);
+  LOG_INFO(final_logger, "pending final message");
+  Frontend::remove_logger(final_logger);
   Backend::stop();
+  CHECK(testing::file_contains(testing::file_contents(final_filename), "pending final message"));
+  retained_sink.reset();
+  testing::remove_file(final_filename);
 
   // Remove the file
   testing::remove_file(filename);

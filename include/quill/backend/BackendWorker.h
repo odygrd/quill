@@ -660,7 +660,7 @@ private:
       {
         // we are done, all queues are now empty
         _check_failure_counter(_options.error_notifier);
-        _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Final);
+        _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Final, true);
         break;
       }
 
@@ -685,7 +685,7 @@ private:
     _rdtsc_clock.store(nullptr, std::memory_order_release);
 
     _cleanup_invalidated_thread_contexts();
-    _cleanup_invalidated_loggers();
+    _cleanup_invalidated_loggers(true);
 
     _clear_backend_thread_flag();
   }
@@ -1588,13 +1588,20 @@ private:
         arg_name = text_inside_placeholders;
       }
 
-      std::string const normalized_arg_syntax = _normalize_named_arg_syntax(arg_syntax);
+      size_t dynamic_arg_count{0};
+      std::string const normalized_arg_syntax = _normalize_named_arg_syntax(arg_syntax, dynamic_arg_count);
 
       fmt_str += "{";
       fmt_str += normalized_arg_syntax;
       fmt_str += "}";
 
       keys.emplace_back(_make_unique_named_arg_key(keys, arg_name), normalized_arg_syntax);
+      // Width and precision consume argument slots before the next outer field.
+      for (size_t i = 0; i < dynamic_arg_count; ++i)
+      {
+        keys.emplace_back(_make_unique_named_arg_key(keys, fmtquill::format("_{}", keys.size())),
+                          std::string{});
+      }
       pos = close_bracket_pos + 1;
     }
 
@@ -1664,7 +1671,8 @@ private:
     return std::string_view::npos;
   }
 
-  QUILL_NODISCARD static std::string _normalize_named_arg_syntax(std::string_view arg_syntax)
+  QUILL_NODISCARD static std::string _normalize_named_arg_syntax(std::string_view arg_syntax,
+                                                               size_t& dynamic_arg_count)
   {
     std::string normalized;
     normalized.reserve(arg_syntax.size());
@@ -1694,6 +1702,7 @@ private:
       }
 
       normalized += "{}";
+      ++dynamic_arg_count;
       pos = close_bracket_pos + 1;
     }
 
@@ -1791,13 +1800,14 @@ private:
   /***/
   QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks,
                                                        std::chrono::milliseconds sink_min_flush_interval,
-                                                       SinkFlushReason flush_reason)
+                                                       SinkFlushReason flush_reason,
+                                                       bool include_invalidated_loggers = false)
   {
-    // Populate the active sinks cache with unique sinks, consider only the valid loggers
+    // Removal and shutdown must also flush sinks belonging to invalidated loggers.
     _logger_manager.for_each_logger(
-      [this](LoggerBase* logger)
+      [this, include_invalidated_loggers](LoggerBase* logger)
       {
-        if (logger->is_valid_logger())
+        if (include_invalidated_loggers || logger->is_valid_logger())
         {
           for (std::shared_ptr<Sink> const& sink : logger->_sinks)
           {
@@ -1976,8 +1986,18 @@ private:
   /**
    * Cleans up any invalidated loggers
    */
-  QUILL_ATTRIBUTE_HOT void _cleanup_invalidated_loggers()
+  QUILL_ATTRIBUTE_HOT void _cleanup_invalidated_loggers(bool sinks_already_flushed = false)
   {
+    if (!_logger_manager.has_invalidated_loggers())
+    {
+      return;
+    }
+
+    if (!sinks_already_flushed)
+    {
+      _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Explicit, true);
+    }
+
     // since there are no messages we can check for invalidated loggers and clean them up
     _logger_manager.cleanup_invalidated_loggers(
       [this]()

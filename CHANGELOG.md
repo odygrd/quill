@@ -1,3 +1,4 @@
+- [v13.1.0](#v1310)
 - [v13.0.0](#v1300)
 - [v12.2.2](#v1222)
 - [v12.2.1](#v1221)
@@ -101,6 +102,21 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## v13.1.0
+
+- Preserve buffered log ordering and append positions when Windows file-event callbacks write output.
+- Close Windows file handles when a final buffered write fails during sink destruction.
+- Remove empty sink-owned Prometheus families so metrics can be registered again with updated metadata.
+- Publish thread-retirement accounting before making the context eligible for backend cleanup.
+- Flush sinks during logger removal and final shutdown even when callers retain the sink.
+- Restore the configured daily rotation time after normalizing a missing DST hour.
+- Keep structured field values aligned after dynamic width and precision arguments.
+- Retry failed deleted-file recovery on subsequent sink flushes, including after the output path recovers.
+- Preserve fixed-array bounds when sizing and encoding tuple elements.
+- Preserve referenced elements when logging temporary tuples and pairs, while still moving owned rvalue elements.
+- Unblock the original signal in the POSIX watchdog, preserving its default termination and core-dump behavior.
+- Reject oversized control events on bounded dropping queues while preserving retries for temporarily full queues.
 
 ## v13.0.0
 

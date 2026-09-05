@@ -64,6 +64,8 @@ using FileEventNotifierHandle = FILE*;
  *       performing the file open/close operation. Different callbacks, and different invocations
  *       of the same callback, may therefore run on different threads over the sink lifetime.
  *       Callbacks must be thread-safe and must not assume a single calling thread.
+ *       On Windows, buffered log data is flushed before `before_close`, and append-mode
+ *       regular files are positioned at the end before `after_open`.
  *
  * @warning File-event callbacks must not call `Frontend::create_sink()` or
  *          `Frontend::create_or_get_sink()` with the name of the sink currently being constructed.

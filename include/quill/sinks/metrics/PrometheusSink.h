@@ -281,6 +281,7 @@ public:
       });
   }
 
+  /** Removes the series and, when it is the last one, its sink-owned registry family. */
   bool unregister_metric(MetricMetadata const* metric_metadata)
   {
     MetricMetadata const& validated_metric = _validate_metric_metadata(metric_metadata);
@@ -532,6 +533,7 @@ private:
 
     if (family_it->second.metric_count == 0)
     {
+      std::visit([this](auto* family) { _registry.Remove(*family); }, family_it->second.family);
       _families.erase(family_it);
     }
 

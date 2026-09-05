@@ -616,9 +616,15 @@ inline void on_alarm(int32_t signal_number)
     SignalHandlerContext::instance().signal_number = signal_number;
   }
 
-  // We will raise the original signal back
-  std::signal(SignalHandlerContext::instance().signal_number, SIG_DFL);
-  std::raise(SignalHandlerContext::instance().signal_number);
+  // The alarm can interrupt the original handler, which still blocks its own signal.
+  // Restore and unblock it so its default action (including a core dump) takes effect.
+  int const original_signal = SignalHandlerContext::instance().signal_number.load();
+  std::signal(original_signal, SIG_DFL);
+  sigset_t unblocked_signals;
+  sigemptyset(&unblocked_signals);
+  sigaddset(&unblocked_signals, original_signal);
+  pthread_sigmask(SIG_UNBLOCK, &unblocked_signals, nullptr);
+  std::raise(original_signal);
 }
 
 template <typename TFrontendOptions>
