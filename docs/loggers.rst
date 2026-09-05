@@ -52,7 +52,7 @@ for the backend worker to process the removal.
 
 If you plan to use logger removal functions, ensure that no other threads continue using the logger after calling :cpp:func:`remove_logger` or :cpp:func:`FrontendImpl::remove_logger_blocking`. To avoid potential issues, it is recommended to create a separate logger for each application thread, giving each logger a unique `logger_name`. This ensures that when one thread removes its logger, it does not affect other threads.
 
-When all loggers associated with a particular ``Sink`` are removed, the corresponding ``Sink`` instances are destroyed, and any associated files are closed automatically.
+Once all loggers and other ``shared_ptr`` owners release a sink, it is destroyed and its associated files are closed. Logger removal flushes pending sink output even when another shared pointer keeps the sink open.
 
 In many cases, it is sufficient to create a new logger rather than removing an old one. However, logger removal is particularly useful when the underlying sinks need to be destructed and files closed.
 

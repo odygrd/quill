@@ -275,16 +275,13 @@ public:
 
   /***/
   template <typename TCheckQueuesEmpty>
-  void cleanup_invalidated_loggers(TCheckQueuesEmpty check_queues_empty, std::vector<std::string>& removed_loggers)
+  std::vector<std::unique_ptr<LoggerBase>> cleanup_invalidated_loggers(
+    TCheckQueuesEmpty check_queues_empty, std::vector<std::string>& removed_loggers)
   {
+    // Return ownership so the backend can flush and destroy removed loggers outside _spinlock.
+    std::vector<std::unique_ptr<LoggerBase>> loggers_to_destroy;
     if (_has_invalidated_loggers.exchange(false, std::memory_order_acq_rel))
     {
-      // Defer logger destruction until after _spinlock is released. Destroying a logger drops
-      // its sink refcounts, and the last owner runs the sink destructor here, which may invoke
-      // user-provided file-event callbacks (e.g. before_close/after_close). Running arbitrary
-      // user code under _spinlock could stall frontend logger lookups or deadlock.
-      std::vector<std::unique_ptr<LoggerBase>> loggers_to_destroy;
-
       {
         LockGuard const lock{_spinlock};
         for (auto it = _loggers.begin(); it != _loggers.end();)
@@ -312,6 +309,8 @@ public:
         }
       }
     }
+
+    return loggers_to_destroy;
   }
 
   /***/
