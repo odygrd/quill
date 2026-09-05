@@ -105,6 +105,8 @@
 
 ## Unreleased
 
+- `PrometheusSink::unregister_metric()` now allows a metric to be registered again with updated help text or a
+  different type after the last metric with that name is removed.
 - Fixed an assertion when logging threads exit concurrently in debug builds or builds with
   `QUILL_ENABLE_ASSERTIONS` enabled.
 - `Frontend::remove_logger_blocking()` now flushes its sinks before returning even if the caller retains a
