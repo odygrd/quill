@@ -3718,6 +3718,43 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_localtime_dst")
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);
 
+  // Starting after the missing 02:30 on March 9 must still rotate at 02:30 on March 10.
+  fs::path const missing_hour_file = "daily_rotation_missing_hour.log";
+  fs::path const missing_hour_rolled = "daily_rotation_missing_hour.1.log";
+  auto local_timestamp = [](int day, int hour, int minute)
+  {
+    tm date{};
+    date.tm_year = 125;
+    date.tm_mon = 2;
+    date.tm_mday = day;
+    date.tm_hour = hour;
+    date.tm_min = minute;
+    date.tm_isdst = -1;
+    return static_cast<uint64_t>(std::mktime(&date)) * 1'000'000'000ull;
+  };
+  {
+    RotatingFileSinkConfig config;
+    config.set_open_mode('w');
+    config.set_rotation_time_daily("02:30");
+    config.set_timezone(Timezone::LocalTime);
+    auto const start = local_timestamp(9, 4, 0);
+    RotatingFileSink sink{missing_hour_file, config, {},
+                          std::chrono::system_clock::from_time_t(static_cast<time_t>(start / 1'000'000'000ull))};
+    auto write_record = [&sink](uint64_t timestamp)
+    {
+      sink.write_log(nullptr, timestamp, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr,
+                     "", "record\n");
+      sink.flush_sink();
+    };
+    write_record(start);
+    write_record(local_timestamp(10, 2, 15));
+    CHECK_FALSE(fs::exists(missing_hour_rolled));
+    write_record(local_timestamp(10, 2, 45));
+    CHECK(fs::exists(missing_hour_rolled));
+  }
+  testing::remove_file(missing_hour_file);
+  testing::remove_file(missing_hour_rolled);
+
   #if defined(_WIN32)
   if (had_previous_tz)
   {
